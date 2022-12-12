@@ -1,0 +1,94 @@
+body {
+  background-color: #181A1B;
+}
+
+.navbar {
+  background-color: #24292F;
+}
+
+.navbar .nav-link {
+  font-size: 1.3rem;
+  color: #CAC8C8 !important;
+}
+  
+form .form-select {
+  border-radius: 0;
+  width: auto;
+  background-color: #262A2D;
+  color: #DEDCD9;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #56595D;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2356595D' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+form .form-control{
+  border-radius: 0;
+  border-width: 1px 0px 1px 0px;
+  border-style: solid;
+  border-color: #56595D;
+  background-color: #232224;
+}
+
+form .btn{
+  border-radius: 0;
+  border-width: 1px 1px 1px 1px;
+  border-style: solid;
+  border-color: #56595D;
+  background-color: #232224;
+}
+
+#search main {
+    padding: 6em 2em 2em 2em;
+}
+
+#search main .box {
+  margin: 0 auto 2em auto;
+  width: 70vw;
+  max-height: 100%;
+  border-radius: 10px;
+  border:1px solid #56595D;
+}
+
+#search main .box img {
+  border-radius: 10px 0 0 10px;
+}
+
+#search main .box .content {
+  color: #c7c4bc;
+  margin: 1em;
+  position:relative;
+}
+
+#search main .box .content .title {
+  font-size: 1.5rem;
+  margin-bottom: 0.2em;
+}
+
+#search main .box .content .overview {
+  /* only show 3 lines of overview */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+#search main .box .content .input-group {
+  position:absolute;
+  bottom:0;
+  width: 12rem;
+}
+
+#search main .box .content .input-group .form-select{
+  width: auto;
+}
+
+#search main .box .content .input-group .form-control{
+  border-width: 1px;
+  width: 4rem;
+}
+
+input[type=number] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  }

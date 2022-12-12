@@ -1,0 +1,74 @@
+{% load static %}
+
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    {% include "app/include/tags.html" %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
+
+    <title>Yamtarr</title>
+  </head>
+
+  <body id="search">
+
+    {% include "app/include/navbar.html" %}    
+
+    <main>
+
+        {% for query in query_list.results %}
+            <div class="d-flex flex-column box">
+                <div class="d-flex flex-row">
+                    
+                    {% if query.poster_path == None %}
+                        <img style="width:154px; height:214px" src="https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg">
+
+                    {% else %}
+                        <img src="https://image.tmdb.org/t/p/w154{{query.poster_path}}">
+                    {% endif %}
+
+                    <div class="d-flex flex-column content">
+                        <div class="title">
+                            {{query.name}}
+                            {{query.title}}
+                            {% if query.first_air_date or query.release_date%}
+                                ({{query.first_air_date|slice:"4"}}{{query.release_date|slice:"4"}})
+                            {% endif %}
+                        </div>
+                        <div class="overview">
+                            {{query.overview}}
+                        </div>
+                        {% load extras %}
+
+                        <div>
+                            <form class="d-flex input-group" method="post">
+                                {% csrf_token %}
+                                {% if query.seasons and query.seasons != 1 %}
+                                    <select name="content" class="form-select w-25">
+                                        {% load extras %}
+                                        {% for i in query.seasons|times %}
+                                            <option value="S{{forloop.counter}}">S{{forloop.counter}}</option>
+                                        {% endfor %}
+                                    </select>
+
+                                {% endif %}
+                                <input type="number" class="form-control bg-dark text-white" placeholder="10" aria-label="10" maxlength="3" step="0.5" min="0" max="10">
+                                <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>
+                            </form>
+
+                        </div>                              
+                    </div>
+                </div>
+            </div>
+
+        {% endfor %}
+
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+
+    </body>
+
+</html>
+{% endblock %}

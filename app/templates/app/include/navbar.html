@@ -1,0 +1,26 @@
+<nav class="navbar fixed-top navbar-expand-lg">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active rounded" href="/"> <i class="bi bi-house"></i> Home</a>
+          </li>
+          <a class="nav-link active rounded " href="https://github.com/FuzzyGrim/SummonerStats"> <i class="bi bi-github"> </i> Github</a>
+        </ul>
+        <form class="d-flex" method="post">
+            {% csrf_token %}
+            <select name="content" class="form-select">
+              <option value="multi">TMDB</option>
+              <option value="movie">MOVIE</option>
+              <option value="tv">SHOW</option>
+              <option value="manga">MANGA</option>
+            </select>
+            <input class="form-control bg-dark text-white" type="text" name="query" placeholder="Search" aria-label="Search" required>
+            <button class="btn bg-dark text-white" type="submit"><i class="bi bi-search"></i></button>
+        </form>
+      </div>
+    </div>
+</nav>
