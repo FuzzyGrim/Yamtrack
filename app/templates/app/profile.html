@@ -1,0 +1,51 @@
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    {% include "app/include/tags.html" %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
+
+    <title>Yamtarr | Profile</title>
+  </head>
+
+  <body id="home">
+
+    {% include "app/include/navbar.html" %}    
+
+    <main>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="media">
+        <h2 class="account-heading">{{ user.username }}</h2>
+      </div>
+      
+      <form method="POST">
+        {% csrf_token %}
+        <fieldset class="form-group">
+            <legend class="border-bottom mb-4">Profile</legend>
+            {{ user_form|crispy }}
+        </fieldset>
+        <div class="form-group">
+            <button class="btn bg-dark text-white" type="submit">Update</button>
+        </div>
+      </form>
+
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+
+    </body>
+
+</html>
+{% endblock %}

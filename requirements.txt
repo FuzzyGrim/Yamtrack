@@ -1,2 +1,4 @@
 django
 python-decouple
+django-crispy-forms
+crispy-bootstrap5
