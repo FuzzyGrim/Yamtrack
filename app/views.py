@@ -1,9 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash, authenticate, login as auth_login
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.views.generic import ListView, CreateView
 from app.forms import UserUpdateForm
 from app.models import Media
 from app.utils import api
@@ -31,7 +30,7 @@ def search(request, content, query):
         if request.user.is_authenticated:
             add_media(request)
         else:
-            messages.info(request, "Please log in to add media to your list.")
+            messages.error(request, "Please log in to add media to your list.")
 
         return redirect("/search/" + content + "/" + query + "/")
 
@@ -77,7 +76,11 @@ def add_media(request):
 
 
 def register(request):
-    if request.method == "POST":
+    if ("query") in request.POST:
+        return redirect(
+            "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
+        )
+    elif "username" in request.POST:
         form = UserCreationForm(request.POST)
         if form.is_valid():
             form.save()
@@ -86,12 +89,33 @@ def register(request):
                 request, f"Account created for {username}! You can now log in"
             )
             return redirect("login")
-        else:
-            messages.info(request, "Please correct the error below.")
     else:
         form = UserCreationForm()
     return render(request, "app/register.html", {"form": form})
 
+
+def login(request):
+    if ("query") in request.POST:
+        return redirect(
+            "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
+        )
+
+    elif "username" in request.POST:
+        form = AuthenticationForm()
+        user = authenticate(request, username=request.POST['username'], password=request.POST['password'])
+        if user is not None:
+            auth_login(request, user)
+            messages.success(
+                request, f"Logged in as {user}!"
+            )
+            return redirect("home")
+        else:
+            messages.error(request, "Please enter a correct username and password. Note that both fields may be case-sensitive.")
+    else:
+        form = AuthenticationForm()
+    
+    return render(request, "app/login.html", {"form": form})
+        
 
 @login_required
 def profile(request):
@@ -104,8 +128,7 @@ def profile(request):
             update_session_auth_hash(request, password)
             messages.success(request, f"Your account has been updated!")
             return redirect("profile")
-        else:
-            messages.info(request, "Please correct the error below.")
+
     else:
         user_form = UserUpdateForm(instance=request.user)
         password_form = PasswordChangeForm(request.user)

@@ -17,7 +17,17 @@
     {% include "app/include/navbar.html" %}    
 
     <main>
-
+        {% if messages %}
+            {% for message in messages %}
+            {% if message.tags == 'error' %}
+                <div class="alert alert-danger">
+            {% else %}
+                <div class="alert alert-{{ message.tags }}">
+            {% endif %}
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
         {% for query in query_list.results %}
             <div class="d-flex flex-column box">
                 <div class="d-flex flex-row">

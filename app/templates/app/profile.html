@@ -21,15 +21,15 @@
 
       {% if messages %}
         {% for message in messages %}
-          <div class="alert alert-{{ message.tags }}">
+          {% if message.tags == 'error' %}
+            <div class="alert alert-danger">
+          {% else %}
+            <div class="alert alert-{{ message.tags }}">
+          {% endif %}
             {{ message }}
           </div>
         {% endfor %}
       {% endif %}
-
-      <div class="media">
-        <h2 class="account-heading">{{ user.username }}</h2>
-      </div>
       
       <form method="POST">
         {% csrf_token %}
