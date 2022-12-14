@@ -15,7 +15,7 @@
   text-align: center;
 }
   
-.navbar-brand.abs .form-select {
+.navbar-brand.abs .form-select, #search main .box .content .input-group .form-select {
   border-radius: 0;
   width: auto;
   background-color: #262A2D;
@@ -48,7 +48,7 @@ form .btn{
 }
 
 main {
-    padding: 6em 2em 2em 2em;
+    margin: 6em 2em 2em 2em;
 }
 
 #search main .box {
@@ -88,16 +88,16 @@ main {
   width: 12rem;
 }
 
-#search main .box .content .input-group .form-select{
-  width: auto;
-}
-
 #search main .box .content .input-group .form-control{
   border-width: 1px;
   width: 4rem;
+  border-radius: 0;
+  border-style: solid;
+  border-color: #56595D;
+  background-color: #232224;
 }
 
-input[type=number] {
+#search input[type=number] {
   appearance: textfield;
   -moz-appearance: textfield;
   }
