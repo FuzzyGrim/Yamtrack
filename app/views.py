@@ -15,6 +15,28 @@ def home(request):
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
         )
 
+    elif "score" in request.POST:
+        if request.user.is_authenticated:
+            edit_media(request)
+            return redirect("home")
+
+    if request.user.is_authenticated:
+        queryset = Media.objects.filter(user_id=request.user)
+        movies = []
+        movies_status = {"completed": [], "planning": [], "watching": [], "paused": [], "dropped": []}
+        tv = []
+        tv_status = {"completed": [], "planning": [], "watching": [], "paused": [], "dropped": []}
+
+        for media in queryset:
+            if media.media_type == "movie":
+                movies.append(media)
+                movies_status[(media.status).lower()].append(media)
+            elif media.media_type == "tv":
+                tv.append(media)
+                tv_status[(media.status).lower()].append(media)
+
+        return render(request, "app/home.html", {"media": queryset,"movies": movies, "movies_status": movies_status, "tv": tv, "tv_status": tv_status})
+        
     return render(request, "app/home.html")
 
 
@@ -24,13 +46,16 @@ def search(request, content, query):
         return redirect(
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
         )
-    # elif ("season" and "number" and "title" and "description" and "image" and "year" and "media_id") in request.POST:
 
     elif "score" in request.POST:
         if request.user.is_authenticated:
-            add_media(request)
+            if Media.objects.filter(media_id=request.POST["media_id"], user=request.user).exists():
+                edit_media(request)
+            else:
+                add_media(request)
         else:
-            messages.error(request, "Please log in to add media to your list.")
+            messages.error(request, "Please log in to track media to your account.")
+            return redirect("login")
 
         return redirect("/search/" + content + "/" + query + "/")
 
@@ -43,36 +68,65 @@ def search(request, content, query):
     return render(request, "app/search.html", context)
 
 
-@login_required
 def add_media(request):
-    if "year" not in request.POST:
-        year = 0
+    if request.POST["score"] == "":
+        score = None
     else:
-        year = request.POST["year"]
+        score = request.POST["score"]
 
     if "season" in request.POST:
-        seasons = {request.POST["season"] : request.POST["score"]}
         Media.objects.create(
             media_id=request.POST["media_id"],
             title=request.POST["title"],
-            description=request.POST["description"],
             image=request.POST["image"],
-            year=year,
             media_type=request.POST["media_type"],
-            seasons=seasons,
+            seasons={request.POST["season"] : score},
+            ind_score=score,
             user=request.user,
+            status=request.POST["status"],
+            num_seasons=request.POST["num_seasons"],
         )
     else:
         Media.objects.create(
             media_id=request.POST["media_id"],
             title=request.POST["title"],
-            description=request.POST["description"],
             image=request.POST["image"],
-            year=year,
             media_type=request.POST["media_type"],
-            ind_score=request.POST["score"],
+            ind_score=score,
             user=request.user,
+            status=request.POST["status"],
         )
+
+def edit_media(request):
+    if request.POST["score"] == "":
+        score = None
+    else:
+        score = request.POST["score"]
+
+    media = Media.objects.get(media_id=request.POST["media_id"], user=request.user)
+    if "season" in request.POST:
+        # if media didn't have seasons before, add the previous score as season 1
+        if not media.seasons:
+            media.seasons["1"] = media.ind_score
+        media.seasons[request.POST["season"]] = score
+
+        dict(sorted(media.seasons.items()))
+
+        # calculate the average score and add it to the ind_score field
+        total = 0
+        valued_seasons = 0
+        for season in media.seasons:
+            if media.seasons[season] is not None:
+                total += int(media.seasons[season])
+                valued_seasons += 1
+        media.ind_score = round(total / valued_seasons, 1)
+
+    else:
+        media.ind_score = score
+
+    media.status = request.POST["status"]
+
+    media.save()
 
 
 def register(request):
@@ -84,10 +138,6 @@ def register(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             form.save()
-            username = form.cleaned_data.get("username")
-            messages.success(
-                request, f"Account created for {username}! You can now log in"
-            )
             return redirect("login")
     else:
         form = UserCreationForm()
@@ -105,9 +155,6 @@ def login(request):
         user = authenticate(request, username=request.POST['username'], password=request.POST['password'])
         if user is not None:
             auth_login(request, user)
-            messages.success(
-                request, f"Logged in as {user}!"
-            )
             return redirect("home")
         else:
             messages.error(request, "Please enter a correct username and password. Note that both fields may be case-sensitive.")

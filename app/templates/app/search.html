@@ -50,43 +50,44 @@
                         <div class="overview">
                             {{query.overview}}
                         </div>
-                        {% load extras %}
 
-                        <div>
-                            <form class="d-flex input-group" method="post">
-                                {% csrf_token %}
+                        <form class="d-flex input-group" method="post">
+                            {% csrf_token %}
 
+                            {% if query.seasons and query.seasons != 1 %}
+                                <select name="season" class="form-select">
+                                    {% load extras %}
+                                    {% for i in query.seasons|times %}
+                                        <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
+                                    {% endfor %}
+                                </select>
+                            {% endif %}
+                            <select name="status" class="form-select">
+                                <option value="Completed">Completed</option>
+                                <option value="Planning">Planning</option>
+                                <option value="Watching">Watching</option>
+                                <option value="Paused">Paused</option>
+                                <option value="Dropped">Dropped</option>
+                            </select>
+                            <input type="number" class="form-control bg-dark text-white" name="score" placeholder="0" aria-label="10" maxlength="3" step="0.1" min="0" max="10">
+                            
+                            <!-- if tv show -->
+                            {% if query.name %}
+                                <input type="hidden" name="title" value="{{ query.name }}">
+                                <input type="hidden" name="media_type" value="tv">
                                 {% if query.seasons and query.seasons != 1 %}
-                                    <select name="season" class="form-select w-25">
-                                        {% load extras %}
-                                        {% for i in query.seasons|times %}
-                                            <option value="S{{forloop.counter}}">S{{forloop.counter}}</option>
-                                        {% endfor %}
-                                    </select>
+                                    <input type="hidden" name="num_seasons" value="{{ query.seasons }}">
                                 {% endif %}
-
-                                <input type="number" class="form-control bg-dark text-white" name="score" placeholder="10" aria-label="10" maxlength="3" step="0.1" min="0" max="10" required>
-                                {% if query.name %}
-                                    <input type="hidden" name="title" value="{{ query.name }}">
-                                    {% if query.first_air_date %}
-                                        <input type="hidden" name="year" value="{{ query.first_air_date|slice:"4" }}">
-                                    {% endif %}
-                                    <input type="hidden" name="media_type" value="tv">
-                                {% else %}
-                                    <input type="hidden" name="title" value="{{ query.title }}">
-                                    {% if query.release_date %}
-                                        <input type="hidden" name="year" value="{{ query.release_date|slice:"4" }}">
-                                    {% endif %}
-                                    <input type="hidden" name="media_type" value="movie">
-                                {% endif %}
-                                <input type="hidden" name="media_id" value="{{ query.id }}">
-                                <input type="hidden" name="description" value="{{ query.overview }}">
-                                <input type="hidden" name="image" value="{{ query.poster_path }}">
-                                
-                                <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>
-                            </form>
-
-                        </div>                              
+                            <!-- else movie -->
+                            {% else %}
+                                <input type="hidden" name="title" value="{{ query.title }}">
+                                <input type="hidden" name="media_type" value="movie">
+                            {% endif %}
+                            <input type="hidden" name="media_id" value="{{ query.id }}">
+                            <input type="hidden" name="image" value="{{ query.poster_path }}">
+                            
+                            <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>
+                        </form>
                     </div>
                 </div>
             </div>

@@ -15,7 +15,7 @@
   text-align: center;
 }
   
-.navbar-brand.abs .form-select, #search main .box .content .input-group .form-select {
+.navbar-brand.abs .form-select, #home .tab-content .edit .input-group .form-select, #search main .box .content .input-group .form-select {
   border-radius: 0;
   width: auto;
   background-color: #262A2D;
@@ -80,8 +80,93 @@ body{
 }
 
 main {
-    margin: 6em 2em 2em 2em;
+  margin: 6em 10em 2em 10em;
 }
+
+#home #v-pills-tab{
+  background-color: #1E232A;
+  width: 15em;
+}
+
+#home #v-pills-tab button{
+  color: #aaaaaa;
+}
+
+#home #v-pills-tab button .left_word{
+  float: left;
+  text-align:left;
+}
+
+#home #v-pills-tab button .right_number{
+  float: right;
+  text-align:right;
+}
+
+#home #v-pills-tab button.active{
+  color: #ebe7e7;
+  background-color: #2f3335;
+  border-radius: 0;
+}
+
+#home #v-pills-tab .filters button{
+  width:100%;
+  padding-left: 2em;
+}
+
+#home .tab-content{
+  background-color: #1E232A;
+  width: 100%;
+  padding-left: 2em;
+}
+
+#home .tab-content .tab-pane .d-flex div:not(.title){
+  text-align: center;
+}
+
+#home .tab-content .tab-pane .list-head{
+  margin: 1em 0 1em 0;
+}
+
+#home .tab-content .image{
+  width: 5%;
+}
+
+#home .tab-content .image img{
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+}
+
+#home .tab-content .title{
+  width: 30%;
+  margin-left: 1em;
+}
+
+#home .tab-content .score, #home .tab-content .status, #home .tab-content .delete{
+  width: 10%
+}
+
+#home .tab-content .score .btn{
+  background-color: #1E232A;
+}
+
+#home .tab-content .score .dropdown-menu{
+  background-color: #24292F;
+  color: #e8e6e3;
+  min-width: 0;
+  padding: 1em;
+}
+
+
+#home .tab-content .edit{
+  width: 30%
+}
+
+#home .tab-content input[type=number] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  }
+
 
 #search main .box {
   margin: 0 auto 2em auto;
@@ -117,16 +202,13 @@ main {
 #search main .box .content .input-group {
   position:absolute;
   bottom:0;
-  width: 12rem;
+  width: auto;
 }
 
 #search main .box .content .input-group .form-control{
-  border-width: 1px;
   width: 4rem;
-  border-radius: 0;
   border-style: solid;
   border-color: #56595D;
-  background-color: #232224;
 }
 
 #search input[type=number] {
