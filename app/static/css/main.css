@@ -39,6 +39,10 @@
   color: rgba(209, 205, 199, 0.75);
 }
 
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2356595D' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
 .border-bottom {
   border-bottom: 1px solid #383d3f !important;
 }
@@ -47,7 +51,7 @@
   border-top: 1px solid #383d3f !important;
 }
 
-.form-control, .form-control:focus {
+.form-select, .form-control, .form-control:focus {
   color: rgb(209, 205, 199);
   background-color: rgb(24, 26, 27);
   border-color: rgb(60, 65, 68);
@@ -178,6 +182,9 @@ main {
 
 #search main .box img {
   border-radius: 10px 0 0 10px;
+  max-width: 9rem;
+  max-height: 14rem;
+  object-fit: cover;
 }
 
 #search main .box .content {

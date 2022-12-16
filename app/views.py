@@ -65,7 +65,10 @@ def search(request, content, query):
 
     context = {"query_list": query_list}
 
-    return render(request, "app/search.html", context)
+    if content == "tmdb":
+        return render(request, "app/search_tmdb.html", context)
+    else:
+        return render(request, "app/search_mal.html", context)
 
 
 def add_media(request):
