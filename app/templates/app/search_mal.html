@@ -32,9 +32,9 @@
             <div class="d-flex flex-column box">
                 <div class="d-flex flex-row">
                     
-                    <img src={{query.node.main_picture.medium}}>
+                    <img class="poster flex-shrink-0" src={{query.node.main_picture.medium}}>
 
-                    <div class="d-flex flex-column content">
+                    <div class="d-flex flex-column content flex-grow-1">
                         <div class="title">
                             {{query.node.title}} ({{query.node.start_date|slice:"4"}}) [{{query.node.media_type|capfirst}}]
                         </div>

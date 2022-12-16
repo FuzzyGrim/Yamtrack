@@ -35,7 +35,6 @@ async def tmdb_list(response):
         task = []
         for result in response:
             if result["media_type"] == "tv":
-                result["media_type"] = "TV"
                 url = "https://api.themoviedb.org/3/tv/{}?api_key={}".format(str(result["id"]), TMDB_API)
                 task.append(ensure_future(tmdb_get_seasons(session, url, result)))
         return await gather(*task)

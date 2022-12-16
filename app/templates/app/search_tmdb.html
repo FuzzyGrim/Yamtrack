@@ -33,18 +33,21 @@
                 <div class="d-flex flex-row">
                     
                     {% if query.poster_path == None %}
-                        <img src="https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg">
-
+                        <div class="image-not-found poster flex-shrink-0">
+                        </div>
                     {% else %}
-                        <img src="https://image.tmdb.org/t/p/w185{{query.poster_path}}">
+                        <img class="poster flex-shrink-0" src="https://image.tmdb.org/t/p/w185{{query.poster_path}}">
                     {% endif %}
 
-                    <div class="d-flex flex-column content">
+                    <div class="d-flex flex-column content flex-grow-1">
                         <div class="title">
                             {{query.name}}
                             {{query.title}}
                             {% if query.first_air_date or query.release_date%}
-                                ({{query.first_air_date|slice:"4"}}{{query.release_date|slice:"4"}}) [{{query.media_type|capfirst}}]
+                                ({{query.first_air_date|slice:"4"}}{{query.release_date|slice:"4"}}) 
+                                {% if query.media_type == "tv"%} [TV]
+                                {% elif query.media_type == "movie"%} [Movie]
+                                {% endif %}
                             {% endif %}
                         </div>
                         <div class="overview">
@@ -74,15 +77,14 @@
                             <!-- if tv show -->
                             {% if query.name %}
                                 <input type="hidden" name="title" value="{{ query.name }}">
-                                <input type="hidden" name="media_type" value="tv">
                                 {% if query.seasons and query.seasons != 1 %}
                                     <input type="hidden" name="num_seasons" value="{{ query.seasons }}">
                                 {% endif %}
                             <!-- else movie -->
                             {% else %}
                                 <input type="hidden" name="title" value="{{ query.title }}">
-                                <input type="hidden" name="media_type" value="movie">
                             {% endif %}
+                            <input type="hidden" name="media_type" value="{{ query.media_type }}">
                             <input type="hidden" name="media_id" value="{{ query.id }}">
                             <input type="hidden" name="image" value="{{ query.poster_path }}">
                             
