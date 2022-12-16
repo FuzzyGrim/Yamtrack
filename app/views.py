@@ -20,7 +20,11 @@ def home(request):
             edit_media(request)
             return redirect("home")
 
-    if request.user.is_authenticated:
+    elif "delete" in request.POST:
+        Media.objects.get(media_id=request.POST["delete"], user=request.user).delete()
+        return redirect("home")
+
+    elif request.user.is_authenticated:
         queryset = Media.objects.filter(user_id=request.user)
         movies = []
         movies_status = {"completed": [], "planning": [], "watching": [], "paused": [], "dropped": []}
@@ -72,7 +76,7 @@ def add_media(request):
     if request.POST["score"] == "":
         score = None
     else:
-        score = request.POST["score"]
+        score = float(request.POST["score"])
 
     if "season" in request.POST:
         Media.objects.create(
@@ -101,7 +105,7 @@ def edit_media(request):
     if request.POST["score"] == "":
         score = None
     else:
-        score = request.POST["score"]
+        score = float(request.POST["score"])
 
     media = Media.objects.get(media_id=request.POST["media_id"], user=request.user)
     if "season" in request.POST:
@@ -117,7 +121,7 @@ def edit_media(request):
         valued_seasons = 0
         for season in media.seasons:
             if media.seasons[season] is not None:
-                total += int(media.seasons[season])
+                total += media.seasons[season]
                 valued_seasons += 1
         media.ind_score = round(total / valued_seasons, 1)
 

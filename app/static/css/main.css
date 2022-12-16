@@ -15,7 +15,7 @@
   text-align: center;
 }
   
-.navbar-brand.abs .form-select, #home .tab-content .edit .input-group .form-select, #search main .box .content .input-group .form-select {
+.navbar-brand.abs .form-select, #home .tab-content .edit .form-select, #search main .box .content .input-group .form-select {
   border-radius: 0;
   width: auto;
   background-color: #262A2D;
@@ -146,8 +146,12 @@ main {
   margin-left: 1em;
 }
 
-#home .tab-content .score, #home .tab-content .status, #home .tab-content .delete{
-  width: 10%
+#home .tab-content .score, #home .tab-content .status{
+  width: 10%;
+}
+
+#home .tab-content .list-section .score{
+  color: #e8e6e3;
 }
 
 #home .tab-content .score .btn{
@@ -161,15 +165,34 @@ main {
   padding: 1em;
 }
 
-
 #home .tab-content .edit{
-  width: 30%
+  width: 35%;
+  padding: 0.5rem 1rem 0.5rem 1rem;
+}
+
+#home .tab-content .edit .form-control{
+  width: 4rem;
 }
 
 #home .tab-content input[type=number] {
   appearance: textfield;
   -moz-appearance: textfield;
-  }
+}
+
+#home .tab-content .delete{
+  width: 6%;
+  display: flex;
+  justify-content: center;
+}
+
+#home .tab-content .delete .btn{
+  border-width: 0;
+  background-color: #1E232A;
+}
+
+#home .tab-content .delete .btn:hover{
+  border-width: 1px;
+}
 
 
 #search main .box {

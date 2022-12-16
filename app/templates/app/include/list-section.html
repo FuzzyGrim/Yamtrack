@@ -1,4 +1,4 @@
-<div class="d-flex flex-row mb-3 align-items-center">
+<div class="d-flex flex-row mb-3 align-items-center list-section">
     <div class="image p-2">
       {% if media.image == None %}    
         <img src="https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg">
@@ -22,7 +22,7 @@
       <div class="score p-2">{{media.ind_score}}</div>
     {% endif %}
     <div class="status p-2">{{media.status}}</div>
-    <div class="edit p-2"><form class="input-group" method="post">
+    <form class="input-group edit" method="post">
       {% csrf_token %}
 
       {% if media.num_seasons and media.num_seasons != 1 %}
@@ -52,6 +52,9 @@
       {% endif %}
       
       <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>
-    </form></div>
-    <div class="delete p-2"><i class="bi bi-trash3-fill"></i></div>
+    </form>
+    <form class="delete p-2" method="post">
+      {% csrf_token %}
+      <button class="btn text-white" type="submit" name="delete" value="{{media.media_id}}"><i class="bi bi-trash3-fill"></i></button>
+    </form>
   </div>
