@@ -51,7 +51,9 @@
                             {% endif %}
                         </div>
                         <div class="overview">
-                            {{query.overview}}
+                            {% if query.overview %} {{query.overview}} 
+                            {% else %} No synopsis available. 
+                            {% endif %}
                         </div>
 
                         <form class="d-flex input-group" method="post">
@@ -87,6 +89,7 @@
                             <input type="hidden" name="media_type" value="{{ query.media_type }}">
                             <input type="hidden" name="media_id" value="{{ query.id }}">
                             <input type="hidden" name="image" value="{{ query.poster_path }}">
+                            <input type="hidden" name="api_origin" value="tmdb">
                             
                             <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>
                         </form>

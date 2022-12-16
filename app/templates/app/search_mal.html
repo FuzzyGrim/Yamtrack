@@ -36,11 +36,18 @@
 
                     <div class="d-flex flex-column content flex-grow-1">
                         <div class="title">
-                            {{query.node.title}} ({{query.node.start_date|slice:"4"}}) [{{query.node.media_type|capfirst}}]
+                            {{query.node.title}} 
+                            {% if query.node.start_date %} ({{query.node.start_date|slice:"4"}}) {% endif %}
+                            {% if query.node.media_type == "light_novel" %} [Light Novel]
+                            {% elif query.node.media_type == "ova" %} [OVA]
+                            {% else %} [{{query.node.media_type|capfirst}}]
+                            {% endif %}
                         </div>
 
                         <div class="overview">
-                            {{query.node.synopsis}}
+                            {% if query.node.synopsis %} {{query.node.synopsis}} 
+                            {% else %} No synopsis available. 
+                            {% endif %}
                         </div>
 
                         <form class="d-flex input-group" method="post">
@@ -60,6 +67,7 @@
                             <input type="hidden" name="media_type" value="{{query.node.media_type}}">
                             <input type="hidden" name="media_id" value="{{ query.node.id }}">
                             <input type="hidden" name="image" value="{{ query.node.main_picture.medium }}">
+                            <input type="hidden" name="api_origin" value="mal">
                             
                             <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>
                         </form>
