@@ -67,14 +67,8 @@ async def mal_get_specific(session, url, header, result):
         if "synopsis" in response:
             result["node"]["synopsis"] = response["synopsis"]
         if "media_type" in response:
-            if response["media_type"] == "light_novel":
-                result["node"]["media_type"] = "Light Novel"
-            elif response["media_type"] == "tv":
-                result["node"]["media_type"] = "Anime"
-            elif response["media_type"] == "ova":
-                result["node"]["media_type"] = "OVA"
-            elif response["media_type"] == "one_shot":
-                result["node"]["media_type"] = "One Shot"
+            if response["media_type"] == "tv":
+                result["node"]["media_type"] = "anime"
             else:
                 result["node"]["media_type"] = response["media_type"]
         return result

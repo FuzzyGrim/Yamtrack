@@ -21,7 +21,7 @@ def home(request):
             return redirect("home")
 
     elif "delete" in request.POST:
-        Media.objects.get(media_id=request.POST["delete"], user=request.user).delete()
+        Media.objects.get(media_id=request.POST["delete"], user=request.user, api_origin=request.POST["api_origin"]).delete()
         return redirect("home")
 
     elif request.user.is_authenticated:
@@ -30,16 +30,30 @@ def home(request):
         movies_status = {"completed": [], "planning": [], "watching": [], "paused": [], "dropped": []}
         tv = []
         tv_status = {"completed": [], "planning": [], "watching": [], "paused": [], "dropped": []}
+        anime = []
+        anime_status = {"completed": [], "planning": [], "watching": [], "paused": [], "dropped": []}
+        manga = []
+        manga_status = {"completed": [], "planning": [], "watching": [], "paused": [], "dropped": []}
 
         for media in queryset:
-            if media.media_type == "movie":
-                movies.append(media)
-                movies_status[(media.status).lower()].append(media)
-            elif media.media_type == "tv":
-                tv.append(media)
-                tv_status[(media.status).lower()].append(media)
+            if media.api_origin == "tmdb":
+                if media.media_type == "movie":
+                    movies.append(media)
+                    movies_status[(media.status).lower()].append(media)
 
-        return render(request, "app/home.html", {"media": queryset,"movies": movies, "movies_status": movies_status, "tv": tv, "tv_status": tv_status})
+                else: # media.media_type == "tv"
+                    tv.append(media)
+                    tv_status[(media.status).lower()].append(media)
+            else: # mal
+                if media.media_type == "anime" or media.media_type == "movie" or media.media_type == "special" or media.media_type == "ova":
+                    anime.append(media)
+                    anime_status[(media.status).lower()].append(media)
+                else: #media.media_type == "manga" or media.media_type == "light_novel" or media.media_type == "one_shot"
+                    manga.append(media)
+                    manga_status[(media.status).lower()].append(media)
+
+        return render(request, "app/home.html", {"media": queryset,"movies": movies, "movies_status": movies_status, "tv": tv, "tv_status": tv_status, 
+                                                 "anime": anime, "anime_status": anime_status, "manga": manga, "manga_status": manga_status})
         
     return render(request, "app/home.html")
 
@@ -53,7 +67,7 @@ def search(request, content, query):
 
     elif "score" in request.POST:
         if request.user.is_authenticated:
-            if Media.objects.filter(media_id=request.POST["media_id"], user=request.user).exists():
+            if Media.objects.filter(media_id=request.POST["media_id"], user=request.user, api_origin=request.POST["api_origin"]).exists():
                 edit_media(request)
             else:
                 add_media(request)
@@ -89,6 +103,7 @@ def add_media(request):
             user=request.user,
             status=request.POST["status"],
             num_seasons=request.POST["num_seasons"],
+            api_origin=request.POST["api_origin"],
         )
     else:
         Media.objects.create(
@@ -99,6 +114,7 @@ def add_media(request):
             ind_score=score,
             user=request.user,
             status=request.POST["status"],
+            api_origin=request.POST["api_origin"],
         )
 
 def edit_media(request):
@@ -107,7 +123,7 @@ def edit_media(request):
     else:
         score = float(request.POST["score"])
 
-    media = Media.objects.get(media_id=request.POST["media_id"], user=request.user)
+    media = Media.objects.get(media_id=request.POST["media_id"], user=request.user, api_origin=request.POST["api_origin"])
     if "season" in request.POST:
         # if media didn't have seasons before, add the previous score as season 1
         if not media.seasons:

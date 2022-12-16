@@ -87,35 +87,52 @@ main {
   margin: 6em 10em 2em 10em;
 }
 
-#home #v-pills-tab{
+#home #v-pills-tab {
   background-color: #1E232A;
-  width: 15em;
+  width: 15rem;
+}
+
+#home .dropend {
+  height: 3rem;
+}
+
+#home #v-pills-tab .nav-link{
+  width: 80%;
 }
 
 #home #v-pills-tab button{
   color: #aaaaaa;
 }
 
-#home #v-pills-tab button .left_word{
+#home #v-pills-tab .nav-link{
+  background-color: #1E232A;
+}
+
+#home #v-pills-tab .nav-link .left_word{
   float: left;
   text-align:left;
 }
 
-#home #v-pills-tab button .right_number{
+#home #v-pills-tab .nav-link .right_number{
   float: right;
   text-align:right;
 }
 
-#home #v-pills-tab button.active{
+#home #v-pills-tab .nav-link:hover{
   color: #ebe7e7;
-  background-color: #2f3335;
-  border-radius: 0;
+  border: 1px solid #ebe7e7;
 }
 
-#home #v-pills-tab .filters button{
-  width:100%;
-  padding-left: 2em;
+#home #v-pills-tab .filters{
+  background-color: #1E232A;
 }
+
+#home #v-pills-tab .filters button.dropdown-item{
+  width: 100%;
+  height: 100%;
+  border-radius: 0px;
+}
+
 
 #home .tab-content{
   background-color: #1E232A;
