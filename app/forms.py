@@ -1,9 +1,18 @@
 from django import forms
-from django.contrib.auth.models import User
+from .models import User
+from django.contrib.auth.forms import UserCreationForm
+    
 
-
-class UserUpdateForm(forms.ModelForm):
+class UserRegisterForm(UserCreationForm):
+    default_api = forms.ChoiceField(choices=[("tmdb", "TMDB"), ("mal", "MAL")])
 
     class Meta:
         model = User
-        fields = ['username']
+        fields = ['username', 'default_api', 'password1', 'password2']
+
+
+class UserUpdateForm(forms.ModelForm):
+    default_api = forms.ChoiceField(choices=[("tmdb", "TMDB"), ("mal", "MAL")])
+    class Meta:
+        model = User
+        fields = ['username', 'default_api']

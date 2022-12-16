@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash, authenticate, login as auth_login
-from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm, AuthenticationForm
-from django.contrib.auth.decorators import login_required, user_passes_test
-from app.forms import UserUpdateForm
+from django.contrib.auth.forms import PasswordChangeForm, AuthenticationForm
+from django.contrib.auth.decorators import login_required
+from app.forms import UserRegisterForm, UserUpdateForm
 from app.models import Media
 from app.utils import api
 
@@ -59,10 +59,7 @@ def search(request, content, query):
 
         return redirect("/search/" + content + "/" + query + "/")
 
-    
     query_list = api.search(content, query)
-
-
     context = {"query_list": query_list}
 
     if content == "tmdb":
@@ -138,12 +135,12 @@ def register(request):
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
         )
     elif "username" in request.POST:
-        form = UserCreationForm(request.POST)
+        form = UserRegisterForm(request.POST)
         if form.is_valid():
             form.save()
             return redirect("login")
     else:
-        form = UserCreationForm()
+        form = UserRegisterForm()
     return render(request, "app/register.html", {"form": form})
 
 
