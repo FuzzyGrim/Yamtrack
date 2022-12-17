@@ -60,14 +60,14 @@
                             {% csrf_token %}
 
                             {% if query.seasons and query.seasons != 1 %}
-                                <select name="season" class="form-select">
+                                <select name="season" class="form-select form-season">
                                     {% load extras %}
                                     {% for i in query.seasons|times %}
                                         <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
                                     {% endfor %}
                                 </select>
                             {% endif %}
-                            <select name="status" class="form-select">
+                            <select name="status" class="form-select form-status">
                                 <option value="Completed">Completed</option>
                                 <option value="Planning">Planning</option>
                                 <option value="Watching">Watching</option>

@@ -300,6 +300,11 @@ def profile(request):
             update_session_auth_hash(request, password)
             messages.success(request, f"Your account has been updated!")
             return redirect("profile")
+            
+    elif "query" in request.POST:
+        return redirect(
+            "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
+        )
 
     elif request.POST.get("mal") and request.POST.get("mal-btn"):
         if api.import_myanimelist(request.POST.get("mal"), request.user):

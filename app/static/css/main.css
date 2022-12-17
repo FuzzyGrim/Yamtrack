@@ -1,38 +1,14 @@
-.navbar {
-  background-color: #24292F;
+a {
+  color: #2394fd;
 }
 
-.navbar .nav-link {
-  font-size: 1.3rem;
-  color: #CAC8C8 !important;
+body{
+  background-color: #181A1B;
+  color: #d1cdc7
 }
 
-.navbar-brand.abs{
-  position: absolute;
-  width: auto;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-}
-  
-.navbar-brand.abs .form-select, #home .tab-content .edit .form-select, #search main .box .content .input-group .form-select {
-  border-radius: 0;
-  width: auto;
-  background-color: #262A2D;
-  color: #DEDCD9;
-  border-width: 1px;
-  border-style: solid;
-  border-color: #56595D;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2356595D' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-}
-
-.navbar-brand.abs .form-control{
-  border-radius: 0;
-  border-width: 1px 0px 1px 0px;
-  border-style: solid;
-  border-color: #56595D;
-  background-color: #232224;
-  width: 10rem;
+main {
+  margin: 6em 10em 2em 10em;
 }
 
 .form-text {
@@ -74,17 +50,99 @@ form .btn{
   color: rgba(209, 205, 199, 0.75) !important;
 }
 
-a {
-  color: #2394fd;
+.input-group {
+  width:auto;
 }
 
-body{
-  background-color: #181A1B;
-  color: #d1cdc7
+.navbar {
+  background-color: #24292F;
 }
 
-main {
-  margin: 6em 10em 2em 10em;
+.navbar .nav-link {
+  font-size: 1.3rem;
+  color: #CAC8C8 !important;
+}
+
+@media (min-width: 768px) {
+  .navbar-brand.abs {
+    position: absolute;
+    width: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+}
+
+@media (min-width: 1081px){
+  #search main .box .content .input-group .form-control{
+    width: 40%;
+  }
+  #home .tab-content .edit{
+    width: 40%;
+    padding: 0.5rem 2.5rem 0.5rem 2.5rem;
+  }
+
+  #home .tab-content .title{
+    width: 25%;
+    margin-left: 1em;
+  }
+  
+}
+
+@media (max-width: 1080px){
+  main {
+    margin: 5em .5em 0em .5em;
+  }
+  .navbar-brand.abs {
+    width:40%;
+  }
+  #home .tab-content .title{
+    width: 10%;
+    margin-left: 1em;
+  }
+  #home .tab-content .edit{
+    width: 50%;
+    padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+  }
+}
+
+/* mobile css */
+@media (max-width: 767px) {
+  .navbar-brand.abs {
+    width:80%;
+  }
+
+  #search main .box .content .overview {
+    font-size: 0;
+  }
+
+  #home .tab-content .status{
+    width: 15%;
+  }
+
+  #home .tab-content .edit{
+    width: 45%;
+    padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+  }
+}
+
+.navbar-brand.abs .form-select, #home .tab-content .edit .form-select, #search main .box .content .input-group .form-select {
+  width: auto;
+  border-radius: 0;
+  background-color: #262A2D;
+  color: #DEDCD9;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #56595D;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2356595D' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+.navbar-brand.abs .form-control{
+  width: 40%;
+  border-radius: 0;
+  border-width: 1px 0px 1px 0px;
+  border-style: solid;
+  border-color: #56595D;
 }
 
 #home #v-pills-tab {
@@ -160,25 +218,20 @@ main {
 }
 
 #home .tab-content .image img{
-  width: 50px;
-  height: 50px;
+  width: 3rem;
+  height: 3rem;
   object-fit: cover;
 }
 
 #home .tab-content .image .image-not-found {
-  width: 50px;
-  height: 50px;
+  width: 3rem;
+  height: 3rem;
   object-fit: cover;
   background-image: url("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg");
   background-repeat: no-repeat;
   background-position:center;
   background-color: rgb(44, 48, 50);
   display: inline-block;
-}
-
-#home .tab-content .title{
-  width: 30%;
-  margin-left: 1em;
 }
 
 #home .tab-content .score, #home .tab-content .status{
@@ -198,11 +251,6 @@ main {
   color: #e8e6e3;
   min-width: 0;
   padding: 1em;
-}
-
-#home .tab-content .edit{
-  width: 35%;
-  padding: 0.5rem 2.5rem 0.5rem 2.5rem;
 }
 
 #home .tab-content .edit .form-control{
@@ -274,11 +322,15 @@ main {
 #search main .box .content .input-group {
   position:absolute;
   bottom:0;
-  width: auto;
+  width:auto;
+}
+
+
+#search main .box .content .input-group .form-select.form-status{
+  width:auto;
 }
 
 #search main .box .content .input-group .form-control{
-  width: 4rem;
   border-style: solid;
   border-color: #56595D;
 }
@@ -286,7 +338,7 @@ main {
 #search input[type=number] {
   appearance: textfield;
   -moz-appearance: textfield;
-  }
+}
 
 
 #profile form.import .import-title {
