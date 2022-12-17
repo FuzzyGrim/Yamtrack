@@ -156,6 +156,7 @@
 
           <div class="tab-content" id="v-pills-tabContent">
             <div class="tab-pane fade show active" id="v-pills-tv" role="tabpanel" aria-labelledby="v-pills-tv-tab" tabindex="0">
+              <div class="content-title">TV</div>
               {% include "app/include/list-head.html" %}
               {% for media in tv %}
                 {% include "app/include/list-section.html" %}    
@@ -164,6 +165,7 @@
 
             {% for status in tv_status %}
               <div class="tab-pane fade" id="v-pills-tv-{{status}}" role="tabpanel" aria-labelledby="v-pills-tv-{{status}}-tab" tabindex="0">
+                <div class="content-title">TV - {{status|capfirst}}</div>
                 {% include "app/include/list-head.html" %}
                 {% if status == 'completed'%}
                   {% for media in tv_status.completed %}
@@ -191,6 +193,7 @@
 
 
             <div class="tab-pane fade" id="v-pills-movie" role="tabpanel" aria-labelledby="v-pills-movie-tab" tabindex="0">
+              <div class="content-title">Movie</div>
               {% include "app/include/list-head.html" %}
               {% for media in movies %}
                 {% include "app/include/list-section.html" %}    
@@ -199,6 +202,7 @@
 
             {% for status in movies_status %}
               <div class="tab-pane fade" id="v-pills-movie-{{status}}" role="tabpanel" aria-labelledby="v-pills-movie-{{status}}-tab" tabindex="0">
+                <div class="content-title">Movie - {{status|capfirst}}</div>
                 {% include "app/include/list-head.html" %}
                 {% if status == 'completed'%}
                   {% for media in movies_status.completed %}
@@ -225,6 +229,7 @@
             {% endfor %}
 
             <div class="tab-pane fade" id="v-pills-anime" role="tabpanel" aria-labelledby="v-pills-anime-tab" tabindex="0">
+              <div class="content-title">Anime</div>
               {% include "app/include/list-head.html" %}
               {% for media in anime %}
                 {% include "app/include/list-section.html" %}    
@@ -233,6 +238,7 @@
 
             {% for status in anime_status %}
               <div class="tab-pane fade" id="v-pills-anime-{{status}}" role="tabpanel" aria-labelledby="v-pills-anime-{{status}}-tab" tabindex="0">
+                <div class="content-title">Anime - {{status|capfirst}}</div>
                 {% include "app/include/list-head.html" %}
                 {% if status == 'completed'%}
                   {% for media in anime_status.completed %}
@@ -259,6 +265,7 @@
             {% endfor %}
 
             <div class="tab-pane fade" id="v-pills-manga" role="tabpanel" aria-labelledby="v-pills-manga-tab" tabindex="0">
+              <div class="content-title">Manga</div>
               {% include "app/include/list-head.html" %}
               {% for media in manga %}
                 {% include "app/include/list-section.html" %}    
@@ -267,6 +274,7 @@
 
             {% for status in manga_status %}
               <div class="tab-pane fade" id="v-pills-manga-{{status}}" role="tabpanel" aria-labelledby="v-pills-manga-{{status}}-tab" tabindex="0">
+                <div class="content-title">Manga - {{status|capfirst}}</div>
                 {% include "app/include/list-head.html" %}
                 {% if status == 'completed'%}
                   {% for media in manga_status.completed %}

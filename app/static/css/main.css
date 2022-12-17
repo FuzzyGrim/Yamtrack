@@ -137,7 +137,12 @@ main {
 #home .tab-content{
   background-color: #1E232A;
   width: 100%;
-  padding-left: 2em;
+}
+
+#home .tab-content .content-title{
+  margin: .6em .8em 0 .8em;
+  font-size: 1.8rem;
+  border-bottom: rgb(132, 122, 108) 1px solid;
 }
 
 #home .tab-content .tab-pane .d-flex div:not(.title){
@@ -184,7 +189,7 @@ main {
 
 #home .tab-content .edit{
   width: 35%;
-  padding: 0.5rem 1rem 0.5rem 1rem;
+  padding: 0.5rem 2.5rem 0.5rem 2.5rem;
 }
 
 #home .tab-content .edit .form-control{
