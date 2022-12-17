@@ -87,19 +87,14 @@ def search(request, content, query):
 
 
 def add_media(request):
-    if request.POST["score"] == "":
-        score = None
-    else:
-        score = float(request.POST["score"])
-
     if "season" in request.POST:
         Media.objects.create(
             media_id=request.POST["media_id"],
             title=request.POST["title"],
             image=request.POST["image"],
             media_type=request.POST["media_type"],
-            seasons={request.POST["season"] : score},
-            ind_score=score,
+            seasons={request.POST["season"] : float(request.POST.get("score"))},
+            score=float(request.POST.get("score")),
             user=request.user,
             status=request.POST["status"],
             num_seasons=request.POST["num_seasons"],
@@ -111,38 +106,35 @@ def add_media(request):
             title=request.POST["title"],
             image=request.POST["image"],
             media_type=request.POST["media_type"],
-            ind_score=score,
+            score=float(request.POST.get("score")),
             user=request.user,
             status=request.POST["status"],
             api_origin=request.POST["api_origin"],
         )
 
 def edit_media(request):
-    if request.POST["score"] == "":
-        score = None
-    else:
-        score = float(request.POST["score"])
 
     media = Media.objects.get(media_id=request.POST["media_id"], user=request.user, api_origin=request.POST["api_origin"])
     if "season" in request.POST:
         # if media didn't have seasons before, add the previous score as season 1
         if not media.seasons:
-            media.seasons["1"] = media.ind_score
-        media.seasons[request.POST["season"]] = score
-
+            media.seasons["1"] = media.score
+        media.seasons[request.POST["season"]] = float(request.POST.get("score"))
         dict(sorted(media.seasons.items()))
 
-        # calculate the average score and add it to the ind_score field
+        # calculate the average score
         total = 0
         valued_seasons = 0
         for season in media.seasons:
             if media.seasons[season] is not None:
                 total += media.seasons[season]
                 valued_seasons += 1
-        media.ind_score = round(total / valued_seasons, 1)
+        media.score = round(total / valued_seasons, 1)
+
+        media.num_seasons = request.POST["num_seasons"]
 
     else:
-        media.ind_score = score
+        media.score = float(request.POST.get("score"))
 
     media.status = request.POST["status"]
 
