@@ -310,6 +310,14 @@ def profile(request):
             )
         return redirect("profile")
 
+    elif request.FILES.get("tmdb") and request.POST.get("tmdb-btn"):
+        if api.import_myanimelist(request.FILES.get("tmdb"), request.user):
+            messages.success(request, f"Your TMDB list has been imported!")
+        else:
+            messages.error(request, 'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name')
+
+        return redirect("profile")
+
     else:
         user_form = UserUpdateForm(instance=request.user)
         password_form = PasswordChangeForm(request.user)
