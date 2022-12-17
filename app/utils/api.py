@@ -2,6 +2,7 @@ from decouple import config
 import requests
 from aiohttp import ClientSession
 from asyncio import ensure_future, gather, run
+from app.models import Media
 
 
 TMDB_API = config("TMDB_API")
@@ -72,3 +73,48 @@ async def mal_get_specific(session, url, header, result):
             else:
                 result["node"]["media_type"] = response["media_type"]
         return result
+
+
+def import_myanimelist(username, user):
+    header = { "X-MAL-CLIENT-ID" : MAL_API }
+    anime_url = "https://api.myanimelist.net/v2/users/{}/animelist?fields=list_status".format(username)
+    anime_response = requests.get(anime_url, headers=header).json()
+
+    if "error" in anime_response and anime_response["error"]  == "not_found":
+        return False
+
+    manga_url = "https://api.myanimelist.net/v2/users/{}/mangalist?fields=list_status".format(username)
+    manga_response = requests.get(manga_url, headers=header).json()
+
+    bulk_add_media = []
+
+    for anime in anime_response["data"]:
+        if not Media.objects.filter(media_id=anime["node"]["id"], api_origin="mal", user=user).exists():
+            if anime["list_status"]["status"] == "plan_to_watch":
+                anime["list_status"]["status"] = "Planning"
+            elif anime["list_status"]["status"] == "on_hold":
+                anime["list_status"]["status"] = "Paused"
+            else:
+                anime["list_status"]["status"] = anime["list_status"]["status"].capitalize()
+
+            bulk_add_media.append(Media(media_id=anime["node"]["id"], title=anime["node"]["title"], image=anime["node"]["main_picture"]["medium"], 
+                                        media_type="anime", score=anime["list_status"]["score"], status=anime["list_status"]["status"], 
+                                        api_origin="mal", user=user))
+
+    for manga in manga_response["data"]:
+        if not Media.objects.filter(media_id=anime["node"]["id"], api_origin="mal", user=user).exists():
+            if anime["list_status"]["status"] == "plan_to_watch":
+                anime["list_status"]["status"] = "Planning"
+            elif anime["list_status"]["status"] == "on_hold":
+                anime["list_status"]["status"] = "Paused"
+            elif manga["list_status"]["status"] == "reading":
+                manga["list_status"]["status"] = "Watching"
+            else:
+                manga["list_status"]["status"] = manga["list_status"]["status"].capitalize()
+            bulk_add_media.append(Media(media_id=manga["node"]["id"], title=manga["node"]["title"], image=manga["node"]["main_picture"]["medium"], 
+                                        media_type="manga", score=manga["list_status"]["score"], status=manga["list_status"]["status"], 
+                                        api_origin="mal", user=user))
+    
+    Media.objects.bulk_create(bulk_add_media)
+
+    return True

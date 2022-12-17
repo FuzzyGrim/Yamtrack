@@ -287,3 +287,21 @@ main {
   appearance: textfield;
   -moz-appearance: textfield;
   }
+
+
+#profile form.import .import-title {
+  font-size: 1.2rem;
+  margin-bottom: .5em;
+  text-align: center;
+}
+
+#profile form.import input[type=file]{
+  width:20rem;
+  word-wrap: break-word;
+  overflow: auto;
+}
+
+#profile form.import input[type=file]::file-selector-button {
+  background-color: #232627;
+  color: #D1CDC7;
+}

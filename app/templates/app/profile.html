@@ -13,7 +13,7 @@
     <title>Yamtarr | Profile</title>
   </head>
 
-  <body id="home">
+  <body id="profile">
 
     {% include "app/include/navbar.html" %}    
 
@@ -41,6 +41,37 @@
         <div class="form-group">
             <button class="btn bg-dark text-white" type="submit">Update</button>
         </div>
+      </form>
+
+      <form class="import mt-5" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <fieldset class="input-group">
+          <legend class="border-bottom mb-4">Import</legend>
+
+          <div class="d-flex flex-row justify-content-between mb-3" style="width:100%">
+            <div class="p-2 d-flex flex-column">
+              <div class="import-title">The Movie Database</div>
+              <div class="input-group">
+                <input type="file" accept=".xml" class="form-control" aria-label="Upload" name="tmdb">
+                <button class="btn btn-outline-secondary" type="submit" name="tmdb-btn" value="tmdb-btn"><i class="bi bi-check-lg"></i></button>
+              </div>
+            </div>
+            <div class="p-2 d-flex flex-column">
+              <div class="import-title">IMDB</div>
+              <div class="input-group">
+                <input type="file" accept=".xml" class="form-control" aria-label="Upload" name="imdb">
+                <button class="btn btn-outline-secondary" type="submit" name="imdb-btn" value="imdb-btn"><i class="bi bi-check-lg"></i></button>
+              </div>
+            </div>
+            <div class="p-2 d-flex flex-column">
+              <div class="import-title">MyAnimeList</div>
+              <div class="input-group">
+                <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
+                <button class="btn btn-outline-secondary" type="submit" name="mal-btn" value="mal-btn"><i class="bi bi-check-lg"></i></button>
+              </div>
+            </div>
+          </div>
+        </fieldset>
       </form>
 
     </main>

@@ -57,6 +57,7 @@
     </form>
     <form class="delete p-2" method="post">
       {% csrf_token %}
+      <input type="hidden" name="api_origin" value="{{ media.api_origin }}">
       <button class="btn text-white" type="submit" name="delete" value="{{media.media_id}}"><i class="bi bi-trash3-fill"></i></button>
     </form>
   </div>
