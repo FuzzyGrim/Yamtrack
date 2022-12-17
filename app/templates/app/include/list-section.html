@@ -1,7 +1,7 @@
 <div class="d-flex flex-row mb-3 align-items-center list-section">
     <div class="image p-2">
-      {% if media.image == None %}
-        <img src="https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg">
+      {% if media.image == "None" or media.image == ""%}
+        <div class="image-not-found poster flex-shrink-0"></div>      
       {% else %}
         {% if media.api_origin == "tmdb" %}
           <img src="https://image.tmdb.org/t/p/w342{{media.image}}">
@@ -47,10 +47,8 @@
 
       <input type="number" class="form-control bg-dark text-white" name="score" placeholder="0" aria-label="10" maxlength="3" step="0.1" min="0" max="10">
       
-      <input type="hidden" name="title" value="{{ media.title }}">
-      <input type="hidden" name="media_type" value="media">
       <input type="hidden" name="media_id" value="{{ media.media_id }}">
-      <input type="hidden" name="image" value="{{ media.image }}">
+      <input type="hidden" name="api_origin" value="{{ media.api_origin }}">
       {% if media.num_seasons and media.num_seasons != 1 %}
         <input type="hidden" name="num_seasons" value="{{ media.num_seasons }}">
       {% endif %}
