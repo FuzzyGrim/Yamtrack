@@ -72,13 +72,13 @@ form .btn { border-radius: 0; border-width: 1px 1px 1px 1px; border-style: solid
 
 #home .tab-content .score .dropdown-menu { background-color: #24292F; color: #e8e6e3; min-width: 0; padding: 1em; }
 
-#home .tab-content .edit { width: 40%; padding: 0.5rem 2.5rem 0.5rem 2.5rem; }
+#home .tab-content .edit { width: 35%; padding: 0.5rem 2.5rem 0.5rem 2.5rem; }
 
 #home .tab-content .edit .form-control { width: 4rem; }
 
 #home .tab-content input[type=number] { appearance: textfield; -moz-appearance: textfield; }
 
-#home .tab-content .delete { width: 6%; display: flex; justify-content: center; margin-right: .5em !important; }
+#home .tab-content .delete { width: auto; display: flex; justify-content: center; margin-right: .5em !important; }
 
 #home .tab-content .delete .btn { border-width: 0; background-color: #1E232A; }
 
@@ -110,13 +110,13 @@ form .btn { border-radius: 0; border-width: 1px 1px 1px 1px; border-style: solid
 
 #profile form.import input[type=file]::file-selector-button { background-color: #232627; color: #D1CDC7; }
 
-@media (min-width: 1081px) { #search main .box .content .input-group .form-control { width: 40%; } }
+@media screen and (min-width: 1081px) { #search main .box .content .input-group .form-control { width: 40%; } }
 
-@media (max-width: 1080px) { main { margin: 5em .5em 0em .5em; } main .navbar-brand.abs { width: 40%; } main #home .tab-content .title { width: 10%; margin-left: 1em; } main #home .tab-content .edit { width: 50%; padding: 0.5rem 1.5rem 0.5rem 1.5rem; } }
+@media screen and (min-width: 768px) { .navbar-brand.abs { position: absolute; width: auto; left: 50%; transform: translateX(-50%); text-align: center; } }
 
-@media (min-width: 768px) { .navbar-brand.abs { position: absolute; width: auto; left: 50%; transform: translateX(-50%); text-align: center; } }
+@media screen and (max-width: 1080px) { main { margin: 5em .5em 0em .5em; } .navbar-brand.abs { width: 40%; margin-left: 1rem; } #home .tab-content .title { width: 10%; margin-left: 1.2em; } #home .tab-content .edit { width: 50%; padding: 0.5em 1.5em 0.5em 1.5em; } }
 
 /* mobile css */
-@media (max-width: 767px) { .navbar-brand.abs { width: 80%; } #search main .box .content .overview { font-size: 0; } #home .tab-content .status { width: 15%; } #home .tab-content .edit { width: 45%; padding: 0.5rem 1.5rem 0.5rem 1.5rem; } }
+@media screen and (max-width: 767px) { .navbar-brand.abs { width: 80%; margin-left: 0rem; } #search main .box .content .overview { font-size: 0; } #home .tab-content .title { margin-left: 3em; } #home .tab-content .title, #home .tab-content .score, #home .tab-content .status, #home .tab-content .delete { width: auto; } #home .tab-content .edit { width: auto; padding: 0.5rem 0.5rem 0.5rem 1rem; } }
 
 /*# sourceMappingURL=main.css.map */

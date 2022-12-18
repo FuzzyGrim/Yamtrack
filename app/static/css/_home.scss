@@ -113,7 +113,7 @@ $dark-blue-bg: #1E232A;
     }
 
     .edit {
-      width: 40%;
+      width: 35%;
       padding: 0.5rem 2.5rem 0.5rem 2.5rem;
       .form-control{
         width: 4rem;
@@ -126,7 +126,7 @@ $dark-blue-bg: #1E232A;
     }
 
     .delete {
-      width: 6%;
+      width: auto;
       display: flex;
       justify-content: center;
       margin-right: .5em !important;
