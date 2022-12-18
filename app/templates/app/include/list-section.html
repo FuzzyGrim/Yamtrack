@@ -19,8 +19,8 @@
         {{media.score}}
       </button>
       <ul class="dropdown-menu">
-        {% for key, value in media.seasons.items %}
-          <li>S{{key}}: {{value}}</li>
+        {% for season, score in media.seasons_score.items %}
+          <li>S{{season}}: {{score}}</li>
         {% endfor %}
       </ul>
     </div>

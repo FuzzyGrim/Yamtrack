@@ -7,9 +7,10 @@ from django.contrib.auth import (
 )
 from django.contrib.auth.forms import PasswordChangeForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from app.forms import UserRegisterForm, UserUpdateForm
 from app.models import Media
-from app.utils import api
+from app.forms import UserRegisterForm, UserUpdateForm
+from app.utils import api, database
+
 
 def home(request):
     """Home page"""
@@ -20,15 +21,7 @@ def home(request):
 
     elif "score" in request.POST:
         if request.user.is_authenticated:
-            edit_media(
-                request.POST["media_id"],
-                request.POST.get("season"),
-                request.POST["score"],
-                request.user,
-                request.POST["status"],
-                request.POST.get("num_seasons"),
-                request.POST["api_origin"],
-            )
+            database.edit_media(request)
             return redirect("home")
 
     elif "delete" in request.POST:
@@ -129,28 +122,9 @@ def search(request, content, query):
                 user=request.user,
                 api_origin=request.POST["api_origin"],
             ).exists():
-                edit_media(
-                    request.POST["media_id"],
-                    request.POST.get("season"),
-                    request.POST["score"],
-                    request.user,
-                    request.POST["status"],
-                    request.POST.get("num_seasons"),
-                    request.POST["api_origin"],
-                )
+                database.edit_media(request)
             else:
-                add_media(
-                    request.POST["media_id"],
-                    request.POST["title"],
-                    request.POST["image"],
-                    request.POST["media_type"],
-                    request.POST.get("season"),
-                    request.POST["score"],
-                    request.user,
-                    request.POST["status"],
-                    request.POST.get("num_seasons"),
-                    request.POST["api_origin"],
-                )
+                database.add_media(request)
         else:
             messages.error(request, "Please log in to track media to your account.")
             return redirect("login")
@@ -164,87 +138,6 @@ def search(request, content, query):
         return render(request, "app/search_tmdb.html", context)
     else:
         return render(request, "app/search_mal.html", context)
-
-
-def add_media(
-    media_id,
-    title,
-    image,
-    media_type,
-    season,
-    score,
-    user,
-    status,
-    num_seasons,
-    api_origin,
-):
-    if score == "":
-        score = None
-    else:
-        score = float(score)
-
-    if season:
-        Media.objects.create(
-            media_id=media_id,
-            title=title,
-            image=image,
-            media_type=media_type,
-            seasons={season: score},
-            score=score,
-            user=user,
-            status=status,
-            num_seasons=num_seasons,
-            api_origin=api_origin,
-        )
-    else:
-        Media.objects.create(
-            media_id=media_id,
-            title=title,
-            image=image,
-            media_type=media_type,
-            score=score,
-            user=user,
-            status=status,
-            api_origin=api_origin,
-        )
-
-
-def edit_media(media_id, season, score, user, status, num_seasons, api_origin):
-    if score == "":
-        score = None
-    else:
-        score = float(score)
-
-    media = Media.objects.get(
-        media_id=media_id,
-        user=user,
-        api_origin=api_origin,
-    )
-    if season:
-        # if media didn't have seasons before, add the previous score as season 1
-        if not media.seasons:
-            media.seasons["1"] = media.score
-        media.seasons[season] = score
-        dict(sorted(media.seasons.items()))
-
-        # calculate the average score
-        total = 0
-        valued_seasons = 0
-        for season in media.seasons:
-            if media.seasons[season] is not None:
-                total += media.seasons[season]
-                valued_seasons += 1
-        if valued_seasons != 0:
-            media.score = round(total / valued_seasons, 1)
-
-        media.num_seasons = num_seasons
-
-    else:
-        media.score = score
-
-    media.status = status
-
-    media.save()
 
 
 def register(request):
@@ -316,7 +209,7 @@ def profile(request):
         return redirect("profile")
 
     elif request.FILES.get("tmdb") and request.POST.get("tmdb-btn"):
-        if api.import_myanimelist(request.FILES.get("tmdb"), request.user):
+        if api.import_tmdb(request.FILES.get("tmdb"), request.user):
             messages.success(request, f"Your TMDB list has been imported!")
         else:
             messages.error(request, 'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name')

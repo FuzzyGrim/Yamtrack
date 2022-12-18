@@ -8,7 +8,7 @@ class Media(models.Model):
     title = models.CharField(max_length=100)
     image = models.TextField()
     media_type = models.CharField(max_length=100)
-    seasons = models.JSONField(default=dict)
+    seasons_score = models.JSONField(default=dict)
     score = models.FloatField(null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(max_length=30)

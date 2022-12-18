@@ -55,10 +55,10 @@
                         <form class="d-flex input-group" method="post">
                             {% csrf_token %}
 
-                            {% if query.seasons and query.seasons != 1 %}
+                            {% if query.num_seasons and query.num_seasons  != 1 %}
                                 <select name="season" class="form-select form-season">
                                     {% load extras %}
-                                    {% for i in query.seasons|times %}
+                                    {% for i in query.num_seasons|times %}
                                         <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
                                     {% endfor %}
                                 </select>
@@ -75,8 +75,8 @@
                             <!-- if tv show -->
                             {% if query.name %}
                                 <input type="hidden" name="title" value="{{ query.name }}">
-                                {% if query.seasons and query.seasons != 1 %}
-                                    <input type="hidden" name="num_seasons" value="{{ query.seasons }}">
+                                {% if query.num_seasons  and query.num_seasons  != 1 %}
+                                    <input type="hidden" name="num_seasons" value="{{ query.num_seasons  }}">
                                 {% endif %}
                             <!-- else movie -->
                             {% else %}

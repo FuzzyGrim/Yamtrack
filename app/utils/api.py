@@ -48,9 +48,9 @@ async def tmdb_get_seasons(session, url, result):
     async with session.get(url) as resp:
         response = await resp.json()
         if response["last_episode_to_air"] is None:
-            result["seasons"] = 1
+            result["num_seasons"] = 1
         else:
-            result["seasons"] = response["last_episode_to_air"]["season_number"]
+            result["num_seasons"] = response["last_episode_to_air"]["season_number"]
 
 
 async def mal_get_extra_list(response, type):
@@ -126,7 +126,7 @@ def import_myanimelist(username, user):
     return True
 
 
-def import_myanimelist(file, user):
+def import_tmdb(file, user):
 
     if "ratings" in file.name:
         status = "Completed"
@@ -145,12 +145,18 @@ def import_myanimelist(file, user):
 
     for row in reader:
         if not Media.objects.filter(media_id=row["TMDb ID"], media_type=row["Type"], api_origin="tmdb", user=user).exists():
-            seasons = {}
+            seasons_score = {}
+            if row["Your Rating"] == "": 
+                score = None
+            else:
+                score = float(row["Your Rating"])
+
             if "num_seasons" in row:
-                for i in range(1, row["num_seasons"] + 1):
-                    seasons[i] = row["Your Rating"]
+                for season in range(1, row["num_seasons"] + 1):
+                    seasons_score[season] = score
+
             bulk_add_media.append(Media(media_id=row["TMDb ID"], title=row["Name"], image=row["image"], 
-                                        media_type=row["Type"], seasons=seasons, score=row["Your Rating"], 
+                                        media_type=row["Type"], seasons_score=seasons_score, score=score, 
                                         status=status, api_origin="tmdb", user=user, num_seasons=row.get("num_seasons")))
                 
     Media.objects.bulk_create(bulk_add_media)
