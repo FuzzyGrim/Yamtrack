@@ -1,16 +1,10 @@
-{% load static %}
-{% load sass_tags %}
-
 {% block content %}
 
 <!DOCTYPE html>
 <html lang="en">
 
   <head>
-    {% include "app/include/tags.html" %}
-    
-    <link href="{% sass_src 'css/main.scss' %}" rel="stylesheet" type="text/css" />
-    
+    {% include "app/include/tags.html" %}    
     <title>Yamtarr</title>
   </head>
 
@@ -313,7 +307,7 @@
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
 
-    </body>
+  </body>
 
 </html>
 {% endblock %}

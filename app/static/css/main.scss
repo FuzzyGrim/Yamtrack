@@ -51,10 +51,6 @@
     margin-left: 0rem;
   }
 
-  #search main .box .content .overview {
-    font-size: 0;
-  }
-
   #home .tab-content {
     .title{
       margin-left: 3em;
@@ -67,4 +63,36 @@
       padding: 0.5rem 0.5rem 0.5rem 1rem;
     }
   }
+
+  #search main .box {
+
+    margin: 0 auto 1em auto;
+    width: 90vw;
+    
+    .content {
+
+      .title {
+        font-size: 1.4rem;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+      }
+
+      .overview {
+        font-size: 0;
+      }
+
+      .input-group{
+        .form-select {
+          width:20%;
+          font-size: .8rem;
+        }
+        .form-control {
+          width:50%;
+        }
+      }
+    }
+  }
+
 }

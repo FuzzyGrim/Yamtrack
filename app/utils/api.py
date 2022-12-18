@@ -102,7 +102,7 @@ def import_myanimelist(username, user):
                 anime["list_status"]["status"] = anime["list_status"]["status"].capitalize()
 
             bulk_add_media.append(Media(media_id=anime["node"]["id"], title=anime["node"]["title"], 
-                                        image=anime["node"]["main_picture"]["medium"], media_type="anime", 
+                                        image=anime["node"]["main_picture"]["large"], media_type="anime", 
                                         score=anime["list_status"]["score"], status=anime["list_status"]["status"], 
                                         api_origin="mal", user=user))
 
@@ -117,7 +117,7 @@ def import_myanimelist(username, user):
             else:
                 manga["list_status"]["status"] = manga["list_status"]["status"].capitalize()
             bulk_add_media.append(Media(media_id=manga["node"]["id"], title=manga["node"]["title"], 
-                                        image=manga["node"]["main_picture"]["medium"], 
+                                        image=manga["node"]["main_picture"]["large"], 
                                         media_type="manga", score=manga["list_status"]["score"], 
                                         status=manga["list_status"]["status"], api_origin="mal", user=user))
     

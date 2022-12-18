@@ -1,5 +1,3 @@
-{% load static %}
-
 {% block content %}
 
 <!DOCTYPE html>
@@ -7,8 +5,6 @@
 
   <head>
     {% include "app/include/tags.html" %}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
-
     <title>Yamtarr</title>
   </head>
 
@@ -32,7 +28,7 @@
             <div class="d-flex flex-column box">
                 <div class="d-flex flex-row">
                     
-                    <img class="poster flex-shrink-0" src={{query.node.main_picture.medium}}>
+                    <img class="poster flex-shrink-0" src={{query.node.main_picture.large}}>
 
                     <div class="d-flex flex-column content flex-grow-1">
                         <div class="title">
@@ -66,7 +62,7 @@
                             <input type="hidden" name="title" value="{{query.node.title}}">
                             <input type="hidden" name="media_type" value="{{query.node.media_type}}">
                             <input type="hidden" name="media_id" value="{{ query.node.id }}">
-                            <input type="hidden" name="image" value="{{ query.node.main_picture.medium }}">
+                            <input type="hidden" name="image" value="{{ query.node.main_picture.large }}">
                             <input type="hidden" name="api_origin" value="mal">
                             
                             <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>

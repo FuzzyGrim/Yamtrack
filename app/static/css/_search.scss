@@ -5,58 +5,57 @@
   max-height: 100%;
   border-radius: 10px;
   border:1px solid #56595D;
-}
 
-#search main .box .poster {
-  border-radius: 10px 0 0 10px;
-  width: 9rem;
-  height: 14rem;
-  object-fit: cover;
-}
+  .poster {
+    border-radius: 10px 0 0 10px;
+    width: 9rem;
+    height: 14rem;
+    object-fit: cover;
+  }
 
-#search main .box .image-not-found {
-  background-image: url("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg");
-  background-repeat: no-repeat;
-  background-position:center;
-  background-color: rgb(44, 48, 50);
-}
+  .image-not-found {
+    background-image: url("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg");
+    background-repeat: no-repeat;
+    background-position:center;
+    background-color: rgb(44, 48, 50);
+  }
 
-#search main .box .content {
-  color: #c7c4bc;
-  margin: 1em;
-  position:relative;
-}
+  .content {
+    color: #c7c4bc;
+    margin: 1em;
+    position:relative;
 
-#search main .box .content .title {
-  font-size: 1.5rem;
-  margin-bottom: 0.2em;
-}
+    .title {
+      font-size: 1.5rem;
+      margin-bottom: 0.2em;
+    }
 
-#search main .box .content .overview {
-  /* only show 3 lines of overview */
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
+    .overview {
+      /* only show 3 lines of overview */
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
 
-#search main .box .content .input-group {
-  position:absolute;
-  bottom:0;
-  width:auto;
-}
+    .input-group {
+      position:absolute;
+      bottom:0;
+      width:auto;
 
+      .form-select.form-status{
+        width:auto;
+      }
 
-#search main .box .content .input-group .form-select.form-status{
-  width:auto;
-}
+      .form-control{
+        border-style: solid;
+        border-color: #56595D;
+      }
 
-#search main .box .content .input-group .form-control{
-  border-style: solid;
-  border-color: #56595D;
-}
-
-#search input[type=number] {
-  appearance: textfield;
-  -moz-appearance: textfield;
+      input[type=number] {
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
+    }
+  }
 }
