@@ -2,3 +2,6 @@ django
 python-decouple
 django-crispy-forms
 crispy-bootstrap5
+libsass
+django-compressor
+django-sass-processor

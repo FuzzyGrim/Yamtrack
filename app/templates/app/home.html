@@ -1,4 +1,5 @@
 {% load static %}
+{% load sass_tags %}
 
 {% block content %}
 
@@ -7,8 +8,9 @@
 
   <head>
     {% include "app/include/tags.html" %}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
-
+    
+    <link href="{% sass_src 'css/main.scss' %}" rel="stylesheet" type="text/css" />
+    
     <title>Yamtarr</title>
   </head>
 
