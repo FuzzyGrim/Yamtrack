@@ -1,10 +1,13 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib import auth
+from django.test import override_settings
+import shutil
 
 
 from app.models import User
 
+TEST_DIR = 'test_data'
 
 class RegisterLoginUser(TestCase):
     def test_create_user(self):
@@ -53,6 +56,7 @@ class CreateMedia(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
+    @override_settings(MEDIA_ROOT=(TEST_DIR + '/media'))
     def test_create_tmdb(self):
         response = self.client.post(
             reverse("search", args=["tmdb", "flcl"]),
@@ -71,8 +75,15 @@ class CreateMedia(TestCase):
         response = self.client.get(reverse("home"))
         self.assertContains(response, "FLCL")
 
+    def tearDownClass():
+        try:
+            shutil.rmtree(TEST_DIR)
+        except OSError:
+            pass
+
 
 class EditMedia(TestCase):
+    @override_settings(MEDIA_ROOT=(TEST_DIR + '/media'))
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -125,3 +136,9 @@ class EditMedia(TestCase):
 
         response = self.client.get(reverse("home"))
         self.assertContains(response, "Watching")
+
+    def tearDownClass():
+        try:
+            shutil.rmtree(TEST_DIR)
+        except OSError:
+            pass

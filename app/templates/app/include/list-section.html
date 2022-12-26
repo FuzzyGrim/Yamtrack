@@ -1,13 +1,9 @@
 <div class="d-flex flex-row flex-wrap mb-3 align-items-center list-section">
   <div class="image p-2">
-    {% if media.image == "None" or media.image == ""%}
+    {% if not media.image %}
       <div class="image-not-found poster flex-shrink-0"></div>      
     {% else %}
-      {% if media.api_origin == "tmdb" %}
-        <img src="https://image.tmdb.org/t/p/w154{{media.image}}">
-      {% elif media.api_origin == "mal" %}
-        <img src="{{media.image}}">
-      {% endif %}
+      <img src="{{media.image.url}}">
     {% endif %}
   </div>
 

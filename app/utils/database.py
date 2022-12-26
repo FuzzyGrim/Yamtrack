@@ -1,34 +1,61 @@
 from app.models import Media
 from app.utils import helpers
+import requests
+from django.core.files import File
+from django.core.files.temp import NamedTemporaryFile
 
 def add_media(request):
+    media = Media()
+
     if request.POST["score"] == "":
-        request.POST["score"] = None
+        media.score = None
     else:
-        score = float(request.POST["score"])
+        media.score = float(request.POST["score"])
 
-    api_origin = request.POST["api_origin"]
-    if api_origin == "mal":
-        media_type = helpers.convert_mal_media_type(request.POST["media_type"])
-    else:
-        media_type = request.POST["media_type"]
-
-    media = Media(
-        media_id=request.POST["media_id"],
-        title=request.POST["title"],
-        image=request.POST["image"],
-        media_type=media_type,
-        score=score,
-        user=request.user,
-        status=request.POST["status"],
-        num_seasons=request.POST.get("num_seasons"),
-        api_origin=api_origin,
-    )
+    media.media_id=request.POST["media_id"]
+    media.title=request.POST["title"]
+    media.user=request.user
+    media.status=request.POST["status"]
+    media.num_seasons=request.POST.get("num_seasons")
 
     if "season" in request.POST:
         media.seasons_score={request.POST["season"]: request.POST["score"]}
 
-    media.save()
+    img_temp = NamedTemporaryFile(delete=True)
+    media.api_origin = request.POST["api_origin"]
+    if media.api_origin == "mal":
+        media.media_type = helpers.convert_mal_media_type(request.POST["media_type"])
+        
+        if request.POST['image'] == "":
+            media.image = None
+            media.save()
+            return
+        else:
+            r = requests.get(request.POST['image'])
+
+        img_temp.write(r.content)
+        img_temp.flush()
+
+        if media.media_type == "anime":
+            media.image.save(f"anime-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp), save=True)
+        
+        elif media.media_type == "manga":
+            media.image.save(f"manga-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp), save=True)
+
+    else:
+        media.media_type = request.POST["media_type"]
+
+        if request.POST['image'] == "":
+            media.image = None
+            media.save()
+            return
+        else:
+            r = requests.get(f"https://image.tmdb.org/t/p/w154{request.POST['image']}")
+
+        img_temp.write(r.content)
+        img_temp.flush()
+
+        media.image.save(f"tmdb-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp), save=True)
     
     
 def edit_media(request):
@@ -43,7 +70,7 @@ def edit_media(request):
         api_origin=request.POST["api_origin"],
     )
     
-    if request.POST["season"]:
+    if "season" in request.POST:
         # if media didn't have seasons before, add the previous score as season 1
         if not media.seasons_score:
             media.seasons_score["1"] = media.score

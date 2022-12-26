@@ -6,7 +6,7 @@ from django.conf import settings
 class Media(models.Model):
     media_id = models.IntegerField()
     title = models.CharField(max_length=100)
-    image = models.TextField()
+    image = models.ImageField(upload_to="images", null=True)
     media_type = models.CharField(max_length=100)
     seasons_score = models.JSONField(default=dict)
     score = models.FloatField(null=True)
