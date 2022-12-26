@@ -14,10 +14,10 @@ from app.models import Media
 from app.forms import UserRegisterForm, UserUpdateForm
 from app.utils import api, database
 
-
+@login_required
 def home(request):
     """Home page"""
-    
+
     if ("query") in request.POST:
         return redirect(
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
@@ -36,75 +36,72 @@ def home(request):
         ).delete()
         return redirect("home")
 
-    elif request.user.is_authenticated:
-        queryset = Media.objects.filter(user_id=request.user)
-        movies = []
-        movies_status = {
-            "completed": [],
-            "planning": [],
-            "watching": [],
-            "paused": [],
-            "dropped": [],
-        }
-        tv = []
-        tv_status = {
-            "completed": [],
-            "planning": [],
-            "watching": [],
-            "paused": [],
-            "dropped": [],
-        }
-        anime = []
-        anime_status = {
-            "completed": [],
-            "planning": [],
-            "watching": [],
-            "paused": [],
-            "dropped": [],
-        }
-        manga = []
-        manga_status = {
-            "completed": [],
-            "planning": [],
-            "watching": [],
-            "paused": [],
-            "dropped": [],
-        }
+    queryset = Media.objects.filter(user_id=request.user)
+    movies = []
+    movies_status = {
+        "completed": [],
+        "planning": [],
+        "watching": [],
+        "paused": [],
+        "dropped": [],
+    }
+    tv = []
+    tv_status = {
+        "completed": [],
+        "planning": [],
+        "watching": [],
+        "paused": [],
+        "dropped": [],
+    }
+    anime = []
+    anime_status = {
+        "completed": [],
+        "planning": [],
+        "watching": [],
+        "paused": [],
+        "dropped": [],
+    }
+    manga = []
+    manga_status = {
+        "completed": [],
+        "planning": [],
+        "watching": [],
+        "paused": [],
+        "dropped": [],
+    }
 
-        for media in queryset:
-            if media.api_origin == "tmdb":
-                if media.media_type == "movie":
-                    movies.append(media)
-                    movies_status[(media.status).lower()].append(media)
+    for media in queryset:
+        if media.api_origin == "tmdb":
+            if media.media_type == "movie":
+                movies.append(media)
+                movies_status[(media.status).lower()].append(media)
 
-                else:  # media.media_type == "tv"
-                    tv.append(media)
-                    tv_status[(media.status).lower()].append(media)
-            else:  # mal
-                if media.media_type == "anime":
-                    anime.append(media)
-                    anime_status[(media.status).lower()].append(media)
-                else:
-                    manga.append(media)
-                    manga_status[(media.status).lower()].append(media)
+            else:  # media.media_type == "tv"
+                tv.append(media)
+                tv_status[(media.status).lower()].append(media)
+        else:  # mal
+            if media.media_type == "anime":
+                anime.append(media)
+                anime_status[(media.status).lower()].append(media)
+            else:
+                manga.append(media)
+                manga_status[(media.status).lower()].append(media)
 
-        return render(
-            request,
-            "app/home.html",
-            {
-                "media": queryset,
-                "movies": movies,
-                "movies_status": movies_status,
-                "tv": tv,
-                "tv_status": tv_status,
-                "anime": anime,
-                "anime_status": anime_status,
-                "manga": manga,
-                "manga_status": manga_status,
-            },
-        )
-
-    return render(request, "app/home.html")
+    return render(
+        request,
+        "app/home.html",
+        {
+            "media": queryset,
+            "movies": movies,
+            "movies_status": movies_status,
+            "tv": tv,
+            "tv_status": tv_status,
+            "anime": anime,
+            "anime_status": anime_status,
+            "manga": manga,
+            "manga_status": manga_status,
+        },
+    )
 
 
 def search(request, content, query):
