@@ -17,6 +17,7 @@ from app.utils import api, database
 
 def home(request):
     """Home page"""
+    
     if ("query") in request.POST:
         return redirect(
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
@@ -80,15 +81,10 @@ def home(request):
                     tv.append(media)
                     tv_status[(media.status).lower()].append(media)
             else:  # mal
-                if (
-                    media.media_type == "anime"
-                    or media.media_type == "movie"
-                    or media.media_type == "special"
-                    or media.media_type == "ova"
-                ):
+                if media.media_type == "anime":
                     anime.append(media)
                     anime_status[(media.status).lower()].append(media)
-                else:  # media.media_type == "manga" or media.media_type == "light_novel" or media.media_type == "one_shot"
+                else:
                     manga.append(media)
                     manga_status[(media.status).lower()].append(media)
 

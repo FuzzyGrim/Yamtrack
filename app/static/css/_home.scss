@@ -104,6 +104,11 @@ $font-grey: #d1cdc7;
       .btn {
         background-color: $dark-blue-bg;
         color: $font-grey;
+        border-width: 0;
+
+        &:hover {
+          border-width: 1px solid $font-grey;
+        }
       }
 
       .dropdown-menu {

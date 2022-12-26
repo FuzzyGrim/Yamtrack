@@ -1,4 +1,5 @@
 from app.models import Media
+from app.utils import helpers
 
 def add_media(request):
     if request.POST["score"] == "":
@@ -6,16 +7,22 @@ def add_media(request):
     else:
         score = float(request.POST["score"])
 
+    api_origin = request.POST["api_origin"]
+    if api_origin == "mal":
+        media_type = helpers.convert_mal_media_type(request.POST["media_type"])
+    else:
+        media_type = request.POST["media_type"]
+
     media = Media(
         media_id=request.POST["media_id"],
         title=request.POST["title"],
         image=request.POST["image"],
-        media_type=request.POST["media_type"],
+        media_type=media_type,
         score=score,
         user=request.user,
         status=request.POST["status"],
         num_seasons=request.POST.get("num_seasons"),
-        api_origin=request.POST["api_origin"],
+        api_origin=api_origin,
     )
 
     if "season" in request.POST:
@@ -35,6 +42,7 @@ def edit_media(request):
         user=request.user,
         api_origin=request.POST["api_origin"],
     )
+    
     if request.POST["season"]:
         # if media didn't have seasons before, add the previous score as season 1
         if not media.seasons_score:

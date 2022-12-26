@@ -1,0 +1,18 @@
+def convert_mal_media_type(media_type):
+    match media_type:
+        case "anime":
+            return "anime"
+        case "movie":
+            return "anime"
+        case "special":
+            return "anime"
+        case "ova":
+            return "anime"
+        case "manga":
+            return "manga"
+        case "light_novel":
+            return "manga"
+        case "one_shot":
+            return "manga"
+        case _:
+            return "anime"
