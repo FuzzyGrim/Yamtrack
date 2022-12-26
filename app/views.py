@@ -7,6 +7,9 @@ from django.contrib.auth import (
 )
 from django.contrib.auth.forms import PasswordChangeForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
+from django.utils.safestring import mark_safe
+from django.utils.html import format_html
+
 from app.models import Media
 from app.forms import UserRegisterForm, UserUpdateForm
 from app.utils import api, database
@@ -191,9 +194,9 @@ def profile(request):
             user_form.save()
             password = password_form.save()
             update_session_auth_hash(request, password)
-            messages.success(request, f"Your account has been updated!")
+            messages.success(request, "Your account has been updated!")
             return redirect("profile")
-            
+
     elif "query" in request.POST:
         return redirect(
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
@@ -201,18 +204,39 @@ def profile(request):
 
     elif request.POST.get("mal") and request.POST.get("mal-btn"):
         if api.import_myanimelist(request.POST.get("mal"), request.user):
-            messages.success(request, f"Your MyAnimeList has been imported!")
+            messages.success(request, "Your MyAnimeList has been imported!")
         else:
-            messages.error(
-                request, "User not found",
-            )
+            messages.error(request, "User not found")
         return redirect("profile")
 
     elif request.FILES.get("tmdb") and request.POST.get("tmdb-btn"):
         if api.import_tmdb(request.FILES.get("tmdb"), request.user):
-            messages.success(request, f"Your TMDB list has been imported!")
+            messages.success(request, "Your TMDB list has been imported!")
         else:
-            messages.error(request, 'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name')
+            messages.error(
+                request,
+                'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name'
+            )
+
+        return redirect("profile")
+
+    elif request.POST.get("anilist") and request.POST.get("anilist-btn"):
+
+        errors = api.import_anilist(request.POST.get("anilist"), request.user)
+        if len(errors) == 0:
+            messages.success(request, "Your AniList has been imported!")
+        elif errors[0] == "User not found":
+            messages.error(request, "User not found")
+        else:
+            message = "<br/>".join(errors)
+            messages.error(
+                request,
+                format_html(
+                    "<b>{}</b> <br>{}",
+                    "Couldn't find a matching MAL ID for: ",
+                    mark_safe(message),
+                ),
+            )
 
         return redirect("profile")
 

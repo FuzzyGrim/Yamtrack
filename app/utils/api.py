@@ -187,3 +187,129 @@ async def tmdb_get_extra(session, url, result):
         if "last_episode_to_air" in response:
             result["num_seasons"] = response["last_episode_to_air"]["season_number"]
         return result
+
+
+def import_anilist(username, user):
+    anime_query = """
+    query ($userName: String){
+        MediaListCollection(userName: $userName, type: ANIME) {
+            lists {
+                isCustomList
+                entries {
+                    media{
+                        title {
+                            userPreferred
+                        }
+                        coverImage {
+                            large
+                        }
+                        idMal
+                    }
+                    status
+                    score(format: POINT_10_DECIMAL)
+                }
+            }
+        }
+    }
+    """
+    manga_query = """
+    query ($userName: String) {
+        MediaListCollection(userName: $userName, type: MANGA) {
+            lists {
+                isCustomList
+                entries {
+                    media{
+                        title {
+                            userPreferred
+                        }
+                        coverImage {
+                            large
+                        }
+                        idMal
+                    }
+                    status
+                    score(format: POINT_10_DECIMAL)
+                }
+            }
+        }
+    }
+    """
+
+    variables = {"userName": username}
+
+    url = "https://graphql.anilist.co"
+
+    animes = requests.post(url, json={"query": anime_query, "variables": variables}).json()
+    mangas = requests.post(url, json={"query": manga_query, "variables": variables}).json()
+
+    errors = []
+
+    if "errors" in animes:
+        if animes["errors"][0]["message"] == "User not found":
+            errors.append("User not found")
+            return errors
+
+    bulk_add_media = []
+    for list in animes["data"]["MediaListCollection"]["lists"]:
+        if not list["isCustomList"]:
+            for anime in list["entries"]:
+                if anime["status"] == "CURRENT":
+                    status = "Watching"
+                else:
+                    status = anime["status"].capitalize()
+
+                if (
+                    not Media.objects.filter(
+                        media_id=anime["media"]["idMal"],
+                        media_type="anime",
+                        api_origin="mal",
+                        user=user,
+                    ).exists() and anime["media"]["idMal"] is not None):
+                    bulk_add_media.append(
+                        Media(
+                            media_id=anime["media"]["idMal"],
+                            title=anime["media"]["title"]["userPreferred"],
+                            image=anime["media"]["coverImage"]["large"],
+                            media_type="anime",
+                            score=anime["score"],
+                            status=status,
+                            api_origin="mal",
+                            user=user,
+                        )
+                    )
+                else:
+                    errors.append(anime["media"]["title"]["userPreferred"])
+
+    for list in mangas["data"]["MediaListCollection"]["lists"]:
+        if not list["isCustomList"]:
+            for manga in list["entries"]:
+                if manga["status"] == "CURRENT":
+                    status = "Watching"
+                else:
+                    status = manga["status"].capitalize()
+
+                if (
+                    not Media.objects.filter(
+                        media_id=manga["media"]["idMal"],
+                        media_type="manga",
+                        api_origin="mal",
+                        user=user,
+                    ).exists() and manga["media"]["idMal"] is not None):
+                    bulk_add_media.append(
+                        Media(
+                            media_id=manga["media"]["idMal"],
+                            title=manga["media"]["title"]["userPreferred"],
+                            image=manga["media"]["coverImage"]["large"],
+                            media_type="manga",
+                            score=manga["score"],
+                            status=status,
+                            api_origin="mal",
+                            user=user,
+                        )
+                    )
+                else:
+                    errors.append(manga["media"]["title"]["userPreferred"])
+
+    Media.objects.bulk_create(bulk_add_media)
+
+    return errors
