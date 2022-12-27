@@ -1,3 +1,6 @@
+import requests
+from django.core.files.temp import NamedTemporaryFile
+
 def convert_mal_media_type(media_type):
     match media_type:
         case "anime":
@@ -16,3 +19,17 @@ def convert_mal_media_type(media_type):
             return "manga"
         case _:
             return "anime"
+
+def get_image_temp(url):
+    img_temp = NamedTemporaryFile(delete=True)
+
+    # "" for mal, otherwise tmdb
+    if url == "" or url == "https://image.tmdb.org/t/p/w92None" or url == "https://image.tmdb.org/t/p/w92":
+        r = requests.get("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg")
+    else:
+        r = requests.get(url)
+
+    img_temp.write(r.content)
+    img_temp.flush()
+
+    return img_temp

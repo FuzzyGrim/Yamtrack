@@ -1,3 +1,4 @@
+{% load static %}
 {% load crispy_forms_tags %}
 
 {% block content %}
@@ -40,7 +41,7 @@
         </div>
       </form>
 
-      <form class="import mt-5" method="POST" enctype="multipart/form-data">
+      <form id="import-form" class="import mt-5" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <fieldset class="input-group">
           <legend class="border-bottom mb-4">Import</legend>
@@ -73,6 +74,7 @@
 
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    <script src="{% static 'js/spinner.js' %}"></script>
 
     </body>
 

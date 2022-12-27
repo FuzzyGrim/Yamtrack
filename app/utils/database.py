@@ -1,8 +1,6 @@
 from app.models import Media
 from app.utils import helpers
-import requests
 from django.core.files import File
-from django.core.files.temp import NamedTemporaryFile
 
 def add_media(request):
     media = Media()
@@ -23,26 +21,14 @@ def add_media(request):
 
     media.api_origin = request.POST["api_origin"]
     
-    img_temp = NamedTemporaryFile(delete=True)
-
     if media.api_origin == "mal":
         media.media_type = helpers.convert_mal_media_type(request.POST["media_type"])
-        if request.POST['image'] == "":
-            r = requests.get("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg")
-        else:
-            r = requests.get(request.POST['image'])
-
+        img_temp = helpers.get_image_temp(request.POST["image"])
     else:
         media.media_type = request.POST["media_type"]
-        if request.POST['image'] == "":
-            r = requests.get("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg")
-        else:
-            r = requests.get(f"https://image.tmdb.org/t/p/w154{request.POST['image']}")
+        img_temp = helpers.get_image_temp(f"https://image.tmdb.org/t/p/w92{request.POST['image']}")
 
-    img_temp.write(r.content)
-    img_temp.flush()
-
-    if request.POST['image'] == "":
+    if request.POST['image'] == "" or request.POST['image'] == None:
         media.image.save(f"none.svg", File(img_temp))
     else:
         if media.media_type == "anime":
@@ -53,8 +39,6 @@ def add_media(request):
         
         else:
             media.image.save(f"tmdb-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
-
-    media.save()
     
     
 def edit_media(request):

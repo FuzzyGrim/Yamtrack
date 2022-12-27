@@ -3,8 +3,10 @@ import requests
 import csv
 from aiohttp import ClientSession
 from asyncio import ensure_future, gather, run
+from django.core.files import File
 
 from app.models import Media
+from app.utils import helpers
 
 
 TMDB_API = config("TMDB_API")
@@ -104,17 +106,24 @@ def import_myanimelist(username, user):
             else:
                 anime["list_status"]["status"] = anime["list_status"]["status"].capitalize()
 
-            bulk_add_media.append(
-                Media(
+            media = Media(
                     media_id=anime["node"]["id"],
                     title=anime["node"]["title"],
-                    image=anime["node"]["main_picture"]["large"],
                     media_type="anime",
                     score=anime["list_status"]["score"],
                     status=anime["list_status"]["status"],
                     api_origin="mal",
                     user=user,
                 )
+
+            img_temp = helpers.get_image_temp(anime["node"]["main_picture"]["medium"])
+            if anime["node"]["main_picture"]["medium"] == "":
+                media.image.save(f"none.svg", File(img_temp), save=False)
+            else:
+                media.image.save(f'anime-{anime["node"]["main_picture"]["medium"].rsplit("/", 1)[-1]}', File(img_temp), save=False)
+
+            bulk_add_media.append(
+                media
             )
 
     for manga in mangas["data"]:
@@ -127,17 +136,26 @@ def import_myanimelist(username, user):
                 manga["list_status"]["status"] = "Watching"
             else:
                 manga["list_status"]["status"] = manga["list_status"]["status"].capitalize()
-            bulk_add_media.append(
-                Media(
+
+            media = Media(
                     media_id=manga["node"]["id"],
                     title=manga["node"]["title"],
-                    image=manga["node"]["main_picture"]["large"],
                     media_type="manga",
                     score=manga["list_status"]["score"],
                     status=manga["list_status"]["status"],
                     api_origin="mal",
                     user=user,
                 )
+            
+            img_temp = helpers.get_image_temp(anime["node"]["main_picture"]["medium"])
+
+            if manga["node"]["main_picture"]["medium"] == "":
+                media.image.save(f"none.svg", File(img_temp), save=False)
+            else:
+                media.image.save(f'manga-{manga["node"]["main_picture"]["medium"].rsplit("/", 1)[-1]}', File(img_temp), save=False)
+
+            bulk_add_media.append(
+                media
             )
 
     Media.objects.bulk_create(bulk_add_media)
@@ -179,11 +197,9 @@ def import_tmdb(file, user):
                 for season in range(1, row["num_seasons"] + 1):
                     seasons_score[season] = score
 
-            bulk_add_media.append(
-                Media(
+            media = Media(
                     media_id=row["TMDb ID"],
                     title=row["Name"],
-                    image=row["image"],
                     media_type=row["Type"],
                     seasons_score=seasons_score,
                     score=score,
@@ -191,7 +207,17 @@ def import_tmdb(file, user):
                     api_origin="tmdb",
                     user=user,
                     num_seasons=row.get("num_seasons"),
+                    image=row.get("image"),
                 )
+
+            img_temp = helpers.get_image_temp(f"https://image.tmdb.org/t/p/w92{row['image']}")
+            if row["image"] == None:
+                media.image.save(f"none.svg", File(img_temp), save=False)
+            else:
+                media.image.save(f"tmdb-{row['image'].rsplit('/', 1)[-1]}", File(img_temp), save=False)
+
+            bulk_add_media.append(
+                media
             )
 
     Media.objects.bulk_create(bulk_add_media)
@@ -237,7 +263,7 @@ def import_anilist(username, user):
                             userPreferred
                         }
                         coverImage {
-                            large
+                            medium
                         }
                         idMal
                     }
@@ -259,7 +285,7 @@ def import_anilist(username, user):
                             userPreferred
                         }
                         coverImage {
-                            large
+                            medium
                         }
                         idMal
                     }
@@ -301,18 +327,24 @@ def import_anilist(username, user):
                         api_origin="mal",
                         user=user,
                     ).exists() and anime["media"]["idMal"] is not None):
-                    bulk_add_media.append(
-                        Media(
+
+                    media = Media(
                             media_id=anime["media"]["idMal"],
                             title=anime["media"]["title"]["userPreferred"],
-                            image=anime["media"]["coverImage"]["large"],
                             media_type="anime",
                             score=anime["score"],
                             status=status,
                             api_origin="mal",
                             user=user,
                         )
+                    
+                    img_temp = helpers.get_image_temp(anime["media"]["coverImage"]["medium"])
+                    media.image.save(f'anime-{anime["media"]["coverImage"]["medium"].rsplit("/", 1)[-1]}', File(img_temp), save=False)
+
+                    bulk_add_media.append(
+                        media
                     )
+
                 else:
                     errors.append(anime["media"]["title"]["userPreferred"])
 
@@ -331,21 +363,24 @@ def import_anilist(username, user):
                         api_origin="mal",
                         user=user,
                     ).exists() and manga["media"]["idMal"] is not None):
-                    bulk_add_media.append(
-                        Media(
+
+                    media = Media(
                             media_id=manga["media"]["idMal"],
                             title=manga["media"]["title"]["userPreferred"],
-                            image=manga["media"]["coverImage"]["large"],
                             media_type="manga",
                             score=manga["score"],
                             status=status,
                             api_origin="mal",
                             user=user,
                         )
+                    
+                    img_temp = helpers.get_image_temp(manga["media"]["coverImage"]["medium"])
+                    media.image.save(f'manga-{manga["media"]["coverImage"]["medium"].rsplit("/", 1)[-1]}', File(img_temp), save=False)
+
+                    bulk_add_media.append(
+                        media
                     )
                 else:
                     errors.append(manga["media"]["title"]["userPreferred"])
-
     Media.objects.bulk_create(bulk_add_media)
-
     return errors
