@@ -1,10 +1,6 @@
 <div class="d-flex flex-row flex-wrap mb-3 align-items-center list-section">
   <div class="image p-2">
-    {% if not media.image %}
-      <div class="image-not-found poster flex-shrink-0"></div>      
-    {% else %}
-      <img src="{{media.image.url}}">
-    {% endif %}
+    <img src="{{media.image.url}}">
   </div>
 
   <div class="title p-2">{{media.title}}</div>

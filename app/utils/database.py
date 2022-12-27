@@ -21,41 +21,40 @@ def add_media(request):
     if "season" in request.POST:
         media.seasons_score={request.POST["season"]: request.POST["score"]}
 
-    img_temp = NamedTemporaryFile(delete=True)
     media.api_origin = request.POST["api_origin"]
+    
+    img_temp = NamedTemporaryFile(delete=True)
+
     if media.api_origin == "mal":
         media.media_type = helpers.convert_mal_media_type(request.POST["media_type"])
-        
         if request.POST['image'] == "":
-            media.image = None
-            media.save()
-            return
+            r = requests.get("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg")
         else:
             r = requests.get(request.POST['image'])
 
-        img_temp.write(r.content)
-        img_temp.flush()
-
-        if media.media_type == "anime":
-            media.image.save(f"anime-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp), save=True)
-        
-        elif media.media_type == "manga":
-            media.image.save(f"manga-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp), save=True)
-
     else:
         media.media_type = request.POST["media_type"]
-
         if request.POST['image'] == "":
-            media.image = None
-            media.save()
-            return
+            r = requests.get("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg")
         else:
             r = requests.get(f"https://image.tmdb.org/t/p/w154{request.POST['image']}")
 
-        img_temp.write(r.content)
-        img_temp.flush()
+    img_temp.write(r.content)
+    img_temp.flush()
 
-        media.image.save(f"tmdb-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp), save=True)
+    if request.POST['image'] == "":
+        media.image.save(f"none.svg", File(img_temp))
+    else:
+        if media.media_type == "anime":
+            media.image.save(f"anime-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
+        
+        elif media.media_type == "manga":
+            media.image.save(f"manga-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
+        
+        else:
+            media.image.save(f"tmdb-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
+
+    media.save()
     
     
 def edit_media(request):

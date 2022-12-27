@@ -78,17 +78,6 @@ $font-grey: #d1cdc7;
         height: 3rem;
         object-fit: cover;
       }
-
-      .image-not-found {
-        width: 3rem;
-        height: 3rem;
-        object-fit: cover;
-        background-image: url("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg");
-        background-repeat: no-repeat;
-        background-position:center;
-        background-color: rgb(44, 48, 50);
-        display: inline-block;
-      }
     }
 
     .title {

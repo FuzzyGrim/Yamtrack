@@ -1,12 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
-
+from app.storage import OverwriteStorage
 
 class Media(models.Model):
     media_id = models.IntegerField()
     title = models.CharField(max_length=100)
-    image = models.ImageField(upload_to="images", null=True)
+    image = models.ImageField(upload_to="images", storage=OverwriteStorage())
     media_type = models.CharField(max_length=100)
     seasons_score = models.JSONField(default=dict)
     score = models.FloatField(null=True)
@@ -20,6 +20,7 @@ class Media(models.Model):
 
     class Meta:
         ordering = ['title']
+
 
 class User(AbstractUser):
     default_api = models.CharField(max_length=10, default="tmdb")
