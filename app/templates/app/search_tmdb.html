@@ -24,74 +24,77 @@
             </div>
             {% endfor %}
         {% endif %}
-        {% for query in query_list.results %}
-            <div class="d-flex flex-column box">
-                <div class="d-flex flex-row">
-                    
-                    {% if query.poster_path == None %}
-                        <div class="image-not-found poster flex-shrink-0">
-                        </div>
-                    {% else %}
-                        <img class="poster flex-shrink-0" src="https://image.tmdb.org/t/p/w780{{query.poster_path}}">
-                    {% endif %}
+        {% for query in query_list %}
+            {% if query.media_type == "tv" or query.media_type == "movie"%}
+                <div class="d-flex flex-column box">
+                    <div class="d-flex flex-row">
+                        
+                        {% if query.poster_path == None %}
+                            <div class="image-not-found poster flex-shrink-0">
+                            </div>
+                        {% else %}
+                            <img class="poster flex-shrink-0" src="https://image.tmdb.org/t/p/w780{{query.poster_path}}">
+                        {% endif %}
 
-                    <div class="d-flex flex-column content flex-grow-1">
-                        <div class="title">
-                            {{query.name}}
-                            {{query.title}}
-                            {% if query.first_air_date or query.release_date%}
-                                ({{query.first_air_date|slice:"4"}}{{query.release_date|slice:"4"}}) 
-                                {% if query.media_type == "tv"%} [TV]
+                        <div class="d-flex flex-column content flex-grow-1">
+                            <div class="title">
+                                {{query.name}}
+                                {{query.title}}
+                                {% if query.first_air_date%}
+                                    ({{query.first_air_date|slice:"4"}})
+                                {% elif query.release_date%}
+                                    ({{query.release_date|slice:"4"}})
+                                {% endif %}
+
+                                {% if query.media_type == "tv"%}[TV]
                                 {% elif query.media_type == "movie"%} [Movie]
                                 {% endif %}
-                            {% endif %}
-                        </div>
-                        <div class="overview">
-                            {% if query.overview %} {{query.overview}} 
-                            {% else %} No synopsis available. 
-                            {% endif %}
-                        </div>
-
-                        <form class="d-flex input-group" method="post">
-                            {% csrf_token %}
-
-                            {% if query.num_seasons and query.num_seasons  != 1 %}
-                                <select name="season" class="form-select form-season">
-                                    {% load extras %}
-                                    {% for i in query.num_seasons|times %}
-                                        <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
-                                    {% endfor %}
-                                </select>
-                            {% endif %}
-                            <select name="status" class="form-select form-status">
-                                <option value="Completed">Completed</option>
-                                <option value="Planning">Planning</option>
-                                <option value="Watching">Watching</option>
-                                <option value="Paused">Paused</option>
-                                <option value="Dropped">Dropped</option>
-                            </select>
-                            <input type="number" class="form-control bg-dark text-white" name="score" placeholder="0" aria-label="10" maxlength="3" step="0.1" min="0" max="10">
-                            
-                            <!-- if tv show -->
-                            {% if query.name %}
-                                <input type="hidden" name="title" value="{{ query.name }}">
-                                {% if query.num_seasons  and query.num_seasons  != 1 %}
-                                    <input type="hidden" name="num_seasons" value="{{ query.num_seasons }}">
+                            </div>
+                            <div class="overview">
+                                {% if query.overview %} {{query.overview}} 
+                                {% else %} No synopsis available. 
                                 {% endif %}
-                            <!-- else movie -->
-                            {% else %}
-                                <input type="hidden" name="title" value="{{ query.title }}">
-                            {% endif %}
-                            <input type="hidden" name="media_type" value="{{ query.media_type }}">
-                            <input type="hidden" name="media_id" value="{{ query.id }}">
-                            <input type="hidden" name="image" value="{{ query.poster_path }}">
-                            <input type="hidden" name="api_origin" value="tmdb">
-                            
-                            <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>
-                        </form>
+                            </div>
+
+                            <form class="d-flex input-group" method="post">
+                                {% csrf_token %}
+
+                                {% if query.num_seasons and query.num_seasons  != 1 %}
+                                    <select name="season" class="form-select form-season">
+                                        {% load extras %}
+                                        {% for i in query.num_seasons|times %}
+                                            <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% endif %}
+                                <select name="status" class="form-select form-status">
+                                    <option value="Completed">Completed</option>
+                                    <option value="Planning">Planning</option>
+                                    <option value="Watching">Watching</option>
+                                    <option value="Paused">Paused</option>
+                                    <option value="Dropped">Dropped</option>
+                                </select>
+                                <input type="number" class="form-control bg-dark text-white" name="score" placeholder="0" aria-label="10" maxlength="3" step="0.1" min="0" max="10">
+                                
+                                {% if query.media_type == "tv"%}
+                                    <input type="hidden" name="title" value="{{ query.name }}">
+                                    {% if query.num_seasons  and query.num_seasons  != 1 %}
+                                        <input type="hidden" name="num_seasons" value="{{ query.num_seasons }}">
+                                    {% endif %}
+                                {% else %}
+                                    <input type="hidden" name="title" value="{{ query.title }}">
+                                {% endif %}
+                                <input type="hidden" name="media_type" value="{{ query.media_type }}">
+                                <input type="hidden" name="media_id" value="{{ query.id }}">
+                                <input type="hidden" name="image" value="{{ query.poster_path }}">
+                                <input type="hidden" name="api_origin" value="tmdb">
+                                
+                                <button class="btn bg-dark text-white" type="submit"><i class="bi bi-check-lg"></i></button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
+            {% endif %}
 
         {% endfor %}
 
