@@ -7,9 +7,8 @@ from app.models import User
 class DefaultView(TestCase):
     def test_home(self):
         response = self.client.get(reverse("home"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'app/home.html')
-        self.assertContains(response, "Log in to see your tracked media")
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("login") + "?next=/")
 
     def test_register(self):
         response = self.client.get(reverse("register"))
@@ -24,7 +23,6 @@ class DefaultView(TestCase):
     def test_logout(self):
         response = self.client.get(reverse("logout"))
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("home"))
     
     def test_profile(self):
         response = self.client.get(reverse("profile"))
@@ -62,7 +60,5 @@ class LoggedInView(TestCase):
         self.assertContains(response, "test")
     
     def test_logout(self):
-        response = self.client.get(reverse("logout"))
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("home"))
+        self.client.get(reverse("logout"))
         assert auth.get_user(self.client).is_anonymous
