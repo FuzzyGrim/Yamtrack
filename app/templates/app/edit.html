@@ -1,0 +1,100 @@
+<div class="d-flex flex-column box">
+    <div class="d-flex flex-row">
+        
+        {% if media.response.main_picture.large %}
+            <img class="poster flex-shrink-0" src={{media.response.main_picture.large}}>
+        {% elif media.response.poster_path %}
+            <img class="poster flex-shrink-0" src="https://image.tmdb.org/t/p/w500{{media.response.poster_path}}">
+        {% else %}
+            <div class="image-not-found poster flex-shrink-0"></div>
+        {% endif %}
+
+        <div class="d-flex flex-column content flex-grow-1">
+
+            {% if media.response.start_date or media.response.release_date%}
+                <div class="date">
+                    <strong>Release date:</strong>
+                    {{media.response.start_date}}
+                    {{media.response.release_date}}
+                </div>
+            {% endif %}
+
+            <div class="overview">
+                <strong>Overview:</strong>
+                {% if media.response.synopsis %} {{media.response.synopsis}} 
+                {% elif media.response.overview %} {{media.response.overview}} 
+                {% else %} No synopsis available
+                {% endif %}
+            </div>
+            
+            {% if media.response.number_of_seasons %}
+            <div class="num_seasons">
+                <strong>Seasons:</strong>
+                {{media.response.number_of_seasons}}
+            </div>
+            {% endif %}
+            <div class="episodes">
+                <strong>Episodes:</strong>
+                {% if media.response.num_episodes %} {{media.response.num_episodes}}
+                {% elif media.response.number_of_episodes %} {{media.response.number_of_episodes}}
+                {% else %} 1
+                {% endif %}
+            </div>
+
+            <div class="runtime">
+                <strong>Runtime:</strong>
+                {% if media.response.duration %} {{media.response.duration}}
+                {% else %} N/A
+                {% endif %}
+            </div>
+
+            <div class="media-status">
+                <strong>Status:</strong>
+                {% if media.response.status %} {{media.response.status}} 
+                {% else %} N/A. 
+                {% endif %}
+            </div>
+
+            <div class="genres">
+                <strong>Genres:</strong>
+                {% if media.response.genres%}
+                    {% for genre in media.response.genres %}
+                        {{ genre.name }}{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                {% else %} N/A.
+                {% endif %}
+            </div>
+
+            <form class="d-flex input-group" method="post" id="form-{{media.response.media_type}}_{{media.response.id}}">
+                {% csrf_token %}
+
+                {% if media.response.number_of_seasons and media.response.number_of_seasons  != 1 %}
+                    <select name="season" class="form-select form-season">
+                        {% load extras %}
+                        {% for i in media.response.number_of_seasons|times %}
+                            <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
+                        {% endfor %}
+                    </select>
+
+                    <input type="hidden" name="num_seasons" value="{{ media.response.number_of_seasons }}">
+                {% endif %}
+
+                <select name="status" class="form-select">
+                    <option value="Completed" {% if media.database.status == "Completed" %}selected{% endif %}>Completed</option>
+                    <option value="Planning" {% if media.database.status == "Planning" %}selected{% endif %}>Planning</option>
+                    <option value="Watching" {% if media.database.status == "Watching" %}selected{% endif %}>Watching</option>
+                    <option value="Paused" {% if media.database.status == "Paused" %}selected{% endif %}>Paused</option>
+                    <option value="Dropped" {% if media.database.status == "Dropped" %}selected{% endif %}>Dropped</option>
+                </select>
+                  
+                <input type="number" class="form-control bg-dark text-white" name="score" placeholder="{{media.database.score}}" aria-label="10" maxlength="3" step="0.1" min="0" max="10">
+                
+
+                <input type="hidden" name="media_type" value="{{media.response.media_type}}">
+                <input type="hidden" name="media_id" value="{{ media.response.id }}">
+                <input type="hidden" name="api_origin" value="{{ media.response.api_origin }}">
+
+            </form>
+        </div>
+    </div>
+</div>

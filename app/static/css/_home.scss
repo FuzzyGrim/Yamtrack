@@ -59,85 +59,98 @@ $font-grey: #d1cdc7;
     }
 
     .tab-pane {
-      .d-flex div:not(.title){
-        text-align: center;
+      .d-flex{
+        & .image,
+        & .score,
+        & .status,
+        & .edit,
+        & .delete {
+          text-align: center;
+        }
       }
 
       .list-head{
         margin: 1em 0 1em 0;
       }
-    }
 
-    .image {
-      width: 5%;
-      margin-left: 1em !important;
-      text-align: center;
+      .list-head, .list-section{
 
-      img {
-        width: 3rem;
-        height: 3rem;
-        object-fit: cover;
-      }
-    }
+        .image {
+          width: 5%;
+          margin-left: 1em !important;
+          text-align: center;
 
-    .title {
-      width: 25%;
-      margin-left: 1em;
-    }
-
-    .score, .status {
-      width: 10%;
-    }
-
-    .score {
-      .btn {
-        background-color: $dark-blue-bg;
-        color: $font-grey;
-        border-width: 0;
-
-        &:hover {
-          border-width: 1px solid $font-grey;
+          img {
+            width: 3rem;
+            height: 3rem;
+            object-fit: cover;
+          }
         }
-      }
 
-      .dropdown-menu {
-        background-color: #24292F;
-        color: $font-grey;
-        min-width: 0;
-        padding: 1em;
-      }
-    }
+        .title {
+          width: 50%;
+          margin-left: 1em;
+        }
 
-    .edit {
-      width: 35%;
-      padding: 0.5rem 2.5rem 0.5rem 2.5rem;
-      .form-control{
-        width: 4rem;
-      }
-      .btn{
-        color: $font-grey;
-      }
-    }
+        .score, .status {
+          width: 10%;
+        }
 
-    input[type=number] {
-      appearance: textfield;
-      -moz-appearance: textfield;
-    }
+        .score {
+          .btn {
+            background-color: $dark-blue-bg;
+            color: $font-grey;
+            border-width: 0;
 
-    .delete {
-      width: auto;
-      display: flex;
-      justify-content: center;
-      margin-right: .5em !important;
+            &:hover {
+              border-width: 1px solid $font-grey;
+            }
+          }
 
-      .btn {
-        border-width: 0;
-        background-color: $dark-blue-bg;
-        color: $font-grey;
-      }
+          .dropdown-menu {
+            background-color: #24292F;
+            color: $font-grey;
+            min-width: 0;
+            padding: 1em;
+          }
+        }
 
-      .btn:hover {
-        border-width: 1px;
+        .edit {
+          width: 10%;
+          display: flex;
+          justify-content: center;
+
+          .btn {
+            border-width: 1;
+            border-color: transparent;
+            background-color: $dark-blue-bg;
+            color: $font-grey;
+          }
+
+          .btn:hover {
+            border-width: 1px;
+            border-color: #56595D
+          }
+        }
+
+        .delete {
+          width: 10%;
+          display: flex;
+          justify-content: center;
+          margin-right: .5em !important;
+
+          .btn {
+            border-width: 1;
+            border-color: transparent;
+            background-color: $dark-blue-bg;
+            color: $font-grey;
+          }
+
+          .btn:hover {
+            border-width: 1px;
+            border-color: #56595D
+          }
+        }
       }
     }
 

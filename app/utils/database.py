@@ -49,6 +49,7 @@ def edit_media(request):
 
     media = Media.objects.get(
         media_id=request.POST["media_id"],
+        media_type=request.POST["media_type"],
         user=request.user,
         api_origin=request.POST["api_origin"],
     )

@@ -9,10 +9,14 @@ from django.contrib.auth.forms import PasswordChangeForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+
 
 from app.models import Media
 from app.forms import UserRegisterForm, UserUpdateForm
 from app.utils import api, database
+
 
 @login_required
 def home(request):
@@ -240,3 +244,14 @@ def profile(request):
     context = {"user_form": user_form, "password_form": password_form}
 
     return render(request, "app/profile.html", context)
+
+
+def edit(request, media_type, media_id):
+
+    if media_type == "anime" or media_type == "manga":
+        media = api.mal_edit(request, media_type, media_id)
+    elif media_type == "movie" or media_type == "tv":
+        media = api.tmdb_edit(request, media_type, media_id)
+
+    data = {'title': media["response"]["title"], 'year': media["response"]["year"], 'html': render_to_string("app/edit.html", {'media': media}, request=request)}
+    return JsonResponse(data)

@@ -38,6 +38,86 @@ def search(content, query):
     return response
 
 
+def mal_edit(request, media_type, media_id):
+    session_key = media_type + str(media_id)
+    if session_key in request.session:
+        response = request.session[session_key]
+    else:
+        url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,synopsis,media_type,num_episodes,average_episode_duration,status,genres"
+        header = {"X-MAL-CLIENT-ID": MAL_API}
+        response = requests.get(url, headers=header).json()
+
+        response["media_type"] = media_type
+
+        if "start_date" in response:
+            response["year"] = response["start_date"][0:4]
+
+        if "average_episode_duration" in response:
+            hours, minutes = divmod(response["average_episode_duration"], 60)
+            if hours == 0:
+                response["duration"] = f"{minutes}m"
+            else:
+                response["duration"] = f"{hours}h {minutes}m"
+
+        if "status" in response:
+            if response["status"] == "finished_airing":
+                response["status"] = "Finished"
+            elif response["status"] == "currently_airing":
+                response["status"] = "Airing"
+            elif response["status"] == "not_yet_aired":
+                response["status"] = "Upcoming"
+
+        response["api_origin"] = "mal"
+
+        request.session[session_key] = response
+
+    media = Media.objects.get(media_id=media_id, user=request.user, api_origin="mal", media_type=media_type)
+
+    data = {"response": response, "database": media}
+
+    return data
+
+
+def tmdb_edit(request, media_type, media_id):
+    session_key = media_type + str(media_id)
+    if session_key in request.session:
+        response = request.session[session_key]
+    else:
+        url = f"https://api.themoviedb.org/3/{media_type}/{media_id}?api_key={TMDB_API}"
+
+        response = requests.get(url).json()
+
+        response["media_type"] = media_type
+
+        if "name" in response:
+            response["title"] = response["name"]
+
+        if "release_date" in response:
+            response["year"] = response["release_date"][0:4]
+        elif "first_air_date" in response:
+            response["year"] = response["first_air_date"][0:4] 
+
+        if "runtime" in response:
+            hours, minutes = divmod(response["runtime"], 60)
+            response["duration"] = f"{hours}h {minutes}m"
+        elif "runtime" in response["last_episode_to_air"]:
+            hours, minutes = divmod(response["last_episode_to_air"]["runtime"], 60)
+            if hours == 0:
+                response["duration"] = f"{minutes}m"
+            else:
+                response["duration"] = f"{hours}h {minutes}m"
+
+        response["api_origin"] = "tmdb"
+
+        request.session[session_key] = response
+
+    media = Media.objects.get(media_id=media_id, user=request.user, api_origin="tmdb", media_type=media_type)
+
+    data = {"response": response, "database": media}
+
+    return data
+
+
 async def tmdb_get_seasons_list(response):
     async with ClientSession() as session:
         task = []
@@ -103,6 +183,7 @@ def import_myanimelist(username, user):
     Media.objects.bulk_create(bulk_add_media)
 
     return True
+
 
 async def myanilist_get_media_list(series, user):
     async with ClientSession() as session:
