@@ -3,12 +3,18 @@
       <form class="d-flex navbar-brand abs input-group" method="post">
         {% csrf_token %}
         <select name="content" class="form-select">
-          {% if user.is_authenticated and user.default_api == 'mal' %}
+          {% if "tmdb" in request.path%}
+            <option value="tmdb">TMDB</option>
+            <option value="mal">MAL</option>
+          {% elif "mal" in request.path%}
             <option value="mal">MAL</option>
             <option value="tmdb">TMDB</option>
-          {% else %}
+          {% elif user.is_authenticated and user.default_api == 'tmdb' %}
             <option value="tmdb">TMDB</option>
-            <option value="mal">MAL</option>          
+            <option value="mal">MAL</option>
+          {% else %}
+            <option value="mal">MAL</option>   
+            <option value="tmdb">TMDB</option>       
           {% endif %}
         </select>
         <input class="form-control bg-dark text-white" type="text" name="query" placeholder="Search" aria-label="Search" required>
