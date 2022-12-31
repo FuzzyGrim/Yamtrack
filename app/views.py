@@ -183,12 +183,17 @@ def login(request):
 def profile(request):
     if "username" in request.POST:
         user_form = UserUpdateForm(request.POST, instance=request.user)
-        password_form = PasswordChangeForm(request.user, request.POST)
-        if user_form.is_valid() and password_form.is_valid():
+        if user_form.is_valid():
             user_form.save()
+            messages.success(request, "Your account has been updated!")
+            return redirect("profile")
+
+    elif "new_password1" in request.POST:
+        password_form = PasswordChangeForm(request.user, request.POST)
+        if password_form.is_valid():
             password = password_form.save()
             update_session_auth_hash(request, password)
-            messages.success(request, "Your account has been updated!")
+            messages.success(request, "Your password has been updated!")
             return redirect("profile")
 
     elif "query" in request.POST:

@@ -34,13 +34,21 @@
         <fieldset class="form-group">
             <legend class="border-bottom mb-4">Profile</legend>
             {{ user_form|crispy }}
+        </fieldset>
+        <div class="form-group">
+            <button class="btn bg-dark text-white" type="submit">Save</button>
+        </div>
+      </form>
+      <form method="POST" class="mt-5">
+        {% csrf_token %}
+        <fieldset class="form-group">
+            <legend class="border-bottom mb-4">Password Update</legend>
             {{ password_form|crispy }}
         </fieldset>
         <div class="form-group">
             <button class="btn bg-dark text-white" type="submit">Update</button>
         </div>
       </form>
-
       <form id="import-form" class="import mt-5" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <fieldset class="input-group">
