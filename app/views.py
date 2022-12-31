@@ -27,7 +27,7 @@ def home(request):
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
         )
 
-    elif "score" in request.POST:
+    elif "status" in request.POST:
         if request.user.is_authenticated:
             database.edit_media(request)
             return redirect("home")
@@ -115,7 +115,7 @@ def search(request, content, query):
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
         )
 
-    elif "score" in request.POST:
+    elif "status" in request.POST:
         if request.user.is_authenticated:
             if Media.objects.filter(
                 media_id=request.POST["media_id"],
@@ -126,7 +126,7 @@ def search(request, content, query):
             else:
                 database.add_media(request)
         else:
-            messages.error(request, "Please log in to track media to your account.")
+            messages.error(request, "Log in is required to track media.")
             return redirect("login")
 
         return redirect("/search/" + content + "/" + query + "/")
@@ -134,10 +134,7 @@ def search(request, content, query):
     query_list = api.search(content, query)
     context = {"query_list": query_list}
 
-    if content == "tmdb":
-        return render(request, "app/search_tmdb.html", context)
-    else:
-        return render(request, "app/search_mal.html", context)
+    return render(request, "app/search.html", context)
 
 
 def register(request):
@@ -253,5 +250,14 @@ def edit(request, media_type, media_id):
     elif media_type == "movie" or media_type == "tv":
         media = api.tmdb_edit(request, media_type, media_id)
 
-    data = {'title': media["response"]["title"], 'year': media["response"]["year"], 'html': render_to_string("app/edit.html", {'media': media}, request=request)}
+    data = {'title': media["response"]["title"], 'year': media["response"]["year"], 'media_type': media["response"]["media_type"]}
+    media['response']['media_type'] = media_type
+    data['html'] = render_to_string("app/edit.html", {'media': media}, request=request)
+    
+    if "database" in media:
+        data['in_db'] = True
+        data['seasons_score'] = media["database"].seasons_score
+    else:
+        data['in_db'] = False
+
     return JsonResponse(data)

@@ -22,7 +22,7 @@ def add_media(request):
     media.api_origin = request.POST["api_origin"]
     
     if media.api_origin == "mal":
-        media.media_type = helpers.convert_mal_media_type(request.POST["media_type"])
+        media.media_type = request.POST["media_type"]
         img_temp = helpers.get_image_temp(request.POST["image"])
     else:
         media.media_type = request.POST["media_type"]

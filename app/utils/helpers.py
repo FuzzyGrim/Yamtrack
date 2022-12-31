@@ -5,7 +5,6 @@ import requests
 import aiofiles
 import os
 
-
 def convert_mal_media_type(media_type):
     match media_type:
         case "anime":
@@ -24,6 +23,7 @@ def convert_mal_media_type(media_type):
             return "manga"
         case _:
             return "anime"
+
 
 def get_image_temp(url):
     img_temp = NamedTemporaryFile(delete=True)

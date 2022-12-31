@@ -5,7 +5,7 @@ from django.test import override_settings
 from django.conf import settings
 
 import shutil
-from os import path
+import os
 import csv
 
 from app.models import User, Media
@@ -60,6 +60,7 @@ class CreateMedia(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
+
     @override_settings(MEDIA_ROOT=(TEST_DIR + "/media"))
     def test_create_tmdb(self):
         self.assertEqual(
@@ -87,7 +88,7 @@ class CreateMedia(TestCase):
             Media.objects.filter(media_id=5895, user=self.user).exists(), True
         )
         self.assertEqual(
-            path.exists(settings.MEDIA_ROOT + "/images/tmdb-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"),
+            os.path.exists(settings.MEDIA_ROOT + "/images/tmdb-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"),
             True,
         )
 
@@ -202,6 +203,7 @@ class Imports(LiveServerTestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
+
     @override_settings(MEDIA_ROOT=(TEST_DIR + "/media"))
     def test_import_animelist(self):
         api.import_myanimelist("bloodthirstiness", self.user)
@@ -223,7 +225,7 @@ class Imports(LiveServerTestCase):
 
     @override_settings(MEDIA_ROOT=(TEST_DIR + "/media"))
     def test_import_tmdb(self):
-        file_path = path.join(TEST_DIR, "ratings.csv")
+        file_path = os.path.join(TEST_DIR, "ratings.csv")
         fields = ["TMDb ID", "IMDb ID", "Type", "Name", "Release Date", "Season Number", "Episode Number", "Rating", "Your Rating", "Date Rated"]
         data = [
             ["634649", "tt10872600", "movie", "Spider-Man: No Way Home", "2021-12-15T00:00:00Z", "", "", "8.022", "7", "2022-12-17T15:50:35Z"],
@@ -241,7 +243,6 @@ class Imports(LiveServerTestCase):
             self.assertEqual(Media.objects.filter(user=self.user, media_type="tv").count(), 1)
             self.assertEqual(Media.objects.get(user=self.user, media_id=634649).score==7, True)
             self.assertEqual(Media.objects.get(user=self.user, media_id=1668).score==10, True)
-
 
     def tearDownClass():
         try:

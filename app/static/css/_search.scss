@@ -1,61 +1,33 @@
+#search main {
+  margin: 6em 12.5em 2em 12.5em;
+  .container-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 12rem);
+    justify-content: space-between;
+    grid-gap: 1.5rem 1rem;
 
-#search main .box {
-  margin: 0 auto 2em auto;
-  width: 70vw;
-  max-height: 100%;
-  border-radius: 10px;
-  border:1px solid #56595D;
-
-  .poster {
-    border-radius: 10px 0 0 10px;
-    width: 9rem;
-    height: 14rem;
-    object-fit: cover;
-  }
-
-  .image-not-found {
-    background-image: url("https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg");
-    background-repeat: no-repeat;
-    background-position:center;
-    background-color: rgb(44, 48, 50);
-  }
-
-  .content {
-    color: #c7c4bc;
-    margin: 1em;
-    position:relative;
-
-    .title {
-      font-size: 1.5rem;
-      margin-bottom: 0.2em;
-    }
-
-    .overview {
-      /* only show 3 lines of overview */
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-    }
-
-    .input-group {
-      position:absolute;
-      bottom:0;
-      width:auto;
-
-      .form-select.form-status{
-        width:auto;
+    .card {
+      
+      .poster {
+        object-fit: cover;
+        height: 18rem;
+      }
+      .image-not-found {
+        object-fit: contain;
+        height: 18rem;
+        background-color: rgb(44, 48, 50);
       }
 
-      .form-control{
-        border-style: solid;
-        border-color: #56595D;
-      }
-
-      input[type=number] {
-        appearance: textfield;
-        -moz-appearance: textfield;
+      .card-body {
+        padding: .6rem;
+        .card-title{
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          margin-bottom: 0;
+        }
       }
     }
   }
+
 }

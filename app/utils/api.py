@@ -4,7 +4,6 @@ import csv
 from aiohttp import ClientSession
 from asyncio import ensure_future, gather, run
 
-
 from app.models import Media
 from app.utils import helpers
 
@@ -16,44 +15,56 @@ MAL_API = config("MAL_API")
 def search(content, query):
     if content == "tmdb":
         url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API}&query={query}&include_adult=true"
-
-        response = requests.get(url).json()
-        response = run(tmdb_get_seasons_list(response["results"]))
+        response = requests.get(url).json()["results"]
+        for media in response:
+            media['media_id'] = media['id']
 
     else:
         
-        header = {"X-MAL-CLIENT-ID": MAL_API}
-        anime_url = f"https://api.myanimelist.net/v2/anime?q={query}&limit=5"
-        manga_url = f"https://api.myanimelist.net/v2/manga?q={query}&limit=5"
-        
-        animes = requests.get(anime_url, headers=header).json()
-        mangas = requests.get(manga_url, headers=header).json()
-
-        run(mal_get_extra_list(animes["data"], "anime"))
-        run(mal_get_extra_list(mangas["data"], "manga"))
+        animes, mangas = run(mal_search(query))
 
         # merge anime and manga results alternating between each
-        response = [i for j in zip(animes["data"], mangas["data"]) for i in j]
-
+        response = [item for pair in zip(animes["data"], mangas["data"]) for item in pair]
+        
     return response
 
+
+async def mal_search(query):
+    anime_url = f"https://api.myanimelist.net/v2/anime?q={query}&limit=5"
+    manga_url = f"https://api.myanimelist.net/v2/manga?q={query}&limit=5"
+    async with ClientSession() as session:
+        task = []
+        task.append(ensure_future(mal_search_list(session, anime_url)))
+        task.append(ensure_future(mal_search_list(session, manga_url)))
+        animes, mangas = await gather(*task)
+        return animes, mangas
+
+
+async def mal_search_list(session, url):
+    async with session.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}) as resp:
+        response = await resp.json()
+        for media in response["data"]:
+            media["node"]["media_type"] = "manga" if "manga" in url else "anime"
+            media["node"]["media_id"] = media["node"]["id"]
+            media.update(media.pop("node"))
+        return response
+    
 
 def mal_edit(request, media_type, media_id):
     session_key = media_type + str(media_id)
     if session_key in request.session:
         response = request.session[session_key]
     else:
-        url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,synopsis,media_type,num_episodes,average_episode_duration,status,genres"
+        url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,synopsis,media_type,num_episodes,num_chapters,average_episode_duration,status,genres"
         header = {"X-MAL-CLIENT-ID": MAL_API}
         response = requests.get(url, headers=header).json()
-
-        response["media_type"] = media_type
 
         if "start_date" in response:
             response["year"] = response["start_date"][0:4]
 
         if "average_episode_duration" in response:
-            hours, minutes = divmod(response["average_episode_duration"], 60)
+            # convert seconds to hours and minutes
+            hours, minutes = divmod(int(response["average_episode_duration"]/60), 60)
             if hours == 0:
                 response["duration"] = f"{minutes}m"
             else:
@@ -66,14 +77,20 @@ def mal_edit(request, media_type, media_id):
                 response["status"] = "Airing"
             elif response["status"] == "not_yet_aired":
                 response["status"] = "Upcoming"
+            elif response["status"] == "finished":
+                response["status"] = "Finished"
+            elif response["status"] == "currently_publishing":
+                response["status"] = "Publishing"
 
         response["api_origin"] = "mal"
 
         request.session[session_key] = response
 
-    media = Media.objects.get(media_id=media_id, user=request.user, api_origin="mal", media_type=media_type)
-
-    data = {"response": response, "database": media}
+    try:
+        media = Media.objects.get(media_id=media_id, user=request.user, api_origin="mal", media_type=media_type)
+        data = {"response": response, "database": media}
+    except Media.DoesNotExist:
+        data = {"response": response}
 
     return data
 
@@ -111,59 +128,13 @@ def tmdb_edit(request, media_type, media_id):
 
         request.session[session_key] = response
 
-    media = Media.objects.get(media_id=media_id, user=request.user, api_origin="tmdb", media_type=media_type)
-
-    data = {"response": response, "database": media}
+    try:
+        media = Media.objects.get(media_id=media_id, user=request.user, api_origin="tmdb", media_type=media_type)
+        data = {"response": response, "database": media}
+    except Media.DoesNotExist:
+        data = {"response": response}
 
     return data
-
-
-async def tmdb_get_seasons_list(response):
-    async with ClientSession() as session:
-        task = []
-        for result in response:
-            if result["media_type"] == "tv":
-                url = f"https://api.themoviedb.org/3/tv/{result['id']}?api_key={TMDB_API}"
-                task.append(ensure_future(tmdb_get_seasons(session, url, result)))
-
-        await gather(*task)
-        return response
-
-
-async def tmdb_get_seasons(session, url, result):
-    async with session.get(url) as resp:
-        response = await resp.json()
-        if response["last_episode_to_air"] is None:
-            result["num_seasons"] = 1
-        else:
-            result["num_seasons"] = response["last_episode_to_air"]["season_number"]
-
-
-async def mal_get_extra_list(response, type):
-    async with ClientSession() as session:
-
-        task = []
-        for result in response:
-            id = result["node"]["id"]
-            url = f"https://api.myanimelist.net/v2/{type}/{id}?fields=start_date,synopsis,media_type"
-            task.append(ensure_future(mal_get_extra(session, url, result)))
-        return await gather(*task)
-
-
-async def mal_get_extra(session, url, result):
-
-    async with session.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}) as resp:
-        response = await resp.json()
-        if "start_date" in response:
-            result["node"]["start_date"] = response["start_date"]
-        if "synopsis" in response:
-            result["node"]["synopsis"] = response["synopsis"]
-        if "media_type" in response:
-            if response["media_type"] == "tv":
-                result["node"]["media_type"] = "anime"
-            else:
-                result["node"]["media_type"] = response["media_type"]
-        return result
 
 
 def import_myanimelist(username, user):
@@ -227,7 +198,6 @@ async def myanimelist_get_media(session, content, media_type, user):
         media.image = "images/none.svg"
 
     return media
-
 
 
 def import_tmdb(file, user):

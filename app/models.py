@@ -19,7 +19,7 @@ class Media(models.Model):
         return self.title
 
     class Meta:
-        ordering = ['title']
+        ordering = ['-score']
 
 
 class User(AbstractUser):

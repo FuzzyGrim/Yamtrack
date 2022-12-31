@@ -37,6 +37,13 @@ $font-grey: #d1cdc7;
       }
     }
 
+    .dropdown-toggle {
+      &:hover {
+        color: #ebe7e7;
+        border: 1px solid #ebe7e7;
+      }
+    }
+
     .filters {
       background-color: $dark-blue-bg;
 

@@ -32,13 +32,13 @@ class DefaultView(TestCase):
     def test_search_tmdb(self):
         response = self.client.get(reverse("search", args = ["tmdb", "flcl"]))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'app/search_tmdb.html')
+        self.assertTemplateUsed(response, 'app/search.html')
         self.assertContains(response, "FLCL")
     
     def test_search_mal(self):
         response = self.client.get(reverse("search", args = ["mal", "flcl"]))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'app/search_mal.html')
+        self.assertTemplateUsed(response, 'app/search.html')
         self.assertContains(response, "FLCL")
 
 class LoggedInView(TestCase):
