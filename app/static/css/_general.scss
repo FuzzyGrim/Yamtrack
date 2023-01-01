@@ -18,7 +18,8 @@ form .btn:not(.modal-delete-btn){
   }
 }
 
-.input-group > .form-control, .input-group > .form-select {
+
+.input-group > .form-select {
   flex-grow: 0;
   flex-shrink: 0;
   width: auto;

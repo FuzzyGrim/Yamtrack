@@ -1,12 +1,12 @@
-<div class="d-flex flex-row flex-wrap mb-3 align-items-center list-section">
+<div class="d-flex flex-row mb-3 align-items-center list-section">
   <div class="image p-2">
     <img loading="lazy" src="{{media.image.url}}">
   </div>
 
-  <div class="title p-2">{{media.title}}</div>
+  <div class="title p-2 flex-grow-1">{{media.title}}</div>
 
   {% if media.num_seasons and media.num_seasons != 1 %}
-    <div class="score p-2 dropdown">
+    <div class="score p-2 flex-shrink-0 dropdown">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.score}}
       </button>
@@ -17,12 +17,12 @@
       </ul>
     </div>
   {% else %}
-    <div class="score p-2">{{media.score}}</div>
+    <div class="score p-2 flex-shrink-0">{{media.score}}</div>
   {% endif %}
 
-  <div class="status p-2">{{media.status}}</div>
+  <div class="status p-2 flex-shrink-0">{{media.status}}</div>
   
-  <div class="edit p-2">
+  <div class="edit p-2 flex-shrink-0">
     <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.media_id%}">
       <i class="bi bi-pen-fill"></i>
     </button>
@@ -30,7 +30,7 @@
   
   {% include "app/include/media-modal.html" %}
 
-  <div class="delete p-2">
+  <div class="delete p-2 flex-shrink-0">
     <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#modal-confirmation-{{media.media_type}}_{{media.media_id}}">
       <i class="bi bi-trash3-fill"></i>
     </button>

@@ -27,12 +27,12 @@
         {% endfor %}
       {% endif %}
         
-      <div class="d-xl-flex align-items-start">
+      <div class="d-md-flex align-items-start main-flex">
 
-        <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+        <div class="nav flex-column nav-pills me-3 sticky-lg-top" id="v-pills-tab" role="tablist" aria-orientation="vertical">
           <div class="btn-group dropend">
             <button class="nav-link active" id="v-pills-tv-tab" data-bs-toggle="pill" data-bs-target="#v-pills-tv" type="button" role="tab" aria-controls="v-pills-tv" aria-selected="true">
-              <span class="left_word">TV LIST</span> 
+              <span class="left_word">TV</span> 
               <span class="right_number">{{ tv|length }}</span> 
             </button>
             <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
@@ -61,7 +61,7 @@
 
           <div class="btn-group dropend">
             <button class="nav-link" id="v-pills-movie-tab" data-bs-toggle="pill" data-bs-target="#v-pills-movie" type="button" role="tab" aria-controls="v-pills-movie" aria-selected="true">
-              <span class="left_word">MOVIE LIST</span> 
+              <span class="left_word">MOVIE</span> 
               <span class="right_number">{{ movies|length }}</span> 
             </button>
             <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
@@ -90,7 +90,7 @@
 
           <div class="btn-group dropend">
             <button class="nav-link" id="v-pills-anime-tab" data-bs-toggle="pill" data-bs-target="#v-pills-anime" type="button" role="tab" aria-controls="v-pills-anime" aria-selected="true">
-              <span class="left_word">ANIME LIST</span> 
+              <span class="left_word">ANIME</span> 
               <span class="right_number">{{ anime|length }}</span> 
             </button>
             <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
@@ -119,7 +119,7 @@
 
           <div class="btn-group dropend">
             <button class="nav-link" id="v-pills-manga-tab" data-bs-toggle="pill" data-bs-target="#v-pills-manga" type="button" role="tab" aria-controls="v-pills-manga" aria-selected="true">
-              <span class="left_word">MANGA LIST</span> 
+              <span class="left_word">MANGA</span> 
               <span class="right_number">{{ manga|length }}</span> 
             </button>
             <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">

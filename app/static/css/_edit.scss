@@ -14,7 +14,6 @@
         background-color: rgb(44, 48, 50);
     }
 
-
     .content {
         color: #c7c4bc;
         margin-left: 1rem;
@@ -25,7 +24,7 @@
         }
 
         .overview {
-        /* only show 3 lines of overview */
+        /* only show 2 lines of overview */
         overflow: hidden;
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -33,7 +32,7 @@
         }
 
         .genres {
-            /* only show 3 lines of overview */
+            /* only show 1 lines of overview */
             overflow: hidden;
             display: -webkit-box;
             -webkit-line-clamp: 1;

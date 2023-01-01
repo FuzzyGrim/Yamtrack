@@ -6,7 +6,6 @@
 @import "edit";
 
 
-
 @media screen and (min-width: 1081px){
   #search main .box .content .input-group .form-control{
     width: 40%;
@@ -27,73 +26,67 @@
 
 @media screen and (max-width: 1080px){
   main {
-    margin: 5em .5em 0em .5em;
+    margin: 5em 1em 1em 1em;
   }
   .navbar-brand.abs {
-    width:40%;
+    width:45%;
     margin-left: 1rem;
   }
 
-  #home .tab-content {
-    .title {
-      width: 10%;
-      margin-left: 1.2em;
-    }
-    .edit{
-      width: 50%;
-      padding: 0.5em 1.5em 0.5em 1.5em;
+  #home {
+    .sticky-lg-top { top: 5em; }
+
+    .tab-content .tab-pane .list-section, .tab-content .tab-pane .list-head {
+      .status {
+        width: 20%;
+      }
+      
     }
   }
 }
 
+
 /* mobile css */
 @media screen and (max-width: 767px) {
-  .navbar-brand.abs {
-    width:80%;
+  .navbar .navbar-brand.abs {
+    width:75%;
     margin-left: 0rem;
-  }
 
-  #home .tab-content {
-    .title{
-      margin-left: 3em;
-    }
-    .title, .score, .status, .delete{
-      width: auto;
-    }
-    .edit {
-      width:auto;
-      padding: 0.5rem 0.5rem 0.5rem 1rem;
+    .form-control {
+      width: 50%;
     }
   }
 
-  #search main .box {
-
-    margin: 0 auto 1em auto;
-    width: 90vw;
-    
-    .content {
-
-      .title {
-        font-size: 1.4rem;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 4;
-        -webkit-box-orient: vertical;
+  #home .tab-content .tab-pane {
+    .list-head, .list-section {
+      .score, .edit {
+        width: 20%;
       }
-
-      .overview {
-        font-size: 0;
+      .status {
+        display: none;
       }
-
-      .input-group{
-        .form-select {
-          width:20%;
-          font-size: .8rem;
-        }
-        .form-control {
-          width:50%;
-        }
+      .delete {
+        display: none;
       }
+    }
+  } 
+
+  #search main .container-grid {
+    justify-content: center;
+  }
+
+  .modal-content .content{
+    .overview {
+      display:none
+    }
+    .genres {
+      display:none
+    }
+    .media-status {
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
     }
   }
 

@@ -2,55 +2,56 @@ $dark-blue-bg: #1E232A;
 $font-grey: #d1cdc7;
 
 #home {
+
+  .sticky-lg-top { top: 6em; }
+
   #v-pills-tab {
     background-color: $dark-blue-bg;
     width: 15rem;
-  }
 
-  .dropend {
-    height: 3rem;
-  }
+    .dropend {
+      height: 3rem;
 
-  #v-pills-tab {
-    .nav-link {
-      width: 80%;
-    }
-
-    button {
-      color: #aaaaaa;
-    }
-
-    .nav-link {
-      background-color: $dark-blue-bg;
-      &:hover {
-        color: #ebe7e7;
-        border: 1px solid #ebe7e7;
+      .nav-link {
+        width: 80%;
       }
-      .left_word {
-        float: left;
-        text-align: left;
+  
+      button {
+        color: #aaaaaa;
       }
-
-      .right_number {
-        float: right;
-        text-align: right;
+  
+      .nav-link {
+        background-color: $dark-blue-bg;
+        &:hover {
+          color: #ebe7e7;
+          border: 1px solid #ebe7e7;
+        }
+        .left_word {
+          float: left;
+          text-align: left;
+        }
+  
+        .right_number {
+          float: right;
+          text-align: right;
+        }
       }
-    }
-
-    .dropdown-toggle {
-      &:hover {
-        color: #ebe7e7;
-        border: 1px solid #ebe7e7;
+  
+      .dropdown-toggle {
+        &:hover {
+          color: #ebe7e7;
+          border: 1px solid #ebe7e7;
+        }
       }
-    }
-
-    .filters {
-      background-color: $dark-blue-bg;
-
-      button.dropdown-item {
-        width: 100%;
-        height: 100%;
-        border-radius: 0px;
+  
+      .filters {
+        background-color: $dark-blue-bg;
+  
+        button.dropdown-item {
+          width: 100%;
+          height: 100%;
+          border-radius: 0px;
+        }
       }
     }
   }
@@ -77,13 +78,12 @@ $font-grey: #d1cdc7;
       }
 
       .list-head{
-        margin: 1em 0 1em 0;
+        margin: 1em 0 0em 0;
       }
 
       .list-head, .list-section{
-
         .image {
-          width: 5%;
+          width: auto;
           margin-left: 1em !important;
           text-align: center;
 
@@ -92,18 +92,24 @@ $font-grey: #d1cdc7;
             height: 3rem;
             object-fit: cover;
           }
+
+          .empty-div {
+            width: 3rem;
+            height: 3rem;
+            background-color: $dark-blue-bg;
+          }
         }
 
-        .title {
-          width: 50%;
-          margin-left: 1em;
-        }
-
-        .score, .status {
-          width: 10%;
+        .title{
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          line-height: 2;
         }
 
         .score {
+          width: 10%;
           .btn {
             background-color: $dark-blue-bg;
             color: $font-grey;
@@ -120,6 +126,10 @@ $font-grey: #d1cdc7;
             min-width: 0;
             padding: 1em;
           }
+        }
+
+        .status {
+          width: 15%;
         }
 
         .edit {
