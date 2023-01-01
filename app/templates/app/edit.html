@@ -69,6 +69,7 @@
                 {% if media.response.number_of_seasons and media.response.number_of_seasons  != 1 %}
                     <select name="season" class="form-select form-season" id="season-select-{{media.response.media_type}}_{{media.response.id}}">
                         {% load extras %}
+                            <option value="all">All</option>
                         {% for i in media.response.number_of_seasons|times %}
                             <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
                         {% endfor %}

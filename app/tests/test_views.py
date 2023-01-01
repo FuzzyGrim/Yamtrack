@@ -51,7 +51,7 @@ class LoggedInView(TestCase):
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'app/home.html')
-        self.assertContains(response, "TV LIST")
+        self.assertContains(response, "TV")
     
     def test_profile(self):
         response = self.client.get(reverse("profile"))

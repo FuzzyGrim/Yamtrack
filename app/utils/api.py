@@ -30,8 +30,8 @@ def search(content, query):
 
 
 async def mal_search(query):
-    anime_url = f"https://api.myanimelist.net/v2/anime?q={query}&limit=5"
-    manga_url = f"https://api.myanimelist.net/v2/manga?q={query}&limit=5"
+    anime_url = f"https://api.myanimelist.net/v2/anime?q={query}&limit=10"
+    manga_url = f"https://api.myanimelist.net/v2/manga?q={query}&limit=10"
     async with ClientSession() as session:
         task = []
         task.append(ensure_future(mal_search_list(session, anime_url)))

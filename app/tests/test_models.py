@@ -12,9 +12,6 @@ from app.models import User, Media
 from app.utils import api
 
 
-TEST_DIR = "test-data"
-
-
 class RegisterLoginUser(TestCase):
     def test_create_user(self):
         response = self.client.post(
@@ -61,7 +58,7 @@ class CreateMedia(TestCase):
         self.client.login(**self.credentials)
 
 
-    @override_settings(MEDIA_ROOT=(TEST_DIR + "/media"))
+    @override_settings(MEDIA_ROOT=("test_CreateMedia/media"))
     def test_create_tmdb(self):
         self.assertEqual(
             Media.objects.filter(media_id=5895, user=self.user).exists(), False
@@ -92,15 +89,54 @@ class CreateMedia(TestCase):
             True,
         )
 
+    @override_settings(MEDIA_ROOT=("test_CreateMedia/media"))
+    def test_create_tmdb_middle_season(self):
+        self.assertEqual(
+            Media.objects.filter(media_id=1668, user=self.user).exists(), False
+        )
+
+        response = self.client.post(
+            reverse("search", args=["tmdb", "flcl"]),
+            {
+                "media_id": 1668,
+                "title": "Friends",
+                "image": "/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
+                "api_origin": "tmdb",
+                "status": "Completed",
+                "score": 8,
+                "season": 1,
+                "media_type": "tv",
+                "num_seasons": 10,
+            },
+        )
+
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Friends")
+        self.assertEqual(
+            Media.objects.filter(media_id=1668, user=self.user).exists(), True
+        )
+        self.assertEqual(
+            Media.objects.filter(media_id=1668, user=self.user, status="Completed").exists(), False
+        )
+        self.assertEqual(
+            Media.objects.filter(media_id=1668, user=self.user, status="Watching").exists(), True
+        )
+        self.assertEqual(
+            os.path.exists(settings.MEDIA_ROOT + "/images/tmdb-f496cm9enuEsZkSPzCwnTESEK5s.jpg"),
+            True,
+        )
+
+
     def tearDownClass():
         try:
-            shutil.rmtree(TEST_DIR)
+            shutil.rmtree("test_CreateMedia")
         except OSError:
             pass
 
 
+
 class EditMedia(TestCase):
-    @override_settings(MEDIA_ROOT=(TEST_DIR + "/media"))
+    @override_settings(MEDIA_ROOT=("test_EditMedia/media"))
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -108,71 +144,71 @@ class EditMedia(TestCase):
         self.client.post(
             reverse("search", args=["tmdb", "flcl"]),
             {
-                "media_id": 5895,
-                "title": "FLCL",
-                "image": "/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg",
+                "media_id": 1668,
+                "title": "Friends",
+                "image": "/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
                 "api_origin": "tmdb",
                 "status": "Completed",
-                "score": 3,
-                "season": 1,
+                "score": 9,
+                "season": 10,
                 "media_type": "tv",
-                "num_seasons": 3,
+                "num_seasons": 10,
             },
         )
 
     def test_edit_tmdb_score(self):
         self.assertEqual(
-            Media.objects.filter(media_id=5895, user=self.user, score=3).exists(), True
+            Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), True
         )
         self.assertEqual(
-            Media.objects.filter(media_id=5895, user=self.user, score=4).exists(), False
+            Media.objects.filter(media_id=1668, user=self.user, score=9.5).exists(), False
         )
 
         response = self.client.post(
             reverse("home"),
             {
-                "media_id": 5895,
+                "media_id": 1668,
                 "api_origin": "tmdb",
-                "status": "Watching",
-                "score": 4,
-                "season": 1,
+                "status": "Completed",
+                "score": 9.5,
+                "season": 10,
                 "media_type": "tv",
-                "num_seasons": 3,
+                "num_seasons": 10,
             },
         )
 
         response = self.client.get(reverse("home"))
-        self.assertContains(response, "4.0")
+        self.assertContains(response, "9.5")
         self.assertEqual(
-            Media.objects.filter(media_id=5895, user=self.user, score=3).exists(), False
+            Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), False
         )
         self.assertEqual(
-            Media.objects.filter(media_id=5895, user=self.user, score=4).exists(), True
+            Media.objects.filter(media_id=1668, user=self.user, score=9.5).exists(), True
         )
 
     def test_edit_tmdb_status(self):
         self.assertEqual(
             Media.objects.filter(
-                media_id=5895, user=self.user, status="Completed"
+                media_id=1668, user=self.user, status="Completed"
             ).exists(),
             True,
         )
         self.assertEqual(
             Media.objects.filter(
-                media_id=5895, user=self.user, status="Watching"
+                media_id=1668, user=self.user, status="Watching"
             ).exists(),
             False,
         )
         response = self.client.post(
             reverse("home"),
             {
-                "media_id": 5895,
+                "media_id": 1668,
                 "api_origin": "tmdb",
                 "status": "Watching",
-                "score": 3,
-                "season": 1,
+                "score": 9,
+                "season": 10,
                 "media_type": "tv",
-                "num_seasons": 3,
+                "num_seasons": 10,
             },
         )
 
@@ -180,20 +216,75 @@ class EditMedia(TestCase):
         self.assertContains(response, "Watching")
         self.assertEqual(
             Media.objects.filter(
-                media_id=5895, user=self.user, status="Completed"
+                media_id=1668, user=self.user, status="Completed"
             ).exists(),
             False,
         )
         self.assertEqual(
             Media.objects.filter(
-                media_id=5895, user=self.user, status="Watching"
+                media_id=1668, user=self.user, status="Watching"
             ).exists(),
             True,
         )
 
+    def test_edit_tmdb_all(self):
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, status="Completed"
+            ).exists(),
+            True,
+        )
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, status="Watching"
+            ).exists(),
+            False,
+        )
+        self.assertEqual(
+            Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), True
+        )
+        self.assertEqual(
+            Media.objects.filter(media_id=1668, user=self.user, score=9.5).exists(), False
+        )
+
+        response = self.client.post(
+            reverse("home"),
+            {
+                "media_id": 1668,
+                "api_origin": "tmdb",
+                "status": "Watching",
+                "score": 9.5,
+                "season": "all",
+                "media_type": "tv",
+                "num_seasons": 10,
+            },
+        )
+
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Watching")
+        self.assertContains(response, "9.5")
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, status="Completed"
+            ).exists(),
+            False,
+        )
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, status="Watching"
+            ).exists(),
+            True,
+        )
+        self.assertEqual(
+            Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), False
+        )
+        self.assertEqual(
+            Media.objects.filter(media_id=1668, user=self.user, score=9.5).exists(), True
+        )
+
     def tearDownClass():
         try:
-            shutil.rmtree(TEST_DIR)
+            shutil.rmtree("test_EditMedia")
         except OSError:
             pass
 
@@ -204,7 +295,7 @@ class Imports(LiveServerTestCase):
         self.user = User.objects.create_user(**self.credentials)
 
 
-    @override_settings(MEDIA_ROOT=(TEST_DIR + "/media"))
+    @override_settings(MEDIA_ROOT=("test_Imports/media"))
     def test_import_animelist(self):
         api.import_myanimelist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
@@ -214,7 +305,8 @@ class Imports(LiveServerTestCase):
         self.assertEqual(Media.objects.get(user=self.user, title="FLCL").status=="Paused", True)
         self.assertEqual(Media.objects.get(user=self.user, title="Fire Punch").score==7, True)
 
-    @override_settings(MEDIA_ROOT=(TEST_DIR + "/media"))
+
+    @override_settings(MEDIA_ROOT=("test_Imports/media"))
     def test_import_anilist(self):
         api.import_anilist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
@@ -223,9 +315,10 @@ class Imports(LiveServerTestCase):
         self.assertEqual(Media.objects.get(user=self.user, title="FLCL").status=="Paused", True)
         self.assertEqual(Media.objects.get(user=self.user, title="One Punch-Man").score==9, True)
 
-    @override_settings(MEDIA_ROOT=(TEST_DIR + "/media"))
+
+    @override_settings(MEDIA_ROOT=("test_Imports/media"))
     def test_import_tmdb(self):
-        file_path = os.path.join(TEST_DIR, "ratings.csv")
+        file_path = os.path.join("test_Imports/ratings.csv")
         fields = ["TMDb ID", "IMDb ID", "Type", "Name", "Release Date", "Season Number", "Episode Number", "Rating", "Your Rating", "Date Rated"]
         data = [
             ["634649", "tt10872600", "movie", "Spider-Man: No Way Home", "2021-12-15T00:00:00Z", "", "", "8.022", "7", "2022-12-17T15:50:35Z"],
@@ -244,8 +337,9 @@ class Imports(LiveServerTestCase):
             self.assertEqual(Media.objects.get(user=self.user, media_id=634649).score==7, True)
             self.assertEqual(Media.objects.get(user=self.user, media_id=1668).score==10, True)
 
+
     def tearDownClass():
         try:
-            shutil.rmtree(TEST_DIR)
+            shutil.rmtree("test_Imports")
         except OSError:
             pass

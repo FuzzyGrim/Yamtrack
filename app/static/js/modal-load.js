@@ -44,7 +44,11 @@ document.addEventListener("DOMContentLoaded", function() {
                             if (selectedValue in data.seasons_details) {
                                 input.value = data.seasons_details[selectedValue]["score"];
                                 status.value = data.seasons_details[selectedValue]["status"];
-                            } 
+                            }
+                            else if (selectedValue == "all") {
+                                input.value = data.score;
+                                status.value = data.status;
+                            }
                             else {                            
                                 input.value = "";
                                 status.value = "Completed";
