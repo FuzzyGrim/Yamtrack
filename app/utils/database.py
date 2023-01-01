@@ -19,13 +19,12 @@ def add_media(request):
     if "season" in request.POST:
         if request.POST["season"] == "all":
             for season in range(1, int(request.POST["num_seasons"]) + 1):
-                media.seasons_details[season] = {"score": request.POST["score"], "status": request.POST["status"]}
+                media.seasons_details[season] = {"score": media.score, "status": request.POST["status"]}
 
         else:
-            media.seasons_details={request.POST["season"]: {"score":request.POST["score"], "status":request.POST["status"]}}
-            if request.POST["num_seasons"] in media.seasons_details:
-                media.status = media.seasons_details[request.POST["num_seasons"]]["status"]
-            else:
+            media.seasons_details={request.POST["season"]: {"score":media.score, "status":request.POST["status"]}}
+
+            if request.POST["season"] != request.POST["num_seasons"] and media.status == "Completed":
                 media.status = "Watching"
 
     media.api_origin = request.POST["api_origin"]
@@ -52,7 +51,7 @@ def add_media(request):
     
 def edit_media(request):
     if request.POST["score"] == "":
-        request.POST["score"] = None
+        score = None
     else:
         score = float(request.POST["score"])
 
@@ -88,9 +87,7 @@ def edit_media(request):
                 media.score = round(total / valued_seasons, 1)
             
             # calculate the status
-            if request.POST["num_seasons"] in media.seasons_details:
-                media.status = media.seasons_details[request.POST["num_seasons"]]["status"]
-            else:
+            if request.POST["season"] != request.POST["num_seasons"] and media.status == "Completed":
                 media.status = "Watching"
 
             media.num_seasons = request.POST["num_seasons"]
