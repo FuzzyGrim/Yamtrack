@@ -110,6 +110,13 @@ $font-grey: #d1cdc7;
 
         .score {
           width: 10%;
+        }
+
+        .status {
+          width: 15%;
+        }
+
+        .score, .status {
           .btn {
             background-color: $dark-blue-bg;
             color: $font-grey;
@@ -119,17 +126,12 @@ $font-grey: #d1cdc7;
               border: 1px solid #56595D;
             }
           }
-
           .dropdown-menu {
             background-color: #24292F;
             color: $font-grey;
             min-width: 0;
             padding: 1em;
           }
-        }
-
-        .status {
-          width: 15%;
         }
 
         .edit {

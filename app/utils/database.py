@@ -17,7 +17,11 @@ def add_media(request):
     media.num_seasons=request.POST.get("num_seasons")
 
     if "season" in request.POST:
-        media.seasons_score={request.POST["season"]: request.POST["score"]}
+        media.seasons_details={request.POST["season"]: {"score":request.POST["score"], "status":request.POST["status"]}}
+        if request.POST["num_seasons"] in media.seasons_details:
+            media.status = media.seasons_details[request.POST["num_seasons"]]["status"]
+        else:
+            media.status = "Watching"
 
     media.api_origin = request.POST["api_origin"]
     
@@ -56,20 +60,26 @@ def edit_media(request):
     
     if "season" in request.POST:
         # if media didn't have seasons before, add the previous score as season 1
-        if not media.seasons_score:
-            media.seasons_score["1"] = media.score
-        media.seasons_score[request.POST["season"]] = score
-        dict(sorted(media.seasons_score.items()))
+        if not media.seasons_details:
+            media.seasons_details = {"1": {"score": media.score, "status": media.status}}
+        media.seasons_details[request.POST["season"]] = {"score": request.POST["score"], "status": request.POST["status"]}
+        dict(sorted(media.seasons_details.items()))
 
         # calculate the average score
         total = 0
         valued_seasons = 0
-        for season in media.seasons_score:
-            if media.seasons_score[season] is not None:
-                total += media.seasons_score[season]
+        for season in media.seasons_details:
+            if media.seasons_details[season]["score"] is not None:
+                total += float(media.seasons_details[season]["score"])
                 valued_seasons += 1
         if valued_seasons != 0:
             media.score = round(total / valued_seasons, 1)
+        
+        # calculate the status
+        if request.POST["num_seasons"] in media.seasons_details:
+            media.status = media.seasons_details[request.POST["num_seasons"]]["status"]
+        else:
+            media.status = "Watching"
 
         media.num_seasons = request.POST["num_seasons"]
 

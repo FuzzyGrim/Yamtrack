@@ -11,16 +11,25 @@
         {{media.score}}
       </button>
       <ul class="dropdown-menu">
-        {% for season, score in media.seasons_score.items %}
-          <li>S{{season}}: {{score}}</li>
+        {% for season, details in media.seasons_details.items %}
+          <li>S{{season}}: {{details.score}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="status p-2 flex-shrink-0 dropdown">
+      <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        {{media.status}}
+      </button>
+      <ul class="dropdown-menu">
+        {% for season, details in media.seasons_details.items %}
+          <li>S{{season}}: {{details.status}}</li>
         {% endfor %}
       </ul>
     </div>
   {% else %}
     <div class="score p-2 flex-shrink-0">{{media.score}}</div>
+    <div class="status p-2 flex-shrink-0">{{media.status}}</div>
   {% endif %}
-
-  <div class="status p-2 flex-shrink-0">{{media.status}}</div>
   
   <div class="edit p-2 flex-shrink-0">
     <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.media_id%}">

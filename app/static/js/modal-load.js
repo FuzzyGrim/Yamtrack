@@ -35,12 +35,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
                     document.getElementById("modal-title-" + type + "_" + id).innerHTML = output;
                     document.getElementById("modal-body-" + type + "_" + id).innerHTML = data.html;
-                    if (data.seasons_score) {
+                    if (data.seasons_details) {
                         var select = document.getElementById("season-select-" + type + "_" + id);
                         var input = document.getElementById("score-input-" + type + "_" + id);
+                        var status = document.getElementById("season-status-" + type + "_" + id);
                         select.addEventListener("change", function() {
                             var selectedValue = select.value;
-                            input.value = data.seasons_score[selectedValue];
+                            if (selectedValue in data.seasons_details) {
+                                input.value = data.seasons_details[selectedValue]["score"];
+                                status.value = data.seasons_details[selectedValue]["status"];
+                            } 
+                            else {                            
+                                input.value = "";
+                                status.value = "Completed";
+                            }
+
                         });
                     }
 

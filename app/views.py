@@ -261,7 +261,7 @@ def edit(request, media_type, media_id):
     
     if "database" in media:
         data['in_db'] = True
-        data['seasons_score'] = media["database"].seasons_score
+        data['seasons_details'] = media["database"].seasons_details
     else:
         data['in_db'] = False
 

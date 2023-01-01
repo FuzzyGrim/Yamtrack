@@ -77,7 +77,7 @@
                     <input type="hidden" name="num_seasons" value="{{ media.response.number_of_seasons }}">
                 {% endif %}
 
-                <select name="status" class="form-select">
+                <select name="status" class="form-select" id="season-status-{{media.response.media_type}}_{{media.response.id}}">
                     <option value="Completed" {% if media.database.status == "Completed" %}selected{% endif %}>Completed</option>
                     <option value="Planning" {% if media.database.status == "Planning" %}selected{% endif %}>Planning</option>
                     <option value="Watching" {% if media.database.status == "Watching" %}selected{% endif %}>Watching</option>

@@ -246,26 +246,26 @@ async def tmdb_get_media(session, url, row, user, status):
     async with session.get(url) as resp:
         response = await resp.json()
             
-        seasons_score = {}
+        seasons_details = {}
         if row["Your Rating"] == "":
             score = None
         else:
             score = float(row["Your Rating"])
 
-        if "last_episode_to_air" in response:
-            for season in range(1, response["last_episode_to_air"]["season_number"] + 1):
-                seasons_score[season] = score
+        if "number_of_seasons" in response:
+            for season in range(1, response["number_of_seasons"] + 1):
+                seasons_details[season] = {"score": score, "status": status}
 
         media = Media(
                 media_id=row["TMDb ID"],
                 title=row["Name"],
                 media_type=row["Type"],
-                seasons_score=seasons_score,
+                seasons_details=seasons_details,
                 score=score,
                 status=status,
                 api_origin="tmdb",
                 user=user,
-                num_seasons=row.get("num_seasons"),
+                num_seasons=response.get("number_of_seasons"),
                 image=row.get("image"),
             )
 

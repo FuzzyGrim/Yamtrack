@@ -42,6 +42,11 @@
         .input-group {
             position:absolute;
             bottom:0;
+            .form-control {
+                flex-grow: 0;
+                flex-shrink: 0;
+                width: auto;
+            }
         }
     }
 }
