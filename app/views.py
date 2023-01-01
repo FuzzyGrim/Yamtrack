@@ -27,11 +27,6 @@ def home(request):
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
         )
 
-    elif "status" in request.POST:
-        if request.user.is_authenticated:
-            database.edit_media(request)
-            return redirect("home")
-
     elif "delete" in request.POST:
         Media.objects.get(
             media_id=request.POST["delete"],
@@ -39,6 +34,11 @@ def home(request):
             api_origin=request.POST["api_origin"],
         ).delete()
         return redirect("home")
+
+    elif "status" in request.POST:
+        if request.user.is_authenticated:
+            database.edit_media(request)
+            return redirect("home")
 
     queryset = Media.objects.filter(user_id=request.user)
     movies = []
@@ -114,6 +114,16 @@ def search(request, content, query):
         return redirect(
             "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
         )
+
+    elif "delete" in request.POST:
+        print(request.POST["delete"])
+        print(request.POST["api_origin"])
+        Media.objects.get(
+            media_id=request.POST["delete"],
+            user=request.user,
+            api_origin=request.POST["api_origin"],
+        ).delete()
+        return redirect("search", content, query)
 
     elif "status" in request.POST:
         if request.user.is_authenticated:

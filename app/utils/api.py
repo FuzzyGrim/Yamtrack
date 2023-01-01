@@ -18,6 +18,9 @@ def search(content, query):
         response = requests.get(url).json()["results"]
         for media in response:
             media['media_id'] = media['id']
+            
+            # needed for delete button
+            media['api_origin'] = 'tmdb'
 
     else:
         
@@ -46,6 +49,9 @@ async def mal_search_list(session, url):
         for media in response["data"]:
             media["node"]["media_type"] = "manga" if "manga" in url else "anime"
             media["node"]["media_id"] = media["node"]["id"]
+
+            # needed for delete button
+            media["node"]["api_origin"] = "mal"
             media.update(media.pop("node"))
         return response
     
