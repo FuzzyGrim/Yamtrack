@@ -6,21 +6,19 @@
 @import "edit";
 
 
-@media screen and (min-width: 1081px){
-  #search main .box .content .input-group .form-control{
-    width: 40%;
-  }
-}
-
 // apply to everything except mobile
 @media screen and (min-width: 768px) {
-
-  .navbar-brand.abs {
-    position: absolute;
-    width: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
+  .navbar{
+    .hidden{
+      display: none;
+    }
+    .navbar-brand.abs {
+      position: absolute;
+      width: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
   }
 }
 
@@ -28,9 +26,11 @@
   main {
     margin: 5em 1em 1em 1em;
   }
-  .navbar-brand.abs {
-    width:45%;
-    margin-left: 1rem;
+  .navbar{
+    .navbar-brand.abs {
+      width: 45%;
+      margin-left: 1rem;
+    }
   }
 
   #home {
@@ -48,12 +48,21 @@
 
 /* mobile css */
 @media screen and (max-width: 767px) {
-  .navbar .navbar-brand.abs {
-    width:75%;
-    margin-left: 0rem;
+  .navbar {
+    .hidden{
+      display: block;
+      .nav-link {
+        font-size: 1.7rem;
+      }
+    }
 
-    .form-control {
-      width: 50%;
+    .navbar-brand.abs {
+      width:70%;
+      margin:auto;
+
+      .form-control {
+        width: 1%;
+      }
     }
   }
 

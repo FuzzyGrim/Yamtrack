@@ -1,5 +1,8 @@
 <nav class="navbar fixed-top navbar-expand-md">
     <div class="container-fluid">
+      <div class="hidden">
+        <a class="nav-link active" href="/"> <i class="bi bi-house"></i></a>
+      </div>
       <form class="d-flex navbar-brand abs input-group" method="post">
         {% csrf_token %}
         <select name="content" class="form-select">
@@ -27,9 +30,6 @@
         <ul class="navbar-nav">
           <li class="nav-item">
             <a class="nav-link active rounded" href="/"> <i class="bi bi-house"></i> Home</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active rounded" href="/"> <i class="bi bi-github"></i> Github</a>
           </li>
         </ul>
         <ul class="navbar-nav ms-auto">
