@@ -32,7 +32,7 @@
   {% endif %}
   
   <div class="edit p-2 flex-shrink-0">
-    <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.media_id%}">
+    <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.media_id %}">
       <i class="bi bi-pen-fill"></i>
     </button>
   </div>

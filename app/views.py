@@ -43,69 +43,26 @@ def home(request):
             return redirect("home")
 
     queryset = Media.objects.filter(user_id=request.user)
-    movies = []
-    movies_status = {
-        "completed": [],
-        "planning": [],
-        "watching": [],
-        "paused": [],
-        "dropped": [],
-    }
-    tv = []
-    tv_status = {
-        "completed": [],
-        "planning": [],
-        "watching": [],
-        "paused": [],
-        "dropped": [],
-    }
-    anime = []
-    anime_status = {
-        "completed": [],
-        "planning": [],
-        "watching": [],
-        "paused": [],
-        "dropped": [],
-    }
-    manga = []
-    manga_status = {
-        "completed": [],
-        "planning": [],
-        "watching": [],
-        "paused": [],
-        "dropped": [],
+    data = {
+        "tv": {"media": [], "statuses": {}},
+        "movie": {"media": [], "statuses": {}},
+        "anime": {"media": [], "statuses": {}},
+        "manga": {"media": [], "statuses": {}},
     }
 
     for media in queryset:
-        if media.api_origin == "tmdb":
-            if media.media_type == "movie":
-                movies.append(media)
-                movies_status[(media.status).lower()].append(media)
-
-            else:  # media.media_type == "tv"
-                tv.append(media)
-                tv_status[(media.status).lower()].append(media)
-        else:  # mal
-            if media.media_type == "anime":
-                anime.append(media)
-                anime_status[(media.status).lower()].append(media)
-            else:
-                manga.append(media)
-                manga_status[(media.status).lower()].append(media)
+        media_type = media.media_type
+        data[media_type]["media"].append(media)
+        status = (media.status).lower()
+        if status not in data[media_type]["statuses"]:
+            data[media_type]["statuses"][status] = []
+        data[media_type]["statuses"][status].append(media)
 
     return render(
         request,
         "app/home.html",
         {
-            "media": queryset,
-            "movies": movies,
-            "movies_status": movies_status,
-            "tv": tv,
-            "tv_status": tv_status,
-            "anime": anime,
-            "anime_status": anime_status,
-            "manga": manga,
-            "manga_status": manga_status,
+            "data": data,
         },
     )
 
@@ -118,8 +75,6 @@ def search(request, content, query):
         )
 
     elif "delete" in request.POST:
-        print(request.POST["delete"])
-        print(request.POST["api_origin"])
         Media.objects.get(
             media_id=request.POST["delete"],
             user=request.user,

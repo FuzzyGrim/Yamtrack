@@ -26,273 +26,76 @@
           </div>
         {% endfor %}
       {% endif %}
-        
+      
       <div class="d-md-flex align-items-start main-flex">
 
         <div class="nav flex-column nav-pills me-3 sticky-lg-top" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-          <div class="btn-group dropend">
-            <button class="nav-link active" id="tv-tab" data-bs-toggle="pill" data-bs-target="#tv" type="button" role="tab" aria-controls="tv" aria-selected="true">
-              <span class="left_word">TV</span> 
-              <span class="right_number">{{ tv|length }}</span> 
-            </button>
-            <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-              <span class="visually-hidden">Toggle Dropdown</span>
-            </button>
-        
-            <ul class="dropdown-menu filters">
-              {% for status in tv_status%}
-                <li><button class="nav-link dropdown-item" id="tv-{{status}}-tab" data-bs-toggle="pill" data-bs-target="#tv-{{status}}" type="button" role="tab" aria-controls="v-pills-tv-{{status}}" aria-selected="true">
-                  <span class="left_word">{{status|capfirst}}</span> 
-                  {% if status == 'completed' %}
-                    <span class="right_number">{{ tv_status.completed|length }}</span>
-                  {% elif status == 'planning' %}
-                    <span class="right_number">{{ tv_status.planning|length }}</span>
-                  {% elif status == 'watching' %}
-                    <span class="right_number">{{ tv_status.watching|length }}</span>
-                  {% elif status == 'paused' %}
-                    <span class="right_number">{{ tv_status.paused|length }}</span>
-                  {% elif status == 'dropped' %}
-                    <span class="right_number">{{ tv_status.dropped|length }}</span>
-                  {% endif %}
-                </button></li>
-              {% endfor %}
-            </ul>
-          </div>
-
-          <div class="btn-group dropend">
-            <button class="nav-link" id="movie-tab" data-bs-toggle="pill" data-bs-target="#movie" type="button" role="tab" aria-controls="movie" aria-selected="true">
-              <span class="left_word">MOVIE</span> 
-              <span class="right_number">{{ movies|length }}</span> 
-            </button>
-            <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-              <span class="visually-hidden">Toggle Dropdown</span>
-            </button>
-        
-            <ul class="dropdown-menu filters">
-              {% for status in movies_status%}
-                <li><button class="nav-link dropdown-item" id="movie-{{status}}-tab" data-bs-toggle="pill" data-bs-target="#movie-{{status}}" type="button" role="tab" aria-controls="movie-{{status}}" aria-selected="true">
-                  <span class="left_word">{{status|capfirst}}</span> 
-                  {% if status == 'completed' %}
-                    <span class="right_number">{{ movies_status.completed|length }}</span>
-                  {% elif status == 'planning' %}
-                    <span class="right_number">{{ movies_status.planning|length }}</span>
-                  {% elif status == 'watching' %}
-                    <span class="right_number">{{ movies_status.watching|length }}</span>
-                  {% elif status == 'paused' %}
-                    <span class="right_number">{{ movies_status.paused|length }}</span>
-                  {% elif status == 'dropped' %}
-                    <span class="right_number">{{ movies_status.dropped|length }}</span>
-                  {% endif %}
-                </button></li>
-              {% endfor %}
-            </ul>
-          </div>
-
-          <div class="btn-group dropend">
-            <button class="nav-link" id="anime-tab" data-bs-toggle="pill" data-bs-target="#anime" type="button" role="tab" aria-controls="anime" aria-selected="true">
-              <span class="left_word">ANIME</span> 
-              <span class="right_number">{{ anime|length }}</span> 
-            </button>
-            <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-              <span class="visually-hidden">Toggle Dropdown</span>
-            </button>
-        
-            <ul class="dropdown-menu filters">
-              {% for status in anime_status%}
-                <li><button class="nav-link dropdown-item" id="anime-{{status}}-tab" data-bs-toggle="pill" data-bs-target="#anime-{{status}}" type="button" role="tab" aria-controls="anime-{{status}}" aria-selected="true">
-                  <span class="left_word">{{status|capfirst}}</span> 
-                  {% if status == 'completed' %}
-                    <span class="right_number">{{ anime_status.completed|length }}</span>
-                  {% elif status == 'planning' %}
-                    <span class="right_number">{{ anime_status.planning|length }}</span>
-                  {% elif status == 'watching' %}
-                    <span class="right_number">{{ anime_status.watching|length }}</span>
-                  {% elif status == 'paused' %}
-                    <span class="right_number">{{ anime_status.paused|length }}</span>
-                  {% elif status == 'dropped' %}
-                    <span class="right_number">{{ anime_status.dropped|length }}</span>
-                  {% endif %}
-                </button></li>
-              {% endfor %}
-            </ul>
-          </div>
-
-          <div class="btn-group dropend">
-            <button class="nav-link" id="manga-tab" data-bs-toggle="pill" data-bs-target="#manga" type="button" role="tab" aria-controls="manga" aria-selected="true">
-              <span class="left_word">MANGA</span> 
-              <span class="right_number">{{ manga|length }}</span> 
-            </button>
-            <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-              <span class="visually-hidden">Toggle Dropdown</span>
-            </button>
-        
-            <ul class="dropdown-menu filters">
-              {% for status in manga_status%}
-                <li><button class="nav-link dropdown-item" id="manga-{{status}}-tab" data-bs-toggle="pill" data-bs-target="#manga-{{status}}" type="button" role="tab" aria-controls="manga-{{status}}" aria-selected="true">
-                  <span class="left_word">{{status|capfirst}}</span> 
-                  {% if status == 'completed' %}
-                    <span class="right_number">{{ manga_status.completed|length }}</span>
-                  {% elif status == 'planning' %}
-                    <span class="right_number">{{ manga_status.planning|length }}</span>
-                  {% elif status == 'watching' %}
-                    <span class="right_number">{{ manga_status.watching|length }}</span>
-                  {% elif status == 'paused' %}
-                    <span class="right_number">{{ manga_status.paused|length }}</span>
-                  {% elif status == 'dropped' %}
-                    <span class="right_number">{{ manga_status.dropped|length }}</span>
-                  {% endif %}
-                </button></li>
-              {% endfor %}
-            </ul>
-          </div>
+          {% for type, type_data in data.items %}
+            <div class="btn-group dropend">
+              <button class="nav-link" id="{{type}}-tab" data-bs-toggle="pill" data-bs-target="#{{type}}" type="button" role="tab" aria-controls="{{type}}" aria-selected="false">
+                {% if type == "tv"%}
+                <span class="left_word">TV</span>
+                {% else %}
+                <span class="left_word">{{type|capfirst}}</span>
+                {% endif %}
+                <span class="right_number">{{ type_data.media|length }}</span> 
+              </button>
+              
+              <button type="button" class="btn dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">Toggle Dropdown</span>
+              </button>
+              
+              {% if type_data.statuses %}
+                <ul class="dropdown-menu filters">
+                  {% for status, status_media in type_data.statuses.items %}
+                    <li>
+                      <button class="nav-link dropdown-item" id="{{type}}-{{status}}-tab" data-bs-toggle="pill" data-bs-target="#{{type}}-{{status}}" type="button" role="tab" aria-controls="v-pills-{{type}}-{{status}}" aria-selected="false">
+                        <span class="left_word">{{status|capfirst}}</span> 
+                        <span class="right_number">{{ status_media|length }}</span>
+                      </button>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <ul class="dropdown-menu filters">
+                  <li class="text-center">Nothing here</li>
+                </ul>
+              {% endif %}
+            </div>
+          {% endfor %}
         </div>
     
 
-
         <div class="tab-content" id="v-pills-tabContent">
-          <div class="tab-pane fade show active" id="tv" role="tabpanel" aria-labelledby="tv-tab" tabindex="0">
-            <div class="content-title border-bottom">TV</div>
-            {% include "app/include/list-head.html" %}
-            {% for media in tv %}
-              {% include "app/include/list-section.html" %}    
-            {% endfor %}
-          </div>
-
-          {% for status in tv_status %}
-            <div class="tab-pane fade" id="tv-{{status}}" role="tabpanel" aria-labelledby="tv-{{status}}-tab" tabindex="0">
-              <div class="content-title border-bottom">TV - {{status|capfirst}}</div>
-              {% include "app/include/list-head.html" %}
-              {% if status == 'completed'%}
-                {% for media in tv_status.completed %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'planning'%}
-                {% for media in tv_status.planning %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'watching'%}
-                {% for media in tv_status.watching %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'paused'%}
-                {% for media in tv_status.paused %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'dropped'%}
-                {% for media in tv_status.dropped %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
+          
+          {% for type, type_data in data.items %}
+            <div class="tab-pane fade" id="{{type}}" role="tabpanel" aria-labelledby="{{type}}-tab" tabindex="0">
+              {% if type == "tv"%}
+              <div class="content-title border-bottom">TV</div>
+              {% else %}
+              <div class="content-title border-bottom">{{type|capfirst}}</div>
               {% endif %}
-            </div>
-          {% endfor %}
 
-
-          <div class="tab-pane fade" id="movie" role="tabpanel" aria-labelledby="movie-tab" tabindex="0">
-            <div class="content-title border-bottom">Movie</div>
-            {% include "app/include/list-head.html" %}
-            {% for media in movies %}
-              {% include "app/include/list-section.html" %}    
-            {% endfor %}
-          </div>
-
-          {% for status in movies_status %}
-            <div class="tab-pane fade" id="movie-{{status}}" role="tabpanel" aria-labelledby="movie-{{status}}-tab" tabindex="0">
-              <div class="content-title border-bottom">Movie - {{status|capfirst}}</div>
               {% include "app/include/list-head.html" %}
-              {% if status == 'completed'%}
-                {% for media in movies_status.completed %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'planning'%}
-                {% for media in movies_status.planning %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'watching'%}
-                {% for media in movies_status.watching %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'paused'%}
-                {% for media in movies_status.paused %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'dropped'%}
-                {% for media in movies_status.dropped %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% endif %}
+              {% for media in type_data.media %}
+                {% include "app/include/list-section.html" %}    
+              {% endfor %}
             </div>
-          {% endfor %}
 
-          <div class="tab-pane fade" id="anime" role="tabpanel" aria-labelledby="anime-tab" tabindex="0">
-            <div class="content-title border-bottom">Anime</div>
-            {% include "app/include/list-head.html" %}
-            {% for media in anime %}
-              {% include "app/include/list-section.html" %}    
+            {% for status, status_media in type_data.statuses.items %}
+              <div class="tab-pane fade" id="{{type}}-{{status}}" role="tabpanel" aria-labelledby="{{type}}-{{status}}-tab" tabindex="0">
+                {% if type == "tv"%}
+                <div class="content-title border-bottom">TV - {{status|capfirst}}</div>
+                {% else %}
+                <div class="content-title border-bottom">{{type|capfirst}} - {{status|capfirst}}</div>
+                {% endif %}
+                {% include "app/include/list-head.html" %}
+
+                {% for media in status_media %}
+                  {% include "app/include/list-section.html" %}
+                {% endfor %}
+              </div>
             {% endfor %}
-          </div>
-
-          {% for status in anime_status %}
-            <div class="tab-pane fade" id="anime-{{status}}" role="tabpanel" aria-labelledby="anime-{{status}}-tab" tabindex="0">
-              <div class="content-title border-bottom">Anime - {{status|capfirst}}</div>
-              {% include "app/include/list-head.html" %}
-              {% if status == 'completed'%}
-                {% for media in anime_status.completed %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'planning'%}
-                {% for media in anime_status.planning %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'watching'%}
-                {% for media in anime_status.watching %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'paused'%}
-                {% for media in anime_status.paused %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'dropped'%}
-                {% for media in anime_status.dropped %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% endif %}
-            </div>
-          {% endfor %}
-
-          <div class="tab-pane fade" id="manga" role="tabpanel" aria-labelledby="manga-tab" tabindex="0">
-            <div class="content-title border-bottom">Manga</div>
-            {% include "app/include/list-head.html" %}
-            {% for media in manga %}
-              {% include "app/include/list-section.html" %}    
-            {% endfor %}
-          </div>
-
-          {% for status in manga_status %}
-            <div class="tab-pane fade" id="manga-{{status}}" role="tabpanel" aria-labelledby="manga-{{status}}-tab" tabindex="0">
-              <div class="content-title border-bottom">Manga - {{status|capfirst}}</div>
-              {% include "app/include/list-head.html" %}
-              {% if status == 'completed'%}
-                {% for media in manga_status.completed %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'planning'%}
-                {% for media in manga_status.planning %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'watching'%}
-                {% for media in manga_status.watching %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'paused'%}
-                {% for media in manga_status.paused %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% elif status == 'dropped'%}
-                {% for media in manga_status.dropped %}
-                  {% include "app/include/list-section.html" %}
-                {% endfor %}
-              {% endif %}
-            </div>
           {% endfor %}
         </div>
       </div>
