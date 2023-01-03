@@ -1,4 +1,4 @@
-$dark-blue-bg: #1E232A;
+$container-bg: #1B1E1F;
 $font-grey: #d1cdc7;
 
 #home {
@@ -6,8 +6,10 @@ $font-grey: #d1cdc7;
   .sticky-lg-top { top: 6em; }
 
   #v-pills-tab {
-    background-color: $dark-blue-bg;
+    background-color: $container-bg;
     width: 15rem;
+    border: 1px solid #383D3F;
+    border-radius: 0.5rem;
 
     .dropend {
       height: 3rem;
@@ -21,7 +23,7 @@ $font-grey: #d1cdc7;
       }
   
       .nav-link {
-        background-color: $dark-blue-bg;
+        background-color: $container-bg;
         &:hover {
           color: #ebe7e7;
           border: 1px solid #ebe7e7;
@@ -45,7 +47,7 @@ $font-grey: #d1cdc7;
       }
   
       .filters {
-        background-color: $dark-blue-bg;
+        background-color: $container-bg;
   
         button.dropdown-item {
           width: 100%;
@@ -57,13 +59,14 @@ $font-grey: #d1cdc7;
   }
 
   .tab-content {
-    background-color: $dark-blue-bg;
+    background-color: $container-bg;
     width: 100%;
-
+    border: 1px solid #383D3F;
+    border-radius: 0.5rem;
+    
     .content-title {
       margin: 0.6em 0.8em 0 0.8em;
       font-size: 1.8rem;
-      border-bottom: rgb(132, 122, 108) 1px solid;
     }
 
     .tab-pane {
@@ -96,7 +99,7 @@ $font-grey: #d1cdc7;
           .empty-div {
             width: 3rem;
             height: 3rem;
-            background-color: $dark-blue-bg;
+            background-color: $container-bg;
           }
         }
 
@@ -118,7 +121,7 @@ $font-grey: #d1cdc7;
 
         .score, .status {
           .btn {
-            background-color: $dark-blue-bg;
+            background-color: $container-bg;
             color: $font-grey;
             border-width: 0;
 
@@ -142,7 +145,7 @@ $font-grey: #d1cdc7;
           .btn {
             border-width: 1;
             border-color: transparent;
-            background-color: $dark-blue-bg;
+            background-color: $container-bg;
             color: $font-grey;
           }
 
@@ -161,7 +164,7 @@ $font-grey: #d1cdc7;
           .btn {
             border-width: 1;
             border-color: transparent;
-            background-color: $dark-blue-bg;
+            background-color: $container-bg;
             color: $font-grey;
           }
 
