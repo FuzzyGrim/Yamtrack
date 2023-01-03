@@ -9,7 +9,9 @@ from django.contrib.auth.forms import PasswordChangeForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
+from django.conf import settings
 from django.template.loader import render_to_string
 
 
@@ -107,7 +109,7 @@ def home(request):
         },
     )
 
-
+@login_required
 def search(request, content, query):
     """Search page"""
     if "query" in request.POST:
@@ -177,7 +179,7 @@ def login(request):
         )
         if user is not None:
             auth_login(request, user)
-            return redirect("home")
+            return redirect_after_login(request)
         else:
             messages.error(
                 request,
@@ -276,3 +278,16 @@ def edit(request, media_type, media_id):
         data['in_db'] = False
 
     return JsonResponse(data)
+
+
+def redirect_after_login(request):
+    next = request.GET.get("next", None)
+    if next is None:
+        return redirect(settings.LOGIN_REDIRECT_URL)
+    elif not url_has_allowed_host_and_scheme(
+            url=next,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure()):
+        return redirect(settings.LOGIN_REDIRECT_URL)
+    else:
+        return redirect(next)
