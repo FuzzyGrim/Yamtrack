@@ -45,14 +45,13 @@
     </button>
   </div>
 
-  <div class="modal fade" id="modal-confirmation-{{media.media_type}}_{{media.media_id}}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable .modal-sm">
+  <div class="modal fade" id="modal-confirmation-{{media.media_type}}_{{media.media_id}}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered .modal-sm">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Are you sure?</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-body p-4 text-center">
+          <h5 class="mb-0" >Are you sure?</h5>
         </div>  
-        <div class="modal-body d-flex justify-content-evenly">
+        <div class="modal-footer d-flex justify-content-evenly">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <form method="post">
             {% csrf_token %}
