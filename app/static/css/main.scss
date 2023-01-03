@@ -66,16 +66,19 @@
     }
   }
 
-  #home .tab-content .tab-pane {
-    .list-head, .list-section {
-      .score, .edit {
-        width: 20%;
-      }
-      .status {
-        display: none;
-      }
-      .delete {
-        display: none;
+  #home .tab-content {
+    margin-top: 1em;
+    .tab-pane {
+      .list-head, .list-section {
+        .score, .edit {
+          width: 20%;
+        }
+        .status {
+          display: none;
+        }
+        .delete {
+          display: none;
+        }
       }
     }
   } 

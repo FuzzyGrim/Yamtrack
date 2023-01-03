@@ -18,14 +18,19 @@ form .btn:not(.modal-delete-btn){
   }
 }
 
-
 .input-group > .form-select {
   flex-grow: 0;
   flex-shrink: 0;
   width: auto;
 }
 
+// disable num input arrows
 input[type=number] {
   appearance: textfield;
   -moz-appearance: textfield;
+}
+
+.custom-tooltip {
+  --bs-tooltip-bg: var(--bs-secondary);
+  --bs-tooltip-color: var(--bs-white);
 }
