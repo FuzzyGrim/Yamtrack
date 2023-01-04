@@ -13,16 +13,17 @@ $font-grey: #d1cdc7;
 
     .dropend {
       height: 3rem;
-
-      .nav-link {
-        width: 80%;
-      }
   
       button {
         color: #aaaaaa;
+      
+        &.active {
+          color: rgb(231, 229, 229);
+        }
       }
   
       .nav-link {
+        width: 80%;
         background-color: $container-bg;
         &:hover {
           color: #ebe7e7;
