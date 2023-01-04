@@ -11,3 +11,8 @@ else {
 $('#v-pills-tab button').not('.dropdown-toggle').on('click', function (e) {
 window.location.hash = $(this).data('bs-target');
 });
+
+// remove hash when search
+$('#navbar-form').on('submit', function() {
+    location.hash = '';
+});

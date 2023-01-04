@@ -24,11 +24,9 @@ from app.utils import api, database
 def home(request):
     """Home page"""
 
-    if ("query") in request.POST:
-        return redirect(
-            "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
-        )
-
+    if ("query") in request.GET:
+        return redirect("search", request.GET["content"], request.GET["query"])
+        
     elif "delete" in request.POST:
         Media.objects.get(
             media_id=request.POST["delete"],
@@ -69,10 +67,9 @@ def home(request):
 @login_required
 def search(request, content, query):
     """Search page"""
-    if "query" in request.POST:
-        return redirect(
-            "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
-        )
+
+    if "query" in request.GET:
+        return redirect("search", request.GET["content"], request.GET["query"])
 
     elif "delete" in request.POST:
         Media.objects.get(
@@ -96,7 +93,7 @@ def search(request, content, query):
             messages.error(request, "Log in is required to track media.")
             return redirect("login")
 
-        return redirect("/search/" + content + "/" + query + "/")
+        return redirect("search", content, query)
 
     query_list = api.search(content, query)
     context = {"query_list": query_list}
@@ -105,10 +102,9 @@ def search(request, content, query):
 
 
 def register(request):
-    if ("query") in request.POST:
-        return redirect(
-            "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
-        )
+    if ("query") in request.GET:
+        return redirect("search", request.GET["content"], request.GET["query"])
+
     elif "username" in request.POST:
         form = UserRegisterForm(request.POST)
         if form.is_valid():
@@ -120,10 +116,8 @@ def register(request):
 
 
 def login(request):
-    if ("query") in request.POST:
-        return redirect(
-            "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
-        )
+    if ("query") in request.GET:
+        return redirect("search", request.GET["content"], request.GET["query"])
 
     elif "username" in request.POST:
         form = AuthenticationForm()
@@ -163,10 +157,8 @@ def profile(request):
             messages.success(request, "Your password has been updated!")
             return redirect("profile")
 
-    elif "query" in request.POST:
-        return redirect(
-            "/search/" + request.POST["content"] + "/" + request.POST["query"] + "/"
-        )
+    elif "query" in request.GET:
+        return redirect("search", request.GET["content"], request.GET["query"])
 
     elif request.POST.get("mal") and request.POST.get("mal-btn"):
         if api.import_myanimelist(request.POST.get("mal"), request.user):

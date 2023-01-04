@@ -3,8 +3,7 @@
       <div class="hidden">
         <a class="nav-link" href="/"> <i class="bi bi-house"></i></a>
       </div>
-      <form class="d-flex navbar-brand abs input-group" method="post">
-        {% csrf_token %}
+      <form class="d-flex navbar-brand abs input-group" method="get" id="navbar-form">
         <select name="content" class="form-select">
           {% if "tmdb" in request.path%}
             <option value="tmdb">TMDB</option>
