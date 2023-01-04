@@ -30,16 +30,12 @@ class DefaultView(TestCase):
         self.assertRedirects(response, reverse("login") + "?next=" + reverse("profile"))
     
     def test_search_tmdb(self):
-        response = self.client.get(reverse("search", args = ["tmdb", "flcl"]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'app/search.html')
-        self.assertContains(response, "FLCL")
+        response = self.client.get("/search?api=tmdb&q=flcl")
+        self.assertEqual(response.status_code, 302)
     
     def test_search_mal(self):
-        response = self.client.get(reverse("search", args = ["mal", "flcl"]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'app/search.html')
-        self.assertContains(response, "FLCL")
+        response = self.client.get("/search?api=mal&q=flcl")
+        self.assertEqual(response.status_code, 302)
 
 class LoggedInView(TestCase):
     def setUp(self):

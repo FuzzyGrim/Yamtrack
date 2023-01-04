@@ -3,8 +3,9 @@ from django.test import override_settings
 
 import csv
 import shutil
+import os
 
-from app.utils import api
+from app.utils import interactions
 from app.models import User, Media
 
 
@@ -16,7 +17,7 @@ class Imports(LiveServerTestCase):
 
     @override_settings(MEDIA_ROOT=("test_Imports/media"))
     def test_import_animelist(self):
-        api.import_myanimelist("bloodthirstiness", self.user)
+        interactions.import_myanimelist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
         self.assertEqual(Media.objects.filter(user=self.user, media_type="anime").count(), 4)
         self.assertEqual(Media.objects.filter(user=self.user, media_type="manga").count(), 2)
@@ -27,7 +28,7 @@ class Imports(LiveServerTestCase):
 
     @override_settings(MEDIA_ROOT=("test_Imports/media"))
     def test_import_anilist(self):
-        api.import_anilist("bloodthirstiness", self.user)
+        interactions.import_anilist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
         self.assertEqual(Media.objects.filter(user=self.user, media_type="anime").count(), 4)
         self.assertEqual(Media.objects.filter(user=self.user, media_type="manga").count(), 2)
@@ -49,7 +50,7 @@ class Imports(LiveServerTestCase):
             writer.writerows(data)
 
         with open(file_path, "rb") as file:
-            api.import_tmdb(file, self.user)
+            interactions.import_tmdb(file, self.user)
             self.assertEqual(Media.objects.filter(user=self.user).count(), 2)
             self.assertEqual(Media.objects.filter(user=self.user, media_type="movie").count(), 1)
             self.assertEqual(Media.objects.filter(user=self.user, media_type="tv").count(), 1)

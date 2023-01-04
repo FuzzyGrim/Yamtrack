@@ -63,12 +63,12 @@ class CreateMedia(TestCase):
         )
 
         response = self.client.post(
-            reverse("search", args=["tmdb", "flcl"]),
+            reverse("search") + "?api=tmdb&q=flcl",
             {
                 "media_id": 5895,
                 "title": "FLCL",
                 "image": "/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg",
-                "api_origin": "tmdb",
+                "api": "tmdb",
                 "status": "Completed",
                 "score": 4,
                 "season": 1,
@@ -94,12 +94,12 @@ class CreateMedia(TestCase):
         )
 
         response = self.client.post(
-            reverse("search", args=["tmdb", "flcl"]),
+            reverse("search") + "?api=tmdb&q=flcl",
             {
                 "media_id": 1668,
                 "title": "Friends",
                 "image": "/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
-                "api_origin": "tmdb",
+                "api": "tmdb",
                 "status": "Completed",
                 "score": 8,
                 "season": 1,
@@ -140,12 +140,12 @@ class EditMedia(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
         self.client.post(
-            reverse("search", args=["tmdb", "flcl"]),
+            reverse("search") + "?api=tmdb&q=flcl",
             {
                 "media_id": 1668,
                 "title": "Friends",
                 "image": "/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
-                "api_origin": "tmdb",
+                "api": "tmdb",
                 "status": "Completed",
                 "score": 9,
                 "season": 10,
@@ -166,7 +166,7 @@ class EditMedia(TestCase):
             reverse("home"),
             {
                 "media_id": 1668,
-                "api_origin": "tmdb",
+                "api": "tmdb",
                 "status": "Completed",
                 "score": 9.5,
                 "season": 10,
@@ -201,7 +201,7 @@ class EditMedia(TestCase):
             reverse("home"),
             {
                 "media_id": 1668,
-                "api_origin": "tmdb",
+                "api": "tmdb",
                 "status": "Watching",
                 "score": 9,
                 "season": 10,
@@ -249,7 +249,7 @@ class EditMedia(TestCase):
             reverse("home"),
             {
                 "media_id": 1668,
-                "api_origin": "tmdb",
+                "api": "tmdb",
                 "status": "Watching",
                 "score": 9.5,
                 "season": "all",
