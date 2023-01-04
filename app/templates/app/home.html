@@ -45,22 +45,21 @@
                 <span class="visually-hidden">Toggle Dropdown</span>
               </button>
               
-              {% if type_data.statuses %}
-                <ul class="dropdown-menu filters">
+              <ul class="dropdown-menu p-1 rounded-3 filters ms-1">
+                {% if type_data.statuses %}
                   {% for status, status_media in type_data.statuses.items %}
                     <li>
-                      <button class="nav-link dropdown-item" id="{{type}}-{{status}}-tab" data-bs-toggle="pill" data-bs-target="#{{type}}-{{status}}" type="button" role="tab" aria-controls="v-pills-{{type}}-{{status}}" aria-selected="false">
+                      <button class="nav-link rounded-2 dropdown-item" id="{{type}}-{{status}}-tab" data-bs-toggle="pill" data-bs-target="#{{type}}-{{status}}" type="button" role="tab" aria-controls="v-pills-{{type}}-{{status}}" aria-selected="false">
                         <span class="left_word">{{status|capfirst}}</span> 
                         <span class="right_number">{{ status_media|length }}</span>
                       </button>
                     </li>
                   {% endfor %}
-                </ul>
-              {% else %}
-                <ul class="dropdown-menu filters">
+                {% else %}
                   <li class="text-center">Nothing here</li>
-                </ul>
-              {% endif %}
+                {% endif %}
+              </ul>  
+
             </div>
           {% endfor %}
         </div>

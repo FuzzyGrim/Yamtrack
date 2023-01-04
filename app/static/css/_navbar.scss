@@ -7,16 +7,13 @@
 
   .navbar-brand.abs .form-control{
     width: 60%;
-    border-radius: 0;
-    border-width: 1px 0px 1px 0px;
     border-style: solid;
     border-color: #56595D;
   }
 }
 
-.navbar-brand.abs .form-select, #home .tab-content .edit .form-select, #search main .box .content .input-group .form-select {
+.navbar-brand.abs .form-select, #home .tab-content .edit .form-select{
   width: auto;
-  border-radius: 0;
   background-color: #262A2D;
   color: #DEDCD9;
   border-width: 1px;
