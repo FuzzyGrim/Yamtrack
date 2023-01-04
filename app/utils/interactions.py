@@ -23,7 +23,6 @@ def search(api_type, query):
             media['api'] = 'tmdb'
 
     else:
-        
         animes, mangas = run(mal_search(query))
 
         # merge anime and manga results alternating between each

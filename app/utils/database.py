@@ -47,6 +47,7 @@ def add_media(request):
         
         else:
             media.image.save(f"tmdb-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
+    img_temp.close()
     
     
 def edit_media(request):
