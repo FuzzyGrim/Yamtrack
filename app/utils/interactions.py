@@ -20,7 +20,7 @@ def search(api_type, query):
             media['media_id'] = media['id']
             
             # needed for delete button
-            media['api_origin'] = 'tmdb'
+            media['api'] = 'tmdb'
 
     else:
         
@@ -51,7 +51,7 @@ async def mal_search_list(session, url):
             media["node"]["media_id"] = media["node"]["id"]
 
             # needed for delete button
-            media["node"]["api_origin"] = "mal"
+            media["node"]["api"] = "mal"
             media.update(media.pop("node"))
         return response
     
@@ -88,12 +88,12 @@ def mal_edit(request, media_type, media_id):
             elif response["status"] == "currently_publishing":
                 response["status"] = "Publishing"
 
-        response["api_origin"] = "mal"
+        response["api"] = "mal"
 
         request.session[session_key] = response
 
     try:
-        media = Media.objects.get(media_id=media_id, user=request.user, api_origin="mal", media_type=media_type)
+        media = Media.objects.get(media_id=media_id, user=request.user, api="mal", media_type=media_type)
         data = {"response": response, "database": media}
     except Media.DoesNotExist:
         data = {"response": response}
@@ -130,12 +130,12 @@ def tmdb_edit(request, media_type, media_id):
             else:
                 response["duration"] = f"{hours}h {minutes}m"
 
-        response["api_origin"] = "tmdb"
+        response["api"] = "tmdb"
 
         request.session[session_key] = response
 
     try:
-        media = Media.objects.get(media_id=media_id, user=request.user, api_origin="tmdb", media_type=media_type)
+        media = Media.objects.get(media_id=media_id, user=request.user, api="tmdb", media_type=media_type)
         data = {"response": response, "database": media}
     except Media.DoesNotExist:
         data = {"response": response}
@@ -167,7 +167,7 @@ async def myanilist_get_media_list(series, user):
         task = []
         for media_type, media_list in series.items():
             for content in media_list["data"]:
-                if not await Media.objects.filter(media_id=content["node"]["id"], api_origin="mal", user=user).aexists():
+                if not await Media.objects.filter(media_id=content["node"]["id"], api="mal", user=user).aexists():
 
                     task.append(ensure_future(myanimelist_get_media(session, content, media_type, user)))
 
@@ -190,7 +190,7 @@ async def myanimelist_get_media(session, content, media_type, user):
             media_type=media_type,
             score=content["list_status"]["score"],
             status=content["list_status"]["status"],
-            api_origin="mal",
+            api="mal",
             user=user,
         )
 
@@ -233,7 +233,7 @@ async def tmdb_get_media_list(reader, user, status):
             if not await Media.objects.filter(
                 media_id=row["TMDb ID"],
                 media_type=row["Type"],
-                api_origin="tmdb",
+                api="tmdb",
                 user=user,
             ).aexists():
                 if row["Type"] == "tv":
@@ -269,7 +269,7 @@ async def tmdb_get_media(session, url, row, user, status):
                 seasons_details=seasons_details,
                 score=score,
                 status=status,
-                api_origin="tmdb",
+                api="tmdb",
                 user=user,
                 num_seasons=response.get("number_of_seasons"),
                 image=row.get("image"),
@@ -358,7 +358,7 @@ async def anilist_get_media_list(query, errors, user):
                             not await Media.objects.filter(
                                 media_id=content["media"]["idMal"],
                                 media_type=media_type,
-                                api_origin="mal",
+                                api="mal",
                                 user=user,
                             ).aexists() and content["media"]["idMal"] is not None):
                             task.append(ensure_future(anilist_get_media(session, content, media_type, user)))
@@ -381,7 +381,7 @@ async def anilist_get_media(session, content, media_type, user):
             media_type=media_type,
             score=content["score"],
             status=status,
-            api_origin="mal",
+            api="mal",
             user=user,
         )
 

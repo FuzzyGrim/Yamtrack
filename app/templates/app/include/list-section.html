@@ -55,7 +55,7 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <form method="post">
             {% csrf_token %}
-            <input type="hidden" name="api_origin" value="{{ media.api_origin }}">
+            <input type="hidden" name="api" value="{{ media.api }}">
             <button class="btn btn-danger modal-delete-btn" type="submit" name="delete" value="{{media.media_id}}">Delete</button>
           </form>
         </div>

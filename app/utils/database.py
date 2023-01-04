@@ -27,9 +27,9 @@ def add_media(request):
             if request.POST["season"] != request.POST["num_seasons"] and media.status == "Completed":
                 media.status = "Watching"
 
-    media.api_origin = request.POST["api_origin"]
+    media.api = request.POST["api"]
     
-    if media.api_origin == "mal":
+    if media.api == "mal":
         media.media_type = request.POST["media_type"]
         img_temp = helpers.get_image_temp(request.POST["image"])
     else:
@@ -59,7 +59,7 @@ def edit_media(request):
         media_id=request.POST["media_id"],
         media_type=request.POST["media_type"],
         user=request.user,
-        api_origin=request.POST["api_origin"],
+        api=request.POST["api"],
     )
 
     media.score = score

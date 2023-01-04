@@ -15,7 +15,7 @@
         <div class="modal-footer d-flex justify-content-between" id="modal-footer-{{media.media_type}}_{{media.id}}">
           <form method="post">
             {% csrf_token %}
-            <input type="hidden" name="api_origin" value="{{ media.api_origin }}">
+            <input type="hidden" name="api" value="{{ media.api }}">
             <button class="btn btn-danger modal-delete-btn" type="submit" name="delete" value="{{media.media_id}}">Delete</button>
           </form>
           <button type="submit" form="form-{{media.media_type}}_{{media.media_id}}" class="btn btn-primary">Save changes</button>

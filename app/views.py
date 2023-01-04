@@ -28,7 +28,7 @@ def home(request):
         Media.objects.get(
             media_id=request.POST["delete"],
             user=request.user,
-            api_origin=request.POST["api_origin"],
+            api=request.POST["api"],
         ).delete()
         return redirect("home")
 
@@ -72,16 +72,16 @@ def search(request):
         Media.objects.get(
             media_id=request.POST["delete"],
             user=request.user,
-            api_origin=request.POST["api_origin"],
+            api=request.POST["api"],
         ).delete()
-        return redirect("/search?api=" + api + "&query=" + query)
+        return redirect("/search?api=" + api + "&q=" + query)
 
     elif "status" in request.POST:
         if request.user.is_authenticated:
             if Media.objects.filter(
                 media_id=request.POST["media_id"],
                 user=request.user,
-                api_origin=request.POST["api_origin"],
+                api=request.POST["api"],
             ).exists():
                 database.edit_media(request)
             else:
@@ -90,7 +90,7 @@ def search(request):
             messages.error(request, "Log in is required to track media.")
             return redirect("login")
 
-        return redirect("/search?api=" + api + "&query=" + query)
+        return redirect("/search?api=" + api + "&q=" + query)
 
     query_list = interactions.search(api, query)
     context = {"query_list": query_list}

@@ -14,7 +14,7 @@ class Media(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(max_length=30)
     num_seasons = models.IntegerField(null=True)
-    api_origin = models.CharField(max_length=10)
+    api = models.CharField(max_length=10)
     
     def __str__(self):
         return self.title
