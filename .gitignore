@@ -3,4 +3,5 @@ __pycache__
 .env
 db.sqlite3
 /static/
-/media/
+media/images/*
+!media/images/none.svg

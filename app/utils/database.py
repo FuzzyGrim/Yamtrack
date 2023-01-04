@@ -1,6 +1,8 @@
 from app.models import Media
 from app.utils import helpers
 from django.core.files import File
+from django.conf import settings
+
 
 def add_media(request):
     media = Media()
@@ -28,28 +30,30 @@ def add_media(request):
                 media.status = "Watching"
 
     media.api = request.POST["api"]
-    
+
     if media.api == "mal":
         media.media_type = request.POST["media_type"]
-        img_temp = helpers.get_image_temp(request.POST["image"])
+        if request.POST['image'] == "" or request.POST['image'] == None:
+            media.image = "images/none.svg"
+            media.save()
+        else:
+            img_temp = helpers.get_image_temp(request.POST["image"])
+            if media.media_type == "anime":
+                media.image.save(f"anime-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
+            elif media.media_type == "manga":
+                media.image.save(f"manga-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
+            img_temp.close()
     else:
         media.media_type = request.POST["media_type"]
-        img_temp = helpers.get_image_temp(f"https://image.tmdb.org/t/p/w92{request.POST['image']}")
-
-    if request.POST['image'] == "" or request.POST['image'] == None:
-        media.image.save(f"none.svg", File(img_temp))
-    else:
-        if media.media_type == "anime":
-            media.image.save(f"anime-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
-        
-        elif media.media_type == "manga":
-            media.image.save(f"manga-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
-        
+        if request.POST['image'] == "" or request.POST['image'] == None:
+            media.image = "images/none.svg"
+            media.save()
         else:
+            img_temp = helpers.get_image_temp(f"https://image.tmdb.org/t/p/w92{request.POST['image']}")
             media.image.save(f"tmdb-{request.POST['image'].rsplit('/', 1)[-1]}", File(img_temp))
-    img_temp.close()
+            img_temp.close()
     
-    
+
 def edit_media(request):
     if request.POST["score"] == "":
         score = None

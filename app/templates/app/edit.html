@@ -1,3 +1,5 @@
+{% load static %}
+
 <div class="d-flex flex-column box">
     <div class="d-flex flex-row">
         
@@ -6,7 +8,7 @@
         {% elif media.response.poster_path %}
             <img class="poster flex-shrink-0" src="https://image.tmdb.org/t/p/w500{{media.response.poster_path}}">
         {% else %}
-            <div class="image-not-found poster flex-shrink-0"></div>
+            <img class="image-not-found flex-shrink-0" src="{% get_media_prefix %}/images/none.svg">
         {% endif %}
 
         <div class="d-flex flex-column content flex-grow-1">
