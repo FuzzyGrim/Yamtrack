@@ -56,8 +56,12 @@ $(document).ready(function() {
                         });
                     }
                 }
-                if (!data.in_db) {
-                    $("#modal-footer-" + type + "_" + id + " .modal-delete-btn").hide();
+                if (data.in_db) {
+                    // Add delete button if it doesn't exist
+                    if ($("#modal-footer-" + type + "_" + id + " .modal-delete-btn").length == 0) {
+                        var deleteButton = $('<button class="btn btn-danger modal-delete-btn" type="submit" name="delete" value="' + id + '">Delete</button>');
+                        $('#modal-footer-' + type + '_' + id + ' form').append(deleteButton);
+                    }
                 }
             }
         });
