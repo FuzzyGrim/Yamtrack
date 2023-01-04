@@ -17,17 +17,14 @@ from django.template.loader import render_to_string
 
 from app.models import Media
 from app.forms import UserRegisterForm, UserUpdateForm
-from app.utils import api, database
+from app.utils import database, interactions
 
 
 @login_required
 def home(request):
     """Home page"""
 
-    if ("query") in request.GET:
-        return redirect("search", request.GET["content"], request.GET["query"])
-        
-    elif "delete" in request.POST:
+    if "delete" in request.POST:
         Media.objects.get(
             media_id=request.POST["delete"],
             user=request.user,
@@ -65,19 +62,19 @@ def home(request):
     )
 
 @login_required
-def search(request, content, query):
+def search(request):
     """Search page"""
 
-    if "query" in request.GET:
-        return redirect("search", request.GET["content"], request.GET["query"])
+    api = request.GET.get("api")
+    query = request.GET.get("q")
 
-    elif "delete" in request.POST:
+    if "delete" in request.POST:
         Media.objects.get(
             media_id=request.POST["delete"],
             user=request.user,
             api_origin=request.POST["api_origin"],
         ).delete()
-        return redirect("search", content, query)
+        return redirect("/search?api=" + api + "&query=" + query)
 
     elif "status" in request.POST:
         if request.user.is_authenticated:
@@ -93,19 +90,17 @@ def search(request, content, query):
             messages.error(request, "Log in is required to track media.")
             return redirect("login")
 
-        return redirect("search", content, query)
+        return redirect("/search?api=" + api + "&query=" + query)
 
-    query_list = api.search(content, query)
+    query_list = interactions.search(api, query)
     context = {"query_list": query_list}
 
     return render(request, "app/search.html", context)
 
 
 def register(request):
-    if ("query") in request.GET:
-        return redirect("search", request.GET["content"], request.GET["query"])
 
-    elif "username" in request.POST:
+    if "username" in request.POST:
         form = UserRegisterForm(request.POST)
         if form.is_valid():
             form.save()
@@ -116,10 +111,8 @@ def register(request):
 
 
 def login(request):
-    if ("query") in request.GET:
-        return redirect("search", request.GET["content"], request.GET["query"])
 
-    elif "username" in request.POST:
+    if "username" in request.POST:
         form = AuthenticationForm()
         user = authenticate(
             request,
@@ -157,18 +150,15 @@ def profile(request):
             messages.success(request, "Your password has been updated!")
             return redirect("profile")
 
-    elif "query" in request.GET:
-        return redirect("search", request.GET["content"], request.GET["query"])
-
     elif request.POST.get("mal") and request.POST.get("mal-btn"):
-        if api.import_myanimelist(request.POST.get("mal"), request.user):
+        if interactions.import_myanimelist(request.POST.get("mal"), request.user):
             messages.success(request, "Your MyAnimeList has been imported!")
         else:
             messages.error(request, "User not found")
         return redirect("profile")
 
     elif request.FILES.get("tmdb") and request.POST.get("tmdb-btn"):
-        if api.import_tmdb(request.FILES.get("tmdb"), request.user):
+        if interactions.import_tmdb(request.FILES.get("tmdb"), request.user):
             messages.success(request, "Your TMDB list has been imported!")
         else:
             messages.error(
@@ -180,7 +170,7 @@ def profile(request):
 
     elif request.POST.get("anilist") and request.POST.get("anilist-btn"):
 
-        errors = api.import_anilist(request.POST.get("anilist"), request.user)
+        errors = interactions.import_anilist(request.POST.get("anilist"), request.user)
         if len(errors) == 0:
             messages.success(request, "Your AniList has been imported!")
         elif errors[0] == "User not found":
@@ -210,9 +200,9 @@ def profile(request):
 def edit(request, media_type, media_id):
 
     if media_type == "anime" or media_type == "manga":
-        media = api.mal_edit(request, media_type, media_id)
+        media = interactions.mal_edit(request, media_type, media_id)
     elif media_type == "movie" or media_type == "tv":
-        media = api.tmdb_edit(request, media_type, media_id)
+        media = interactions.tmdb_edit(request, media_type, media_id)
 
     data = {'title': media["response"]["title"], 'year': media["response"]["year"], 'media_type': media["response"]["media_type"]}
     media['response']['media_type'] = media_type

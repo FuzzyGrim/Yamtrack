@@ -20,8 +20,3 @@ $('#v-pills-tab button').not('.dropdown-toggle').on('click', function () {
     var media = target.split('-')[0];
     $(media + '-tab').addClass('active');
 });
-
-// remove hash when search
-$('#navbar-form').on('submit', function() {
-    location.hash = '';
-});
