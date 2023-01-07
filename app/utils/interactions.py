@@ -1,3 +1,5 @@
+from django.core.cache import cache
+
 from decouple import config
 import requests
 import csv
@@ -56,10 +58,9 @@ async def mal_search_list(session, url):
     
 
 def mal_edit(request, media_type, media_id):
-    session_key = media_type + str(media_id)
-    if session_key in request.session:
-        response = request.session[session_key]
-    else:
+    cache_key = media_type + str(media_id)
+    response = cache.get(cache_key)
+    if response is None:
         url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,synopsis,media_type,num_episodes,num_chapters,average_episode_duration,status,genres"
         header = {"X-MAL-CLIENT-ID": MAL_API}
         response = requests.get(url, headers=header).json()
@@ -89,7 +90,7 @@ def mal_edit(request, media_type, media_id):
 
         response["api"] = "mal"
 
-        request.session[session_key] = response
+        cache.set(cache_key, response, 300)
 
     try:
         media = Media.objects.get(media_id=media_id, user=request.user, api="mal", media_type=media_type)
@@ -101,10 +102,9 @@ def mal_edit(request, media_type, media_id):
 
 
 def tmdb_edit(request, media_type, media_id):
-    session_key = media_type + str(media_id)
-    if session_key in request.session:
-        response = request.session[session_key]
-    else:
+    cache_key = media_type + str(media_id)
+    response = cache.get(cache_key)
+    if response is None:
         url = f"https://api.themoviedb.org/3/{media_type}/{media_id}?api_key={TMDB_API}"
 
         response = requests.get(url).json()
@@ -131,7 +131,7 @@ def tmdb_edit(request, media_type, media_id):
 
         response["api"] = "tmdb"
 
-        request.session[session_key] = response
+        cache.set(cache_key, response, 300)
 
     try:
         media = Media.objects.get(media_id=media_id, user=request.user, api="tmdb", media_type=media_type)
