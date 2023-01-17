@@ -174,10 +174,16 @@ def edit(request, media_type, media_id):
     data = {'title': media["response"]["title"], 'year': media["response"]["year"], 'media_type': media["response"]["media_type"]}
     media['response']['media_type'] = media_type
     data['html'] = render_to_string("app/edit.html", {'media': media}, request=request)
+
+    if "seasons" in media["response"]:
+        data['seasons'] = media["response"]["seasons"]
     
     if "database" in media:
         data['in_db'] = True
         data['seasons_details'] = media["database"].seasons_details
+        data['score'] = media["database"].score
+        data['status'] = media["database"].status
+        data['progress'] = media["database"].progress
     else:
         data['in_db'] = False
 

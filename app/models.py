@@ -11,6 +11,7 @@ class Media(models.Model):
     # track score and status for each season
     seasons_details = models.JSONField(default=dict)
     score = models.FloatField(null=True)
+    progress = models.IntegerField(default=0)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(max_length=30)
     num_seasons = models.IntegerField(null=True)

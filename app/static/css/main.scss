@@ -43,6 +43,12 @@
       
     }
   }
+
+  .modal-content .content{
+    .overview {
+      display:none
+    }
+  }
 }
 
 
@@ -88,9 +94,6 @@
   }
 
   .modal-content .content{
-    .overview {
-      display:none
-    }
     .genres {
       display:none
     }
@@ -99,6 +102,11 @@
       display: -webkit-box;
       -webkit-line-clamp: 1;
       -webkit-box-orient: vertical;
+    }
+    .input-group {
+      .form-control {
+        width: 4rem;
+      }
     }
   }
 

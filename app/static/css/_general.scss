@@ -30,6 +30,10 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
+input:placeholder-shown {
+  text-overflow: ellipsis;
+}
+
 .custom-tooltip {
   --bs-tooltip-bg: var(--bs-secondary);
   --bs-tooltip-color: var(--bs-white);

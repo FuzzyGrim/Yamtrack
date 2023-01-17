@@ -39,20 +39,30 @@ $(document).ready(function() {
                     if (select.length) {
                         var input = $("#score-input-" + type + "_" + id);
                         var status = $("#season-status-" + type + "_" + id);
+                        var progress = $("#progress-input-" + type + "_" + id);
+                        var total_episodes = $("#episodes-input-" + type + "_" + id);
+
                         select.change(function() {
                             var selectedValue = $(this).val();
                             if (selectedValue in data.seasons_details) {
                                 input.val(data.seasons_details[selectedValue]["score"]);
                                 status.val(data.seasons_details[selectedValue]["status"]);
+                                progress.val(data.seasons_details[selectedValue]["progress"]);
+
                             }
                             else if (selectedValue == "all") {
                                 input.val(data.score);
                                 status.val(data.status);
+                                progress.val(data.progress);
                             }
                             else {                            
                                 input.val("");
                                 status.val("Completed");
+                                progress.val("");
                             }
+
+                            if ('seasons' in data && selectedValue in data.seasons && 'episode_count' in data.seasons[selectedValue])
+                            total_episodes.val(data.seasons[selectedValue]["episode_count"]);
                         });
                     }
                 }
