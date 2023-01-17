@@ -7,14 +7,14 @@ class Media(models.Model):
     media_id = models.IntegerField()
     title = models.CharField(max_length=100)
     image = models.ImageField(upload_to="images", storage=OverwriteStorage())
-    media_type = models.CharField(max_length=100)
+    media_type = models.CharField(max_length=30)
     # track score and status for each season
     seasons_details = models.JSONField(default=dict)
     score = models.FloatField(null=True)
     progress = models.IntegerField(default=0)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(max_length=30)
-    num_seasons = models.IntegerField(null=True)
+    num_seasons = models.IntegerField(default=1)
     api = models.CharField(max_length=10)
     
     def __str__(self):

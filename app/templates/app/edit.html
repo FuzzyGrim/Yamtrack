@@ -96,12 +96,11 @@
 
                 
                 {% if media.response.num_episodes %} 
-                    <input id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" type="hidden" name="total-episodes" value="{{media.response.num_episodes}}">
+                    <input type="hidden" id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" name="total-episodes" value="{{media.response.num_episodes}}">
                 {% elif media.response.num_chapters %} 
-                    <strong>Chapters:</strong> {{media.response.num_chapters}}
-                    <input id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" type="hidden" name="total-episodes" value=" {{media.response.num_chapters}}">
+                    <input type="hidden" id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" name="total-episodes" value="{{media.response.num_chapters}}">
                 {% elif media.response.number_of_episodes %} 
-                    <input id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" type="hidden" name="total-episodes" value="{{media.response.number_of_episodes}}">
+                    <input type="hidden" id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" name="total-episodes" value="{{media.response.number_of_episodes}}">
                 {% endif %}
                 
                 {% if media.response.media_type == "tv"%}

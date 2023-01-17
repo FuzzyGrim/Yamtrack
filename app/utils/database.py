@@ -22,8 +22,6 @@ def add_media(request):
         media.progress = request.POST["progress"]
     elif request.POST["status"] == "Completed" and "total-episodes" in request.POST:
         media.progress = request.POST["total-episodes"]
-    else:
-        media.progress = None
 
     if "season" in request.POST:
         if request.POST["season"] == "all":
