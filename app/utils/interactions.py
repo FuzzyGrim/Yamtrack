@@ -24,7 +24,7 @@ def search(api_type, query):
             # needed for delete button
             media['api'] = 'tmdb'
 
-    else:
+    elif api_type == "mal":
         animes, mangas = run(mal_search(query))
 
         # merge anime and manga results alternating between each
@@ -65,6 +65,8 @@ def mal_edit(request, media_type, media_id):
         header = {"X-MAL-CLIENT-ID": MAL_API}
         response = requests.get(url, headers=header).json()
 
+        response["media_type"] = media_type
+
         if "start_date" in response:
             response["year"] = response["start_date"][0:4]
 
@@ -87,6 +89,14 @@ def mal_edit(request, media_type, media_id):
                 response["status"] = "Finished"
             elif response["status"] == "currently_publishing":
                 response["status"] = "Publishing"
+        
+        if "main_picture" in response:
+            response["image"] = response["main_picture"]["large"]
+        else:
+            response["image"] = ""
+
+        if "num_chapters" in response:
+            response["num_episodes"] = response["num_chapters"]
 
         response["api"] = "mal"
 
@@ -128,6 +138,14 @@ def tmdb_edit(request, media_type, media_id):
                 response["duration"] = f"{minutes}m"
             else:
                 response["duration"] = f"{hours}h {minutes}m"
+
+        if "poster_path" in response:
+            response["image"] = response["poster_path"]
+        else:
+            response["image"] = ""
+        
+        if "number_of_episodes" in response:
+            response["num_episodes"] = response["number_of_episodes"]
 
         response["api"] = "tmdb"
 

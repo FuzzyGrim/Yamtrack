@@ -24,10 +24,11 @@ from app.utils import database, interactions
 def home(request):
     if request.method == "POST":
         if "delete" in request.POST:
+            metadata = request.session.get("metadata")
             Media.objects.get(
-                media_id=request.POST["delete"],
+                media_id=metadata["id"],
                 user=request.user,
-                api=request.POST["api"],
+                api=metadata["api"],
             ).delete()
         elif "status" in request.POST:
             database.edit_media(request)
@@ -56,27 +57,24 @@ def search(request):
     api = request.GET.get("api")
     query = request.GET.get("q")
     request.session['last_selected_api'] = api
-
     if request.method == "POST":
+        metadata = request.session.get("metadata")
         if "delete" in request.POST:
             Media.objects.get(
-                media_id=request.POST["delete"],
+                media_id=metadata["id"],
                 user=request.user,
-                api=request.POST["api"],
+                api=metadata["api"],
             ).delete()
         elif "status" in request.POST:
-            if request.user.is_authenticated:
-                if Media.objects.filter(
-                    media_id=request.POST["media_id"],
-                    user=request.user,
-                    api=request.POST["api"],
-                ).exists():
-                    database.edit_media(request)
-                else:
-                    database.add_media(request)
+            if Media.objects.filter(
+                media_id=metadata["id"],
+                user=request.user,
+                api=metadata["api"],
+            ).exists():
+                database.edit_media(request)
             else:
-                messages.error(request, "Log in is required to track media.")
-                return redirect("login")
+                database.add_media(request)
+
         return redirect("/search?api=" + api + "&q=" + query)
 
     query_list = interactions.search(api, query)
@@ -170,6 +168,9 @@ def edit(request, media_type, media_id):
         media = interactions.mal_edit(request, media_type, media_id)
     elif media_type in ["movie", "tv"]:
         media = interactions.tmdb_edit(request, media_type, media_id)
+    
+    # Save the metadata in the session to be used when form is submitted
+    request.session["metadata"] = media["response"]
 
     data = {'title': media["response"]["title"], 'year': media["response"]["year"], 'media_type': media["response"]["media_type"]}
     media['response']['media_type'] = media_type

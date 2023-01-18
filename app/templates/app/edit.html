@@ -77,10 +77,6 @@
                             <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
                         {% endfor %}
                     </select>
-
-                    <input type="hidden" name="num_seasons" value="{{ media.response.number_of_seasons }}">
-                {% else %}
-                    <input type="hidden" name="num_seasons" value="1">
                 {% endif %}
 
                 <select name="status" class="form-select" id="season-status-{{media.response.media_type}}_{{media.response.id}}">
@@ -93,36 +89,6 @@
                   
                 <input type="number" id="score-input-{{media.response.media_type}}_{{media.response.id}}" class="form-control bg-dark text-white" name="score" placeholder="Score" value="{{media.database.score}}" step="0.1" min="0" max="10">
                 <input type="number" id="progress-input-{{media.response.media_type}}_{{media.response.id}}" class="form-control bg-dark text-white" name="progress" placeholder="Progress" value="{{media.database.progress}}" step="1" min="0">
-
-                
-                {% if media.response.num_episodes %} 
-                    <input type="hidden" id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" name="total-episodes" value="{{media.response.num_episodes}}">
-                {% elif media.response.num_chapters %} 
-                    <input type="hidden" id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" name="total-episodes" value="{{media.response.num_chapters}}">
-                {% elif media.response.number_of_episodes %} 
-                    <input type="hidden" id="episodes-input-{{media.response.media_type}}_{{media.response.id}}" name="total-episodes" value="{{media.response.number_of_episodes}}">
-                {% endif %}
-                
-                {% if media.response.media_type == "tv"%}
-                    <input type="hidden" name="title" value="{{ media.response.name }}">
-                {% else %}
-                    <input type="hidden" name="title" value="{{ media.response.title }}">
-                {% endif %}
-                
-                <input type="hidden" name="media_type" value="{{media.response.media_type}}">
-                
-                <input type="hidden" name="media_id" value="{{ media.response.id }}">
-
-                {% if media.response.main_picture.large %}
-                    <input type="hidden" name="image" value="{{media.response.main_picture.large}}">
-                {% elif media.response.poster_path %}
-                    <input type="hidden" name="image" value="{{ media.response.poster_path }}">
-                {% else %}
-                    <input type="hidden" name="image" value="">
-                {% endif %}
-
-
-                <input type="hidden" name="api" value="{{ media.response.api }}">
 
             </form>
         </div>

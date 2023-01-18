@@ -40,7 +40,6 @@ $(document).ready(function() {
                         var input = $("#score-input-" + type + "_" + id);
                         var status = $("#season-status-" + type + "_" + id);
                         var progress = $("#progress-input-" + type + "_" + id);
-                        var total_episodes = $("#episodes-input-" + type + "_" + id);
 
                         select.change(function() {
                             var selectedValue = $(this).val();
@@ -60,16 +59,15 @@ $(document).ready(function() {
                                 status.val("Completed");
                                 progress.val("");
                             }
-
-                            if ('seasons' in data && selectedValue in data.seasons && 'episode_count' in data.seasons[selectedValue])
-                            total_episodes.val(data.seasons[selectedValue]["episode_count"]);
                         });
                     }
                 }
                 if (data.in_db) {
                     // Add delete button if it doesn't exist
                     if ($("#modal-footer-" + type + "_" + id + " .modal-delete-btn").length == 0) {
-                        var deleteButton = $('<button class="btn btn-danger modal-delete-btn" type="submit" name="delete" value="' + id + '">Delete</button>');
+                        console.log("yes")
+                        var deleteButton = $('<button class="btn btn-danger modal-delete-btn" type="submit" name="delete">Delete</button>');
+                        console.log(deleteButton);
                         $('#modal-footer-' + type + '_' + id + ' form').append(deleteButton);
                     }
                 }
