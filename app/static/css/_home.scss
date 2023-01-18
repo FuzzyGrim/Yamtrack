@@ -80,8 +80,7 @@ $font-grey: #d1cdc7;
         & .image,
         & .score,
         & .status,
-        & .edit,
-        & .delete {
+        & .edit {
           text-align: center;
         }
       }
@@ -147,25 +146,6 @@ $font-grey: #d1cdc7;
           width: 10%;
           display: flex;
           justify-content: center;
-
-          .btn {
-            border-width: 1;
-            border-color: transparent;
-            background-color: $container-bg;
-            color: $font-grey;
-          }
-
-          .btn:hover {
-            border-width: 1px;
-            border-color: #56595D
-          }
-        }
-
-        .delete {
-          width: 10%;
-          display: flex;
-          justify-content: center;
-          margin-right: .5em !important;
 
           .btn {
             border-width: 1;

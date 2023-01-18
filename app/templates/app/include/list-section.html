@@ -11,8 +11,8 @@
         {{media.score}}
       </button>
       <ul class="dropdown-menu">
-        {% for season, details in media.seasons_details.items %}
-          <li>S{{season}}: {{details.score}}</li>
+        {% for season in media.seasons.all %}
+          <li>S{{season.number}}: {{season.score}}</li>
         {% endfor %}
       </ul>
     </div>
@@ -21,8 +21,8 @@
         {{media.status}}
       </button>
       <ul class="dropdown-menu">
-        {% for season, details in media.seasons_details.items %}
-          <li>S{{season}}: {{details.status}}</li>
+        {% for season in media.seasons.all %}
+          <li>S{{season.number}}: {{season.status}}</li>
         {% endfor %}
       </ul>
     </div>
@@ -31,8 +31,8 @@
         {{media.progress}}
       </button>
       <ul class="dropdown-menu">
-        {% for season, details in media.seasons_details.items %}
-          <li>S{{season}}: {{details.progress}}</li>
+        {% for season in media.seasons.all %}
+          <li>S{{season.number}}: {{season.progress}}</li>
         {% endfor %}
       </ul>
     </div>
@@ -49,29 +49,5 @@
   </div>
   
   {% include "app/include/media-modal.html" %}
-
-  <div class="delete p-2 flex-shrink-0">
-    <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#modal-confirmation-{{media.media_type}}_{{media.media_id}}">
-      <i class="bi bi-trash3-fill"></i>
-    </button>
-  </div>
-
-  <div class="modal fade" id="modal-confirmation-{{media.media_type}}_{{media.media_id}}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered .modal-sm">
-      <div class="modal-content">
-        <div class="modal-body p-4 text-center">
-          <h5 class="mb-0" >Are you sure?</h5>
-        </div>  
-        <div class="modal-footer d-flex justify-content-evenly">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="api" value="{{ media.api }}">
-            <button class="btn btn-danger modal-delete-btn" type="submit" name="delete" value="{{media.media_id}}">Delete</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
 
 </div>

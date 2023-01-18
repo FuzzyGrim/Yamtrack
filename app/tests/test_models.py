@@ -7,7 +7,7 @@ from django.conf import settings
 import shutil
 import os
 
-from app.models import User, Media
+from app.models import User, Media, Season
 
 
 class RegisterLoginUser(TestCase):
@@ -107,7 +107,6 @@ class EditMedia(TestCase):
             title="Friends",
             image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
             media_type="tv",
-            seasons_details={10:{"score": 9, "progress": 12, "status": "Completed"}},
             score=9,
             progress=18,
             user=self.user,
@@ -116,9 +115,18 @@ class EditMedia(TestCase):
             api="tmdb",
         )
         media.save()
+        
+        season = Season(
+            media=media,
+            number=10,
+            score=9,
+            progress=12,
+            status="Completed",
+        )
+        season.save()
 
         session = self.client.session
-        session["metadata"] = {'id': 1668, 'api': 'tmdb', 'media_type': 'tv', 'number_of_seasons': 10,
+        session["metadata"] = {'id': 1668, 'api': 'tmdb', 'media_type': 'tv', 'number_of_seasons': 10, 'title': 'Friends',
                                'seasons':[{"episode_count":24},{"episode_count":24},{"episode_count":25},{"episode_count":24},{"episode_count":24}
                                          ,{"episode_count":25},{"episode_count":24},{"episode_count":24},{"episode_count":24},{"episode_count":18}]}
         session.save()

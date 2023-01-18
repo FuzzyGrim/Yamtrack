@@ -6,7 +6,7 @@ import csv
 from aiohttp import ClientSession
 from asyncio import ensure_future, gather, run
 
-from app.models import Media
+from app.models import Media, Season
 from app.utils import helpers
 
 
@@ -242,9 +242,7 @@ def import_tmdb(file, user):
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = csv.DictReader(decoded_file)
 
-    bulk_add_media = run(tmdb_get_media_list(reader, user, status))
-
-    Media.objects.bulk_create(bulk_add_media)
+    run(tmdb_get_media_list(reader, user, status))
 
     return True
 
@@ -267,7 +265,7 @@ async def tmdb_get_media_list(reader, user, status):
                     url = f"https://api.themoviedb.org/3/movie/{row['TMDb ID']}?api_key={TMDB_API}"
                     task.append(ensure_future(tmdb_get_media(session, url, row, user, status)))
 
-        return await gather(*task)
+        await gather(*task)
 
 
 async def tmdb_get_media(session, url, row, user, status):
@@ -275,40 +273,50 @@ async def tmdb_get_media(session, url, row, user, status):
     async with session.get(url) as resp:
         response = await resp.json()
             
-        seasons_details = {}
         if row["Your Rating"] == "":
             score = None
         else:
             score = float(row["Your Rating"])
 
-        if "number_of_seasons" in response:
-            for season in range(1, response["number_of_seasons"] + 1):
-                seasons_details[season] = {"score": score, "status": status, "progress": 0}
-        else:
-            response["number_of_seasons"] = 1
-
-        media = Media(
-                media_id=row["TMDb ID"],
-                title=row["Name"],
-                media_type=row["Type"],
-                seasons_details=seasons_details,
-                score=score,
-                progress=0,
-                status=status,
-                api="tmdb",
-                user=user,
-                num_seasons=response.get("number_of_seasons"),
-                image=row.get("image"),
-            )
-
         await helpers.download_image(session, f"https://image.tmdb.org/t/p/w92{response['poster_path']}", "tmdb")
         
         if response["poster_path"] == None:
-            media.image = "images/none.svg"
+            image = "images/none.svg"
         else:
-            media.image = f"images/tmdb-{response['poster_path'].rsplit('/', 1)[-1]}"
+            image = f"images/tmdb-{response['poster_path'].rsplit('/', 1)[-1]}"
+        
+        if "number_of_episodes" in response and status == "Completed":
+            progress = response["number_of_episodes"]
+        else:
+            progress = 0
 
-        return media
+        media = await Media.objects.acreate(
+            media_id=row["TMDb ID"],
+            title=row["Name"],
+            media_type=row["Type"],
+            score=score,
+            progress=progress,
+            status=status,
+            api="tmdb",
+            num_seasons=1,
+            user=user,
+            image=image,
+        )
+
+        if "number_of_seasons" in response:
+            seasons_list = []
+            for season in range(1, response["number_of_seasons"] + 1):
+                if "episode_count" in response["seasons"][season] and status == "Completed":
+                    seasons_list.append(Season(media=media, title=row["Name"], number=season, score=score, status=status, 
+                                               progress=response["seasons"][season - 1]["episode_count"]))
+                else:
+                    seasons_list.append(Season(media=media, title=row["Name"], number=season, score=score, status=status, 
+                                               progress=0))
+            await Season.objects.abulk_create(seasons_list)
+
+        else:
+            response["number_of_seasons"] = 1
+            await Season.objects.acreate(media=media, title=row["Name"], number=1, score=score, status=status, progress=0)
 
 
 def import_anilist(username, user):

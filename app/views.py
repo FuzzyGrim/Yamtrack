@@ -1,10 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import (
-    update_session_auth_hash,
-    authenticate,
-    login as auth_login,
-)
+from django.contrib.auth import update_session_auth_hash, authenticate, login as auth_login
 from django.contrib.auth.forms import PasswordChangeForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.utils.safestring import mark_safe
@@ -15,7 +11,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 
 
-from app.models import Media
+from app.models import Media, Season
 from app.forms import UserRegisterForm, UserUpdateForm
 from app.utils import database, interactions
 
@@ -35,7 +31,8 @@ def home(request):
 
         return redirect("home")
 
-    queryset = Media.objects.filter(user_id=request.user)
+    # get all media with tracked seasons of user
+    queryset = Media.objects.filter(user_id=request.user).prefetch_related("seasons")
     data = {
         "tv": {"media": [], "statuses": {}},
         "movie": {"media": [], "statuses": {}},
@@ -181,7 +178,7 @@ def edit(request, media_type, media_id):
     
     if "database" in media:
         data['in_db'] = True
-        data['seasons_details'] = media["database"].seasons_details
+        data['media_seasons'] = list(Season.objects.filter(media=media["database"]).values("number", "score", "status", "progress"))
         data['score'] = media["database"].score
         data['status'] = media["database"].status
         data['progress'] = media["database"].progress

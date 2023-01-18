@@ -8,8 +8,6 @@ class Media(models.Model):
     title = models.CharField(max_length=100)
     image = models.ImageField(upload_to="images", storage=OverwriteStorage())
     media_type = models.CharField(max_length=30)
-    # track score and status for each season
-    seasons_details = models.JSONField(default=dict)
     score = models.FloatField(null=True)
     progress = models.IntegerField()
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -22,6 +20,21 @@ class Media(models.Model):
 
     class Meta:
         ordering = ['-score']
+
+
+class Season(models.Model):
+    media = models.ForeignKey(Media, on_delete=models.CASCADE, related_name='seasons')
+    title = models.CharField(max_length=100)
+    number = models.IntegerField()
+    score = models.FloatField(null=True)
+    status = models.CharField(max_length=30)
+    progress = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.title} - Season {self.number}"
+
+    class Meta:
+        ordering = ['media_id', 'number']
 
 
 class User(AbstractUser):
