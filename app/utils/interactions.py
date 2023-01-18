@@ -208,6 +208,7 @@ async def myanimelist_get_media(session, content, media_type, user):
             score=content["list_status"]["score"],
             status=content["list_status"]["status"],
             api="mal",
+            num_seasons=1,
             user=user,
         )
 
@@ -283,6 +284,8 @@ async def tmdb_get_media(session, url, row, user, status):
         if "number_of_seasons" in response:
             for season in range(1, response["number_of_seasons"] + 1):
                 seasons_details[season] = {"score": score, "status": status, "progress": 0}
+        else:
+            response["number_of_seasons"] = 1
 
         media = Media(
                 media_id=row["TMDb ID"],
@@ -290,6 +293,7 @@ async def tmdb_get_media(session, url, row, user, status):
                 media_type=row["Type"],
                 seasons_details=seasons_details,
                 score=score,
+                progress=0,
                 status=status,
                 api="tmdb",
                 user=user,
@@ -404,10 +408,11 @@ async def anilist_get_media(session, content, media_type, user):
             title=content["media"]["title"]["userPreferred"],
             media_type=media_type,
             score=content["score"],
+            progress=content["progress"],
             status=status,
             api="mal",
+            num_seasons=1,
             user=user,
-            progress=content["progress"],
         )
 
     await helpers.download_image(session, content["media"]["coverImage"]["medium"], media_type)

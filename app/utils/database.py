@@ -85,6 +85,7 @@ def edit_media(request):
         if request.POST["season"] == "all":
             for season in range(1, metadata["number_of_seasons"] + 1):
                 media.seasons_details[season] = {"score": score, "status": request.POST["status"], "progress": 0}
+                media.score = score
         else:
             if request.POST["progress"] != "":
                 progress = request.POST["progress"]

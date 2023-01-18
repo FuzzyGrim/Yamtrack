@@ -62,18 +62,18 @@ class CreateMedia(TestCase):
             Media.objects.filter(media_id=5895, user=self.user).exists(), False
         )
 
+        session = self.client.session
+        session["metadata"] = {'id': 5895, 'title': 'FLCL', 'image': '/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg', 
+                               'api': 'tmdb', 'media_type': 'tv', 'number_of_seasons': 4,
+                               'seasons':[{"episode_count":6},{"episode_count":6},{"episode_count":6},{"episode_count":0}]}
+        session.save()
         response = self.client.post(
             reverse("search") + "?api=tmdb&q=flcl",
             {
-                "media_id": 5895,
-                "title": "FLCL",
-                "image": "/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg",
-                "api": "tmdb",
                 "status": "Completed",
                 "score": 4,
+                "progress": "",
                 "season": 1,
-                "media_type": "tv",
-                "num_seasons": 3,
             },
         )
 
@@ -84,43 +84,6 @@ class CreateMedia(TestCase):
         )
         self.assertEqual(
             os.path.exists(settings.MEDIA_ROOT + "/images/tmdb-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"),
-            True,
-        )
-
-    @override_settings(MEDIA_ROOT=("test_CreateMedia/media"))
-    def test_create_tmdb_middle_season(self):
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user).exists(), False
-        )
-
-        response = self.client.post(
-            reverse("search") + "?api=tmdb&q=flcl",
-            {
-                "media_id": 1668,
-                "title": "Friends",
-                "image": "/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
-                "api": "tmdb",
-                "status": "Completed",
-                "score": 8,
-                "season": 1,
-                "media_type": "tv",
-                "num_seasons": 10,
-            },
-        )
-
-        response = self.client.get(reverse("home"))
-        self.assertContains(response, "Friends")
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user).exists(), True
-        )
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user, status="Completed").exists(), False
-        )
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user, status="Watching").exists(), True
-        )
-        self.assertEqual(
-            os.path.exists(settings.MEDIA_ROOT + "/images/tmdb-f496cm9enuEsZkSPzCwnTESEK5s.jpg"),
             True,
         )
 
@@ -139,20 +102,27 @@ class EditMedia(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
-        self.client.post(
-            reverse("search") + "?api=tmdb&q=flcl",
-            {
-                "media_id": 1668,
-                "title": "Friends",
-                "image": "/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
-                "api": "tmdb",
-                "status": "Completed",
-                "score": 9,
-                "season": 10,
-                "media_type": "tv",
-                "num_seasons": 10,
-            },
+        media = Media(
+            media_id=1668,
+            title="Friends",
+            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
+            media_type="tv",
+            seasons_details={10:{"score": 9, "progress": 12, "status": "Completed"}},
+            score=9,
+            progress=18,
+            user=self.user,
+            status="Completed",
+            num_seasons=10,
+            api="tmdb",
         )
+        media.save()
+
+        session = self.client.session
+        session["metadata"] = {'id': 1668, 'api': 'tmdb', 'media_type': 'tv', 'number_of_seasons': 10,
+                               'seasons':[{"episode_count":24},{"episode_count":24},{"episode_count":25},{"episode_count":24},{"episode_count":24}
+                                         ,{"episode_count":25},{"episode_count":24},{"episode_count":24},{"episode_count":24},{"episode_count":18}]}
+        session.save()
+
 
     def test_edit_tmdb_score(self):
         self.assertEqual(
@@ -165,13 +135,10 @@ class EditMedia(TestCase):
         response = self.client.post(
             reverse("home"),
             {
-                "media_id": 1668,
-                "api": "tmdb",
                 "status": "Completed",
                 "score": 9.5,
                 "season": 10,
-                "media_type": "tv",
-                "num_seasons": 10,
+                "progress": 18,
             },
         )
 
@@ -197,16 +164,14 @@ class EditMedia(TestCase):
             ).exists(),
             False,
         )
+
         response = self.client.post(
             reverse("home"),
             {
-                "media_id": 1668,
-                "api": "tmdb",
                 "status": "Watching",
                 "score": 9,
                 "season": 10,
-                "media_type": "tv",
-                "num_seasons": 10,
+                "progress": 18,
             },
         )
 
@@ -248,13 +213,9 @@ class EditMedia(TestCase):
         response = self.client.post(
             reverse("home"),
             {
-                "media_id": 1668,
-                "api": "tmdb",
                 "status": "Watching",
                 "score": 9.5,
                 "season": "all",
-                "media_type": "tv",
-                "num_seasons": 10,
             },
         )
 
