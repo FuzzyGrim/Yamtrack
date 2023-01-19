@@ -12,7 +12,6 @@ class Media(models.Model):
     progress = models.IntegerField()
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(max_length=30)
-    num_seasons = models.IntegerField()
     api = models.CharField(max_length=10)
     
     def __str__(self):
