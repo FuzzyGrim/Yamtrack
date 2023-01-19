@@ -24,10 +24,6 @@ def add_media(request):
     media.title=metadata["title"]
     media.user=request.user
     media.status=request.POST["status"]
-    if "number_of_seasons" in metadata:
-        media.num_seasons = metadata["number_of_seasons"]
-    else:
-        media.num_seasons = 1
     media.media_type = metadata["media_type"]
 
     media.api = metadata["api"]
@@ -50,7 +46,7 @@ def add_media(request):
     if "season" in request.POST:
         if request.POST["season"] == "all":
             seasons_list = []
-            for season in range(1, media.num_seasons + 1):
+            for season in range(1, metadata["number_of_seasons"] + 1):
                 if "episode_count" in metadata["seasons"][season - 1] and media.status == "Completed":
                     seasons_list.append(Season(media=media, title=media.title, number=season, score=media.score, status=media.status, 
                                                progress=metadata["seasons"][season - 1]["episode_count"]))
@@ -64,8 +60,8 @@ def add_media(request):
                 
             Season.objects.create(media=media, title=media.title, number=request.POST["season"], score=media.score, status=media.status, progress=media.progress)
 
-    else:
-        Season.objects.create(media=media, title=media.title, number=1, score=media.score, status=media.status, progress=media.progress)
+    # else:
+    #     Season.objects.create(media=media, title=media.title, number=1, score=media.score, status=media.status, progress=media.progress)
 
     media.save()
     del request.session["metadata"]
@@ -87,8 +83,7 @@ def edit_media(request):
 
     if "season" in request.POST:
         if request.POST["season"] == "all":
-            
-            for season in range(1, media.num_seasons + 1):
+            for season in range(1, metadata["number_of_seasons"] + 1):
                 if "episode_count" in metadata["seasons"][season - 1] and request.POST["status"] == "Completed":
                     progress = metadata["seasons"][season - 1]["episode_count"]
                     Season.objects.update_or_create(media=media, number=season, 
@@ -97,8 +92,13 @@ def edit_media(request):
                     obj, created = Season.objects.get_or_create(media=media, number=season, 
                                                                 defaults={"title":metadata["title"], 'progress': 0,'score': score, 'status': request.POST["status"]})
                     if not created:
-                        Season.objects.filter(media=media, number=season).update(score=score, status=request.POST["status"])                                        
+                        Season.objects.filter(media=media, number=season).update(score=score, status=request.POST["status"])    
+                                    
         else:
+            # if media didn't have any seasons, create first season with the same data as the media
+            if Season.objects.filter(media=media).count() == 0:
+                Season.objects.create(media=media, title=media.title, number=1, score=media.score, status=media.status, progress=media.progress)
+
             if "episode_count" in metadata["seasons"][int(request.POST["season"]) - 1] and (request.POST["status"] == "Completed" or int(request.POST["progress"]) > metadata["seasons"][int(request.POST["season"]) - 1]["episode_count"]):
                 progress = metadata["seasons"][int(request.POST["season"]) - 1]["episode_count"]
             elif request.POST["progress"] != "":
@@ -107,9 +107,14 @@ def edit_media(request):
                 progress = 0
             
             Season.objects.filter(media=media, number=request.POST["season"]).update(score=score, status=request.POST["status"], progress=progress)
-            
-            # update total number of seasons
-            media.num_seasons = metadata["number_of_seasons"]
+
+        seasons = Season.objects.filter(media=media)
+        mean_score = seasons.aggregate(Avg('score'))['score__avg']
+        progress_total = seasons.aggregate(Sum('progress'))['progress__sum']
+        media.score = mean_score
+        media.progress = progress_total
+        media.status = request.POST["status"]
+        media.save()
         
     else:
         if "num_episodes" in metadata and (request.POST["status"] == "Completed" or int(request.POST["progress"]) > metadata["num_episodes"]):
@@ -121,15 +126,7 @@ def edit_media(request):
 
         media.score = score
         media.progress = progress
-
-        Season.objects.filter(media=media, season=1).update(score=score, status=request.POST["status"], progress=progress)
-
-    seasons = Season.objects.filter(media=media)
-    mean_score = seasons.aggregate(Avg('score'))['score__avg']
-    progress_total = seasons.aggregate(Sum('progress'))['progress__sum']
-    media.score = mean_score
-    media.progress = progress_total
-    media.status = request.POST["status"]
-    media.save()
+        media.status = request.POST["status"]
+        media.save()
 
     del request.session["metadata"]

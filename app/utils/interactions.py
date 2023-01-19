@@ -208,7 +208,6 @@ async def myanimelist_get_media(session, content, media_type, user):
             score=content["list_status"]["score"],
             status=content["list_status"]["status"],
             api="mal",
-            num_seasons=1,
             user=user,
         )
 
@@ -298,7 +297,6 @@ async def tmdb_get_media(session, url, row, user, status):
             progress=progress,
             status=status,
             api="tmdb",
-            num_seasons=1,
             user=user,
             image=image,
         )
@@ -419,7 +417,6 @@ async def anilist_get_media(session, content, media_type, user):
             progress=content["progress"],
             status=status,
             api="mal",
-            num_seasons=1,
             user=user,
         )
 

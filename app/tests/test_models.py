@@ -111,7 +111,6 @@ class EditMedia(TestCase):
             progress=18,
             user=self.user,
             status="Completed",
-            num_seasons=10,
             api="tmdb",
         )
         media.save()
