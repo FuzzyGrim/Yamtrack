@@ -24,28 +24,34 @@
         }
 
         .overview {
-        /* only show 2 lines of overview */
+        /* only show 3 lines of overview */
         overflow: hidden;
         display: -webkit-box;
-        -webkit-line-clamp: 2;
+        -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
         }
 
         .genres {
-            /* only show 1 lines of overview */
             overflow: hidden;
             display: -webkit-box;
-            -webkit-line-clamp: 1;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             }
+    }
 
-        .input-group {
-            position:absolute;
-            bottom:0;
+    form {
+        row-gap: 1em;
+        
+        .descriptor {
+            font-size: .8rem;
+            margin-bottom: .4em;
+        }
+        .form-select {
+            border-radius: .2rem;
+        }
+        .input-div {
             .form-control {
-                flex-grow: 0;
-                flex-shrink: 0;
-                width: 6rem;
+                border-radius: .2rem;
             }
         }
     }

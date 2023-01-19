@@ -22,7 +22,8 @@
   }
 }
 
-@media screen and (max-width: 1080px){
+// applies to medium devices (tablets)
+@media screen and (max-width: 992px){
   main {
     margin: 5em 1em 1em 1em;
   }
@@ -44,9 +45,12 @@
     }
   }
 
-  .modal-content .content{
-    .overview {
-      display:none
+  .modal-content{
+
+    form {
+      div {
+        width: 100%;
+      }
     }
   }
 }
@@ -86,14 +90,7 @@
     }
   } 
 
-  #search main .container-grid {
-    justify-content: center;
-  }
-
   .modal-content .content{
-    .genres {
-      display:none
-    }
     .media-status {
       overflow: hidden;
       display: -webkit-box;
@@ -109,8 +106,8 @@
 
 }
 
-
-@media screen and (max-width: 480px) {
+// xs
+@media screen and (max-width: 576px) {
   #home .tab-content {
     .tab-pane {
       .list-head, .list-section {

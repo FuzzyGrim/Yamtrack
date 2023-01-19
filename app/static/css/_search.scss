@@ -2,7 +2,7 @@
   .container-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, 12rem);
-    justify-content: space-between;
+    justify-content: center;
     grid-gap: 1.5rem 1rem;
 
     .card {
