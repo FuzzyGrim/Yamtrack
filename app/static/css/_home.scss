@@ -80,6 +80,7 @@ $font-grey: #d1cdc7;
         & .image,
         & .score,
         & .status,
+        & ._progress,
         & .edit {
           text-align: center;
         }
@@ -116,7 +117,7 @@ $font-grey: #d1cdc7;
           line-height: 2;
         }
 
-        .score {
+        .score, ._progress {
           width: 10%;
         }
 
@@ -124,7 +125,7 @@ $font-grey: #d1cdc7;
           width: 15%;
         }
 
-        .score, .status {
+        .score, .status, ._progress {
           .btn {
             background-color: $container-bg;
             color: $font-grey;

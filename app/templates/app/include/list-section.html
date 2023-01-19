@@ -26,7 +26,7 @@
         {% endfor %}
       </ul>
     </div>
-    <div class="status p-2 flex-shrink-0 dropdown">
+    <div class="_progress p-2 flex-shrink-0 dropdown">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.progress}}
       </button>
@@ -39,7 +39,7 @@
   {% else %}
     <div class="score p-2 flex-shrink-0">{{media.score}}</div>
     <div class="status p-2 flex-shrink-0">{{media.status}}</div>
-    <div class="status p-2 flex-shrink-0">{{media.progress}}</div>
+    <div class="_progress p-2 flex-shrink-0">{{media.progress}}</div>
   {% endif %}
   
   <div class="edit p-2 flex-shrink-0">

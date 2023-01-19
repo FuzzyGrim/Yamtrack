@@ -108,3 +108,16 @@
   }
 
 }
+
+
+@media screen and (max-width: 480px) {
+  #home .tab-content {
+    .tab-pane {
+      .list-head, .list-section {
+        ._progress {
+          display: none;
+        }
+      }
+    }
+  } 
+}
