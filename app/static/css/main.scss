@@ -46,17 +46,14 @@
   }
 
   .modal-content{
-
-    form {
-      div {
-        width: 100%;
-      }
+    form div{
+      width: 100%;
     }
   }
 }
 
 
-/* mobile css */
+// landscape phones and smaller
 @media screen and (max-width: 767px) {
   .navbar {
     .hidden{
@@ -78,32 +75,7 @@
 
   #home .tab-content {
     margin-top: 1em;
-    .tab-pane {
-      .list-head, .list-section {
-        .score, .edit {
-          width: 20%;
-        }
-        .status {
-          display: none;
-        }
-      }
-    }
   } 
-
-  .modal-content .content{
-    .media-status {
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-    }
-    .input-group {
-      .form-control {
-        width: 4rem;
-      }
-    }
-  }
-
 }
 
 // xs
@@ -111,10 +83,24 @@
   #home .tab-content {
     .tab-pane {
       .list-head, .list-section {
-        ._progress {
+        .title {
+          flex: 2;
+        }
+        .status, ._progress {
           display: none;
         }
       }
     }
-  } 
+  }
+
+  .modal-content{
+    .content {
+      .genres {
+        display: none;
+      }
+    }
+    form div{
+      width: 100%;
+    }
+  }
 }

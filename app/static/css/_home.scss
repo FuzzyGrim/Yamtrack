@@ -92,7 +92,6 @@ $font-grey: #d1cdc7;
 
       .list-head, .list-section{
         .image {
-          width: auto;
           margin-left: 1em !important;
           text-align: center;
 
@@ -110,6 +109,7 @@ $font-grey: #d1cdc7;
         }
 
         .title{
+          flex: 3;
           overflow: hidden;
           display: -webkit-box;
           -webkit-line-clamp: 1;
@@ -117,15 +117,8 @@ $font-grey: #d1cdc7;
           line-height: 2;
         }
 
-        .score, ._progress {
-          width: 10%;
-        }
-
-        .status {
-          width: 15%;
-        }
-
         .score, .status, ._progress {
+          flex: 1;
           .btn {
             background-color: $container-bg;
             color: $font-grey;
@@ -144,7 +137,7 @@ $font-grey: #d1cdc7;
         }
 
         .edit {
-          width: 10%;
+          flex: 1;
           display: flex;
           justify-content: center;
 

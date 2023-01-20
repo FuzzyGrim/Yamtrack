@@ -3,10 +3,10 @@
     <img loading="lazy" src="{{media.image.url}}">
   </div>
 
-  <div class="title p-2 flex-grow-1">{{media.title}}</div>
+  <div class="title p-2">{{media.title}}</div>
 
   {% if media.seasons.all and media.seasons.all|length != 1 %}
-    <div class="score p-2 flex-shrink-0 dropdown">
+    <div class="score p-2 dropdown">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.score}}
       </button>
@@ -16,7 +16,7 @@
         {% endfor %}
       </ul>
     </div>
-    <div class="status p-2 flex-shrink-0 dropdown">
+    <div class="status p-2 dropdown">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.status}}
       </button>
@@ -26,7 +26,7 @@
         {% endfor %}
       </ul>
     </div>
-    <div class="_progress p-2 flex-shrink-0 dropdown">
+    <div class="_progress p-2 dropdown">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.progress}}
       </button>
@@ -37,12 +37,12 @@
       </ul>
     </div>
   {% else %}
-    <div class="score p-2 flex-shrink-0">{{media.score}}</div>
-    <div class="status p-2 flex-shrink-0">{{media.status}}</div>
-    <div class="_progress p-2 flex-shrink-0">{{media.progress}}</div>
+    <div class="score p-2">{{media.score}}</div>
+    <div class="status p-2">{{media.status}}</div>
+    <div class="_progress p-2">{{media.progress}}</div>
   {% endif %}
   
-  <div class="edit p-2 flex-shrink-0">
+  <div class="edit p-2">
     <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.media_id %}">
       <i class="bi bi-pen-fill"></i>
     </button>
