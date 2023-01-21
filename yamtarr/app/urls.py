@@ -15,5 +15,5 @@ urlpatterns = [
     path("edit/<str:media_type>/<int:media_id>/", views.edit, name = "edit"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-if config("REGISTRATION", default = False, cast=bool):
+if config("REGISTRATION", default = True, cast=bool):
     urlpatterns.append(path("register/", views.register, name = "register"))
