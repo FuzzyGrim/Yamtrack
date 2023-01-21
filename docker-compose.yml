@@ -1,0 +1,27 @@
+version: "3"
+services:
+  yamtarr:
+    build:
+      context: .
+    environment:
+      - TMDB_API=API_KEY
+      - MAL_API=API_KEY
+      - SECRET=SECRET
+    volumes:
+      - static:/yamtarr/static
+      - media:/yamtarr/media
+
+  proxy:
+    build:
+      context: ./proxy
+    volumes:
+      - static:/vol/static
+      - media:/vol/media
+    ports:
+      - "8080:8080"
+    depends_on:
+      - yamtarr
+
+volumes:
+  static:
+  media:
