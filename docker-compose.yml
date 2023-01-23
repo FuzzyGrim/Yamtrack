@@ -1,6 +1,7 @@
 version: "3"
 services:
   yamtarr:
+    container_name: yamtarr
     build:
       context: .
     environment:
@@ -8,20 +9,18 @@ services:
       - MAL_API=API_KEY
       - SECRET=SECRET
     volumes:
-      - static:/yamtarr/static
-      - media:/yamtarr/media
+      - data:/yamtarr/data
 
   proxy:
+    container_name: yamtarr-proxy
     build:
       context: ./proxy
     volumes:
-      - static:/vol/static
-      - media:/vol/media
+      - data:/vol
     ports:
       - "8080:8080"
     depends_on:
       - yamtarr
 
 volumes:
-  static:
-  media:
+  data:

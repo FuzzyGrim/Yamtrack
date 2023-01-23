@@ -2,7 +2,7 @@ __pycache__
 *.pyc
 .env
 venv
-yamtarr/db.sqlite3
-yamtarr/static/
-yamtarr/media/images/*
-!yamtarr/media/images/none.svg
+yamtarr/data/db.sqlite3
+yamtarr/data/static/*
+yamtarr/data/media/images/*
+!yamtarr/data/media/images/none.svg
