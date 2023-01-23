@@ -1,5 +1,7 @@
 FROM python:3.11-alpine
 
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
 ENV PATH="/scripts:${PATH}"
 
 COPY ./requirements.txt /requirements.txt
