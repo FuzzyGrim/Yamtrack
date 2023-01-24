@@ -87,7 +87,7 @@ WSGI_APPLICATION = 'base.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'data/db.sqlite3')
+        'NAME': os.path.join(BASE_DIR, 'db/db.sqlite3')
     }
 }
 
@@ -128,8 +128,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 MEDIA_URL = 'media/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'data/static')
-MEDIA_ROOT = os.path.join(BASE_DIR, 'data/media')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -156,6 +156,6 @@ STATICFILES_FINDERS = [
 
 SASS_PROCESSOR_ENABLED = True
 
-SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR,'data/static')
+SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR,'static')
 
 SASS_OUTPUT_STYLE = 'compact'
