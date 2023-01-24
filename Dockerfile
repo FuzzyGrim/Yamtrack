@@ -13,8 +13,8 @@ RUN chmod +x /entrypoint.sh
 
 RUN adduser -D user
 WORKDIR /app
-COPY --chown=user:user ./yamtarr .
-RUN chown user:user /yamtarr
+COPY --chown=user:user ./src .
+RUN chown user:user /app
 
 USER user
 RUN [ ! -d "db" ] && mkdir db
