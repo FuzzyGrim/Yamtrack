@@ -2,20 +2,22 @@ FROM python:3.11-alpine
 
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
-ENV PATH="/scripts:${PATH}"
 
 COPY ./requirements.txt /requirements.txt
 RUN apk add --update --no-cache --virtual .tmp gcc libc-dev linux-headers
 RUN pip install $(grep -ivE "libsass" requirements.txt)
 RUN apk del .tmp
 
-COPY ./scripts /scripts
-RUN chmod +x /scripts/*
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 RUN adduser -D user
-WORKDIR /yamtarr
+WORKDIR /app
 COPY --chown=user:user ./yamtarr .
 RUN chown user:user /yamtarr
 
 USER user
-CMD ["entrypoint.sh"]
+RUN [ ! -d "db" ] && mkdir db
+RUN [ ! -d "static" ] && mkdir static
+
+CMD ["/entrypoint.sh"]

@@ -28,6 +28,7 @@ cd Yamtarr
 version: "3"
 services:
   yamtarr:
+    container_name: yamtarr
     build:
       context: .
     environment:
@@ -35,13 +36,15 @@ services:
       - MAL_API=API_KEY
       - SECRET=SECRET
     volumes:
-      - static:/yamtarr/static
-      - media:/yamtarr/media
+      - db:/app/db
+      - static:/app/static
+      - media:/app/media
 
-  proxy:
-    build:
-      context: ./proxy
+  yamtarr-gateway:
+    container_name: yamtarr-gateway
+    image: nginxinc/nginx-unprivileged:1-alpine
     volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
       - static:/vol/static
       - media:/vol/media
     ports:
@@ -50,6 +53,7 @@ services:
       - yamtarr
 
 volumes:
+  db:
   static:
   media:
 ```
