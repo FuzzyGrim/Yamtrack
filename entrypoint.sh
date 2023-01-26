@@ -2,6 +2,10 @@
 
 set -e
 
+id
+ls -aln
+ls -aln static
+
 python manage.py migrate --noinput
 
 python manage.py collectstatic --noinput --ignore=*.scss

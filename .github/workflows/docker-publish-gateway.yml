@@ -1,8 +1,8 @@
-name: Build and Push docker image
+name: Build and push gateway docker image
 
 on:
-  release:
-    types: [published]
+  schedule:
+    - cron: 0 2 * * 1
     
   workflow_dispatch:
 
@@ -55,7 +55,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/yamtarr-gateway
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -63,9 +63,9 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: gateway
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: type=schedule,pattern={{date 'YYYYMMDD'}}, type=raw,value=latest,enable={{is_default_branch}}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

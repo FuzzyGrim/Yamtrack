@@ -15,9 +15,9 @@ services:
 
   yamtarr-gateway:
     container_name: yamtarr-gateway
-    image: nginxinc/nginx-unprivileged:1-alpine
+    build:
+      context: ./gateway
     volumes:
-      - ./default.conf:/etc/nginx/conf.d/default.conf
       - static:/vol/static
       - media:/vol/media
     ports:
