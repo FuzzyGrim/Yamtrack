@@ -26,5 +26,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Run Tests
+      env:
+        SECRET=${{ secrets.SECRET }}
+        TMDB_API=${{ secrets.TMDB_API }}
+        MAL_API=${{ secrets.MAL_API }}
       run: |
         python src/manage.py test app --parallel
