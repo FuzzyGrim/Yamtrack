@@ -29,9 +29,9 @@ jobs:
       run: |
         cd src
     - name: Run Tests
-      env:
-        SECRET=${{ secrets.SECRET }}
-        TMDB_API=${{ secrets.TMDB_API }}
-        MAL_API=${{ secrets.MAL_API }}
+      environment:
+        SECRET: ${{ secrets.SECRET }}
+        TMDB_API: ${{ secrets.TMDB_API }}
+        MAL_API: ${{ secrets.MAL_API }}
       run: |
         python src/manage.py test app --parallel
