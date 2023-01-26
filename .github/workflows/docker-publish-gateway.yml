@@ -55,7 +55,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/yamtarr-gateway
+          images: ${{ env.REGISTRY }}/fuzzygrim/yamtarr-gateway
           tags: type=schedule,pattern={{date 'YYYYMMDD'}}, type=raw,value=latest,enable={{is_default_branch}}
 
       # Build and push Docker image with Buildx (don't push on PR)
