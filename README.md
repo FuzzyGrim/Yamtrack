@@ -32,30 +32,29 @@ services:
     build:
       context: .
     environment:
-      - TMDB_API=API_KEY
-      - MAL_API=API_KEY
+      - TMDB_API=TMDB_API
+      - MAL_API=MAL_API
       - SECRET=SECRET
+      - ALLOWED_HOSTS=192.168.1.*, yamtarr.domain.com
+      - PUID=1000
+      - PGID=1000
     volumes:
-      - db:/app/db
-      - static:/app/static
-      - media:/app/media
+      - ./db:/app/db
+      - assets:/app/assets
 
   yamtarr-gateway:
     container_name: yamtarr-gateway
-    image: nginxinc/nginx-unprivileged:1-alpine
+    build:
+      context: ./gateway
     volumes:
-      - ./default.conf:/etc/nginx/conf.d/default.conf
-      - static:/vol/static
-      - media:/vol/media
+      - assets:/vol
     ports:
       - "8080:8080"
     depends_on:
       - yamtarr
 
 volumes:
-  db:
-  static:
-  media:
+  assets:
 ```
 
 ## Environment variables
