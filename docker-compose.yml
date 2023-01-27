@@ -8,8 +8,10 @@ services:
       - TMDB_API=API_KEY
       - MAL_API=API_KEY
       - SECRET=SECRET
+      - PUID=1000
+      - PGID=1000
     volumes:
-      - db:/app/db
+      - ./db:/app/db
       - static:/app/static
       - media:/app/media
 
@@ -26,6 +28,5 @@ services:
       - yamtarr
 
 volumes:
-  db:
   static:
   media:

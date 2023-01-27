@@ -2,12 +2,15 @@
 
 set -e
 
-id
-ls -aln
-ls -aln static
+PUID=${PUID:-911}
+PGID=${PGID:-911}
 
-python manage.py migrate --noinput
+groupmod -o -g "$PGID" abc
+usermod -o -u "$PUID" abc
+chown -R abc:abc db
+chown -R abc:abc media
+chown -R abc:abc static
 
-python manage.py collectstatic --noinput --ignore=*.scss
-
-uwsgi --socket :8000 --master --enable-threads --module base.wsgi
+gosu abc:abc sh -c "python manage.py migrate --noinput &&
+python manage.py collectstatic --noinput --ignore=*.scss && 
+uwsgi --socket :8000 --master --enable-threads --module base.wsgi"
