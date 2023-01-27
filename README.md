@@ -65,7 +65,7 @@ volumes:
 | SECRET         | String      | Django secret key          | Yes          | None     |
 | TMDB_API       | String      | The Movie Database API key | Yes          | None     |
 | MAL_API        | String      | MyAnimeList API key        | Yes          | None     |
-| ALLOWED_HOSTS  | List        | Base domain URL            | No           | None     |
+| ALLOWED_HOSTS  | List        | Base IP / Domain           | Yes          | None     |
 | PUID           | Int         | User ID                    | No           | 911      |
 | PGID           | Int         | Group ID                   | No           | 911      |
 | REGISTRATION   | Bool        | Enable user registration   | No           | True     |
