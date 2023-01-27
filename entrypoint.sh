@@ -8,8 +8,7 @@ PGID=${PGID:-911}
 groupmod -o -g "$PGID" abc
 usermod -o -u "$PUID" abc
 chown -R abc:abc db
-chown -R abc:abc media
-chown -R abc:abc static
+chown -R abc:abc assets
 
 gosu abc:abc sh -c "python manage.py migrate --noinput &&
 python manage.py collectstatic --noinput --ignore=*.scss && 

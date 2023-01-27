@@ -17,8 +17,7 @@ COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
 	groupmod -g 1000 users && \
 	useradd -u 911 -U -M  -s /bin/bash abc && \
-	usermod -G users abc && \
-	mkdir -p static
+	usermod -G users abc
 
 COPY src ./
 

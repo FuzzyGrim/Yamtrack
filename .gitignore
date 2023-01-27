@@ -3,6 +3,6 @@ __pycache__
 .env
 venv
 src/db/db.sqlite3
-src/static/*
-src/media/images/*
-!src/media/images/none.svg
+src/assets/static/*
+src/assets/media/images/*
+!src/assets/media/images/none.svg
