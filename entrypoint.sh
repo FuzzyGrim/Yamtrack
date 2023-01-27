@@ -2,6 +2,9 @@
 
 set -e
 
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput --ignore=*.scss
+
 PUID=${PUID:-911}
 PGID=${PGID:-911}
 
@@ -10,6 +13,4 @@ usermod -o -u "$PUID" abc
 chown -R abc:abc db
 chown -R abc:abc assets
 
-gosu abc:abc sh -c "python manage.py migrate --noinput &&
-python manage.py collectstatic --noinput --ignore=*.scss && 
-uwsgi --socket :8000 --master --enable-threads --module base.wsgi"
+exec gosu abc:abc uwsgi --socket :8000 --master --enable-threads --die-on-term --module base.wsgi
