@@ -29,33 +29,31 @@ version: "3"
 services:
   yamtarr:
     container_name: yamtarr
-    build:
-      context: .
+    image: ghcr.io/fuzzygrim/yamtarr
     environment:
-      - TMDB_API=API_KEY
-      - MAL_API=API_KEY
-      - SECRET=SECRET
+      - TMDB_API=TMDB_API_KEY
+      - MAL_API=MAL_API_KEY
+      - SECRET=long_random_string
+      # Change this to your domain or IP
+      - ALLOWED_HOSTS=192.168.x.x, yamtarr.domain.com
+      - PUID=1000
+      - PGID=1000
     volumes:
-      - db:/app/db
-      - static:/app/static
-      - media:/app/media
+      - ./db:/app/db
+      - assets:/app/assets
 
   yamtarr-gateway:
     container_name: yamtarr-gateway
-    image: nginxinc/nginx-unprivileged:1-alpine
+    image: ghcr.io/fuzzygrim/yamtarr-gateway
     volumes:
-      - ./default.conf:/etc/nginx/conf.d/default.conf
-      - static:/vol/static
-      - media:/vol/media
+      - assets:/vol
     ports:
       - "8080:8080"
     depends_on:
       - yamtarr
 
 volumes:
-  db:
-  static:
-  media:
+  assets:
 ```
 
 ## Environment variables

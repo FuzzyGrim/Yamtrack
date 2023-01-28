@@ -2,13 +2,13 @@ version: "3"
 services:
   yamtarr:
     container_name: yamtarr
-    build:
-      context: .
+    image: ghcr.io/fuzzygrim/yamtarr
     environment:
-      - TMDB_API=TMDB_API
-      - MAL_API=MAL_API
-      - SECRET=SECRET
-      - ALLOWED_HOSTS=192.168.1.1, yamtarr.domain.com
+      - TMDB_API=TMDB_API_KEY
+      - MAL_API=MAL_API_KEY
+      - SECRET=long_random_string
+      # Change this to your domain or IP
+      - ALLOWED_HOSTS=192.168.x.x, yamtarr.domain.com
       - PUID=1000
       - PGID=1000
     volumes:
@@ -17,8 +17,7 @@ services:
 
   yamtarr-gateway:
     container_name: yamtarr-gateway
-    build:
-      context: ./gateway
+    image: ghcr.io/fuzzygrim/yamtarr-gateway
     volumes:
       - assets:/vol
     ports:
