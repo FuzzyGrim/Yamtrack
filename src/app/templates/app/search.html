@@ -7,7 +7,7 @@
   <head>
     {% include "app/include/tags.html" %}
     <title>Yamtarr</title>
-    <script src="{% static 'js/jquery.js' %}"></script>
+    
   </head>
 
   <body id="search">
@@ -54,12 +54,13 @@
             {% endfor %}
         </div>
     </main>
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script src="{% static 'js/modal-load.js' %}"></script>
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script>
       const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
       const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
     </script>
-    <script src="{% static 'js/modal-load.js' %}"></script>
   </body>
 
 </html>
