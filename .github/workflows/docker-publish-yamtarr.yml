@@ -2,8 +2,11 @@ name: Build and push Yamtarr docker image
 
 on:
   release:
-    types: [published]
-    
+    types: [published, edited]
+
+  push:
+    branches: [main]
+     
   workflow_dispatch:
 
 env:
@@ -52,13 +55,30 @@ jobs:
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        id: build-and-push
+      - name: Build and push Docker image release
+        id: build-and-push-release
+        if: github.event_name == 'release'
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
+
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image dev
+        id: build-and-push-dev
+        if: ${{ github.ref }} == "refs/heads/master"
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/fuzzygrim/yamtarr:dev
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
