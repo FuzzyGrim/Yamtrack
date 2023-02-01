@@ -41,16 +41,8 @@ services:
     volumes:
       - ./db:/app/db
       - assets:/app/assets
-
-  yamtarr-gateway:
-    container_name: yamtarr-gateway
-    image: ghcr.io/fuzzygrim/yamtarr-gateway
-    volumes:
-      - assets:/vol
     ports:
-      - "8080:8080"
-    depends_on:
-      - yamtarr
+      - "8080:80"
 
 volumes:
   assets:
