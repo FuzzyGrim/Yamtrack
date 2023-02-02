@@ -105,6 +105,16 @@
             <div class="descriptor">Progress</div>
             <input type="number" id="progress-input-{{media.response.media_type}}_{{media.response.id}}" class="form-control bg-dark text-white" name="progress" value="{{media.database.progress}}" step="1" min="0">
         </div>
+
+        <div class="flex-grow-1">
+            <div class="descriptor">Start Date</div>
+            <input type="date" id="start-input-{{media.response.media_type}}_{{media.response.id}}" class="form-control bg-dark text-white" name="start" value="{{media.database.start_date}}">
+        </div>
+
+        <div class="flex-grow-1">
+            <div class="descriptor">End Date</div>
+            <input type="date" id="end-input-{{media.response.media_type}}_{{media.response.id}}" class="form-control bg-dark text-white" name="end" value="{{media.database.end_date}}">
+        </div>
     </form>
       
       
