@@ -1,10 +1,11 @@
 from django.core.cache import cache
 
 from decouple import config
-import requests
-import csv
+from csv import DictReader
 from aiohttp import ClientSession
 from asyncio import ensure_future, gather, run
+import requests
+import datetime
 
 from app.models import Media, Season
 from app.utils import helpers
@@ -185,7 +186,6 @@ async def myanilist_get_media_list(series, user):
         for media_type, media_list in series.items():
             for content in media_list["data"]:
                 if not await Media.objects.filter(media_id=content["node"]["id"], api="mal", user=user).aexists():
-
                     task.append(ensure_future(myanimelist_get_media(session, content, media_type, user)))
 
         return await gather(*task)
@@ -216,6 +216,16 @@ async def myanimelist_get_media(session, content, media_type, user):
     else:
         media.progress = content["list_status"]["num_chapters_read"]
 
+    if "start_date" in content["list_status"]:
+        media.start_date = datetime.datetime.strptime(content["list_status"]["start_date"], "%Y-%m-%d").date()
+    else:
+        media.start_date = None
+
+    if "finish_date" in content["list_status"]:
+        media.end_date = datetime.datetime.strptime(content["list_status"]["finish_date"], "%Y-%m-%d").date()
+    else:
+        media.end_date = None
+
     if "main_picture" in content["node"]:
         await helpers.download_image(session, content["node"]["main_picture"]["medium"], media_type)
         media.image = f"images/{media_type}-{content['node']['main_picture']['medium'].rsplit('/', 1)[-1]}"
@@ -239,7 +249,7 @@ def import_tmdb(file, user):
         return False
 
     decoded_file = file.read().decode("utf-8").splitlines()
-    reader = csv.DictReader(decoded_file)
+    reader = DictReader(decoded_file)
 
     run(tmdb_get_media_list(reader, user, status))
 
@@ -289,6 +299,8 @@ async def tmdb_get_media(session, url, row, user, status):
         else:
             progress = 0
 
+        start_date = datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ").date()
+
         media = await Media.objects.acreate(
             media_id=row["TMDb ID"],
             title=row["Name"],
@@ -299,6 +311,8 @@ async def tmdb_get_media(session, url, row, user, status):
             api="tmdb",
             user=user,
             image=image,
+            start_date=start_date,
+            end_date=None
         )
 
         if "number_of_seasons" in response:
@@ -306,15 +320,13 @@ async def tmdb_get_media(session, url, row, user, status):
             for season in range(1, response["number_of_seasons"] + 1):
                 if "episode_count" in response["seasons"][season] and status == "Completed":
                     seasons_list.append(Season(media=media, title=row["Name"], number=season, score=score, status=status, 
-                                               progress=response["seasons"][season - 1]["episode_count"]))
+                                               progress=response["seasons"][season - 1]["episode_count"], 
+                                               start_date=start_date,
+                                               end_date=None))
                 else:
                     seasons_list.append(Season(media=media, title=row["Name"], number=season, score=score, status=status, 
-                                               progress=0))
+                                               progress=0, start_date=start_date, end_date=None))
             await Season.objects.abulk_create(seasons_list)
-
-        else:
-            response["number_of_seasons"] = 1
-            await Season.objects.acreate(media=media, title=row["Name"], number=1, score=score, status=status, progress=0)
 
 
 def import_anilist(username, user):
@@ -336,6 +348,16 @@ def import_anilist(username, user):
                     status
                     score(format: POINT_10_DECIMAL)
                     progress
+                  	startedAt {
+                        year
+                        month
+                        day
+                  	}
+                    completedAt {
+                        year
+                        month
+                        day
+                    }
                 }
             }
         }
@@ -355,6 +377,16 @@ def import_anilist(username, user):
                     status
                     score(format: POINT_10_DECIMAL)
                     progress
+                  	startedAt {
+                        year
+                        month
+                        day
+                  	}
+                    completedAt {
+                        year
+                        month
+                        day
+                    }
                 }
             }
         }
@@ -409,6 +441,19 @@ async def anilist_get_media(session, content, media_type, user):
     else:
         status = content["status"].capitalize()
 
+    start_date = content["startedAt"]
+    end_date = content["completedAt"]
+
+    if start_date["year"]:
+        start_date = datetime.date(start_date["year"], start_date["month"], start_date["day"])
+    else:
+        start_date = None
+
+    if end_date["year"]:
+        end_date = datetime.date(end_date["year"], end_date["month"], end_date["day"])
+    else:
+        end_date = None
+
     media = Media(
             media_id=content["media"]["idMal"],
             title=content["media"]["title"]["userPreferred"],
@@ -418,6 +463,8 @@ async def anilist_get_media(session, content, media_type, user):
             status=status,
             api="mal",
             user=user,
+            start_date=start_date,
+            end_date=end_date
         )
 
     await helpers.download_image(session, content["media"]["coverImage"]["medium"], media_type)

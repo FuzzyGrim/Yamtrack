@@ -13,7 +13,8 @@ class Media(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(max_length=30)
     api = models.CharField(max_length=10)
-    start_date = models.DateField()
+    # Allow null values for start date for myanimelist and anilist imports
+    start_date = models.DateField(null=True)
     end_date = models.DateField(null=True)
     
     def __str__(self):
@@ -30,7 +31,8 @@ class Season(models.Model):
     score = models.FloatField(null=True)
     status = models.CharField(max_length=30)
     progress = models.IntegerField()
-    start_date = models.DateField()
+    # Allow null values for start date for myanimelist and anilist imports
+    start_date = models.DateField(null=True)
     end_date = models.DateField(null=True)
 
     def __str__(self):
