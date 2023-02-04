@@ -74,6 +74,8 @@ class CreateMedia(TestCase):
                 "score": 4,
                 "progress": "",
                 "season": 1,
+                "start": "2023-01-01",
+                "end": "2023-01-02",
             },
         )
 
@@ -112,6 +114,8 @@ class EditMedia(TestCase):
             user=self.user,
             status="Completed",
             api="tmdb",
+            start_date="2023-01-01",
+            end_date="2023-01-02",
         )
         media.save()
         
@@ -146,6 +150,8 @@ class EditMedia(TestCase):
                 "score": 9.5,
                 "season": 10,
                 "progress": 18,
+                "start": "2023-01-01",
+                "end": "2023-01-02",
             },
         )
 
@@ -179,6 +185,8 @@ class EditMedia(TestCase):
                 "score": 9,
                 "season": 10,
                 "progress": 18,
+                "start": "2023-01-01",
+                "end": "2023-01-02",
             },
         )
 
@@ -193,6 +201,60 @@ class EditMedia(TestCase):
         self.assertEqual(
             Media.objects.filter(
                 media_id=1668, user=self.user, status="Watching"
+            ).exists(),
+            True,
+        )
+
+    
+    def test_edit_tmdb_dates(self):
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, start_date="2023-01-01"
+            ).exists(),
+            True,
+        )
+
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, start_date="2023-01-02"
+            ).exists(),
+            False,
+        )
+
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, end_date="2023-01-02"
+            ).exists(),
+            True,
+        )
+
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, end_date="2023-01-03"
+            ).exists(),
+            False,
+        )
+
+        self.client.post(
+            reverse("home"),
+            {
+                "status": "Watching",
+                "score": 9,
+                "season": 10,
+                "progress": 18,
+                "start": "2023-01-02",
+                "end": "2023-01-03",
+            },
+        )
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, start_date="2023-01-02"
+            ).exists(),
+            True,
+        )
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, end_date="2023-01-03"
             ).exists(),
             True,
         )
@@ -223,6 +285,8 @@ class EditMedia(TestCase):
                 "status": "Watching",
                 "score": 9.5,
                 "season": "all",
+                "start": "2023-01-01",
+                "end": "2023-01-02",
             },
         )
 
