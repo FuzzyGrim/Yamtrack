@@ -178,10 +178,12 @@ def edit(request, media_type, media_id):
     
     if "database" in media:
         data['in_db'] = True
-        data['media_seasons'] = list(Season.objects.filter(media=media["database"]).values("number", "score", "status", "progress"))
+        data['media_seasons'] = list(Season.objects.filter(media=media["database"]).values("number", "score", "status", "progress", "start_date", "end_date"))
         data['score'] = media["database"].score
         data['status'] = media["database"].status
         data['progress'] = media["database"].progress
+        data['start_date'] = media["database"].start_date
+        data['end_date'] = media["database"].end_date
     else:
         data['in_db'] = False
 
