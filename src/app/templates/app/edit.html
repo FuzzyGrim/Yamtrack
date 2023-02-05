@@ -34,6 +34,7 @@
                 <strong>Seasons:</strong> {{media.response.number_of_seasons}}
             </div>
             {% endif %}
+
             <div class="episodes">
                 {% if media.response.num_episodes %} <strong>Episodes:</strong> {{media.response.num_episodes}}
                 {% elif media.response.num_chapters %} <strong>Chapters:</strong> {{media.response.num_chapters}}
@@ -41,6 +42,12 @@
                 {% else %} <strong>Chapters:</strong> 1
                 {% endif %}
             </div>
+
+            {% if media.response.seasons and media.response.seasons.0.season_number == 0 %}
+                <div class="specials">
+                    <strong>Specials:</strong> {{media.response.seasons.0.episode_count}}
+                </div>
+            {% endif %}
             
             {% if media.response.duration %}
                 <div class="runtime">
@@ -71,15 +78,14 @@
     <form class="d-flex mt-4 flex-wrap" method="post" id="form-{{media.response.media_type}}_{{media.response.id}}">
         {% csrf_token %}
 
-        {% if media.response.number_of_seasons and media.response.number_of_seasons != 1 %}
+        {% if media.response.seasons and media.response.seasons|length != 1 %}
         <div>
             <div class="descriptor">Season</div>
             <select required name="season" class="form-select form-season" id="season-select-{{media.response.media_type}}_{{media.response.id}}">
-                {% load extras %}
                     <option value="" disabled selected hidden>Select</option>
                     <option value="all">All</option>
-                {% for i in media.response.number_of_seasons|times %}
-                    <option value="{{forloop.counter}}">S{{forloop.counter}}</option>
+                {% for season in media.response.seasons %}
+                    <option value="{{season.season_number}}">S{{season.season_number}}</option>
                 {% endfor %}
             </select>
         </div>
