@@ -21,7 +21,7 @@
             {% endif %}
           {% endif %}
         </select>
-        <input class="form-control bg-dark text-white" type="text" name="q" placeholder="Search" aria-label="Search" required>
+        <input class="form-control bg-dark text-white" type="text" name="q" placeholder="Search" aria-label="Search" value="{% if 'q' in request.GET %}{{ request.GET.q }}{% endif %}" required>
         <button class="btn bg-dark text-white rounded-end" type="submit"><i class="bi bi-search"></i></button>
       </form>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
