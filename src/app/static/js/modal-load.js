@@ -45,7 +45,7 @@ $(document).on("click", ".open-modal-button", function() {
                         var selectedValue = $(this).val();
 
                         if (selectedValue == "all") {
-                            score.val((data.score.toFixed(1)));
+                            score.val(data.score);
                             status.val(data.status);
                             progress.val(data.progress);
                             start.val(data.start_date);
@@ -58,7 +58,7 @@ $(document).on("click", ".open-modal-button", function() {
                             for(let i = 0; i < data["media_seasons"].length && !exists; i++) {
                                 let media_season = data["media_seasons"][i];
                                 if (media_season.number == selectedValue){
-                                    score.val((media_season.score).toFixed(1));
+                                    score.val(media_season.score);
                                     status.val(media_season.status);
                                     progress.val(media_season.progress);
                                     start.val(media_season.start_date);
