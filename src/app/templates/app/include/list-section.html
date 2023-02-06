@@ -6,7 +6,7 @@
   <div class="title p-2">{{media.title}}</div>
 
   {% if media.seasons.all and media.seasons.all|length != 1 %}
-    <div class="score p-2 dropdown">
+    <div class="score p-2 dropdown-center">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.score}}
       </button>
@@ -16,7 +16,7 @@
         {% endfor %}
       </ul>
     </div>
-    <div class="status p-2 dropdown">
+    <div class="status p-2 dropdown-center">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.status}}
       </button>
@@ -26,7 +26,7 @@
         {% endfor %}
       </ul>
     </div>
-    <div class="_progress p-2 dropdown">
+    <div class="_progress p-2 dropdown-center">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.progress}}
       </button>

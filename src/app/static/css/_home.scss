@@ -117,40 +117,32 @@ $font-grey: #d1cdc7;
           line-height: 2;
         }
 
-        .score, .status, ._progress {
+        .dropdown-center {
+          position: relative;
+          .dropdown-toggle::after {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+          }
+        }
+
+        .score, .status, ._progress, .edit {
           flex: 1;
           .btn {
             background-color: $container-bg;
-            color: $font-grey;
+            color: #adb5bd;
             border-width: 0;
-
+            border-radius: 0;
             &:hover {
-              border: 1px solid #56595D;
-            }
+              color: #fff;
+            } 
           }
+
           .dropdown-menu {
             background-color: #24292F;
             color: $font-grey;
             min-width: 0;
             padding: 1em;
-          }
-        }
-
-        .edit {
-          flex: 1;
-          display: flex;
-          justify-content: center;
-
-          .btn {
-            border-width: 1;
-            border-color: transparent;
-            background-color: $container-bg;
-            color: $font-grey;
-          }
-
-          .btn:hover {
-            border-width: 1px;
-            border-color: #56595D
           }
         }
       }
