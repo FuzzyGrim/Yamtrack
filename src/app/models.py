@@ -8,7 +8,7 @@ class Media(models.Model):
     title = models.CharField(max_length=100)
     image = models.ImageField(upload_to="images", storage=OverwriteStorage())
     media_type = models.CharField(max_length=30)
-    score = models.DecimalField(null=True, max_digits=2, decimal_places=1)
+    score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
     progress = models.IntegerField()
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(max_length=30)
@@ -28,7 +28,7 @@ class Season(models.Model):
     media = models.ForeignKey(Media, on_delete=models.CASCADE, related_name='seasons')
     title = models.CharField(max_length=100)
     number = models.IntegerField()
-    score = models.DecimalField(null=True, max_digits=2, decimal_places=1)
+    score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
     status = models.CharField(max_length=30)
     progress = models.IntegerField()
     # Allow null values for start date for myanimelist and anilist imports
