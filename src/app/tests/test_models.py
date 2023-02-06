@@ -65,7 +65,10 @@ class CreateMedia(TestCase):
         session = self.client.session
         session["metadata"] = {'id': 5895, 'title': 'FLCL', 'image': '/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg', 
                                'api': 'tmdb', 'media_type': 'tv', 'number_of_seasons': 4,
-                               'seasons':[{"episode_count":6},{"episode_count":6},{"episode_count":6},{"episode_count":0}]}
+                               'seasons':[{"episode_count":6, "season_number": 1},
+                                          {"episode_count":6, "season_number": 2},
+                                          {"episode_count":6, "season_number": 3},
+                                          {"episode_count":0, "season_number": 4}]}
         session.save()
         response = self.client.post(
             reverse("search") + "?api=tmdb&q=flcl",
@@ -130,8 +133,17 @@ class EditMedia(TestCase):
 
         session = self.client.session
         session["metadata"] = {'id': 1668, 'api': 'tmdb', 'media_type': 'tv', 'number_of_seasons': 10, 'title': 'Friends',
-                               'seasons':[{"episode_count":24},{"episode_count":24},{"episode_count":25},{"episode_count":24},{"episode_count":24}
-                                         ,{"episode_count":25},{"episode_count":24},{"episode_count":24},{"episode_count":24},{"episode_count":18}]}
+                               'seasons':[{"episode_count":39, "season_number": 0},
+                                          {"episode_count":24, "season_number": 1},
+                                          {"episode_count":24, "season_number": 2},
+                                          {"episode_count":25, "season_number": 3},
+                                          {"episode_count":24, "season_number": 4},
+                                          {"episode_count":24, "season_number": 5},
+                                          {"episode_count":25, "season_number": 6},
+                                          {"episode_count":24, "season_number": 7},
+                                          {"episode_count":24, "season_number": 8},
+                                          {"episode_count":24, "season_number": 9},
+                                          {"episode_count":18, "season_number": 10}]}
         session.save()
 
 
