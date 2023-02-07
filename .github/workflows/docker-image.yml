@@ -1,4 +1,4 @@
-name: Build and push Yamtarr docker image
+name: Docker Image
 
 on:
   release:

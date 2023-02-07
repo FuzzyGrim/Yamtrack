@@ -1,4 +1,4 @@
-name: App tests
+name: App Tests
 
 on:
   push:
