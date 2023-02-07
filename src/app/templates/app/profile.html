@@ -24,7 +24,7 @@
           {% else %}
             <div class="alert alert-{{ message.tags }}">
           {% endif %}
-            {{ message }}
+            {{ message|linebreaksbr }}
           </div>
         {% endfor %}
       {% endif %}

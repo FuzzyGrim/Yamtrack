@@ -138,20 +138,13 @@ def profile(request):
 
         elif request.POST.get("anilist"):
             errors = interactions.import_anilist(request.POST.get("anilist"), request.user)
-            if len(errors) == 0:
+            if error == "":
                 messages.success(request, "Your AniList has been imported!")
-            elif errors[0] == "User not found":
+            elif error == "User not found":
                 messages.error(request, "User not found")
             else:
-                message = "<br/>".join(errors)
-                messages.error(
-                    request,
-                    format_html(
-                        "<b>{}</b> <br>{}",
-                        "Couldn't find a matching MAL ID for: ",
-                        mark_safe(message),
-                    ),
-                )
+                title = "Couldn't find a matching MAL ID for: \n"
+                messages.error(request, title + error)
         return redirect("profile")
 
     context = {"user_form": user_form, "password_form": password_form}

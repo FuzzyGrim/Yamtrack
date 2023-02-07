@@ -399,21 +399,20 @@ def import_anilist(username, user):
 
     query = requests.post(url, json={"query": query, "variables": variables}).json()
 
-    errors = []
+    error = ""
 
     if "errors" in query:
         if query["errors"][0]["message"] == "User not found":
-            errors.append("User not found")
-            return errors
+            error = "User not found"
+    else:
 
-    bulk_add_media = run(anilist_get_media_list(query, errors, user))
+        bulk_add_media, error = run(anilist_get_media_list(query, error, user))
+        Media.objects.bulk_create(bulk_add_media)
 
-    Media.objects.bulk_create(bulk_add_media)
-
-    return errors
+    return error
 
 
-async def anilist_get_media_list(query, errors, user):
+async def anilist_get_media_list(query, error, user):
     async with ClientSession() as session:
         task = []
         for media_type in query["data"]:
@@ -430,9 +429,9 @@ async def anilist_get_media_list(query, errors, user):
                             task.append(ensure_future(anilist_get_media(session, content, media_type, user)))
 
                         else:
-                            errors.append(content["media"]["title"]["userPreferred"])
+                            error += f"\n {content['media']['title']['userPreferred']}"
 
-        return await gather(*task)
+        return await gather(*task), error
 
 
 async def anilist_get_media(session, content, media_type, user):
