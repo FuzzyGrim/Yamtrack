@@ -13,7 +13,7 @@ from django.template.loader import render_to_string
 
 from app.models import Media, Season
 from app.forms import UserRegisterForm, UserUpdateForm
-from app.utils import database, interactions
+from app.utils import database, interactions, imports
 
 
 @login_required
@@ -122,13 +122,13 @@ def profile(request):
             messages.success(request, "Your password has been updated!")
 
         elif request.POST.get("mal"):
-            if interactions.import_myanimelist(request.POST.get("mal"), request.user):
+            if imports.import_myanimelist(request.POST.get("mal"), request.user):
                 messages.success(request, "Your MyAnimeList has been imported!")
             else:
                 messages.error(request, "User not found")
 
         elif request.FILES.get("tmdb"):
-            if interactions.import_tmdb(request.FILES.get("tmdb"), request.user):
+            if imports.import_tmdb(request.FILES.get("tmdb"), request.user):
                 messages.success(request, "Your TMDB list has been imported!")
             else:
                 messages.error(
@@ -137,7 +137,7 @@ def profile(request):
                 )
 
         elif request.POST.get("anilist"):
-            errors = interactions.import_anilist(request.POST.get("anilist"), request.user)
+            error = imports.import_anilist(request.POST.get("anilist"), request.user)
             if error == "":
                 messages.success(request, "Your AniList has been imported!")
             elif error == "User not found":

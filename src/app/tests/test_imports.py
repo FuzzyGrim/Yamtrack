@@ -5,7 +5,7 @@ import csv
 import shutil
 import os
 
-from app.utils import interactions
+from app.utils import imports
 from app.models import User, Media
 
 
@@ -17,7 +17,7 @@ class ImportsMAL(TransactionTestCase):
 
     @override_settings(MEDIA_ROOT=("test_ImportsMAL/media"))
     def test_import_animelist(self):
-        interactions.import_myanimelist("bloodthirstiness", self.user)
+        imports.import_myanimelist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
         self.assertEqual(Media.objects.filter(user=self.user, media_type="anime").count(), 4)
         self.assertEqual(Media.objects.filter(user=self.user, media_type="manga").count(), 2)
@@ -52,7 +52,7 @@ class ImportsTMDB(TransactionTestCase):
             writer.writerows(data)
 
         with open(file_path, "rb") as file:
-            interactions.import_tmdb(file, self.user)
+            imports.import_tmdb(file, self.user)
             self.assertEqual(Media.objects.filter(user=self.user).count(), 2)
             self.assertEqual(Media.objects.filter(user=self.user, media_type="movie").count(), 1)
             self.assertEqual(Media.objects.filter(user=self.user, media_type="tv").count(), 1)
@@ -73,7 +73,7 @@ class ImportsANI(TransactionTestCase):
 
     @override_settings(MEDIA_ROOT=("test_ImportsANI/media"))
     def test_import_anilist(self):
-        interactions.import_anilist("bloodthirstiness", self.user)
+        imports.import_anilist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
         self.assertEqual(Media.objects.filter(user=self.user, media_type="anime").count(), 4)
         self.assertEqual(Media.objects.filter(user=self.user, media_type="manga").count(), 2)
