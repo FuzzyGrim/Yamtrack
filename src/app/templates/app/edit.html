@@ -39,7 +39,6 @@
                 {% if media.response.num_episodes %} <strong>Episodes:</strong> {{media.response.num_episodes}}
                 {% elif media.response.num_chapters %} <strong>Chapters:</strong> {{media.response.num_chapters}}
                 {% elif media.response.number_of_episodes %} <strong>Episodes:</strong> {{media.response.number_of_episodes}}
-                {% else %} <strong>Chapters:</strong> 1
                 {% endif %}
             </div>
 
@@ -54,23 +53,21 @@
                     <strong>Runtime:</strong> {{media.response.duration}}
                 </div>
             {% endif %}
+            
+            {% if media.response.status %} 
+                <div class="media-status">
+                    <strong>Status:</strong> {{media.response.status}} 
+                </div>
+            {% endif %}
 
-            <div class="media-status">
-                <strong>Status:</strong>
-                {% if media.response.status %} {{media.response.status}} 
-                {% else %} N/A. 
-                {% endif %}
-            </div>
-
-            <div class="genres">
-                <strong>Genres:</strong>
-                {% if media.response.genres%}
+            {% if media.response.genres%}
+                <div class="genres">
+                    <strong>Genres:</strong>
                     {% for genre in media.response.genres %}
                         {{ genre.name }}{% if not forloop.last %},{% endif %}
                     {% endfor %}
-                {% else %} N/A.
-                {% endif %}
-            </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 

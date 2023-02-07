@@ -3,12 +3,12 @@ body{
 }
 
 main {
-  margin: 6em 10em 2em 10em;
+  margin: 6em 10em 2em;
 }
 
 form .btn:not(.modal-delete-btn){
   border-radius: 0;
-  border-width: 1px 1px 1px 1px;
+  border-width: 1px;
   border-style: solid;
   border-color: #56595D;
   background-color: #232224;

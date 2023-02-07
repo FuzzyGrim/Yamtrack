@@ -25,6 +25,7 @@ def get_image_temp(url):
 
 async def download_image(session, url, media_type):
     if url not in ["", "https://image.tmdb.org/t/p/w92None", "https://image.tmdb.org/t/p/w92"]:
+        # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
         location = f"{settings.MEDIA_ROOT}/images/{media_type}-{url.rsplit('/', 1)[-1]}"
     
         # Create the directory if it doesn't exist

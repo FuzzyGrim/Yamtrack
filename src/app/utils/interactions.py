@@ -228,6 +228,7 @@ async def myanimelist_get_media(session, content, media_type, user):
 
     if "main_picture" in content["node"]:
         await helpers.download_image(session, content["node"]["main_picture"]["medium"], media_type)
+        # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
         media.image = f"images/{media_type}-{content['node']['main_picture']['medium'].rsplit('/', 1)[-1]}"
         media.image = f"images/{media_type}-{content['node']['main_picture']['medium'].rsplit('/', 1)[-1]}"
 
@@ -289,9 +290,10 @@ async def tmdb_get_media(session, url, row, user, status):
 
         await helpers.download_image(session, f"https://image.tmdb.org/t/p/w92{response['poster_path']}", "tmdb")
         
-        if response["poster_path"] == None:
+        if response["poster_path"] is None:
             image = "images/none.svg"
         else:
+            # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
             image = f"images/tmdb-{response['poster_path'].rsplit('/', 1)[-1]}"
         
         if "number_of_episodes" in response and status == "Completed":
@@ -467,7 +469,8 @@ async def anilist_get_media(session, content, media_type, user):
         )
 
     await helpers.download_image(session, content["media"]["coverImage"]["medium"], media_type)
-        
+
+     # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
     media.image = f"images/{media_type}-{content['media']['coverImage']['medium'].rsplit('/', 1)[-1]}"
 
     return media
