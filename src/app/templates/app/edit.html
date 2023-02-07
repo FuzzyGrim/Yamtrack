@@ -83,9 +83,9 @@
             <div class="descriptor">Season</div>
             <select required name="season" class="form-select form-season" id="season-select-{{media.response.media_type}}_{{media.response.id}}">
                     <option value="" disabled selected hidden>Select</option>
-                    <option value="all">All</option>
+                    <option value="general">General</option>
                 {% for season in media.response.seasons %}
-                    <option value="{{season.season_number}}">S{{season.season_number}}</option>
+                    <option value="{{season.season_number}}">Season {{season.season_number}}</option>
                 {% endfor %}
             </select>
         </div>

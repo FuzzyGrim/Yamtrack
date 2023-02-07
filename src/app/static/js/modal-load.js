@@ -44,7 +44,7 @@ $(document).on("click", ".open-modal-button", function() {
                     select.change(function() {
                         var selectedValue = $(this).val();
 
-                        if (selectedValue == "all") {
+                        if (selectedValue == "general") {
                             score.val(data.score);
                             status.val(data.status);
                             progress.val(data.progress);

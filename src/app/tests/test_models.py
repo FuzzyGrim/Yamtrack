@@ -271,59 +271,6 @@ class EditMedia(TestCase):
             True,
         )
 
-    def test_edit_tmdb_all(self):
-        self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, status="Completed"
-            ).exists(),
-            True,
-        )
-        self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, status="Watching"
-            ).exists(),
-            False,
-        )
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), True
-        )
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user, score=9.5).exists(), False
-        )
-
-        response = self.client.post(
-            reverse("home"),
-            {
-                "status": "Watching",
-                "score": 9.5,
-                "season": "all",
-                "start": "2023-01-01",
-                "end": "2023-01-02",
-            },
-        )
-
-        response = self.client.get(reverse("home"))
-        self.assertContains(response, "Watching")
-        self.assertContains(response, "9.5")
-        self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, status="Completed"
-            ).exists(),
-            False,
-        )
-        self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, status="Watching"
-            ).exists(),
-            True,
-        )
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), False
-        )
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user, score=9.5).exists(), True
-        )
-
     def tearDownClass():
         try:
             shutil.rmtree("test_EditMedia")

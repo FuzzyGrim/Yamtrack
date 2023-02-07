@@ -114,43 +114,29 @@ def edit_media(request):
         api=metadata["api"],
     )
 
-    if "season" in request.POST:
-        if request.POST["season"] == "all":
-            for season in metadata["seasons"]:
-                if "episode_count" in season and request.POST["status"] == "Completed":
-                    Season.objects.update_or_create(media=media, number=season["season_number"],
-                                defaults={"title":metadata["title"], "score": score, "status": request.POST["status"],
-                                          "progress": season["episode_count"], "start_date":start_date, "end_date":end_date})
-                else:
-                    # don't update progress if it exists, otherwise set it to 0
-                    obj, created = Season.objects.get_or_create(media=media, number=season["season_number"], 
-                                defaults={"title":metadata["title"], "score": score, "status": request.POST["status"],
-                                          "progress": 0, "start_date":start_date, "end_date":end_date})
-                    if not created:
-                        Season.objects.filter(media=media, number=season["season_number"]).update(score=score, status=request.POST["status"],
-                                                                                 start_date=start_date, end_date=end_date)    
-                                    
+    if "season" in request.POST and request.POST["season"] != "general":
+
+        # if media didn't have any seasons, create first season with the same data as the media
+        if Season.objects.filter(media=media).count() == 0:
+            Season.objects.create(media=media, title=media.title, number=1, score=media.score, status=media.status,
+                                    progress=media.progress, start_date=media.start_date, end_date=media.end_date)
+
+        if metadata["seasons"][0]["season_number"] == 0:
+            offset = 0
         else:
-            # if media didn't have any seasons, create first season with the same data as the media
-            if Season.objects.filter(media=media).count() == 0:
-                Season.objects.create(media=media, title=media.title, number=1, score=media.score, status=media.status,
-                                      progress=media.progress, start_date=media.start_date, end_date=media.end_date)
+            offset = 1
+        metadata_curr_season = metadata["seasons"][int(request.POST["season"]) - offset]
 
-            if metadata["seasons"][0]["season_number"] == 0:
-                offset = 0
-            else:
-                offset = 1
-            metadata_curr_season = metadata["seasons"][int(request.POST["season"]) - offset]
-            if "episode_count" in metadata_curr_season and request.POST["status"] == "Completed":
-                progress = metadata_curr_season["episode_count"]
-            elif request.POST["progress"] != "":
-                progress = request.POST["progress"]
-            else:
-                progress = 0
+        if "episode_count" in metadata_curr_season and request.POST["status"] == "Completed":
+            progress = metadata_curr_season["episode_count"]
+        elif request.POST["progress"] != "":
+            progress = request.POST["progress"]
+        else:
+            progress = 0
 
-            Season.objects.update_or_create(media=media, number=request.POST["season"],
-                        defaults={"title":metadata["title"], "score": score, "status": request.POST["status"],
-                                    "progress": progress, "start_date":start_date, "end_date":end_date})
+        Season.objects.update_or_create(media=media, number=request.POST["season"],
+                    defaults={"title":metadata["title"], "score": score, "status": request.POST["status"],
+                                "progress": progress, "start_date":start_date, "end_date":end_date})
 
         seasons = Season.objects.filter(media=media)
         mean_score = seasons.aggregate(Avg('score'))['score__avg']
