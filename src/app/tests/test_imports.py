@@ -15,7 +15,7 @@ class ImportsMAL(TransactionTestCase):
         self.user = User.objects.create_user(**self.credentials)
 
 
-    @override_settings(MEDIA_ROOT=("test_ImportsMAL/media"))
+    @override_settings(MEDIA_ROOT=("test_Imports_MAL/media"))
     def test_import_animelist(self):
         imports.import_myanimelist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
@@ -27,7 +27,7 @@ class ImportsMAL(TransactionTestCase):
 
     def tearDownClass():
         try:
-            shutil.rmtree("test_ImportsMAL")
+            shutil.rmtree("test_Imports_MAL")
         except OSError:
             pass
 
@@ -37,9 +37,9 @@ class ImportsTMDB(TransactionTestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    @override_settings(MEDIA_ROOT=("test_ImportsTMDB/media"))
+    @override_settings(MEDIA_ROOT=("test_Imports_TMDB/media"))
     def test_import_tmdb(self):
-        file_path = os.path.join("test_ImportsTMDB/ratings.csv")
+        file_path = os.path.join("test_Imports_TMDB/ratings.csv")
         fields = ["TMDb ID", "IMDb ID", "Type", "Name", "Release Date", "Season Number", "Episode Number", "Rating", "Your Rating", "Date Rated"]
         data = [
             ["634649", "tt10872600", "movie", "Spider-Man: No Way Home", "2021-12-15T00:00:00Z", "", "", "8.022", "7", "2022-12-17T15:50:35Z"],
@@ -61,7 +61,7 @@ class ImportsTMDB(TransactionTestCase):
 
     def tearDownClass():
         try:
-            shutil.rmtree("test_ImportsTMDB")
+            shutil.rmtree("test_Imports_TMDB")
         except OSError:
             pass
 
@@ -71,7 +71,7 @@ class ImportsANI(TransactionTestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    @override_settings(MEDIA_ROOT=("test_ImportsANI/media"))
+    @override_settings(MEDIA_ROOT=("test_Imports_ANI/media"))
     def test_import_anilist(self):
         imports.import_anilist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
@@ -82,6 +82,6 @@ class ImportsANI(TransactionTestCase):
 
     def tearDownClass():
         try:
-            shutil.rmtree("test_ImportsANI")
+            shutil.rmtree("test_Imports_ANI")
         except OSError:
             pass

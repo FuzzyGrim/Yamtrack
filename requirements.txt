@@ -1,5 +1,6 @@
 aiofiles==22.1.0
 aiohttp==3.8.3
+coverage==7.1.0
 crispy-bootstrap5==0.7
 Django==4.1.6
 django-compressor==4.3.1

@@ -18,21 +18,34 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+
     - name: Run Tests
       env:
         SECRET: ${{ secrets.SECRET }}
         TMDB_API: ${{ secrets.TMDB_API }}
         MAL_API: ${{ secrets.MAL_API }}
       run: |
-        python src/manage.py test app.tests.test_views app.tests.test_models
-        python src/manage.py test app.tests.test_imports
+        coverage run --source='app' --omit='app/admin.py' --parallel-mode src/manage.py test app.tests.test_views
+        coverage run --source='app' --omit='app/admin.py' --parallel-mode src/manage.py test app.tests.test_models
+        coverage run --source='app' --omit='app/admin.py' --parallel-mode src/manage.py test app.tests.test_imports
 
+    - name: Build Coverage Report
+      run: |
+        coverage combine
+        coverage report
+        coverage xml
+
+    - name: Upload coverage reports to Codecov with GitHub Action
+      uses: codecov/codecov-action@v3
