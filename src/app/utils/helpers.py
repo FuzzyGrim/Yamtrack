@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 
-import requests
 import aiofiles
+import datetime
 import os
+import requests
 
 
 def convert_mal_media_type(media_type):
@@ -16,7 +17,6 @@ def convert_mal_media_type(media_type):
 
 def get_image_temp(url):
     img_temp = NamedTemporaryFile(delete=True)
-
     r = requests.get(url)
     img_temp.write(r.content)
     img_temp.flush()
@@ -36,3 +36,28 @@ async def download_image(session, url, media_type):
                 f = await aiofiles.open(location, mode='wb')
                 await f.write(await resp.read())
                 await f.close()
+
+def fix_inputs(request, metadata):
+
+    post = request.POST.copy()
+
+    if post["score"] == "":
+        post["score"] = None
+
+    if "num_episodes" in metadata and post["status"] == "Completed":
+        post["progress"] = metadata["num_episodes"]
+        # tmdb doesn't count special episodes in num_episodes
+        if "seasons" in metadata and metadata["seasons"][0]["season_number"] == 0:
+            post["progress"] = int(post["progress"]) + metadata["seasons"][0]["episode_count"]
+    elif post["progress"] == "":
+        post["progress"] = 0
+
+    if post["start"] == "":
+        post["start"] = datetime.date.today()
+
+    if post["end"] == "":
+        post["end"] = None
+    elif post["status"] == "Completed":
+        post["end"] = datetime.date.today()
+
+    return post
