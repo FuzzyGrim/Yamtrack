@@ -1,9 +1,10 @@
 # Yamtarr
 
-[![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtarr/badge)](https://www.codefactor.io/repository/github/fuzzygrim/yamtarr)
 [![App Tests](https://github.com/FuzzyGrim/Yamtarr/actions/workflows/app-tests.yml/badge.svg)](https://github.com/FuzzyGrim/Yamtarr/actions/workflows/app-tests.yml)
 [![Docker Image](https://github.com/FuzzyGrim/Yamtarr/actions/workflows/docker-image.yml/badge.svg)](https://github.com/FuzzyGrim/Yamtarr/actions/workflows/docker-image.yml)
-[![GitHub](https://img.shields.io/github/license/fuzzygrim/yamtarr)](https://github.com/FuzzyGrim/Yamtarr/blob/main/LICENSE)
+[![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtarr/badge)](https://www.codefactor.io/repository/github/fuzzygrim/yamtarr)
+[![Codecov](https://codecov.io/github/FuzzyGrim/Yamtarr/branch/main/graph/badge.svg?token=PWUG660120)](https://codecov.io/github/FuzzyGrim/Yamtarr)
+[![GitHub](https://img.shields.io/badge/license-GPL--3.0-blue)](https://github.com/FuzzyGrim/Yamtarr/blob/main/LICENSE)
 
 
 Yamtarr is a self hosted simple media tracker. You can track movies, tv shows, anime and manga.
