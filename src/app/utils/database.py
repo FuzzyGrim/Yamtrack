@@ -92,7 +92,7 @@ def edit_media(request):
     else:
 
         media.score = request.POST["score"]
-        media.progress = progress
+        media.progress = request.POST["progress"]
         media.status = request.POST["status"]
         media.start_date = request.POST["start"]
         media.end_date = request.POST["end"]
