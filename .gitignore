@@ -1,6 +1,7 @@
 __pycache__
 *.pyc
 .env
+.coverage
 venv
 src/db/db.sqlite3
 src/assets/static/*

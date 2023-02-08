@@ -36,10 +36,11 @@ jobs:
         SECRET: ${{ secrets.SECRET }}
         TMDB_API: ${{ secrets.TMDB_API }}
         MAL_API: ${{ secrets.MAL_API }}
+        ADMIN_ENABLED: True
       run: |
-        coverage run --source='app' --omit='app/admin.py' --parallel-mode src/manage.py test app.tests.test_views
-        coverage run --source='app' --omit='app/admin.py' --parallel-mode src/manage.py test app.tests.test_models
-        coverage run --source='app' --omit='app/admin.py' --parallel-mode src/manage.py test app.tests.test_imports
+        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_views
+        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_models
+        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_imports
 
     - name: Build Coverage Report
       run: |
