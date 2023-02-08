@@ -15,13 +15,13 @@ MAL_API = config("MAL_API")
 
 def import_myanimelist(username, user):
     header = {"X-MAL-CLIENT-ID": MAL_API}
-    anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status"
+    anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status&nsfw=true"
     animes = requests.get(anime_url, headers=header).json()
 
     if "error" in animes and animes["error"] == "not_found":
         return False
 
-    manga_url = f"https://api.myanimelist.net/v2/users/{username}/mangalist?fields=list_status"
+    manga_url = f"https://api.myanimelist.net/v2/users/{username}/mangalist?fields=list_status&nsfw=true"
     mangas = requests.get(manga_url, headers=header).json()
     series = {"anime": animes, "manga": mangas}
 
