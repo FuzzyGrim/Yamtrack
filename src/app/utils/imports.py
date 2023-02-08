@@ -9,8 +9,8 @@ import requests
 from app.models import Media, Season
 from app.utils import helpers
 
-TMDB_API = config("TMDB_API")
-MAL_API = config("MAL_API")
+TMDB_API = config("TMDB_API", default="")
+MAL_API = config("MAL_API", default="")
 
 
 def import_myanimelist(username, user):

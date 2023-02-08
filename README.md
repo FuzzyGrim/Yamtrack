@@ -57,17 +57,17 @@ volumes:
 
 ## Environment variables
 
-| Name           |  Type       | Description                | Required     | Default  |
-| -------------- | ----------- | -------------------------- | ------------ | -------- |
-| SECRET         | String      | Django secret key          | Yes          | None     |
-| TMDB_API       | String      | The Movie Database API key | Yes          | None     |
-| MAL_API        | String      | MyAnimeList API key        | Yes          | None     |
-| ALLOWED_HOSTS  | List        | Base IP / Domain           | Yes          | None     |
-| PUID           | Int         | User ID                    | No           | 911      |
-| PGID           | Int         | Group ID                   | No           | 911      |
-| REGISTRATION   | Bool        | Enable user registration   | No           | True     |
-| ADMIN_ENABLED  | Bool        | Django admin page          | No           | False    |
-| DEBUG          | Bool        | Django debug mode          | No           | False    |
+| Name           |  Type       | Description                | Required     | Default   | Notes                              |
+| -------------- | ----------- | -------------------------- | ------------ | --------- | ---------------------------------- |
+| SECRET         | String      | Django secret key          | Yes          | None      |                                    |
+| TMDB_API       | String      | The Movie Database API key | Yes          | ""        | Required for movies and tv shows   |
+| MAL_API        | String      | MyAnimeList API key        | Yes          | ""        | Required for anime and manga       |
+| ALLOWED_HOSTS  | List        | Base IP / Domain           | Yes          | 127.0.0.1 | Your list would extend the default |
+| PUID           | Int         | User ID                    | No           | 911       |                                    |
+| PGID           | Int         | Group ID                   | No           | 911       |                                    |
+| REGISTRATION   | Bool        | Enable user registration   | No           | True      |                                    |
+| ADMIN_ENABLED  | Bool        | Django admin page          | No           | False     |                                    |
+| DEBUG          | Bool        | Django debug mode          | No           | False     |                                    |
 
 
 ## Local development

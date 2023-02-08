@@ -8,8 +8,8 @@ import requests
 from app.models import Media
 
 
-TMDB_API = config("TMDB_API")
-MAL_API = config("MAL_API")
+TMDB_API = config("TMDB_API", default="")
+MAL_API = config("MAL_API", default="")
 
 
 def search(api_type, query):
