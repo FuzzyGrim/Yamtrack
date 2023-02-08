@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   release:
-    types: [published, edited]
+    types: [published]
 
   push:
     branches: [main]
