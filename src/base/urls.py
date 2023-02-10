@@ -15,12 +15,11 @@ Including another URLconf
 """
 from django.urls import include, path
 from django.contrib import admin
-from decouple import config
-
+from django.conf import settings
 
 urlpatterns = [
     path('', include('app.urls')),
 ]
 
-if config("ADMIN_ENABLED", default = False, cast=bool):
+if settings.ADMIN_ENABLED:
     urlpatterns.append(path('admin/', admin.site.urls))

@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.contrib import auth
 
@@ -37,6 +37,12 @@ class DefaultView(TestCase):
         response = self.client.get("/search?api=mal&q=flcl")
         self.assertEqual(response.status_code, 302)
 
+    @override_settings(ADMIN_ENABLED=True)
+    def test_admin(self):
+        response = self.client.get("/admin")
+        self.assertEqual(response.status_code, 301)
+
+
 class LoggedInView(TestCase):
     def setUp(self):
         self.credentials = {"username": "test","password" : "12345"}
@@ -56,5 +62,26 @@ class LoggedInView(TestCase):
         self.assertContains(response, "test")
     
     def test_logout(self):
+        self.client.get(reverse("logout"))
+        assert auth.get_user(self.client).is_anonymous
+
+
+class AdminView(TestCase):
+    def setUp(self):
+        self.credentials = {"username": "test","password" : "12345"}
+        self.user = User.objects.create_superuser(**self.credentials)
+        self.client.login(**self.credentials)
+
+    @override_settings(ADMIN_ENABLED=True)
+    def test_admin(self):
+        response = self.client.get("/admin/app/user/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "default_api")
+
+        response = self.client.get("/admin/app/user/add/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "default_api")
+
+    def test_admin_logout(self):
         self.client.get(reverse("logout"))
         assert auth.get_user(self.client).is_anonymous

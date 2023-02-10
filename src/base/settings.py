@@ -44,7 +44,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-if config("ADMIN_ENABLED", default = False, cast=bool):
+ADMIN_ENABLED = config("ADMIN_ENABLED", default = False, cast=bool)
+
+if ADMIN_ENABLED:
     INSTALLED_APPS.append('django.contrib.admin')
 
 MIDDLEWARE = [
