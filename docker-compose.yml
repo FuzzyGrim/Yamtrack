@@ -11,6 +11,8 @@ services:
       - ALLOWED_HOSTS=192.168.x.x, yamtarr.domain.com
       - PUID=1000
       - PGID=1000
+      # - HTTPS_COOKIES=False
+      # - REGISTRATION=False
     volumes:
       - ./db:/app/db
       - assets:/app/assets

@@ -45,6 +45,8 @@ services:
       - ALLOWED_HOSTS=192.168.x.x, yamtarr.domain.com
       - PUID=1000
       - PGID=1000
+      # - HTTPS_COOKIES=False
+      # - REGISTRATION=False
     volumes:
       - ./db:/app/db
       - assets:/app/assets
@@ -57,17 +59,18 @@ volumes:
 
 ## Environment variables
 
-| Name           |  Type       | Description                | Required     | Default   | Notes                              |
-| -------------- | ----------- | -------------------------- | ------------ | --------- | ---------------------------------- |
-| SECRET         | String      | Django secret key          | Yes          | None      |                                    |
-| TMDB_API       | String      | The Movie Database API key | Yes          | None      | Required for movies and tv shows   |
-| MAL_API        | String      | MyAnimeList API key        | Yes          | None      | Required for anime and manga       |
-| ALLOWED_HOSTS  | List        | Base IP / Domain           | Yes          | 127.0.0.1 | Your list would extend the default |
-| PUID           | Int         | User ID                    | No           | 911       |                                    |
-| PGID           | Int         | Group ID                   | No           | 911       |                                    |
-| REGISTRATION   | Bool        | Enable user registration   | No           | True      |                                    |
-| ADMIN_ENABLED  | Bool        | Django admin page          | No           | False     |                                    |
-| DEBUG          | Bool        | Django debug mode          | No           | False     |                                    |
+| Name           |  Type       | Description                | Required     | Default   | Notes                                 |
+| -------------- | ----------- | -------------------------- | ------------ | --------- | ------------------------------------- |
+| SECRET         | String      | Django secret key          | Yes          | None      |                                       |
+| TMDB_API       | String      | The Movie Database API key | Yes          | None      | Required for movies and tv shows      |
+| MAL_API        | String      | MyAnimeList API key        | Yes          | None      | Required for anime and manga          |
+| ALLOWED_HOSTS  | List        | Base IP / Domain           | Yes          | 127.0.0.1 | Your list would extend the default    |
+| PUID           | Int         | User ID                    | No           | 911       |                                       |
+| PGID           | Int         | Group ID                   | No           | 911       |                                       |
+| HTTPS_COOKIES  | Bool        | Cookies over HTTPS         | No           | False     | Avoids transmitting cookies over HTTP |
+| REGISTRATION   | Bool        | Enable user registration   | No           | True      |                                       |
+| ADMIN_ENABLED  | Bool        | Django admin page          | No           | False     |                                       |
+| DEBUG          | Bool        | Django debug mode          | No           | False     |                                       |
 
 
 ## Local development

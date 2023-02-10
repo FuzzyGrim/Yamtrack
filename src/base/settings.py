@@ -30,6 +30,10 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = ["127.0.0.1"] 
 ALLOWED_HOSTS.extend(config('ALLOWED_HOSTS', default="", cast=Csv()))
 
+if config("HTTPS", default=False, cast=bool):
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 # Application definition
 
 INSTALLED_APPS = [
