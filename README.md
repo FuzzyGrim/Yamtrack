@@ -60,8 +60,8 @@ volumes:
 | Name           |  Type       | Description                | Required     | Default   | Notes                              |
 | -------------- | ----------- | -------------------------- | ------------ | --------- | ---------------------------------- |
 | SECRET         | String      | Django secret key          | Yes          | None      |                                    |
-| TMDB_API       | String      | The Movie Database API key | Yes          | ""        | Required for movies and tv shows   |
-| MAL_API        | String      | MyAnimeList API key        | Yes          | ""        | Required for anime and manga       |
+| TMDB_API       | String      | The Movie Database API key | Yes          | None      | Required for movies and tv shows   |
+| MAL_API        | String      | MyAnimeList API key        | Yes          | None      | Required for anime and manga       |
 | ALLOWED_HOSTS  | List        | Base IP / Domain           | Yes          | 127.0.0.1 | Your list would extend the default |
 | PUID           | Int         | User ID                    | No           | 911       |                                    |
 | PGID           | Int         | Group ID                   | No           | 911       |                                    |
