@@ -26,7 +26,7 @@ def search(api_type, query):
         animes, mangas = run(mal_search(query))
 
         # merge anime and manga results alternating between each
-        response = [item for pair in zip(animes["data"], mangas["data"]) for item in pair]
+        response = [item for pair in zip(animes, mangas) for item in pair]
         
     return response
 
@@ -45,13 +45,15 @@ async def mal_search(query):
 async def mal_search_list(session, url):
     async with session.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}) as resp:
         response = await resp.json()
-        for media in response["data"]:
-            media["node"]["media_type"] = "manga" if "manga" in url else "anime"
-            media["node"]["media_id"] = media["node"]["id"]
+        if "data" in response:
+            response = response["data"]
+            for media in response:
+                media["node"]["media_type"] = "manga" if "manga" in url else "anime"
+                media["node"]["media_id"] = media["node"]["id"]
 
-            # needed for delete button
-            media["node"]["api"] = "mal"
-            media.update(media.pop("node"))
+                # needed for delete button
+                media["node"]["api"] = "mal"
+                media.update(media.pop("node"))
         return response
     
 
