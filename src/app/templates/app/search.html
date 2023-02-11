@@ -15,62 +15,63 @@
     {% include "app/include/navbar.html" %}    
     
     <main>
-        {% if messages %}
-            {% for message in messages %}
-            {% if message.tags == 'error' %}
-                <div class="alert alert-danger">
-            {% else %}
-                <div class="alert alert-{{ message.tags }}">
-            {% endif %}
-                {{ message }}
-            </div>
-            {% endfor %}
-        {% endif %}
-       
-          {% if query_list|length == 0 or "error" in query_list %}
-            <div class="position-absolute top-50 start-50 translate-middle" >
-              <h2 class="alert-heading">No results found!</h2>
-              <p>Try searching for something else.</p>
-            </div>
+      {% if messages %}
+        {% for message in messages %}
+          {% if message.tags == 'error' %}
+            <div class="alert alert-danger">
           {% else %}
-            <div class="container-grid">
-              {% for media in query_list %}
-                  {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga" %}
-
-                    <div class="card open-modal-button" type="button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.id%}">
-                        {% if media.main_picture.large %}
-                          <img class="poster flex-shrink-0 card-img-top" src="{{media.main_picture.large}}">  
-                        {% elif media.poster_path %}
-                          <img class="poster flex-shrink-0 card-img-top" src="https://image.tmdb.org/t/p/w780{{media.poster_path}}">  
-                        {% else %}
-                          <img class="image-not-found flex-shrink-0 card-img-top" src="{% get_media_prefix %}/images/none.svg">
-                        {% endif %}
-                        <div class="card-body">
-                          <div class="card-title">{{media.name}}{{media.title}}</div>
-                        </div>
-                        
-                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-secondary" 
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        data-bs-custom-class="custom-tooltip" 
-                        data-bs-title={% if media.original_type %}"{{media.original_type|capfirst}}"{% else %}"{{media.media_type|capfirst}}"{% endif %}>
-                          {% if media.original_type %}
-                            {{media.original_type.0|capfirst}}
-                          {% else %}
-                            {{media.media_type.0|capfirst}}
-                          {% endif %}
-                          <span class="visually-hidden">Media Type</span>
-                        </span>
-                    </div>
-                    {% include "app/include/media-modal.html" %}
-
-                  {% endif %}
-                    
-              {% endfor %}
-            </div>
+            <div class="alert alert-{{ message.tags }}">
           {% endif %}
-        
+              {{ message }}
+            </div>
+        {% endfor %}
+      {% endif %}
+       
+      {% if query_list|length == 0 or "error" in query_list %}
+        <div class="position-absolute top-50 start-50 translate-middle" >
+          <h2 class="alert-heading">No results found!</h2>
+          <p>Try searching for something else.</p>
+        </div>
+      {% else %}
+        <div class="container-grid">
+          {% for media in query_list %}
+            {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga" %}
+
+              <div class="card open-modal-button" type="button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.id%}">
+                {% if media.main_picture.large %}
+                  <img class="poster flex-shrink-0 card-img-top" src="{{media.main_picture.large}}">  
+                {% elif media.poster_path %}
+                  <img class="poster flex-shrink-0 card-img-top" src="https://image.tmdb.org/t/p/w780{{media.poster_path}}">  
+                {% else %}
+                  <img class="image-not-found flex-shrink-0 card-img-top" src="{% get_media_prefix %}/images/none.svg">
+                {% endif %}
+
+                <div class="card-body">
+                  <div class="card-title">{{media.name}}{{media.title}}</div>
+                </div>
+                
+                <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-secondary" 
+                data-bs-toggle="tooltip" 
+                data-bs-placement="top" 
+                data-bs-custom-class="custom-tooltip" 
+                data-bs-title={% if media.original_type %}"{{media.original_type|capfirst}}"{% else %}"{{media.media_type|capfirst}}"{% endif %}>
+                  {% if media.original_type %}
+                    {{media.original_type.0|capfirst}}
+                  {% else %}
+                    {{media.media_type.0|capfirst}}
+                  {% endif %}
+                  <span class="visually-hidden">Media Type</span>
+                </span>
+              </div>
+              {% include "app/include/media-modal.html" %}
+
+            {% endif %}
+                
+          {% endfor %}
+        </div>
+      {% endif %}
     </main>
+
     <script src="{% static 'js/jquery.js' %}"></script>
     <script src="{% static 'js/modal-load.js' %}"></script>
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>

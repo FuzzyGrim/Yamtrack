@@ -1,24 +1,24 @@
 <div class="modal fade" id="modal-{{media.media_type}}_{{media.media_id}}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h1 id="modal-title-{{media.media_type}}_{{media.media_id}}" class="modal-title fs-5"></h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body" id="modal-body-{{media.media_type}}_{{media.media_id}}">
-          <div class="d-flex justify-content-center">
-            <div class="spinner-grow" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 id="modal-title-{{media.media_type}}_{{media.media_id}}" class="modal-title fs-5"></h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-{{media.media_type}}_{{media.media_id}}">
+        <div class="d-flex justify-content-center">
+          <div class="spinner-grow" role="status">
+            <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        <div class="modal-footer d-flex justify-content-between" id="modal-footer-{{media.media_type}}_{{media.media_id}}">
-          <form method="post">
-            {% csrf_token %}
-            {% comment %} modal-load creates delete button if media exists in db {% endcomment %}
-          </form>
-          <button type="submit" form="form-{{media.media_type}}_{{media.media_id}}" class="btn btn-primary">Save</button>
-        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between" id="modal-footer-{{media.media_type}}_{{media.media_id}}">
+        <form method="post">
+          {% csrf_token %}
+          {% comment %} modal-load creates delete button if media exists in db {% endcomment %}
+        </form>
+        <button type="submit" form="form-{{media.media_type}}_{{media.media_id}}" class="btn btn-primary">Save</button>
       </div>
     </div>
+  </div>
 </div>

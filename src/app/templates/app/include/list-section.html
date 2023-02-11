@@ -8,34 +8,37 @@
   {% if media.seasons.all and media.seasons.all|length != 1 %}
     <div class="score p-2 dropdown-center">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        {{media.score}}
+          {{media.score}}
       </button>
       <ul class="dropdown-menu">
         {% for season in media.seasons.all %}
-          <li>S{{season.number}}: {{season.score}}</li>
+        <li>S{{season.number}}: {{season.score}}</li>
         {% endfor %}
       </ul>
     </div>
+
     <div class="status p-2 dropdown-center">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.status}}
       </button>
       <ul class="dropdown-menu">
         {% for season in media.seasons.all %}
-          <li>S{{season.number}}: {{season.status}}</li>
+        <li>S{{season.number}}: {{season.status}}</li>
         {% endfor %}
       </ul>
     </div>
+
     <div class="_progress p-2 dropdown-center">
       <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{media.progress}}
       </button>
       <ul class="dropdown-menu">
         {% for season in media.seasons.all %}
-          <li>S{{season.number}}: {{season.progress}}</li>
+        <li>S{{season.number}}: {{season.progress}}</li>
         {% endfor %}
       </ul>
     </div>
+
   {% else %}
     <div class="score p-2">{{media.score}}</div>
     <div class="status p-2">{{media.status}}</div>

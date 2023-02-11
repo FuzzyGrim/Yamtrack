@@ -1,55 +1,55 @@
 <nav class="navbar fixed-top navbar-expand-md">
-    <div class="container-fluid">
-      <div class="hidden">
-        <a class="nav-link" href="/"> <i class="bi bi-house"></i></a>
-      </div>
-      <form class="d-flex navbar-brand abs input-group" method="get" id="navbar-form" action="{% url 'search' %}">
-        <select name="api" class="form-select">
-          {% if request.session.last_selected_api == "tmdb" %}
+  <div class="container-fluid">
+    <div class="hidden">
+      <a class="nav-link" href="/"> <i class="bi bi-house"></i></a>
+    </div>
+    <form class="d-flex navbar-brand abs input-group" method="get" id="navbar-form" action="{% url 'search' %}">
+      <select name="api" class="form-select">
+        {% if request.session.last_selected_api == "tmdb" %}
+          <option value="tmdb" selected>TMDB</option>
+          <option value="mal">MAL</option>
+        {% elif request.session.last_selected_api == "mal" %}
+          <option value="mal" selected>MAL</option>
+          <option value="tmdb">TMDB</option>
+        {% else %}
+          {% if user.default_api == 'tmdb' %}
             <option value="tmdb" selected>TMDB</option>
             <option value="mal">MAL</option>
-          {% elif request.session.last_selected_api == "mal" %}
-            <option value="mal" selected>MAL</option>
+          {% else %}
+            <option value="mal" selected>MAL</option>   
             <option value="tmdb">TMDB</option>
-          {% else %}
-            {% if user.default_api == 'tmdb' %}
-              <option value="tmdb" selected>TMDB</option>
-              <option value="mal">MAL</option>
-            {% else %}
-              <option value="mal" selected>MAL</option>   
-              <option value="tmdb">TMDB</option>
-            {% endif %}
           {% endif %}
-        </select>
-        <input class="form-control bg-dark text-white" type="text" name="q" placeholder="Search" aria-label="Search" value="{% if 'q' in request.GET %}{{ request.GET.q }}{% endif %}" required>
-        <button class="btn bg-dark text-white rounded-end" type="submit"><i class="bi bi-search"></i></button>
-      </form>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav">
+        {% endif %}
+      </select>
+      <input class="form-control bg-dark text-white" type="text" name="q" placeholder="Search" aria-label="Search" value="{% if 'q' in request.GET %}{{ request.GET.q }}{% endif %}" required>
+      <button class="btn bg-dark text-white rounded-end" type="submit"><i class="bi bi-search"></i></button>
+    </form>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link rounded" href="/"> <i class="bi bi-house"></i> Home</a>
+        </li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link rounded" href="/"> <i class="bi bi-house"></i> Home</a>
+            <a class="nav-link" href="{% url 'profile' %}">Profile</a>
           </li>
-        </ul>
-        <ul class="navbar-nav ms-auto">
-          {% if user.is_authenticated %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'profile' %}">Profile</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'logout' %}">Logout</a>
-            </li>
-          {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'register' %}">Register</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'login' %}">Log in</a>
-            </li>
-          {% endif %}
-        </ul>
-      </div>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'register' %}">Register</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'login' %}">Log in</a>
+          </li>
+        {% endif %}
+      </ul>
     </div>
+  </div>
 </nav>

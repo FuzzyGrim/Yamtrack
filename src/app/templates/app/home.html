@@ -14,7 +14,6 @@
     {% include "app/include/navbar.html" %}    
 
     <main>
-
       {% if messages %}
         {% for message in messages %}
           {% if message.tags == 'error' %}
@@ -98,8 +97,8 @@
           {% endfor %}
         </div>
       </div>
-
     </main>
+
     <script src="{% static 'js/jquery.js' %}"></script>
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/modal-load.js' %}"></script>

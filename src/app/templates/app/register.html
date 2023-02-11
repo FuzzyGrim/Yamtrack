@@ -16,29 +16,27 @@
     {% include "app/include/navbar.html" %}    
 
     <main>
-
       <div class="content-section">
         <form method="POST">
-            {% csrf_token %}
-            <fieldset class="form-group">
-                <legend class="border-bottom mb-4">Join Today</legend>
-                {{ form|crispy }}
-            </fieldset>
-            <div class="form-group">
-                <button class="btn bg-dark text-white" type="submit">Sign Up</button>
-            </div>
+          {% csrf_token %}
+          <fieldset class="form-group">
+            <legend class="border-bottom mb-4">Join Today</legend>
+            {{ form|crispy }}
+          </fieldset>
+          <div class="form-group">
+            <button class="btn bg-dark text-white" type="submit">Sign Up</button>
+          </div>
         </form>
         <div class="border-top mt-3">
-            <small class="text-muted">
-                Already Have An Account? <a class="ml-2" href="{% url 'login' %}">Sign In</a>
-            </small>
+          <small class="text-muted">
+            Already Have An Account? <a class="ml-2" href="{% url 'login' %}">Sign In</a>
+          </small>
         </div>
       </div>
-
     </main>
+  
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-
-    </body>
+  </body>
 
 </html>
 {% endblock %}
