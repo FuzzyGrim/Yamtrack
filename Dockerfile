@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends g++ gcc gosu &&
     pip install --no-cache-dir --upgrade -r /requirements.txt && \
 	rm -rf /var/lib/apt/lists/* && \
     apt-get remove -y --purge g++ gcc && apt-get autoremove -y && \
-	gosu nobody true
+	gosu nobody true && \
+	ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
 
 COPY ./default.conf /etc/nginx/conf.d/default.conf
 
