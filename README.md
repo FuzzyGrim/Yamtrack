@@ -37,6 +37,7 @@ services:
   yamtarr:
     container_name: yamtarr
     image: ghcr.io/fuzzygrim/yamtarr
+    restart: unless-stopped
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
