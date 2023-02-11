@@ -9,24 +9,18 @@ $(document).on("click", ".open-modal-button", function() {
         type: 'GET',
         url: url,
         success: function(data) {
-            if (data.media_type == "light_novel") {
-                data.media_type = "Light Novel";
-            } 
-            else if (data.media_type == "ova") {
-                data.media_type = "OVA";
-            } 
-            else if (data.media_type == "tv") {
-                data.media_type = "TV";
-            } 
-            else {
-                data.media_type = data.media_type.charAt(0).toUpperCase() + data.media_type.slice(1);
-            }
             var output = data.title;
             if (data.year) {
                 output += " (" + data.year + ")";
             }
-            if (data.media_type) {
-                output += " [" + data.media_type + "]";
+
+            if (data.original_type) {
+                // capitalize first letter
+                output += " [" + data.original_type.charAt(0).toUpperCase() + data.original_type.slice(1) + "]";
+            }
+            else if (data.media_type) {
+                // capitalize first letter
+                output += " [" + data.media_type.charAt(0).toUpperCase() + data.media_type.slice(1); + "]";
             }
 
             $("#modal-title-" + type + "_" + id).html(output);

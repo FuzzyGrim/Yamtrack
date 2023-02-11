@@ -8,11 +8,8 @@ import requests
 
 
 def convert_mal_media_type(media_type):
-    if media_type in ["anime", "movie", "special", "ova"]:
-        return "anime"
-    elif media_type in ["manga", "light_novel", "one_shot"]:
-        return "manga"
-    return "anime"
+    # replace _ with space and capitalize first letter
+    return media_type.replace("_", " ").title()
 
 
 def get_image_temp(url):

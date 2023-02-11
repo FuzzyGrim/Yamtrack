@@ -158,27 +158,32 @@ def edit(request, media_type, media_id):
         media = interactions.mal_edit(request, media_type, media_id)
     elif media_type in ["movie", "tv"]:
         media = interactions.tmdb_edit(request, media_type, media_id)
+
+    response = media["response"]
+    database = media["database"]
     
     # Save the metadata in the session to be used when form is submitted
-    request.session["metadata"] = media["response"]
+    request.session["metadata"] = response
 
-    data = {'title': media["response"]["title"], 'year': media["response"]["year"], 'media_type': media["response"]["media_type"]}
+    data = {"title": response.get("title", None), "year": response.get("year", None),
+            "media_type": response.get("media_type", None), "original_type" : response.get("original_type", None)}
+    
     media['response']['media_type'] = media_type
-    data['html'] = render_to_string("app/edit.html", {'media': media}, request=request)
+    data["html"] = render_to_string("app/edit.html", {"media": media}, request=request)
 
-    if "seasons" in media["response"]:
-        data['seasons'] = media["response"]["seasons"]
+    if "seasons" in response:
+        data["seasons"] = response["seasons"]
     
     if "database" in media:
-        data['in_db'] = True
-        data['media_seasons'] = list(Season.objects.filter(media=media["database"]).values("number", "score", "status", "progress", "start_date", "end_date"))
-        data['score'] = media["database"].score
-        data['status'] = media["database"].status
-        data['progress'] = media["database"].progress
-        data['start_date'] = media["database"].start_date
-        data['end_date'] = media["database"].end_date
+        data["in_db"] = True
+        data["media_seasons"] = list(Season.objects.filter(media=database).values("number", "score", "status", "progress", "start_date", "end_date"))
+        data["score"] = database.score
+        data["status"] = database.status
+        data["progress"] = database.progress
+        data["start_date"] = database.start_date
+        data["end_date"] = database.end_date
     else:
-        data['in_db'] = False
+        data["in_db"] = False
 
     return JsonResponse(data)
 

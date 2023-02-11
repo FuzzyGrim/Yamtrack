@@ -35,9 +35,8 @@
           {% else %}
             <div class="container-grid">
               {% for media in query_list %}
-                              
-                  {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga"%}
-                  
+                  {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga" %}
+
                     <div class="card open-modal-button" type="button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.id%}">
                         {% if media.main_picture.large %}
                           <img class="poster flex-shrink-0 card-img-top" src="{{media.main_picture.large}}">  
@@ -49,14 +48,23 @@
                         <div class="card-body">
                           <div class="card-title">{{media.name}}{{media.title}}</div>
                         </div>
-                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-secondary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip" data-bs-title="{{media.media_type|capfirst}}">
-                          {{media.media_type.0|capfirst}}
+                        
+                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-secondary" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-custom-class="custom-tooltip" 
+                        data-bs-title={% if media.original_type %}"{{media.original_type|capfirst}}"{% else %}"{{media.media_type|capfirst}}"{% endif %}>
+                          {% if media.original_type %}
+                            {{media.original_type.0|capfirst}}
+                          {% else %}
+                            {{media.media_type.0|capfirst}}
+                          {% endif %}
                           <span class="visually-hidden">Media Type</span>
                         </span>
                     </div>
+                    {% include "app/include/media-modal.html" %}
 
                   {% endif %}
-                  {% include "app/include/media-modal.html" %}
                     
               {% endfor %}
             </div>

@@ -6,6 +6,7 @@ from asyncio import ensure_future, gather, run
 import requests
 
 from app.models import Media
+from app.utils import helpers
 
 
 TMDB_API = config("TMDB_API", default=None)
@@ -32,8 +33,8 @@ def search(api_type, query):
 
 
 async def mal_search(query):
-    anime_url = f"https://api.myanimelist.net/v2/anime?q={query}&limit=10&nsfw=true"
-    manga_url = f"https://api.myanimelist.net/v2/manga?q={query}&limit=10&nsfw=true"
+    anime_url = f"https://api.myanimelist.net/v2/anime?q={query}&limit=10&nsfw=true&fields=media_type"
+    manga_url = f"https://api.myanimelist.net/v2/manga?q={query}&limit=10&nsfw=true&fields=media_type"
     async with ClientSession() as session:
         task = []
         task.append(ensure_future(mal_search_list(session, anime_url)))
@@ -48,6 +49,7 @@ async def mal_search_list(session, url):
         if "data" in response:
             response = response["data"]
             for media in response:
+                media["node"]["original_type"] = helpers.convert_mal_media_type(media["node"]["media_type"])
                 media["node"]["media_type"] = "manga" if "manga" in url else "anime"
                 media["node"]["media_id"] = media["node"]["id"]
 
@@ -64,7 +66,7 @@ def mal_edit(request, media_type, media_id):
         url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,synopsis,media_type,num_episodes,num_chapters,average_episode_duration,status,genres"
         header = {"X-MAL-CLIENT-ID": MAL_API}
         response = requests.get(url, headers=header).json()
-
+        response["original_type"] = helpers.convert_mal_media_type(response["media_type"])
         response["media_type"] = media_type
 
         if "start_date" in response:
