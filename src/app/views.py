@@ -223,3 +223,12 @@ def redirect_after_login(request):
         return redirect(settings.LOGIN_REDIRECT_URL)
     else:
         return redirect(next)
+
+
+def error_view(request, exception=None, status_code=None):
+    return render(
+        request,
+        "app/error.html",
+        {"status_code": status_code},
+        status=status_code,
+    )
