@@ -37,8 +37,14 @@ async def myanilist_get_media_list(series, user):
         task = []
         for media_type, media_list in series.items():
             for content in media_list["data"]:
-                if not await Media.objects.filter(media_id=content["node"]["id"], api="mal", user=user).aexists():
-                    task.append(ensure_future(myanimelist_get_media(session, content, media_type, user)))
+                if not await Media.objects.filter(
+                    media_id=content["node"]["id"], api="mal", user=user
+                ).aexists():
+                    task.append(
+                        ensure_future(
+                            myanimelist_get_media(session, content, media_type, user)
+                        )
+                    )
 
         return await gather(*task)
 
@@ -54,14 +60,14 @@ async def myanimelist_get_media(session, content, media_type, user):
         content["list_status"]["status"] = content["list_status"]["status"].capitalize()
 
     media = Media(
-            media_id=content["node"]["id"],
-            title=content["node"]["title"],
-            media_type=media_type,
-            score=content["list_status"]["score"],
-            status=content["list_status"]["status"],
-            api="mal",
-            user=user,
-        )
+        media_id=content["node"]["id"],
+        title=content["node"]["title"],
+        media_type=media_type,
+        score=content["list_status"]["score"],
+        status=content["list_status"]["status"],
+        api="mal",
+        user=user,
+    )
 
     if media_type == "anime":
         media.progress = content["list_status"]["num_episodes_watched"]
@@ -69,17 +75,23 @@ async def myanimelist_get_media(session, content, media_type, user):
         media.progress = content["list_status"]["num_chapters_read"]
 
     if "start_date" in content["list_status"]:
-        media.start_date = datetime.datetime.strptime(content["list_status"]["start_date"], "%Y-%m-%d").date()
+        media.start_date = datetime.datetime.strptime(
+            content["list_status"]["start_date"], "%Y-%m-%d"
+        ).date()
     else:
         media.start_date = None
 
     if "finish_date" in content["list_status"]:
-        media.end_date = datetime.datetime.strptime(content["list_status"]["finish_date"], "%Y-%m-%d").date()
+        media.end_date = datetime.datetime.strptime(
+            content["list_status"]["finish_date"], "%Y-%m-%d"
+        ).date()
     else:
         media.end_date = None
 
     if "main_picture" in content["node"]:
-        await helpers.download_image(session, content["node"]["main_picture"]["medium"], media_type)
+        await helpers.download_image(
+            session, content["node"]["main_picture"]["medium"], media_type
+        )
         # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
         media.image = f"images/{media_type}-{content['node']['main_picture']['medium'].rsplit('/', 1)[-1]}"
         media.image = f"images/{media_type}-{content['node']['main_picture']['medium'].rsplit('/', 1)[-1]}"
@@ -92,7 +104,6 @@ async def myanimelist_get_media(session, content, media_type, user):
 
 
 def import_tmdb(file, user):
-
     if "ratings" in file.name:
         status = "Completed"
     else:
@@ -121,39 +132,46 @@ async def tmdb_get_media_list(reader, user, status):
             ).aexists():
                 if row["Type"] == "tv":
                     url = f"https://api.themoviedb.org/3/tv/{row['TMDb ID']}?api_key={TMDB_API}"
-                    task.append(ensure_future(tmdb_get_media(session, url, row, user, status)))
+                    task.append(
+                        ensure_future(tmdb_get_media(session, url, row, user, status))
+                    )
 
                 elif row["Type"] == "movie":
                     url = f"https://api.themoviedb.org/3/movie/{row['TMDb ID']}?api_key={TMDB_API}"
-                    task.append(ensure_future(tmdb_get_media(session, url, row, user, status)))
+                    task.append(
+                        ensure_future(tmdb_get_media(session, url, row, user, status))
+                    )
 
         await gather(*task)
 
 
 async def tmdb_get_media(session, url, row, user, status):
-
     async with session.get(url) as resp:
         response = await resp.json()
-            
+
         if row["Your Rating"] == "":
             score = None
         else:
             score = float(row["Your Rating"])
 
-        await helpers.download_image(session, f"https://image.tmdb.org/t/p/w92{response['poster_path']}", "tmdb")
-        
+        await helpers.download_image(
+            session, f"https://image.tmdb.org/t/p/w92{response['poster_path']}", "tmdb"
+        )
+
         if response["poster_path"] is None:
             image = "images/none.svg"
         else:
             # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
             image = f"images/tmdb-{response['poster_path'].rsplit('/', 1)[-1]}"
-        
+
         if "number_of_episodes" in response and status == "Completed":
             progress = response["number_of_episodes"]
         else:
             progress = 0
 
-        start_date = datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ").date()
+        start_date = datetime.datetime.strptime(
+            row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ"
+        ).date()
 
         media = await Media.objects.acreate(
             media_id=row["TMDb ID"],
@@ -166,20 +184,41 @@ async def tmdb_get_media(session, url, row, user, status):
             user=user,
             image=image,
             start_date=start_date,
-            end_date=None
+            end_date=None,
         )
 
         if "number_of_seasons" in response:
             seasons_list = []
             for season in range(1, response["number_of_seasons"] + 1):
-                if "episode_count" in response["seasons"][season] and status == "Completed":
-                    seasons_list.append(Season(media=media, title=row["Name"], number=season, score=score, status=status, 
-                                               progress=response["seasons"][season - 1]["episode_count"], 
-                                               start_date=start_date,
-                                               end_date=None))
+                if (
+                    "episode_count" in response["seasons"][season]
+                    and status == "Completed"
+                ):
+                    seasons_list.append(
+                        Season(
+                            media=media,
+                            title=row["Name"],
+                            number=season,
+                            score=score,
+                            status=status,
+                            progress=response["seasons"][season - 1]["episode_count"],
+                            start_date=start_date,
+                            end_date=None,
+                        )
+                    )
                 else:
-                    seasons_list.append(Season(media=media, title=row["Name"], number=season, score=score, status=status, 
-                                               progress=0, start_date=start_date, end_date=None))
+                    seasons_list.append(
+                        Season(
+                            media=media,
+                            title=row["Name"],
+                            number=season,
+                            score=score,
+                            status=status,
+                            progress=0,
+                            start_date=start_date,
+                            end_date=None,
+                        )
+                    )
             await Season.objects.abulk_create(seasons_list)
 
 
@@ -259,7 +298,6 @@ def import_anilist(username, user):
         if query["errors"][0]["message"] == "User not found":
             error = "User not found"
     else:
-
         bulk_add_media, error = run(anilist_get_media_list(query, error, user))
         Media.objects.bulk_create(bulk_add_media)
 
@@ -279,8 +317,16 @@ async def anilist_get_media_list(query, error, user):
                                 media_type=media_type,
                                 api="mal",
                                 user=user,
-                            ).aexists() and content["media"]["idMal"] is not None):
-                            task.append(ensure_future(anilist_get_media(session, content, media_type, user)))
+                            ).aexists()
+                            and content["media"]["idMal"] is not None
+                        ):
+                            task.append(
+                                ensure_future(
+                                    anilist_get_media(
+                                        session, content, media_type, user
+                                    )
+                                )
+                            )
 
                         else:
                             error += f"\n {content['media']['title']['userPreferred']}"
@@ -298,7 +344,9 @@ async def anilist_get_media(session, content, media_type, user):
     end_date = content["completedAt"]
 
     if start_date["year"]:
-        start_date = datetime.date(start_date["year"], start_date["month"], start_date["day"])
+        start_date = datetime.date(
+            start_date["year"], start_date["month"], start_date["day"]
+        )
     else:
         start_date = None
 
@@ -308,21 +356,23 @@ async def anilist_get_media(session, content, media_type, user):
         end_date = None
 
     media = Media(
-            media_id=content["media"]["idMal"],
-            title=content["media"]["title"]["userPreferred"],
-            media_type=media_type,
-            score=content["score"],
-            progress=content["progress"],
-            status=status,
-            api="mal",
-            user=user,
-            start_date=start_date,
-            end_date=end_date
-        )
+        media_id=content["media"]["idMal"],
+        title=content["media"]["title"]["userPreferred"],
+        media_type=media_type,
+        score=content["score"],
+        progress=content["progress"],
+        status=status,
+        api="mal",
+        user=user,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
-    await helpers.download_image(session, content["media"]["coverImage"]["medium"], media_type)
+    await helpers.download_image(
+        session, content["media"]["coverImage"]["medium"], media_type
+    )
 
-     # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
+    # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
     media.image = f"images/{media_type}-{content['media']['coverImage']['medium'].rsplit('/', 1)[-1]}"
 
     return media

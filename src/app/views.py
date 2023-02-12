@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash, authenticate, login as auth_login
+from django.contrib.auth import (
+    update_session_auth_hash,
+    authenticate,
+    login as auth_login,
+)
 from django.contrib.auth.forms import PasswordChangeForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from django.utils.safestring import mark_safe
-from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
 from django.conf import settings
@@ -32,7 +34,9 @@ def home(request):
         return redirect("home")
 
     # get all media with tracked seasons of user
-    queryset = Media.objects.filter(user_id=request.user).prefetch_related("seasons")
+    queryset = Media.objects.filter(user_id=request.user).prefetch_related(
+        "seasons"
+    )
     data = {
         "tv": {"media": [], "statuses": {}},
         "movie": {"media": [], "statuses": {}},
@@ -53,7 +57,7 @@ def home(request):
 def search(request):
     api = request.GET.get("api")
     query = request.GET.get("q")
-    request.session['last_selected_api'] = api
+    request.session["last_selected_api"] = api
     if request.method == "POST":
         metadata = request.session.get("metadata")
         if "delete" in request.POST:
@@ -101,7 +105,7 @@ def login(request):
         else:
             messages.error(
                 request,
-                "Please enter a correct username and password. Note that both fields may be case-sensitive.",
+                "Please enter a correct username and password. Note that both fields may be case-sensitive.",  # noqa: E501
             )
     return render(request, "app/login.html", {"form": form})
 
@@ -110,8 +114,8 @@ def login(request):
 def profile(request):
     user_form = UserUpdateForm(request.POST or None, instance=request.user)
     password_form = PasswordChangeForm(request.user, request.POST or None)
-    
-    if request.method == 'POST':
+
+    if request.method == "POST":
         if user_form.is_valid():
             user_form.save()
             messages.success(request, "Your account has been updated!")
@@ -122,8 +126,12 @@ def profile(request):
             messages.success(request, "Your password has been updated!")
 
         elif request.POST.get("mal"):
-            if imports.import_myanimelist(request.POST.get("mal"), request.user):
-                messages.success(request, "Your MyAnimeList has been imported!")
+            if imports.import_myanimelist(
+                request.POST.get("mal"), request.user
+            ):
+                messages.success(
+                    request, "Your MyAnimeList has been imported!"
+                )
             else:
                 messages.error(request, "User not found")
 
@@ -133,11 +141,13 @@ def profile(request):
             else:
                 messages.error(
                     request,
-                    'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name'
+                    'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name',  # noqa: E501
                 )
 
         elif request.POST.get("anilist"):
-            error = imports.import_anilist(request.POST.get("anilist"), request.user)
+            error = imports.import_anilist(
+                request.POST.get("anilist"), request.user
+            )
             if error == "":
                 messages.success(request, "Your AniList has been imported!")
             elif error == "User not found":
@@ -151,9 +161,7 @@ def profile(request):
     return render(request, "app/profile.html", context)
 
 
-
 def edit(request, media_type, media_id):
-
     if media_type in ["anime", "manga"]:
         media = interactions.mal_edit(request, media_type, media_id)
     elif media_type in ["movie", "tv"]:
@@ -161,22 +169,37 @@ def edit(request, media_type, media_id):
 
     response = media["response"]
     database = media["database"]
-    
+
     # Save the metadata in the session to be used when form is submitted
     request.session["metadata"] = response
 
-    data = {"title": response.get("title", None), "year": response.get("year", None),
-            "media_type": response.get("media_type", None), "original_type" : response.get("original_type", None)}
-    
-    media['response']['media_type'] = media_type
-    data["html"] = render_to_string("app/edit.html", {"media": media}, request=request)
+    data = {
+        "title": response.get("title", None),
+        "year": response.get("year", None),
+        "media_type": response.get("media_type", None),
+        "original_type": response.get("original_type", None),
+    }
+
+    media["response"]["media_type"] = media_type
+    data["html"] = render_to_string(
+        "app/edit.html", {"media": media}, request=request
+    )
 
     if "seasons" in response:
         data["seasons"] = response["seasons"]
-    
+
     if "database" in media:
         data["in_db"] = True
-        data["media_seasons"] = list(Season.objects.filter(media=database).values("number", "score", "status", "progress", "start_date", "end_date"))
+        data["media_seasons"] = list(
+            Season.objects.filter(media=database).values(
+                "number",
+                "score",
+                "status",
+                "progress",
+                "start_date",
+                "end_date",
+            )
+        )
         data["score"] = database.score
         data["status"] = database.status
         data["progress"] = database.progress
@@ -193,9 +216,10 @@ def redirect_after_login(request):
     if next is None:
         return redirect(settings.LOGIN_REDIRECT_URL)
     elif not url_has_allowed_host_and_scheme(
-            url=next,
-            allowed_hosts={request.get_host()},
-            require_https=request.is_secure()):
+        url=next,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
         return redirect(settings.LOGIN_REDIRECT_URL)
     else:
         return redirect(next)

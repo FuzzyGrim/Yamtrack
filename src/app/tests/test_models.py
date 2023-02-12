@@ -55,7 +55,6 @@ class CreateMedia(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-
     @override_settings(MEDIA_ROOT=("test_CreateMedia/media"))
     def test_create_tmdb(self):
         self.assertEqual(
@@ -63,12 +62,20 @@ class CreateMedia(TestCase):
         )
 
         session = self.client.session
-        session["metadata"] = {'id': 5895, 'title': 'FLCL', 'image': '/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg', 
-                               'api': 'tmdb', 'media_type': 'tv', 'number_of_seasons': 4,
-                               'seasons':[{"episode_count":6, "season_number": 1},
-                                          {"episode_count":6, "season_number": 2},
-                                          {"episode_count":6, "season_number": 3},
-                                          {"episode_count":0, "season_number": 4}]}
+        session["metadata"] = {
+            "id": 5895,
+            "title": "FLCL",
+            "image": "/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg",
+            "api": "tmdb",
+            "media_type": "tv",
+            "number_of_seasons": 4,
+            "seasons": [
+                {"episode_count": 6, "season_number": 1},
+                {"episode_count": 6, "season_number": 2},
+                {"episode_count": 6, "season_number": 3},
+                {"episode_count": 0, "season_number": 4},
+            ],
+        }
         session.save()
         response = self.client.post(
             reverse("search") + "?api=tmdb&q=flcl",
@@ -88,17 +95,17 @@ class CreateMedia(TestCase):
             Media.objects.filter(media_id=5895, user=self.user).exists(), True
         )
         self.assertEqual(
-            os.path.exists(settings.MEDIA_ROOT + "/images/tmdb-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"),
+            os.path.exists(
+                settings.MEDIA_ROOT + "/images/tmdb-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"
+            ),
             True,
         )
-
 
     def tearDownClass():
         try:
             shutil.rmtree("test_CreateMedia")
         except OSError:
             pass
-
 
 
 class EditMedia(TestCase):
@@ -121,7 +128,7 @@ class EditMedia(TestCase):
             end_date="2023-01-02",
         )
         media.save()
-        
+
         season = Season(
             media=media,
             number=10,
@@ -132,20 +139,27 @@ class EditMedia(TestCase):
         season.save()
 
         session = self.client.session
-        session["metadata"] = {'id': 1668, 'api': 'tmdb', 'media_type': 'tv', 'number_of_seasons': 10, 'title': 'Friends',
-                               'seasons':[{"episode_count":39, "season_number": 0},
-                                          {"episode_count":24, "season_number": 1},
-                                          {"episode_count":24, "season_number": 2},
-                                          {"episode_count":25, "season_number": 3},
-                                          {"episode_count":24, "season_number": 4},
-                                          {"episode_count":24, "season_number": 5},
-                                          {"episode_count":25, "season_number": 6},
-                                          {"episode_count":24, "season_number": 7},
-                                          {"episode_count":24, "season_number": 8},
-                                          {"episode_count":24, "season_number": 9},
-                                          {"episode_count":18, "season_number": 10}]}
+        session["metadata"] = {
+            "id": 1668,
+            "api": "tmdb",
+            "media_type": "tv",
+            "number_of_seasons": 10,
+            "title": "Friends",
+            "seasons": [
+                {"episode_count": 39, "season_number": 0},
+                {"episode_count": 24, "season_number": 1},
+                {"episode_count": 24, "season_number": 2},
+                {"episode_count": 25, "season_number": 3},
+                {"episode_count": 24, "season_number": 4},
+                {"episode_count": 24, "season_number": 5},
+                {"episode_count": 25, "season_number": 6},
+                {"episode_count": 24, "season_number": 7},
+                {"episode_count": 24, "season_number": 8},
+                {"episode_count": 24, "season_number": 9},
+                {"episode_count": 18, "season_number": 10},
+            ],
+        }
         session.save()
-
 
     def test_edit_tmdb_score(self):
         self.assertEqual(
@@ -217,7 +231,6 @@ class EditMedia(TestCase):
             True,
         )
 
-    
     def test_edit_tmdb_dates(self):
         self.assertEqual(
             Media.objects.filter(

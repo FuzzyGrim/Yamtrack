@@ -16,10 +16,33 @@ Including another URLconf
 from django.urls import include, path
 from django.contrib import admin
 from django.conf import settings
+from app import views
+
+
+def error_404_view(request, exception=None):
+    return views.error_view(request, status_code=404)
+
+
+def error_400_view(request, exception=None):
+    return views.error_view(request, status_code=400)
+
+
+def error_403_view(request, exception=None):
+    return views.error_view(request, status_code=403)
+
+
+def error_500_view(request, exception=None):
+    return views.error_view(request, status_code=500)
+
+
+handler404 = error_404_view
+handler400 = error_400_view
+handler403 = error_403_view
+handler500 = error_500_view
 
 urlpatterns = [
-    path('', include('app.urls')),
+    path("", include("app.urls")),
 ]
 
 if settings.ADMIN_ENABLED:
-    urlpatterns.append(path('admin/', admin.site.urls))
+    urlpatterns.append(path("admin/", admin.site.urls))

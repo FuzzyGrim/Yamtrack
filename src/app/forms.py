@@ -6,7 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 class UserRegisterForm(UserCreationForm):
     default_api = forms.ChoiceField(
         choices=[("mal", "MAL"), ("tmdb", "TMDB")],
-        help_text="TMDB (The Movie Database) for TV Shows and Movies <br/> MAL (MyAnimeList) for Anime and Manga",
+        help_text="TMDB (The Movie Database) for TV Shows and Movies <br/> MAL (MyAnimeList) for Anime and Manga",  # noqa: E501
         label="Default API",
     )
 
@@ -18,7 +18,7 @@ class UserRegisterForm(UserCreationForm):
 class UserUpdateForm(forms.ModelForm):
     default_api = forms.ChoiceField(
         choices=[("mal", "MAL"), ("tmdb", "TMDB")],
-        help_text="TMDB (The Movie Database) for TV Shows and Movies <br/> MAL (MyAnimeList) for Anime and Manga",
+        help_text="TMDB (The Movie Database) for TV Shows and Movies <br/> MAL (MyAnimeList) for Anime and Manga",  # noqa: E501
         label="Default API",
     )
 

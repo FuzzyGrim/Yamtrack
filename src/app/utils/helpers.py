@@ -21,21 +21,25 @@ def get_image_temp(url):
 
 
 async def download_image(session, url, media_type):
-    if url not in ["", "https://image.tmdb.org/t/p/w92None", "https://image.tmdb.org/t/p/w92"]:
+    if url not in [
+        "",
+        "https://image.tmdb.org/t/p/w92None",
+        "https://image.tmdb.org/t/p/w92",
+    ]:
         # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
         location = f"{settings.MEDIA_ROOT}/images/{media_type}-{url.rsplit('/', 1)[-1]}"
-    
+
         # Create the directory if it doesn't exist
         os.makedirs(f"{settings.MEDIA_ROOT}/images", exist_ok=True)
 
         async with session.get(url) as resp:
             if resp.status == 200:
-                f = await aiofiles.open(location, mode='wb')
+                f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
 
-def fix_inputs(request, metadata):
 
+def fix_inputs(request, metadata):
     post = request.POST.copy()
 
     if post["score"] == "":
@@ -45,7 +49,9 @@ def fix_inputs(request, metadata):
         post["progress"] = metadata["num_episodes"]
         # tmdb doesn't count special episodes in num_episodes
         if "seasons" in metadata and metadata["seasons"][0]["season_number"] == 0:
-            post["progress"] = int(post["progress"]) + metadata["seasons"][0]["episode_count"]
+            post["progress"] = (
+                int(post["progress"]) + metadata["seasons"][0]["episode_count"]
+            )
     elif post["progress"] == "":
         post["progress"] = 0
 

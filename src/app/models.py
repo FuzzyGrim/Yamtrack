@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from app.storage import OverwriteStorage
 
+
 class Media(models.Model):
     media_id = models.IntegerField()
     title = models.CharField(max_length=100)
@@ -10,22 +11,26 @@ class Media(models.Model):
     media_type = models.CharField(max_length=30)
     score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
     progress = models.IntegerField()
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
     status = models.CharField(max_length=30)
     api = models.CharField(max_length=10)
     # Allow null values for start date for myanimelist and anilist imports
     start_date = models.DateField(null=True)
     end_date = models.DateField(null=True)
-    
+
     def __str__(self):
         return self.title
 
     class Meta:
-        ordering = ['-score']
+        ordering = ["-score"]
 
 
 class Season(models.Model):
-    media = models.ForeignKey(Media, on_delete=models.CASCADE, related_name='seasons')
+    media = models.ForeignKey(
+        Media, on_delete=models.CASCADE, related_name="seasons"
+    )
     title = models.CharField(max_length=100)
     number = models.IntegerField()
     score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
@@ -39,7 +44,7 @@ class Season(models.Model):
         return f"{self.title} - Season {self.number}"
 
     class Meta:
-        ordering = ['media_id', 'number']
+        ordering = ["media_id", "number"]
 
 
 class User(AbstractUser):
