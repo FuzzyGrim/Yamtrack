@@ -8,6 +8,7 @@ django-compressor==4.3.1
 django-crispy-forms==1.14.0
 django-sass-processor==1.2.2
 flake8==6.0.0
+flake8-length==0.3.1
 libsass==0.22.0
 Pillow==9.4.0
 python-decouple==3.7

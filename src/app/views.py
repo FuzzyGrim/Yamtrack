@@ -105,7 +105,7 @@ def login(request):
         else:
             messages.error(
                 request,
-                "Please enter a correct username and password. Note that both fields may be case-sensitive.",  # noqa: E501
+                "Please enter a correct username and password. Note that both fields may be case-sensitive.",
             )
     return render(request, "app/login.html", {"form": form})
 
@@ -141,7 +141,7 @@ def profile(request):
             else:
                 messages.error(
                     request,
-                    'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name',  # noqa: E501
+                    'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name',
                 )
 
         elif request.POST.get("anilist"):
