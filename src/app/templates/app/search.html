@@ -6,7 +6,7 @@
 
   <head>
     {% include "app/include/tags.html" %}
-    <title>Yamtarr</title>
+    <title>Search | Yamtarr</title>
     
   </head>
 
@@ -28,7 +28,7 @@
       {% endif %}
        
       {% if query_list|length == 0 or "error" in query_list %}
-        <div class="position-absolute top-50 start-50 translate-middle" >
+        <div class="position-absolute top-50 start-50 translate-middle">
           <h2 class="alert-heading">No results found!</h2>
           <p>Try searching for something else.</p>
         </div>
