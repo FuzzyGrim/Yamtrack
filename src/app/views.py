@@ -168,7 +168,6 @@ def edit(request, media_type, media_id):
         media = interactions.tmdb_edit(request, media_type, media_id)
 
     response = media["response"]
-    database = media["database"]
 
     # Save the metadata in the session to be used when form is submitted
     request.session["metadata"] = response
@@ -185,10 +184,12 @@ def edit(request, media_type, media_id):
         "app/edit.html", {"media": media}, request=request
     )
 
-    if "seasons" in response:
+    if "seasons" in response and len(response["seasons"]) > 1:
         data["seasons"] = response["seasons"]
 
     if "database" in media:
+        database = media["database"]
+
         data["in_db"] = True
         data["media_seasons"] = list(
             Season.objects.filter(media=database).values(
