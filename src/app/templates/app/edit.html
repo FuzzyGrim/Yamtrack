@@ -4,7 +4,7 @@
   <div class="d-flex flex-row">
       
     {% if media.response.main_picture.large %}
-      <img class="poster" src={{media.response.main_picture.large}}/>
+      <img class="poster" src="{{media.response.main_picture.large}}"/>
     {% elif media.response.poster_path %}
       <img class="poster" src="https://image.tmdb.org/t/p/w500{{media.response.poster_path}}"/>
     {% else %}
