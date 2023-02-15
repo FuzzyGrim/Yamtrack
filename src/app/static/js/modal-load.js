@@ -15,80 +15,77 @@ $(document).on("click", ".open-modal-button", function () {
 
       if (data.original_type) {
         // capitalize first letter
-        output +=
-          " [" +
-          data.original_type.charAt(0).toUpperCase() +
-          data.original_type.slice(1) +
-          "]";
+        output += " ["
+               + data.original_type.charAt(0).toUpperCase()
+               + data.original_type.slice(1)
+               + "]";
       } else if (data.media_type) {
         // capitalize first letter
-        output +=
-          " [" +
-          data.media_type.charAt(0).toUpperCase() +
-          data.media_type.slice(1);
-        +"]";
+        output += " ["
+               + data.media_type.charAt(0).toUpperCase()
+               + data.media_type.slice(1)
+               + "]";
       }
 
       $("#modal-title-" + type + "_" + id).html(output);
       $("#modal-body-" + type + "_" + id).html(data.html);
-      if (data.media_seasons) {
+      if (data.seasons) {
         var select = $("#season-select-" + type + "_" + id);
 
-        if (select.length) {
-          var score = $("#score-input-" + type + "_" + id);
-          var status = $("#season-status-" + type + "_" + id);
-          var progress = $("#progress-input-" + type + "_" + id);
-          var start = $("#start-input-" + type + "_" + id);
-          var end = $("#end-input-" + type + "_" + id);
+        new bootstrap.Tooltip(
+          document
+            .getElementById("season-descriptor-" + type + "_" + id)
+            .querySelector('[data-bs-toggle="tooltip"]')
+        );
 
-          select.change(function () {
-            var selectedValue = $(this).val();
+        var score = $("#score-input-" + type + "_" + id);
+        var status = $("#season-status-" + type + "_" + id);
+        var progress = $("#progress-input-" + type + "_" + id);
+        var start = $("#start-input-" + type + "_" + id);
+        var end = $("#end-input-" + type + "_" + id);
 
-            if (selectedValue == "general") {
-              score.val(data.score);
-              status.val(data.status);
-              progress.val(data.progress);
-              start.val(data.start_date);
-              end.val(data.end_date);
-            } else {
-              let exists = false;
+        select.change(function () {
+          var selectedValue = $(this).val();
 
-              // check if season exists in database
-              for (
-                let i = 0;
-                i < data["media_seasons"].length && !exists;
-                i++
-              ) {
-                let media_season = data["media_seasons"][i];
-                if (media_season.number == selectedValue) {
-                  score.val(media_season.score);
-                  status.val(media_season.status);
-                  progress.val(media_season.progress);
-                  start.val(media_season.start_date);
-                  end.val(media_season.end_date);
-                  exists = true;
-                }
-              }
+          if (selectedValue == "general") {
+            score.val(data.score);
+            status.val(data.status);
+            progress.val(data.progress);
+            start.val(data.start_date);
+            end.val(data.end_date);
+          } else {
+            let exists = false;
 
-              if (!exists) {
-                score.val("");
-                status.val("Completed");
-                progress.val("");
-                start.val("");
-                end.val("");
+            // check if season exists in database
+            for (let i = 0; i < data["media_seasons"].length && !exists; i++) {
+              let media_season = data["media_seasons"][i];
+              if (media_season.number == selectedValue) {
+                score.val(media_season.score);
+                status.val(media_season.status);
+                progress.val(media_season.progress);
+                start.val(media_season.start_date);
+                end.val(media_season.end_date);
+                exists = true;
               }
             }
-          });
-        }
+
+            if (!exists) {
+              score.val("");
+              status.val("Completed");
+              progress.val("");
+              start.val("");
+              end.val("");
+            }
+          }
+        });
       }
       if (data.in_db) {
         // Add delete button if it doesn't exist
         if (
-          $("#modal-footer-" + type + "_" + id + " .modal-delete-btn").length ==
-          0
+          $("#modal-footer-" + type + "_" + id + " .delete-btn").length == 0
         ) {
           var deleteButton = $(
-            '<button class="btn btn-danger modal-delete-btn" type="submit" name="delete">Delete</button>'
+            '<button class="btn btn-danger delete-btn" type="submit" name="delete">Delete</button>'
           );
           $("#modal-footer-" + type + "_" + id + " form").append(deleteButton);
         }
