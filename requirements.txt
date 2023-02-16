@@ -3,7 +3,7 @@ aiohttp==3.8.4
 black==23.1.0
 coverage==7.1.0
 crispy-bootstrap5==0.7
-Django==4.1.6
+Django==4.1.7
 django-compressor==4.3.1
 django-crispy-forms==1.14.0
 django-sass-processor==1.2.2
