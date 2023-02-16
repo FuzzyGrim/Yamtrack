@@ -5,7 +5,7 @@ coverage==7.1.0
 crispy-bootstrap5==0.7
 Django==4.1.7
 django-compressor==4.3.1
-django-crispy-forms==1.14.0
+django-crispy-forms==2.0
 django-sass-processor==1.2.2
 flake8==6.0.0
 flake8-length==0.3.1
