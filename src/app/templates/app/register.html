@@ -1,19 +1,16 @@
-{% load static %}
-{% load crispy_forms_tags %}
+{% load static %} {% load crispy_forms_tags %}
 
 {% block content %}
 
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
-
   <head>
     {% include "app/include/tags.html" %}
-    <title>Yamtarr | Register</title>
+    <title>Register | Yamtarr</title>
   </head>
 
   <body id="home">
-
-    {% include "app/include/navbar.html" %}    
+    {% include "app/include/navbar.html" %}
 
     <main>
       <div class="content-section">
@@ -24,19 +21,21 @@
             {{ form|crispy }}
           </fieldset>
           <div class="form-group">
-            <button class="btn bg-dark text-white" type="submit">Sign Up</button>
+            <button class="btn bg-dark text-white" type="submit">
+              Sign Up
+            </button>
           </div>
         </form>
         <div class="border-top mt-3">
           <small class="text-muted">
-            Already Have An Account? <a class="ml-2" href="{% url 'login' %}">Sign In</a>
+            Already Have An Account?
+            <a class="ml-2" href="{% url 'login' %}">Sign In</a>
           </small>
         </div>
       </div>
     </main>
-  
+
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
   </body>
-
 </html>
 {% endblock %}

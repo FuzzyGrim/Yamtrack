@@ -1,22 +1,23 @@
-$container-bg: #1B1E1F;
+$container-bg: #1b1e1f;
 $font-grey: #d1cdc7;
 
 #home {
-
-  .sticky-lg-top { top: 6em; }
+  .sticky-lg-top {
+    top: 6em;
+  }
 
   #v-pills-tab {
     background-color: $container-bg;
     width: 15rem;
-    border: 1px solid #383D3F;
+    border: 1px solid #383d3f;
     border-radius: 0.5rem;
 
     .dropend {
       height: 3rem;
-  
+
       button {
         color: #aaaaaa;
-      
+
         &.active {
           color: rgb(231, 229, 229);
         }
@@ -25,7 +26,7 @@ $font-grey: #d1cdc7;
           color: rgb(231, 229, 229);
         }
       }
-  
+
       .nav-link {
         width: 80%;
         background-color: $container-bg;
@@ -37,25 +38,25 @@ $font-grey: #d1cdc7;
           float: left;
           text-align: left;
         }
-  
+
         .right_number {
           float: right;
           text-align: right;
         }
       }
-  
+
       .dropdown-toggle {
         &:hover {
           color: #ebe7e7;
           border: 1px solid #ebe7e7;
         }
       }
-  
+
       .filters {
         background-color: $container-bg;
-        border: 1px solid #383D3F;
+        border: 1px solid #383d3f;
         margin-left: 2rem;
-  
+
         button.dropdown-item {
           width: 100%;
           height: 100%;
@@ -67,16 +68,16 @@ $font-grey: #d1cdc7;
   .tab-content {
     background-color: $container-bg;
     width: 100%;
-    border: 1px solid #383D3F;
+    border: 1px solid #383d3f;
     border-radius: 0.5rem;
-    
+
     .content-title {
       margin: 0.6em 0.8em 0;
       font-size: 1.8rem;
     }
 
     .tab-pane {
-      .d-flex{
+      .d-flex {
         & .image,
         & .score,
         & .status,
@@ -86,11 +87,12 @@ $font-grey: #d1cdc7;
         }
       }
 
-      .list-head{
+      .list-head {
         margin: 1em 0 0;
       }
 
-      .list-head, .list-section{
+      .list-head,
+      .list-section {
         .image {
           margin-left: 1em !important;
           text-align: center;
@@ -108,7 +110,7 @@ $font-grey: #d1cdc7;
           }
         }
 
-        .title{
+        .title {
           flex: 3;
           overflow: hidden;
           display: -webkit-box;
@@ -126,7 +128,10 @@ $font-grey: #d1cdc7;
           }
         }
 
-        .score, .status, ._progress, .edit {
+        .score,
+        .status,
+        ._progress,
+        .edit {
           flex: 1;
           .btn {
             background-color: $container-bg;
@@ -135,11 +140,11 @@ $font-grey: #d1cdc7;
             border-radius: 0;
             &:hover {
               color: #fff;
-            } 
+            }
           }
 
           .dropdown-menu {
-            background-color: #24292F;
+            background-color: #24292f;
             color: $font-grey;
             min-width: 0;
             padding: 1em;
@@ -147,6 +152,5 @@ $font-grey: #d1cdc7;
         }
       }
     }
-
   }
 }

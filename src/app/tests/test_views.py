@@ -56,6 +56,18 @@ class LoggedInView(TestCase):
         self.assertTemplateUsed(response, "app/home.html")
         self.assertContains(response, "TV")
 
+    def test_search_tmdb(self):
+        response = self.client.get("/search?api=tmdb&q=friends")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/search.html")
+        self.assertContains(response, "Friends")
+
+    def test_search_mal(self):
+        response = self.client.get("/search?api=mal&q=flcl")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/search.html")
+        self.assertContains(response, "FLCL")
+
     def test_profile(self):
         response = self.client.get(reverse("profile"))
         self.assertEqual(response.status_code, 200)

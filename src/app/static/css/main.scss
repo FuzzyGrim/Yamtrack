@@ -5,11 +5,10 @@
 @import "profile";
 @import "edit";
 
-
 // apply to everything except mobile
 @media screen and (min-width: 768px) {
-  .navbar{
-    .hidden{
+  .navbar {
+    .hidden {
       display: none;
     }
     .navbar-brand.abs {
@@ -23,11 +22,11 @@
 }
 
 // applies to medium devices (tablets)
-@media screen and (max-width: 992px){
+@media screen and (max-width: 992px) {
   main {
     margin: 5em 1em 1em;
   }
-  .navbar{
+  .navbar {
     .navbar-brand.abs {
       width: 45%;
       margin-left: 1rem;
@@ -35,28 +34,29 @@
   }
 
   #home {
-    .sticky-lg-top { top: 5em; }
+    .sticky-lg-top {
+      top: 5em;
+    }
 
-    .tab-content .tab-pane .list-section, .tab-content .tab-pane .list-head {
+    .tab-content .tab-pane .list-section,
+    .tab-content .tab-pane .list-head {
       .status {
         width: 20%;
       }
-      
     }
   }
 
-  .modal-content{
-    form div{
+  .modal-content {
+    form div {
       width: 100%;
     }
   }
 }
 
-
 // landscape phones and smaller
 @media screen and (max-width: 767px) {
   .navbar {
-    .hidden{
+    .hidden {
       display: block;
       .nav-link {
         font-size: 1.7rem;
@@ -64,8 +64,8 @@
     }
 
     .navbar-brand.abs {
-      width:70%;
-      margin:auto;
+      width: 70%;
+      margin: auto;
 
       .form-control {
         width: 1%;
@@ -75,31 +75,33 @@
 
   #home .tab-content {
     margin-top: 1em;
-  } 
+  }
 }
 
 // xs
 @media screen and (max-width: 576px) {
   #home .tab-content {
     .tab-pane {
-      .list-head, .list-section {
+      .list-head,
+      .list-section {
         .title {
           flex: 2;
         }
-        .status, ._progress {
+        .status,
+        ._progress {
           display: none;
         }
       }
     }
   }
 
-  .modal-content{
+  .modal-content {
     .content {
       .genres {
         display: none;
       }
     }
-    form div{
+    form div {
       width: 100%;
     }
   }

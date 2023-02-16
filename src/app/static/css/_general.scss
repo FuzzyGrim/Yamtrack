@@ -1,16 +1,16 @@
-body{
-  background-color: #181A1B;
+body {
+  background-color: #181a1b;
 }
 
 main {
   margin: 6em 10em 2em;
 }
 
-form .btn:not(.modal-delete-btn){
+form .btn:not(.delete-btn) {
   border-radius: 0;
   border-width: 1px;
   border-style: solid;
-  border-color: #56595D;
+  border-color: #56595d;
   background-color: #232224;
 
   &:hover {
@@ -25,7 +25,7 @@ form .btn:not(.modal-delete-btn){
 }
 
 // disable num input arrows
-input[type=number] {
+input[type="number"] {
   appearance: textfield;
   -moz-appearance: textfield;
 }

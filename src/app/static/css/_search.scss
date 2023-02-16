@@ -6,7 +6,6 @@
     grid-gap: 1.5rem 1rem;
 
     .card {
-      
       .poster {
         object-fit: cover;
         height: 18rem;
@@ -18,16 +17,14 @@
       }
 
       .card-body {
-        padding: .6rem;
-        .card-title{
+        padding: 0.6rem;
+        .card-title {
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
           margin-bottom: 0;
         }
       }
-      
     }
   }
-
 }

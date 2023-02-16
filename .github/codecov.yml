@@ -1,0 +1,12 @@
+coverage:
+  status:
+    patch:
+      default:
+        paths:
+        - "src/app"
+        threshold: 5.0
+    project:
+      default:
+        paths:
+        - "src/app"
+        threshold: 5.0
