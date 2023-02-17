@@ -1,4 +1,4 @@
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 from django.contrib import auth
 
@@ -38,7 +38,6 @@ class DefaultView(TestCase):
         response = self.client.get("/search?api=mal&q=flcl")
         self.assertEqual(response.status_code, 302)
 
-    @override_settings(ADMIN_ENABLED=True)
     def test_admin(self):
         response = self.client.get("/admin")
         self.assertEqual(response.status_code, 301)
@@ -74,6 +73,18 @@ class LoggedInView(TestCase):
         self.assertTemplateUsed(response, "app/profile.html")
         self.assertContains(response, "test")
 
+    def test_edit_modal_tmdb(self):
+        response = self.client.get(reverse("edit"), {"media_type": "tv", "media_id": "1668"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/edit.html")
+        self.assertContains(response, "Friends")
+
+    def test_edit_modal_mal(self):
+        response = self.client.get(reverse("edit"), {"media_type": "anime", "media_id": "227"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/edit.html")
+        self.assertContains(response, "FLCL")
+
     def test_logout(self):
         self.client.get(reverse("logout"))
         assert auth.get_user(self.client).is_anonymous
@@ -85,7 +96,6 @@ class AdminView(TestCase):
         self.user = User.objects.create_superuser(**self.credentials)
         self.client.login(**self.credentials)
 
-    @override_settings(ADMIN_ENABLED=True)
     def test_admin(self):
         response = self.client.get("/admin/app/user/")
         self.assertEqual(response.status_code, 200)

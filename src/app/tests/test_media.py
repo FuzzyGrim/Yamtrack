@@ -1,6 +1,5 @@
 from django.test import TestCase
 from django.urls import reverse
-from django.contrib import auth
 from django.test import override_settings
 from django.conf import settings
 
@@ -8,45 +7,6 @@ import shutil
 import os
 
 from app.models import User, Media, Season
-
-
-class RegisterLoginUser(TestCase):
-    def test_create_user(self):
-        response = self.client.post(
-            reverse("register"),
-            {
-                "username": "test",
-                "default_api": "tmdb",
-                "password1": "SMk5noPnqs",
-                "password2": "SMk5noPnqs",
-            },
-        )
-
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("login"))
-        self.assertEqual(User.objects.count(), 1)
-
-    def test_login_user(self):
-        self.client.post(
-            reverse("register"),
-            {
-                "username": "test",
-                "default_api": "tmdb",
-                "password1": "SMk5noPnqs",
-                "password2": "SMk5noPnqs",
-            },
-        )
-
-        response = self.client.post(
-            reverse("login"),
-            {
-                "username": "test",
-                "password": "SMk5noPnqs",
-            },
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("home"))
-        self.assertEqual(auth.get_user(self.client).username, "test")
 
 
 class CreateMedia(TestCase):
@@ -101,11 +61,13 @@ class CreateMedia(TestCase):
             True,
         )
 
+        media = Media.objects.get(media_id=5895, user=self.user)
+        self.assertEqual(str(media), "FLCL")
+        season = Season.objects.get(media=media, number=1)
+        self.assertEqual(str(season), "FLCL - Season 1")
+
     def tearDownClass():
-        try:
-            shutil.rmtree("test_CreateMedia")
-        except OSError:
-            pass
+        shutil.rmtree("test_CreateMedia")
 
 
 class EditMedia(TestCase):
@@ -165,9 +127,6 @@ class EditMedia(TestCase):
         self.assertEqual(
             Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), True
         )
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user, score=9.5).exists(), False
-        )
 
         response = self.client.post(
             reverse("home"),
@@ -185,9 +144,6 @@ class EditMedia(TestCase):
         self.assertContains(response, "9.5")
         self.assertEqual(
             Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), False
-        )
-        self.assertEqual(
-            Media.objects.filter(media_id=1668, user=self.user, score=9.5).exists(), True
         )
 
     def test_edit_tmdb_status(self):

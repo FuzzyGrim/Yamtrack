@@ -39,8 +39,9 @@ jobs:
         ADMIN_ENABLED: True
       run: |
         coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_views
-        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_models
+        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_media
         coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_imports
+        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_forms
 
     - name: Build Coverage Report
       run: |

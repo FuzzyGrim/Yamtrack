@@ -37,10 +37,7 @@ class ImportsMAL(TransactionTestCase):
         )
 
     def tearDownClass():
-        try:
-            shutil.rmtree("test_Imports_MAL")
-        except OSError:
-            pass
+        shutil.rmtree("test_Imports_MAL")
 
 
 class ImportsTMDB(TransactionTestCase):
@@ -112,10 +109,7 @@ class ImportsTMDB(TransactionTestCase):
             )
 
     def tearDownClass():
-        try:
-            shutil.rmtree("test_Imports_TMDB")
-        except OSError:
-            pass
+        shutil.rmtree("test_Imports_TMDB")
 
 
 class ImportsANI(TransactionTestCase):
@@ -141,7 +135,4 @@ class ImportsANI(TransactionTestCase):
         )
 
     def tearDownClass():
-        try:
-            shutil.rmtree("test_Imports_ANI")
-        except OSError:
-            pass
+        shutil.rmtree("test_Imports_ANI")
