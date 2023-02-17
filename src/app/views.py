@@ -161,7 +161,10 @@ def profile(request):
     return render(request, "app/profile.html", context)
 
 
-def edit(request, media_type, media_id):
+def edit(request):
+    media_type = request.GET.get("media_type")
+    media_id = request.GET.get("media_id")
+
     if media_type in ["anime", "manga"]:
         media = interactions.mal_edit(request, media_type, media_id)
     elif media_type in ["movie", "tv"]:

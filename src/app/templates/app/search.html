@@ -37,7 +37,7 @@
           {% for media in query_list %}
             {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga" %}
 
-              <div class="card open-modal-button" type="button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.id}}" data-url="{% url 'edit' media_type=media.media_type media_id=media.id%}">
+              <div class="card open-modal-button" type="button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.id}}" data-url="{{media.media_type}}_{{media.id}}">
                 {% if media.main_picture.large %}
                   <img class="poster flex-shrink-0 card-img-top" src="{{media.main_picture.large}}"/>  
                 {% elif media.poster_path %}

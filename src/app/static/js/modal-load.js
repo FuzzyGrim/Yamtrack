@@ -1,12 +1,12 @@
 $(document).on("click", ".open-modal-button", function () {
-  var url = $(this).data("url");
-  var parts = url.split("/");
-  var type = parts[2];
-  var id = parts[3];
+  var parts = $(this).data("url").split("_");
+  var type = parts[0];
+  var id = parts[1];
 
   $.ajax({
     type: "GET",
-    url: url,
+    url: "/edit/",
+    data: { media_type: type, media_id: id },
     success: function (data) {
       var output = data.title;
       if (data.year) {

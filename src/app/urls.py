@@ -12,7 +12,7 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("login/", views.login, name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-    path("edit/<str:media_type>/<int:media_id>/", views.edit, name="edit"),
+    path("edit/", views.edit, name="edit"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if config("REGISTRATION", default=True, cast=bool):
