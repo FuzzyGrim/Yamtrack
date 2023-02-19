@@ -5,7 +5,7 @@ from django.contrib.auth import (
     authenticate,
     login as auth_login,
 )
-from django.contrib.auth.forms import PasswordChangeForm, AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
@@ -14,7 +14,7 @@ from django.template.loader import render_to_string
 
 
 from app.models import Media, Season
-from app.forms import UserRegisterForm, UserUpdateForm
+from app.forms import UserRegisterForm, UserUpdateForm, PasswordChangeForm
 from app.utils import database, interactions, imports
 
 
