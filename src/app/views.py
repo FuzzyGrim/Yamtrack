@@ -87,6 +87,7 @@ def register(request):
     form = UserRegisterForm(request.POST if request.method == "POST" else None)
     if form.is_valid():
         form.save()
+        messages.success(request, "Your account has been created, you can now log in!")
         return redirect("login")
     return render(request, "app/register.html", {"form": form})
 
@@ -94,6 +95,7 @@ def register(request):
 def login(request):
     form = AuthenticationForm()
     if request.method == "POST":
+        form = AuthenticationForm(data=request.POST)
         user = authenticate(
             request,
             username=request.POST["username"],
@@ -102,60 +104,62 @@ def login(request):
         if user is not None:
             auth_login(request, user)
             return redirect_after_login(request)
-        else:
-            messages.error(
-                request,
-                "Please enter a correct username and password. Note that both fields may be case-sensitive.",
-            )
+
     return render(request, "app/login.html", {"form": form})
 
 
 @login_required
 def profile(request):
-    user_form = UserUpdateForm(request.POST or None, instance=request.user)
-    password_form = PasswordChangeForm(request.user, request.POST or None)
+    user_form = UserUpdateForm(instance=request.user)
+    password_form = PasswordChangeForm(request.user)
 
     if request.method == "POST":
-        if user_form.is_valid():
-            user_form.save()
-            messages.success(request, "Your account has been updated!")
+        if "default_api" in request.POST:
+            user_form = UserUpdateForm(request.POST, instance=request.user)
+            if user_form.is_valid():
+                user_form.save()
+                messages.success(request, "Your account has been updated!")
+                return redirect("profile")
 
-        elif password_form.is_valid():
-            password = password_form.save()
-            update_session_auth_hash(request, password)
-            messages.success(request, "Your password has been updated!")
+        elif "new_password1" in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                password = password_form.save()
+                update_session_auth_hash(request, password)
+                messages.success(request, "Your password has been updated!")
+                return redirect("profile")
 
-        elif request.POST.get("mal"):
-            if imports.import_myanimelist(
-                request.POST.get("mal"), request.user
-            ):
-                messages.success(
-                    request, "Your MyAnimeList has been imported!"
-                )
+        elif "mal" in request.POST:
+            if imports.import_myanimelist(request.POST["mal"], request.user):
+                messages.success(request, "Your MyAnimeList has been imported!")
+                return redirect("profile")
             else:
-                messages.error(request, "User not found")
+                messages.error(request, "MyAnimeList user not found")
 
         elif request.FILES.get("tmdb"):
             if imports.import_tmdb(request.FILES.get("tmdb"), request.user):
                 messages.success(request, "Your TMDB list has been imported!")
+                return redirect("profile")
             else:
                 messages.error(
                     request,
                     'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name',
                 )
 
-        elif request.POST.get("anilist"):
-            error = imports.import_anilist(
-                request.POST.get("anilist"), request.user
-            )
+        elif "anilist" in request.POST:
+            error = imports.import_anilist(request.POST["anilist"], request.user)
             if error == "":
                 messages.success(request, "Your AniList has been imported!")
+                return redirect("profile")
             elif error == "User not found":
-                messages.error(request, "User not found")
+                messages.error(request, "AniList user not found")
             else:
                 title = "Couldn't find a matching MAL ID for: \n"
                 messages.error(request, title + error)
-        return redirect("profile")
+                return redirect("profile")
+
+        else:
+            messages.error(request, "There was an error with your request")
 
     context = {"user_form": user_form, "password_form": password_form}
     return render(request, "app/profile.html", context)

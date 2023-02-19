@@ -20,17 +20,6 @@
         <form method="POST">
           {% csrf_token %}
           <fieldset class="form-group">
-            {% if messages %}
-              {% for message in messages %}
-                {% if message.tags == 'error' %}
-                  <div class="alert alert-danger">
-                {% else %}
-                  <div class="alert alert-{{ message.tags }}">
-                {% endif %}
-                  {{ message }}
-                </div>
-              {% endfor %}
-            {% endif %}
             <legend class="border-bottom mb-4">Log in</legend>
             {{ form|crispy }}
           </fieldset>
