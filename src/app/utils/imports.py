@@ -311,15 +311,15 @@ async def anilist_get_media_list(query, error, user):
             for list in query["data"][media_type]["lists"]:
                 if not list["isCustomList"]:
                     for content in list["entries"]:
-                        if (
-                            not await Media.objects.filter(
-                                media_id=content["media"]["idMal"],
-                                media_type=media_type,
-                                api="mal",
-                                user=user,
-                            ).aexists()
-                            and content["media"]["idMal"] is not None
-                        ):
+                        if content["media"]["idMal"] is None:
+                            error += f"\n {content['media']['title']['userPreferred']}"
+
+                        elif not await Media.objects.filter(
+                            media_id=content["media"]["idMal"],
+                            media_type=media_type,
+                            api="mal",
+                            user=user,
+                        ).aexists():
                             task.append(
                                 ensure_future(
                                     anilist_get_media(
@@ -327,9 +327,6 @@ async def anilist_get_media_list(query, error, user):
                                     )
                                 )
                             )
-
-                        else:
-                            error += f"\n {content['media']['title']['userPreferred']}"
 
         return await gather(*task), error
 
