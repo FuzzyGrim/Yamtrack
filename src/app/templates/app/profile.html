@@ -49,36 +49,45 @@
           <button class="btn bg-dark text-white" type="submit">Update</button>
         </div>
       </form>
-      <form id="import-form" class="import mt-5" method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <fieldset class="input-group">
-          <legend class="border-bottom mb-4">Import</legend>
 
-          <div class="d-lg-flex flex-row justify-content-evenly mb-3" style="width:100%">
+      <div class="mb-3 mt-5">
+        <fieldset class="input-group d-lg-flex flex-row justify-content-evenly">
+          <legend class="border-bottom mb-4">Import</legend>
+        
+          <form class="import" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
             <div class="p-2 d-flex flex-column">
               <div class="import-title">The Movie Database</div>
               <div class="input-group">
                 <input type="file" accept=".csv" class="form-control" aria-label="Upload" name="tmdb">
-                <button class="btn btn-outline-secondary" type="submit" name="tmdb-btn" value="tmdb-btn"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
               </div>
             </div>
+          </form>
+
+          <form class="import" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
             <div class="p-2 dflex flex-column">
               <div class="import-title">MyAnimeList</div>
               <div class="input-group">
                 <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
-                <button class="btn btn-outline-secondary" type="submit" name="mal-btn" value="mal-btn"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
               </div>
             </div>
+          </form>
+          
+          <form class="import" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
             <div class="p-2 dflex flex-column">
               <div class="import-title">AniList</div>
               <div class="input-group">
                 <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
-                <button class="btn btn-outline-secondary" type="submit" name="anilist-btn" value="anilist-btn"><i class="bi bi-check-lg"></i></button>
+                <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
               </div>
             </div>
-          </div>
+          </form>
         </fieldset>
-      </form>
+      </div>
 
     </main>
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
