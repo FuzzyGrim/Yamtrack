@@ -1,22 +1,26 @@
-// Get all the import forms
-var importForms = document.querySelectorAll(".import");
+document.addEventListener('DOMContentLoaded', function() {
 
-// Add event listeners to each form
-importForms.forEach(function(form) {
-  form.addEventListener("submit", function () {
-    var div = document.createElement("div");
-    div.className = "d-flex justify-content-center";
+  // Get all the import forms
+  var forms = document.querySelectorAll(".grid-item");
 
-    var spinner = document.createElement("div");
-    spinner.className = "spinner-border";
-    spinner.setAttribute("role", "status");
+  // Add event listeners to each form
+  forms.forEach(function(form) {
+    form.addEventListener("submit", function () {
 
-    var span = document.createElement("span");
-    span.className = "visually-hidden";
-    span.textContent = "Loading...";
+      var spinner = document.createElement("div");
+      spinner.className = "spinner-border spinner-border-sm";
+      spinner.setAttribute("role", "status");
 
-    spinner.appendChild(span);
-    div.appendChild(spinner);
-    document.querySelector("main").appendChild(div);
+      var span = document.createElement("span");
+      span.className = "visually-hidden";
+      span.textContent = "Loading...";
+
+      spinner.appendChild(span);
+      var submitBtn = form.querySelector(".btn-submit");
+
+      // Set the innerHTML of the submit button to the spinner element
+      submitBtn.innerHTML = "";
+      submitBtn.appendChild(spinner);
+    });
   });
 });

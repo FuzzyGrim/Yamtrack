@@ -36,7 +36,7 @@
           {{ user_form|crispy }}
         </fieldset>
         <div class="form-group">
-          <button class="btn bg-dark text-white" type="submit">Save</button>
+          <button class="btn btn-submit" type="submit">Save</button>
         </div>
       </form>
       <form method="POST" class="mt-5">
@@ -46,44 +46,38 @@
           {{ password_form|crispy }}
         </fieldset>
         <div class="form-group">
-          <button class="btn bg-dark text-white" type="submit">Update</button>
+          <button class="btn btn-submit" type="submit">Update</button>
         </div>
       </form>
 
       <div class="mb-3 mt-5">
-        <fieldset class="input-group d-lg-flex flex-row justify-content-evenly">
-          <legend class="border-bottom mb-4">Import</legend>
-        
-          <form class="import" method="POST" enctype="multipart/form-data">
+        <legend class="border-bottom mb-4">Import</legend>
+
+        <fieldset class="input-group grid-container">
+          <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-            <div class="p-2 d-flex flex-column">
-              <div class="import-title">The Movie Database</div>
-              <div class="input-group">
-                <input type="file" accept=".csv" class="form-control" aria-label="Upload" name="tmdb">
-                <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
-              </div>
+            <div class="form-title">The Movie Database</div>
+            <div class="input-group">
+              <input type="file" accept=".csv" class="form-control" aria-label="Upload" name="tmdb">
+              <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
             </div>
           </form>
 
-          <form class="import" method="POST" enctype="multipart/form-data">
+          <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-            <div class="p-2 dflex flex-column">
-              <div class="import-title">MyAnimeList</div>
-              <div class="input-group">
-                <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
-                <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
-              </div>
+            <div class="form-title">MyAnimeList</div>
+            <div class="input-group">
+              <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
+              <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
             </div>
           </form>
           
-          <form class="import" method="POST" enctype="multipart/form-data">
+          <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-            <div class="p-2 dflex flex-column">
-              <div class="import-title">AniList</div>
-              <div class="input-group">
-                <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
-                <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
-              </div>
+            <div class="form-title">AniList</div>
+            <div class="input-group">
+              <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
+              <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
             </div>
           </form>
         </fieldset>
