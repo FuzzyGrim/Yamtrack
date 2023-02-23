@@ -1,29 +1,42 @@
-// get hash from url
-$(function () {
+document.addEventListener("DOMContentLoaded", function () {
+  // get hash from url
   var hash = location.hash.replace(/^#\//, "");
   if (hash) {
-    $('#v-pills-tab button[data-bs-target="#' + hash + '"]').tab("show");
+    var button = document.querySelector(
+      '#v-pills-tab button[data-bs-target="#' + hash + '"]'
+    );
+    var tab = new bootstrap.Tab(button);
+    tab.show();
 
-    // highlight media type if hash includes to status
     var media = hash.split("-")[0];
-    $("#" + media + "-tab").addClass("highlight");
+    document.querySelector("#" + media + "-tab").classList.add("highlight");
   } else {
-    $('#v-pills-tab button[data-bs-target="#tv"]').tab("show");
+    var defaultTabButton = document.querySelector(
+      '#v-pills-tab button[data-bs-target="#tv"]'
+    );
+    var defaultTab = new bootstrap.Tab(defaultTabButton);
+    defaultTab.show();
   }
 
-  $("#v-pills-tab button")
-    .not(".dropdown-toggle")
-    .on("click", function (event) {
-      event.preventDefault();
-      // change hash after click for page-reload
-      var target = $(this).data("bs-target").replace(/^#/, "");
-      window.location.hash = "#/" + target;
+  document
+    .querySelectorAll("#v-pills-tab button:not(.dropdown-toggle)")
+    .forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        // change hash after click for page-reload
+        var target = button.dataset.bsTarget.replace(/^#/, "");
+        window.location.hash = "#/" + target;
 
-      // Remove the "highlight" class from all tab link elements
-      $("#v-pills-tab button").removeClass("highlight");
+        // Remove the "highlight" class from all tab link elements
+        document
+          .querySelectorAll("#v-pills-tab button")
+          .forEach(function (button) {
+            button.classList.remove("highlight");
+          });
 
-      // highlight media type if hash includes to status
-      var media = target.split("-")[0];
-      $(media + "-tab").addClass("highlight");
+        // highlight media type if hash includes to status
+        var media = target.split("-")[0];
+        document.querySelector("#" + media + "-tab").classList.add("highlight");
+      });
     });
 });

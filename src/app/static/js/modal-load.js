@@ -1,95 +1,128 @@
-$(document).on("click", ".open-modal-button", function () {
-  var parts = $(this).data("url").split("_");
-  var type = parts[0];
-  var id = parts[1];
+var openModalButtons = document.querySelectorAll(".open-modal-button");
 
-  $.ajax({
-    type: "GET",
-    url: "/edit/",
-    data: { media_type: type, media_id: id },
-    success: function (data) {
-      var output = data.title;
-      if (data.year) {
-        output += " (" + data.year + ")";
-      }
+openModalButtons.forEach(function (button) {
+  button.addEventListener("click", function () {
+    // get the data-url attribute from the clicked element
+    var urlParts = this.getAttribute("data-url").split("_");
+    var type = urlParts[0];
+    var id = urlParts[1];
 
-      if (data.original_type) {
-        // capitalize first letter
-        output += " ["
-               + data.original_type.charAt(0).toUpperCase()
-               + data.original_type.slice(1)
-               + "]";
-      } else if (data.media_type) {
-        // capitalize first letter
-        output += " ["
-               + data.media_type.charAt(0).toUpperCase()
-               + data.media_type.slice(1)
-               + "]";
-      }
+    var xhr = new XMLHttpRequest();
+    var url = "/edit/?media_type=" + type + "&media_id=" + id;
 
-      $("#modal-title-" + type + "_" + id).html(output);
-      $("#modal-body-" + type + "_" + id).html(data.html);
-      if (data.seasons) {
-        var select = $("#season-select-" + type + "_" + id);
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        // parse the JSON response
+        var data = JSON.parse(xhr.responseText);
+        var output = data.title;
+        if (data.year) {
+          output += " (" + data.year + ")";
+        }
 
-        new bootstrap.Tooltip(
-          document
-            .getElementById("season-descriptor-" + type + "_" + id)
-            .querySelector('[data-bs-toggle="tooltip"]')
-        );
+        if (data.original_type) {
+          // capitalize first letter
+          output += " ["
+                 + data.original_type.charAt(0).toUpperCase()
+                 + data.original_type.slice(1)
+                 + "]";
+        } else if (data.media_type) {
+          // capitalize first letter
+          output += " ["
+                 + data.media_type.charAt(0).toUpperCase()
+                 + data.media_type.slice(1)
+                 + "]";
+        }
 
-        var score = $("#score-input-" + type + "_" + id);
-        var status = $("#season-status-" + type + "_" + id);
-        var progress = $("#progress-input-" + type + "_" + id);
-        var start = $("#start-input-" + type + "_" + id);
-        var end = $("#end-input-" + type + "_" + id);
+        // update the modal title and body with the response data
+        document.getElementById("modal-title-" + type + "_" + id).innerHTML =
+          output;
+        document.getElementById("modal-body-" + type + "_" + id).innerHTML =
+          data.html;
 
-        select.change(function () {
-          var selectedValue = $(this).val();
+        if (data.seasons) {
+          var select = document.getElementById(
+            "season-select-" + type + "_" + id
+          );
 
-          if (selectedValue == "general") {
-            score.val(data.score);
-            status.val(data.status);
-            progress.val(data.progress);
-            start.val(data.start_date);
-            end.val(data.end_date);
-          } else {
-            let exists = false;
+          new bootstrap.Tooltip(
+            document
+              .getElementById("season-descriptor-" + type + "_" + id)
+              .querySelector('[data-bs-toggle="tooltip"]')
+          );
 
-            // check if season exists in database
-            for (let i = 0; i < data["media_seasons"].length && !exists; i++) {
-              let media_season = data["media_seasons"][i];
-              if (media_season.number == selectedValue) {
-                score.val(media_season.score);
-                status.val(media_season.status);
-                progress.val(media_season.progress);
-                start.val(media_season.start_date);
-                end.val(media_season.end_date);
-                exists = true;
+          var score = document.getElementById("score-input-" + type + "_" + id);
+          var status = document.getElementById(
+            "season-status-" + type + "_" + id
+          );
+          var progress = document.getElementById(
+            "progress-input-" + type + "_" + id
+          );
+          var start = document.getElementById("start-input-" + type + "_" + id);
+          var end = document.getElementById("end-input-" + type + "_" + id);
+
+          select.addEventListener("change", function () {
+            var selectedValue = select.value;
+
+            if (selectedValue == "general") {
+              score.value = data.score;
+              status.value = data.status;
+              progress.value = data.progress;
+              start.value = data.start_date;
+              end.value = data.end_date;
+            } else {
+              let exists = false;
+
+              // check if season exists in database
+              for (
+                let i = 0;
+                i < data["media_seasons"].length && !exists;
+                i++
+              ) {
+                let media_season = data["media_seasons"][i];
+                if (media_season.number == selectedValue) {
+                  score.value = media_season.score;
+                  status.value = media_season.status;
+                  progress.value = media_season.progress;
+                  start.value = media_season.start_date;
+                  end.value = media_season.end_date;
+                  exists = true;
+                }
+              }
+
+              if (!exists) {
+                score.value = "";
+                status.value = "Completed";
+                progress.value = "";
+                start.value = "";
+                end.value = "";
               }
             }
-
-            if (!exists) {
-              score.val("");
-              status.val("Completed");
-              progress.val("");
-              start.val("");
-              end.val("");
-            }
-          }
-        });
-      }
-      if (data.in_db) {
-        // Add delete button if it doesn't exist
-        if (
-          $("#modal-footer-" + type + "_" + id + " .delete-btn").length == 0
-        ) {
-          var deleteButton = $(
-            '<button class="btn btn-danger delete-btn" type="submit" name="delete">Delete</button>'
-          );
-          $("#modal-footer-" + type + "_" + id + " form").append(deleteButton);
+          });
         }
+
+        if (data.in_db) {
+          // Add delete button if it doesn't exist
+          if (
+            document.querySelectorAll(
+              "#modal-footer-" + type + "_" + id + " .delete-btn"
+            ).length == 0
+          ) {
+            var deleteBtn = document.createElement("button");
+            deleteBtn.className = "btn btn-danger delete-btn";
+            deleteBtn.type = "submit";
+            deleteBtn.name = "delete";
+            deleteBtn.innerHTML = "Delete";
+            var form = document.querySelector(
+              "#modal-footer-" + type + "_" + id + " form"
+            );
+            form.appendChild(deleteBtn);
+          }
+        }
+      } else {
+        console.error("Request failed. Returned status of " + xhr.status);
       }
-    },
+    };
+    xhr.open("GET", url);
+    xhr.send();
   });
 });
