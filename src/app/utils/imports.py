@@ -241,11 +241,11 @@ def import_anilist(username, user):
                     status
                     score(format: POINT_10_DECIMAL)
                     progress
-                  	startedAt {
+                    startedAt {
                         year
                         month
                         day
-                  	}
+                    }
                     completedAt {
                         year
                         month
@@ -270,11 +270,11 @@ def import_anilist(username, user):
                     status
                     score(format: POINT_10_DECIMAL)
                     progress
-                  	startedAt {
+                    startedAt {
                         year
                         month
                         day
-                  	}
+                    }
                     completedAt {
                         year
                         month

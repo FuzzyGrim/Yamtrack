@@ -34,9 +34,7 @@ def home(request):
         return redirect("home")
 
     # get all media with tracked seasons of user
-    queryset = Media.objects.filter(user_id=request.user).prefetch_related(
-        "seasons"
-    )
+    queryset = Media.objects.filter(user_id=request.user).prefetch_related("seasons")
     data = {
         "tv": {"media": [], "statuses": {}},
         "movie": {"media": [], "statuses": {}},
@@ -158,6 +156,9 @@ def profile(request):
                 messages.error(request, title + error)
                 return redirect("profile")
 
+        elif "dl-media" in request.POST:
+            print("dl-media")
+
         else:
             messages.error(request, "There was an error with your request")
 
@@ -187,9 +188,7 @@ def edit(request):
     }
 
     media["response"]["media_type"] = media_type
-    data["html"] = render_to_string(
-        "app/edit.html", {"media": media}, request=request
-    )
+    data["html"] = render_to_string("app/edit.html", {"media": media}, request=request)
 
     if "seasons" in response and len(response["seasons"]) > 1:
         data["seasons"] = response["seasons"]

@@ -74,13 +74,17 @@ class LoggedInView(TestCase):
         self.assertContains(response, "test")
 
     def test_edit_modal_tmdb(self):
-        response = self.client.get(reverse("edit"), {"media_type": "tv", "media_id": "1668"})
+        response = self.client.get(
+            reverse("edit"), {"media_type": "tv", "media_id": "1668"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/edit.html")
         self.assertContains(response, "Friends")
 
     def test_edit_modal_mal(self):
-        response = self.client.get(reverse("edit"), {"media_type": "anime", "media_id": "227"})
+        response = self.client.get(
+            reverse("edit"), {"media_type": "anime", "media_id": "227"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/edit.html")
         self.assertContains(response, "FLCL")
