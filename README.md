@@ -50,12 +50,12 @@ services:
       # - REGISTRATION=False
     volumes:
       - ./db:/app/db
-      - assets:/app/assets
+      - media:/app/assets/media
     ports:
-      - "8080:80"
+      - "8000:8000"
 
 volumes:
-  assets:
+  media:
 ```
 
 ## Environment variables

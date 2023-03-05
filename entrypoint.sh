@@ -14,5 +14,4 @@ usermod -o -u "$PUID" abc
 chown -R abc:abc db
 chown -R abc:abc assets
 
-nginx
-exec gosu abc:abc uwsgi --socket :8000 --master --enable-threads --module base.wsgi
+exec gosu abc:abc uwsgi --ini /app/base/uwsgi.ini
