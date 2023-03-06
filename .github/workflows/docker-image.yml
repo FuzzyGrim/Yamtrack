@@ -45,6 +45,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
@@ -67,6 +70,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
+          platforms: linux/amd64,linux/arm/v6,linux/arm/v7
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -82,3 +86,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
+          platforms: linux/amd64,linux/arm/v6,linux/arm/v7
