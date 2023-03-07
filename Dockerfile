@@ -4,7 +4,7 @@ FROM python:3.9-slim as builder
 COPY ./requirements.txt /requirements.txt
 
 RUN apt-get update && apt-get install -y --no-install-recommends g++ gosu && \
-    pip install --extra-index-url https://www.piwheels.org/simple --target=/dependencies $(grep -ivE "django-compressor|libsass" /requirements.txt)
+    pip install --extra-index-url https://www.piwheels.org/simple --target=/dependencies -r /requirements.txt
 
 
 FROM python:3.9-slim-bullseye
