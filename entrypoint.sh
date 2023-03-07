@@ -12,6 +12,6 @@ PGID=${PGID:-911}
 groupmod -o -g "$PGID" abc
 usermod -o -u "$PUID" abc
 chown -R abc:abc db
-chown -R abc:abc assets
+chown -R abc:abc media
 
 exec gosu abc:abc uwsgi --ini /app/base/uwsgi.ini

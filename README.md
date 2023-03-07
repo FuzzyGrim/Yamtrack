@@ -50,7 +50,7 @@ services:
       # - REGISTRATION=False
     volumes:
       - ./db:/app/db
-      - media:/app/assets/media
+      - media:/app/media
     ports:
       - "8000:8000"
 
