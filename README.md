@@ -62,7 +62,7 @@ volumes:
 
 | Name           |  Type       | Description                | Required     | Default   | Notes                                 |
 | -------------- | ----------- | -------------------------- | ------------ | --------- | ------------------------------------- |
-| SECRET         | String      | Django secret key          | Yes          | None      |                                       |
+| SECRET         | String      | Django secret key          | Yes          | 'secret'  |                                       |
 | TMDB_API       | String      | The Movie Database API key | Yes          | None      | Required for movies and tv shows      |
 | MAL_API        | String      | MyAnimeList API key        | Yes          | None      | Required for anime and manga          |
 | ALLOWED_HOSTS  | List        | Base IP / Domain           | Yes          | 127.0.0.1 | Your list would extend the default    |

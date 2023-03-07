@@ -1,23 +1,33 @@
-FROM python:3.9-slim-bullseye
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
-
-WORKDIR /app
+# pip dependencies in a separate image
+FROM python:3.9-slim as builder
 
 COPY ./requirements.txt /requirements.txt
 
-RUN apt-get update && apt-get install -y --no-install-recommends gosu g++ gcc && \
-    pip install --no-cache-dir --upgrade --extra-index-url https://www.piwheels.org/simple -r /requirements.txt && \
-	rm -rf /var/lib/apt/lists/* && \
-    apt-get remove -y --purge g++ gcc && apt-get autoremove -y && \
-	gosu nobody true
+RUN apt-get update && apt-get install -y --no-install-recommends g++ gosu && \
+    pip install --extra-index-url https://www.piwheels.org/simple --target=/dependencies $(grep -ivE "django-compressor|libsass" /requirements.txt)
+
+
+FROM python:3.9-slim-bullseye
+
+# https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
+ENV PYTHONUNBUFFERED=1
+
+COPY --from=builder /dependencies /usr/local
+ENV PYTHONPATH=/usr/local
+COPY --from=builder /usr/sbin/gosu /usr/sbin/gosu
+
+WORKDIR /app
 
 COPY ./entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && \
+
+# create user abc for later PUID/PGID mapping https://github.com/linuxserver/docker-baseimage-alpine/blob/master/Dockerfile
+RUN chmod +x /entrypoint.sh && \ 
 	groupmod -g 1000 users && \
-	useradd -u 911 -U -M  -s /bin/bash abc && \
+	useradd -u 911 -U -M -s /bin/bash abc && \
 	usermod -G users abc
 
+# Django app
 COPY src ./
+RUN python manage.py collectstatic --noinput --ignore=*.scss
 
 CMD ["/entrypoint.sh"]

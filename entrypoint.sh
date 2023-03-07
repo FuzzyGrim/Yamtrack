@@ -3,8 +3,6 @@
 set -e
 
 python manage.py migrate --noinput
-python manage.py collectstatic --noinput --ignore=*.scss
-
 
 PUID=${PUID:-911}
 PGID=${PGID:-911}
