@@ -158,8 +158,6 @@ STATICFILES_FINDERS = [
     "sass_processor.finders.CssFinder",
 ]
 
-SASS_PROCESSOR_ENABLED = True
-
-SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR, "assets/static")
+SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR, "app/static")
 
 SASS_OUTPUT_STYLE = "compact"
