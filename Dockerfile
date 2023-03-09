@@ -1,5 +1,5 @@
 # pip dependencies in a separate image
-FROM python:3.9-slim as builder
+FROM python:3.11-slim as builder
 
 COPY ./requirements.txt /requirements.txt
 
@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends g++ && \
     pip install --extra-index-url https://www.piwheels.org/simple --target=/dependencies -r /requirements.txt
 
 
-FROM python:3.9-slim-bullseye
+FROM python:3.11-slim-bullseye
 
 # https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
 ENV PYTHONUNBUFFERED=1
