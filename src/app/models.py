@@ -1,13 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
-from app.storage import OverwriteStorage
 
 
 class Media(models.Model):
     media_id = models.IntegerField()
     title = models.CharField(max_length=100)
-    image = models.ImageField(upload_to="images", storage=OverwriteStorage())
+    image = models.ImageField()
     media_type = models.CharField(max_length=30)
     score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
     progress = models.IntegerField()

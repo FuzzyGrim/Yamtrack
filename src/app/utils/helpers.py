@@ -1,10 +1,9 @@
 from django.conf import settings
-from django.core.files.temp import NamedTemporaryFile
 
 import aiofiles
 import datetime
-import os
 import requests
+from pathlib import Path
 
 
 def convert_mal_media_type(media_type):
@@ -12,31 +11,36 @@ def convert_mal_media_type(media_type):
     return media_type.replace("_", " ").title()
 
 
-def get_image_temp(url):
-    img_temp = NamedTemporaryFile(delete=True)
-    r = requests.get(url)
-    img_temp.write(r.content)
-    img_temp.flush()
-    return img_temp
+def download_image(url, media_type):
+    # rsplit is used to split the url at the last / and taking the last element
+    # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
+
+    filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
+    location = f"{settings.MEDIA_ROOT}/{filename}"
+
+    if not Path(location).is_file():
+        r = requests.get(url)
+        with open(location, "wb") as f:
+            f.write(r.content)
+
+    return filename
 
 
-async def download_image(session, url, media_type):
-    if url not in [
-        "",
-        "https://image.tmdb.org/t/p/w92None",
-        "https://image.tmdb.org/t/p/w92",
-    ]:
-        # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
-        location = f"{settings.MEDIA_ROOT}/images/{media_type}-{url.rsplit('/', 1)[-1]}"
+async def download_image_async(session, url, media_type):
 
-        # Create the directory if it doesn't exist
-        os.makedirs(f"{settings.MEDIA_ROOT}/images", exist_ok=True)
+    # rsplit is used to split the url at the last / and taking the last element
+    # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
+    filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
+    location = f"{settings.MEDIA_ROOT}/{filename}"
 
+    if not Path(location).is_file():
         async with session.get(url) as resp:
             if resp.status == 200:
                 f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
+
+    return filename
 
 
 def fix_inputs(request, metadata):

@@ -14,8 +14,9 @@ class CreateMedia(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
+        os.makedirs("create")
 
-    @override_settings(MEDIA_ROOT=("test_CreateMedia/media"))
+    @override_settings(MEDIA_ROOT=("create"))
     def test_create_tmdb(self):
         self.assertEqual(
             Media.objects.filter(media_id=5895, user=self.user).exists(), False
@@ -56,7 +57,7 @@ class CreateMedia(TestCase):
         )
         self.assertEqual(
             os.path.exists(
-                settings.MEDIA_ROOT + "/images/tmdb-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"
+                settings.MEDIA_ROOT + "/tv-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"
             ),
             True,
         )
@@ -67,15 +68,17 @@ class CreateMedia(TestCase):
         self.assertEqual(str(season), "FLCL - Season 1")
 
     def tearDownClass():
-        shutil.rmtree("test_CreateMedia")
+        shutil.rmtree("create")
 
 
 class EditMedia(TestCase):
-    @override_settings(MEDIA_ROOT=("test_EditMedia/media"))
+    @override_settings(MEDIA_ROOT=("edit"))
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
+        os.makedirs("edit", exist_ok=True)
+
         media = Media(
             media_id=1668,
             title="Friends",
@@ -242,6 +245,6 @@ class EditMedia(TestCase):
 
     def tearDownClass():
         try:
-            shutil.rmtree("test_EditMedia")
+            shutil.rmtree("edit")
         except OSError:
             pass

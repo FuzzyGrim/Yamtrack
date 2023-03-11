@@ -13,8 +13,9 @@ class ImportsMAL(TransactionTestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
+        os.makedirs("MAL")
 
-    @override_settings(MEDIA_ROOT=("test_Imports_MAL/media"))
+    @override_settings(MEDIA_ROOT=("MAL"))
     def test_import_animelist(self):
         imports.import_myanimelist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
@@ -26,7 +27,7 @@ class ImportsMAL(TransactionTestCase):
         )
         self.assertEqual(
             Media.objects.get(user=self.user, title="Ama Gli Animali").image
-            == "images/none.svg",
+            == "none.svg",
             True,
         )
         self.assertEqual(
@@ -37,7 +38,7 @@ class ImportsMAL(TransactionTestCase):
         )
 
     def tearDownClass():
-        shutil.rmtree("test_Imports_MAL")
+        shutil.rmtree("MAL")
 
 
 class ImportsTMDB(TransactionTestCase):
@@ -45,9 +46,11 @@ class ImportsTMDB(TransactionTestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    @override_settings(MEDIA_ROOT=("test_Imports_TMDB/media"))
+    @override_settings(MEDIA_ROOT=("TMDB"))
     def test_import_tmdb(self):
-        file_path = os.path.join("test_Imports_TMDB/ratings.csv")
+        os.makedirs("TMDB")
+        file_path = os.path.join("TMDB", "ratings.csv")
+
         fields = [
             "TMDb ID",
             "IMDb ID",
@@ -86,7 +89,7 @@ class ImportsTMDB(TransactionTestCase):
                 "2022-12-17T16:23:01Z",
             ],
         ]
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
         with open(file_path, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(fields)
@@ -109,15 +112,16 @@ class ImportsTMDB(TransactionTestCase):
             )
 
     def tearDownClass():
-        shutil.rmtree("test_Imports_TMDB")
+        shutil.rmtree("TMDB")
 
 
 class ImportsANI(TransactionTestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
+        os.makedirs("AL")
 
-    @override_settings(MEDIA_ROOT=("test_Imports_ANI/media"))
+    @override_settings(MEDIA_ROOT=("AL"))
     def test_import_anilist(self):
         imports.import_anilist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
@@ -135,4 +139,4 @@ class ImportsANI(TransactionTestCase):
         )
 
     def tearDownClass():
-        shutil.rmtree("test_Imports_ANI")
+        shutil.rmtree("AL")
