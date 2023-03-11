@@ -6,7 +6,7 @@ from django.conf import settings
 class Media(models.Model):
     media_id = models.IntegerField()
     title = models.CharField(max_length=100)
-    image = models.ImageField(upload_to="images")
+    image = models.ImageField()
     media_type = models.CharField(max_length=30)
     score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
     progress = models.IntegerField()

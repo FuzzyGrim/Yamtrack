@@ -8,7 +8,7 @@
     {% elif media.response.poster_path %}
       <img class="poster" src="https://image.tmdb.org/t/p/w500{{media.response.poster_path}}"/>
     {% else %}
-      <img class="image-not-found" src="{% get_media_prefix %}/images/none.svg"/>
+      <img class="image-not-found" src="{% get_media_prefix %}/none.svg"/>
     {% endif %}
 
     <div class="content">

@@ -56,7 +56,7 @@ class CreateMedia(TestCase):
         )
         self.assertEqual(
             os.path.exists(
-                settings.MEDIA_ROOT + "/images/tmdb-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"
+                settings.MEDIA_ROOT + "/tmdb-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"
             ),
             True,
         )

@@ -22,12 +22,12 @@ def add_media(request):
     )
 
     if metadata["image"] == "" or metadata["image"] is None:
-        media.image = "images/none.svg"
+        media.image = "none.svg"
     else:
         if media.api == "tmdb":
             metadata["image"] = f"https://image.tmdb.org/t/p/w92{metadata['image']}"
         filename = helpers.download_image(metadata["image"], media.media_type)
-        media.image = f"images/{filename}"
+        media.image = f"{filename}"
 
     media.save()
 

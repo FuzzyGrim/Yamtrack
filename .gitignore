@@ -4,5 +4,5 @@ __pycache__
 .coverage
 venv
 src/db/db.sqlite3
-src/media/images/*
-!src/media/images/none.svg
+src/media/*
+!src/media/none.svg
