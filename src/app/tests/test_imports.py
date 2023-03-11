@@ -13,6 +13,7 @@ class ImportsMAL(TransactionTestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
+        os.makedirs("MAL")
 
     @override_settings(MEDIA_ROOT=("MAL"))
     def test_import_animelist(self):
@@ -47,7 +48,9 @@ class ImportsTMDB(TransactionTestCase):
 
     @override_settings(MEDIA_ROOT=("TMDB"))
     def test_import_tmdb(self):
+        os.makedirs("TMDB")
         file_path = os.path.join("TMDB", "ratings.csv")
+
         fields = [
             "TMDb ID",
             "IMDb ID",
@@ -86,7 +89,7 @@ class ImportsTMDB(TransactionTestCase):
                 "2022-12-17T16:23:01Z",
             ],
         ]
-        os.makedirs("TMDB", exist_ok=True)
+
         with open(file_path, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(fields)
@@ -116,6 +119,7 @@ class ImportsANI(TransactionTestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
+        os.makedirs("AL")
 
     @override_settings(MEDIA_ROOT=("AL"))
     def test_import_anilist(self):
