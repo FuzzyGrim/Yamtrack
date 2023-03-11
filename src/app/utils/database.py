@@ -1,6 +1,5 @@
 from app.models import Media, Season
 from app.utils import helpers
-from django.core.files import File
 from django.db.models import Avg, Sum, Min, Max
 
 
@@ -25,30 +24,12 @@ def add_media(request):
     if metadata["image"] == "" or metadata["image"] is None:
         media.image = "images/none.svg"
     else:
-        # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
-        if media.api == "mal":
-            img_temp = helpers.get_image_temp(metadata["image"])
-            if media.media_type == "anime":
-                media.image.save(
-                    f"anime-{metadata['image'].rsplit('/', 1)[-1]}",
-                    File(img_temp),
-                    save=False,
-                )
-            elif media.media_type == "manga":
-                media.image.save(
-                    f"manga-{metadata['image'].rsplit('/', 1)[-1]}",
-                    File(img_temp),
-                    save=False,
-                )
-            img_temp.close()
-        else:
-            img_temp = helpers.get_image_temp(
-                f"https://image.tmdb.org/t/p/w92{metadata['image']}"
-            )
-            media.image.save(
-                f"tmdb-{metadata['image'].rsplit('/', 1)[-1]}", File(img_temp)
-            )
-            img_temp.close()
+        if media.api == "tmdb":
+            metadata["image"] = f"https://image.tmdb.org/t/p/w92{metadata['image']}"
+        filename = helpers.download_image(metadata["image"], media.media_type)
+        media.image = f"images/{filename}"
+
+    media.save()
 
     # if request is for a season, create a season object
     if "season" in request.POST and request.POST["season"] != "general":
@@ -56,6 +37,8 @@ def add_media(request):
             offset = 0
         else:
             offset = 1
+
+        # if completed and has episode count, set progress to episode count
         if (
             request.POST["status"] == "Completed"
             and "episode_count"
@@ -64,6 +47,7 @@ def add_media(request):
             media.progress = metadata["seasons"][int(request.POST["season"]) - offset][
                 "episode_count"
             ]
+            media.save()
 
         Season.objects.create(
             media=media,
@@ -76,7 +60,6 @@ def add_media(request):
             end_date=media.end_date,
         )
 
-    media.save()
     del request.session["metadata"]
 
 
