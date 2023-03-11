@@ -17,6 +17,17 @@
 
     <main>
       <div class="content-section">
+        {% if messages %}
+          {% for message in messages %}
+            {% if message.tags == 'error' %}
+              <div class="alert alert-danger">
+            {% else %}
+              <div class="alert alert-{{ message.tags }}">
+            {% endif %}
+              {{ message|linebreaksbr }}
+            </div>
+          {% endfor %}
+        {% endif %}
         <form method="POST">
           {% csrf_token %}
           <fieldset class="form-group">
