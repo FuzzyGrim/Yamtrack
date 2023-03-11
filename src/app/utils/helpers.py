@@ -3,6 +3,7 @@ from django.conf import settings
 import aiofiles
 import datetime
 import requests
+from pathlib import Path
 
 
 def convert_mal_media_type(media_type):
@@ -17,9 +18,10 @@ def download_image(url, media_type):
     filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
     location = f"{settings.MEDIA_ROOT}/images/{filename}"
 
-    r = requests.get(url)
-    with open(location, "wb") as f:
-        f.write(r.content)
+    if not Path(location).is_file():
+        r = requests.get(url)
+        with open(location, "wb") as f:
+            f.write(r.content)
 
     return filename
 
@@ -31,11 +33,12 @@ async def download_image_async(session, url, media_type):
     filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
     location = f"{settings.MEDIA_ROOT}/images/{filename}"
 
-    async with session.get(url) as resp:
-        if resp.status == 200:
-            f = await aiofiles.open(location, mode="wb")
-            await f.write(await resp.read())
-            await f.close()
+    if not Path(location).is_file():
+        async with session.get(url) as resp:
+            if resp.status == 200:
+                f = await aiofiles.open(location, mode="wb")
+                await f.write(await resp.read())
+                await f.close()
 
     return filename
 
