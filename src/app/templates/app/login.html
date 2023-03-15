@@ -38,11 +38,13 @@
               <button class="btn bg-dark text-white" type="submit">Log in</button>
             </div>
         </form>
-        <div class="border-top mt-3">
-          <small class="text-muted">
-            Need An Account? <a class="ml-2" href="{% url 'register' %}">Sign Up Now</a>
-          </small>
-        </div>
+        {% if REGISTRATION %}
+          <div class="border-top mt-3">
+            <small class="text-muted">
+              Need An Account? <a class="ml-2" href="{% url 'register' %}">Sign Up Now</a>
+            </small>
+          </div>
+        {% endif %}
       </div>
     </main>
 
