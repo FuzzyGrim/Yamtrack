@@ -68,3 +68,14 @@ def fix_inputs(request, metadata):
         post["end"] = datetime.date.today()
 
     return post
+
+
+def get_client_ip(request):
+    # get the user's IP address
+    ip_address = request.META.get("HTTP_X_FORWARDED_FOR")
+
+    # if the IP address is not available in HTTP_X_FORWARDED_FOR
+    if not ip_address:
+        ip_address = request.META.get("REMOTE_ADDR")
+
+    return ip_address

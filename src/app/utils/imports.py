@@ -5,12 +5,14 @@ from decouple import config
 
 import datetime
 import requests
+import logging
 
 from app.models import Media, Season
 from app.utils import helpers
 
 TMDB_API = config("TMDB_API", default="")
 MAL_API = config("MAL_API", default="")
+logger = logging.getLogger(__name__)
 
 
 def import_myanimelist(username, user):
@@ -37,13 +39,23 @@ async def myanilist_get_media_list(series, user):
         task = []
         for media_type, media_list in series.items():
             for content in media_list["data"]:
-                if not await Media.objects.filter(
-                    media_id=content["node"]["id"], api="mal", user=user
+                if await Media.objects.filter(
+                    media_id=content["node"]["id"],
+                    api="mal",
+                    media_type=media_type,
+                    user=user,
                 ).aexists():
+                    logger.warning(
+                        f"{media_type.capitalize()}: {content['node']['title']} ({content['node']['id']}) already exists in database. Skipping..."
+                    )
+                else:
                     task.append(
                         ensure_future(
                             myanimelist_get_media(session, content, media_type, user)
                         )
+                    )
+                    logger.info(
+                        f"{media_type.capitalize()}: {content['node']['title']} ({content['node']['id']}) added to import list."
                     )
 
         return await gather(*task)
@@ -122,16 +134,24 @@ async def tmdb_get_media_list(reader, user, status):
     async with ClientSession() as session:
         task = []
         for row in reader:
-            if not await Media.objects.filter(
+            if await Media.objects.filter(
                 media_id=row["TMDb ID"],
                 media_type=row["Type"],
                 api="tmdb",
                 user=user,
             ).aexists():
+                logger.warning(
+                    f"{row['Type'].capitalize()}: {row['Name']} ({row['TMDb ID']}) already exists in database. Skipping..."
+                )
+            else:
+                # Checks if is a tv show or movie because it could be episode which is not supported
                 if row["Type"] == "tv":
                     url = f"https://api.themoviedb.org/3/tv/{row['TMDb ID']}?api_key={TMDB_API}"
                     task.append(
                         ensure_future(tmdb_get_media(session, url, row, user, status))
+                    )
+                    logger.info(
+                        f"TV: {row['Name']} ({row['TMDb ID']}) added to import list."
                     )
 
                 elif row["Type"] == "movie":
@@ -139,7 +159,9 @@ async def tmdb_get_media_list(reader, user, status):
                     task.append(
                         ensure_future(tmdb_get_media(session, url, row, user, status))
                     )
-
+                    logger.info(
+                        f"Movie: {row['Name']} ({row['TMDb ID']}) added to import list."
+                    )
         await gather(*task)
 
 
@@ -156,7 +178,9 @@ async def tmdb_get_media(session, url, row, user, status):
             image = "none.svg"
         else:
             filename = await helpers.download_image_async(
-                session, f"https://image.tmdb.org/t/p/w92{response['poster_path']}", row["Type"]
+                session,
+                f"https://image.tmdb.org/t/p/w92{response['poster_path']}",
+                row["Type"],
             )
             # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
             image = f"{filename}"
@@ -310,19 +334,28 @@ async def anilist_get_media_list(query, error, user):
                     for content in list["entries"]:
                         if content["media"]["idMal"] is None:
                             error += f"\n {content['media']['title']['userPreferred']}"
-
-                        elif not await Media.objects.filter(
+                            logger.warning(
+                                f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} has no MAL ID."
+                            )
+                        elif await Media.objects.filter(
                             media_id=content["media"]["idMal"],
                             media_type=media_type,
                             api="mal",
                             user=user,
                         ).aexists():
+                            logger.warning(
+                                f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) already exists in database. Skipping..."
+                            )
+                        else:
                             task.append(
                                 ensure_future(
                                     anilist_get_media(
                                         session, content, media_type, user
                                     )
                                 )
+                            )
+                            logger.info(
+                                f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) added to import list."
                             )
 
         return await gather(*task), error

@@ -12,10 +12,13 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.template.loader import render_to_string
 
-
 from app.models import Media, Season
 from app.forms import UserRegisterForm, UserUpdateForm, PasswordChangeForm
-from app.utils import database, interactions, imports
+from app.utils import database, interactions, imports, helpers
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -86,6 +89,7 @@ def register(request):
     if form.is_valid():
         form.save()
         messages.success(request, "Your account has been created, you can now log in!")
+        logger.info(f"New user registered: {form.cleaned_data.get('username')} at {helpers.get_client_ip(request)}")
         return redirect("login")
     return render(request, "app/register.html", {"form": form})
 
@@ -101,6 +105,7 @@ def login(request):
         )
         if user is not None:
             auth_login(request, user)
+            logger.info(f"User logged in as: {request.POST['username']} at {helpers.get_client_ip(request)}")
             return redirect_after_login(request)
 
     return render(request, "app/login.html", {"form": form})
@@ -117,6 +122,7 @@ def profile(request):
             if user_form.is_valid():
                 user_form.save()
                 messages.success(request, "Your account has been updated!")
+                logger.info("Successful account update for: " + request.user.username)
                 return redirect("profile")
 
         elif "new_password1" in request.POST:
@@ -125,39 +131,46 @@ def profile(request):
                 password = password_form.save()
                 update_session_auth_hash(request, password)
                 messages.success(request, "Your password has been updated!")
+                logger.info("Successful password change for: " + request.user.username)
                 return redirect("profile")
 
         elif "mal" in request.POST:
+            logger.info(f"Importing {request.POST['mal']} from MyAnimeList")
             if imports.import_myanimelist(request.POST["mal"], request.user):
                 messages.success(request, "Your MyAnimeList has been imported!")
+                logger.info(f"Finished importing {request.POST['mal']} from MyAnimeList")
                 return redirect("profile")
             else:
                 messages.error(request, "MyAnimeList user not found")
+                logger.error(f"An error occurred while importing {request.POST['mal']} from MyAnimeList")
 
         elif request.FILES.get("tmdb"):
+            logger.info("Importing from TMDB csv file")
             if imports.import_tmdb(request.FILES.get("tmdb"), request.user):
                 messages.success(request, "Your TMDB list has been imported!")
+                logger.info("TMDB import successful")
                 return redirect("profile")
             else:
                 messages.error(
                     request,
                     'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name',
                 )
+                logger.error("TMDB import failed")
 
         elif "anilist" in request.POST:
+            logger.info(f"Importing {request.POST['anilist']} from Anilist")
             error = imports.import_anilist(request.POST["anilist"], request.user)
             if error == "":
                 messages.success(request, "Your AniList has been imported!")
+                logger.info(f"Finished importing {request.POST['anilist']} from Anilist")
                 return redirect("profile")
             elif error == "User not found":
                 messages.error(request, "AniList user not found")
+                logger.error(f"An error occurred while importing {request.POST['anilist']} from Anilist")
             else:
                 title = "Couldn't find a matching MAL ID for: \n"
                 messages.error(request, title + error)
                 return redirect("profile")
-
-        elif "dl-media" in request.POST:
-            print("dl-media")
 
         else:
             messages.error(request, "There was an error with your request")
