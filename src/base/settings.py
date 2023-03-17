@@ -126,7 +126,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{asctime:<21} {levelname:<8} {ip:<15} {message}",
+            "format": "{asctime:<21} {levelname:<8} {message}",
             # 2023-03-15T21:27:37Z format
             "datefmt": "%Y-%m-%d %H:%M:%S",
             "style": "{",
