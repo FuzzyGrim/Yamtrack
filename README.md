@@ -89,7 +89,7 @@ Then run the following commands.
 
 ```bash
 python -m pip install -U -r requirements_dev.txt
-cd yamtarr
+cd src
 python manage.py migrate
 python manage.py runserver
 ```
