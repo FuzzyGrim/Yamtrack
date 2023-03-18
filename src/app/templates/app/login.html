@@ -1,55 +1,72 @@
-{% load static %}
-{% load crispy_forms_tags %}
-
+{% load static %} {% load sass_tags %}
 {% block content %}
 
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
 
-  <head>
-    {% include "app/include/tags.html" %}
-    <title>Log in | Yamtarr</title>
-  </head>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="keyword" content="Yamtarr" />
+    <meta name="description" content="Search and track media on Yamtarr." />
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-icons.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% sass_src "css/main.scss" %}" />
 
-  <body id="home">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static "favicon/favicon-32x32.png" %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static "favicon/favicon-16x16.png" %}">
+    <link rel="manifest" href="/site.webmanifest">
 
-    {% include "app/include/navbar.html" %}    
+    <title>Login - Yamtarr</title>
+</head>
 
-    <main>
-      <div class="content-section">
-        {% if messages %}
-          {% for message in messages %}
-            {% if message.tags == 'error' %}
-              <div class="alert alert-danger">
-            {% else %}
-              <div class="alert alert-{{ message.tags }}">
-            {% endif %}
-              {{ message|linebreaksbr }}
-            </div>
-          {% endfor %}
-        {% endif %}
-        <form method="POST">
-          {% csrf_token %}
-          <fieldset class="form-group">
-            <legend class="border-bottom mb-4">Log in</legend>
-            {{ form|crispy }}
-          </fieldset>
-            <div class="form-group">
-              <button class="btn bg-dark text-white" type="submit">Log in</button>
-            </div>
-        </form>
-        {% if REGISTRATION %}
-          <div class="border-top mt-3">
-            <small class="text-muted">
-              Need An Account? <a class="ml-2" href="{% url 'register' %}">Sign Up Now</a>
-            </small>
+<body class="text-center d-flex justify-content-center align-items-center">
+    
+  <div class="form-signin">
+    <form method="POST">
+      {% csrf_token %}
+      <img class="mb-4" src="{% static "favicon/apple-touch-icon.png" %}" alt="" width="57" height="57">
+      <h3 class="h3 mb-3 fw-normal">Log in to Yamtarr</h1>
+        
+      {% if messages %}
+        {% for message in messages %}
+          {% if message.tags == 'error' %}
+            <div class="alert alert-danger">
+          {% else %}
+            <div class="alert alert-{{ message.tags }}">
+          {% endif %}
+            {{ message|linebreaksbr }}
           </div>
-        {% endif %}
+        {% endfor %}
+      {% endif %}
+      
+      <div class="form-floating">
+        <input type="text" name="username" autofocus="" autocapitalize="none" autocomplete="username" maxlength="150" class="textinput textInput form-control" required="" id="floatingInput" placeholder="Username">
+        <label for="floatingInput">Username</label>
       </div>
-    </main>
+      <div class="form-floating">
+        <input type="password" name="password" autocomplete="current-password" class="textinput textInput form-control" required="" id="floatingPassword" placeholder="Password">
+        <label for="floatingPassword">Password</label>
+      </div>
+      
+      <div class="checkbox mb-3">
+        <label>
+          <input type="checkbox" name="remember_me" class="checkboxinput form-check-input" id="id_remember_me"> Remember me
+        </label>
+      </div>
 
-    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-    </body>
+      <button class="w-100 btn btn-lg btn btn-secondary login" type="submit">Log In</button>
 
+      <div class="mt-5 mb-3 ">
+        <small class="text-muted">
+          Need An Account? <a class="ml-2" href="{% url 'register' %}">Register Now</a>
+        </small>
+      </div>
+    </form>
+  </div>
+</body>
 </html>
 {% endblock %}

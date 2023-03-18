@@ -78,6 +78,16 @@ main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-color:
 
 #profile .grid-container form.grid-item .form-title { font-size: 1.2rem; margin-bottom: 0.5em; text-align: center; }
 
+body { height: 100vh; }
+
+.form-signin { width: 330px; padding: 15px; }
+
+.form-signin .form-floating:focus-within { z-index: 2; }
+
+.form-signin input[type="text"] { margin-bottom: -1px; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
+
+.form-signin input[type="password"] { margin-bottom: 10px; border-top-left-radius: 0; border-top-right-radius: 0; }
+
 .modal-content .poster { border-radius: 10px; width: 10rem; height: 15rem; object-fit: cover; }
 
 .modal-content .image-not-found { object-fit: contain; width: 10rem; height: 15rem; background-color: #2c3032; }

@@ -1,11 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import (
-    update_session_auth_hash,
-    authenticate,
-    login as auth_login,
-)
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
@@ -13,7 +9,12 @@ from django.conf import settings
 from django.template.loader import render_to_string
 
 from app.models import Media, Season
-from app.forms import UserRegisterForm, UserUpdateForm, PasswordChangeForm
+from app.forms import (
+    UserLoginForm,
+    UserRegisterForm,
+    UserUpdateForm,
+    PasswordChangeForm,
+)
 from app.utils import database, interactions, imports, helpers
 
 from itertools import groupby
@@ -115,26 +116,32 @@ def register(request):
     if form.is_valid():
         form.save()
         messages.success(request, "Your account has been created, you can now log in!")
-        logger.info(f"New user registered: {form.cleaned_data.get('username')} at {helpers.get_client_ip(request)}")
+        logger.info(
+            f"New user registered: {form.cleaned_data.get('username')} at {helpers.get_client_ip(request)}"
+        )
         return redirect("login")
     return render(request, "app/register.html", {"form": form})
 
 
-def login(request):
-    form = AuthenticationForm()
-    if request.method == "POST":
-        form = AuthenticationForm(data=request.POST)
-        user = authenticate(
-            request,
-            username=request.POST["username"],
-            password=request.POST["password"],
-        )
-        if user is not None:
-            auth_login(request, user)
-            logger.info(f"User logged in as: {request.POST['username']} at {helpers.get_client_ip(request)}")
-            return redirect_after_login(request)
+class UpdatedLoginView(LoginView):
+    form_class = UserLoginForm
+    template_name = "app/login.html"
 
-    return render(request, "app/login.html", {"form": form})
+    def form_valid(self, form):
+        remember_me = form.cleaned_data['remember_me']
+        if remember_me:
+            self.request.session.set_expiry(2592000)  # 30 days
+            self.request.session.modified = True
+
+        logger.info(
+            f"User logged in as: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}"
+        )
+        return super(UpdatedLoginView, self).form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Please enter a correct username and password. Note that both fields are case-sensitive.")
+        logger.error(f"Failed login attempt for: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}")
+        return super(UpdatedLoginView, self).form_invalid(form)
 
 
 @login_required
