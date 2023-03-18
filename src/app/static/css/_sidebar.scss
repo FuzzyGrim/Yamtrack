@@ -1,0 +1,15 @@
+#sidebar {
+  width: 230px;
+  .nav-link.active {
+    color: #fff;
+    font-weight: 600;
+    background-color: #303438
+  }
+
+  .nav-link:not(.active) {
+    color: #fff;
+    &:hover {
+      background-color: #3a4047;
+    }
+  }
+}

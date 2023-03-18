@@ -1,0 +1,142 @@
+{% load static %} {% load sass_tags %}
+
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="keyword" content="Yamtarr" />
+    <meta name="description" content="Search and track media on Yamtarr." />
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-icons.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% sass_src "css/main.scss" %}" />
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static "favicon/favicon-32x32.png" %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static "favicon/favicon-16x16.png" %}">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <title>
+      {% if page %} 
+        {{ page|capfirst }} - Yamtarr
+      {% else %}
+        Yamtarr
+      {% endif %}
+    </title>
+</head>
+
+<body>
+
+  <div class="d-flex flex-nowrap">
+    <div class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark offcanvas-lg offcanvas-start" tabindex="-1" aria-labelledby="sidebarLabel" id="sidebar">
+      <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+        <svg class="bi pe-none me-2" width="40" height="32"><use xlink:href="#bootstrap"/></svg>
+        <span class="fs-4">Yamtarr</span>
+      </a>
+      <hr>
+      <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+          <a href="/" class="nav-link home">
+            <i class="bi bi-house-door me-2"></i>
+            Home
+          </a>
+        </li>
+        <li>
+          {% if page == "tv" %}
+          <a href="/medialist/tv" class="nav-link active">
+          {% else %}
+          <a href="/medialist/tv" class="nav-link">
+          {% endif %}
+            <i class="bi bi-tv me-2"></i>
+            TV
+          </a>
+        </li>
+        <li>
+          {% if page == "movie" %}
+          <a href="/medialist/movie" class="nav-link active">
+          {% else %}
+          <a href="/medialist/movie" class="nav-link">
+          {% endif %}
+            <i class="bi bi-film me-2"></i>
+            Movies
+          </a>
+        </li>
+        <li>
+          {% if page == "anime" %}
+          <a href="/medialist/anime" class="nav-link active">
+          {% else %}
+          <a href="/medialist/anime" class="nav-link">
+          {% endif %}
+            <i class="bi bi-collection-play me-2"></i>
+            Animes
+          </a>
+        </li>
+        <li>
+          {% if page == "manga" %}
+          <a href="/medialist/manga" class="nav-link active">
+          {% else %}
+          <a href="/medialist/manga" class="nav-link">
+          {% endif %}
+            <i class="bi bi-book me-2"></i>
+            Mangas
+          </a>
+        </li>
+        <li class="border-top my-3"></li>
+        <li>
+          {% if page == "profile" %}
+          <a href="{% url 'profile' %}" class="nav-link active">
+          {% else %}
+          <a href="{% url 'profile' %}" class="nav-link">
+          {% endif %}
+            <i class="bi bi-person-circle me-2"></i>
+            Profile
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'logout' %}" class="nav-link">
+            <i class="bi bi-box-arrow-left me-2"></i>
+            Logout
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <main>
+      <div class="header d-flex">
+        <button class="offcanvas-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar"><i class="bi bi-list"></i></button>
+        <form class="d-flex input-group" method="get" action="{% url 'search' %}">
+          <select name="api" class="form-select">
+            {% if request.session.last_selected_api == "tmdb" %}
+              <option value="tmdb" selected>TMDB</option>
+              <option value="mal">MAL</option>
+            {% elif request.session.last_selected_api == "mal" %}
+              <option value="mal" selected>MAL</option>
+              <option value="tmdb">TMDB</option>
+            {% else %}
+              {% if user.default_api == 'tmdb' %}
+                <option value="tmdb" selected>TMDB</option>
+                <option value="mal">MAL</option>
+              {% else %}
+                <option value="mal" selected>MAL</option>   
+                <option value="tmdb">TMDB</option>
+              {% endif %}
+            {% endif %}
+          </select>
+          <input class="form-control bg-dark text-white" type="search" name="q" placeholder="Search" aria-label="Search" value="{% if 'q' in request.GET %}{{ request.GET.q }}{% endif %}" required>
+          <button class="btn bg-dark text-white rounded-end" type="submit"><i class="bi bi-search"></i></button>
+        </form>
+      </div>
+
+      {% block content %}{% endblock %}
+    </main>
+    
+  </div>
+      
+  <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    
+</body>
+
+</html>

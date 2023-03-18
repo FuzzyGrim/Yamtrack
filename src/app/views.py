@@ -16,6 +16,8 @@ from app.models import Media, Season
 from app.forms import UserRegisterForm, UserUpdateForm, PasswordChangeForm
 from app.utils import database, interactions, imports, helpers
 
+from itertools import groupby
+from operator import itemgetter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,35 +25,58 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
+    # TODO
+    return render(request, "app/home.html")
+
+
+@login_required
+def medialist(request, media_type):
     if request.method == "POST":
         if "delete" in request.POST:
             metadata = request.session.get("metadata")
             Media.objects.get(
                 media_id=metadata["id"],
+                media_type=media_type,
                 user=request.user,
                 api=metadata["api"],
             ).delete()
         elif "status" in request.POST:
             database.edit_media(request)
 
-        return redirect("home")
+        return redirect("medialist", media_type=media_type)
 
-    # get all media with tracked seasons of user
-    queryset = Media.objects.filter(user_id=request.user).prefetch_related("seasons")
-    data = {
-        "tv": {"media": [], "statuses": {}},
-        "movie": {"media": [], "statuses": {}},
-        "anime": {"media": [], "statuses": {}},
-        "manga": {"media": [], "statuses": {}},
-    }
-    for media in queryset:
-        media_type = media.media_type
-        data[media_type]["media"].append(media)
-        status = (media.status).lower()
-        if status not in data[media_type]["statuses"]:
-            data[media_type]["statuses"][status] = []
-        data[media_type]["statuses"][status].append(media)
-    return render(request, "app/home.html", {"data": data})
+    media_list = Media.objects.filter(
+        user_id=request.user, media_type=media_type
+    ).values(
+        "id",
+        "status",
+        "title",
+        "image",
+        "score",
+        "media_type",
+        "media_id",
+        "progress",
+        "status",
+        "start_date",
+        "end_date",
+    )
+
+    sorted_media_list = sorted(media_list, key=itemgetter("status"))
+
+    # group media by status with count
+    statuses = {"All": {"media_list": media_list, "count": media_list.count()}}
+    for status, items in groupby(sorted_media_list, key=itemgetter("status")):
+        for item in items:
+            if status not in statuses:
+                statuses[status] = {"media_list": [], "count": 0}
+            statuses[status]["media_list"].append(item)
+            statuses[status]["count"] += 1
+
+    return render(
+        request,
+        "app/medialist.html",
+        {"statuses": statuses, "page": media_type},
+    )
 
 
 @login_required
@@ -64,6 +89,7 @@ def search(request):
         if "delete" in request.POST:
             Media.objects.get(
                 media_id=metadata["id"],
+                media_type=metadata["media_type"],
                 user=request.user,
                 api=metadata["api"],
             ).delete()

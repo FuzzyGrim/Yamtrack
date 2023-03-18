@@ -1,43 +1,19 @@
 @import "general";
-@import "navbar";
-@import "home";
+@import "sidebar";
+@import "medialist";
 @import "search";
 @import "profile";
 @import "edit";
 
-// apply to everything except mobile
-@media screen and (min-width: 768px) {
-  .navbar {
-    .hidden {
-      display: none;
-    }
-    .navbar-brand.abs {
-      position: absolute;
-      width: auto;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-    }
-  }
-}
 
 // applies to medium devices (tablets)
 @media screen and (max-width: 992px) {
+
   main {
-    margin: 5em 1em 1em;
-  }
-  .navbar {
-    .navbar-brand.abs {
-      width: 45%;
-      margin-left: 1rem;
-    }
+    padding: 2em 1em 0;
   }
 
   #home {
-    .sticky-lg-top {
-      top: 5em;
-    }
-
     .tab-content .tab-pane .list-section,
     .tab-content .tab-pane .list-head {
       .status {
@@ -50,31 +26,6 @@
     form div {
       width: 100%;
     }
-  }
-}
-
-// landscape phones and smaller
-@media screen and (max-width: 767px) {
-  .navbar {
-    .hidden {
-      display: block;
-      .nav-link {
-        font-size: 1.7rem;
-      }
-    }
-
-    .navbar-brand.abs {
-      width: 70%;
-      margin: auto;
-
-      .form-control {
-        width: 1%;
-      }
-    }
-  }
-
-  #home .tab-content {
-    margin-top: 1em;
   }
 }
 
