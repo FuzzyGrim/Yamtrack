@@ -17,8 +17,6 @@ from app.forms import (
 )
 from app.utils import database, interactions, imports, helpers
 
-from itertools import groupby
-from operator import itemgetter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -31,7 +29,14 @@ def home(request):
 
 
 @login_required
-def medialist(request, media_type):
+def medialist(request, media_type, status=None):
+
+    if media_type not in ["anime", "manga", "tv", "movie"]:
+        return error_view(request, status_code=404)
+
+    if status and status not in ["completed", "watching", "paused", "dropped", "planning"]:
+        return error_view(request, status_code=404)
+
     if request.method == "POST":
         if "delete" in request.POST:
             metadata = request.session.get("metadata")
@@ -41,42 +46,39 @@ def medialist(request, media_type):
                 user=request.user,
                 api=metadata["api"],
             ).delete()
+        # media edit triggered
         elif "status" in request.POST:
             database.edit_media(request)
 
-        return redirect("medialist", media_type=media_type)
+        if status:
+            return redirect("medialist", media_type=media_type, status=status)
+        else:
+            return redirect("medialist", media_type=media_type)
 
-    media_list = Media.objects.filter(
-        user_id=request.user, media_type=media_type
-    ).values(
-        "id",
-        "status",
-        "title",
-        "image",
-        "score",
-        "media_type",
-        "media_id",
-        "progress",
-        "status",
-        "start_date",
-        "end_date",
-    )
-
-    sorted_media_list = sorted(media_list, key=itemgetter("status"))
-
-    # group media by status with count
-    statuses = {"All": {"media_list": media_list, "count": media_list.count()}}
-    for status, items in groupby(sorted_media_list, key=itemgetter("status")):
-        for item in items:
-            if status not in statuses:
-                statuses[status] = {"media_list": [], "count": 0}
-            statuses[status]["media_list"].append(item)
-            statuses[status]["count"] += 1
+    if status:
+        media_list = Media.objects.filter(
+            user_id=request.user, media_type=media_type, status=status.capitalize()
+        ).prefetch_related("seasons")
+    else:
+        media_list = Media.objects.filter(
+            user_id=request.user, media_type=media_type
+        ).prefetch_related("seasons")
 
     return render(
         request,
         "app/medialist.html",
-        {"statuses": statuses, "page": media_type},
+        {
+            "page": media_type,
+            "media_list": media_list,
+            "statuses": [
+                "All",
+                "Completed",
+                "Watching",
+                "Paused",
+                "Dropped",
+                "Planning",
+            ],
+        },
     )
 
 
@@ -128,7 +130,7 @@ class UpdatedLoginView(LoginView):
     template_name = "app/login.html"
 
     def form_valid(self, form):
-        remember_me = form.cleaned_data['remember_me']
+        remember_me = form.cleaned_data["remember_me"]
         if remember_me:
             self.request.session.set_expiry(2592000)  # 30 days
             self.request.session.modified = True
@@ -139,8 +141,13 @@ class UpdatedLoginView(LoginView):
         return super(UpdatedLoginView, self).form_valid(form)
 
     def form_invalid(self, form):
-        messages.error(self.request, "Please enter a correct username and password. Note that both fields are case-sensitive.")
-        logger.error(f"Failed login attempt for: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}")
+        messages.error(
+            self.request,
+            "Please enter a correct username and password. Note that both fields are case-sensitive.",
+        )
+        logger.error(
+            f"Failed login attempt for: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}"
+        )
         return super(UpdatedLoginView, self).form_invalid(form)
 
 
@@ -171,11 +178,15 @@ def profile(request):
             logger.info(f"Importing {request.POST['mal']} from MyAnimeList")
             if imports.import_myanimelist(request.POST["mal"], request.user):
                 messages.success(request, "Your MyAnimeList has been imported!")
-                logger.info(f"Finished importing {request.POST['mal']} from MyAnimeList")
+                logger.info(
+                    f"Finished importing {request.POST['mal']} from MyAnimeList"
+                )
                 return redirect("profile")
             else:
                 messages.error(request, "MyAnimeList user not found")
-                logger.error(f"An error occurred while importing {request.POST['mal']} from MyAnimeList")
+                logger.error(
+                    f"An error occurred while importing {request.POST['mal']} from MyAnimeList"
+                )
 
         elif request.FILES.get("tmdb"):
             logger.info("Importing from TMDB csv file")
@@ -195,11 +206,15 @@ def profile(request):
             error = imports.import_anilist(request.POST["anilist"], request.user)
             if error == "":
                 messages.success(request, "Your AniList has been imported!")
-                logger.info(f"Finished importing {request.POST['anilist']} from Anilist")
+                logger.info(
+                    f"Finished importing {request.POST['anilist']} from Anilist"
+                )
                 return redirect("profile")
             elif error == "User not found":
                 messages.error(request, "AniList user not found")
-                logger.error(f"An error occurred while importing {request.POST['anilist']} from Anilist")
+                logger.error(
+                    f"An error occurred while importing {request.POST['anilist']} from Anilist"
+                )
             else:
                 title = "Couldn't find a matching MAL ID for: \n"
                 messages.error(request, title + error)
@@ -208,7 +223,11 @@ def profile(request):
         else:
             messages.error(request, "There was an error with your request")
 
-    context = {"user_form": user_form, "password_form": password_form}
+    context = {
+        "user_form": user_form,
+        "password_form": password_form,
+        "page": "profile",
+    }
     return render(request, "app/profile.html", context)
 
 

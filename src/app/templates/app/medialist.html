@@ -5,119 +5,127 @@
 
   <div id="medialist" class="content">
     
-    <ul class="nav nav-tabs" id="tabs" role="tablist">
-      {% for status, status_media in statuses.items %}
-        <li class="nav-item" role="presentation">
-          {% if forloop.first %}
-          <button class="nav-link active" id="{{status}}-tab" data-bs-toggle="tab" data-bs-target="#{{status}}-tab-pane" type="button" role="tab" aria-controls="{{status}}-tab-pane" aria-selected="true">
-          {% else %}
-          <button class="nav-link" id="{{status}}-tab" data-bs-toggle="tab" data-bs-target="#{{status}}-tab-pane" type="button" role="tab" aria-controls="{{status}}-tab-pane" aria-selected="false">
-          {% endif %}
-            {{status|capfirst}} ({{status_media.count}})
-          </button>
-        </li>
-      {% endfor %}
-    </ul>
-    <div class="tab-content" id="myTabContent">
-      {% for status, status_media_list in statuses.items %}
-        {% if forloop.first %}
-        <div class="tab-pane fade show active" id="{{status}}-tab-pane" role="tabpanel" aria-labelledby="{{status}}-tab" tabindex="0">
-        {% else %}
-        <div class="tab-pane fade" id="{{status}}-tab-pane" role="tabpanel" aria-labelledby="{{status}}-tab" tabindex="0">
-        {% endif %}
-          <div class="d-flex flex-row align-items-center list-head">
-            <div class="image p-2"><div class="empty-div"></div></div>
-            <div class="title p-2"><strong>Title</strong></div>
-            <div class="score p-2"><strong>Score</strong></div>
-            <div class="status p-2"><strong>Status</strong></div>
-            <div class="_progress p-2"><strong>Progress</strong></div>
-            <div class="edit p-2"><strong>Edit</strong></div>
-          </div>
-          {% for media in status_media_list.media_list %}
-            <div class="d-flex flex-row mb-3 align-items-center list-section">
-              <div class="image p-2">
-                <img loading="lazy" src="/media/{{media.image}}"/>
-              </div>
-            
-              <div class="title p-2">{{media.title}}</div>
-            
-              {% if media.seasons.all and media.seasons.all|length != 1 %}
-                <div class="score p-2 dropdown-center">
-                  <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      {{media.score}}
-                  </button>
-                  <ul class="dropdown-menu">
-                    {% for season in media.seasons.all %}
-                    <li>S{{season.number}}: {{season.score}}</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-            
-                <div class="status p-2 dropdown-center">
-                  <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    {{media.status}}
-                  </button>
-                  <ul class="dropdown-menu">
-                    {% for season in media.seasons.all %}
-                    <li>S{{season.number}}: {{season.status}}</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-            
-                <div class="_progress p-2 dropdown-center">
-                  <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    {{media.progress}}
-                  </button>
-                  <ul class="dropdown-menu">
-                    {% for season in media.seasons.all %}
-                    <li>S{{season.number}}: {{season.progress}}</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-            
-              {% else %}
-                <div class="score p-2">{{media.score}}</div>
-                <div class="status p-2">{{media.status}}</div>
-                <div class="_progress p-2">{{media.progress}}</div>
-              {% endif %}
-              
-              <div class="edit p-2">
-                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{{media.media_type}}_{{media.media_id}}">
-                  <i class="bi bi-pen-fill"></i>
-                </button>
-              </div>
-              
-              <div class="modal fade" id="modal-{{media.media_type}}_{{media.media_id}}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-                  <div class="modal-content">
-                    <div class="modal-header">
-                      <h1 id="modal-title-{{media.media_type}}_{{media.media_id}}" class="modal-title fs-5"></h1>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" id="modal-body-{{media.media_type}}_{{media.media_id}}">
-                      <div class="d-flex justify-content-center">
-                        <div class="spinner-grow" role="status">
-                          <span class="visually-hidden">Loading...</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="modal-footer d-flex justify-content-between" id="modal-footer-{{media.media_type}}_{{media.media_id}}">
-                      <form method="post">
-                        {% csrf_token %}
-                        {% comment %} modal-load creates delete button if media exists in db {% endcomment %}
-                      </form>
-                      <button type="submit" form="form-{{media.media_type}}_{{media.media_id}}" class="btn btn-primary">Save</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            
-            </div>
+    <div class="d-flex flex-row align-items-center list-head">
+      <div class="filter dropdown p-2">
+        <button class="btn btn-secondary dropdown-toggle filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-funnel-fill"></i>
+        </button>
+        <ul class="dropdown-menu">
+          {% comment %} href is set to current url with filter appended {% endcomment %}
+          {% for status in statuses %}
+            {% if forloop.first %}
+              <li>
+                <a class="dropdown-item" href="{% url 'medialist' media_type=request.resolver_match.kwargs.media_type %}">
+                  All
+                  <span class="text-end">
+                    {% if request.path == "/medialist/"|add:page|add:'/'%} <i class="bi bi-check-lg"></i> {% endif %}
+                  </span>
+                </a>
+              </li>
+            {% else %}
+              <li>
+                <a class="dropdown-item" href="{% url 'medialist' media_type=request.resolver_match.kwargs.media_type %}{{status|lower}}">
+                  {{status}} 
+                  <span class="text-end">
+                    {% if request.path == "/medialist/"|add:page|add:'/'|add:status|add:'/' %} <i class="bi bi-check-lg"></i> {% endif %}
+                  </span>
+                </a>
+              </li>
+            {% endif %}
           {% endfor %}
-        </div>
-      {% endfor %}
+        </ul>
+      </div>
+      <div class="title p-2"><strong>Title</strong></div>
+      <div class="score p-2"><strong>Score</strong></div>
+      <div class="status p-2"><strong>Status</strong></div>
+      <div class="_progress p-2"><strong>Progress</strong></div>
+      <div class="edit p-2"><strong>Edit</strong></div>
     </div>
+
+    {% for media in media_list %}
+    <div class="d-flex flex-row mb-3 align-items-center list-section">
+      <div class="image p-2">
+        <img loading="lazy" src="{{media.image.url}}"/>
+      </div>
+    
+      <div class="title p-2">{{media.title}}</div>
+    
+      {% if media.seasons.all and media.seasons.all|length != 1 %}
+        <div class="score p-2 dropdown-center">
+          <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              {{media.score}}
+          </button>
+          <ul class="dropdown-menu">
+            {% for season in media.seasons.all %}
+            <li>S{{season.number}}: {{season.score}}</li>
+            {% endfor %}
+          </ul>
+        </div>
+    
+        <div class="status p-2 dropdown-center">
+          <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            {{media.status}}
+          </button>
+          <ul class="dropdown-menu">
+            {% for season in media.seasons.all %}
+            <li>S{{season.number}}: {{season.status}}</li>
+            {% endfor %}
+          </ul>
+        </div>
+    
+        <div class="_progress p-2 dropdown-center">
+          <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            {{media.progress}}
+          </button>
+          <ul class="dropdown-menu">
+            {% for season in media.seasons.all %}
+            <li>S{{season.number}}: {{season.progress}}</li>
+            {% endfor %}
+          </ul>
+        </div>
+    
+      {% else %}
+        <div class="score p-2">{{media.score}}</div>
+        <div class="status p-2">{{media.status}}</div>
+        <div class="_progress p-2">{{media.progress}}</div>
+      {% endif %}
+      
+      <div class="edit p-2">
+        <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{{media.media_type}}_{{media.media_id}}">
+          <i class="bi bi-pen-fill"></i>
+        </button>
+      </div>
+      
+      <div class="modal fade" id="modal-{{media.media_type}}_{{media.media_id}}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 id="modal-title-{{media.media_type}}_{{media.media_id}}" class="modal-title fs-5"></h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modal-body-{{media.media_type}}_{{media.media_id}}">
+              <div class="d-flex justify-content-center">
+                <div class="spinner-grow" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between" id="modal-footer-{{media.media_type}}_{{media.media_id}}">
+              <form method="post">
+                {% csrf_token %}
+                {% comment %} modal-load creates delete button if media exists in db {% endcomment %}
+              </form>
+              <button type="submit" form="form-{{media.media_type}}_{{media.media_id}}" class="btn btn-primary">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    
+    </div>
+    {% endfor %}
+
   </div>
 
   <script src="{% static 'js/modal-load.js' %}"></script>
+
 {% endblock content%}
