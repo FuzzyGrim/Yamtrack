@@ -27,6 +27,8 @@ SECRET_KEY = config("SECRET", default="secret")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
 
+INTERNAL_IPS = ["127.0.0.1"]
+
 ALLOWED_HOSTS = ["127.0.0.1"]
 ALLOWED_HOSTS.extend(config("ALLOWED_HOSTS", default="", cast=Csv()))
 
@@ -46,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "debug_toolbar",
 ]
 
 ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
@@ -54,6 +57,7 @@ if ADMIN_ENABLED:
     INSTALLED_APPS.append("django.contrib.admin")
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
