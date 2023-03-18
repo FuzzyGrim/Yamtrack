@@ -1,26 +1,11 @@
+{% extends "base.html" %}
 {% load static %}
+
 {% block content %}
 
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-  <head>
-    {% include "app/include/tags.html" %}
-    <title>Error | Yamtarr</title>
-  </head>
+  <h1 class="mb-4 text-secondary-emphasis">Error {{ status_code }}</h1>
+  <p class=>
+    If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtarr/issues">report the issue.</a>
+  </p>
 
-  <body id="home">
-    {% include "app/include/navbar.html" %}
-
-    <main>
-      <div class="position-absolute top-50 start-50 translate-middle mx-auto">
-        <h1 class="text-center mb-4">Error {{ status_code }}</h1>
-        <p class="text-center">
-          If you believe there was a bug, please <a href="https://github.com/fuzzygrim/yamtarr/issues">report the issue.</a>
-        </p>
-      </div>
-    </main>
-
-    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-  </body>
-</html>
 {% endblock %}
