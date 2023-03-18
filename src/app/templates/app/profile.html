@@ -1,92 +1,91 @@
-{% load static %}
+{% extends "base.html" %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block content %}
 
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+  <div id="profile">
 
-  <head>
-    {% include "app/include/tags.html" %}
-    <title>Profile | Yamtarr</title>
-  </head>
-
-  <body id="profile">
-
-    {% include "app/include/navbar.html" %}    
-
-    <main>
-
-      {% if messages %}
-        {% for message in messages %}
-          {% if message.tags == 'error' %}
-            <div class="alert alert-danger">
-          {% else %}
-            <div class="alert alert-{{ message.tags }}">
-          {% endif %}
-            {{ message|linebreaksbr }}
-          </div>
-        {% endfor %}
-      {% endif %}
-      
-      <form method="POST">
-        {% csrf_token %}
-        <fieldset class="form-group">
-          <legend class="border-bottom mb-4">Profile</legend>
-          {{ user_form|crispy }}
-        </fieldset>
-        <div class="form-group">
-          <button class="btn btn-submit" type="submit">Save</button>
+    {% if messages %}
+      {% for message in messages %}
+        {% if message.tags == 'error' %}
+          <div class="alert alert-danger">
+        {% else %}
+          <div class="alert alert-{{ message.tags }}">
+        {% endif %}
+          {{ message|linebreaksbr }}
         </div>
-      </form>
-      <form method="POST" class="mt-5">
-        {% csrf_token %}
-        <fieldset class="form-group">
-          <legend class="border-bottom mb-4">Password Update</legend>
-          {{ password_form|crispy }}
-        </fieldset>
-        <div class="form-group">
-          <button class="btn btn-submit" type="submit">Update</button>
-        </div>
-      </form>
-
-      <div class="mb-3 mt-5">
-        <legend class="border-bottom mb-4">Import</legend>
-
-        <fieldset class="input-group grid-container">
-          <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="form-title">The Movie Database</div>
-            <div class="input-group">
-              <input type="file" accept=".csv" class="form-control" aria-label="Upload" name="tmdb">
-              <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
-            </div>
-          </form>
-
-          <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="form-title">MyAnimeList</div>
-            <div class="input-group">
-              <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
-              <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
-            </div>
-          </form>
-          
-          <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="form-title">AniList</div>
-            <div class="input-group">
-              <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
-              <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
-            </div>
-          </form>
-        </fieldset>
+      {% endfor %}
+    {% endif %}
+    
+    <form method="POST">
+      {% csrf_token %}
+      <fieldset class="form-group">
+        <legend class="border-bottom mb-4">Profile</legend>
+        {{ user_form|crispy }}
+      </fieldset>
+      <div class="form-group">
+        <button class="btn btn-submit" type="submit">Save</button>
       </div>
+    </form>
+    <form method="POST" class="mt-5">
+      {% csrf_token %}
+      <fieldset class="form-group">
+        <legend class="border-bottom mb-4">Password Update</legend>
+        {{ password_form|crispy }}
+      </fieldset>
+      <div class="form-group">
+        <button class="btn btn-submit" type="submit">Update</button>
+      </div>
+    </form>
 
-    </main>
-    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-    <script src="{% static 'js/spinner.js' %}"></script>
-  </body>
+    <div class="mb-3 mt-5">
+      <legend class="border-bottom mb-4">Import</legend>
 
-</html>
+      <fieldset class="input-group grid-container">
+        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="form-title">TMDB</div>
+          <div class="input-group">
+            <input type="file" accept=".csv" class="form-control" aria-label="Upload" name="tmdb">
+            <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
+          </div>
+        </form>
+
+        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="form-title">MAL</div>
+          <div class="input-group">
+            <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
+            <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
+          </div>
+        </form>
+        
+        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="form-title">AniList</div>
+          <div class="input-group">
+            <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
+            <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
+          </div>
+        </form>
+      </fieldset>
+    </div>
+
+    <div class="mb-3 mt-5">
+      <legend class="border-bottom mb-4">Other</legend>
+      <fieldset class="input-group grid-container">  
+        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="form-title">Redownload Media Files</div>
+          <div>
+            <button class="btn btn-submit mx-auto" type="submit" name="dl-media">Download</button>
+          </div>
+        </form>
+      </fieldset>
+    </div>
+
+  </div>
+  <script src="{% static 'js/spinner.js' %}"></script>
+
 {% endblock %}
