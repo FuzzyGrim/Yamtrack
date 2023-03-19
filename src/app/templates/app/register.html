@@ -1,41 +1,60 @@
-{% load static %} {% load crispy_forms_tags %}
+{% extends "base.html" %}
+{% load static %}
 
-{% block content %}
+{% block body %}
 
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-  <head>
-    {% include "app/include/tags.html" %}
-    <title>Register | Yamtarr</title>
-  </head>
+<body class="text-center d-flex justify-content-center align-items-center" id="register">
+    
+  <div class="form-signin">
+    <form method="POST">
+      {% csrf_token %}
+      <img class="mb-4" src="{% static "favicon/apple-touch-icon.png" %}" alt="" width="57" height="57">
+      <h3 class="h3 mb-3 fw-normal">Register to Yamtarr</h1>
+      
+      {{ form.non_field_errors }}
 
-  <body id="home">
-    {% include "app/include/navbar.html" %}
-
-    <main>
-      <div class="content-section">
-        <form method="POST">
-          {% csrf_token %}
-          <fieldset class="form-group">
-            <legend class="border-bottom mb-4">Join Today</legend>
-            {{ form|crispy }}
-          </fieldset>
-          <div class="form-group">
-            <button class="btn bg-dark text-white" type="submit">
-              Sign Up
-            </button>
+      {% for field in form %}
+        {% if field.errors %}
+          <div class="alert alert-danger error-div">
+            {% for error in field.errors%}
+              <p> {{ error }} </p>
+            {% endfor %}
           </div>
-        </form>
-        <div class="border-top mt-3">
-          <small class="text-muted">
-            Already Have An Account?
-            <a class="ml-2" href="{% url 'login' %}">Sign In</a>
-          </small>
-        </div>
+        {% endif %}
+      {% endfor %}
+      
+      <div class="form-floating">
+        <input type="text" name="username" autofocus="" maxlength="150" class="textinput textInput form-control" required="" id="id_username" placeholder="Username">
+        <label for="id_username">Username</label>
       </div>
-    </main>
 
-    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-  </body>
+      <div class="form-floating">
+        <select name="default_api" class="select form-select" id="id_default_api">
+          <option value="mal">MAL</option>
+          <option value="tmdb">TMDB</option>
+        </select>
+        <label for="id_default_api">Default API</label>
+      </div>
+
+      <div class="form-floating">
+        <input type="password" name="password1" autocomplete="new-password" class="textinput textInput form-control" required="" id="id_password1">
+        <label for="id_password1">Password</label>
+      </div>
+
+      <div class="form-floating">
+        <input type="password" name="password2" autocomplete="new-password" class="textinput textInput form-control" required="" id="id_password2">
+        <label for="id_password2">Password Confirmation</label>
+      </div>
+
+      <button class="w-100 btn btn-lg btn btn-secondary login" type="submit">Sign Up</button>
+
+      <div class="mt-5 mb-3 ">
+        <small class="text-muted">
+          Already Have An Account? <a class="ml-2" href="{% url 'login' %}">Sign In</a>
+        </small>
+      </div>
+    </form>
+  </div>
+</body>
 </html>
 {% endblock %}

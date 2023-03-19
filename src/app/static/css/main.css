@@ -92,14 +92,19 @@ main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-color:
 
 #login .form-signin .form-floating:focus-within { z-index: 2; }
 
+#register { height: 100vh; }
 
-.form-signin { width: 330px; padding: 15px; }
+#register .form-signin { width: 330px; padding: 15px; margin-top: -5rem; }
 
-.form-signin .form-floating:focus-within { z-index: 2; }
+#register .form-signin #id_username { margin-bottom: -1px; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
 
-.form-signin input[type="text"] { margin-bottom: -1px; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
+#register .form-signin #id_default_api { margin-bottom: -1px; border-radius: 0; }
 
-.form-signin input[type="password"] { margin-bottom: 10px; border-top-left-radius: 0; border-top-right-radius: 0; }
+#register .form-signin #id_password1 { margin-bottom: -1px; border-radius: 0; }
+
+#register .form-signin #id_password2 { margin-bottom: 10px; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+#register .form-signin .form-floating:focus-within { z-index: 2; }
 
 .modal-content .poster { border-radius: 10px; width: 10rem; height: 15rem; object-fit: cover; }
 

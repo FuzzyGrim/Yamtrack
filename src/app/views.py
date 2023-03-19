@@ -122,7 +122,7 @@ def register(request):
             f"New user registered: {form.cleaned_data.get('username')} at {helpers.get_client_ip(request)}"
         )
         return redirect("login")
-    return render(request, "app/register.html", {"form": form})
+    return render(request, "app/register.html", {"form": form, "page": "register"})
 
 
 class UpdatedLoginView(LoginView):
