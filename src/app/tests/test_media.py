@@ -50,7 +50,7 @@ class CreateMedia(TestCase):
             },
         )
 
-        response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("medialist", kwargs={"media_type": "tv"}))
         self.assertContains(response, "FLCL")
         self.assertEqual(
             Media.objects.filter(media_id=5895, user=self.user).exists(), True
@@ -132,7 +132,7 @@ class EditMedia(TestCase):
         )
 
         response = self.client.post(
-            reverse("home"),
+            reverse("medialist", kwargs={"media_type": "tv"}),
             {
                 "status": "Completed",
                 "score": 9.5,
@@ -143,7 +143,7 @@ class EditMedia(TestCase):
             },
         )
 
-        response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("medialist", kwargs={"media_type": "tv"}))
         self.assertContains(response, "9.5")
         self.assertEqual(
             Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), False
@@ -164,7 +164,7 @@ class EditMedia(TestCase):
         )
 
         response = self.client.post(
-            reverse("home"),
+            reverse("medialist", kwargs={"media_type": "tv"}),
             {
                 "status": "Watching",
                 "score": 9,
@@ -175,7 +175,7 @@ class EditMedia(TestCase):
             },
         )
 
-        response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("medialist", kwargs={"media_type": "tv"}))
         self.assertContains(response, "Watching")
         self.assertEqual(
             Media.objects.filter(
@@ -220,7 +220,7 @@ class EditMedia(TestCase):
         )
 
         self.client.post(
-            reverse("home"),
+            reverse("medialist", kwargs={"media_type": "tv"}),
             {
                 "status": "Watching",
                 "score": 9,
