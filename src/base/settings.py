@@ -145,13 +145,7 @@ LOGGING = {
             "level": "DEBUG" if DEBUG else "INFO",
         },
     },
-    "loggers": {
-        "app": {
-            "handlers": ["console"],
-            "level": "DEBUG" if DEBUG else "INFO",
-            "propagate": True,
-        },
-    },
+    "root": {"handlers": ["console"], "level": "DEBUG" if DEBUG else "INFO"},
 }
 
 # Internationalization
