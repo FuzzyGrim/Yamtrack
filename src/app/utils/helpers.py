@@ -14,10 +14,11 @@ def convert_mal_media_type(media_type):
 def download_image(url, media_type):
     # rsplit is used to split the url at the last / and taking the last element
     # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
-
     filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
+
     location = f"{settings.MEDIA_ROOT}/{filename}"
 
+    # download image if it doesn't exist
     if not Path(location).is_file():
         r = requests.get(url)
         with open(location, "wb") as f:
@@ -27,12 +28,13 @@ def download_image(url, media_type):
 
 
 async def download_image_async(session, url, media_type):
-
     # rsplit is used to split the url at the last / and taking the last element
     # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
     filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
+
     location = f"{settings.MEDIA_ROOT}/{filename}"
 
+    # download image if it doesn't exist
     if not Path(location).is_file():
         async with session.get(url) as resp:
             if resp.status == 200:

@@ -40,59 +40,33 @@
         <ul class="nav nav-pills flex-column mb-auto">
           <li class="nav-item">
             <a href="/" class="nav-link home">
-              <i class="bi bi-house-door me-2"></i>
-              Home
+              <i class="bi bi-house-door me-2"></i> Home
             </a>
           </li>
           <li>
-            {% if page == "tv" %}
-            <a href="{% url 'medialist' media_type='tv' %}" class="nav-link active">
-            {% else %}
-            <a href="{% url 'medialist' media_type='tv' %}" class="nav-link">
-            {% endif %}
-              <i class="bi bi-tv me-2"></i>
-              TV
+            <a href="{% url 'medialist' media_type='tv' %}" class="nav-link {% if page == "tv" %}active{% endif %}">
+              <i class="bi bi-tv me-2"></i> TV
             </a>
           </li>
           <li>
-            {% if page == "movie" %}
-            <a href="{% url 'medialist' media_type='movie' %}" class="nav-link active">
-            {% else %}
-            <a href="{% url 'medialist' media_type='movie' %}" class="nav-link">
-            {% endif %}
-              <i class="bi bi-film me-2"></i>
-              Movies
+            <a href="{% url 'medialist' media_type='movie' %}" class="nav-link {% if page == "movie" %}active{% endif %}">
+              <i class="bi bi-film me-2"></i> Movies
             </a>
           </li>
           <li>
-            {% if page == "anime" %}
-            <a href="{% url 'medialist' media_type='anime' %}" class="nav-link active">
-            {% else %}
-            <a href="{% url 'medialist' media_type='anime' %}" class="nav-link">
-            {% endif %}
-              <i class="bi bi-collection-play me-2"></i>
-              Animes
+            <a href="{% url 'medialist' media_type='anime' %}" class="nav-link {% if page == "anime" %}active{% endif %}">
+              <i class="bi bi-collection-play me-2"></i> Animes
             </a>
           </li>
           <li>
-            {% if page == "manga" %}
-            <a href="{% url 'medialist' media_type='manga' %}" class="nav-link active">
-            {% else %}
-            <a href="{% url 'medialist' media_type='manga' %}" class="nav-link">
-            {% endif %}
-              <i class="bi bi-book me-2"></i>
-              Mangas
+            <a href="{% url 'medialist' media_type='manga' %}" class="nav-link {% if page == "manga" %}active{% endif %}">
+              <i class="bi bi-book me-2"></i> Mangas
             </a>
           </li>
           <li class="border-top my-3"></li>
           <li>
-            {% if page == "profile" %}
-            <a href="{% url 'profile' %}" class="nav-link active">
-            {% else %}
-            <a href="{% url 'profile' %}" class="nav-link">
-            {% endif %}
-              <i class="bi bi-person-circle me-2"></i>
-              Profile
+            <a href="{% url 'profile' %}" class="nav-link {% if page == "profile" %}active{% endif %}">
+              <i class="bi bi-person-circle me-2"></i> Profile
             </a>
           </li>
           <li>
@@ -106,7 +80,9 @@
 
       <main>
         <div class="header d-flex">
-          <button class="offcanvas-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar"><i class="bi bi-list"></i></button>
+          <button class="offcanvas-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+            <i class="bi bi-list"></i>
+          </button>
           <form class="d-flex input-group" method="get" action="{% url 'search' %}">
             <select name="api" class="form-select">
               {% if request.session.last_selected_api == "tmdb" %}

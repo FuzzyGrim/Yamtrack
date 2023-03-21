@@ -78,7 +78,7 @@
     {% if media.response.seasons and media.response.seasons|length != 1 %}
     <div>
       <div class="descriptor" id="season-descriptor-{{media.response.media_type}}_{{media.response.id}}">Season 
-        <i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip"  data-bs-title="Editing a season will affect overall media"></i>
+        <i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Editing a season will affect overall media"></i>
       </div>
       <select required name="season" class="form-select form-season" id="season-select-{{media.response.media_type}}_{{media.response.id}}">
         <option value="" disabled selected hidden>Select</option>

@@ -21,7 +21,7 @@ def add_media(request):
         end_date=request.POST["end"],
     )
 
-    if metadata["image"] == "" or metadata["image"] is None:
+    if metadata["image"] == "":
         media.image = "none.svg"
     else:
         if media.api == "tmdb":
