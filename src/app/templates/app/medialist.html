@@ -126,6 +126,8 @@
 
   </div>
 
-  <script src="{% static 'js/modal-load.js' %}"></script>
-
 {% endblock content%}
+
+{% block extra_scripts %}
+  <script src="{% static 'js/modal-load.js' %}"></script>
+{% endblock extra_scripts %}
