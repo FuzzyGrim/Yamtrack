@@ -126,6 +126,8 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 @media screen and (max-width: 992px) { main { padding: 2em 1em 0; } #home .tab-content .tab-pane .list-section .status, #home .tab-content .tab-pane .list-head .status { width: 20%; } .modal-content form div { width: 100%; } }
 
+@media screen and (max-width: 991px) { body main { padding-top: 2em; } .modal-content form div { width: 100%; } }
+
 @media screen and (max-width: 576px) { #home .tab-content .tab-pane .list-head .title, #home .tab-content .tab-pane .list-section .title { flex: 2; } #home .tab-content .tab-pane .list-head .status, #home .tab-content .tab-pane .list-head ._progress, #home .tab-content .tab-pane .list-section .status, #home .tab-content .tab-pane .list-section ._progress { display: none; } .modal-content .content .genres { display: none; } .modal-content form div { width: 100%; } }
 
 /*# sourceMappingURL=main.css.map */

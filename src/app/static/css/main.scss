@@ -7,6 +7,12 @@
 @import "register";
 @import "edit";
 
+@media screen and (min-width: 992px) {
+  body main .header .input-group {
+    width: 50%;
+    margin: auto;
+  }
+}
 
 // applies to medium devices (tablets)
 @media screen and (max-width: 992px) {
