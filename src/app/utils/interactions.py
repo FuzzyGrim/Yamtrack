@@ -15,7 +15,7 @@ MAL_API = config("MAL_API", default=None)
 
 def search(api_type, query):
     if api_type == "tmdb":
-        url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API}&query={query}&include_adult=true"
+        url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API}&query={query}"
         response = requests.get(url).json()["results"]
         for media in response:
             media["media_id"] = media["id"]
