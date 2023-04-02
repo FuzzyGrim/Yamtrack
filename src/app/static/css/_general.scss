@@ -5,7 +5,7 @@ body {
     height: 100vh;
     width: 100%;
     overflow-y: auto;
-    padding: 2em 2em 0;
+    padding: 1em 2em;
 
     .header {
       margin-bottom: 2em;
@@ -24,9 +24,15 @@ body {
           background-color: #3a4047;
         }
       }
+
+      // adjust width of select in header
+      .input-group > .form-select {
+        flex-grow: 0;
+        width: auto;
+      }
     }
 
-    form .btn:not(.delete-btn):not(.login) {
+    form .btn:not(.delete-btn) {
       border-radius: 0;
       border-width: 1px;
       border-style: solid;
@@ -38,22 +44,17 @@ body {
       }
     }
 
-    .input-group > .form-select {
-      flex-grow: 0;
-      flex-shrink: 0;
-      width: auto;
-    }
-
     // disable num input arrows
     input[type="number"] {
       appearance: textfield;
       -moz-appearance: textfield;
     }
 
+    // truncate placeholder text
     input:placeholder-shown {
       text-overflow: ellipsis;
     }
-
+  
     .custom-tooltip {
       --bs-tooltip-bg: var(--bs-secondary);
       --bs-tooltip-color: var(--bs-white);
