@@ -3,13 +3,17 @@
   .nav-link.active {
     color: #fff;
     font-weight: 600;
-    background-color: #303438
+    background-color: #303438;
+    // bold active icon
+    .bi {
+      -webkit-text-stroke: .5px white;
+    }
   }
 
   .nav-link:not(.active) {
     color: #fff;
     &:hover {
-      background-color: #3a4047;
+      background-color: #3034388c;
     }
   }
 }
