@@ -7,23 +7,21 @@
 @import "register";
 @import "edit";
 
+@media screen and (min-width: 992px) {
+  body main .header .input-group {
+    width: 50%;
+    margin: auto;
+  }
+}
 
 // applies to medium devices (tablets)
-@media screen and (max-width: 992px) {
+@media screen and (max-width: 991px) {
 
-  main {
-    padding: 2em 1em 0;
+  body main {
+    padding-top: 2em;
   }
 
-  #home {
-    .tab-content .tab-pane .list-section,
-    .tab-content .tab-pane .list-head {
-      .status {
-        width: 20%;
-      }
-    }
-  }
-
+  // one entry per line in the form
   .modal-content {
     form div {
       width: 100%;
@@ -32,30 +30,12 @@
 }
 
 // xs
-@media screen and (max-width: 576px) {
-  #home .tab-content {
-    .tab-pane {
-      .list-head,
-      .list-section {
-        .title {
-          flex: 2;
-        }
-        .status,
-        ._progress {
-          display: none;
-        }
-      }
-    }
-  }
-
-  .modal-content {
-    .content {
-      .genres {
+@media screen and (max-width: 575px) {
+  #medialist {
+    .list-head, .list-section {
+      ._progress {
         display: none;
       }
-    }
-    form div {
-      width: 100%;
     }
   }
 }
