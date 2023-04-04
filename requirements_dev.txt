@@ -1,5 +1,5 @@
 black==23.1.0
-coverage==7.2.1
+coverage==7.2.2
 django-compressor==4.3.1
 flake8==6.0.0
 flake8-length==0.3.1
