@@ -102,9 +102,8 @@ async def myanimelist_get_media(session, content, media_type, user):
 
     if "main_picture" in content["node"]:
         filename = await helpers.download_image_async(
-            session, content["node"]["main_picture"]["medium"], media_type
+            session, content["node"]["main_picture"]["large"], media_type
         )
-        # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
         media.image = f"{filename}"
 
     else:
@@ -179,10 +178,9 @@ async def tmdb_get_media(session, url, row, user, status):
         else:
             filename = await helpers.download_image_async(
                 session,
-                f"https://image.tmdb.org/t/p/w92{response['poster_path']}",
+                f"https://image.tmdb.org/t/p/w300{response['poster_path']}",
                 row["Type"],
             )
-            # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
             image = f"{filename}"
 
         if "number_of_episodes" in response and status == "Completed":
@@ -255,7 +253,7 @@ def import_anilist(username, user):
                             userPreferred
                         }
                         coverImage {
-                            medium
+                            large
                         }
                         idMal
                     }
@@ -284,7 +282,7 @@ def import_anilist(username, user):
                             userPreferred
                         }
                         coverImage {
-                            medium
+                            large
                         }
                         idMal
                     }
@@ -396,10 +394,9 @@ async def anilist_get_media(session, content, media_type, user):
     )
 
     filename = await helpers.download_image_async(
-        session, content["media"]["coverImage"]["medium"], media_type
+        session, content["media"]["coverImage"]["large"], media_type
     )
 
-    # rspilt is used to get the filename from the url by splitting the url at the last / and taking the last element
     media.image = f"{filename}"
 
     return media

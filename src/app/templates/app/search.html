@@ -19,7 +19,7 @@
               {% if media.main_picture.large %}
                 <img class="poster flex-shrink-0 card-img-top" src="{{media.main_picture.large}}"/>  
               {% elif media.poster_path %}
-                <img class="poster flex-shrink-0 card-img-top" src="https://image.tmdb.org/t/p/w780{{media.poster_path}}"/>  
+                <img class="poster flex-shrink-0 card-img-top" src="https://image.tmdb.org/t/p/w300{{media.poster_path}}"/>  
               {% else %}
                 <img class="image-not-found flex-shrink-0 card-img-top" src="{% get_media_prefix %}/none.svg"/>
               {% endif %}
