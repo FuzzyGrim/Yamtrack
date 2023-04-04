@@ -24,8 +24,30 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
-    # TODO
-    return render(request, "app/home.html")
+    media_list = Media.objects.filter(
+        user_id=request.user, status__in=["Watching", "Paused"]
+    ).order_by("media_type", "-status", "title")
+
+    # Create a dictionary to group the results by media_type and status
+    media_dict = {}
+    for media in media_list:
+        key = f"{media.media_type}_{media.status}"
+        if key not in media_dict:
+            if media.status == "Watching":
+                list_title = f"{media.media_type.capitalize()} in Progress"
+            elif media.status == "Paused":
+                list_title = f"{media.media_type.capitalize()} on Hold"
+            media_dict[key] = {
+                "list_title": list_title,
+                "media_list": [],
+            }
+        media_dict[key]["media_list"].append(media)
+
+    context = {
+        "page": "home",
+        "media_dict": media_dict,
+    }
+    return render(request, "app/home.html", context)
 
 
 @login_required

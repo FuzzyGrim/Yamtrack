@@ -2,5 +2,22 @@
 {% block title %}Home - Yamtarr{% endblock %}
 
 {% block content %}
-  TODO
+  <div id="home" class="content">
+    {% for key, media_group in media_dict.items %}
+    <div class="container">
+      <div class="title">{{ media_group.list_title }}</div>
+        <div class="grid">
+          {% for media in media_group.media_list %}
+            <div class="card text-bg-dark mx-auto">
+              <img src="{{ media.image.url }}" class="card-img" alt="{{ media.title }}" loading="lazy">
+              <div class="card-img-overlay">
+                <div class="card-title">{{ media.title }}</div>
+                <div class="card-text">{{ media.progress }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
 {% endblock content%}
