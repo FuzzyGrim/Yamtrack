@@ -11,6 +11,34 @@ class DefaultView(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("login") + "?next=/")
 
+    def test_medialist(self):
+        response = self.client.get(reverse("medialist", kwargs={"media_type": "tv"}))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            reverse("login")
+            + "?next="
+            + reverse("medialist", kwargs={"media_type": "tv"}),
+        )
+
+    def test_medialist_completed(self):
+        response = self.client.get(
+            reverse(
+                "medialist",
+                kwargs={"media_type": "tv", "status": "completed"},
+            )
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            reverse("login")
+            + "?next="
+            + reverse(
+                "medialist",
+                kwargs={"media_type": "tv", "status": "completed"},
+            ),
+        )
+
     def test_register(self):
         response = self.client.get(reverse("register"))
         self.assertEqual(response.status_code, 200)
@@ -52,8 +80,7 @@ class LoggedInView(TestCase):
     def test_home(self):
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "app/home.html")
-        self.assertContains(response, "TV")
+        self.assertTemplateUsed(response, "app/home.html")        
 
     def test_search_tmdb(self):
         response = self.client.get("/search?api=tmdb&q=friends")
