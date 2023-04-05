@@ -14,7 +14,15 @@
           {% for media in media_group.media_list %}
             <div class="card text-bg-dark mx-auto">
               
-              <img src="{{ media.image.url }}" class="card-img open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{{media.media_type}}_{{media.media_id}}" alt="{{ media.title }}" loading="lazy">
+              <img
+                src="{{ media.image.url }}"
+                class="card-img open-modal-button"
+                data-bs-toggle="modal"
+                data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}"
+                data-url="{{media.media_type}}_{{media.media_id}}"
+                alt="{{ media.title }}"
+                loading="lazy"
+              />
 
               <div class="card-img-overlay">
                 <div class="card-title text-center">
@@ -23,13 +31,8 @@
                     S{{ media.season_number }}
                   {% endif %}
                 </div>
-
                 {% csrf_token %}
-                {% if media.season_number %}
-                  {% unicorn "progress" media_id=media.media_id api=media.api progress=media.season_progress user_id=request.user.id season_number=media.season_number%} 
-                {% else %}
-                  {% unicorn "progress" media_id=media.media_id api=media.api progress=media.progress user_id=request.user.id %}
-                {% endif %}
+                {% unicorn "progress" media=media%}
               </div>
             </div>
 
