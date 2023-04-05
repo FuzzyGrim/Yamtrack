@@ -22,13 +22,13 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #home .container { margin-bottom: 2rem; }
 
-#home .container .title { color: #d1cdc7; font-size: 1.5rem; font-weight: 600; text-align: center; margin-top: .5rem; margin-bottom: 1rem; }
+#home .container .title { color: #d1cdc7; font-size: 1.5rem; font-weight: 600; text-align: center; margin-top: 0.5rem; margin-bottom: 1rem; }
 
 #home .container .grid { display: grid; grid-template-columns: repeat(auto-fill, 10rem); justify-content: center; grid-gap: 0rem 1rem; }
 
 #home .container .grid .card { margin-bottom: 1em; }
 
-#home .container .grid .card img { width: 10rem; height: 15rem; object-fit: cover; }
+#home .container .grid .card img { width: 10rem; height: 15rem; object-fit: cover; cursor: pointer; }
 
 #home .container .grid .card .card-img-overlay { top: auto; padding: 0.5em; border-top-left-radius: 0px; border-top-right-radius: 0px; background-color: rgba(0, 0, 0, 0.692); font-size: 0.8rem; }
 

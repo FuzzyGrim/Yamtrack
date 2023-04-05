@@ -2,7 +2,6 @@ $font-grey: #d1cdc7;
 
 #home {
   .container {
-
     margin-bottom: 2rem;
 
     .title {
@@ -10,7 +9,7 @@ $font-grey: #d1cdc7;
       font-size: 1.5rem;
       font-weight: 600;
       text-align: center;
-      margin-top: .5rem;
+      margin-top: 0.5rem;
       margin-bottom: 1rem;
     }
     .grid {
@@ -18,7 +17,7 @@ $font-grey: #d1cdc7;
       grid-template-columns: repeat(auto-fill, 10rem);
       justify-content: center;
       grid-gap: 0rem 1rem;
-      
+
       .card {
         margin-bottom: 1em;
 
@@ -26,6 +25,7 @@ $font-grey: #d1cdc7;
           width: 10rem;
           height: 15rem;
           object-fit: cover;
+          cursor: pointer;
         }
 
         .card-img-overlay {
@@ -36,7 +36,7 @@ $font-grey: #d1cdc7;
           border-top-right-radius: 0px;
           background-color: rgba(0, 0, 0, 0.692);
           font-size: 0.8rem;
-          
+
           .card-title {
             margin-bottom: 0;
             // show only 2 lines of text
