@@ -38,10 +38,10 @@ class CreateMedia(TestCase):
             ],
         }
         session.save()
-        response = self.client.post(
+        self.client.post(
             reverse("search") + "?api=tmdb&q=flcl",
             {
-                "status": "Completed",
+                "status": "Watching",
                 "score": 4,
                 "progress": "",
                 "season": 1,
@@ -55,6 +55,7 @@ class CreateMedia(TestCase):
         self.assertEqual(
             Media.objects.filter(media_id=5895, user=self.user).exists(), True
         )
+        # check if poster image is downloaded
         self.assertEqual(
             os.path.exists(
                 settings.MEDIA_ROOT + "/tv-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"
@@ -62,6 +63,11 @@ class CreateMedia(TestCase):
             True,
         )
 
+        # check if FLCL in home because it is progress
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "FLCL")
+
+        # check if FLCL and season 1 in database
         media = Media.objects.get(media_id=5895, user=self.user)
         self.assertEqual(str(media), "FLCL")
         season = Season.objects.get(media=media, number=1)

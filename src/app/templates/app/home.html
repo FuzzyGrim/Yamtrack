@@ -1,6 +1,49 @@
 {% extends "base.html" %}
+{% load static %}
+{% load unicorn %}
+
 {% block title %}Home - Yamtarr{% endblock %}
 
 {% block content %}
-  TODO
+  {% unicorn_scripts %}
+  <div id="home" class="content">
+    {% for key, media_group in media_dict.items %}
+    <div class="container">
+      <div class="title">{{ media_group.list_title }}</div>
+        <div class="grid">
+          {% for media in media_group.media_list %}
+            <div class="card text-bg-dark mx-auto">
+              
+              <img
+                src="{{ media.image.url }}"
+                class="card-img open-modal-button"
+                data-bs-toggle="modal"
+                data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}"
+                data-url="{{media.media_type}}_{{media.media_id}}"
+                alt="{{ media.title }}"
+                loading="lazy"
+              />
+
+              <div class="card-img-overlay">
+                <div class="card-title text-center">
+                  {{ media.title }}
+                  {% if media.season_number %}
+                    S{{ media.season_number }}
+                  {% endif %}
+                </div>
+                {% csrf_token %}
+                {% unicorn "progress" media=media%}
+              </div>
+            </div>
+
+            {% include "app/include/modal.html" %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
 {% endblock content%}
+
+{% block extra_scripts %}
+  <script src="{% static 'js/modal-load.js' %}"></script>
+{% endblock extra_scripts %}

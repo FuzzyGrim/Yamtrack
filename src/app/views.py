@@ -24,17 +24,51 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
-    # TODO
-    return render(request, "app/home.html")
+    media_list = Media.objects.filter(
+        user_id=request.user, status__in=["Watching", "Paused"]
+    ).order_by("media_type", "-status", "title").prefetch_related("seasons")
+
+    # Create a dictionary to group the results by media_type and status
+    media_dict = {}
+    for media in media_list:
+        key = f"{media.media_type}_{media.status}"
+        if key not in media_dict:
+            if media.status == "Watching":
+                list_title = f"{media.media_type.capitalize()} in Progress"
+            elif media.status == "Paused":
+                list_title = f"{media.media_type.capitalize()} on Hold"
+            media_dict[key] = {
+                "list_title": list_title,
+                "status": media.status,
+                "media_list": [],
+            }
+        if media.seasons.exists():
+            for season in media.seasons.all():
+                if season.status == media.status:
+                    media.season_number = season.number
+                    media.season_progress = season.progress
+
+        media_dict[key]["media_list"].append(media)
+
+    context = {
+        "page": "home",
+        "media_dict": media_dict,
+    }
+    return render(request, "app/home.html", context)
 
 
 @login_required
 def medialist(request, media_type, status=None):
-
     if media_type not in ["anime", "manga", "tv", "movie"]:
         return error_view(request, status_code=404)
 
-    if status and status not in ["completed", "watching", "paused", "dropped", "planning"]:
+    if status and status not in [
+        "completed",
+        "watching",
+        "paused",
+        "dropped",
+        "planning",
+    ]:
         return error_view(request, status_code=404)
 
     if request.method == "POST":

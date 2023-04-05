@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "sass_processor",
+    "django_unicorn",
+    "unicorn",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
