@@ -12,12 +12,14 @@ class ProgressView(UnicornView):
         if "season_number" in kwargs:
             self.season_number = kwargs.get("season_number")
 
-    def add(self):
-        self.progress += 1
+    # number is 1 or -1
+    def update(self, number):
+
+        self.progress += number
         media = Media.objects.get(
             user=self.user_id, media_id=self.media_id, api=self.api
         )
-        if self.season_number:
+        if hasattr(self, 'season_number'):
             season = Season.objects.get(
                 media_id=media.id,
                 number=self.season_number,
@@ -25,21 +27,5 @@ class ProgressView(UnicornView):
             season.progress = self.progress
             season.save()
 
-        media.progress += 1
-        media.save()
-
-    def subtract(self):
-        self.progress -= 1
-        media = Media.objects.get(
-            user=self.user_id, media_id=self.media_id, api=self.api
-        )
-        if self.season_number:
-            season = Season.objects.get(
-                media_id=media.id,
-                number=self.season_number,
-            )
-            season.progress = self.progress
-            season.save()
-
-        media.progress -= 1
+        media.progress += number
         media.save()
