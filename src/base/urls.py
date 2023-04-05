@@ -42,6 +42,7 @@ handler500 = error_500_view
 
 urlpatterns = [
     path("", include("app.urls")),
+    path("unicorn/", include("django_unicorn.urls")),
 ]
 
 if settings.ADMIN_ENABLED:

@@ -32,7 +32,11 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #home .container .grid .card .card-img-overlay { top: auto; padding: 0.5em; border-top-left-radius: 0px; border-top-right-radius: 0px; background-color: rgba(0, 0, 0, 0.692); font-size: 0.8rem; }
 
-#home .container .grid .card .card-img-overlay .card-title { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#home .container .grid .card .card-img-overlay .card-title { margin-bottom: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+#home .container .grid .card .card-img-overlay .card-text .progress-btn { padding: 0 0.5em; color: #adb5bd; }
+
+#home .container .grid .card .card-img-overlay .card-text .progress-btn:hover { color: #fff; }
 
 #sidebar { width: 230px; }
 

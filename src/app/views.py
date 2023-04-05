@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 def home(request):
     media_list = Media.objects.filter(
         user_id=request.user, status__in=["Watching", "Paused"]
-    ).order_by("media_type", "-status", "title")
+    ).order_by("media_type", "-status", "title").prefetch_related("seasons")
 
     # Create a dictionary to group the results by media_type and status
     media_dict = {}
@@ -39,8 +39,15 @@ def home(request):
                 list_title = f"{media.media_type.capitalize()} on Hold"
             media_dict[key] = {
                 "list_title": list_title,
+                "status": media.status,
                 "media_list": [],
             }
+        if media.seasons.exists():
+            for season in media.seasons.all():
+                if season.status == media.status:
+                    media.season_number = season.number
+                    media.season_progress = season.progress
+
         media_dict[key]["media_list"].append(media)
 
     context = {
@@ -52,11 +59,16 @@ def home(request):
 
 @login_required
 def medialist(request, media_type, status=None):
-
     if media_type not in ["anime", "manga", "tv", "movie"]:
         return error_view(request, status_code=404)
 
-    if status and status not in ["completed", "watching", "paused", "dropped", "planning"]:
+    if status and status not in [
+        "completed",
+        "watching",
+        "paused",
+        "dropped",
+        "planning",
+    ]:
         return error_view(request, status_code=404)
 
     if request.method == "POST":

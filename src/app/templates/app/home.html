@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load unicorn %}
+
 {% block title %}Home - Yamtarr{% endblock %}
 
 {% block content %}
@@ -10,9 +12,22 @@
           {% for media in media_group.media_list %}
             <div class="card text-bg-dark mx-auto">
               <img src="{{ media.image.url }}" class="card-img" alt="{{ media.title }}" loading="lazy">
+
               <div class="card-img-overlay">
-                <div class="card-title">{{ media.title }}</div>
-                <div class="card-text">{{ media.progress }}</div>
+                {% unicorn_scripts %}
+                <div class="card-title text-center">
+                  {{ media.title }}
+                  {% if media.season_number %}
+                    S{{ media.season_number }}
+                  {% endif %}
+                </div>
+
+                {% csrf_token %}
+                {% if media.season_number %}
+                  {% unicorn "progress" media_id=media.media_id api=media.api progress=media.season_progress user_id=request.user.id season_number=media.season_number%} 
+                {% else %}
+                  {% unicorn "progress" media_id=media.media_id api=media.api progress=media.progress user_id=request.user.id %}
+                {% endif %}
               </div>
             </div>
           {% endfor %}
