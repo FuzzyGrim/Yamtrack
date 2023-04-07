@@ -85,20 +85,12 @@
           </button>
           <form class="input-group" method="get" action="{% url 'search' %}">
             <select name="api" class="form-select">
-              {% if request.session.last_selected_api == "tmdb" %}
+              {% if request.session.last_selected_api == "tmdb" or user.default_api == 'tmdb' %}
                 <option value="tmdb" selected>TMDB</option>
                 <option value="mal">MAL</option>
-              {% elif request.session.last_selected_api == "mal" %}
+              {% else %}
                 <option value="mal" selected>MAL</option>
                 <option value="tmdb">TMDB</option>
-              {% else %}
-                {% if user.default_api == 'tmdb' %}
-                  <option value="tmdb" selected>TMDB</option>
-                  <option value="mal">MAL</option>
-                {% else %}
-                  <option value="mal" selected>MAL</option>   
-                  <option value="tmdb">TMDB</option>
-                {% endif %}
               {% endif %}
             </select>
             <input class="form-control bg-dark text-white" type="search" name="q" placeholder="Search" aria-label="Search" value="{% if 'q' in request.GET %}{{ request.GET.q }}{% endif %}" required>
