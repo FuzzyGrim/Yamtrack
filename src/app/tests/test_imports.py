@@ -5,7 +5,7 @@ import csv
 import shutil
 import os
 
-from app.utils import imports
+from app.utils.imports import anilist, mal, tmdb
 from app.models import User, Media
 
 
@@ -17,7 +17,7 @@ class ImportsMAL(TransactionTestCase):
 
     @override_settings(MEDIA_ROOT=("MAL"))
     def test_import_animelist(self):
-        imports.import_myanimelist("bloodthirstiness", self.user)
+        mal.import_myanimelist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
         self.assertEqual(
             Media.objects.filter(user=self.user, media_type="anime").count(), 4
@@ -96,7 +96,7 @@ class ImportsTMDB(TransactionTestCase):
             writer.writerows(data)
 
         with open(file_path, "rb") as file:
-            imports.import_tmdb(file, self.user)
+            tmdb.import_tmdb(file, self.user)
             self.assertEqual(Media.objects.filter(user=self.user).count(), 2)
             self.assertEqual(
                 Media.objects.filter(user=self.user, media_type="movie").count(), 1
@@ -123,7 +123,7 @@ class ImportsANI(TransactionTestCase):
 
     @override_settings(MEDIA_ROOT=("AL"))
     def test_import_anilist(self):
-        imports.import_anilist("bloodthirstiness", self.user)
+        anilist.import_anilist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
         self.assertEqual(
             Media.objects.filter(user=self.user, media_type="anime").count(), 4

@@ -15,7 +15,8 @@ from app.forms import (
     UserUpdateForm,
     PasswordChangeForm,
 )
-from app.utils import database, interactions, imports, helpers
+from app.utils import database, interactions, helpers
+from app.utils.imports import anilist, mal, tmdb
 
 import logging
 
@@ -24,9 +25,11 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
-    media_list = Media.objects.filter(
-        user_id=request.user, status__in=["Watching", "Paused"]
-    ).order_by("media_type", "-status", "title").prefetch_related("seasons")
+    media_list = (
+        Media.objects.filter(user_id=request.user, status__in=["Watching", "Paused"])
+        .order_by("media_type", "-status", "title")
+        .prefetch_related("seasons")
+    )
 
     # Create a dictionary to group the results by media_type and status
     media_dict = {}
@@ -195,13 +198,17 @@ def profile(request):
     password_form = PasswordChangeForm(request.user)
 
     if request.method == "POST":
-        if "default_api" in request.POST:
+        if "username" in request.POST:
+            # it's here because UserUpdateForm updates request.user.username
+            old_username = request.user.username
             user_form = UserUpdateForm(request.POST, instance=request.user)
+
             if user_form.is_valid():
                 user_form.save()
-                messages.success(request, "Your account has been updated!")
-                logger.info("Successful account update for: " + request.user.username)
-                return redirect("profile")
+                messages.success(request, "Your username has been updated!")
+                logger.info(
+                    f"Successful username change from {old_username} to {request.user.username}"
+                )
 
         elif "new_password1" in request.POST:
             password_form = PasswordChangeForm(request.user, request.POST)
@@ -209,54 +216,36 @@ def profile(request):
                 password = password_form.save()
                 update_session_auth_hash(request, password)
                 messages.success(request, "Your password has been updated!")
-                logger.info("Successful password change for: " + request.user.username)
-                return redirect("profile")
+                logger.info(f"Successful password change for: {request.user.username}")
 
         elif "mal" in request.POST:
-            logger.info(f"Importing {request.POST['mal']} from MyAnimeList")
-            if imports.import_myanimelist(request.POST["mal"], request.user):
+            if mal.import_myanimelist(request.POST["mal"], request.user):
                 messages.success(request, "Your MyAnimeList has been imported!")
-                logger.info(
-                    f"Finished importing {request.POST['mal']} from MyAnimeList"
-                )
-                return redirect("profile")
             else:
-                messages.error(request, "MyAnimeList user not found")
-                logger.error(
-                    f"An error occurred while importing {request.POST['mal']} from MyAnimeList"
+                messages.error(
+                    request, f"User {request.POST['mal']} not found in MyAnimeList."
                 )
 
         elif request.FILES.get("tmdb"):
-            logger.info("Importing from TMDB csv file")
-            if imports.import_tmdb(request.FILES.get("tmdb"), request.user):
+            if tmdb.import_tmdb(request.FILES.get("tmdb"), request.user):
                 messages.success(request, "Your TMDB list has been imported!")
-                logger.info("TMDB import successful")
-                return redirect("profile")
+
             else:
                 messages.error(
                     request,
                     'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name',
                 )
-                logger.error("TMDB import failed")
 
         elif "anilist" in request.POST:
-            logger.info(f"Importing {request.POST['anilist']} from Anilist")
-            error = imports.import_anilist(request.POST["anilist"], request.user)
-            if error == "":
+            error = anilist.import_anilist(request.POST["anilist"], request.user)
+
+            if not error:
                 messages.success(request, "Your AniList has been imported!")
-                logger.info(
-                    f"Finished importing {request.POST['anilist']} from Anilist"
-                )
-                return redirect("profile")
             elif error == "User not found":
-                messages.error(request, "AniList user not found")
-                logger.error(
-                    f"An error occurred while importing {request.POST['anilist']} from Anilist"
-                )
+                messages.error(request, f"User {request.POST['anilist']} not found in Anilist.")
             else:
                 title = "Couldn't find a matching MAL ID for: \n"
                 messages.error(request, title + error)
-                return redirect("profile")
 
         else:
             messages.error(request, "There was an error with your request")
