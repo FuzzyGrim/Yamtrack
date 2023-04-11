@@ -46,6 +46,7 @@ services:
       - ALLOWED_HOSTS=192.168.x.x, yamtarr.domain.com
       - PUID=1000
       - PGID=1000
+      - TZ=Europe/Madrid
       # - HTTPS_COOKIES=False
       # - REGISTRATION=False
     volumes:
@@ -68,6 +69,7 @@ volumes:
 | ALLOWED_HOSTS  | List        | Base IP / Domain           | Yes          | 127.0.0.1 | Your list would extend the default    |
 | PUID           | Int         | User ID                    | No           | 911       |                                       |
 | PGID           | Int         | Group ID                   | No           | 911       |                                       |
+| TZ             | String      | Timezone                   | No           | UTC       |                                       |
 | HTTPS_COOKIES  | Bool        | Cookies over HTTPS         | No           | False     | [SESSION_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-SESSION_COOKIE_SECURE) and [CSRF_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-CSRF_COOKIE_SECURE)|
 | REGISTRATION   | Bool        | User registration          | No           | True      |                                       |
 | ADMIN_ENABLED  | Bool        | Django admin page          | No           | False     |                                       |

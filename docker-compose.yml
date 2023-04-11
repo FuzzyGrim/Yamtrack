@@ -12,6 +12,7 @@ services:
       - ALLOWED_HOSTS=192.168.x.x, yamtarr.domain.com
       - PUID=1000
       - PGID=1000
+      - TZ=Europe/Madrid
       # - HTTPS_COOKIES=False
       # - REGISTRATION=False
     volumes:
