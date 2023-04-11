@@ -2,10 +2,9 @@
 {% load static %}
 {% load unicorn %}
 
-{% block title %}Home - Yamtarr{% endblock %}
+{% block title %}Home - Yamtrack{% endblock %}
 
 {% block content %}
-  {% unicorn_scripts %}
   <div id="home" class="content">
     {% for key, media_group in media_dict.items %}
     <div class="container">
@@ -31,6 +30,7 @@
                     S{{ media.season_number }}
                   {% endif %}
                 </div>
+                {% unicorn_scripts %}
                 {% csrf_token %}
                 {% unicorn "progress" media=media%}
               </div>

@@ -1,15 +1,15 @@
 version: "3"
 services:
-  yamtarr:
-    container_name: yamtarr
-    image: ghcr.io/fuzzygrim/yamtarr
+  yamtrack:
+    container_name: yamtrack
+    image: ghcr.io/fuzzygrim/yamtrack
     restart: unless-stopped
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
       - SECRET=long_random_string
       # Change this to your domain or IP
-      - ALLOWED_HOSTS=192.168.x.x, yamtarr.domain.com
+      - ALLOWED_HOSTS=192.168.x.x, yamtrack.domain.com
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Madrid

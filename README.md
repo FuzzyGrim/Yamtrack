@@ -1,13 +1,12 @@
-# Yamtarr
+# Yamtrack
 
-[![App Tests](https://github.com/FuzzyGrim/Yamtarr/actions/workflows/app-tests.yml/badge.svg)](https://github.com/FuzzyGrim/Yamtarr/actions/workflows/app-tests.yml)
-[![Docker Image](https://github.com/FuzzyGrim/Yamtarr/actions/workflows/docker-image.yml/badge.svg)](https://github.com/FuzzyGrim/Yamtarr/actions/workflows/docker-image.yml)
-[![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtarr/badge)](https://www.codefactor.io/repository/github/fuzzygrim/yamtarr)
-[![Codecov](https://codecov.io/github/FuzzyGrim/Yamtarr/branch/main/graph/badge.svg?token=PWUG660120)](https://codecov.io/github/FuzzyGrim/Yamtarr)
-[![GitHub](https://img.shields.io/badge/license-GPL--3.0-blue)](https://github.com/FuzzyGrim/Yamtarr/blob/main/LICENSE)
+[![App Tests](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/app-tests.yml/badge.svg)](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/app-tests.yml)
+[![Docker Image](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/docker-image.yml/badge.svg)](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/docker-image.yml)
+[![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtrack/badge)](https://www.codefactor.io/repository/github/fuzzygrim/yamtrack)
+[![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/main/graph/badge.svg?token=PWUG660120)](https://codecov.io/github/FuzzyGrim/Yamtrack)
+[![GitHub](https://img.shields.io/badge/license-GPL--3.0-blue)](https://github.com/FuzzyGrim/Yamtrack/blob/main/LICENSE)
 
-
-Yamtarr is a self hosted simple media tracker. You can track movies, tv shows, anime and manga.
+Yamtrack is a self hosted simple media tracker. You can track movies, tv shows, anime and manga.
 
 It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](https://myanimelist.net/) APIs to fetch media information.
 
@@ -25,8 +24,8 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 Clone the repository and change directory to it.
 
 ```bash
-git clone https://github.com/FuzzyGrim/Yamtarr.git
-cd Yamtarr
+git clone https://github.com/FuzzyGrim/Yamtrack.git
+cd Yamtrack
 ```
 
 ## Docker-compose
@@ -34,16 +33,16 @@ cd Yamtarr
 ```yml
 version: "3"
 services:
-  yamtarr:
-    container_name: yamtarr
-    image: ghcr.io/fuzzygrim/yamtarr
+  yamtrack:
+    container_name: yamtrack
+    image: ghcr.io/fuzzygrim/yamtrack
     restart: unless-stopped
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
       - SECRET=long_random_string
       # Change this to your domain or IP
-      - ALLOWED_HOSTS=192.168.x.x, yamtarr.domain.com
+      - ALLOWED_HOSTS=192.168.x.x, yamtrack.domain.com
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Madrid
@@ -74,7 +73,6 @@ volumes:
 | REGISTRATION   | Bool        | User registration          | No           | True      |                                       |
 | ADMIN_ENABLED  | Bool        | Django admin page          | No           | False     |                                       |
 | DEBUG          | Bool        | Django debug mode          | No           | False     |                                       |
-
 
 ## Local development
 
