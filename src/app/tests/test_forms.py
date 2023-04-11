@@ -63,17 +63,6 @@ class Profile(TestCase):
         self.assertRedirects(response, reverse("profile"))
         self.assertEqual(auth.get_user(self.client).username, "new_test")
 
-    def test_change_preferred_api(self):
-        self.assertEqual(auth.get_user(self.client).default_api, "tmdb")
-        self.client.post(
-            reverse("profile"),
-            {
-                "username": "test",
-                "default_api": "mal",
-            },
-        )
-        self.assertEqual(auth.get_user(self.client).default_api, "mal")
-
     def test_change_password(self):
         self.assertEqual(auth.get_user(self.client).check_password("12345"), True)
         self.client.post(

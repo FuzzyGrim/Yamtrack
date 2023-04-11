@@ -120,7 +120,11 @@ def medialist(request, media_type, status=None):
 def search(request):
     api = request.GET.get("api")
     query = request.GET.get("q")
-    request.session["last_selected_api"] = api
+
+    # update user default api
+    request.user.default_api = api
+    request.user.save()
+
     if request.method == "POST":
         metadata = request.session.get("metadata")
         if "delete" in request.POST:

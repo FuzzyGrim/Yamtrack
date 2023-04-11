@@ -19,27 +19,17 @@ class UserLoginForm(AuthenticationForm):
 
 
 class UserRegisterForm(UserCreationForm):
-    default_api = forms.ChoiceField(
-        choices=[("mal", "MAL"), ("tmdb", "TMDB")],
-        help_text="TMDB (The Movie Database) for TV Shows and Movies <br/> MAL (MyAnimeList) for Anime and Manga",
-        label="Default API",
-    )
 
     class Meta:
         model = User
-        fields = ["username", "default_api", "password1", "password2"]
+        fields = ["username", "password1", "password2"]
 
 
 class UserUpdateForm(forms.ModelForm):
-    default_api = forms.ChoiceField(
-        choices=[("mal", "MAL"), ("tmdb", "TMDB")],
-        help_text="TMDB (The Movie Database) for TV Shows and Movies <br/> MAL (MyAnimeList) for Anime and Manga",
-        label="Default API",
-    )
 
     class Meta:
         model = User
-        fields = ["username", "default_api"]
+        fields = ["username"]
 
 
 class PasswordChangeForm(PasswordChangeForm):

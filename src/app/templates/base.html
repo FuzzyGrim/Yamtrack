@@ -85,7 +85,7 @@
           </button>
           <form class="input-group" method="get" action="{% url 'search' %}">
             <select name="api" class="form-select">
-              {% if request.session.last_selected_api == "tmdb" or user.default_api == 'tmdb' %}
+              {% if user.default_api == 'tmdb' %}
                 <option value="tmdb" selected>TMDB</option>
                 <option value="mal">MAL</option>
               {% else %}
