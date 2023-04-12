@@ -23,20 +23,18 @@
         {% endfor %}
       {% endif %}
       
-      <div class="form-floating">
-        <input type="text" name="username" autofocus="" autocapitalize="none" autocomplete="username" maxlength="150" class="textinput textInput form-control" required="" id="id_username" placeholder="Username">
-        <label for="id_username">Username</label>
-      </div>
-      <div class="form-floating">
-        <input type="password" name="password" autocomplete="current-password" class="textinput textInput form-control" required="" id="id_password" placeholder="Password">
-        <label for="id_password">Password</label>
-      </div>
-      
-      <div class="checkbox mb-3">
-        <label>
-          <input type="checkbox" name="remember_me" class="checkboxinput form-check-input" id="id_remember_me"> Remember me
-        </label>
-      </div>
+      {% for field in form %}
+        {% if field.name != "remember_me" %}
+          <div class="form-floating">
+            {{ field }}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          </div>
+        {% else %}
+          <div class="checkbox mb-3">
+            {{ field }} {{ field.label }}
+          </div>
+        {% endif %}
+      {% endfor %}
 
       <button class="w-100 btn btn-lg btn btn-secondary" type="submit">Log In</button>
 

@@ -116,34 +116,26 @@ async def tmdb_get_media(session, url, row, user, status):
 
         if "number_of_seasons" in response:
             seasons_list = []
-            for season in range(1, response["number_of_seasons"] + 1):
-                if (
-                    "episode_count" in response["seasons"][season]
-                    and status == "Completed"
-                ):
-                    seasons_list.append(
-                        Season(
-                            media=media,
-                            title=row["Name"],
-                            number=season,
-                            score=score,
-                            status=status,
-                            progress=response["seasons"][season - 1]["episode_count"],
-                            start_date=start_date,
-                            end_date=None,
-                        )
-                    )
-                else:
-                    seasons_list.append(
-                        Season(
-                            media=media,
-                            title=row["Name"],
-                            number=season,
-                            score=score,
-                            status=status,
-                            progress=0,
-                            start_date=start_date,
-                            end_date=None,
-                        )
-                    )
+            if response["seasons"][0]["season_number"] == 0:
+                offset = 0
+            else:
+                offset = 1
+
+            for season_num in range(offset, response["number_of_seasons"] + 1):
+                season_obj = Season(
+                    parent=media,
+                    title=row["Name"],
+                    number=season_num,
+                    score=score,
+                    status=status,
+                    progress=0,
+                    start_date=start_date,
+                    end_date=None,
+                )
+
+                # if completed, progress is the number of episodes in season
+                if ("episode_count" in response["seasons"][season_num] and status == "Completed"):
+                    season_obj.progress = response["seasons"][season_num - offset]["episode_count"]
+
+                seasons_list.append(season_obj)
             await Season.objects.abulk_create(seasons_list)

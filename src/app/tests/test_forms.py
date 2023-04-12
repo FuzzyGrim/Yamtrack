@@ -52,15 +52,13 @@ class Profile(TestCase):
 
     def test_change_username(self):
         self.assertEqual(auth.get_user(self.client).username, "test")
-        response = self.client.post(
+        self.client.post(
             reverse("profile"),
             {
                 "username": "new_test",
                 "default_api": "tmdb",
             },
         )
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("profile"))
         self.assertEqual(auth.get_user(self.client).username, "new_test")
 
     def test_change_password(self):

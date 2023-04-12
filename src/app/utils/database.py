@@ -3,56 +3,67 @@ from app.utils import helpers
 from django.db.models import Avg, Sum, Min, Max
 
 
-def add_media(request):
-    metadata = request.session.get("metadata")
-
-    request.POST = helpers.fix_inputs(request, metadata)
+def add_media(
+    media_id,
+    title,
+    image,
+    media_type,
+    score,
+    progress,
+    status,
+    start_date,
+    end_date,
+    api,
+    user,
+    season_selected,
+    seasons,
+):
+    if image == "":
+        image = "none.svg"
+    else:
+        if api == "tmdb":
+            image = f"https://image.tmdb.org/t/p/w300{image}"
+        filename = helpers.download_image(image, media_type)
+        image = f"{filename}"
 
     media = Media(
-        media_id=metadata["id"],
-        title=metadata["title"],
-        media_type=metadata["media_type"],
-        score=request.POST["score"],
-        progress=request.POST["progress"],
-        user=request.user,
-        status=request.POST["status"],
-        api=metadata["api"],
-        start_date=request.POST["start"],
-        end_date=request.POST["end"],
+        media_id=media_id,
+        title=title,
+        image=image,
+        media_type=media_type,
+        score=score,
+        progress=progress,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+        api=api,
+        user=user
     )
-
-    if metadata["image"] == "":
-        media.image = "none.svg"
-    else:
-        if media.api == "tmdb":
-            metadata["image"] = f"https://image.tmdb.org/t/p/w300{metadata['image']}"
-        filename = helpers.download_image(metadata["image"], media.media_type)
-        media.image = f"{filename}"
 
     media.save()
 
     # if request is for a season, create a season object
-    if "season" in request.POST and request.POST["season"] != "general":
-        if metadata["seasons"][0]["season_number"] == 0:
+    if season_selected and season_selected != "general":
+
+        # when there are specials episodes, they are on season 0,
+        # so offset everything by 1
+        if seasons[0]["season_number"] == 0:
             offset = 0
         else:
             offset = 1
 
+        # get the selected season from the metadata
+        meta_sel_season = seasons[int(season_selected) - offset]
+
         # if completed and has episode count, set progress to episode count
-        if (
-            request.POST["status"] == "Completed"
-            and "episode_count"
-            in metadata["seasons"][int(request.POST["season"]) - offset]
-        ):
-            media.progress = metadata["seasons"][int(request.POST["season"]) - offset][
-                "episode_count"
-            ]
+        if (status == "Completed" and "episode_count" in meta_sel_season):
+            media.progress = meta_sel_season["episode_count"]
             media.save()
 
         Season.objects.create(
-            media=media,
+            parent=media,
             title=media.title,
-            number=request.POST["season"],
+            number=season_selected,
             score=media.score,
             status=media.status,
             progress=media.progress,
@@ -60,26 +71,36 @@ def add_media(request):
             end_date=media.end_date,
         )
 
-    del request.session["metadata"]
 
-
-def edit_media(request):
-    metadata = request.session.get("metadata")
-
-    request.POST = helpers.fix_inputs(request, metadata)
+def edit_media(
+    media_id,
+    title,
+    image,
+    media_type,
+    score,
+    progress,
+    status,
+    start_date,
+    end_date,
+    api,
+    user,
+    season_selected,
+    seasons,
+):
 
     media = Media.objects.get(
-        media_id=metadata["id"],
-        media_type=metadata["media_type"],
-        user=request.user,
-        api=metadata["api"],
+        media_id=media_id,
+        media_type=media_type,
+        user=user,
+        api=api,
     )
 
-    if "season" in request.POST and request.POST["season"] != "general":
-        # if media didn't have any seasons, create first season with the same data as the media
-        if Season.objects.filter(media=media).count() == 0:
+    if season_selected and season_selected != "general":
+        # if media didn't have any seasons,
+        # create first season with the same data as the media
+        if Season.objects.filter(parent=media).count() == 0:
             Season.objects.create(
-                media=media,
+                parent=media,
                 title=media.title,
                 number=1,
                 score=media.score,
@@ -89,48 +110,43 @@ def edit_media(request):
                 end_date=media.end_date,
             )
 
-        if metadata["seasons"][0]["season_number"] == 0:
+        # when there are specials episodes, they are on season 0,
+        # so offset everything by 1
+        if seasons[0]["season_number"] == 0:
             offset = 0
         else:
             offset = 1
-        metadata_curr_season = metadata["seasons"][int(request.POST["season"]) - offset]
+        meta_curr_season = seasons[int(season_selected) - offset]
 
-        if (
-            "episode_count" in metadata_curr_season
-            and request.POST["status"] == "Completed"
-        ):
-            progress = metadata_curr_season["episode_count"]
-        else:
-            progress = request.POST["progress"]
+        if ("episode_count" in meta_curr_season and status == "Completed"):
+            progress = meta_curr_season["episode_count"]
 
         Season.objects.update_or_create(
-            media=media,
-            number=request.POST["season"],
+            parent=media,
+            number=season_selected,
             defaults={
-                "title": metadata["title"],
-                "score": request.POST["score"],
-                "status": request.POST["status"],
+                "title": title,
+                "score": score,
+                "status": status,
                 "progress": progress,
-                "start_date": request.POST["start"],
-                "end_date": request.POST["end"],
+                "start_date": start_date,
+                "end_date": end_date,
             },
         )
 
         # update media data based on the seasons
-        seasons = Season.objects.filter(media=media)
+        seasons = Season.objects.filter(parent=media)
         media.score = seasons.aggregate(Avg("score"))["score__avg"]
         media.progress = seasons.aggregate(Sum("progress"))["progress__sum"]
-        media.status = request.POST["status"]
+        media.status = status
         media.start_date = seasons.aggregate(Min("start_date"))["start_date__min"]
         media.end_date = seasons.aggregate(Max("end_date"))["end_date__max"]
         media.save()
 
     else:
-        media.score = request.POST["score"]
-        media.progress = request.POST["progress"]
-        media.status = request.POST["status"]
-        media.start_date = request.POST["start"]
-        media.end_date = request.POST["end"]
+        media.score = score
+        media.progress = progress
+        media.status = status
+        media.start_date = start_date
+        media.end_date = end_date
         media.save()
-
-    del request.session["metadata"]

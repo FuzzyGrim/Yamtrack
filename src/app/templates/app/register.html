@@ -22,21 +22,13 @@
           </div>
         {% endif %}
       {% endfor %}
-      
-      <div class="form-floating">
-        <input type="text" name="username" autofocus="" maxlength="150" class="textinput textInput form-control" required="" id="id_username" placeholder="Username">
-        <label for="id_username">Username</label>
-      </div>
 
-      <div class="form-floating">
-        <input type="password" name="password1" autocomplete="new-password" class="textinput textInput form-control" required="" id="id_password1">
-        <label for="id_password1">Password</label>
-      </div>
-
-      <div class="form-floating">
-        <input type="password" name="password2" autocomplete="new-password" class="textinput textInput form-control" required="" id="id_password2">
-        <label for="id_password2">Password Confirmation</label>
-      </div>
+      {% for field in form %}
+        <div class="form-floating">
+          {{ field }}
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        </div>
+      {% endfor %}
 
       <button class="w-100 btn btn-lg btn btn-secondary" type="submit">Sign Up</button>
 

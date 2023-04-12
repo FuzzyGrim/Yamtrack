@@ -45,6 +45,8 @@ def home(request):
                 "status": media.status,
                 "media_list": [],
             }
+
+        # template will show the season causing the media to be in progress/hold
         if media.seasons.exists():
             for season in media.seasons.all():
                 if season.status == media.status:
@@ -75,17 +77,38 @@ def medialist(request, media_type, status=None):
         return error_view(request, status_code=404)
 
     if request.method == "POST":
+        # metadata is set when opening modal to edit media
+        metadata = request.session.get("metadata")
+
         if "delete" in request.POST:
-            metadata = request.session.get("metadata")
             Media.objects.get(
                 media_id=metadata["id"],
                 media_type=media_type,
                 user=request.user,
                 api=metadata["api"],
             ).delete()
+
         # media edit triggered
         elif "status" in request.POST:
-            database.edit_media(request)
+            request.POST = helpers.fix_inputs(request, metadata)
+            database.edit_media(
+                metadata["id"],
+                metadata["title"],
+                metadata["image"],
+                metadata["media_type"],
+                request.POST["score"],
+                request.POST["progress"],
+                request.POST["status"],
+                request.POST["start"],
+                request.POST["end"],
+                metadata["api"],
+                request.user,
+                request.POST.get("season"),
+                metadata.get("seasons"),
+            )
+
+        # after form submission, metadata is no longer needed
+        del request.session["metadata"]
 
         if status:
             return redirect("medialist", media_type=media_type, status=status)
@@ -137,21 +160,60 @@ def search(request):
                 user=request.user,
                 api=metadata["api"],
             ).delete()
+
         elif "status" in request.POST:
+            request.POST = helpers.fix_inputs(request, metadata)
+
             if Media.objects.filter(
                 media_id=metadata["id"],
                 user=request.user,
                 api=metadata["api"],
             ).exists():
-                database.edit_media(request)
+                database.edit_media(
+                    metadata["id"],
+                    metadata["title"],
+                    metadata["image"],
+                    metadata["media_type"],
+                    request.POST["score"],
+                    request.POST["progress"],
+                    request.POST["status"],
+                    request.POST["start"],
+                    request.POST["end"],
+                    metadata["api"],
+                    request.user,
+                    request.POST.get("season"),
+                    metadata.get("seasons"),
+                )
             else:
-                database.add_media(request)
+                database.add_media(
+                    metadata["id"],
+                    metadata["title"],
+                    metadata["image"],
+                    metadata["media_type"],
+                    request.POST["score"],
+                    request.POST["progress"],
+                    request.POST["status"],
+                    request.POST["start"],
+                    request.POST["end"],
+                    metadata["api"],
+                    request.user,
+                    request.POST.get("season"),
+                    metadata.get("seasons"),
+                )
+
+        # after form submission, metadata is no longer needed
+        del request.session["metadata"]
 
         return redirect("/search?api=" + api + "&q=" + query)
 
     query_list = interactions.search(api, query)
     context = {"query_list": query_list}
     return render(request, "app/search.html", context)
+
+
+@login_required
+def details(request):
+    pass
 
 
 def register(request):
@@ -290,7 +352,7 @@ def edit(request):
 
         data["in_db"] = True
         data["media_seasons"] = list(
-            Season.objects.filter(media=database).values(
+            Season.objects.filter(parent=database).values(
                 "number",
                 "score",
                 "status",
