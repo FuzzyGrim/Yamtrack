@@ -47,4 +47,4 @@ class Season(models.Model):
 
 
 class User(AbstractUser):
-    default_api = models.CharField(max_length=10, default="tmdb")
+    last_search_type = models.CharField(max_length=10, default="tv")

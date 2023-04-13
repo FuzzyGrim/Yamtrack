@@ -58,12 +58,20 @@ class DefaultView(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("login") + "?next=" + reverse("profile"))
 
-    def test_search_tmdb(self):
-        response = self.client.get("/search?api=tmdb&q=flcl")
+    def test_search_tv(self):
+        response = self.client.get("/search?media_type=tv&q=breaking+bad")
         self.assertEqual(response.status_code, 302)
 
-    def test_search_mal(self):
-        response = self.client.get("/search?api=mal&q=flcl")
+    def test_search_movie(self):
+        response = self.client.get("/search?media_type=movie&q=perfect+blue")
+        self.assertEqual(response.status_code, 302)
+
+    def test_search_anime(self):
+        response = self.client.get("/search?media_type=anime&q=flcl")
+        self.assertEqual(response.status_code, 302)
+
+    def test_search_manga(self):
+        response = self.client.get("/search?media_type=manga&q=berserk")
         self.assertEqual(response.status_code, 302)
 
     def test_admin(self):
@@ -80,19 +88,31 @@ class LoggedInView(TestCase):
     def test_home(self):
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "app/home.html")        
+        self.assertTemplateUsed(response, "app/home.html")
 
-    def test_search_tmdb(self):
-        response = self.client.get("/search?api=tmdb&q=friends")
+    def test_search_tv(self):
+        response = self.client.get("/search?media_type=tv&q=breaking+bad")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/search.html")
-        self.assertContains(response, "Friends")
+        self.assertContains(response, "Breaking Bad")
 
-    def test_search_mal(self):
-        response = self.client.get("/search?api=mal&q=flcl")
+    def test_search_movie(self):
+        response = self.client.get("/search?media_type=movie&q=perfect+blue")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/search.html")
+        self.assertContains(response, "Perfect Blue")
+
+    def test_search_anime(self):
+        response = self.client.get("/search?media_type=anime&q=flcl")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/search.html")
         self.assertContains(response, "FLCL")
+    
+    def test_search_manga(self):
+        response = self.client.get("/search?media_type=manga&q=berserk")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/search.html")
+        self.assertContains(response, "Berserk")
 
     def test_profile(self):
         response = self.client.get(reverse("profile"))
@@ -130,11 +150,11 @@ class AdminView(TestCase):
     def test_admin(self):
         response = self.client.get("/admin/app/user/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "default_api")
+        self.assertContains(response, "last_search_type")
 
         response = self.client.get("/admin/app/user/add/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "default_api")
+        self.assertContains(response, "last_search_type")
 
     def test_admin_logout(self):
         self.client.get(reverse("logout"))

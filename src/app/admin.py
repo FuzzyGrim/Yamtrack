@@ -15,12 +15,12 @@ class UserAdmin(UserAdmin):
                     "username",
                     "password1",
                     "password2",
-                    "default_api",
+                    "last_search_type",
                 ),
             },
         ),
     )
-    list_display = ("username", "default_api")
+    list_display = ("username", "last_search_type")
 
 
 admin.site.register(User, UserAdmin)

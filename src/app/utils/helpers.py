@@ -6,11 +6,6 @@ import requests
 from pathlib import Path
 
 
-def convert_mal_media_type(media_type):
-    # replace _ with space and capitalize first letter
-    return media_type.replace("_", " ").title()
-
-
 def download_image(url, media_type):
     # rsplit is used to split the url at the last / and taking the last element
     # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg

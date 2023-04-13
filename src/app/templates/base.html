@@ -84,14 +84,11 @@
             <i class="bi bi-list"></i>
           </button>
           <form class="input-group" method="get" action="{% url 'search' %}">
-            <select name="api" class="form-select">
-              {% if user.default_api == 'tmdb' %}
-                <option value="tmdb" selected>TMDB</option>
-                <option value="mal">MAL</option>
-              {% else %}
-                <option value="mal" selected>MAL</option>
-                <option value="tmdb">TMDB</option>
-              {% endif %}
+            <select name="media_type" class="form-select">
+              <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
+              <option value="movie" {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
+              <option value="anime" {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
+              <option value="manga" {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
             </select>
             <input class="form-control bg-dark text-white" type="search" name="q" placeholder="Search" aria-label="Search" value="{% if 'q' in request.GET %}{{ request.GET.q }}{% endif %}" required>
             <button class="btn bg-dark text-white rounded-end" type="submit"><i class="bi bi-search"></i></button>

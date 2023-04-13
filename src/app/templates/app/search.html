@@ -25,7 +25,7 @@
               {% endif %}
 
               <div class="card-body">
-                <div class="card-title">{{media.name}}{{media.title}}</div>
+                <div class="card-title">{{media.title}}</div>
               </div>
               
               <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-secondary" 
@@ -33,11 +33,7 @@
               data-bs-placement="top" 
               data-bs-custom-class="custom-tooltip" 
               data-bs-title={% if media.original_type %}"{{media.original_type|capfirst}}"{% else %}"{{media.media_type|capfirst}}"{% endif %}>
-                {% if media.original_type %}
-                  {{media.original_type.0|capfirst}}
-                {% else %}
-                  {{media.media_type.0|capfirst}}
-                {% endif %}
+                {{media.original_type.0|capfirst}}
                 <span class="visually-hidden">Media Type</span>
               </span>
             </div>

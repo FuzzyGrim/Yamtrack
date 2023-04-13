@@ -1,76 +1,24 @@
 from django.core.cache import cache
 
 from decouple import config
-from aiohttp import ClientSession
-from asyncio import ensure_future, gather, run
 import requests
 
 from app.models import Media
-from app.utils import helpers
 
 
 TMDB_API = config("TMDB_API", default=None)
 MAL_API = config("MAL_API", default=None)
 
 
-def search(api_type, query):
-    if api_type == "tmdb":
-        url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API}&query={query}"
-        response = requests.get(url).json()["results"]
-        for media in response:
-            media["media_id"] = media["id"]
-
-            # needed for delete button
-            media["api"] = "tmdb"
-
-    elif api_type == "mal":
-        animes, mangas = run(mal_search(query))
-
-        # merge anime and manga results alternating between each
-        response = [item for pair in zip(animes, mangas) for item in pair]
-
-    return response
-
-
-async def mal_search(query):
-    anime_url = f"https://api.myanimelist.net/v2/anime?q={query}&limit=10&nsfw=true&fields=media_type"
-    manga_url = f"https://api.myanimelist.net/v2/manga?q={query}&limit=10&nsfw=true&fields=media_type"
-    async with ClientSession() as session:
-        task = []
-        task.append(ensure_future(mal_search_list(session, anime_url)))
-        task.append(ensure_future(mal_search_list(session, manga_url)))
-        animes, mangas = await gather(*task)
-        return animes, mangas
-
-
-async def mal_search_list(session, url):
-    async with session.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}) as resp:
-        response = await resp.json()
-        if "data" in response:
-            response = response["data"]
-            for media in response:
-                media["node"]["original_type"] = helpers.convert_mal_media_type(
-                    media["node"]["media_type"]
-                )
-                media["node"]["media_type"] = "manga" if "manga" in url else "anime"
-                media["node"]["media_id"] = media["node"]["id"]
-
-                # needed for delete button
-                media["node"]["api"] = "mal"
-                media.update(media.pop("node"))
-        return response
-
-
 def mal_edit(request, media_type, media_id):
     cache_key = media_type + str(media_id)
     response = cache.get(cache_key)
     if response is None:
-        url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,synopsis,media_type,num_episodes,num_chapters,average_episode_duration,status,genres"
+        url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,end_date,synopsis,mean,rank,popularity,updated_at,media_type,status,genres,num_episodes,num_chapters,broadcast,source,average_episode_duration,rating,pictures,background,related_anime,related_manga,recommendations,studios,statistics"
+
         header = {"X-MAL-CLIENT-ID": MAL_API}
         response = requests.get(url, headers=header).json()
-        response["original_type"] = helpers.convert_mal_media_type(
-            response["media_type"]
-        )
+        response["original_type"] = response["media_type"].replace("_", " ").title()
         response["media_type"] = media_type
 
         if "start_date" in response:

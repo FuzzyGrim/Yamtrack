@@ -15,7 +15,7 @@ from app.forms import (
     UserUpdateForm,
     PasswordChangeForm,
 )
-from app.utils import database, interactions, helpers
+from app.utils import database, interactions, helpers, search
 from app.utils.imports import anilist, mal, tmdb
 
 import logging
@@ -63,7 +63,7 @@ def home(request):
 
 
 @login_required
-def medialist(request, media_type, status=None):
+def media_list(request, media_type, status=None):
     if media_type not in ["anime", "manga", "tv", "movie"]:
         return error_view(request, status_code=404)
 
@@ -143,12 +143,12 @@ def medialist(request, media_type, status=None):
 
 
 @login_required
-def search(request):
-    api = request.GET.get("api")
+def media_search(request):
+    media_type = request.GET.get("media_type")
     query = request.GET.get("q")
 
     # update user default api
-    request.user.default_api = api
+    request.user.last_search_type = media_type
     request.user.save()
 
     if request.method == "POST":
@@ -204,9 +204,13 @@ def search(request):
         # after form submission, metadata is no longer needed
         del request.session["metadata"]
 
-        return redirect("/search?api=" + api + "&q=" + query)
+        return redirect("/search?media_type=" + media_type + "&q=" + query)
 
-    query_list = interactions.search(api, query)
+    if media_type == "anime" or media_type == "manga":
+        query_list = search.mal(media_type, query)
+    elif media_type == "tv" or media_type == "movie":
+        query_list = search.tmdb(media_type, query)
+
     context = {"query_list": query_list}
     return render(request, "app/search.html", context)
 

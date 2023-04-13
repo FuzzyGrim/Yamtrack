@@ -11,7 +11,7 @@ class RegisterLoginUser(TestCase):
             reverse("register"),
             {
                 "username": "test",
-                "default_api": "tmdb",
+                "last_search_type": "tv",
                 "password1": "SMk5noPnqs",
                 "password2": "SMk5noPnqs",
             },
@@ -26,7 +26,6 @@ class RegisterLoginUser(TestCase):
             reverse("register"),
             {
                 "username": "test",
-                "default_api": "tmdb",
                 "password1": "SMk5noPnqs",
                 "password2": "SMk5noPnqs",
             },
@@ -56,7 +55,6 @@ class Profile(TestCase):
             reverse("profile"),
             {
                 "username": "new_test",
-                "default_api": "tmdb",
             },
         )
         self.assertEqual(auth.get_user(self.client).username, "new_test")
@@ -72,34 +70,3 @@ class Profile(TestCase):
             },
         )
         self.assertEqual(auth.get_user(self.client).check_password("*FNoZN64"), True)
-
-
-class Search(TestCase):
-    def setUp(self):
-        self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
-        self.client.login(**self.credentials)
-
-    def test_search_tmdb(self):
-        response = self.client.get(
-            reverse("search"),
-            {
-                "api": "tmdb",
-                "q": "The Matrix",
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "app/search.html")
-        self.assertContains(response, "The Matrix")
-
-    def test_search_mal(self):
-        response = self.client.get(
-            reverse("search"),
-            {
-                "api": "mal",
-                "q": "Perfect Blue",
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "app/search.html")
-        self.assertContains(response, "Perfect Blue")
