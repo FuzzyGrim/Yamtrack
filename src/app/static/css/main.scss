@@ -3,13 +3,14 @@
 @import "sidebar";
 @import "medialist";
 @import "search";
+@import "details";
 @import "profile";
 @import "login";
 @import "register";
 @import "edit";
 
 @media screen and (min-width: 992px) {
-  body main .header .input-group {
+  body main .search-bar .input-group {
     width: 50%;
     margin: auto;
   }
@@ -36,6 +37,17 @@
     .list-head, .list-section {
       ._progress {
         display: none;
+      }
+    }
+  }
+  #details {
+    .header {
+      display: block !important;
+      .image {
+        text-align: center;
+      }
+      .content .title {
+        text-align: center;
       }
     }
   }

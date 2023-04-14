@@ -11,6 +11,7 @@ urlpatterns = [
     path("medialist/<str:media_type>/", views.media_list, name="medialist"),
     path("medialist/<str:media_type>/<str:status>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
+    path("details/<str:media_type>/<int:media_id>/<str:title>", views.media_details, name="details"),
     path("profile", views.profile, name="profile"),
     path("login", views.UpdatedLoginView.as_view(extra_context={'page': 'Login'}), name="login"),
     path("logout", auth_views.LogoutView.as_view(), name="logout"),

@@ -15,7 +15,7 @@ from app.forms import (
     UserUpdateForm,
     PasswordChangeForm,
 )
-from app.utils import database, interactions, helpers, search
+from app.utils import database, interactions, helpers, details, search
 from app.utils.imports import anilist, mal, tmdb
 
 import logging
@@ -216,8 +216,12 @@ def media_search(request):
 
 
 @login_required
-def details(request):
-    pass
+def media_details(request, media_type, media_id, title):
+    if media_type == "anime" or media_type == "manga":
+        media = details.mal(media_type, media_id)
+    elif media_type == "tv" or media_type == "movie":
+        media = details.tmdb(media_type, media_id)
+    return render(request, "app/details.html", {"media": media})
 
 
 def register(request):
