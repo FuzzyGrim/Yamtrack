@@ -11,8 +11,8 @@ def tmdb(media_type, query):
     response = requests.get(url).json()["results"]
     for media in response:
         media["media_id"] = media["id"]
-        media["original_type"] = "tv"
-        media["media_type"] = "tv"
+        media["original_type"] = media_type
+        media["media_type"] = media_type
         media["api"] = "tmdb"
         if "name" in media:
             media["title"] = media["name"]
@@ -28,7 +28,7 @@ def mal(media_type, query):
             media["node"]["original_type"] = (
                 media["node"]["media_type"].replace("_", " ").title()
             )
-            media["node"]["media_type"] = "anime"
+            media["node"]["media_type"] = media_type
             media["node"]["media_id"] = media["node"]["id"]
 
             # needed for delete button
