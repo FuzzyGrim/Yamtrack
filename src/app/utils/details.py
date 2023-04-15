@@ -37,7 +37,7 @@ def mal(media_type, media_id):
     if "main_picture" in response:
         response["image"] = response["main_picture"]["large"]
     else:
-        response["image"] = ""
+        response["image"] = "none.svg"
 
     if "num_chapters" in response:
         response["num_episodes"] = response["num_chapters"]
@@ -53,7 +53,9 @@ def tmdb(media_type, media_id):
 
     response["media_type"] = media_type
 
-    if response["poster_path"] is not None:
+    if response["poster_path"] is None:
+        response["image"] = "none.svg"
+    else:
         response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
 
     # tv shows have name instead of title

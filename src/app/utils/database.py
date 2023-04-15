@@ -18,9 +18,8 @@ def add_media(
     season_selected,
     seasons,
 ):
-    if image == "":
-        image = "none.svg"
-    else:
+
+    if image != "none.svg":
         if api == "tmdb":
             image = f"https://image.tmdb.org/t/p/w300{image}"
         filename = helpers.download_image(image, media_type)

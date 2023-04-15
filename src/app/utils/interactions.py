@@ -47,7 +47,7 @@ def mal_edit(request, media_type, media_id):
         if "main_picture" in response:
             response["image"] = response["main_picture"]["large"]
         else:
-            response["image"] = ""
+            response["image"] = "none.svg"
 
         if "num_chapters" in response:
             response["num_episodes"] = response["num_chapters"]
@@ -85,20 +85,24 @@ def tmdb_edit(request, media_type, media_id):
         elif "first_air_date" in response:
             response["year"] = response["first_air_date"][0:4]
 
+        # movies have runtime
         if "runtime" in response:
             hours, minutes = divmod(response["runtime"], 60)
-            response["duration"] = f"{hours}h {minutes}m"
-        elif "runtime" in response["last_episode_to_air"]:
+            response["runtime"] = f"{hours}h {minutes}m"
+        # tv shows episode runtime are shown in last_episode_to_air
+        elif response["last_episode_to_air"] is not None and "runtime" in response["last_episode_to_air"]:
             hours, minutes = divmod(response["last_episode_to_air"]["runtime"], 60)
             if hours == 0:
-                response["duration"] = f"{minutes}m"
+                response["runtime"] = f"{minutes}m"
             else:
-                response["duration"] = f"{hours}h {minutes}m"
-
-        if "poster_path" in response:
-            response["image"] = response["poster_path"]
+                response["runtime"] = f"{hours}h {minutes}m"
         else:
-            response["image"] = ""
+            response["runtime"] = "Unknown"
+
+        if response["poster_path"] is None:
+            response["image"] = "none.svg"
+        else:
+            response["image"] = response["poster_path"]
 
         if "number_of_episodes" in response:
             response["num_episodes"] = response["number_of_episodes"]
