@@ -106,15 +106,15 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #details .header .content .title { font-size: 2em; font-weight: 600; color: #d1cdc7; }
 
-#details .seasons-list-title { margin-top: 1em; font-size: 1.2em; color: #d1cdc7; margin-bottom: 0.5em; }
+#details .list-title { margin-top: 1em; font-size: 1.2em; color: #d1cdc7; margin-bottom: 0.5em; }
 
-#details .seasons-list-grid { display: grid; grid-gap: 1em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+#details .list-grid { display: grid; grid-gap: 1em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 
-#details .seasons-list-grid .season .poster { border-radius: 10px; object-fit: cover; width: 100%; aspect-ratio: 2/3; }
+#details .list-grid .grid-object .poster { border-radius: 10px; object-fit: cover; width: 100%; aspect-ratio: 2/3; }
 
-#details .seasons-list-grid .season .image-not-found { border-radius: 10px; object-fit: contain; width: 100%; aspect-ratio: 2/3; background-color: #2c3032; }
+#details .list-grid .grid-object .image-not-found { border-radius: 10px; object-fit: contain; width: 100%; aspect-ratio: 2/3; background-color: #2c3032; }
 
-#details .seasons-list-grid .season .season-title { margin-top: .2em; text-align: center; }
+#details .list-grid .grid-object .grid-title { margin-top: .2em; text-align: center; }
 
 #profile .btn-submit { color: #909294; background-color: #212529; }
 

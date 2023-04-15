@@ -98,12 +98,13 @@ def tmdb(media_type, media_id):
     if not response["genres"]:
         response["genres"] = [{"name": "Unknown"}]
 
-    recommendations = response["recommendations"]["results"][:10]
-    for recommendation in recommendations:
+    response["recommendations"] = response["recommendations"]["results"][:10]
+    for recommendation in response["recommendations"]:
         if "name" in recommendation:
             recommendation["title"] = recommendation["name"]
-        if "poster_path" in response:
-            response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+        if "poster_path" in recommendation:
+            recommendation["image"] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
+
     response["api"] = "tmdb"
 
     return response

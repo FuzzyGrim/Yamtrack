@@ -27,17 +27,17 @@
     }
   }
 
-  .seasons-list-title {
+  .list-title {
     margin-top: 1em;
     font-size: 1.2em;
     color: $font-grey;
     margin-bottom: 0.5em;
   }
-  .seasons-list-grid {
+  .list-grid {
     display: grid;
     grid-gap: 1em;
     grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-    .season {
+    .grid-object {
       .poster {
         border-radius: 10px;
         object-fit: cover;
@@ -53,7 +53,7 @@
         background-color: rgb(44, 48, 50);
       }
 
-      .season-title {
+      .grid-title {
         margin-top: .2em;
         text-align: center;
       }
