@@ -76,20 +76,60 @@
       </div>
     {% endif %}
 
+    {% if media.related_anime %}
+      <div class="list-title"><strong>Related Animes</strong></div>
+      <div class="list-grid">
+        {% for related in media.related_anime %}
+          <div class="grid-object">
+            <div class="related-image">
+              {% if related.image != "none.svg" %}
+                <img class="poster" src="{{related.image}}"/>
+              {% else %}
+                <img class="image-not-found" src="{% get_media_prefix %}/none.svg"/>
+              {% endif %}
+            </div>
+            <div class="grid-title">
+              <strong>{{related.title}}</strong>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if media.related_manga %}
+      <div class="list-title"><strong>Related Mangas</strong></div>
+      <div class="list-grid">
+        {% for related in media.related_manga %}
+          <div class="grid-object">
+            <div class="related-image">
+              {% if related.image != "none.svg" %}
+                <img class="poster" src="{{related.image}}"/>
+              {% else %}
+                <img class="image-not-found" src="{% get_media_prefix %}/none.svg"/>
+              {% endif %}
+            </div>
+            <div class="grid-title">
+              <strong>{{related.title}}</strong>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     {% if media.recommendations %}
     <div class="list-title"><strong>Recommendations</strong></div>
     <div class="list-grid">
       {% for recommendation in media.recommendations %}
         <div class="grid-object">
           <div class="recommendation-image">
-            {% if recommendation.image %}
-              <img class="poster" src="https://image.tmdb.org/t/p/w500{{recommendation.poster_path}}"/>
-              {% else %}
+            {% if recommendation.image != "none.svg" %}
+              <img class="poster" src="{{recommendation.image}}"/>
+            {% else %}
               <img class="image-not-found" src="{% get_media_prefix %}/none.svg"/>
             {% endif %}
           </div>
           <div class="grid-title">
-            <strong>{{recommendation.name}}</strong>
+            <strong>{{recommendation.title}}</strong>
           </div>
         </div>
       {% endfor %}

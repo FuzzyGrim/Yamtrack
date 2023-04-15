@@ -11,16 +11,17 @@ def mal(media_type, media_id):
     header = {"X-MAL-CLIENT-ID": MAL_API}
     response = requests.get(url, headers=header).json()
 
-    response["original_type"] = response["media_type"].replace("_", " ").title()
     response["media_type"] = media_type
 
     if "average_episode_duration" in response:
         # convert seconds to hours and minutes
         hours, minutes = divmod(int(response["average_episode_duration"] / 60), 60)
         if hours == 0:
-            response["duration"] = f"{minutes}m"
+            response["runtime"] = f"{minutes}m"
         else:
-            response["duration"] = f"{hours}h {minutes}m"
+            response["runtime"] = f"{hours}h {minutes}m"
+    else:
+        response["runtime"] = "Unknown"
 
     if "status" in response:
         if response["status"] == "finished_airing":
@@ -33,6 +34,8 @@ def mal(media_type, media_id):
             response["status"] = "Finished"
         elif response["status"] == "currently_publishing":
             response["status"] = "Publishing"
+    else:
+        response["status"] = "Unknown"
 
     if "main_picture" in response:
         response["image"] = response["main_picture"]["large"]
@@ -41,6 +44,34 @@ def mal(media_type, media_id):
 
     if "num_chapters" in response:
         response["num_episodes"] = response["num_chapters"]
+
+    if "genres" not in response:
+        response["genres"] = [{"name": "Unknown"}]
+
+    for related_anime in response["related_anime"]:
+        if related_anime["node"]["main_picture"] is not None:
+            related_anime["node"]["image"] = related_anime["node"]["main_picture"]["large"]
+            print(related_anime["node"]["image"])
+        else:
+            related_anime["node"]["image"] = "none.svg"
+
+        related_anime.update(related_anime.pop("node"))
+
+    for related_manga in response["related_manga"]:
+        if related_manga["node"]["main_picture"] is not None:
+            related_manga["node"]["image"] = related_manga["node"]["main_picture"]["large"]
+        else:
+            related_manga["node"]["image"] = "none.svg"
+
+        related_manga.update(related_manga.pop("node"))
+
+    for recommendation in response["recommendations"]:
+        if recommendation["node"]["main_picture"] is not None:
+            recommendation["node"]["image"] = recommendation["node"]["main_picture"]["large"]
+        else:
+            recommendation["node"]["image"] = "none.svg"
+
+        recommendation.update(recommendation.pop("node"))
 
     response["api"] = "mal"
     return response
