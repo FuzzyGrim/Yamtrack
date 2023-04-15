@@ -47,13 +47,13 @@ def mal(media_type, media_id):
 
 
 def tmdb(media_type, media_id):
-    url = f"https://api.themoviedb.org/3/{media_type}/{media_id}?api_key={TMDB_API}"
+    url = f"https://api.themoviedb.org/3/{media_type}/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
 
     response = requests.get(url).json()
 
     response["media_type"] = media_type
 
-    if "poster_path" in response:
+    if response["poster_path"] is not None:
         response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
 
     # tv shows have name instead of title
@@ -61,37 +61,47 @@ def tmdb(media_type, media_id):
         response["title"] = response["name"]
 
     # movies have release_date
-    if "release_date" in response:
+    if "release_date" in response and response["release_date"] != "":
         response["start_date"] = response["release_date"]
     # tv shows have first_air_date
-    elif "first_air_date" in response:
+    elif "first_air_date" in response and response["first_air_date"] != "":
         response["start_date"] = response["first_air_date"]
-
-    if "last_air_date" in response:
-        response["end_date"] = response["last_air_date"]
-
-    if "overview" in response:
-        response["synopsis"] = response["overview"]
     else:
+        response["start_date"] = "Unknown"
+
+    if response["overview"] == "":
         response["synopsis"] = "No synopsis available."
+    else:
+        response["synopsis"] = response["overview"]
 
     # movies have runtime
     if "runtime" in response:
         hours, minutes = divmod(response["runtime"], 60)
         response["runtime"] = f"{hours}h {minutes}m"
     # tv shows episode runtime are shown in last_episode_to_air
-    elif "runtime" in response["last_episode_to_air"]:
+    elif response["last_episode_to_air"] is not None and "runtime" in response["last_episode_to_air"]:
         hours, minutes = divmod(response["last_episode_to_air"]["runtime"], 60)
         if hours == 0:
             response["runtime"] = f"{minutes}m"
         else:
             response["runtime"] = f"{hours}h {minutes}m"
+    else:
+        response["runtime"] = "Unknown"
 
     if "number_of_episodes" in response:
         response["num_episodes"] = response["number_of_episodes"]
     else:
         response["num_episodes"] = 1
 
+    if not response["genres"]:
+        response["genres"] = [{"name": "Unknown"}]
+
+    recommendations = response["recommendations"]["results"][:10]
+    for recommendation in recommendations:
+        if "name" in recommendation:
+            recommendation["title"] = recommendation["name"]
+        if "poster_path" in response:
+            response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
     response["api"] = "tmdb"
 
     return response
