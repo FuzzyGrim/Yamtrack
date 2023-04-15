@@ -1,5 +1,3 @@
-$font-grey: #d1cdc7;
-
 #home {
   .container {
     margin-bottom: 2rem;
@@ -14,17 +12,24 @@ $font-grey: #d1cdc7;
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, 10rem);
-      justify-content: center;
-      grid-gap: 0rem 1rem;
+      grid-gap: .5em;
+      grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 
       .card {
         margin-bottom: 1em;
 
-        img {
+        .poster {
           width: 10rem;
-          height: 15rem;
+          aspect-ratio: 2/3;
           object-fit: cover;
+          cursor: pointer;
+        }
+
+        .image-not-found {
+          width: 10rem;
+          aspect-ratio: 2/3;
+          object-fit: contain;
+          background-color: rgb(44, 48, 50);
           cursor: pointer;
         }
 

@@ -24,11 +24,13 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #home .container .title { color: #d1cdc7; font-size: 1.5rem; font-weight: 600; text-align: center; margin-top: 0.5rem; margin-bottom: 1rem; }
 
-#home .container .grid { display: grid; grid-template-columns: repeat(auto-fill, 10rem); justify-content: center; grid-gap: 0rem 1rem; }
+#home .container .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 
 #home .container .grid .card { margin-bottom: 1em; }
 
-#home .container .grid .card img { width: 10rem; height: 15rem; object-fit: cover; cursor: pointer; }
+#home .container .grid .card .poster { width: 10rem; aspect-ratio: 2/3; object-fit: cover; cursor: pointer; }
+
+#home .container .grid .card .image-not-found { width: 10rem; aspect-ratio: 2/3; object-fit: contain; background-color: #2c3032; cursor: pointer; }
 
 #home .container .grid .card .card-img-overlay { top: auto; padding: 0.5em; border-top-left-radius: 0px; border-top-right-radius: 0px; background-color: rgba(0, 0, 0, 0.692); font-size: 0.8rem; }
 
