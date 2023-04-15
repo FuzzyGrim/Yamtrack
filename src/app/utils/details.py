@@ -12,13 +12,10 @@ def mal(media_type, media_id):
 
     response["media_type"] = media_type
 
-    # Convert average_episode_duration to hours and minutes
-    if "average_episode_duration" in response:
-        duration = response["average_episode_duration"]
-        hours, minutes = divmod(int(duration / 60), 60)
-        response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+    if "main_picture" in response:
+        response["image"] = response["main_picture"]["large"]
     else:
-        response["runtime"] = "Unknown"
+        response["image"] = "none.svg"
 
     # Map status to human-readable values
     status_map = {
@@ -26,17 +23,31 @@ def mal(media_type, media_id):
         "currently_airing": "Airing",
         "not_yet_aired": "Upcoming",
         "finished": "Finished",
-        "currently_publishing": "Publishing"
+        "currently_publishing": "Publishing",
+        "not_yet_published": "Upcoming",
+        "on_hiatus": "On Hiatus",
     }
     response["status"] = status_map.get(response.get("status"), "Unknown")
 
-    if "main_picture" in response:
-        response["image"] = response["main_picture"]["large"]
-    else:
-        response["image"] = "none.svg"
+    if response["synopsis"] == "":
+        response["synopsis"] = "No synopsis available."
 
     if "num_chapters" in response:
         response["num_episodes"] = response["num_chapters"]
+    elif "num_episodes" not in response:
+        response["num_episodes"] = "Unknown"
+
+    # Convert average_episode_duration to hours and minutes
+    if (
+        "average_episode_duration" in response
+        and response["average_episode_duration"] != 0
+    ):
+        duration = response["average_episode_duration"]
+        # duration are in seconds
+        hours, minutes = divmod(int(duration / 60), 60)
+        response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+    else:
+        response["runtime"] = "Unknown"
 
     if "genres" not in response:
         response["genres"] = [{"name": "Unknown"}]
@@ -93,13 +104,16 @@ def tmdb(media_type, media_id):
     if "runtime" in response:
         duration = response["runtime"]
     # tv shows episode runtime are shown in last_episode_to_air
-    elif response["last_episode_to_air"] and "runtime" in response["last_episode_to_air"]:
+    elif (
+        response["last_episode_to_air"] and "runtime" in response["last_episode_to_air"]
+    ):
         duration = response["last_episode_to_air"]["runtime"]
     else:
         response["runtime"] = "Unknown"
 
-    if response["runtime"] != "Unknown":
-        hours, minutes = divmod(int(duration / 60), 60)
+    if "duration" in locals():
+        # duration are in minutes
+        hours, minutes = divmod(int(duration), 60)
         response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
 
     response["num_episodes"] = response.get("number_of_episodes", 1)
@@ -112,7 +126,9 @@ def tmdb(media_type, media_id):
         if "name" in recommendation:
             recommendation["title"] = recommendation["name"]
         if "poster_path" in recommendation:
-            recommendation["image"] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
+            recommendation[
+                "image"
+            ] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
 
     response["api"] = "tmdb"
 

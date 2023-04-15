@@ -7,6 +7,7 @@ import shutil
 import os
 
 from app.models import User, Media, Season
+from app.utils import details
 from app.utils.database import add_media, edit_media
 
 
@@ -269,3 +270,67 @@ class EditMedia(TestCase):
             shutil.rmtree("edit")
         except OSError:
             pass
+
+
+class DetailsMedia(TestCase):
+
+    def test_anime(self):
+        response = details.mal("anime", "1")
+        self.assertEqual(response["title"], "Cowboy Bebop")
+        self.assertEqual(response["image"], "https://api-cdn.myanimelist.net/images/anime/4/19644l.jpg")
+        self.assertEqual(response["start_date"], "1998-04-03")
+        self.assertEqual(response["status"], "Finished")
+        self.assertEqual(response["num_episodes"], 26)
+
+    def test_anime_unknown(self):
+        # anime without picture, synopsis and duration
+        response = details.mal("anime", "23183")
+        self.assertEqual(response["title"], "Itazura Post")
+        self.assertEqual(response["image"], "none.svg")
+        self.assertEqual(response["synopsis"], "No synopsis available.")
+        self.assertEqual(response["runtime"], "Unknown")
+
+    def test_anime_unknown_2(self):
+        # anime without picture and genres
+        response = details.mal("anime", "28487")
+        self.assertEqual(response["title"], "Ikite Iru")
+        self.assertEqual(response["image"], "none.svg")
+        self.assertEqual(response["genres"], [{"name": "Unknown"}])
+
+    def test_manga(self):
+        response = details.mal("manga", "1")
+        self.assertEqual(response["title"], "Monster")
+        self.assertEqual(response["image"], "https://api-cdn.myanimelist.net/images/manga/3/258224l.jpg")
+        self.assertEqual(response["start_date"], "1994-12-05")
+        self.assertEqual(response["status"], "Finished")
+        self.assertEqual(response["num_chapters"], 162)
+
+    def test_tv(self):
+        response = details.tmdb("tv", "1396")
+        self.assertEqual(response["title"], "Breaking Bad")
+        self.assertEqual(response["image"], "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg")
+        self.assertEqual(response["start_date"], "2008-01-20")
+        self.assertEqual(response["status"], "Ended")
+        self.assertEqual(response["num_episodes"], 62)
+
+    def test_tv_unknown(self):
+        response = details.tmdb("tv", "24795")
+        self.assertEqual(response["title"], "F.D.R.")
+        self.assertEqual(response["image"], "none.svg")
+        self.assertEqual(response["synopsis"], "No synopsis available.")
+        self.assertEqual(response["genres"], [{"name": "Unknown"}])
+
+    def test_movie(self):
+        response = details.tmdb("movie", "10494")
+        self.assertEqual(response["title"], "Perfect Blue")
+        self.assertEqual(response["image"], "https://image.tmdb.org/t/p/w500/hwCTlm990H6NlrG8W7sk3pxdMtf.jpg")
+        self.assertEqual(response["start_date"], "1997-07-25")
+        self.assertEqual(response["status"], "Released")
+        self.assertEqual(response["num_episodes"], 1)
+
+    def test_movie_unknown(self):
+        response = details.tmdb("movie", "402988")
+        self.assertEqual(response["title"], "FDS")
+        self.assertEqual(response["image"], "none.svg")
+        self.assertEqual(response["start_date"], "Unknown")
+        self.assertEqual(response["genres"], [{"name": "Unknown"}])

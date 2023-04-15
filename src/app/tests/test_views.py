@@ -107,7 +107,7 @@ class LoggedInView(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/search.html")
         self.assertContains(response, "FLCL")
-    
+
     def test_search_manga(self):
         response = self.client.get("/search?media_type=manga&q=berserk")
         self.assertEqual(response.status_code, 200)
