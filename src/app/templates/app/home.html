@@ -15,7 +15,11 @@
               
               <img
                 src="{{ media.image.url }}"
-                class="card-img open-modal-button"
+                {% if media.image.url == "/media/none.svg"%}
+                  class="card-img open-modal-button image-not-found"
+                  {% else %}
+                  class="card-img open-modal-button poster"
+                {% endif %}
                 data-bs-toggle="modal"
                 data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}"
                 data-url="{{media.media_type}}_{{media.media_id}}"

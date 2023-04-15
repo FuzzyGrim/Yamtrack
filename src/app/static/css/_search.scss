@@ -1,28 +1,31 @@
 #search {
   .container-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 12rem);
-    justify-content: center;
-    grid-gap: 1.5rem 1rem;
+    grid-gap: 1em;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 
     .card {
-      .poster {
-        object-fit: cover;
-        height: 18rem;
-      }
-      .image-not-found {
-        object-fit: contain;
-        height: 18rem;
-        background-color: rgb(44, 48, 50);
-      }
+      a {
+        text-decoration: none;
+        color: $font-grey;
+        .poster {
+          object-fit: cover;
+          aspect-ratio: 2/3;
+        }
+        .image-not-found {
+          object-fit: contain;
+          aspect-ratio: 2/3;
+          background-color: rgb(44, 48, 50);
+        }
 
-      .card-body {
-        padding: 0.6rem;
-        .card-title {
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          margin-bottom: 0;
+        .card-body {
+          padding: 0.6rem;
+          .card-title {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            margin-bottom: 0;
+          }
         }
       }
     }

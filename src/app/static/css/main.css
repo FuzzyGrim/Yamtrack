@@ -84,15 +84,17 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #medialist .list-head .score .dropdown-menu, #medialist .list-head .status .dropdown-menu, #medialist .list-head ._progress .dropdown-menu, #medialist .list-head .edit .dropdown-menu, #medialist .list-section .score .dropdown-menu, #medialist .list-section .status .dropdown-menu, #medialist .list-section ._progress .dropdown-menu, #medialist .list-section .edit .dropdown-menu { background-color: #24292f; color: #d1cdc7; min-width: 0; padding: 1em; }
 
-#search .container-grid { display: grid; grid-template-columns: repeat(auto-fill, 12rem); justify-content: center; grid-gap: 1.5rem 1rem; }
+#search .container-grid { display: grid; grid-gap: 1em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 
-#search .container-grid .card .poster { object-fit: cover; height: 18rem; }
+#search .container-grid .card a { text-decoration: none; color: #d1cdc7; }
 
-#search .container-grid .card .image-not-found { object-fit: contain; height: 18rem; background-color: #2c3032; }
+#search .container-grid .card a .poster { object-fit: cover; aspect-ratio: 2/3; }
 
-#search .container-grid .card .card-body { padding: 0.6rem; }
+#search .container-grid .card a .image-not-found { object-fit: contain; aspect-ratio: 2/3; background-color: #2c3032; }
 
-#search .container-grid .card .card-body .card-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-bottom: 0; }
+#search .container-grid .card a .card-body { padding: 0.6rem; }
+
+#search .container-grid .card a .card-body .card-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-bottom: 0; }
 
 #details { background-color: #1b1e1f; border: 1px solid #383d3f; padding: 1.5em; }
 
