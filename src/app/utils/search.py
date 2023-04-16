@@ -25,6 +25,8 @@ def mal(media_type, query):
     if "data" in response:
         response = response["data"]
         for media in response:
+            if media["node"]["media_type"] == "tv":
+                media["node"]["media_type"] = "anime"
             media["node"]["original_type"] = (
                 media["node"]["media_type"].replace("_", " ").title()
             )
