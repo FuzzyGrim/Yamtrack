@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
+    if request.method == "POST":
+        database.media_form_handler(request)
+        return redirect("home")
+
     media_list = (
         Media.objects.filter(user_id=request.user, status__in=["Watching", "Paused"])
         .order_by("media_type", "-status", "title")
@@ -77,38 +81,7 @@ def media_list(request, media_type, status=None):
         return error_view(request, status_code=404)
 
     if request.method == "POST":
-        # metadata is set when opening modal to edit media
-        metadata = request.session.get("metadata")
-
-        if "delete" in request.POST:
-            Media.objects.get(
-                media_id=metadata["id"],
-                media_type=media_type,
-                user=request.user,
-                api=metadata["api"],
-            ).delete()
-
-        # media edit triggered
-        elif "status" in request.POST:
-            request.POST = helpers.fix_inputs(request, metadata)
-            database.edit_media(
-                metadata["id"],
-                metadata["title"],
-                metadata["image"],
-                metadata["media_type"],
-                request.POST["score"],
-                request.POST["progress"],
-                request.POST["status"],
-                request.POST["start"],
-                request.POST["end"],
-                metadata["api"],
-                request.user,
-                request.POST.get("season"),
-                metadata.get("seasons"),
-            )
-
-        # after form submission, metadata is no longer needed
-        del request.session["metadata"]
+        database.media_form_handler(request)
 
         if status:
             return redirect("medialist", media_type=media_type, status=status)
@@ -152,58 +125,7 @@ def media_search(request):
     request.user.save()
 
     if request.method == "POST":
-        metadata = request.session.get("metadata")
-        if "delete" in request.POST:
-            Media.objects.get(
-                media_id=metadata["id"],
-                media_type=metadata["media_type"],
-                user=request.user,
-                api=metadata["api"],
-            ).delete()
-
-        elif "status" in request.POST:
-            request.POST = helpers.fix_inputs(request, metadata)
-
-            if Media.objects.filter(
-                media_id=metadata["id"],
-                user=request.user,
-                api=metadata["api"],
-            ).exists():
-                database.edit_media(
-                    metadata["id"],
-                    metadata["title"],
-                    metadata["image"],
-                    metadata["media_type"],
-                    request.POST["score"],
-                    request.POST["progress"],
-                    request.POST["status"],
-                    request.POST["start"],
-                    request.POST["end"],
-                    metadata["api"],
-                    request.user,
-                    request.POST.get("season"),
-                    metadata.get("seasons"),
-                )
-            else:
-                database.add_media(
-                    metadata["id"],
-                    metadata["title"],
-                    metadata["image"],
-                    metadata["media_type"],
-                    request.POST["score"],
-                    request.POST["progress"],
-                    request.POST["status"],
-                    request.POST["start"],
-                    request.POST["end"],
-                    metadata["api"],
-                    request.user,
-                    request.POST.get("season"),
-                    metadata.get("seasons"),
-                )
-
-        # after form submission, metadata is no longer needed
-        del request.session["metadata"]
-
+        database.media_form_handler(request)
         return redirect("/search?media_type=" + media_type + "&q=" + query)
 
     if media_type == "anime" or media_type == "manga":

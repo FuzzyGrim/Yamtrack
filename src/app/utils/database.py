@@ -3,6 +3,60 @@ from app.utils import helpers
 from django.db.models import Avg, Sum, Min, Max
 
 
+def media_form_handler(request):
+    metadata = request.session.get("metadata")
+    if "delete" in request.POST:
+        Media.objects.get(
+            media_id=metadata["id"],
+            media_type=metadata["media_type"],
+            user=request.user,
+            api=metadata["api"],
+        ).delete()
+
+    elif "status" in request.POST:
+        request.POST = helpers.fix_inputs(request, metadata)
+
+        if Media.objects.filter(
+            media_id=metadata["id"],
+            user=request.user,
+            api=metadata["api"],
+        ).exists():
+            edit_media(
+                metadata["id"],
+                metadata["title"],
+                metadata["image"],
+                metadata["media_type"],
+                request.POST["score"],
+                request.POST["progress"],
+                request.POST["status"],
+                request.POST["start"],
+                request.POST["end"],
+                metadata["api"],
+                request.user,
+                request.POST.get("season"),
+                metadata.get("seasons"),
+            )
+        else:
+            add_media(
+                metadata["id"],
+                metadata["title"],
+                metadata["image"],
+                metadata["media_type"],
+                request.POST["score"],
+                request.POST["progress"],
+                request.POST["status"],
+                request.POST["start"],
+                request.POST["end"],
+                metadata["api"],
+                request.user,
+                request.POST.get("season"),
+                metadata.get("seasons"),
+            )
+
+    # after form submission, metadata is no longer needed
+    del request.session["metadata"]
+
+
 def add_media(
     media_id,
     title,
