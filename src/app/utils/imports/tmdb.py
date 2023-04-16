@@ -44,7 +44,6 @@ async def tmdb_get_media_list(reader, user, status):
             if await Media.objects.filter(
                 media_id=row["TMDb ID"],
                 media_type=row["Type"],
-                api="tmdb",
                 user=user,
             ).aexists():
                 logger.warning(
@@ -107,7 +106,6 @@ async def tmdb_get_media(session, url, row, user, status):
             score=score,
             progress=progress,
             status=status,
-            api="tmdb",
             user=user,
             image=image,
             start_date=start_date,

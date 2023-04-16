@@ -34,7 +34,6 @@ class CreateMedia(TestCase):
             status="Watching",
             start_date="2023-01-01",
             end_date="2023-01-02",
-            api="tmdb",
             user=self.user,
             season_selected=1,
             seasons=[
@@ -89,7 +88,6 @@ class EditMedia(TestCase):
             progress=18,
             user=self.user,
             status="Completed",
-            api="tmdb",
             start_date="2023-01-01",
             end_date="2023-01-02",
         )
@@ -119,7 +117,6 @@ class EditMedia(TestCase):
             status="Completed",
             start_date="2023-01-01",
             end_date="2023-01-02",
-            api="tmdb",
             user=self.user,
             season_selected=None,
             seasons=None
@@ -161,7 +158,6 @@ class EditMedia(TestCase):
             status="Watching",
             start_date="2023-01-01",
             end_date="2023-01-02",
-            api="tmdb",
             user=self.user,
             season_selected=10,
             seasons=[
@@ -234,7 +230,6 @@ class EditMedia(TestCase):
             status="Completed",
             start_date="2023-01-02",
             end_date="2023-01-03",
-            api="tmdb",
             user=self.user,
             season_selected=10,
             seasons=[

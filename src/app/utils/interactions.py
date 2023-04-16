@@ -52,13 +52,11 @@ def mal_edit(request, media_type, media_id):
         if "num_chapters" in response:
             response["num_episodes"] = response["num_chapters"]
 
-        response["api"] = "mal"
-
         cache.set(cache_key, response, 300)
 
     try:
         media = Media.objects.get(
-            media_id=media_id, user=request.user, api="mal", media_type=media_type
+            media_id=media_id, media_type=media_type, user=request.user
         )
         data = {"response": response, "database": media}
     except Media.DoesNotExist:
@@ -107,13 +105,11 @@ def tmdb_edit(request, media_type, media_id):
         if "number_of_episodes" in response:
             response["num_episodes"] = response["number_of_episodes"]
 
-        response["api"] = "tmdb"
-
         cache.set(cache_key, response, 300)
 
     try:
         media = Media.objects.get(
-            media_id=media_id, user=request.user, api="tmdb", media_type=media_type
+            media_id=media_id, user=request.user, media_type=media_type
         )
         data = {"response": response, "database": media}
     except Media.DoesNotExist:

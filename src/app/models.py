@@ -14,7 +14,6 @@ class Media(models.Model):
     # Allow null values for start date for myanimelist and anilist imports
     start_date = models.DateField(null=True)
     end_date = models.DateField(null=True)
-    api = models.CharField(max_length=10)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )

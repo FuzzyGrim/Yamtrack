@@ -10,7 +10,6 @@ def media_form_handler(request):
             media_id=metadata["id"],
             media_type=metadata["media_type"],
             user=request.user,
-            api=metadata["api"],
         ).delete()
 
     elif "status" in request.POST:
@@ -18,8 +17,8 @@ def media_form_handler(request):
 
         if Media.objects.filter(
             media_id=metadata["id"],
+            media_type=metadata["media_type"],
             user=request.user,
-            api=metadata["api"],
         ).exists():
             edit_media(
                 metadata["id"],
@@ -31,7 +30,6 @@ def media_form_handler(request):
                 request.POST["status"],
                 request.POST["start"],
                 request.POST["end"],
-                metadata["api"],
                 request.user,
                 request.POST.get("season"),
                 metadata.get("seasons"),
@@ -47,7 +45,6 @@ def media_form_handler(request):
                 request.POST["status"],
                 request.POST["start"],
                 request.POST["end"],
-                metadata["api"],
                 request.user,
                 request.POST.get("season"),
                 metadata.get("seasons"),
@@ -67,15 +64,12 @@ def add_media(
     status,
     start_date,
     end_date,
-    api,
     user,
     season_selected,
     seasons,
 ):
 
     if image != "none.svg":
-        if api == "tmdb":
-            image = f"https://image.tmdb.org/t/p/w300{image}"
         filename = helpers.download_image(image, media_type)
         image = f"{filename}"
 
@@ -135,7 +129,6 @@ def edit_media(
     status,
     start_date,
     end_date,
-    api,
     user,
     season_selected,
     seasons,
@@ -145,7 +138,6 @@ def edit_media(
         media_id=media_id,
         media_type=media_type,
         user=user,
-        api=api,
     )
 
     if season_selected and season_selected != "general":

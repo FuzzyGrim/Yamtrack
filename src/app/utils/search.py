@@ -13,7 +13,6 @@ def tmdb(media_type, query):
         media["media_id"] = media["id"]
         media["original_type"] = media_type
         media["media_type"] = media_type
-        media["api"] = "tmdb"
         if "name" in media:
             media["title"] = media["name"]
     return response
@@ -32,9 +31,6 @@ def mal(media_type, query):
             )
             media["node"]["media_type"] = media_type
             media["node"]["media_id"] = media["node"]["id"]
-
-            # needed for delete button
-            media["node"]["api"] = "mal"
 
             # remove node layer
             media.update(media.pop("node"))

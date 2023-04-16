@@ -44,7 +44,6 @@ async def myanilist_get_media_list(series, user):
             for content in media_list["data"]:
                 if await Media.objects.filter(
                     media_id=content["node"]["id"],
-                    api="mal",
                     media_type=media_type,
                     user=user,
                 ).aexists():
@@ -80,7 +79,6 @@ async def myanimelist_get_media(session, content, media_type, user):
         media_type=media_type,
         score=content["list_status"]["score"],
         status=content["list_status"]["status"],
-        api="mal",
         user=user,
     )
 

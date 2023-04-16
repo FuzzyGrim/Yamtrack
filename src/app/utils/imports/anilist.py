@@ -113,7 +113,6 @@ async def anilist_get_media_list(query, error, user):
                         elif await Media.objects.filter(
                             media_id=content["media"]["idMal"],
                             media_type=media_type,
-                            api="mal",
                             user=user,
                         ).aexists():
                             logger.warning(
@@ -162,7 +161,6 @@ async def anilist_get_media(session, content, media_type, user):
         score=content["score"],
         progress=content["progress"],
         status=status,
-        api="mal",
         user=user,
         start_date=start_date,
         end_date=end_date,
