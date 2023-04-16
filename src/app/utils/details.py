@@ -101,18 +101,9 @@ def tmdb(media_type, media_id):
         response["synopsis"] = response["overview"]
 
     # movies uses runtime
-    if "runtime" in response:
-        duration = response["runtime"]
     # tv shows episode runtime are shown in last_episode_to_air
-    elif (
-        response["last_episode_to_air"] and "runtime" in response["last_episode_to_air"]
-    ):
-        duration = response["last_episode_to_air"]["runtime"]
-    else:
-        response["runtime"] = "Unknown"
-
-    if "duration" in locals():
-        # duration are in minutes
+    duration = response.get("runtime") or response.get("last_episode_to_air", {}).get("runtime")
+    if duration:
         hours, minutes = divmod(int(duration), 60)
         response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
 
@@ -129,6 +120,8 @@ def tmdb(media_type, media_id):
             recommendation[
                 "image"
             ] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
+        else:
+            recommendation["image"] = "none.svg"
 
     response["api"] = "tmdb"
 
