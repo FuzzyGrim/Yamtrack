@@ -1,10 +1,17 @@
 from app.models import Media, Season
-from app.utils import helpers
+from app.utils import helpers, details
 from django.db.models import Avg, Sum, Min, Max
 
 
 def media_form_handler(request):
-    metadata = request.session.get("metadata")
+    # format: {media_tye}_{media_id}
+    form_id = request.POST.get("form-id")
+    media_type, media_id = form_id.split("_")
+    if media_type == "anime" or media_type == "manga":
+        metadata = details.mal(media_type, media_id)
+    elif media_type == "movie" or media_type == "tv":
+        metadata = details.tmdb(media_type, media_id)
+
     if "delete" in request.POST:
         Media.objects.get(
             media_id=metadata["id"],
@@ -50,9 +57,6 @@ def media_form_handler(request):
                 metadata.get("seasons"),
             )
 
-    # after form submission, metadata is no longer needed
-    del request.session["metadata"]
-
 
 def add_media(
     media_id,
@@ -83,7 +87,6 @@ def add_media(
         status=status,
         start_date=start_date,
         end_date=end_date,
-        api=api,
         user=user
     )
 

@@ -1,4 +1,4 @@
-{% load static %} {% load sass_tags %}
+{% load static %} {% load sass_tags %} {% load unicorn %}
 
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
@@ -13,6 +13,7 @@
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-icons.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% sass_src "css/main.scss" %}" />
+    {% unicorn_scripts %}
 
     <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static "favicon/favicon-32x32.png" %}">

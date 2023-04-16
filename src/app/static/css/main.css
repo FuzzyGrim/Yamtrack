@@ -10,9 +10,9 @@ body main .search-bar .offcanvas-toggler:hover { background-color: #3a4047; }
 
 body main .search-bar .input-group > .form-select { flex-grow: 0; width: auto; }
 
-body main form .btn:not(.delete-btn) { border-radius: 0; border-width: 1px; border-style: solid; border-color: #56595d; background-color: #232224; }
+body main form .btn:not(.btn-danger) { border-radius: 0; border-width: 1px; border-style: solid; border-color: #56595d; background-color: #232224; }
 
-body main form .btn:not(.delete-btn):hover { border-color: #7a7d81; }
+body main form .btn:not(.btn-danger):hover { border-color: #7a7d81; }
 
 body main input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 
@@ -105,6 +105,12 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 #details .header .content { margin-left: 1em; }
 
 #details .header .content .title { font-size: 2em; font-weight: 600; color: #d1cdc7; }
+
+#details .header .content .genres { margin-bottom: .5em; }
+
+#details .header .content .open-form-btn { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+
+#details .header .content .open-form-btn:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
 
 #details .list-title { margin-top: 1em; font-size: 1.2em; color: #d1cdc7; margin-bottom: 0.5em; }
 

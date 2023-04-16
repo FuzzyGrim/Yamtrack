@@ -139,6 +139,10 @@ def media_search(request):
 
 @login_required
 def media_details(request, media_type, media_id, title):
+    if request.method == "POST":
+        database.media_form_handler(request)
+        return redirect("details", media_type, media_id, title)
+
     if media_type == "anime" or media_type == "manga":
         media = details.mal(media_type, media_id)
     elif media_type == "tv" or media_type == "movie":

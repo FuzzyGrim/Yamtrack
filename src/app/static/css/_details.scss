@@ -24,6 +24,20 @@
         font-weight: 600;
         color: $font-grey;
       }
+      .genres {
+        margin-bottom: .5em;
+      }
+      .open-form-btn {
+        color: #fff;
+        background-color: #6c757d;
+        border-color: #6c757d;
+
+        &:hover {
+          color: #fff;
+          background-color: #5c636a;
+          border-color: #565e64;
+        }
+      }
     }
   }
 

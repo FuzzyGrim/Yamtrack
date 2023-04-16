@@ -53,6 +53,9 @@
               {{ genre.name }}{% if not forloop.last %},{% endif %}
           {% endfor %}
         </div>
+
+        {% csrf_token %}
+        {% unicorn "media_form" media=media %}
       </div>
     </div>
 
@@ -138,7 +141,3 @@
 
   </div>
 {% endblock content%}
-
-{% block extra_scripts %}
-  <script src="{% static 'js/modal-load.js' %}"></script>
-{% endblock extra_scripts %}
