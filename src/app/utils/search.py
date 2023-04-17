@@ -15,6 +15,10 @@ def tmdb(media_type, query):
         media["media_type"] = media_type
         if "name" in media:
             media["title"] = media["name"]
+        if media["poster_path"]:
+            media["image"] = f"https://image.tmdb.org/t/p/w500{media['poster_path']}"
+        else:
+            media["image"] = "none.svg"
     return response
 
 
@@ -32,6 +36,10 @@ def mal(media_type, query):
             media["node"]["media_type"] = media_type
             media["node"]["media_id"] = media["node"]["id"]
 
+            if "main_picture" in media["node"]:
+                media["image"] = media["node"]["main_picture"]["large"]
+            else:
+                media["image"] = "none.svg"
             # remove node layer
             media.update(media.pop("node"))
     return response

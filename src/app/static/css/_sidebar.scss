@@ -1,7 +1,7 @@
 #sidebar {
   width: 230px;
   .nav-link.active {
-    color: #fff;
+    color: $white;
     font-weight: 600;
     background-color: #303438;
     // bold active icon
@@ -11,7 +11,7 @@
   }
 
   .nav-link:not(.active) {
-    color: #fff;
+    color: $white;
     &:hover {
       background-color: #3034388c;
     }

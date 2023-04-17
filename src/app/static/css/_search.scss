@@ -1,31 +1,46 @@
 #search {
-  .container-grid {
+  .grid {
     display: grid;
-    grid-gap: 1em;
+    grid-gap: .5em;
     grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 
     .card {
-      a {
-        text-decoration: none;
-        color: $font-grey;
-        .poster {
-          object-fit: cover;
-          aspect-ratio: 2/3;
-        }
-        .image-not-found {
-          object-fit: contain;
-          aspect-ratio: 2/3;
-          background-color: rgb(44, 48, 50);
+      width: 100%;
+      margin-bottom: 1em;
+
+      .poster {
+        width: 100%;
+        aspect-ratio: 2/3;
+        object-fit: cover;
+        cursor: pointer;
+      }
+
+      .image-not-found {
+        width: 100%;
+        aspect-ratio: 2/3;
+        object-fit: contain;
+        object-position: center top;
+        background-color: rgb(44, 48, 50);
+        cursor: pointer;
+      }
+
+      .card-img-overlay {
+        // position bottom of card
+        @include card-img-overlay-default;
+
+        .card-title {
+          @include card-title-default;
         }
 
-        .card-body {
-          padding: 0.6rem;
-          .card-title {
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            margin-bottom: 0;
+        .card-text {
+          font-size: 0.8rem;
+          .open-form-btn {
+            color: $btn-color;
+            &:hover {
+              color: $white;
+            }
           }
+          
         }
       }
     }

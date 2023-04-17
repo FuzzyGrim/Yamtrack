@@ -16,17 +16,18 @@
       grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 
       .card {
+        width: 100%;
         margin-bottom: 1em;
 
         .poster {
-          width: 10rem;
+          width: 100%;
           aspect-ratio: 2/3;
           object-fit: cover;
           cursor: pointer;
         }
 
         .image-not-found {
-          width: 10rem;
+          width: 100%;
           aspect-ratio: 2/3;
           object-fit: contain;
           background-color: rgb(44, 48, 50);

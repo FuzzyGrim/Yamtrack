@@ -26,10 +26,10 @@
         height: 3rem;
         background-color: $container-bg;
         border: 0;
-        color: #adb5bd;
+        color: $btn-color;
 
         &:hover {
-          color: #fff;
+          color: $white;
         }
 
         // move the triangle icon down a bit
@@ -80,11 +80,11 @@
       flex: 1;
       .btn {
         background-color: $container-bg;
-        color: #adb5bd;
+        color: $btn-color;
         border-width: 0;
         border-radius: 0;
         &:hover {
-          color: #fff;
+          color: $white;
         }
       }
 

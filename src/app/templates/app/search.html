@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load unicorn %}
 
 {% block content %}
 
@@ -9,38 +10,37 @@
       <h2 class="alert-heading">No results found!</h2>
       <p>Try searching for something else.</p>
     {% else %}
-      <div class="container-grid">
+      <div class="grid">
         {% for media in query_list %}
           {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga" %}
-           
-            <div class="card">
-              <a href="{% url 'details' media.media_type media.id media.title.split|join:"_"|cut:"/"|urlencode %}">
-                {% if media.main_picture.large %}
-                  <img class="poster flex-shrink-0 card-img-top" src="{{media.main_picture.large}}"/>  
-                {% elif media.poster_path %}
-                  <img class="poster flex-shrink-0 card-img-top" src="https://image.tmdb.org/t/p/w300{{media.poster_path}}"/>  
-                {% else %}
-                  <img class="image-not-found flex-shrink-0 card-img-top" src="{% get_media_prefix %}/none.svg"/>
+            <div class="card text-bg-dark mx-auto">
+              <img
+                {% if media.image == "none.svg" %}
+                  src="{% get_media_prefix %}none.svg"
+                  class="card-img image-not-found"
+                  {% else %}
+                  src="{{media.image}}"
+                  class="card-img poster"
                 {% endif %}
-
-                <div class="card-body">
-                    <div class="card-title">{{media.title}}</div>
-                    <div class="card-text">
-                      {% if media.original_type == "tv" %}
-                        TV
-                      {% else %}
-                        {{media.original_type|capfirst}}
-                      {% endif %}
-                    </div>
+                alt="{{ media.title }}"
+              />
+              <div class="card-img-overlay">
+                <div class="card-title text-center">
+                  {{ media.title }}
                 </div>
-              </a>
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary open-modal-button" type="button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.id}}" data-url="{{media.media_type}}_{{media.id}}">
-                <i class="bi bi-pencil-square"></i>
-              </span>
+                <div class="card-text d-flex justify-content-center align-items-center">
+                  {% if media.original_type == "tv" %}
+                    TV
+                  {% else %}
+                    {{media.original_type|capfirst}}
+                  {% endif %}
+                  {% csrf_token %}
+                  {% unicorn "media_form" media=media %}
+                </div>
+
+              </div>
             </div>
             
-            {% include "app/include/modal.html" %}
-
           {% endif %}
               
         {% endfor %}
@@ -48,12 +48,4 @@
     {% endif %}
   </div>
 
-{% endblock %}
-
-{% block extra_scripts %}
-  <script src="{% static 'js/modal-load.js' %}"></script>
-  <script>
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-  </script>
 {% endblock %}
