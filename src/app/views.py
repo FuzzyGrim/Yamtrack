@@ -120,7 +120,7 @@ def media_search(request):
     media_type = request.GET.get("media_type")
     query = request.GET.get("q")
 
-    # update user default api
+    # update user default search type
     request.user.last_search_type = media_type
     request.user.save()
 

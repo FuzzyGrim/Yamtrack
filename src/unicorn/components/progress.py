@@ -19,7 +19,7 @@ class ProgressView(UnicornView):
         self.progress += number
         if hasattr(self, 'season_number'):
             season = Season.objects.get(
-                media_id=self.media.id,
+                parent_id=self.media.id,
                 number=self.season_number,
             )
             season.progress = self.progress
