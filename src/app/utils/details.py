@@ -10,7 +10,7 @@ def mal(media_type, media_id):
     cache_key = media_type + str(media_id)
     response = cache.get(cache_key)
     if response is None:
-        url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,end_date,synopsis,mean,rank,popularity,updated_at,media_type,status,genres,num_episodes,num_chapters,broadcast,source,average_episode_duration,rating,pictures,background,related_anime,related_manga,recommendations,studios,statistics"
+        url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,start_date,synopsis,status,genres,num_episodes,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
 
         response = requests.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}).json()
 
