@@ -30,8 +30,8 @@ def home(request):
         return redirect("home")
 
     media_list = (
-        Media.objects.filter(user_id=request.user, status__in=["Watching", "Paused"])
-        .order_by("media_type", "-status", "title")
+        Media.objects.filter(user_id=request.user, status__in=["Watching"])
+        .order_by("media_type", "title")
         .prefetch_related("seasons")
     )
 
@@ -40,10 +40,7 @@ def home(request):
     for media in media_list:
         key = f"{media.media_type}_{media.status}"
         if key not in media_dict:
-            if media.status == "Watching":
-                list_title = f"{media.media_type.capitalize()} in Progress"
-            elif media.status == "Paused":
-                list_title = f"{media.media_type.capitalize()} on Hold"
+            list_title = f"{media.media_type.capitalize()} in Progress"
             media_dict[key] = {
                 "list_title": list_title,
                 "status": media.status,
