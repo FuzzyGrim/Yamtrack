@@ -14,7 +14,7 @@
         {% for media in query_list %}
           {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga" %}
             <div class="card text-bg-dark mx-auto">
-              <img
+              <a href="{% url 'details' media_type=media.media_type media_id=media.id title=media.title%}"><img
                 {% if media.image == "none.svg" %}
                   src="{% get_media_prefix %}none.svg"
                   class="card-img image-not-found"
@@ -22,8 +22,9 @@
                   src="{{media.image}}"
                   class="card-img poster"
                 {% endif %}
+
                 alt="{{ media.title }}"
-              />
+              /></a>
               <div class="card-img-overlay">
                 <div class="card-title text-center">
                   {{ media.title }}
