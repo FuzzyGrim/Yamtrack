@@ -6,16 +6,15 @@ from django.contrib.auth.decorators import login_required
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
 from django.conf import settings
-from django.template.loader import render_to_string
 
-from app.models import Media, Season
+from app.models import Media
 from app.forms import (
     UserLoginForm,
     UserRegisterForm,
     UserUpdateForm,
     PasswordChangeForm,
 )
-from app.utils import database, interactions, helpers, details, search
+from app.utils import database, helpers, details, search
 from app.utils.imports import anilist, mal, tmdb
 
 import logging
@@ -235,7 +234,9 @@ def profile(request):
             if not error:
                 messages.success(request, "Your AniList has been imported!")
             elif error == "User not found":
-                messages.error(request, f"User {request.POST['anilist']} not found in Anilist.")
+                messages.error(
+                    request, f"User {request.POST['anilist']} not found in Anilist."
+                )
             else:
                 title = "Couldn't find a matching MAL ID for: \n"
                 messages.error(request, title + error)
@@ -254,53 +255,21 @@ def profile(request):
 def edit(request):
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
-
-    if media_type in ["anime", "manga"]:
-        media = interactions.mal_edit(request, media_type, media_id)
-    elif media_type in ["movie", "tv"]:
-        media = interactions.tmdb_edit(request, media_type, media_id)
-
-    response = media["response"]
-
-    # Save the metadata in the session to be used when form is submitted
-    request.session["metadata"] = response
-
-    data = {
-        "title": response.get("title", None),
-        "year": response.get("year", None),
-        "media_type": response.get("media_type", None),
-        "original_type": response.get("original_type", None),
-    }
-
-    media["response"]["media_type"] = media_type
-    data["html"] = render_to_string("app/edit.html", {"media": media}, request=request)
-
-    if "seasons" in response and len(response["seasons"]) > 1:
-        data["seasons"] = response["seasons"]
-
-    if "database" in media:
-        database = media["database"]
-
-        data["in_db"] = True
-        data["media_seasons"] = list(
-            Season.objects.filter(parent=database).values(
-                "number",
-                "score",
-                "status",
-                "progress",
-                "start_date",
-                "end_date",
-            )
+    media_filter = Media.objects.filter(
+        media_type=media_type, media_id=media_id, user=request.user.id
+    ).values(
+        "score",
+        "status",
+        "progress",
+        "start_date",
+        "end_date",
         )
-        data["score"] = database.score
-        data["status"] = database.status
-        data["progress"] = database.progress
-        data["start_date"] = database.start_date
-        data["end_date"] = database.end_date
+    if media_filter:
+        media = media_filter[0]
     else:
-        data["in_db"] = False
-
-    return JsonResponse(data)
+        media = {}
+    print(media)
+    return JsonResponse(media)
 
 
 def redirect_after_login(request):

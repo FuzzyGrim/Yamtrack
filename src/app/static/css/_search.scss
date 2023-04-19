@@ -34,7 +34,8 @@
 
         .card-text {
           font-size: 0.8rem;
-          .open-form-btn {
+          .open-modal-button {
+            padding: 0 0.5em;
             color: $btn-color;
             &:hover {
               color: $white;

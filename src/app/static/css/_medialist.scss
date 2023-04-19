@@ -78,7 +78,7 @@
     ._progress,
     .edit {
       flex: 1;
-      .btn {
+      .open-modal-button {
         background-color: $container-bg;
         color: $btn-color;
         border-width: 0;
@@ -86,13 +86,6 @@
         &:hover {
           color: $white;
         }
-      }
-
-      .dropdown-menu {
-        background-color: #24292f;
-        color: $font-grey;
-        min-width: 0;
-        padding: 1em;
       }
     }
   }

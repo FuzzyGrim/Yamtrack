@@ -15,6 +15,7 @@ def mal(media_type, media_id):
         response = requests.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}).json()
 
         response["media_type"] = media_type
+        response["media_id"] = response["id"]
 
         if "main_picture" in response:
             response["image"] = response["main_picture"]["large"]
@@ -82,6 +83,7 @@ def tmdb(media_type, media_id):
         response = requests.get(url).json()
 
         response["media_type"] = media_type
+        response["media_id"] = response["id"]
 
         # when specific data is not available
         # tmdb will either not return the key or return an empty value/string

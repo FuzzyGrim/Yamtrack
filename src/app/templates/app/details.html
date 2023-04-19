@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load static %}
-{% load unicorn %}
 
 {% block content %}
   <div id="details" class="content">
@@ -53,8 +52,10 @@
         </div>
         
         <div class="media-form">
-          {% csrf_token %}
-          {% unicorn "media_form" media=media %}
+          <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{{media.media_type}}_{{media.media_id}}">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          {% include "app/include/modal.html" with title=media.title media_id=media.media_id media_type=media.media_type csrf_token=csrf_token only %}
         </div>
       </div>
     </div>
@@ -141,3 +142,7 @@
 
   </div>
 {% endblock content%}
+
+{% block extra_scripts %}
+  <script src="{% static 'js/modal-load.js' %}"></script>
+{% endblock extra_scripts %}

@@ -37,14 +37,10 @@
               </div>
             </div>
 
-            {% include "app/include/modal.html" %}
+            {% include "app/include/modal.html" with title=media.title media_id=media.media_id media_type=media.media_type db=media csrf_token=csrf_token only %}
           {% endfor %}
         </div>
       </div>
     {% endfor %}
   </div>
 {% endblock content%}
-
-{% block extra_scripts %}
-  <script src="{% static 'js/modal-load.js' %}"></script>
-{% endblock extra_scripts %}

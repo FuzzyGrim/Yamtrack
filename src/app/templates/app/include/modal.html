@@ -1,24 +1,60 @@
-<div class="modal fade" id="modal-{{media.media_type}}_{{media.media_id}}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h1 id="modal-title-{{media.media_type}}_{{media.media_id}}" class="modal-title fs-5"></h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body" id="modal-body-{{media.media_type}}_{{media.media_id}}">
-          <div class="d-flex justify-content-center">
-            <div class="spinner-grow" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer d-flex justify-content-between" id="modal-footer-{{media.media_type}}_{{media.media_id}}">
-          <form method="post">
-            {% csrf_token %}
-            {% comment %} modal-load creates delete button if media exists in db {% endcomment %}
-          </form>
-          <button type="submit" form="form-{{media.media_type}}_{{media.media_id}}" class="btn btn-primary">Save</button>
-        </div>
+<div class="modal fade" id="modal-{{media_type}}_{{media_id}}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content media-form-modal">
+
+      <div class="modal-header">
+        <h1 class="modal-title fs-5">{{title}}</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+
+      <div class="modal-body">
+        <form class="d-flex flex-wrap" method="post" id="form-{{media_type}}_{{media_id}}">
+          {% csrf_token %}
+          <input type="hidden" name="form-id" value="{{media_type}}_{{media_id}}">
+          <div class="flex-grow-1">
+            <div class="descriptor">Status</div>
+            <select name="status" class="form-select" id="status-{{media_type}}_{{media_id}}">
+              <option value="Completed" {% if db.status == "Completed" %}selected{% endif %}>Completed</option>
+              <option value="Planning" {% if db.status == "Planning" %}selected{% endif %}>Planning</option>
+              <option value="Watching" {% if db.status == "Watching" %}selected{% endif %}>Watching</option>
+              <option value="Paused" {% if db.status == "Paused" %}selected{% endif %}>Paused</option>
+              <option value="Dropped" {% if db.status == "Dropped" %}selected{% endif %}>Dropped</option>
+            </select>
+          </div>
+        
+          <div class="flex-grow-1">
+            <div class="descriptor">Score</div>
+            <input type="number" class="form-control bg-dark text-white" id="score-{{media_type}}_{{media_id}}" name="score" value="{{db.score}}" step="0.1" min="0" max="10">
+          </div>
+          
+          <div class="flex-grow-1">
+            <div class="descriptor">Progress</div>
+            <input type="number" class="form-control bg-dark text-white" id="progress-{{media_type}}_{{media_id}}" name="progress" value="{{db.progress}}" step="1" min="0">
+          </div>
+      
+          <div class="flex-grow-1">
+            <div class="descriptor">Start Date</div>
+            <input type="date" class="form-control bg-dark text-white" id="start-{{media_type}}_{{media_id}}" name="start" value="{{db.start_date|date:'Y-m-d'}}">
+          </div>
+      
+          <div class="flex-grow-1">
+            <div class="descriptor">End Date</div>
+            <input type="date" class="form-control bg-dark text-white" id="end-{{media_type}}_{{media_id}}" name="end" value="{{db.end_date|date:'Y-m-d'}}">
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer d-flex justify-content-between" id="modal-footer-{{media_type}}_{{media_id}}">
+        <form method="post">
+          {% csrf_token %}
+          {% if db %}
+            <input type="hidden" name="form-id" value="{{media_type}}_{{media_id}}">
+            <button type="submit" class="btn btn-danger" name="delete">Delete</button>
+          {% endif %}
+        </form>
+        <button type="submit" form="form-{{media_type}}_{{media_id}}" class="btn btn-primary">Save</button>
+      </div>
+
     </div>
   </div>
+</div>

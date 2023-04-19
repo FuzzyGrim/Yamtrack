@@ -49,57 +49,17 @@
       </div>
     
       <div class="title p-2">{{media.title}}</div>
-      
-      {% comment %} 
-        check if media has multiple seasons, if so, create dropdown menu for score, status, and progress
-      {% endcomment %}
-      {% if media.seasons.all and media.seasons.all|length != 1 %}
-        <div class="score p-2 dropdown-center">
-          <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              {{media.score}}
-          </button>
-          <ul class="dropdown-menu">
-            {% for season in media.seasons.all %}
-            <li>S{{season.number}}: {{season.score}}</li>
-            {% endfor %}
-          </ul>
-        </div>
-    
-        <div class="status p-2 dropdown-center">
-          <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            {{media.status}}
-          </button>
-          <ul class="dropdown-menu">
-            {% for season in media.seasons.all %}
-            <li>S{{season.number}}: {{season.status}}</li>
-            {% endfor %}
-          </ul>
-        </div>
-    
-        <div class="_progress p-2 dropdown-center">
-          <button class="btn btn-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            {{media.progress}}
-          </button>
-          <ul class="dropdown-menu">
-            {% for season in media.seasons.all %}
-            <li>S{{season.number}}: {{season.progress}}</li>
-            {% endfor %}
-          </ul>
-        </div>
-    
-      {% else %}
-        <div class="score p-2">{{media.score}}</div>
-        <div class="status p-2">{{media.status}}</div>
-        <div class="_progress p-2">{{media.progress}}</div>
-      {% endif %}
+      <div class="score p-2">{{media.score}}</div>
+      <div class="status p-2">{{media.status}}</div>
+      <div class="_progress p-2">{{media.progress}}</div>
       
       <div class="edit p-2">
         <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{{media.media_type}}_{{media.media_id}}">
           <i class="bi bi-pencil-square"></i>
         </button>
+
+        {% include "app/include/modal.html" with title=media.title media_id=media.media_id media_type=media.media_type db=media csrf_token=csrf_token only %}
       </div>
-      
-      {% include "app/include/modal.html" %}
     
     </div>
     {% endfor %}
@@ -107,7 +67,3 @@
   </div>
 
 {% endblock content%}
-
-{% block extra_scripts %}
-  <script src="{% static 'js/modal-load.js' %}"></script>
-{% endblock extra_scripts %}
