@@ -37,12 +37,15 @@
       {% endfor %}
 
       <button class="w-100 btn btn-lg btn btn-secondary" type="submit">Log In</button>
+      
+      {% if REGISTRATION %}
+        <div class="mt-5 mb-3 ">
+          <small class="text-muted">
+            Need An Account? <a class="ml-2" href="{% url 'register' %}">Register Now</a>
+          </small>
+        </div>
+      {% endif %}
 
-      <div class="mt-5 mb-3 ">
-        <small class="text-muted">
-          Need An Account? <a class="ml-2" href="{% url 'register' %}">Register Now</a>
-        </small>
-      </div>
     </form>
   </div>
 </body>
