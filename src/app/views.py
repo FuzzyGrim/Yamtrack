@@ -64,17 +64,6 @@ def home(request):
 
 @login_required
 def media_list(request, media_type, status=None):
-    if media_type not in ["anime", "manga", "tv", "movie"]:
-        return error_view(request, status_code=404)
-
-    if status and status not in [
-        "completed",
-        "watching",
-        "paused",
-        "dropped",
-        "planning",
-    ]:
-        return error_view(request, status_code=404)
 
     if request.method == "POST":
         database.media_form_handler(request)
@@ -280,7 +269,6 @@ def edit(request):
         media = media_filter[0]
     else:
         media = {}
-    print(media)
     return JsonResponse(media)
 
 

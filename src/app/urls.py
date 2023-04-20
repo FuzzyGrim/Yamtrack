@@ -1,17 +1,20 @@
-from django.urls import path
+from django.urls import path, register_converter
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 
 from decouple import config
-from . import views
+from . import converters, views
+
+register_converter(converters.MediaTypeChecker, 'media_type')
+register_converter(converters.StatusChecker, 'status')
 
 urlpatterns = [
     path("", views.home, name="home"),
-    path("medialist/<str:media_type>/", views.media_list, name="medialist"),
-    path("medialist/<str:media_type>/<str:status>", views.media_list, name="medialist"),
+    path("medialist/<media_type:media_type>/", views.media_list, name="medialist"),
+    path("medialist/<media_type:media_type>/<status:status>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
-    path("details/<str:media_type>/<int:media_id>/<str:title>", views.media_details, name="details"),
+    path("details/<media_type:media_type>/<int:media_id>/<str:title>", views.media_details, name="details"),
     path("profile", views.profile, name="profile"),
     path("login", views.UpdatedLoginView.as_view(extra_context={'page': 'Login'}), name="login"),
     path("logout", auth_views.LogoutView.as_view(), name="logout"),
