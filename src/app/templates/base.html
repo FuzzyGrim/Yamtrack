@@ -92,7 +92,7 @@
               <option value="anime" {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
               <option value="manga" {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
             </select>
-            <input class="form-control bg-dark text-white" type="search" name="q" placeholder="Search" aria-label="Search" value="{% if 'q' in request.GET %}{{ request.GET.q }}{% endif %}" required>
+            <input class="form-control bg-dark text-white" type="search" name="q" placeholder="Search" aria-label="Search" value="{{ request.GET.q }}" required>
             <button class="btn bg-dark text-white rounded-end" type="submit"><i class="bi bi-search"></i></button>
           </form>
         </div>

@@ -56,8 +56,9 @@ def home(request):
         media_dict[key]["media_list"].append(media)
 
     context = {
-        "page": "home",
         "media_dict": media_dict,
+        "page": "home",
+
     }
     return render(request, "app/home.html", context)
 
@@ -86,7 +87,6 @@ def media_list(request, media_type, status=None):
         request,
         "app/medialist.html",
         {
-            "page": media_type,
             "media_list": media_list,
             "statuses": [
                 "All",
@@ -96,6 +96,8 @@ def media_list(request, media_type, status=None):
                 "Dropped",
                 "Planning",
             ],
+            "page": media_type + status if status else media_type,
+
         },
     )
 
@@ -105,20 +107,32 @@ def media_search(request):
     media_type = request.GET.get("media_type")
     query = request.GET.get("q")
 
-    # update user default search type
-    request.user.last_search_type = media_type
-    request.user.save()
+    if media_type and query:
 
-    if request.method == "POST":
-        database.media_form_handler(request)
-        return redirect("/search?media_type=" + media_type + "&q=" + query)
+        # update user default search type
+        request.user.last_search_type = media_type
+        request.user.save()
 
-    if media_type == "anime" or media_type == "manga":
-        query_list = search.mal(media_type, query)
-    elif media_type == "tv" or media_type == "movie":
-        query_list = search.tmdb(media_type, query)
+        if request.method == "POST":
+            database.media_form_handler(request)
+            return redirect("/search?media_type=" + media_type + "&q=" + query)
 
-    context = {"query_list": query_list}
+        if media_type == "anime" or media_type == "manga":
+            query_list = search.mal(media_type, query)
+        elif media_type == "tv" or media_type == "movie":
+            query_list = search.tmdb(media_type, query)
+
+        context = {
+            "query_list": query_list,
+            "page": "search",
+
+        }
+
+    else:
+        context = {
+            "page": "search",
+        }
+
     return render(request, "app/search.html", context)
 
 
@@ -143,6 +157,7 @@ def media_details(request, media_type, media_id, title):
     context = {
         "media": media,
         "related_data_list": related_data_list,
+        "page": title,
     }
     return render(request, "app/details.html", context)
 
@@ -162,6 +177,11 @@ def register(request):
 class UpdatedLoginView(LoginView):
     form_class = UserLoginForm
     template_name = "app/login.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["page"] = "login"
+        return context
 
     def form_valid(self, form):
         remember_me = form.cleaned_data["remember_me"]

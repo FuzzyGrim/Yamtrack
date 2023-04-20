@@ -16,7 +16,7 @@ urlpatterns = [
     path("search", views.media_search, name="search"),
     path("details/<media_type:media_type>/<int:media_id>/<str:title>", views.media_details, name="details"),
     path("profile", views.profile, name="profile"),
-    path("login", views.UpdatedLoginView.as_view(extra_context={'page': 'Login'}), name="login"),
+    path("login", views.UpdatedLoginView.as_view(), name="login"),
     path("logout", auth_views.LogoutView.as_view(), name="logout"),
     path("edit/", views.edit, name="edit"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
