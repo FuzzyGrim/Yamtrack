@@ -143,7 +143,19 @@ def media_details(request, media_type, media_id, title):
         media = details.mal(media_type, media_id)
     elif media_type == "tv" or media_type == "movie":
         media = details.tmdb(media_type, media_id)
-    return render(request, "app/details.html", {"media": media})
+
+    related_data_list = [
+        {'name': 'Seasons', 'data': media.get("seasons")},
+        {'name': 'Related Animes', 'data': media.get("related_anime")},
+        {'name': 'Related Mangas', 'data': media.get("related_manga")},
+        {'name': 'Recommendations', 'data': media.get("recommendations")}
+    ]
+
+    context = {
+        "media": media,
+        "related_data_list": related_data_list,
+    }
+    return render(request, "app/details.html", context)
 
 
 def register(request):

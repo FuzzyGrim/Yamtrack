@@ -24,6 +24,13 @@
         font-weight: 600;
         color: $font-grey;
       }
+      .synopsis {
+        // show only 4 lines of text
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+      }
       .media-form {
         margin-top: .5em;
         .open-modal-button {
@@ -41,36 +48,13 @@
     }
   }
 
-  .list-title {
+  .grid-title {
     margin-top: 1em;
     font-size: 1.2em;
     color: $font-grey;
     margin-bottom: 0.5em;
   }
-  .list-grid {
-    display: grid;
-    grid-gap: 1em;
-    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-    .grid-object {
-      .poster {
-        border-radius: 10px;
-        object-fit: cover;
-        width: 100%;
-        aspect-ratio: 2/3;
-      }
-    
-      .image-not-found {
-        border-radius: 10px;
-        object-fit: contain;
-        width: 100%;
-        aspect-ratio: 2/3;
-        background-color: rgb(44, 48, 50);
-      }
-
-      .grid-title {
-        margin-top: .2em;
-        text-align: center;
-      }
-    }
+  .grid {
+    @include cards-grid;
   }
 }

@@ -59,7 +59,7 @@ def mal(media_type, media_id):
 
         for key in ("related_anime", "related_manga", "recommendations"):
             items = response.get(key)
-            for item in response.get(key):
+            for item in items:
                 if "main_picture" in item["node"]:
                     item["node"]["image"] = item["node"]["main_picture"]["large"]
                 else:
@@ -124,15 +124,19 @@ def tmdb(media_type, media_id):
             response["genres"] = [{"name": "Unknown"}]
 
         response["recommendations"] = response["recommendations"]["results"][:10]
-        for recommendation in response["recommendations"]:
-            if "name" in recommendation:
-                recommendation["title"] = recommendation["name"]
-            if "poster_path" in recommendation:
-                recommendation[
-                    "image"
-                ] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
-            else:
-                recommendation["image"] = "none.svg"
+
+        for key in ("seasons", "recommendations"):
+            items = response.get(key)
+            if not items:
+                continue
+            for item in items:
+                if item["poster_path"]:
+                    item["image"] = f"https://image.tmdb.org/t/p/w500{item['poster_path']}"
+                else:
+                    item["image"] = "none.svg"
+
+                if "name" in item:
+                    item["title"] = item["name"]
 
         # cache for 6 hours
         cache.set(cache_key, response, 21600)

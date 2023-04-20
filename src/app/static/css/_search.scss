@@ -1,49 +1,5 @@
 #search {
   .grid {
-    display: grid;
-    grid-gap: .5em;
-    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-
-    .card {
-      width: 100%;
-      margin-bottom: 1em;
-
-      .poster {
-        width: 100%;
-        aspect-ratio: 2/3;
-        object-fit: cover;
-        cursor: pointer;
-      }
-
-      .image-not-found {
-        width: 100%;
-        aspect-ratio: 2/3;
-        object-fit: contain;
-        object-position: center top;
-        background-color: rgb(44, 48, 50);
-        cursor: pointer;
-      }
-
-      .card-img-overlay {
-        // position bottom of card
-        @include card-img-overlay-default;
-
-        .card-title {
-          @include card-title-default;
-        }
-
-        .card-text {
-          font-size: 0.8rem;
-          .open-modal-button {
-            padding: 0 0.5em;
-            color: $btn-color;
-            &:hover {
-              color: $white;
-            }
-          }
-          
-        }
-      }
-    }
+    @include cards-grid;
   }
 }
