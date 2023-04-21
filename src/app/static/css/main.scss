@@ -44,12 +44,17 @@
   }
   #details {
     .header {
-      display: block !important;
-      .image {
-        text-align: center;
-      }
-      .content .title {
-        text-align: center;
+      // wrap content under image
+      flex-wrap: wrap;
+      // center image
+      justify-content: center;
+      .content {
+        .title {
+          text-align: center;
+        }
+        .media-form {
+          margin-top: 0.5em;
+        }
       }
     }
   }

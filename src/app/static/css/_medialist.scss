@@ -57,6 +57,7 @@
 
     .title {
       flex: 3;
+      // show 1 line, without line-height it will show a little bit of the second line
       overflow: hidden;
       display: -webkit-box;
       -webkit-line-clamp: 1;
@@ -64,20 +65,14 @@
       line-height: 2;
     }
 
-    .dropdown-center {
-      position: relative;
-      .dropdown-toggle::after {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-      }
-    }
-
     .score,
     .status,
     ._progress,
     .edit {
       flex: 1;
+    }
+
+    .edit {
       .open-modal-button {
         background-color: $container-bg;
         color: $btn-color;
@@ -86,6 +81,9 @@
         &:hover {
           color: $white;
         }
+      }
+      .modal {
+        text-align: left;
       }
     }
   }

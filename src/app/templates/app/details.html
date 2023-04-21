@@ -11,8 +11,8 @@
           <img class="image-not-found" src="{% get_media_prefix %}{{media.image}}"/>
         {% endif %}
       </div>
-      <div class="content flex-fill">
-        <div class="title">{{media.title}}</div>
+      <div class="content d-flex flex-column align-items-start">
+        <div class="title w-100">{{media.title}}</div>
 
         <div class="start-date">
           <strong>Release date:</strong>
@@ -28,15 +28,9 @@
           {{media.synopsis}}
         </div>
 
-        {% if media.number_of_seasons %}
-        <div class="num_seasons">
-          <strong>Seasons:</strong> {{media.number_of_seasons}}
-        </div>
-        {% endif %}
-
         <div class="episodes">
-          {% if media.num_episodes %} <strong>Episodes:</strong> {{media.num_episodes}}
-          {% elif media.num_chapters %} <strong>Chapters:</strong> {{media.num_chapters}}
+          {% if media.num_episodes %} <strong>Total Episodes:</strong> {{media.num_episodes}}
+          {% elif media.num_chapters %} <strong>Total Chapters:</strong> {{media.num_chapters}}
           {% endif %}
         </div>
 

@@ -74,15 +74,13 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #medialist .list-head .title, #medialist .list-section .title { flex: 3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; line-height: 2; }
 
-#medialist .list-head .dropdown-center, #medialist .list-section .dropdown-center { position: relative; }
-
-#medialist .list-head .dropdown-center .dropdown-toggle::after, #medialist .list-section .dropdown-center .dropdown-toggle::after { position: absolute; top: 50%; transform: translateY(-50%); }
-
 #medialist .list-head .score, #medialist .list-head .status, #medialist .list-head ._progress, #medialist .list-head .edit, #medialist .list-section .score, #medialist .list-section .status, #medialist .list-section ._progress, #medialist .list-section .edit { flex: 1; }
 
-#medialist .list-head .score .open-modal-button, #medialist .list-head .status .open-modal-button, #medialist .list-head ._progress .open-modal-button, #medialist .list-head .edit .open-modal-button, #medialist .list-section .score .open-modal-button, #medialist .list-section .status .open-modal-button, #medialist .list-section ._progress .open-modal-button, #medialist .list-section .edit .open-modal-button { background-color: #1b1e1f; color: #adb5bd; border-width: 0; border-radius: 0; }
+#medialist .list-head .edit .open-modal-button, #medialist .list-section .edit .open-modal-button { background-color: #1b1e1f; color: #adb5bd; border-width: 0; border-radius: 0; }
 
-#medialist .list-head .score .open-modal-button:hover, #medialist .list-head .status .open-modal-button:hover, #medialist .list-head ._progress .open-modal-button:hover, #medialist .list-head .edit .open-modal-button:hover, #medialist .list-section .score .open-modal-button:hover, #medialist .list-section .status .open-modal-button:hover, #medialist .list-section ._progress .open-modal-button:hover, #medialist .list-section .edit .open-modal-button:hover { color: #fff; }
+#medialist .list-head .edit .open-modal-button:hover, #medialist .list-section .edit .open-modal-button:hover { color: #fff; }
+
+#medialist .list-head .edit .modal, #medialist .list-section .edit .modal { text-align: left; }
 
 #search .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 
@@ -114,7 +112,7 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #details .header .content .synopsis { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
 
-#details .header .content .media-form { margin-top: .5em; }
+#details .header .content .media-form { margin-top: auto; }
 
 #details .header .content .media-form .open-modal-button { color: #fff; background-color: #6c757d; border-color: #6c757d; }
 
@@ -182,6 +180,6 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 @media screen and (max-width: 991px) { body main { padding-top: 2em; } .modal-content form div { width: 100%; } }
 
-@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { display: block !important; } #details .header .image { text-align: center; } #details .header .content .title { text-align: center; } }
+@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .content .title { text-align: center; } #details .header .content .media-form { margin-top: 0.5em; } }
 
 /*# sourceMappingURL=main.css.map */
