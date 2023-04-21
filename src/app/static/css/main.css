@@ -18,8 +18,6 @@ body main input[type="number"] { appearance: textfield; -moz-appearance: textfie
 
 body main input:placeholder-shown { text-overflow: ellipsis; }
 
-body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-color: var(--bs-white); }
-
 #home .container { margin-bottom: 2rem; }
 
 #home .container .title { color: #d1cdc7; font-size: 1.5rem; font-weight: 600; text-align: center; margin-top: 0.5rem; margin-bottom: 1rem; }
@@ -178,7 +176,7 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 @media screen and (min-width: 992px) { body main .search-bar .input-group { width: 50%; margin: auto; } }
 
-@media screen and (max-width: 991px) { body main { padding-top: 2em; } .modal-content form div { width: 100%; } }
+@media screen and (max-width: 991px) { body main { padding-top: 2em; } }
 
 @media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .content .title { text-align: center; } #details .header .content .media-form { margin-top: 0.5em; } }
 
