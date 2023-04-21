@@ -14,6 +14,11 @@
       <div class="content d-flex flex-column align-items-start">
         <div class="title w-100">{{media.title}}</div>
 
+        <div class="original-type">
+          <strong>Type:</strong>
+          {{media.original_type}}
+        </div>
+
         <div class="start-date">
           <strong>Release date:</strong>
           {{media.start_date}}
@@ -64,17 +69,19 @@
         <div class="grid">
           {% for related in related_data.data %}
             <div class="card text-bg-dark mx-auto">
-              <img
-                {% if related.image == "none.svg"%}
-                  src="{% get_media_prefix %}{{related.image}}"
-                  class="card-img image-not-found"
-                  {% else %}
-                  src="{{related.image}}"
-                  class="card-img poster"
-                {% endif %}
-                alt="{{ related.title }}"
-                loading="lazy"
-              />
+              <a href="{% url 'details' media_type=media.media_type media_id=related.id title=related.title|slugify%}">
+                <img
+                  {% if related.image == "none.svg"%}
+                    src="{% get_media_prefix %}{{related.image}}"
+                    class="card-img image-not-found"
+                    {% else %}
+                    src="{{related.image}}"
+                    class="card-img poster"
+                  {% endif %}
+                  alt="{{ related.title }}"
+                  loading="lazy"
+                />
+              </a>
 
               <div class="card-img-overlay">
                 <div class="card-title text-center">

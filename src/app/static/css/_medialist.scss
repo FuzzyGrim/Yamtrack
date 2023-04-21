@@ -63,6 +63,10 @@
       -webkit-line-clamp: 1;
       -webkit-box-orient: vertical;
       line-height: 2;
+      a {
+        color: $btn-color;
+        text-decoration: none;
+      }
     }
 
     .score,

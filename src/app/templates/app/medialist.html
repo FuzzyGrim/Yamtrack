@@ -50,7 +50,11 @@
         <img loading="lazy" src="{{media.image.url}}"/>
       </div>
     
-      <div class="title p-2">{{media.title}}</div>
+      <div class="title p-2">
+        <a href={% url 'details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}>
+          {{media.title}}
+        </a>
+      </div>
       <div class="score p-2">{{media.score}}</div>
       <div class="status p-2">{{media.status}}</div>
       <div class="_progress p-2">{{media.progress}}</div>

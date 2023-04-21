@@ -13,17 +13,19 @@
         {% for media in query_list %}
           {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga" %}
             <div class="card text-bg-dark mx-auto">
-              <a href="{% url 'details' media_type=media.media_type media_id=media.id title=media.title%}"><img
-                {% if media.image == "none.svg" %}
-                  src="{% get_media_prefix %}{{media.image}}"
-                  class="card-img image-not-found"
-                  {% else %}
-                  src="{{media.image}}"
-                  class="card-img poster"
-                {% endif %}
+              <a href="{% url 'details' media_type=media.media_type media_id=media.id title=media.title|slugify%}">
+                <img
+                  {% if media.image == "none.svg" %}
+                    src="{% get_media_prefix %}{{media.image}}"
+                    class="card-img image-not-found"
+                    {% else %}
+                    src="{{media.image}}"
+                    class="card-img poster"
+                  {% endif %}
 
-                alt="{{ media.title }}"
-              /></a>
+                  alt="{{ media.title }}"
+                />
+              </a>
 
               <div class="card-img-overlay">
                 <div class="card-title text-center">

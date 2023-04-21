@@ -10,20 +10,18 @@
         <div class="grid">
           {% for media in media_group.media_list %}
             <div class="card text-bg-dark mx-auto">
-              
-              <img
-                src="{{ media.image.url }}"
-                {% if media.image.url == "/media/none.svg"%}
-                  class="card-img open-modal-button image-not-found"
-                  {% else %}
-                  class="card-img open-modal-button poster"
-                {% endif %}
-                data-bs-toggle="modal"
-                data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}"
-                data-url="{{media.media_type}}_{{media.media_id}}"
-                alt="{{ media.title }}"
-                loading="lazy"
-              />
+              <a href="{% url 'details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}">
+                <img
+                  src="{{ media.image.url }}"
+                  {% if media.image.url == "/media/none.svg"%}
+                    class="card-img open-modal-button image-not-found"
+                    {% else %}
+                    class="card-img open-modal-button poster"
+                  {% endif %}
+                  alt="{{ media.title }}"
+                  loading="lazy"
+                />
+              </a>
 
               <div class="card-img-overlay">
                 <div class="card-title text-center">
@@ -37,7 +35,6 @@
               </div>
             </div>
 
-            {% include "app/include/modal.html" with title=media.title media_id=media.media_id media_type=media.media_type db=media csrf_token=csrf_token only %}
           {% endfor %}
         </div>
       </div>
