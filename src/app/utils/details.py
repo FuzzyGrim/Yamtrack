@@ -87,7 +87,7 @@ def tmdb(media_type, media_id):
 
         response = requests.get(url).json()
 
-        response["original_type"] = response["media_type"]
+        response["original_type"] = media_type
         response["media_type"] = media_type
         response["media_id"] = response["id"]
 

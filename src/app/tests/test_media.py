@@ -27,7 +27,7 @@ class CreateMedia(TestCase):
         add_media(
             media_id=5895,
             title="FLCL",
-            image="/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg",
+            image="https://image.tmdb.org/t/p/w500/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg",
             media_type="tv",
             score=10,
             progress=4,

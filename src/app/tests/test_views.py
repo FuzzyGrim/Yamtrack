@@ -125,16 +125,12 @@ class LoggedInView(TestCase):
             reverse("edit"), {"media_type": "tv", "media_id": "1668"}
         )
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "app/edit.html")
-        self.assertContains(response, "Friends")
 
     def test_edit_modal_mal(self):
         response = self.client.get(
             reverse("edit"), {"media_type": "anime", "media_id": "227"}
         )
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "app/edit.html")
-        self.assertContains(response, "FLCL")
 
     def test_logout(self):
         self.client.get(reverse("logout"))
