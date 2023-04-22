@@ -6,7 +6,7 @@ TMDB_API = config("TMDB_API", default=None)
 MAL_API = config("MAL_API", default=None)
 
 
-def mal(media_type, media_id):
+def anime_manga(media_type, media_id):
     cache_key = media_type + str(media_id)
     response = cache.get(cache_key)
     if response is None:
@@ -79,16 +79,16 @@ def mal(media_type, media_id):
     return response
 
 
-def tmdb(media_type, media_id):
-    cache_key = media_type + str(media_id)
+def tv(media_id):
+    cache_key = "tv" + str(media_id)
     response = cache.get(cache_key)
     if response is None:
-        url = f"https://api.themoviedb.org/3/{media_type}/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
+        url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
 
         response = requests.get(url).json()
 
-        response["original_type"] = media_type
-        response["media_type"] = media_type
+        response["original_type"] = "tv"
+        response["media_type"] = "tv"
         response["media_id"] = response["id"]
 
         # when specific data is not available
@@ -100,14 +100,10 @@ def tmdb(media_type, media_id):
             response["image"] = "none.svg"
 
         # tv shows have name instead of title
-        if "name" in response:
-            response["title"] = response["name"]
+        response["title"] = response["name"]
 
-        # movies have release_date
-        if "release_date" in response and response["release_date"] != "":
-            response["start_date"] = response["release_date"]
-        # tv shows have first_air_date
-        elif "first_air_date" in response and response["first_air_date"] != "":
+        # tv shows have start_date inside first_air_date
+        if response["first_air_date"] != "":
             response["start_date"] = response["first_air_date"]
         else:
             response["start_date"] = "Unknown"
@@ -119,10 +115,12 @@ def tmdb(media_type, media_id):
 
         # movies uses runtime
         # tv shows episode runtime are shown in last_episode_to_air
-        duration = response.get("runtime") or response.get("last_episode_to_air", {}).get("runtime")
+        duration = response.get("last_episode_to_air", {}).get("runtime")
         if duration:
             hours, minutes = divmod(int(duration), 60)
             response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+        else:
+            response["runtime"] = "Unknown"
 
         response["num_episodes"] = response.get("number_of_episodes", 1)
 
@@ -133,16 +131,72 @@ def tmdb(media_type, media_id):
 
         for key in ("seasons", "recommendations"):
             items = response.get(key)
-            if not items:
-                continue
             for item in items:
                 if item["poster_path"]:
                     item["image"] = f"https://image.tmdb.org/t/p/w500{item['poster_path']}"
                 else:
                     item["image"] = "none.svg"
 
-                if "name" in item:
-                    item["title"] = item["name"]
+                item["title"] = item["name"]
+
+                if key == "seasons":
+                    item["id"] = response["id"]
+
+        # cache for 6 hours
+        cache.set(cache_key, response, 21600)
+
+    return response
+
+
+def movie(media_id):
+    cache_key = "movie" + str(media_id)
+    response = cache.get(cache_key)
+    if response is None:
+        url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
+
+        response = requests.get(url).json()
+
+        response["original_type"] = "movie"
+        response["media_type"] = "movie"
+        response["media_id"] = response["id"]
+
+        # when specific data is not available
+        # tmdb will either not return the key or return an empty value/string
+
+        if response["poster_path"]:
+            response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+        else:
+            response["image"] = "none.svg"
+
+        if "release_date" in response and response["release_date"] != "":
+            response["start_date"] = response["release_date"]
+        else:
+            response["start_date"] = "Unknown"
+
+        if response["overview"] == "":
+            response["synopsis"] = "No synopsis available."
+        else:
+            response["synopsis"] = response["overview"]
+
+        # movies uses runtime
+        # tv shows episode runtime are shown in last_episode_to_air
+        duration = response.get("runtime")
+        if duration:
+            hours, minutes = divmod(int(duration), 60)
+            response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+        else:
+            response["runtime"] = "Unknown"
+
+        if not response["genres"]:
+            response["genres"] = [{"name": "Unknown"}]
+
+        response["recommendations"] = response["recommendations"]["results"][:10]
+
+        for recommendation in response["recommendations"]:
+            if recommendation["poster_path"]:
+                recommendation["image"] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
+            else:
+                recommendation["image"] = "none.svg"
 
         # cache for 6 hours
         cache.set(cache_key, response, 21600)

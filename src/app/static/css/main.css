@@ -38,9 +38,9 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #home .container .grid .card .card-img-overlay .card-text { font-size: 0.8rem; }
 
-#home .container .grid .card .card-img-overlay .card-text .btn { padding: 0 0.5em; color: #adb5bd; }
+#home .container .grid .card .card-img-overlay .card-text .open-modal-button, #home .container .grid .card .card-img-overlay .card-text .progress-btn { padding: 0 0.5em; color: #adb5bd; }
 
-#home .container .grid .card .card-img-overlay .card-text .btn:hover { color: #fff; }
+#home .container .grid .card .card-img-overlay .card-text .open-modal-button:hover, #home .container .grid .card .card-img-overlay .card-text .progress-btn:hover { color: #fff; }
 
 #sidebar { width: 230px; }
 
@@ -98,9 +98,9 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #search .grid .card .card-img-overlay .card-text { font-size: 0.8rem; }
 
-#search .grid .card .card-img-overlay .card-text .btn { padding: 0 0.5em; color: #adb5bd; }
+#search .grid .card .card-img-overlay .card-text .open-modal-button, #search .grid .card .card-img-overlay .card-text .progress-btn { padding: 0 0.5em; color: #adb5bd; }
 
-#search .grid .card .card-img-overlay .card-text .btn:hover { color: #fff; }
+#search .grid .card .card-img-overlay .card-text .open-modal-button:hover, #search .grid .card .card-img-overlay .card-text .progress-btn:hover { color: #fff; }
 
 #details { background-color: #1b1e1f; border: 1px solid #383d3f; padding: 1.5em; }
 
@@ -136,9 +136,9 @@ body main .custom-tooltip { --bs-tooltip-bg: var(--bs-secondary); --bs-tooltip-c
 
 #details .grid .card .card-img-overlay .card-text { font-size: 0.8rem; }
 
-#details .grid .card .card-img-overlay .card-text .btn { padding: 0 0.5em; color: #adb5bd; }
+#details .grid .card .card-img-overlay .card-text .open-modal-button, #details .grid .card .card-img-overlay .card-text .progress-btn { padding: 0 0.5em; color: #adb5bd; }
 
-#details .grid .card .card-img-overlay .card-text .btn:hover { color: #fff; }
+#details .grid .card .card-img-overlay .card-text .open-modal-button:hover, #details .grid .card .card-img-overlay .card-text .progress-btn:hover { color: #fff; }
 
 #profile .btn-submit { color: #909294; background-color: #212529; }
 

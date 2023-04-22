@@ -35,7 +35,7 @@ class CreateMedia(TestCase):
             start_date="2023-01-01",
             end_date="2023-01-02",
             user=self.user,
-            season_selected=1,
+            season_number=1,
             seasons=[
                 {"episode_count": 6, "season_number": 1},
                 {"episode_count": 6, "season_number": 2},
@@ -118,7 +118,7 @@ class EditMedia(TestCase):
             start_date="2023-01-01",
             end_date="2023-01-02",
             user=self.user,
-            season_selected=None,
+            season_number=None,
             seasons=None
         )
         self.assertEqual(
@@ -159,7 +159,7 @@ class EditMedia(TestCase):
             start_date="2023-01-01",
             end_date="2023-01-02",
             user=self.user,
-            season_selected=10,
+            season_number=10,
             seasons=[
                 {"episode_count": 39, "season_number": 0},
                 {"episode_count": 24, "season_number": 1},
@@ -192,33 +192,6 @@ class EditMedia(TestCase):
         self.assertContains(response, "Watching")
 
     def test_edit_tmdb_dates(self):
-        self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, start_date="2023-01-01"
-            ).exists(),
-            True,
-        )
-
-        self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, start_date="2023-01-02"
-            ).exists(),
-            False,
-        )
-
-        self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, end_date="2023-01-02"
-            ).exists(),
-            True,
-        )
-
-        self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, end_date="2023-01-03"
-            ).exists(),
-            False,
-        )
 
         edit_media(
             media_id=1668,
@@ -231,7 +204,7 @@ class EditMedia(TestCase):
             start_date="2023-01-02",
             end_date="2023-01-03",
             user=self.user,
-            season_selected=10,
+            season_number=None,
             seasons=[
                 {"episode_count": 39, "season_number": 0},
                 {"episode_count": 24, "season_number": 1},
@@ -270,7 +243,7 @@ class EditMedia(TestCase):
 class DetailsMedia(TestCase):
 
     def test_anime(self):
-        response = details.mal("anime", "1")
+        response = details.anime_manga("anime", "1")
         self.assertEqual(response["title"], "Cowboy Bebop")
         self.assertEqual(response["image"], "https://api-cdn.myanimelist.net/images/anime/4/19644l.jpg")
         self.assertEqual(response["start_date"], "1998-04-03")
@@ -279,7 +252,7 @@ class DetailsMedia(TestCase):
 
     def test_anime_unknown(self):
         # anime without picture, synopsis and duration
-        response = details.mal("anime", "23183")
+        response = details.anime_manga("anime", "23183")
         self.assertEqual(response["title"], "Itazura Post")
         self.assertEqual(response["image"], "none.svg")
         self.assertEqual(response["synopsis"], "No synopsis available.")
@@ -287,13 +260,13 @@ class DetailsMedia(TestCase):
 
     def test_anime_unknown_2(self):
         # anime without picture and genres
-        response = details.mal("anime", "28487")
+        response = details.anime_manga("anime", "28487")
         self.assertEqual(response["title"], "Ikite Iru")
         self.assertEqual(response["image"], "none.svg")
         self.assertEqual(response["genres"], [{"name": "Unknown"}])
 
     def test_manga(self):
-        response = details.mal("manga", "1")
+        response = details.anime_manga("manga", "1")
         self.assertEqual(response["title"], "Monster")
         self.assertEqual(response["image"], "https://api-cdn.myanimelist.net/images/manga/3/258224l.jpg")
         self.assertEqual(response["start_date"], "1994-12-05")
@@ -301,7 +274,7 @@ class DetailsMedia(TestCase):
         self.assertEqual(response["num_chapters"], 162)
 
     def test_tv(self):
-        response = details.tmdb("tv", "1396")
+        response = details.tv("1396")
         self.assertEqual(response["title"], "Breaking Bad")
         self.assertEqual(response["image"], "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg")
         self.assertEqual(response["start_date"], "2008-01-20")
@@ -309,22 +282,21 @@ class DetailsMedia(TestCase):
         self.assertEqual(response["num_episodes"], 62)
 
     def test_tv_unknown(self):
-        response = details.tmdb("tv", "24795")
+        response = details.tv("24795")
         self.assertEqual(response["title"], "F.D.R.")
         self.assertEqual(response["image"], "none.svg")
         self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["genres"], [{"name": "Unknown"}])
 
     def test_movie(self):
-        response = details.tmdb("movie", "10494")
+        response = details.movie("10494")
         self.assertEqual(response["title"], "Perfect Blue")
         self.assertEqual(response["image"], "https://image.tmdb.org/t/p/w500/hwCTlm990H6NlrG8W7sk3pxdMtf.jpg")
         self.assertEqual(response["start_date"], "1997-07-25")
         self.assertEqual(response["status"], "Released")
-        self.assertEqual(response["num_episodes"], 1)
 
     def test_movie_unknown(self):
-        response = details.tmdb("movie", "402988")
+        response = details.movie("402988")
         self.assertEqual(response["title"], "FDS")
         self.assertEqual(response["image"], "none.svg")
         self.assertEqual(response["start_date"], "Unknown")

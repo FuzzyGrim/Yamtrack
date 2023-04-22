@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load app_extras %}
 
 {% block content %}
   <div id="details" class="content">
@@ -51,7 +52,7 @@
         </div>
         
         <div class="media-form">
-          <button type="button" title="Track" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-url="{{media.media_type}}_{{media.media_id}}">
+          <button type="button" title="Track" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-type="{{media.media_type}}" data-id="{{media.media_id}}">
             <i class="bi bi-pencil-square"></i>
           </button>
           {% include "app/include/modal.html" with title=media.title media_id=media.media_id media_type=media.media_type csrf_token=csrf_token only %}
@@ -88,12 +89,19 @@
                 </div>
 
                 <div class="card-text d-flex justify-content-center align-items-center">
-                  
-                  <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{related.id}}" data-url="{{media.media_type}}_{{related.id}}">
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
-          
-                  {% include "app/include/modal.html" with title=related.title media_id=related.id media_type=media.media_type csrf_token=csrf_token only %}
+                  {% if related_data.name == "Seasons" %}
+                    <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}_{{related.season_number}}" 
+                            data-type="{{media.media_type}}" data-id="{{media.media_id}}" data-season-number="{{related.season_number}}">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:related.season_number title=media.title media_id=media.media_id media_type=media.media_type season_number=related.season_number csrf_token=csrf_token only %}
+                  {% else %}
+                    <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{related.id}}" 
+                            data-type="{{media.media_type}}" data-id="{{related.id}}">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=related.title media_id=related.id media_type=media.media_type csrf_token=csrf_token only %}
+                  {% endif %}
                 </div>
               </div>
             </div>

@@ -7,7 +7,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
 from django.conf import settings
 
-from app.models import Media
+from app.models import Media, Season
 from app.forms import (
     UserLoginForm,
     UserRegisterForm,
@@ -42,14 +42,12 @@ def home(request):
             list_title = f"{media.media_type.capitalize()} in Progress"
             media_dict[key] = {
                 "list_title": list_title,
-                "status": media.status,
                 "media_list": [],
             }
 
-        # template will show the season causing the media to be in progress/hold
         if media.seasons.exists():
             for season in media.seasons.all():
-                if season.status == media.status:
+                if season.status == "Watching":
                     media.season_number = season.number
                     media.season_progress = season.progress
 
@@ -58,14 +56,12 @@ def home(request):
     context = {
         "media_dict": media_dict,
         "page": "home",
-
     }
     return render(request, "app/home.html", context)
 
 
 @login_required
 def media_list(request, media_type, status=None):
-
     if request.method == "POST":
         database.media_form_handler(request)
 
@@ -77,11 +73,9 @@ def media_list(request, media_type, status=None):
     if status:
         media_list = Media.objects.filter(
             user_id=request.user, media_type=media_type, status=status.capitalize()
-        ).prefetch_related("seasons")
+        )
     else:
-        media_list = Media.objects.filter(
-            user_id=request.user, media_type=media_type
-        ).prefetch_related("seasons")
+        media_list = Media.objects.filter(user_id=request.user, media_type=media_type)
 
     return render(
         request,
@@ -97,7 +91,6 @@ def media_list(request, media_type, status=None):
                 "Planning",
             ],
             "page": media_type + status if status else media_type,
-
         },
     )
 
@@ -108,7 +101,6 @@ def media_search(request):
     query = request.GET.get("q")
 
     if media_type and query:
-
         # update user default search type
         request.user.last_search_type = media_type
         request.user.save()
@@ -125,7 +117,6 @@ def media_search(request):
         context = {
             "query_list": query_list,
             "page": "search",
-
         }
 
     else:
@@ -139,19 +130,22 @@ def media_search(request):
 @login_required
 def media_details(request, media_type, media_id, title):
     if request.method == "POST":
+        print(request.POST.get("media_type"))
         database.media_form_handler(request)
         return redirect("details", media_type, media_id, title)
 
     if media_type == "anime" or media_type == "manga":
-        media = details.mal(media_type, media_id)
-    elif media_type == "tv" or media_type == "movie":
-        media = details.tmdb(media_type, media_id)
+        media = details.anime_manga(media_type, media_id)
+    elif media_type == "tv":
+        media = details.tv(media_id)
+    elif media_type == "movie":
+        media = details.movie(media_id)
 
     related_data_list = [
-        {'name': 'Seasons', 'data': media.get("seasons")},
-        {'name': 'Related Animes', 'data': media.get("related_anime")},
-        {'name': 'Related Mangas', 'data': media.get("related_manga")},
-        {'name': 'Recommendations', 'data': media.get("recommendations")}
+        {"name": "Seasons", "data": media.get("seasons")},
+        {"name": "Related Animes", "data": media.get("related_anime")},
+        {"name": "Related Mangas", "data": media.get("related_manga")},
+        {"name": "Recommendations", "data": media.get("recommendations")},
     ]
 
     context = {
@@ -276,9 +270,11 @@ def profile(request):
 def edit(request):
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
+
     media_filter = Media.objects.filter(
         media_type=media_type, media_id=media_id, user=request.user.id
     ).values(
+        "id",
         "score",
         "status",
         "progress",
@@ -288,8 +284,23 @@ def edit(request):
     if media_filter:
         media = media_filter[0]
     else:
-        media = {}
-    return JsonResponse(media)
+        return JsonResponse({})
+
+    season_number = request.GET.get("season_number")
+    if season_number is None:
+        return JsonResponse(media)
+    else:
+        season = Season.objects.filter(parent_id=media["id"], number=season_number).values(
+            "score",
+            "status",
+            "progress",
+            "start_date",
+            "end_date",
+        )
+        if season:
+            return JsonResponse(season[0])
+        else:
+            return JsonResponse({})
 
 
 def redirect_after_login(request):

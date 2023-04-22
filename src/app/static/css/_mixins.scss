@@ -43,7 +43,7 @@
 
       .card-text {
         font-size: 0.8rem;
-        .btn {
+        .open-modal-button, .progress-btn {
           padding: 0 0.5em;
           color: $btn-color;
           &:hover {
