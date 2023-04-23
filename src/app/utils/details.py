@@ -87,7 +87,7 @@ def tv(media_id):
 
         response = requests.get(url).json()
 
-        response["original_type"] = "tv"
+        response["original_type"] = "TV"
         response["media_type"] = "tv"
         response["media_id"] = response["id"]
 
@@ -156,7 +156,7 @@ def movie(media_id):
 
         response = requests.get(url).json()
 
-        response["original_type"] = "movie"
+        response["original_type"] = "Movie"
         response["media_type"] = "movie"
         response["media_id"] = response["id"]
 

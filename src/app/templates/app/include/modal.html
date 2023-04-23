@@ -55,10 +55,12 @@
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="media_type" value="{{media_type}}">
+          <input type="hidden" name="media_id" value="{{media_id}}">
+
           {% if season_number is not None %}
             <input type="hidden" name="season_number" value="{{season_number}}">
           {% endif %}
-          <input type="hidden" name="media_id" value="{{media_id}}">
+
           {% if db %}
             <button type="submit" class="btn btn-danger" name="delete">Delete</button>
           {% endif %}

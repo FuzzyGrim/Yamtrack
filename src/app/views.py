@@ -39,12 +39,16 @@ def home(request):
     for media in media_list:
         key = f"{media.media_type}_{media.status}"
         if key not in media_dict:
-            list_title = f"{media.media_type.capitalize()} in Progress"
+            if media.media_type == "tv":
+                list_title = "TV in Progress"
+            else:
+                list_title = f"{media.media_type.capitalize()} in Progress"
             media_dict[key] = {
                 "list_title": list_title,
                 "media_list": [],
             }
 
+        # template will show the season that is being watched
         if media.seasons.exists():
             for season in media.seasons.all():
                 if season.status == "Watching":
@@ -130,7 +134,6 @@ def media_search(request):
 @login_required
 def media_details(request, media_type, media_id, title):
     if request.method == "POST":
-        print(request.POST.get("media_type"))
         database.media_form_handler(request)
         return redirect("details", media_type, media_id, title)
 
@@ -280,17 +283,21 @@ def edit(request):
         "progress",
         "start_date",
         "end_date",
-        )
+    )
+
     if media_filter:
         media = media_filter[0]
     else:
         return JsonResponse({})
 
+    # if selected media is a season, return season stats
     season_number = request.GET.get("season_number")
     if season_number is None:
         return JsonResponse(media)
     else:
-        season = Season.objects.filter(parent_id=media["id"], number=season_number).values(
+        season = Season.objects.filter(
+            parent_id=media["id"], number=season_number
+        ).values(
             "score",
             "status",
             "progress",
