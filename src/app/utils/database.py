@@ -29,7 +29,7 @@ def media_form_handler(request):
             ).delete()
 
     elif "status" in request.POST:
-        request.POST = helpers.fix_inputs(request, metadata)
+        request.POST = helpers.clean_data(request, metadata)
 
         if Media.objects.filter(
             media_id=media_id,

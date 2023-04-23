@@ -23,7 +23,7 @@
           <div class="row gx-3 gy-3">
             <div class="col-12">
               <div class="descriptor">Status</div>
-              <select name="status" class="form-select" id="status-{{form_id}}">
+              <select name="status" class="form-select">
                 <option value="Completed" {% if db.status == "Completed" %}selected{% endif %}>Completed</option>
                 <option value="Planning" {% if db.status == "Planning" %}selected{% endif %}>Planning</option>
                 <option value="Watching" {% if db.status == "Watching" %}selected{% endif %}>Watching</option>
@@ -33,25 +33,25 @@
             </div>
             <div class="col-12 col-sm-6">
               <div class="descriptor">Score</div>
-              <input type="number" class="form-control bg-dark text-white" id="score-{{form_id}}" name="score" value="{{db.score}}" step="0.1" min="0" max="10">
+              <input type="number" class="form-control bg-dark text-white" name="score" value="{{db.score}}" step="0.1" min="0" max="10">
             </div>
             <div class="col-12 col-sm-6">
               <div class="descriptor">Progress</div>
-              <input type="number" class="form-control bg-dark text-white" id="progress-{{form_id}}" name="progress" value="{{db.progress}}" step="1" min="0">
+              <input type="number" class="form-control bg-dark text-white" name="progress" value="{{db.progress}}" step="1" min="0">
             </div>
             <div class="col-12 col-sm-6">
               <div class="descriptor">Start Date</div>
-              <input type="date" class="form-control bg-dark text-white" id="start-{{form_id}}" name="start" value="{{db.start_date|date:'Y-m-d'}}">
+              <input type="date" class="form-control bg-dark text-white" name="start" value="{{db.start_date|date:'Y-m-d'}}">
             </div>
             <div class="col-12 col-sm-6">
               <div class="descriptor">End Date</div>
-              <input type="date" class="form-control bg-dark text-white" id="end-{{form_id}}" name="end" value="{{db.end_date|date:'Y-m-d'}}">
+              <input type="date" class="form-control bg-dark text-white" name="end" value="{{db.end_date|date:'Y-m-d'}}">
             </div>
           </div>
         </form>
       </div>
 
-      <div class="modal-footer d-flex justify-content-between" id="modal-footer-{{form_id}}">
+      <div class="modal-footer d-flex justify-content-between">
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="media_type" value="{{media_type}}">

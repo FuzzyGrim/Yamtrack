@@ -40,7 +40,7 @@ async def download_image_async(session, url, media_type):
     return filename
 
 
-def fix_inputs(request, metadata):
+def clean_data(request, metadata):
     post = request.POST.copy()
 
     if post["score"] == "":
