@@ -23,7 +23,7 @@
           <div class="row gx-3 gy-3">
             <div class="col-12">
               <div class="descriptor">Status</div>
-              <select name="status" class="form-select">
+              <select name="status" class="form-select bg-dark text-white">
                 <option value="Completed" {% if db.status == "Completed" %}selected{% endif %}>Completed</option>
                 <option value="Planning" {% if db.status == "Planning" %}selected{% endif %}>Planning</option>
                 <option value="Watching" {% if db.status == "Watching" %}selected{% endif %}>Watching</option>
@@ -46,6 +46,10 @@
             <div class="col-12 col-sm-6">
               <div class="descriptor">End Date</div>
               <input type="date" class="form-control bg-dark text-white" name="end" value="{{db.end_date|date:'Y-m-d'}}">
+            </div>
+            <div class="col-12">
+              <div class="descriptor">Notes</div>
+              <textarea class="form-control bg-dark text-white" name="notes" value="{{db.notes}}"></textarea>
             </div>
           </div>
         </form>

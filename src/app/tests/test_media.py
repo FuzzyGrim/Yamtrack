@@ -5,6 +5,7 @@ from django.conf import settings
 
 import shutil
 import os
+import datetime
 
 from app.models import User, Media, Season
 from app.utils import details
@@ -32,8 +33,9 @@ class CreateMedia(TestCase):
             score=10,
             progress=4,
             status="Watching",
-            start_date="2023-01-01",
-            end_date="2023-01-02",
+            start_date=datetime.datetime(2023, 1, 1),
+            end_date=datetime.datetime(2023, 1, 2),
+            notes="Nice",
             user=self.user,
             season_number=1,
             seasons=[
@@ -59,11 +61,11 @@ class CreateMedia(TestCase):
         season = Season.objects.get(parent=media, number=1)
         self.assertEqual(str(season), "FLCL - Season 1")
 
-        # check if it is in medialist
+        # check if it's in medialist
         response = self.client.get(reverse("medialist", kwargs={"media_type": "tv"}))
         self.assertContains(response, "FLCL")
 
-        # check if FLCL in home because it is progress
+        # check if FLCL in home because it's in progress
         response = self.client.get(reverse("home"))
         self.assertContains(response, "FLCL")
 
@@ -86,10 +88,12 @@ class EditMedia(TestCase):
             media_type="tv",
             score=9,
             progress=18,
-            user=self.user,
             status="Completed",
-            start_date="2023-01-01",
-            end_date="2023-01-02",
+            start_date=datetime.datetime(2023, 1, 1),
+            end_date=datetime.datetime(2023, 1, 2),
+            notes="Nice",
+            user=self.user,
+
         )
         media.save()
 
@@ -99,6 +103,8 @@ class EditMedia(TestCase):
             score=9,
             progress=12,
             status="Completed",
+            start_date=datetime.datetime(2023, 1, 1),
+            end_date=datetime.datetime(2023, 1, 2),
         )
         season.save()
 
@@ -115,8 +121,9 @@ class EditMedia(TestCase):
             score=9.5,
             progress=18,
             status="Completed",
-            start_date="2023-01-01",
-            end_date="2023-01-02",
+            start_date=datetime.datetime(2023, 1, 1),
+            end_date=datetime.datetime(2023, 1, 2),
+            notes="Nice",
             user=self.user,
             season_number=None,
             seasons=None
@@ -130,7 +137,7 @@ class EditMedia(TestCase):
             True,
         )
 
-        # check if it is in medialist
+        # check if it's in medialist
         response = self.client.get(reverse("medialist", kwargs={"media_type": "tv"}))
         self.assertContains(response, "9.5")
 
@@ -156,8 +163,47 @@ class EditMedia(TestCase):
             score=9,
             progress=18,
             status="Watching",
-            start_date="2023-01-01",
-            end_date="2023-01-02",
+            start_date=datetime.datetime(2023, 1, 1),
+            end_date=datetime.datetime(2023, 1, 2),
+            notes="Nice",
+            user=self.user,
+            season_number=None,
+            seasons=None
+        )
+
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, status="Watching"
+            ).exists(),
+            True,
+        )
+
+    # Editing season status, changes media status
+    def test_edit_tmdb_season_status(self):
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, status="Completed"
+            ).exists(),
+            True,
+        )
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, status="Watching"
+            ).exists(),
+            False,
+        )
+
+        edit_media(
+            media_id=1668,
+            title="Friends",
+            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
+            media_type="tv",
+            score=9,
+            progress=18,
+            status="Watching",
+            start_date=datetime.datetime(2023, 1, 1),
+            end_date=datetime.datetime(2023, 1, 2),
+            notes="Nice",
             user=self.user,
             season_number=10,
             seasons=[
@@ -174,12 +220,11 @@ class EditMedia(TestCase):
                 {"episode_count": 18, "season_number": 10},
             ],
         )
-
         self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, status="Completed"
+            Season.objects.filter(
+                parent__media_id=1668, parent__user=self.user, status="Watching"
             ).exists(),
-            False,
+            True,
         )
         self.assertEqual(
             Media.objects.filter(
@@ -201,34 +246,48 @@ class EditMedia(TestCase):
             score=9,
             progress=18,
             status="Completed",
-            start_date="2023-01-02",
-            end_date="2023-01-03",
+            start_date=datetime.datetime(2023, 1, 2),
+            end_date=datetime.datetime(2023, 1, 3),
+            notes="Nice",
             user=self.user,
             season_number=None,
-            seasons=[
-                {"episode_count": 39, "season_number": 0},
-                {"episode_count": 24, "season_number": 1},
-                {"episode_count": 24, "season_number": 2},
-                {"episode_count": 25, "season_number": 3},
-                {"episode_count": 24, "season_number": 4},
-                {"episode_count": 24, "season_number": 5},
-                {"episode_count": 25, "season_number": 6},
-                {"episode_count": 24, "season_number": 7},
-                {"episode_count": 24, "season_number": 8},
-                {"episode_count": 24, "season_number": 9},
-                {"episode_count": 18, "season_number": 10},
-            ],
+            seasons=None,
         )
 
         self.assertEqual(
             Media.objects.filter(
-                media_id=1668, user=self.user, start_date="2023-01-02"
+                media_id=1668, user=self.user, start_date=datetime.datetime(2023, 1, 2)
             ).exists(),
             True,
         )
         self.assertEqual(
             Media.objects.filter(
-                media_id=1668, user=self.user, end_date="2023-01-03"
+                media_id=1668, user=self.user, end_date=datetime.datetime(2023, 1, 3)
+            ).exists(),
+            True,
+        )
+
+    def test_edit_tmdb_notes(self):
+
+        edit_media(
+            media_id=1668,
+            title="Friends",
+            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
+            media_type="tv",
+            score=9,
+            progress=18,
+            status="Completed",
+            start_date=datetime.datetime(2023, 1, 1),
+            end_date=datetime.datetime(2023, 1, 2),
+            notes="test notes",
+            user=self.user,
+            season_number=None,
+            seasons=None,
+        )
+
+        self.assertEqual(
+            Media.objects.filter(
+                media_id=1668, user=self.user, notes="test notes"
             ).exists(),
             True,
         )

@@ -7,13 +7,8 @@ openModalButtons.forEach(function (button) {
     var id = this.getAttribute("data-id");
 
     if (this.hasAttribute("data-season-number")) {
-      var url =
-        "/edit/?media_type=" +
-        type +
-        "&media_id=" +
-        id +
-        "&season_number=" +
-        this.getAttribute("data-season-number");
+      var url = 
+        "/edit/?media_type=" + type + "&media_id=" + id + "&season_number=" + this.getAttribute("data-season-number");
       var form_id =
         type + "_" + id + "_" + this.getAttribute("data-season-number");
     } else {
@@ -27,28 +22,18 @@ openModalButtons.forEach(function (button) {
         var media = JSON.parse(xhr.responseText);
 
         if (Object.keys(media).length !== 0) {
-          document.querySelector(`#form-${form_id} input[name='score']`).value =
-            media.score;
-          document.querySelector(
-            `#form-${form_id} select[name='status']`
-          ).value = media.status;
-          document.querySelector(
-            `#form-${form_id} input[name='progress']`
-          ).value = media.progress;
-          document.querySelector(`#form-${form_id} input[name='start']`).value =
-            media.start_date;
-          document.querySelector(`#form-${form_id} input[name='end']`).value =
-            media.end_date;
-          
+          document.querySelector(`#form-${form_id} input[name='score']`).value = media.score;
+          document.querySelector(`#form-${form_id} select[name='status']`).value = media.status;
+          document.querySelector(`#form-${form_id} input[name='progress']`).value = media.progress;
+          document.querySelector(`#form-${form_id} input[name='start']`).value =media.start_date;
+          document.querySelector(`#form-${form_id} input[name='end']`).value =media.end_date;
+          document.querySelector(`#form-${form_id} textarea[name='notes']`).value = media.notes;
+
           // Add delete button if it doesn't exist
           if (
-            document.querySelector(
-              `#modal-${form_id} .modal-footer .btn-danger`
-            ) === null
+            document.querySelector(`#modal-${form_id} .modal-footer .btn-danger`) === null
           ) {
-            var form = document.querySelector(
-              `#modal-${form_id} .modal-footer form`
-            );
+            var form = document.querySelector(`#modal-${form_id} .modal-footer form`);
             var deleteBtn = document.createElement("button");
             deleteBtn.className = "btn btn-danger";
             deleteBtn.type = "submit";

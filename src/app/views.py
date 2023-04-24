@@ -283,6 +283,7 @@ def edit(request):
         "progress",
         "start_date",
         "end_date",
+        "notes"
     )
 
     if media_filter:
@@ -303,6 +304,7 @@ def edit(request):
             "progress",
             "start_date",
             "end_date",
+            "notes"
         )
         if season:
             return JsonResponse(season[0])

@@ -46,6 +46,7 @@ def media_form_handler(request):
                 request.POST["status"],
                 request.POST["start"],
                 request.POST["end"],
+                request.POST["notes"],
                 request.user,
                 request.POST.get("season_number"),
                 metadata.get("seasons"),
@@ -61,6 +62,7 @@ def media_form_handler(request):
                 request.POST["status"],
                 request.POST["start"],
                 request.POST["end"],
+                request.POST["notes"],
                 request.user,
                 request.POST.get("season_number"),
                 metadata.get("seasons"),
@@ -77,6 +79,7 @@ def add_media(
     status,
     start_date,
     end_date,
+    notes,
     user,
     season_number,
     seasons,
@@ -95,6 +98,7 @@ def add_media(
         status=status,
         start_date=start_date,
         end_date=end_date,
+        notes=notes,
         user=user
     )
 
@@ -127,6 +131,7 @@ def add_media(
             progress=media.progress,
             start_date=media.start_date,
             end_date=media.end_date,
+            notes=notes
         )
 
 
@@ -140,6 +145,7 @@ def edit_media(
     status,
     start_date,
     end_date,
+    notes,
     user,
     season_number,
     seasons,
@@ -174,6 +180,7 @@ def edit_media(
                 "progress": progress,
                 "start_date": start_date,
                 "end_date": end_date,
+                "notes": notes,
             },
         )
 
@@ -187,4 +194,5 @@ def edit_media(
         media.status = status
         media.start_date = start_date
         media.end_date = end_date
+        media.notes = notes
         media.save()
