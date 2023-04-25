@@ -97,7 +97,7 @@ def add_media(
     notes,
     user,
     season_number,
-    seasons,
+    seasons_metadata,
 ):
     if image != "none.svg":
         image = helpers.download_image(image, media_type)
@@ -125,13 +125,13 @@ def add_media(
 
         # when there are specials episodes, they are on season 0,
         # so offset everything by 1
-        if seasons[0]["season_number"] == 0:
+        if seasons_metadata[0]["season_number"] == 0:
             offset = 0
         else:
             offset = 1
 
         # get the selected season from the metadata
-        season_selected = seasons[season_number - offset]
+        season_selected = seasons_metadata[season_number - offset]
 
         # if completed and has episode count, set progress to episode count
         if (status == "Completed" and "episode_count" in season_selected):
@@ -173,7 +173,7 @@ def edit_media(
     notes,
     user,
     season_number,
-    seasons,
+    seasons_metadata,
 ):
     media = Media.objects.get(
         media_id=media_id,
@@ -184,11 +184,11 @@ def edit_media(
     if season_number is not None:
         # when there are specials episodes, they are season 0,
         # so offset everything by 1
-        if seasons[0]["season_number"] == 0:
+        if seasons_metadata[0]["season_number"] == 0:
             offset = 0
         else:
             offset = 1
-        season_selected = seasons[season_number - offset]
+        season_selected = seasons_metadata[season_number - offset]
 
         if (status == "Completed" and "episode_count" in season_selected):
             progress = season_selected["episode_count"]
@@ -217,13 +217,13 @@ def edit_media(
         logger.info(f"Edited season {season_number} of {title} ({media_id})")
 
         # update media object with season data
-        seasons = Season.objects.filter(parent=media)
-        media.score = seasons.aggregate(Avg("score"))["score__avg"]
-        media.progress = seasons.aggregate(Sum("progress"))["progress__sum"]
-        media.start_date = seasons.aggregate(Min("start_date"))["start_date__min"]
-        media.end_date = seasons.aggregate(Max("end_date"))["end_date__max"]
+        seasons_all = Season.objects.filter(parent=media)
+        media.score = seasons_all.aggregate(Avg("score"))["score__avg"]
+        media.progress = seasons_all.aggregate(Sum("progress"))["progress__sum"]
+        media.start_date = seasons_all.aggregate(Min("start_date"))["start_date__min"]
+        media.end_date = seasons_all.aggregate(Max("end_date"))["end_date__max"]
         # if completed and not last season, set status to watching
-        if status == "Completed" and season_number != seasons[-1]["season_number"]:
+        if status == "Completed" and season_number != seasons_metadata[-1]["season_number"]:
             media.status = "Watching"
         # else set status to last season status
         else:
