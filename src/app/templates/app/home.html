@@ -3,41 +3,52 @@
 {% load unicorn %}
 
 {% block content %}
-  <div id="home" class="content">
-    {% for key, media_group in media_dict.items %}
-    <div class="container">
-      <div class="title">{{ media_group.list_title }}</div>
-        <div class="grid">
-          {% for media in media_group.media_list %}
-            <div class="card text-bg-dark mx-auto">
-              <a href="{% url 'details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}">
-                <img
-                  src="{{ media.image.url }}"
-                  {% if media.image.url == "/media/none.svg"%}
-                    class="card-img open-modal-button image-not-found"
-                    {% else %}
-                    class="card-img open-modal-button poster"
-                  {% endif %}
-                  alt="{{ media.title }}"
-                  loading="lazy"
-                />
-              </a>
-
-              <div class="card-img-overlay">
-                <div class="card-title text-center">
-                  {{ media.title }}
-                  {% if media.season_number %}
-                    S{{ media.season_number }}
-                  {% endif %}
-                </div>
-                {% csrf_token %}
-                {% unicorn "progress" media=media%}
-              </div>
-            </div>
-
-          {% endfor %}
-        </div>
-      </div>
-    {% endfor %}
+{% if media_dict|length == 0 %}
+  <div class="not-found">
+    <div>
+      <h2 class="alert-heading">No results found!</h2>
+      <p>Try searching for something else.</p>
+    </div>
   </div>
+  {% else %}
+    <div id="home">
+
+      {% for key, media_group in media_dict.items %}
+        <div class="container">
+          <div class="title">{{ media_group.list_title }}</div>
+          <div class="grid">
+            {% for media in media_group.media_list %}
+              <div class="card text-bg-dark mx-auto">
+                <a href="{% url 'details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}">
+                  <img
+                    src="{{ media.image.url }}"
+                    {% if media.image.url == "/media/none.svg"%}
+                      class="card-img open-modal-button image-not-found"
+                      {% else %}
+                      class="card-img open-modal-button poster"
+                    {% endif %}
+                    alt="{{ media.title }}"
+                    loading="lazy"
+                  />
+                </a>
+
+                <div class="card-img-overlay">
+                  <div class="card-title text-center">
+                    {{ media.title }}
+                    {% if media.season_number %}
+                      S{{ media.season_number }}
+                    {% endif %}
+                  </div>
+                  {% csrf_token %}
+                  {% unicorn "progress" media=media%}
+                </div>
+              </div>
+
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
 {% endblock content%}

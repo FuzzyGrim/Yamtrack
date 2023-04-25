@@ -3,9 +3,10 @@
 
 {% block content %}
 
-  <h1 class="mb-4 text-secondary-emphasis">Error {{ status_code }}</h1>
-  <p class=>
-    If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues">report the issue.</a>
-  </p>
-
+  <div class="not-found">
+    <div>
+      <h2 class="alert-heading">No results found!</h2>
+      <p>Try searching for something else.</p>
+    </div>
+  </div>
 {% endblock %}

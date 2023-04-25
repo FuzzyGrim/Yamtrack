@@ -10,6 +10,10 @@ body {
     .search-bar {
       margin-bottom: 2em;
 
+      .btn {
+        @include form-btn;
+      }
+
       .offcanvas-toggler {
         font-size: 1.25em;
         line-height: 1;
@@ -32,32 +36,12 @@ body {
       }
     }
 
-    form .btn:not(.btn-danger) {
-      border-radius: 0;
-      border-width: 1px;
-      border-style: solid;
-      border-color: #56595d;
-      background-color: #232224;
-
-      &:hover {
-        border-color: #7a7d81;
-      }
-    }
-
-    // disable num input arrows
-    input[type="number"] {
-      appearance: textfield;
-      -moz-appearance: textfield;
-    }
-
-    // truncate placeholder text
-    input:placeholder-shown {
-      text-overflow: ellipsis;
-    }
-  
-    .custom-tooltip {
-      --bs-tooltip-bg: var(--bs-secondary);
-      --bs-tooltip-color: var(--bs-white);
+    .not-found {
+      display: flex;
+      flex-direction: column;
+      height: 75%;
+      justify-content: center;
+      align-items: center;      
     }
   }
 }

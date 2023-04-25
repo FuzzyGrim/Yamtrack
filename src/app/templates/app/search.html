@@ -3,13 +3,16 @@
 {% load app_extras %}
 
 {% block content %}
-
-  <div id="search">
-      
-    {% if query_list|length == 0 or "error" in query_list %}
-      <h2 class="alert-heading">No results found!</h2>
-      <p>Try searching for something else.</p>
-    {% else %}
+  {% comment %} MAL returns "error":"bad_request"  {% endcomment %}
+  {% if not query_list or "error" in query_list %}
+    <div class="not-found">
+      <div>
+        <h2 class="alert-heading">No results found!</h2>
+        <p>Try searching for something else.</p>
+      </div>
+    </div>
+  {% else %}
+    <div id="search">
       <div class="container grid">
         {% for media in query_list %}
           {% if media.media_type == "tv" or media.media_type == "movie" or media.media_type == "anime" or media.media_type == "manga" %}
@@ -52,9 +55,8 @@
               
         {% endfor %}
       </div>
-    {% endif %}
-  </div>
-
+    </div>
+  {% endif %}
 {% endblock %}
 
 {% block extra_scripts %}

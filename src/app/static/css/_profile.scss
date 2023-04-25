@@ -1,8 +1,7 @@
 #profile {
   .btn-submit {
+    @include form-btn;
     color: #909294;
-    background-color: #212529;
-
     &:hover {
       color: #c1c5c9;
     }
