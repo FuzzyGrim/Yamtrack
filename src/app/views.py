@@ -54,6 +54,7 @@ def home(request):
                 if season.status == "Watching":
                     media.season_number = season.number
                     media.season_progress = season.progress
+                    media.image = season.image
 
         media_dict[key]["media_list"].append(media)
 

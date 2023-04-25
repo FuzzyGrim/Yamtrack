@@ -84,10 +84,9 @@ def add_media(
     user,
     season_number,
     seasons,
-):
+):  
     if image != "none.svg":
-        filename = helpers.download_image(image, media_type)
-        image = f"{filename}"
+        image = helpers.download_image(image, media_type)
 
     media = Media(
         media_id=media_id,
@@ -116,16 +115,23 @@ def add_media(
             offset = 1
 
         # get the selected season from the metadata
-        meta_sel_season = seasons[season_number - offset]
+        season_selected = seasons[season_number - offset]
 
         # if completed and has episode count, set progress to episode count
-        if (status == "Completed" and "episode_count" in meta_sel_season):
-            media.progress = meta_sel_season["episode_count"]
+        if (status == "Completed" and "episode_count" in season_selected):
+            media.progress = season_selected["episode_count"]
             media.save()
+
+        if season_selected["poster_path"]:
+            url = f"https://image.tmdb.org/t/p/w500{season_selected['poster_path']}"
+            season_image = helpers.download_image(url, media_type)
+        else:
+            season_image = "none.svg"
 
         Season.objects.create(
             parent=media,
             title=media.title,
+            image=season_image,
             number=season_number,
             score=media.score,
             status=media.status,
@@ -151,31 +157,37 @@ def edit_media(
     season_number,
     seasons,
 ):
-
     media = Media.objects.get(
         media_id=media_id,
         media_type=media_type,
         user=user,
     )
 
-    if season_number:
-
+    if season_number is not None:
+        print("entered season_number")
         # when there are specials episodes, they are season 0,
         # so offset everything by 1
         if seasons[0]["season_number"] == 0:
             offset = 0
         else:
             offset = 1
-        meta_curr_season = seasons[season_number - offset]
+        season_selected = seasons[season_number - offset]
 
-        if ("episode_count" in meta_curr_season and status == "Completed"):
-            progress = meta_curr_season["episode_count"]
+        if (status == "Completed" and "episode_count" in season_selected):
+            progress = season_selected["episode_count"]
+
+        if season_selected["poster_path"]:
+            url = f"https://image.tmdb.org/t/p/w500{season_selected['poster_path']}"
+            season_image = helpers.download_image(url, media_type)
+        else:
+            season_image = "none.svg"
 
         Season.objects.update_or_create(
             parent=media,
             number=season_number,
             defaults={
                 "title": title,
+                "image": season_image,
                 "score": score,
                 "status": status,
                 "progress": progress,

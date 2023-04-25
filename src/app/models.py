@@ -31,6 +31,7 @@ class Season(models.Model):
         Media, on_delete=models.CASCADE, related_name="seasons"
     )
     title = models.CharField(max_length=100)
+    image = models.ImageField()
     number = models.IntegerField()
     score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
     status = models.CharField(max_length=30)
@@ -44,7 +45,7 @@ class Season(models.Model):
         return f"{self.title} - Season {self.number}"
 
     class Meta:
-        ordering = ["parent", "number"]
+        ordering = ["parent", "-number"]
 
 
 class User(AbstractUser):
