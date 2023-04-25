@@ -1,3 +1,4 @@
+from django.db.models import Avg, Sum, Min, Max
 from app.models import Media, Season
 from app.utils import helpers, details
 
@@ -115,7 +116,7 @@ def add_media(
             offset = 1
 
         # get the selected season from the metadata
-        meta_sel_season = seasons[int(season_number) - offset]
+        meta_sel_season = seasons[season_number - offset]
 
         # if completed and has episode count, set progress to episode count
         if (status == "Completed" and "episode_count" in meta_sel_season):
@@ -159,13 +160,13 @@ def edit_media(
 
     if season_number:
 
-        # when there are specials episodes, they are on season 0,
+        # when there are specials episodes, they are season 0,
         # so offset everything by 1
         if seasons[0]["season_number"] == 0:
             offset = 0
         else:
             offset = 1
-        meta_curr_season = seasons[int(season_number) - offset]
+        meta_curr_season = seasons[season_number - offset]
 
         if ("episode_count" in meta_curr_season and status == "Completed"):
             progress = meta_curr_season["episode_count"]
@@ -184,8 +185,19 @@ def edit_media(
             },
         )
 
-        # update parent status with the latest season status
-        media.status = status
+        # update media object with season data
+        seasons = Season.objects.filter(parent=media)
+        media.score = seasons.aggregate(Avg("score"))["score__avg"]
+        media.progress = seasons.aggregate(Sum("progress"))["progress__sum"]
+        media.start_date = seasons.aggregate(Min("start_date"))["start_date__min"]
+        media.end_date = seasons.aggregate(Max("end_date"))["end_date__max"]
+        # if completed and not last season, set status to watching
+        if status == "Completed" and season_number != seasons[-1]["season_number"]:
+            media.status = "Watching"
+        # else set status to last season status
+        else:
+            media.status = status
+
         media.save()
 
     else:

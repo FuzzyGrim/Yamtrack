@@ -57,12 +57,19 @@ def clean_data(request, metadata):
         post["progress"] = 0
 
     if post["start"] == "":
-        post["start"] = datetime.date.today()
+        if post["status"] == "Watching":
+            post["start"] = datetime.date.today()
+        else:
+            post["start"] = None
 
     if post["end"] == "":
-        post["end"] = None
-    elif post["status"] == "Completed":
-        post["end"] = datetime.date.today()
+        if post["status"] == "Completed":
+            post["end"] = datetime.date.today()
+        else:
+            post["end"] = None
+
+    if "season_number" in post:
+        post["season_number"] = int(post["season_number"])
 
     return post
 
