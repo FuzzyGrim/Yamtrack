@@ -2,6 +2,10 @@ from django.db.models import Avg, Sum, Min, Max
 from app.models import Media, Season
 from app.utils import helpers, details
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def media_form_handler(request):
     media_type = request.POST.get("media_type")
@@ -22,12 +26,16 @@ def media_form_handler(request):
                 parent__user=request.user,
                 number=request.POST.get("season_number"),
             ).delete()
+
+            logger.info(f"Deleted season {request.POST.get('season_number')} of {metadata['title']} ({media_id})")
         else:
             Media.objects.get(
                 media_id=media_id,
                 media_type=media_type,
                 user=request.user,
             ).delete()
+
+            logger.info(f"Deleted {metadata['title']} ({media_id})")
 
     elif "status" in request.POST:
         request.POST = helpers.clean_data(request, metadata)
@@ -37,6 +45,9 @@ def media_form_handler(request):
             media_type=media_type,
             user=request.user,
         ).exists():
+
+            logger.info(f"Media {metadata['title']} ({media_id}) already exists in database. Updating...")
+
             edit_media(
                 media_id,
                 metadata["title"],
@@ -53,6 +64,9 @@ def media_form_handler(request):
                 metadata.get("seasons"),
             )
         else:
+
+            logger.info(f"Media {metadata['title']} ({media_id}) does not exist in database. Adding...")
+
             add_media(
                 media_id,
                 metadata["title"],
@@ -104,6 +118,8 @@ def add_media(
 
     media.save()
 
+    logger.info(f"Added {title} ({media_id})")
+
     # if request is for a season, create a season object
     if season_number:
 
@@ -141,6 +157,8 @@ def add_media(
             notes=notes
         )
 
+        logger.info(f"Added season {season_number} of {title} ({media_id})")
+
 
 def edit_media(
     media_id,
@@ -164,7 +182,6 @@ def edit_media(
     )
 
     if season_number is not None:
-        print("entered season_number")
         # when there are specials episodes, they are season 0,
         # so offset everything by 1
         if seasons[0]["season_number"] == 0:
@@ -197,6 +214,8 @@ def edit_media(
             },
         )
 
+        logger.info(f"Edited season {season_number} of {title} ({media_id})")
+
         # update media object with season data
         seasons = Season.objects.filter(parent=media)
         media.score = seasons.aggregate(Avg("score"))["score__avg"]
@@ -212,6 +231,8 @@ def edit_media(
 
         media.save()
 
+        logger.info(f"Updated {title} ({media_id}) with season data")
+
     else:
         media.score = score
         media.progress = progress
@@ -220,3 +241,5 @@ def edit_media(
         media.end_date = end_date
         media.notes = notes
         media.save()
+
+        logger.info(f"Edited {title} ({media_id})")
