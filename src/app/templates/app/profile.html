@@ -25,7 +25,7 @@
         {{ user_form|crispy }}
       </fieldset>
       <div class="form-group">
-        <button class="btn btn-submit" type="submit">Save</button>
+        <button class="btn btn-submit rounded" type="submit">Update</button>
       </div>
     </form>
     <form method="POST" class="mt-5">
@@ -35,7 +35,7 @@
         {{ password_form|crispy }}
       </fieldset>
       <div class="form-group">
-        <button class="btn btn-submit" type="submit">Update</button>
+        <button class="btn btn-submit rounded" type="submit">Update</button>
       </div>
     </form>
 
@@ -48,7 +48,7 @@
           <div class="form-title">TMDB</div>
           <div class="input-group">
             <input type="file" accept=".csv" class="form-control" aria-label="Upload" name="tmdb">
-            <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-submit rounded-end" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
 
@@ -57,7 +57,7 @@
           <div class="form-title">MAL</div>
           <div class="input-group">
             <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
-            <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-submit rounded-end" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
         
@@ -66,20 +66,7 @@
           <div class="form-title">AniList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
-            <button class="btn btn-submit" type="submit"><i class="bi bi-check-lg"></i></button>
-          </div>
-        </form>
-      </fieldset>
-    </div>
-
-    <div class="mb-3 mt-5">
-      <legend class="border-bottom mb-4">Other</legend>
-      <fieldset class="input-group grid-container">  
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
-          {% csrf_token %}
-          <div class="form-title">Redownload Media Files</div>
-          <div>
-            <button class="btn btn-submit mx-auto" type="submit" name="dl-media">Download</button>
+            <button class="btn btn-submit rounded-end" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
       </fieldset>

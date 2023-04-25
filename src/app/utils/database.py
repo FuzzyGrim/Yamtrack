@@ -84,7 +84,7 @@ def add_media(
     user,
     season_number,
     seasons,
-):  
+):
     if image != "none.svg":
         image = helpers.download_image(image, media_type)
 
