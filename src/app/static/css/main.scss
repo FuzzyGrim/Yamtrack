@@ -11,6 +11,12 @@
 @import "register";
 @import "modal";
 
+@media screen and (min-width: 1400px) {
+  .container {
+    max-width: 100%;
+  }
+}
+
 @media screen and (min-width: 992px) {
   body main .search-bar .input-group {
     width: 50%;
@@ -24,6 +30,12 @@
   body main {
     padding-top: 2em;
   }
+
+  #profile {
+    .grid-container {
+      grid-template-columns: 1fr;
+    }
+  }
 }
 
 // xs
@@ -35,6 +47,7 @@
       }
     }
   }
+  
   #details {
     .header {
       // wrap content under image

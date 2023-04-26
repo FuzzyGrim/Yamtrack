@@ -1,6 +1,6 @@
 body { background-color: #181a1b; }
 
-body main { height: 100vh; width: 100%; overflow-y: auto; padding: 1em 2em; }
+body main { height: 100dvh; width: 100%; overflow-y: auto; padding: 1em 2em; }
 
 body main .search-bar { margin-bottom: 2em; }
 
@@ -82,7 +82,7 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #medialist .list-head .edit .modal, #medialist .list-section .edit .modal { text-align: left; }
 
-#search .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+#search .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
 
 #search .grid .card { width: 100%; margin-bottom: 1em; }
 
@@ -122,7 +122,7 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #details .grid-title { margin-top: 1em; font-size: 1.2em; color: #d1cdc7; margin-bottom: 0.5em; }
 
-#details .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+#details .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
 
 #details .grid .card { width: 100%; margin-bottom: 1em; }
 
@@ -154,7 +154,7 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #profile .grid-container form.grid-item .form-title { font-size: 1.2rem; margin-bottom: 0.5em; text-align: center; }
 
-#login { height: 100vh; }
+#login { height: 100dvh; }
 
 #login .form-signin { width: 330px; padding: 15px; margin-top: -5rem; }
 
@@ -164,7 +164,7 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #login .form-signin .form-floating:focus-within { z-index: 2; }
 
-#register { height: 100vh; }
+#register { height: 100dvh; }
 
 #register .form-signin { width: 330px; padding: 15px; margin-top: -5rem; }
 
@@ -182,11 +182,15 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 .media-form-modal form .form-select { border-radius: 0.2rem; }
 
-.media-form-modal form input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+.media-form-modal form input[type=number] { appearance: textfield; -moz-appearance: textfield; }
+
+.media-form-modal form input[type=date] { color-scheme: dark; }
+
+@media screen and (min-width: 1400px) { .container { max-width: 100%; } }
 
 @media screen and (min-width: 992px) { body main .search-bar .input-group { width: 50%; margin: auto; } }
 
-@media screen and (max-width: 991px) { body main { padding-top: 2em; } }
+@media screen and (max-width: 991px) { body main { padding-top: 2em; } #profile .grid-container { grid-template-columns: 1fr; } }
 
 @media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .content .title { text-align: center; } #details .header .content .media-form { margin-top: 0.5em; } }
 

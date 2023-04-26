@@ -11,10 +11,14 @@
       border-radius: 0.2rem;
     }
 
-     // disable num input arrows
-     input[type="number"] {
+    // disable num input arrows
+    input[type=number] {
       appearance: textfield;
       -moz-appearance: textfield;
+    }
+
+    input[type=date] {
+      color-scheme: dark;
     }
   }
 }

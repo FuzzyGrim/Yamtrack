@@ -127,7 +127,7 @@ def tv(media_id):
         if not response["genres"]:
             response["genres"] = [{"name": "Unknown"}]
 
-        response["recommendations"] = response["recommendations"]["results"][:10]
+        response["recommendations"] = response["recommendations"]["results"][:15]
 
         for key in ("seasons", "recommendations"):
             items = response.get(key)
@@ -190,7 +190,7 @@ def movie(media_id):
         if not response["genres"]:
             response["genres"] = [{"name": "Unknown"}]
 
-        response["recommendations"] = response["recommendations"]["results"][:10]
+        response["recommendations"] = response["recommendations"]["results"][:15]
 
         for recommendation in response["recommendations"]:
             if recommendation["poster_path"]:

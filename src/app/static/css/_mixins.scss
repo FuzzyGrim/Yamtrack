@@ -1,7 +1,7 @@
-@mixin cards-grid {
+@mixin cards-grid($min-img-size:11rem){
   display: grid;
   grid-gap: .5em;
-  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax($min-img-size, 1fr));
 
   .card {
     width: 100%;

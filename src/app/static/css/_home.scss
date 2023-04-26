@@ -11,7 +11,7 @@
       margin-bottom: 1rem;
     }
     .grid {
-      @include cards-grid;
+      @include cards-grid(10rem);
     }
   }
 }
