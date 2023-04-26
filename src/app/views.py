@@ -328,8 +328,9 @@ def progress_edit(request):
 
     media.save()
 
-    season_number = int(request.POST.get("season_number"))
+    season_number = request.POST.get("season_number")
     if season_number is not None:
+        season_number = int(season_number)
 
         selected_season_metadata = helpers.get_season_metadata(
             season_number, metadata.get("seasons")
@@ -352,15 +353,8 @@ def progress_edit(request):
 
     response = {"progress": media.progress}
 
-    if response["progress"] == 0:
-        response["min"] = True
-    else:
-        response["min"] = False
-
-    if response["progress"] == max_progress:
-        response["max"] = True
-    else:
-        response["max"] = False
+    response["min"] = response["progress"] == 0
+    response["max"] = response["progress"] == max_progress
 
     return JsonResponse(response)
 
