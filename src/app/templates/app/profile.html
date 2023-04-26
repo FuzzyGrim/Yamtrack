@@ -45,7 +45,7 @@
       <fieldset class="input-group grid-container">
         <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
           {% csrf_token %}
-          <div class="form-title">TMDB</div>
+          <div class="form-title">The Movie Database</div>
           <div class="input-group">
             <input type="file" accept=".csv" class="form-control" aria-label="Upload" name="tmdb">
             <button class="btn btn-submit bg-dark rounded-end" type="submit"><i class="bi bi-check-lg"></i></button>
@@ -54,7 +54,7 @@
 
         <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
           {% csrf_token %}
-          <div class="form-title">MAL</div>
+          <div class="form-title">MyAnimeList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
             <button class="btn btn-submit bg-dark rounded-end" type="submit"><i class="bi bi-check-lg"></i></button>

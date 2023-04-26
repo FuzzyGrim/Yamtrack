@@ -18,15 +18,34 @@ def import_myanimelist(username, user):
     logger.info(f"Importing {username} from MyAnimeList to {user}")
 
     header = {"X-MAL-CLIENT-ID": MAL_API}
-    anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status&nsfw=true"
+    anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status&nsfw=true&limit=100"
     animes = requests.get(anime_url, headers=header).json()
 
     if "error" in animes and animes["error"] == "not_found":
         logger.info(f"User {username} not found in MyAnimeList.")
         return False
 
-    manga_url = f"https://api.myanimelist.net/v2/users/{username}/mangalist?fields=list_status&nsfw=true"
+    while "next" in animes["paging"]:
+        next_url = animes["paging"]["next"]
+        # Fetch the data from the next URL
+        next_data = requests.get(next_url, headers=header).json()
+        # Append the new data to the existing data in the response
+        animes["data"].extend(next_data["data"])
+        # Update the "paging" key with the new "next" URL (if any)
+        animes["paging"] = next_data["paging"]
+
+    manga_url = f"https://api.myanimelist.net/v2/users/{username}/mangalist?fields=list_status&nsfw=true&limit=100"
     mangas = requests.get(manga_url, headers=header).json()
+
+    while "next" in mangas["paging"]:
+        next_url = mangas["paging"]["next"]
+        # Fetch the data from the next URL
+        next_data = requests.get(next_url, headers=header).json()
+        # Append the new data to the existing data in the response
+        mangas["data"].extend(next_data["data"])
+        # Update the "paging" key with the new "next" URL (if any)
+        mangas["paging"] = next_data["paging"]
+
     series = {"anime": animes, "manga": mangas}
 
     bulk_add_media = run(myanilist_get_media_list(series, user))
