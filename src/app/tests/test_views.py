@@ -122,13 +122,13 @@ class LoggedInView(TestCase):
 
     def test_edit_modal_tmdb(self):
         response = self.client.get(
-            reverse("edit"), {"media_type": "tv", "media_id": "1668"}
+            reverse("modal_data"), {"media_type": "tv", "media_id": "1668"}
         )
         self.assertEqual(response.status_code, 200)
 
     def test_edit_modal_mal(self):
         response = self.client.get(
-            reverse("edit"), {"media_type": "anime", "media_id": "227"}
+            reverse("modal_data"), {"media_type": "anime", "media_id": "227"}
         )
         self.assertEqual(response.status_code, 200)
 

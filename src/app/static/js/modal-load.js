@@ -5,15 +5,12 @@ openModalButtons.forEach(function (button) {
     // get the data attribute from the clicked element
     var type = this.getAttribute("data-type");
     var id = this.getAttribute("data-id");
+    var url = "/modal_data/?media_type=" + type + "&media_id=" + id;
+    var form_id = type + "_" + id;
 
     if (this.hasAttribute("data-season-number")) {
-      var url = 
-        "/edit/?media_type=" + type + "&media_id=" + id + "&season_number=" + this.getAttribute("data-season-number");
-      var form_id =
-        type + "_" + id + "_" + this.getAttribute("data-season-number");
-    } else {
-      var url = "/edit/?media_type=" + type + "&media_id=" + id;
-      var form_id = type + "_" + id;
+      url += "&season_number=" + this.getAttribute("data-season-number"); 
+      form_id += "_" + this.getAttribute("data-season-number");
     }
     var xhr = new XMLHttpRequest();
     xhr.onload = function () {

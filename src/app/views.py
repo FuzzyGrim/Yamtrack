@@ -271,7 +271,7 @@ def profile(request):
     return render(request, "app/profile.html", context)
 
 
-def edit(request):
+def modal_data(request):
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
 
