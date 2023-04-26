@@ -27,7 +27,9 @@ def media_form_handler(request):
                 number=request.POST.get("season_number"),
             ).delete()
 
-            logger.info(f"Deleted season {request.POST.get('season_number')} of {metadata['title']} ({media_id})")
+            logger.info(
+                f"Deleted season {request.POST.get('season_number')} of {metadata['title']} ({media_id})"
+            )
         else:
             Media.objects.get(
                 media_id=media_id,
@@ -45,8 +47,9 @@ def media_form_handler(request):
             media_type=media_type,
             user=request.user,
         ).exists():
-
-            logger.info(f"Media {metadata['title']} ({media_id}) already exists in database. Updating...")
+            logger.info(
+                f"Media {metadata['title']} ({media_id}) already exists in database. Updating..."
+            )
 
             edit_media(
                 media_id,
@@ -64,8 +67,9 @@ def media_form_handler(request):
                 metadata.get("seasons"),
             )
         else:
-
-            logger.info(f"Media {metadata['title']} ({media_id}) does not exist in database. Adding...")
+            logger.info(
+                f"Media {metadata['title']} ({media_id}) does not exist in database. Adding..."
+            )
 
             add_media(
                 media_id,
@@ -113,7 +117,7 @@ def add_media(
         start_date=start_date,
         end_date=end_date,
         notes=notes,
-        user=user
+        user=user,
     )
 
     media.save()
@@ -121,25 +125,19 @@ def add_media(
     logger.info(f"Added {title} ({media_id})")
 
     # if request is for a season, create a season object
-    if season_number:
-
-        # when there are specials episodes, they are on season 0,
-        # so offset everything by 1
-        if seasons_metadata[0]["season_number"] == 0:
-            offset = 0
-        else:
-            offset = 1
-
+    if season_number is not None:
         # get the selected season from the metadata
-        season_selected = seasons_metadata[season_number - offset]
+        selected_season_metadata = helpers.get_season_metadata(
+            season_number, seasons_metadata
+        )
 
         # if completed and has episode count, set progress to episode count
-        if (status == "Completed" and "episode_count" in season_selected):
-            media.progress = season_selected["episode_count"]
+        if status == "Completed" and "episode_count" in selected_season_metadata:
+            media.progress = selected_season_metadata["episode_count"]
             media.save()
 
-        if season_selected["poster_path"]:
-            url = f"https://image.tmdb.org/t/p/w500{season_selected['poster_path']}"
+        if selected_season_metadata["poster_path"]:
+            url = f"https://image.tmdb.org/t/p/w500{selected_season_metadata['poster_path']}"
             season_image = helpers.download_image(url, media_type)
         else:
             season_image = "none.svg"
@@ -154,7 +152,7 @@ def add_media(
             progress=media.progress,
             start_date=media.start_date,
             end_date=media.end_date,
-            notes=notes
+            notes=notes,
         )
 
         logger.info(f"Added season {season_number} of {title} ({media_id})")
@@ -182,19 +180,16 @@ def edit_media(
     )
 
     if season_number is not None:
-        # when there are specials episodes, they are season 0,
-        # so offset everything by 1
-        if seasons_metadata[0]["season_number"] == 0:
-            offset = 0
-        else:
-            offset = 1
-        season_selected = seasons_metadata[season_number - offset]
+        # get the selected season from the metadata
+        selected_season_metadata = helpers.get_season_metadata(
+            season_number, seasons_metadata
+        )
 
-        if (status == "Completed" and "episode_count" in season_selected):
-            progress = season_selected["episode_count"]
+        if status == "Completed" and "episode_count" in selected_season_metadata:
+            progress = selected_season_metadata["episode_count"]
 
-        if season_selected["poster_path"]:
-            url = f"https://image.tmdb.org/t/p/w500{season_selected['poster_path']}"
+        if selected_season_metadata["poster_path"]:
+            url = f"https://image.tmdb.org/t/p/w500{selected_season_metadata['poster_path']}"
             season_image = helpers.download_image(url, media_type)
         else:
             season_image = "none.svg"
@@ -223,7 +218,10 @@ def edit_media(
         media.start_date = seasons_all.aggregate(Min("start_date"))["start_date__min"]
         media.end_date = seasons_all.aggregate(Max("end_date"))["end_date__max"]
         # if completed and not last season, set status to watching
-        if status == "Completed" and season_number != seasons_metadata[-1]["season_number"]:
+        if (
+            status == "Completed"
+            and season_number != seasons_metadata[-1]["season_number"]
+        ):
             media.status = "Watching"
         # else set status to last season status
         else:

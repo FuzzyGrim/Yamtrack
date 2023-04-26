@@ -74,6 +74,21 @@ def clean_data(request, metadata):
     return post
 
 
+def get_season_metadata(season_number, seasons_metadata):
+    """
+    Return the metadata for the selected season
+    """
+    # when there are specials episodes, they are on season 0,
+    # so offset everything by 1
+    if seasons_metadata[0]["season_number"] == 0:
+        offset = 0
+    else:
+        offset = 1
+
+    # get the selected season from the metadata
+    return seasons_metadata[season_number - offset]
+
+
 def get_client_ip(request):
     # get the user's IP address
     ip_address = request.META.get("HTTP_X_FORWARDED_FOR")

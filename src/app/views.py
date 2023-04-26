@@ -53,7 +53,7 @@ def home(request):
             for season in media.seasons.all():
                 if season.status == "Watching":
                     media.season_number = season.number
-                    media.season_progress = season.progress
+                    media.progress = season.progress
                     media.image = season.image
 
         media_dict[key]["media_list"].append(media)
@@ -277,15 +277,7 @@ def edit(request):
 
     media_filter = Media.objects.filter(
         media_type=media_type, media_id=media_id, user=request.user.id
-    ).values(
-        "id",
-        "score",
-        "status",
-        "progress",
-        "start_date",
-        "end_date",
-        "notes"
-    )
+    ).values("id", "score", "status", "progress", "start_date", "end_date", "notes")
 
     if media_filter:
         media = media_filter[0]
@@ -299,18 +291,78 @@ def edit(request):
     else:
         season = Season.objects.filter(
             parent_id=media["id"], number=season_number
-        ).values(
-            "score",
-            "status",
-            "progress",
-            "start_date",
-            "end_date",
-            "notes"
-        )
+        ).values("score", "status", "progress", "start_date", "end_date", "notes")
         if season:
             return JsonResponse(season[0])
         else:
             return JsonResponse({})
+
+
+@login_required
+def progress_edit(request):
+    media_type = request.POST.get("media_type")
+    media_id = request.POST.get("media_id")
+
+    if media_type == "anime" or media_type == "manga":
+        metadata = details.anime_manga(media_type, media_id)
+    elif media_type == "tv":
+        metadata = details.tv(media_id)
+    elif media_type == "movie":
+        metadata = details.movie(media_id)
+
+    max_progress = metadata.get("num_episodes", 1)
+
+    media = Media.objects.get(
+        media_type=media_type, media_id=media_id, user=request.user.id
+    )
+
+    operation = request.POST.get("operation")
+
+    if operation == "increment" and media.progress < max_progress:
+        media.progress += 1
+        # set media to completed if progress is equal to max
+        if media.progress == max_progress:
+            media.status = "Completed"
+    elif operation == "decrement" and media.progress > 0:
+        media.progress -= 1
+
+    media.save()
+
+    season_number = int(request.POST.get("season_number"))
+    if season_number is not None:
+
+        selected_season_metadata = helpers.get_season_metadata(
+            season_number, metadata.get("seasons")
+        )
+
+        if "episode_count" in selected_season_metadata:
+            max_progress = selected_season_metadata["episode_count"]
+
+        season = Season.objects.get(parent_id=media.id, number=season_number)
+        if operation == "increment" and season.progress < max_progress:
+            season.progress += 1
+            # set season to completed if progress is equal to max
+            if season.progress == max_progress:
+                season.status = "Completed"
+        elif operation == "decrement" and season.progress > 0:
+            season.progress -= 1
+        season.save()
+
+        response = {"progress": season.progress}
+
+    response = {"progress": media.progress}
+
+    if response["progress"] == 0:
+        response["min"] = True
+    else:
+        response["min"] = False
+
+    if response["progress"] == max_progress:
+        response["max"] = True
+    else:
+        response["max"] = False
+
+    return JsonResponse(response)
 
 
 def redirect_after_login(request):

@@ -1,13 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
-{% load unicorn %}
 
 {% block content %}
 {% if media_dict|length == 0 %}
   <div class="not-found">
     <div>
-      <h2 class="alert-heading">No results found!</h2>
-      <p>Try searching for something else.</p>
+      <h2 class="alert-heading">There's nothing here!</h2>
+      <p>This page shows your media in progress.</p>
     </div>
   </div>
   {% else %}
@@ -35,13 +34,27 @@
                 <div class="card-img-overlay">
                   <div class="card-title text-center">
                     {{ media.title }}
-                    {% if media.season_number %}
+                    {% if media.season_number != None %}
                       S{{ media.season_number }}
                     {% endif %}
                   </div>
-                  {% csrf_token %}
-                  {% unicorn "progress" media=media%}
-                </div>
+                  <div class="card-text d-flex justify-content-center align-items-center" id="{{media.media_type}}_{{media.media_id}}{% if media.season_number != None %}_{{media.season_number}}{% endif %}">
+                    <button type="button" class="btn progress-btn border-0" data-operation="decrement"
+                            data-type="{{media.media_type}}" data-id="{{media.media_id}}"
+                            {% if media.season_number != None %} data-season-number="{{media.season_number}}" {% endif %}
+                            {% if media.progress == 0 %} disabled {% endif %}>
+                      -
+                    </button>
+
+                    <div class="progress_count">{{ media.progress }}</div>
+
+                    <button type="button" class="btn progress-btn border-0" data-operation="increment"
+                            data-type="{{media.media_type}}" data-id="{{media.media_id}}"
+                            {% if media.season_number != None %} data-season-number="{{media.season_number}}" {% endif %}>
+                      +
+                    </button>
+                  </div>
+                </div>                
               </div>
 
             {% endfor %}
@@ -52,3 +65,10 @@
   {% endif %}
 
 {% endblock content%}
+
+{% block extra_scripts %}
+  <script>
+    var csrftoken = '{{ csrf_token }}';
+  </script>
+  <script src="{% static 'js/progress-edit.js' %}"></script>
+{% endblock extra_scripts %}

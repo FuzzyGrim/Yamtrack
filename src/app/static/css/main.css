@@ -38,6 +38,8 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #home .container .grid .card .card-img-overlay .card-text .open-modal-button:hover, #home .container .grid .card .card-img-overlay .card-text .progress-btn:hover { color: #fff; }
 
+#home .container .grid .card .card-img-overlay .card-text .open-modal-button:disabled, #home .container .grid .card .card-img-overlay .card-text .progress-btn:disabled { color: transparent; }
+
 #sidebar { width: 230px; }
 
 #sidebar .nav-link.active { color: #fff; font-weight: 600; background-color: #303438; }
@@ -98,6 +100,8 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #search .grid .card .card-img-overlay .card-text .open-modal-button:hover, #search .grid .card .card-img-overlay .card-text .progress-btn:hover { color: #fff; }
 
+#search .grid .card .card-img-overlay .card-text .open-modal-button:disabled, #search .grid .card .card-img-overlay .card-text .progress-btn:disabled { color: transparent; }
+
 #details { background-color: #1b1e1f; border: 1px solid #383d3f; padding: 1.5em; }
 
 #details .header .poster { border-radius: 10px; width: 14rem; aspect-ratio: 2/3; object-fit: cover; }
@@ -135,6 +139,8 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 #details .grid .card .card-img-overlay .card-text .open-modal-button, #details .grid .card .card-img-overlay .card-text .progress-btn { padding: 0 0.5em; color: #adb5bd; }
 
 #details .grid .card .card-img-overlay .card-text .open-modal-button:hover, #details .grid .card .card-img-overlay .card-text .progress-btn:hover { color: #fff; }
+
+#details .grid .card .card-img-overlay .card-text .open-modal-button:disabled, #details .grid .card .card-img-overlay .card-text .progress-btn:disabled { color: transparent; }
 
 #profile .btn-submit { border-width: 1px; border-style: solid; border-color: #56595d; color: #909294; }
 

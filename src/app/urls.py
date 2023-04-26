@@ -19,6 +19,7 @@ urlpatterns = [
     path("login", views.UpdatedLoginView.as_view(), name="login"),
     path("logout", auth_views.LogoutView.as_view(), name="logout"),
     path("edit/", views.edit, name="edit"),
+    path("progress_edit", views.progress_edit, name="progress_edit"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if config("REGISTRATION", default=True, cast=bool):
