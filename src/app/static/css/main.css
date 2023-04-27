@@ -68,7 +68,7 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #medialist .list-head .image, #medialist .list-section .image { margin-left: 1em !important; }
 
-#medialist .list-head .image img, #medialist .list-section .image img { width: 3rem; height: 3rem; object-fit: cover; }
+#medialist .list-head .image img, #medialist .list-section .image img { width: 3rem; height: 3rem; object-fit: cover; background-color: #383d3f; display: block; overflow: hidden; }
 
 #medialist .list-head .title, #medialist .list-section .title { flex: 3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; line-height: 2; }
 
