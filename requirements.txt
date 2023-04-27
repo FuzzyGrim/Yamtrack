@@ -3,7 +3,7 @@ aiohttp==3.8.4
 crispy-bootstrap5==0.7
 Django==4.1.7
 django-crispy-forms==2.0
-django_debug_toolbar==3.8.1
+django_debug_toolbar==4.0.0
 django-sass-processor==1.2.2
 Pillow==9.5.0
 python-decouple==3.8
