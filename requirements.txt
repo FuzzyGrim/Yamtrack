@@ -7,5 +7,5 @@ django_debug_toolbar==3.8.1
 django-sass-processor==1.2.2
 Pillow==9.5.0
 python-decouple==3.8
-requests==2.28.2
+requests==2.29.0
 uWSGI==2.0.21
