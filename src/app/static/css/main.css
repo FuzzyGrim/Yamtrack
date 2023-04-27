@@ -82,7 +82,7 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #medialist .list-head .edit .modal, #medialist .list-section .edit .modal { text-align: left; }
 
-#search .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
+#search .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 
 #search .grid .card { width: 100%; margin-bottom: 1em; }
 
@@ -122,7 +122,7 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #details .grid-title { margin-top: 1em; font-size: 1.2em; color: #d1cdc7; margin-bottom: 0.5em; }
 
-#details .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
+#details .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 
 #details .grid .card { width: 100%; margin-bottom: 1em; }
 

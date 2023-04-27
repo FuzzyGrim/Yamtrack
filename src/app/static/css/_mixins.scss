@@ -1,4 +1,4 @@
-@mixin cards-grid($min-img-size:11rem){
+@mixin cards-grid($min-img-size:10rem){
   display: grid;
   grid-gap: .5em;
   grid-template-columns: repeat(auto-fill, minmax($min-img-size, 1fr));
