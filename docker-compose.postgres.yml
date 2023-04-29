@@ -30,12 +30,14 @@ services:
 
   # Uses sqlite by default which is totally fine, but you can use postgres if you want
   db:
-    image: docker.io/library/postgres:15
+    image: docker.io/library/postgres:15-alpine
     container_name: yamtrack_db
     environment:
       - POSTGRES_DB=yamtrack
       - POSTGRES_USER=yamtrack
       - POSTGRES_PASSWORD=yamtrack
+      - TZ=Europe/Madrid
+      - PGTZ=Europe/Madrid
     volumes:
       - ./db:/var/lib/postgresql/data
     restart: unless-stopped
