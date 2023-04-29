@@ -30,33 +30,7 @@ cd Yamtrack
 
 ## Docker-compose
 
-```yml
-version: "3"
-services:
-  yamtrack:
-    container_name: yamtrack
-    image: ghcr.io/fuzzygrim/yamtrack
-    restart: unless-stopped
-    environment:
-      - TMDB_API=TMDB_API_KEY
-      - MAL_API=MAL_API_KEY
-      - SECRET=long_random_string
-      # Change this to your domain or IP
-      - ALLOWED_HOSTS=192.168.x.x, yamtrack.domain.com
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Madrid
-      # - HTTPS_COOKIES=False
-      # - REGISTRATION=False
-    volumes:
-      - ./db:/app/db
-      - media:/app/media
-    ports:
-      - "8000:8000"
-
-volumes:
-  media:
-```
+https://github.com/FuzzyGrim/Yamtrack/blob/d5d095e4c2dd8c842e5ea5e5664720464235114b/docker-compose.yml#L1-L25C1
 
 ## Environment variables
 
