@@ -5,7 +5,7 @@ from django.conf import settings
 
 class Media(models.Model):
     media_id = models.IntegerField()
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=256)
     image = models.ImageField()
     media_type = models.CharField(max_length=10, choices=[("anime", "Anime"), ("manga", "Manga"), ("tv", "TV"), ("movie", "Movie")])
     score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
@@ -30,7 +30,7 @@ class Season(models.Model):
     parent = models.ForeignKey(
         Media, on_delete=models.CASCADE, related_name="seasons"
     )
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=256)
     image = models.ImageField()
     number = models.IntegerField()
     score = models.DecimalField(null=True, max_digits=3, decimal_places=1)

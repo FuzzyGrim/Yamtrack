@@ -95,15 +95,27 @@ WSGI_APPLICATION = "base.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# create db folder if it doesn't exist
-os.makedirs(os.path.join(BASE_DIR, "db"), exist_ok=True)
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db/db.sqlite3"),
+if config("DB_HOST", default=None):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "HOST": config("DB_HOST"),
+            "NAME": config("DB_NAME", default="yamtrack"),
+            "USER": config("DB_USER", default="yamtrack"),
+            "PASSWORD": config("DB_PASSWORD", default="yamtrack"),
+            "PORT": config("DB_PORT", default="5432"),
+        }
     }
-}
+else:
+    # create db folder if it doesn't exist
+    os.makedirs(os.path.join(BASE_DIR, "db"), exist_ok=True)
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db/db.sqlite3"),
+        }
+    }
 
 
 # Password validation

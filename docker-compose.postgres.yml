@@ -1,0 +1,44 @@
+version: "3"
+services:
+  yamtrack:
+    container_name: yamtrack
+    image: ghcr.io/fuzzygrim/yamtrack
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - TMDB_API=TMDB_API_KEY
+      - MAL_API=MAL_API_KEY
+      - SECRET=long_random_string
+      # Change this to your domain or IP
+      - ALLOWED_HOSTS=192.168.*.*, yamtrack.domain.com
+      - PUID=1000
+      - PGID=1000
+      # - HTTPS_COOKIES=False
+      # - REGISTRATION=False
+      - TZ=Europe/Madrid
+      - DB_HOST=db
+      - DB_NAME=yamtrack
+      - DB_USER=yamtrack
+      - DB_PASS=yamtrack
+      - DB_PORT=5432
+    volumes:
+      - media:/app/media
+    ports:
+      - "8000:8000"
+
+
+  # Uses sqlite by default which is totally fine, but you can use postgres if you want
+  db:
+    image: docker.io/library/postgres:15
+    container_name: yamtrack_db
+    environment:
+      - POSTGRES_DB=yamtrack
+      - POSTGRES_USER=yamtrack
+      - POSTGRES_PASSWORD=yamtrack
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  media:
