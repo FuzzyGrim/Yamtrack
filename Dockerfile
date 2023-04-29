@@ -1,20 +1,21 @@
 # pip dependencies in a separate image
-FROM python:3.9-slim as builder
-
-COPY ./requirements.txt /requirements.txt
-
-RUN apt-get update && apt-get install -y --no-install-recommends g++ gosu && \
-    pip install --extra-index-url https://www.piwheels.org/simple --target=/dependencies -r /requirements.txt
-
-
-FROM python:3.9-slim-bullseye
+FROM python:3.9-slim-bullseye as builder
 
 # https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
 ENV PYTHONUNBUFFERED=1
 
-COPY --from=builder /dependencies /usr/local
-ENV PYTHONPATH=/usr/local
-COPY --from=builder /usr/sbin/gosu /usr/sbin/gosu
+COPY ./requirements.txt /requirements.txt
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends g++ libpq-dev gosu \
+	&& pip install --extra-index-url https://www.piwheels.org/simple --no-cache-dir -r /requirements.txt \
+	&& apt-get purge -y --auto-remove g++ \
+	&& apt-get -y autoremove --purge \
+	&& apt-get clean -y \
+	&& rm -rf /var/lib/apt/lists/*
+
+# https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
