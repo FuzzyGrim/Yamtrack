@@ -5,7 +5,7 @@ openModalButtons.forEach(function (button) {
     // get the data attribute from the clicked element
     var type = this.getAttribute("data-type");
     var id = this.getAttribute("data-id");
-    var url = "/modal_data/?media_type=" + type + "&media_id=" + id;
+    var url = "/modal_data?media_type=" + type + "&media_id=" + id;
     var form_id = type + "_" + id;
 
     if (this.hasAttribute("data-season-number")) {

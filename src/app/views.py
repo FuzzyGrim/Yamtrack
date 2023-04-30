@@ -86,6 +86,7 @@ def media_list(request, media_type, status=None):
         request,
         "app/medialist.html",
         {
+            "media_type": media_type,
             "media_list": media_list,
             "statuses": [
                 "All",
@@ -95,7 +96,7 @@ def media_list(request, media_type, status=None):
                 "Dropped",
                 "Planning",
             ],
-            "page": media_type + status if status else media_type,
+            "page": f"{media_type}s {status.capitalize()}" if status else f"{media_type}s"
         },
     )
 

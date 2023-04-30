@@ -7,28 +7,28 @@
   <div id="medialist">
     
     <div class="d-flex flex-row align-items-center list-head">
+
       <div class="filter dropdown p-2">
         <button class="btn btn-secondary dropdown-toggle filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           <i class="bi bi-funnel-fill"></i>
         </button>
         <ul class="dropdown-menu">
-          {% comment %} href is set to current url with filter appended {% endcomment %}
           {% for status in statuses %}
             {% if forloop.first %}
               <li>
-                <a class="dropdown-item" href="{% url 'medialist' media_type=request.resolver_match.kwargs.media_type %}">
+                <a class="dropdown-item" href="{% url 'medialist' media_type=media_type %}">
                   All
                   <span class="text-end">
-                    {% if request.path == "/medialist/"|add:page|add:'/'%} <i class="bi bi-check-lg"></i> {% endif %}
+                    {% if request.path == "/medialist/"|addstr:page %} <i class="bi bi-check-lg"></i> {% endif %}
                   </span>
                 </a>
               </li>
             {% else %}
               <li>
-                <a class="dropdown-item" href="{% url 'medialist' media_type=request.resolver_match.kwargs.media_type %}{{status|lower}}">
+                <a class="dropdown-item" href="{% url 'medialist_status' media_type=media_type status=status|lower %}">
                   {{status}} 
                   <span class="text-end">
-                    {% if request.path == "/medialist/"|add:page|add:'/'|add:status|add:'/' %} <i class="bi bi-check-lg"></i> {% endif %}
+                    {% if request.path == "/medialist/"|addstr:media_type|addstr:'/'|addstr:status|lower %} <i class="bi bi-check-lg"></i> {% endif %}
                   </span>
                 </a>
               </li>

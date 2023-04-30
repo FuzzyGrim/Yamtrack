@@ -24,7 +24,7 @@ class DefaultView(TestCase):
     def test_medialist_completed(self):
         response = self.client.get(
             reverse(
-                "medialist",
+                "medialist_status",
                 kwargs={"media_type": "tv", "status": "completed"},
             )
         )
@@ -34,7 +34,7 @@ class DefaultView(TestCase):
             reverse("login")
             + "?next="
             + reverse(
-                "medialist",
+                "medialist_status",
                 kwargs={"media_type": "tv", "status": "completed"},
             ),
         )
