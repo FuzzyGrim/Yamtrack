@@ -6,7 +6,7 @@ from decouple import config
 import datetime
 import logging
 
-from app.models import Media, Season
+from app.models import Media
 from app.utils import helpers
 
 TMDB_API = config("TMDB_API", default="")
@@ -30,7 +30,8 @@ def import_tmdb(file, user):
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
 
-    run(tmdb_get_media_list(reader, user, status))
+    bulk_add_media = run(tmdb_get_media_list(reader, user, status))
+    Media.objects.bulk_create(bulk_add_media)
 
     logger.info("Finished importing from TMDB csv file")
 
@@ -68,7 +69,7 @@ async def tmdb_get_media_list(reader, user, status):
                     logger.info(
                         f"Movie: {row['Name']} ({row['TMDb ID']}) added to import list."
                     )
-        await gather(*task)
+        return await gather(*task)
 
 
 async def tmdb_get_media(session, url, row, user, status):
@@ -99,7 +100,7 @@ async def tmdb_get_media(session, url, row, user, status):
             row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ"
         ).date()
 
-        media = await Media.objects.acreate(
+        media = Media(
             media_id=row["TMDb ID"],
             title=row["Name"],
             media_type=row["Type"],
@@ -112,28 +113,4 @@ async def tmdb_get_media(session, url, row, user, status):
             end_date=None,
         )
 
-        if "number_of_seasons" in response:
-            seasons_list = []
-            if response["seasons"][0]["season_number"] == 0:
-                offset = 0
-            else:
-                offset = 1
-
-            for season_num in range(offset, response["number_of_seasons"] + 1):
-                season_obj = Season(
-                    parent=media,
-                    title=row["Name"],
-                    number=season_num,
-                    score=score,
-                    status=status,
-                    progress=0,
-                    start_date=start_date,
-                    end_date=None,
-                )
-
-                # if completed, progress is the number of episodes in season
-                if ("episode_count" in response["seasons"][season_num] and status == "Completed"):
-                    season_obj.progress = response["seasons"][season_num - offset]["episode_count"]
-
-                seasons_list.append(season_obj)
-            await Season.objects.abulk_create(seasons_list)
+        return media
