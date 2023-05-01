@@ -3,7 +3,7 @@ from django.conf import settings
 import aiofiles
 import datetime
 import requests
-from pathlib import Path
+import pathlib
 
 
 def download_image(url, media_type):
@@ -14,7 +14,7 @@ def download_image(url, media_type):
     location = f"{settings.MEDIA_ROOT}/{filename}"
 
     # download image if it doesn't exist
-    if not Path(location).is_file():
+    if not pathlib.Path(location).is_file():
         r = requests.get(url)
         with open(location, "wb") as f:
             f.write(r.content)
@@ -30,7 +30,7 @@ async def download_image_async(session, url, media_type):
     location = f"{settings.MEDIA_ROOT}/{filename}"
 
     # download image if it doesn't exist
-    if not Path(location).is_file():
+    if not pathlib.Path(location).is_file():
         async with session.get(url) as resp:
             if resp.status == 200:
                 f = await aiofiles.open(location, mode="wb")
@@ -72,21 +72,6 @@ def clean_data(request, metadata):
         post["season_number"] = int(post["season_number"])
 
     return post
-
-
-def get_season_metadata(season_number, seasons_metadata):
-    """
-    Return the metadata for the selected season
-    """
-    # when there are specials episodes, they are on season 0,
-    # so offset everything by 1
-    if seasons_metadata[0]["season_number"] == 0:
-        offset = 0
-    else:
-        offset = 1
-
-    # get the selected season from the metadata
-    return seasons_metadata[season_number - offset]
 
 
 def get_client_ip(request):

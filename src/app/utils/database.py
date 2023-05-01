@@ -1,6 +1,6 @@
 from django.db.models import Avg, Sum, Min, Max
 from app.models import Media, Season
-from app.utils import helpers, details
+from app.utils import helpers, metadata
 
 import logging
 
@@ -11,12 +11,7 @@ def media_form_handler(request):
     media_type = request.POST.get("media_type")
     media_id = request.POST.get("media_id")
 
-    if media_type == "anime" or media_type == "manga":
-        metadata = details.anime_manga(media_type, media_id)
-    elif media_type == "tv":
-        metadata = details.tv(media_id)
-    elif media_type == "movie":
-        metadata = details.movie(media_id)
+    media_metadata = metadata.get_media_metadata(media_type, media_id)
 
     if "delete" in request.POST:
         if request.POST.get("season_number") is not None:
@@ -28,7 +23,7 @@ def media_form_handler(request):
             ).delete()
 
             logger.info(
-                f"Deleted season {request.POST.get('season_number')} of {metadata['title']} ({media_id})"
+                f"Deleted season {request.POST.get('season_number')} of {media_metadata['title']} ({media_id})"
             )
         else:
             Media.objects.get(
@@ -37,10 +32,10 @@ def media_form_handler(request):
                 user=request.user,
             ).delete()
 
-            logger.info(f"Deleted {metadata['title']} ({media_id})")
+            logger.info(f"Deleted {media_metadata['title']} ({media_id})")
 
     elif "status" in request.POST:
-        request.POST = helpers.clean_data(request, metadata)
+        request.POST = helpers.clean_data(request, media_metadata)
 
         if Media.objects.filter(
             media_id=media_id,
@@ -48,13 +43,13 @@ def media_form_handler(request):
             user=request.user,
         ).exists():
             logger.info(
-                f"Media {metadata['title']} ({media_id}) already exists in database. Updating..."
+                f"Media {media_metadata['title']} ({media_id}) already exists in database. Updating..."
             )
 
             edit_media(
                 media_id,
-                metadata["title"],
-                metadata["image"],
+                media_metadata["title"],
+                media_metadata["image"],
                 media_type,
                 request.POST["score"],
                 request.POST["progress"],
@@ -64,17 +59,17 @@ def media_form_handler(request):
                 request.POST["notes"],
                 request.user,
                 request.POST.get("season_number"),
-                metadata.get("seasons"),
+                media_metadata.get("seasons"),
             )
         else:
             logger.info(
-                f"Media {metadata['title']} ({media_id}) does not exist in database. Adding..."
+                f"Media {media_metadata['title']} ({media_id}) does not exist in database. Adding..."
             )
 
             add_media(
                 media_id,
-                metadata["title"],
-                metadata["image"],
+                media_metadata["title"],
+                media_metadata["image"],
                 media_type,
                 request.POST["score"],
                 request.POST["progress"],
@@ -84,7 +79,7 @@ def media_form_handler(request):
                 request.POST["notes"],
                 request.user,
                 request.POST.get("season_number"),
-                metadata.get("seasons"),
+                media_metadata.get("seasons"),
             )
 
 
@@ -127,7 +122,7 @@ def add_media(
     # if request is for a season, create a season object
     if season_number is not None:
         # get the selected season from the metadata
-        selected_season_metadata = helpers.get_season_metadata(
+        selected_season_metadata = metadata.get_season_metadata(
             season_number, seasons_metadata
         )
 
@@ -181,7 +176,7 @@ def edit_media(
 
     if season_number is not None:
         # get the selected season from the metadata
-        selected_season_metadata = helpers.get_season_metadata(
+        selected_season_metadata = metadata.get_season_metadata(
             season_number, seasons_metadata
         )
 
@@ -241,3 +236,18 @@ def edit_media(
         media.save()
 
         logger.info(f"Edited {title} ({media_id})")
+
+
+# Used when updating progress from homepage.
+def update_progress_status(operation, curr_progress, max_progress, status):
+    """
+    Updates progress and status of media object based on operation.
+    Sets status to "Completed" if progress is equal to max_progress.
+    """
+    if operation == "increment" and curr_progress < max_progress:
+        curr_progress += 1
+        if curr_progress == max_progress:
+            status = "Completed"
+    elif operation == "decrement" and curr_progress > 0:
+        curr_progress -= 1
+    return curr_progress, status

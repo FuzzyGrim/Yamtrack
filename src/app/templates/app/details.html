@@ -40,9 +40,11 @@
           {% endif %}
         </div>
 
-        <div class="runtime">
-          <strong>Runtime:</strong> {{media.runtime}}
-        </div>
+        {% if media.runtime %}
+          <div class="runtime">
+            <strong>Runtime:</strong> {{media.runtime}}
+          </div>
+        {% endif %}
 
         <div class="genres">
           <strong>Genres:</strong>

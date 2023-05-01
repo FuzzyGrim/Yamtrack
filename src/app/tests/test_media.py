@@ -8,7 +8,7 @@ import os
 import datetime
 
 from app.models import User, Media, Season
-from app.utils import details
+from app.utils import metadata
 from app.utils.database import add_media, edit_media
 
 
@@ -482,7 +482,7 @@ class EditSeasons(TestCase):
 class DetailsMedia(TestCase):
 
     def test_anime(self):
-        response = details.anime_manga("anime", "1")
+        response = metadata.anime_manga("anime", "1")
         self.assertEqual(response["title"], "Cowboy Bebop")
         self.assertEqual(response["image"], "https://api-cdn.myanimelist.net/images/anime/4/19644l.jpg")
         self.assertEqual(response["start_date"], "1998-04-03")
@@ -491,7 +491,7 @@ class DetailsMedia(TestCase):
 
     def test_anime_unknown(self):
         # anime without picture, synopsis and duration
-        response = details.anime_manga("anime", "23183")
+        response = metadata.anime_manga("anime", "23183")
         self.assertEqual(response["title"], "Itazura Post")
         self.assertEqual(response["image"], "none.svg")
         self.assertEqual(response["synopsis"], "No synopsis available.")
@@ -499,13 +499,13 @@ class DetailsMedia(TestCase):
 
     def test_anime_unknown_2(self):
         # anime without picture and genres
-        response = details.anime_manga("anime", "28487")
+        response = metadata.anime_manga("anime", "28487")
         self.assertEqual(response["title"], "Ikite Iru")
         self.assertEqual(response["image"], "none.svg")
         self.assertEqual(response["genres"], [{"name": "Unknown"}])
 
     def test_manga(self):
-        response = details.anime_manga("manga", "1")
+        response = metadata.anime_manga("manga", "1")
         self.assertEqual(response["title"], "Monster")
         self.assertEqual(response["image"], "https://api-cdn.myanimelist.net/images/manga/3/258224l.jpg")
         self.assertEqual(response["start_date"], "1994-12-05")
@@ -513,7 +513,7 @@ class DetailsMedia(TestCase):
         self.assertEqual(response["num_chapters"], 162)
 
     def test_tv(self):
-        response = details.tv("1396")
+        response = metadata.tv("1396")
         self.assertEqual(response["title"], "Breaking Bad")
         self.assertEqual(response["image"], "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg")
         self.assertEqual(response["start_date"], "2008-01-20")
@@ -521,22 +521,24 @@ class DetailsMedia(TestCase):
         self.assertEqual(response["num_episodes"], 62)
 
     def test_tv_unknown(self):
-        response = details.tv("24795")
+        response = metadata.tv("24795")
         self.assertEqual(response["title"], "F.D.R.")
         self.assertEqual(response["image"], "none.svg")
         self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["genres"], [{"name": "Unknown"}])
 
     def test_movie(self):
-        response = details.movie("10494")
+        response = metadata.movie("10494")
         self.assertEqual(response["title"], "Perfect Blue")
         self.assertEqual(response["image"], "https://image.tmdb.org/t/p/w500/hwCTlm990H6NlrG8W7sk3pxdMtf.jpg")
         self.assertEqual(response["start_date"], "1997-07-25")
         self.assertEqual(response["status"], "Released")
 
     def test_movie_unknown(self):
-        response = details.movie("402988")
-        self.assertEqual(response["title"], "FDS")
+        response = metadata.movie("865447")
+        self.assertEqual(response["title"], "Production no 1 (Rain On Films Pvt. Ltd)")
         self.assertEqual(response["image"], "none.svg")
         self.assertEqual(response["start_date"], "Unknown")
+        self.assertEqual(response["synopsis"], "No synopsis available.")
+        self.assertEqual(response["runtime"], "Unknown")
         self.assertEqual(response["genres"], [{"name": "Unknown"}])

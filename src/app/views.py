@@ -14,7 +14,7 @@ from app.forms import (
     UserUpdateForm,
     PasswordChangeForm,
 )
-from app.utils import database, helpers, details, search
+from app.utils import database, helpers, search, metadata
 from app.utils.imports import anilist, mal, tmdb
 
 import logging
@@ -134,17 +134,12 @@ def media_search(request):
 
 
 @login_required
-def media_details(request, media_type, media_id, title):
+def details(request, media_type, media_id, title):
     if request.method == "POST":
         database.media_form_handler(request)
         return redirect("details", media_type, media_id, title)
 
-    if media_type == "anime" or media_type == "manga":
-        media = details.anime_manga(media_type, media_id)
-    elif media_type == "tv":
-        media = details.tv(media_id)
-    elif media_type == "movie":
-        media = details.movie(media_id)
+    media = metadata.get_media_metadata(media_type, media_id)
 
     related_data_list = [
         {"name": "Seasons", "data": media.get("seasons")},
@@ -304,14 +299,9 @@ def progress_edit(request):
     media_type = request.POST.get("media_type")
     media_id = request.POST.get("media_id")
 
-    if media_type == "anime" or media_type == "manga":
-        metadata = details.anime_manga(media_type, media_id)
-    elif media_type == "tv":
-        metadata = details.tv(media_id)
-    elif media_type == "movie":
-        metadata = details.movie(media_id)
+    media_metadata = metadata.get_media_metadata(media_type, media_id)
 
-    max_progress = metadata.get("num_episodes", 1)
+    max_progress = media_metadata.get("num_episodes", 1)
 
     media = Media.objects.get(
         media_type=media_type, media_id=media_id, user=request.user.id
@@ -319,35 +309,27 @@ def progress_edit(request):
 
     operation = request.POST.get("operation")
 
-    if operation == "increment" and media.progress < max_progress:
-        media.progress += 1
-        # set media to completed if progress is equal to max
-        if media.progress == max_progress:
-            media.status = "Completed"
-    elif operation == "decrement" and media.progress > 0:
-        media.progress -= 1
-
+    media.progress, media.status = database.update_progress_status(
+        operation, media.progress, max_progress, media.status
+    )
     media.save()
 
     season_number = request.POST.get("season_number")
     if season_number is not None:
         season_number = int(season_number)
 
-        selected_season_metadata = helpers.get_season_metadata(
-            season_number, metadata.get("seasons")
+        selected_season_metadata = metadata.get_season_metadata(
+            season_number, media_metadata.get("seasons")
         )
 
         if "episode_count" in selected_season_metadata:
             max_progress = selected_season_metadata["episode_count"]
 
         season = Season.objects.get(parent_id=media.id, number=season_number)
-        if operation == "increment" and season.progress < max_progress:
-            season.progress += 1
-            # set season to completed if progress is equal to max
-            if season.progress == max_progress:
-                season.status = "Completed"
-        elif operation == "decrement" and season.progress > 0:
-            season.progress -= 1
+
+        season.progress, season.status = database.update_progress_status(
+            operation, season.progress, max_progress, season.status
+        )
         season.save()
 
         response = {"progress": season.progress}

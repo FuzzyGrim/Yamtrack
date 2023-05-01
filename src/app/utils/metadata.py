@@ -6,7 +6,40 @@ TMDB_API = config("TMDB_API", default=None)
 MAL_API = config("MAL_API", default=None)
 
 
+def get_media_metadata(media_type, media_id):
+    """
+    Return the metadata for the selected media
+    """
+    if media_type == "anime" or media_type == "manga":
+        media_metadata = anime_manga(media_type, media_id)
+    elif media_type == "tv":
+        media_metadata = tv(media_id)
+    elif media_type == "movie":
+        media_metadata = movie(media_id)
+
+    return media_metadata
+
+
+def get_season_metadata(season_number, seasons_metadata):
+    """
+    Return the metadata for the selected season
+    """
+    # when there are specials episodes, they are on season 0,
+    # so offset everything by 1
+    if seasons_metadata[0]["season_number"] == 0:
+        offset = 0
+    else:
+        offset = 1
+
+    # get the selected season from the metadata
+    return seasons_metadata[season_number - offset]
+
+
 def anime_manga(media_type, media_id):
+    """
+    Return the metadata for the selected anime or manga
+    """
+
     cache_key = media_type + str(media_id)
     response = cache.get(cache_key)
     if response is None:
@@ -56,7 +89,8 @@ def anime_manga(media_type, media_id):
             # duration are in seconds
             hours, minutes = divmod(int(duration / 60), 60)
             response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
-        else:
+        # if no duration is available, set it to unknown only for anime
+        elif media_type == "anime":
             response["runtime"] = "Unknown"
 
         if "genres" not in response:
@@ -113,7 +147,6 @@ def tv(media_id):
         else:
             response["synopsis"] = response["overview"]
 
-        # movies uses runtime
         # tv shows episode runtime are shown in last_episode_to_air
         duration = response.get("last_episode_to_air", {}).get("runtime")
         if duration:
@@ -178,8 +211,7 @@ def movie(media_id):
         else:
             response["synopsis"] = response["overview"]
 
-        # movies uses runtime
-        # tv shows episode runtime are shown in last_episode_to_air
+        # movies uses runtime in minutes, convert to hours and minutes
         duration = response.get("runtime")
         if duration:
             hours, minutes = divmod(int(duration), 60)
