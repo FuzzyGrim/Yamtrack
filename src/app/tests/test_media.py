@@ -69,7 +69,7 @@ class CreateMedia(TestCase):
         response = self.client.get(reverse("home"))
         self.assertContains(response, "FLCL")
 
-    def tearDownClass():
+    def tearDown(self):
         shutil.rmtree("create_tmdb")
 
 
@@ -79,7 +79,7 @@ class EditMedia(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
-        os.makedirs("edit", exist_ok=True)
+        os.makedirs("edit_media", exist_ok=True)
 
         media = Media(
             media_id=1668,
@@ -223,7 +223,7 @@ class EditMedia(TestCase):
             True,
         )
 
-    def tearDownClass():
+    def tearDown(self):
         try:
             shutil.rmtree("edit_media")
         except OSError:
@@ -236,7 +236,7 @@ class EditSeasons(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
-        os.makedirs("edit", exist_ok=True)
+        os.makedirs("edit_season", exist_ok=True)
 
         media = Media(
             media_id=1668,
@@ -477,6 +477,12 @@ class EditSeasons(TestCase):
             ).exists(),
             True,
         )
+
+    def tearDown(self):
+        try:
+            shutil.rmtree("edit_season")
+        except OSError:
+            pass
 
 
 class DetailsMedia(TestCase):

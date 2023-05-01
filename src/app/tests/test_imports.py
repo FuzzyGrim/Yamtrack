@@ -1,4 +1,4 @@
-from django.test import TransactionTestCase
+from django.test import TestCase
 from django.test import override_settings
 
 import csv
@@ -9,7 +9,7 @@ from app.utils.imports import anilist, mal, tmdb
 from app.models import User, Media
 
 
-class ImportsMAL(TransactionTestCase):
+class ImportsMAL(TestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -37,11 +37,11 @@ class ImportsMAL(TransactionTestCase):
             Media.objects.get(user=self.user, title="Fire Punch").score == 7, True
         )
 
-    def tearDownClass():
+    def tearDown(self):
         shutil.rmtree("MAL")
 
 
-class ImportsTMDB(TransactionTestCase):
+class ImportsTMDB(TestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -111,17 +111,17 @@ class ImportsTMDB(TransactionTestCase):
                 Media.objects.get(user=self.user, media_id=1668).score == 10, True
             )
 
-    def tearDownClass():
+    def tearDown(self):
         shutil.rmtree("TMDB")
 
 
-class ImportsANI(TransactionTestCase):
+class ImportsAniList(TestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
-        os.makedirs("AL")
+        os.makedirs("AniList")
 
-    @override_settings(MEDIA_ROOT=("AL"))
+    @override_settings(MEDIA_ROOT=("AniList"))
     def test_import_anilist(self):
         anilist.import_anilist("bloodthirstiness", self.user)
         self.assertEqual(Media.objects.filter(user=self.user).count(), 6)
@@ -138,5 +138,5 @@ class ImportsANI(TransactionTestCase):
             Media.objects.get(user=self.user, title="One Punch-Man").score == 9, True
         )
 
-    def tearDownClass():
-        shutil.rmtree("AL")
+    def tearDown(self):
+        shutil.rmtree("AniList")

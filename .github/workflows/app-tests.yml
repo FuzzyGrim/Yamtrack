@@ -38,10 +38,7 @@ jobs:
         MAL_API: ${{ secrets.MAL_API }}
         ADMIN_ENABLED: True
       run: |
-        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_views
-        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_media
-        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_imports
-        coverage run --source='src/app' --parallel-mode src/manage.py test app.tests.test_forms
+        coverage run --source='src/app' --parallel-mode src/manage.py test app
 
     - name: Build Coverage Report
       run: |
