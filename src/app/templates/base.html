@@ -47,22 +47,22 @@
             </a>
           </li>
           <li>
-            <a href="{% url 'medialist' media_type='tv' %}" class="nav-link {% if page == "tv" %}active{% endif %}">
+            <a href="{% url 'medialist' media_type='tv' %}" class="nav-link {% if media_type == "tv" %}active{% endif %}">
               <i class="bi bi-tv me-2"></i> TV
             </a>
           </li>
           <li>
-            <a href="{% url 'medialist' media_type='movie' %}" class="nav-link {% if page == "movie" %}active{% endif %}">
+            <a href="{% url 'medialist' media_type='movie' %}" class="nav-link {% if media_type == "movie" %}active{% endif %}">
               <i class="bi bi-film me-2"></i> Movies
             </a>
           </li>
           <li>
-            <a href="{% url 'medialist' media_type='anime' %}" class="nav-link {% if page == "anime" %}active{% endif %}">
+            <a href="{% url 'medialist' media_type='anime' %}" class="nav-link {% if media_type == "anime" %}active{% endif %}">
               <i class="bi bi-collection-play me-2"></i> Animes
             </a>
           </li>
           <li>
-            <a href="{% url 'medialist' media_type='manga' %}" class="nav-link {% if page == "manga" %}active{% endif %}">
+            <a href="{% url 'medialist' media_type='manga' %}" class="nav-link {% if media_type == "manga" %}active{% endif %}">
               <i class="bi bi-book me-2"></i> Mangas
             </a>
           </li>
