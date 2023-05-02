@@ -1,6 +1,4 @@
-from aiohttp import ClientSession
-from asyncio import ensure_future, gather, run
-
+import asyncio
 import datetime
 import requests
 import logging
@@ -89,8 +87,7 @@ def import_anilist(username, user):
             return "User not found"
 
     # error stores media titles that don't have a corresponding MAL ID
-    bulk_add_media, error = run(anilist_get_media_list(query, error="", user=user))
-    Media.objects.bulk_create(bulk_add_media)
+    error = add_media_list(query, error="", user=user)
 
     logger.info(
         f"Finished importing {username} from Anilist"
@@ -98,42 +95,43 @@ def import_anilist(username, user):
     return error
 
 
-async def anilist_get_media_list(query, error, user):
-    async with ClientSession() as session:
-        task = []
-        for media_type in query["data"]:
-            for list in query["data"][media_type]["lists"]:
-                if not list["isCustomList"]:
-                    for content in list["entries"]:
-                        if content["media"]["idMal"] is None:
-                            error += f"\n {content['media']['title']['userPreferred']}"
-                            logger.warning(
-                                f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} has no MAL ID."
-                            )
-                        elif await Media.objects.filter(
-                            media_id=content["media"]["idMal"],
-                            media_type=media_type,
-                            user=user,
-                        ).aexists():
-                            logger.warning(
-                                f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) already exists in database. Skipping..."
-                            )
-                        else:
-                            task.append(
-                                ensure_future(
-                                    anilist_get_media(
-                                        session, content, media_type, user
-                                    )
-                                )
-                            )
-                            logger.info(
-                                f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) added to import list."
-                            )
+def add_media_list(query, error, user):
+    bulk_add_media = []
 
-        return await gather(*task), error
+    for media_type in query["data"]:
+        images_to_download = []
+        for status_list in query["data"][media_type]["lists"]:
+            if not status_list["isCustomList"]:
+                for content in status_list["entries"]:
+                    if content["media"]["idMal"] is None:
+                        error += f"\n {content['media']['title']['userPreferred']}"
+                        logger.warning(
+                            f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} has no MAL ID."
+                        )
+                    elif Media.objects.filter(
+                        media_id=content["media"]["idMal"],
+                        media_type=media_type,
+                        user=user,
+                    ).exists():
+                        logger.warning(
+                            f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) already exists, skipping..."
+                        )
+                    else:
+                        images_to_download, bulk_add_media = process_media(
+                            content, media_type, user, images_to_download, bulk_add_media
+                        )
+
+                        logger.info(
+                            f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) added to import list."
+                        )
+        asyncio.run(helpers.images_downloader(images_to_download, media_type))
+
+    Media.objects.bulk_create(bulk_add_media)
+
+    return error
 
 
-async def anilist_get_media(session, content, media_type, user):
+def process_media(content, media_type, user, images_to_download, bulk_add_media):
     if content["status"] == "CURRENT":
         status = "Watching"
     else:
@@ -166,10 +164,13 @@ async def anilist_get_media(session, content, media_type, user):
         end_date=end_date,
     )
 
-    filename = await helpers.download_image_async(
-        session, content["media"]["coverImage"]["large"], media_type
-    )
+    bulk_add_media.append(media)
 
-    media.image = f"{filename}"
+    image_url = content["media"]["coverImage"]["large"]
+    images_to_download.append(image_url)
 
-    return media
+    # rsplit is used to split the url at the last / and taking the last element
+    # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
+    media.image = f"{media_type}-{image_url.rsplit('/', 1)[-1]}"
+
+    return images_to_download, bulk_add_media

@@ -46,10 +46,7 @@
         <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="form-title">The Movie Database</div>
-          <div class="input-group">
-            <input type="file" accept=".csv" class="form-control" aria-label="Upload" name="tmdb">
-            <button class="btn btn-submit bg-dark rounded-end" type="submit"><i class="bi bi-check-lg"></i></button>
-          </div>
+          <button name="tmdb" class="btn btn-submit bg-dark rounded-end w-100" type="submit">TMDB Authentication</button>
         </form>
 
         <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">

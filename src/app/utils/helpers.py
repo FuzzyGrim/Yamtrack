@@ -1,9 +1,14 @@
 from django.conf import settings
 
 import aiofiles
+import aiohttp
+import asyncio
 import datetime
 import requests
 import pathlib
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def download_image(url, media_type):
@@ -22,6 +27,14 @@ def download_image(url, media_type):
     return filename
 
 
+async def images_downloader(images_to_download, media_type):
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for url in images_to_download:
+            tasks.append(download_image_async(session, url, media_type))
+        await asyncio.gather(*tasks)
+
+
 async def download_image_async(session, url, media_type):
     # rsplit is used to split the url at the last / and taking the last element
     # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
@@ -36,8 +49,7 @@ async def download_image_async(session, url, media_type):
                 f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
-
-    return filename
+                logger.info(f"Downloaded {filename}")
 
 
 def clean_data(request, metadata):

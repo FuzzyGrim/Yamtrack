@@ -1,10 +1,7 @@
-from aiohttp import ClientSession
-from asyncio import ensure_future, gather, run
-from csv import DictReader
 from decouple import config
-
-import datetime
+import requests
 import logging
+import asyncio
 
 from app.models import Media
 from app.utils import helpers
@@ -13,104 +10,124 @@ TMDB_API = config("TMDB_API", default="")
 logger = logging.getLogger(__name__)
 
 
-def import_tmdb(file, user):
-    logger.info(f"Importing from TMDB csv file to {user}")
+def auth_url():
+    """
+    Returns the URL to authenticate with TMDB.
+    """
+    auth_url = (
+        f"https://api.themoviedb.org/3/authentication/token/new?api_key={TMDB_API}"
+    )
+    auth_request = requests.get(auth_url).json()
+    logger.info(
+        f"Authentication URL: https://www.themoviedb.org/authenticate/{auth_request['request_token']}"
+    )
+    return f"https://www.themoviedb.org/authenticate/{auth_request['request_token']}"
 
-    if "ratings" in file.name:
-        status = "Completed"
-    else:
-        status = "Planning"
 
-    if not file.name.endswith(".csv"):
-        logger.error(
-            'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name'
-        )
-        return False
+def import_tmdb(user, request_token):
+    session_id = get_session_id(request_token)
+    tv_images_to_download = []
+    movies_images_to_download = []
+    bulk_add_media = []
 
-    decoded_file = file.read().decode("utf-8").splitlines()
-    reader = DictReader(decoded_file)
+    movies_rated_url = f"https://api.themoviedb.org/3/account/{user}/rated/movies?api_key={TMDB_API}&session_id={session_id}"
+    movies_images, bulk_add_media = process_media_list(
+        movies_rated_url, "movie", "Completed", user, bulk_add_media
+    )
+    movies_images_to_download.extend(movies_images)
 
-    bulk_add_media = run(tmdb_get_media_list(reader, user, status))
+    movies_watchlist_url = f"https://api.themoviedb.org/3/account/{user}/watchlist/movies?api_key={TMDB_API}&session_id={session_id}"
+    movies_images, bulk_add_media = process_media_list(
+        movies_watchlist_url, "movie", "Planning", user, bulk_add_media
+    )
+    movies_images_to_download.extend(movies_images)
+
+    tv_rated_url = f"https://api.themoviedb.org/3/account/{user}/rated/tv?api_key={TMDB_API}&session_id={session_id}"
+    tv_images, bulk_add_media = process_media_list(
+        tv_rated_url, "tv", "Completed", user, bulk_add_media
+    )
+    tv_images_to_download.extend(tv_images)
+
+    tv_watchlist_url = f"https://api.themoviedb.org/3/account/{user}/watchlist/tv?api_key={TMDB_API}&session_id={session_id}"
+    tv_images, bulk_add_media = process_media_list(
+        tv_watchlist_url, "tv", "Planning", user, bulk_add_media
+    )
+    tv_images_to_download.extend(tv_images)
+
+    asyncio.run(helpers.images_downloader(tv_images_to_download, "tv"))
+    asyncio.run(helpers.images_downloader(movies_images_to_download, "movie"))
+
     Media.objects.bulk_create(bulk_add_media)
 
-    logger.info("Finished importing from TMDB csv file")
 
-    return True
+def get_session_id(request_token):
+    session_url = (
+        f"https://api.themoviedb.org/3/authentication/session/new?api_key={TMDB_API}"
+    )
+    data = {"request_token": request_token}
+    session_request = requests.post(session_url, data=data).json()
+    if session_request["success"]:
+        return session_request["session_id"]
 
 
-async def tmdb_get_media_list(reader, user, status):
-    async with ClientSession() as session:
-        task = []
-        for row in reader:
-            if await Media.objects.filter(
-                media_id=row["TMDb ID"],
-                media_type=row["Type"],
-                user=user,
-            ).aexists():
-                logger.warning(
-                    f"{row['Type'].capitalize()}: {row['Name']} ({row['TMDb ID']}) already exists in database. Skipping..."
+def process_media_list(url, media_type, status, user, bulk_add_media):
+    """
+    Processes rated and watchlist media lists and adds them to the database.
+    Returns a list of images to download.
+    """
+    images_to_download = []
+    data = requests.get(url).json()
+
+    if "success" in data and not data["success"]:
+        logger.error(f"Error: {data['status_message']}")
+        return images_to_download, bulk_add_media
+
+    next_page = 2
+
+    while next_page <= data["total_pages"]:
+        next_url = f"{url}&page={next_page}"
+        next_data = requests.get(next_url).json()
+        data["results"].extend(next_data["results"])
+        next_page += 1
+
+    for media in data["results"]:
+        if Media.objects.filter(
+            media_id=media["id"], media_type=media_type, user=user
+        ).exists():
+            logger.info(
+                f"{media_type.capitalize()}: {media['title']} ({media['id']}) already exists, skipping..."
+            )
+        else:
+            if media["poster_path"]:
+                # poster_path e.g: "/aFmqXViWzIKm.jpg", remove the first slash
+                image = media["poster_path"][1:]
+                # format: movie-aFmqXViWzIKm.jpg
+                image = media_type + "-" + image
+                images_to_download.append(
+                    f"https://image.tmdb.org/t/p/w500{media['poster_path']}"
                 )
             else:
-                # Checks if is a tv show or movie because it could be episode which is not supported
-                if row["Type"] == "tv":
-                    url = f"https://api.themoviedb.org/3/tv/{row['TMDb ID']}?api_key={TMDB_API}"
-                    task.append(
-                        ensure_future(tmdb_get_media(session, url, row, user, status))
-                    )
-                    logger.info(
-                        f"TV: {row['Name']} ({row['TMDb ID']}) added to import list."
-                    )
+                image = "none.svg"
 
-                elif row["Type"] == "movie":
-                    url = f"https://api.themoviedb.org/3/movie/{row['TMDb ID']}?api_key={TMDB_API}"
-                    task.append(
-                        ensure_future(tmdb_get_media(session, url, row, user, status))
-                    )
-                    logger.info(
-                        f"Movie: {row['Name']} ({row['TMDb ID']}) added to import list."
-                    )
-        return await gather(*task)
+            if "name" in media:
+                media["title"] = media["name"]
 
-
-async def tmdb_get_media(session, url, row, user, status):
-    async with session.get(url) as resp:
-        response = await resp.json()
-
-        if row["Your Rating"] == "":
-            score = None
-        else:
-            score = float(row["Your Rating"])
-
-        if response["poster_path"] is None:
-            image = "none.svg"
-        else:
-            filename = await helpers.download_image_async(
-                session,
-                f"https://image.tmdb.org/t/p/w300{response['poster_path']}",
-                row["Type"],
+            bulk_add_media.append(
+                Media(
+                    media_id=media["id"],
+                    title=media["title"],
+                    media_type=media_type,
+                    score=media["rating"] if "rating" in media else 0,
+                    progress=0,
+                    status=status,
+                    user=user,
+                    image=image,
+                    start_date=None,
+                    end_date=None,
+                )
             )
-            image = f"{filename}"
+            logger.info(
+                f"{media_type.capitalize()}: {media['title']} ({media['id']}) added."
+            )
 
-        if "number_of_episodes" in response and status == "Completed":
-            progress = response["number_of_episodes"]
-        else:
-            progress = 0
-
-        start_date = datetime.datetime.strptime(
-            row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ"
-        ).date()
-
-        media = Media(
-            media_id=row["TMDb ID"],
-            title=row["Name"],
-            media_type=row["Type"],
-            score=score,
-            progress=progress,
-            status=status,
-            user=user,
-            image=image,
-            start_date=start_date,
-            end_date=None,
-        )
-
-        return media
+    return images_to_download, bulk_add_media

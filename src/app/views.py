@@ -7,6 +7,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
 from django.conf import settings
 
+from app.utils import database, helpers, search, metadata
+from app.utils.imports import anilist, mal, tmdb
 from app.models import Media, Season
 from app.forms import (
     UserLoginForm,
@@ -14,8 +16,6 @@ from app.forms import (
     UserUpdateForm,
     PasswordChangeForm,
 )
-from app.utils import database, helpers, search, metadata
-from app.utils.imports import anilist, mal, tmdb
 
 import logging
 
@@ -233,15 +233,9 @@ def profile(request):
                     request, f"User {request.POST['mal']} not found in MyAnimeList."
                 )
 
-        elif request.FILES.get("tmdb"):
-            if tmdb.import_tmdb(request.FILES.get("tmdb"), request.user):
-                messages.success(request, "Your TMDB list has been imported!")
-
-            else:
-                messages.error(
-                    request,
-                    'Error importing your list, make sure it\'s a CSV file containing the word "ratings" or "watchlist" in the name',
-                )
+        elif "tmdb" in request.POST:
+            auth_url = tmdb.auth_url()
+            return redirect(f"{auth_url}?redirect_to={request.build_absolute_uri()}")
 
         elif "anilist" in request.POST:
             error = anilist.import_anilist(request.POST["anilist"], request.user)
@@ -258,6 +252,14 @@ def profile(request):
 
         else:
             messages.error(request, "There was an error with your request")
+
+    # After TMDB authentication
+    if "request_token" in request.GET:
+        if request.GET["approved"]:
+            tmdb.import_tmdb(request.user, request.GET["request_token"])
+            messages.success(request, "Your TMDB has been imported!")
+            # To avoid resubmitting by clearing get parameters
+            return redirect("profile")
 
     context = {
         "user_form": user_form,
