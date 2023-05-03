@@ -13,10 +13,10 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 ## Features
 
 - Track movies, tv shows, anime and manga
-- Save score, status, progress of each media
-- Individual tracking for each tv show season
+- Track each tv show season
+- Save score, status, progress, start and end date of each media
 - Docker support
-- Multiple users support
+- Multi-users support
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/)
 
 # Installation
@@ -49,8 +49,10 @@ https://github.com/FuzzyGrim/Yamtrack/blob/d5d095e4c2dd8c842e5ea5e56647204642351
 | DEBUG          | Bool        | Django debug mode          | No           | False      |                                       |
 
 
-## Environment variables when using PostgreSQL
+## Environment variables for PostgreSQL
 
+| Name           |  Type       | Description                | Required     | Default    | Notes                                 |
+| -------------- | ----------- | -------------------------- | ------------ | ---------- | ------------------------------------- |
 | DB_HOST        | String      | Database host              | No           | None       | When not set, sqlite is used          |
 | DB_PORT        | Int         | Database port              | No           | 5432       |                                       |
 | DB_NAME        | String      | Database name              | No           |'yamtrack'  |                                       |
