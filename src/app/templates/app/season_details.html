@@ -31,7 +31,7 @@
         </div>
 
         <div class="episodes-num">
-            <strong>Total Episodes: {{ episodes|length }}</strong>
+            <strong>Total Episodes: {{ season.episodes|length }}</strong>
         </div>
         
         <div class="media-form">
@@ -39,7 +39,7 @@
           data-type="tv" data-id="{{media_id}}" data-season-number="{{season.season_number}}">
             <i class="bi bi-pencil-square"></i>
            </button>
-          {% include "app/include/modal.html" with form_id="tv"|addstr:"_"|addstr:media_id|addstr:"_"|addstr:season.season_number title=media_title|capfirst media_id=media_id media_type=tv season_number=season.season_number csrf_token=csrf_token only %}
+          {% include "app/include/modal.html" with form_id="tv"|addstr:"_"|addstr:media_id|addstr:"_"|addstr:season.season_number title=media_title|capfirst media_id=media_id media_type="tv" season_number=season.season_number csrf_token=csrf_token only %}
 
         </div>
       </div>
@@ -52,7 +52,7 @@
         <div class="p-2 episode-date"><strong>Release Date</strong></div>
         <div class="p-2 watch-form"><strong>Status</strong></div>
       </div>
-      {% for episode in episodes %}
+      {% for episode in season.episodes %}
         <div class="d-flex justify-content-between align-items-center episode">
           <div class="p-2 episode-number">{{episode.episode_number}}</div>
           <div class="p-2 episode-name">{{episode.name}}</div>

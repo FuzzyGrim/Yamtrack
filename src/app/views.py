@@ -158,18 +158,18 @@ def media_details(request, media_type, media_id, title):
 
 @login_required
 def season_details(request, media_id, title, season_number):
-    # if request.method == "POST":
-    #     database.media_form_handler(request)
-    #     return redirect("media_details", "tv", media_id, title)
+    if request.method == "POST":
+        database.media_form_handler(request)
+        return redirect("season_details", media_id, title, season_number)
 
+    tv = metadata.tv(media_id)
     season = metadata.season(media_id, season_number)
 
     context = {
         "media_id": media_id,
-        "media_title": title,
+        "media_title": tv["title"],
         "season": season,
-        "episodes": season.get("episodes"),
-        "page": f"{title} - Season {season_number}",
+        "page": f"{tv['title']} - Season {season_number}",
     }
     return render(request, "app/season_details.html", context)
 
