@@ -9,7 +9,7 @@
       aspect-ratio: 2/3;
       object-fit: cover;
     }
-  
+
     .image-not-found {
       object-fit: contain;
       width: 14rem;
@@ -56,5 +56,48 @@
   }
   .grid {
     @include cards-grid;
+  }
+
+  .episodes {
+    margin-top: 2em;
+    margin-bottom: 0.5em;
+
+    .episode {
+
+      .episode-number {
+        flex-basis: 3em;
+      }
+    
+      .episode-name {
+        flex-grow: 3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    
+      .episode-date {
+        flex-basis: 10em;
+        text-align: center;
+        margin-right: 1rem;
+      }
+    
+      .watch-form {
+        flex-basis: 64px;
+        flex-shrink: 0;
+        text-align: center;
+    
+        .watch-btn {
+          color: $white;
+          background-color: #6c757d;
+          border-color: #6c757d;
+
+          &:hover {
+            color: $white;
+            background-color: #5c636a;
+            border-color: #565e64;
+          }
+        }
+      }
+    }
   }
 }

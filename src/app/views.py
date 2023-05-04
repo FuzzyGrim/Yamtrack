@@ -134,15 +134,14 @@ def media_search(request):
 
 
 @login_required
-def details(request, media_type, media_id, title):
+def media_details(request, media_type, media_id, title):
     if request.method == "POST":
         database.media_form_handler(request)
-        return redirect("details", media_type, media_id, title)
+        return redirect("media_details", media_type, media_id, title)
 
     media = metadata.get_media_metadata(media_type, media_id)
 
     related_data_list = [
-        {"name": "Seasons", "data": media.get("seasons")},
         {"name": "Related Animes", "data": media.get("related_anime")},
         {"name": "Related Mangas", "data": media.get("related_manga")},
         {"name": "Recommendations", "data": media.get("recommendations")},
@@ -150,10 +149,29 @@ def details(request, media_type, media_id, title):
 
     context = {
         "media": media,
+        "seasons": media.get("seasons"),
         "related_data_list": related_data_list,
         "page": title,
     }
-    return render(request, "app/details.html", context)
+    return render(request, "app/media_details.html", context)
+
+
+@login_required
+def season_details(request, media_id, title, season_number):
+    # if request.method == "POST":
+    #     database.media_form_handler(request)
+    #     return redirect("media_details", "tv", media_id, title)
+
+    season = metadata.season(media_id, season_number)
+
+    context = {
+        "media_id": media_id,
+        "media_title": title,
+        "season": season,
+        "episodes": season.get("episodes"),
+        "page": f"{title} - Season {season_number}",
+    }
+    return render(request, "app/season_details.html", context)
 
 
 def register(request):

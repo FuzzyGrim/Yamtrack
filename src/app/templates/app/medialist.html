@@ -58,7 +58,7 @@
       </div>
     
       <div class="title p-2">
-        <a href={% url 'details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}>
+        <a href={% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}>
           {{media.title}}
         </a>
       </div>

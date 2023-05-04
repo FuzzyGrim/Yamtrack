@@ -142,6 +142,20 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #details .grid .card .card-img-overlay .card-text .open-modal-button:disabled, #details .grid .card .card-img-overlay .card-text .progress-btn:disabled { color: transparent; }
 
+#details .episodes { margin-top: 2em; margin-bottom: 0.5em; }
+
+#details .episodes .episode .episode-number { flex-basis: 3em; }
+
+#details .episodes .episode .episode-name { flex-grow: 3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+#details .episodes .episode .episode-date { flex-basis: 10em; text-align: center; margin-right: 1rem; }
+
+#details .episodes .episode .watch-form { flex-basis: 64px; flex-shrink: 0; text-align: center; }
+
+#details .episodes .episode .watch-form .watch-btn { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+
+#details .episodes .episode .watch-form .watch-btn:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
+
 #profile .btn-submit { border-width: 1px; border-style: solid; border-color: #56595d; color: #909294; }
 
 #profile .btn-submit:hover { border-color: #7a7d81; }
@@ -192,6 +206,6 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 @media screen and (max-width: 991px) { body main { padding-top: 2em; } #profile .grid-container { grid-template-columns: 1fr; } }
 
-@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .content .title { text-align: center; } #details .header .content .media-form { margin-top: 0.5em; } }
+@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .content .title { text-align: center; } #details .header .content .media-form { margin-top: 0.5em; } #details .episode-date { display: none; } }
 
 /*# sourceMappingURL=main.css.map */

@@ -18,7 +18,7 @@
           <div class="grid">
             {% for media in media_group.media_list %}
               <div class="card text-bg-dark mx-auto">
-                <a href="{% url 'details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}">
+                <a href="{% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}">
                   <img
                     src="{{ media.image.url }}"
                     {% if media.image.url == "/media/none.svg"%}

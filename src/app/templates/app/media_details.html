@@ -62,6 +62,47 @@
       </div>
     </div>
 
+    {% if seasons %}
+      <div class="grid-title">
+        <strong>Seasons</strong>
+      </div>
+
+      <div class="grid">
+        {% for season in seasons%}
+          <div class="card text-bg-dark mx-auto">
+            <a href="{% url 'season_details' media_id=media.id title=media.title|slugify season_number=season.season_number%}">
+              <img
+                {% if season.image == "none.svg"%}
+                  src="{% get_media_prefix %}{{season.image}}"
+                  class="card-img image-not-found"
+                  {% else %}
+                  src="{{season.image}}"
+                  class="card-img poster"
+                {% endif %}
+                alt="{{ season.title }}"
+              />
+            </a>
+
+            <div class="card-img-overlay">
+              <div class="card-title text-center">
+                {{ season.title }}
+              </div>
+
+              <div class="card-text d-flex justify-content-center align-items-center">
+                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}_{{season.season_number}}" 
+                        data-type="{{media.media_type}}" data-id="{{media.media_id}}" data-season-number="{{season.season_number}}">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:season.season_number title=media.title media_id=media.media_id media_type=media.media_type season_number=season.season_number csrf_token=csrf_token only %}
+              
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    
+
     {% for related_data in related_data_list %}
       {% if related_data.data %}
 
@@ -72,7 +113,7 @@
         <div class="grid">
           {% for related in related_data.data %}
             <div class="card text-bg-dark mx-auto">
-              <a href="{% url 'details' media_type=media.media_type media_id=related.id title=related.title|slugify%}">
+              <a href="{% url 'media_details' media_type=media.media_type media_id=related.id title=related.title|slugify%}">
                 <img
                   {% if related.image == "none.svg"%}
                     src="{% get_media_prefix %}{{related.image}}"
@@ -91,20 +132,11 @@
                 </div>
 
                 <div class="card-text d-flex justify-content-center align-items-center">
-                  {% if related_data.name == "Seasons" %}
-                    <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}_{{related.season_number}}" 
-                            data-type="{{media.media_type}}" data-id="{{media.media_id}}" data-season-number="{{related.season_number}}">
-                      <i class="bi bi-pencil-square"></i>
-                    </button>
-                    {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:related.season_number title=media.title media_id=media.media_id media_type=media.media_type season_number=related.season_number csrf_token=csrf_token only %}
-                  
-                  {% else %}
-                    <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{related.id}}" 
-                            data-type="{{media.media_type}}" data-id="{{related.id}}">
-                      <i class="bi bi-pencil-square"></i>
-                    </button>
-                    {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:related.id title=related.title media_id=related.id media_type=media.media_type csrf_token=csrf_token only %}
-                  {% endif %}
+                  <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{related.id}}" 
+                          data-type="{{media.media_type}}" data-id="{{related.id}}">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:related.id title=related.title media_id=related.id media_type=media.media_type csrf_token=csrf_token only %}
                 </div>
               </div>
             </div>

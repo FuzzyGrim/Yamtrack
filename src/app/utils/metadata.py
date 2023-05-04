@@ -40,7 +40,7 @@ def anime_manga(media_type, media_id):
     Return the metadata for the selected anime or manga
     """
 
-    cache_key = media_type + str(media_id)
+    cache_key = f"{media_type}_{media_id}"
     response = cache.get(cache_key)
     if response is None:
         url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_episodes,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
@@ -114,7 +114,7 @@ def anime_manga(media_type, media_id):
 
 
 def tv(media_id):
-    cache_key = "tv" + str(media_id)
+    cache_key = f"tv_{media_id}"
     response = cache.get(cache_key)
     if response is None:
         url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
@@ -182,7 +182,7 @@ def tv(media_id):
 
 
 def movie(media_id):
-    cache_key = "movie" + str(media_id)
+    cache_key = f"movie_{media_id}"
     response = cache.get(cache_key)
     if response is None:
         url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
@@ -231,6 +231,33 @@ def movie(media_id):
                 recommendation["image"] = "none.svg"
 
         # cache for 6 hours
+        cache.set(cache_key, response, 21600)
+
+    return response
+
+
+def season(tv_id, season_number):
+    cache_key = f"season_{tv_id}_{season_number}"
+    response = cache.get(cache_key)
+    if response is None:
+        url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}?api_key={TMDB_API}"
+        response = requests.get(url).json()
+
+        if response["poster_path"]:
+            response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+        else:
+            response["image"] = "none.svg"
+
+        if response["air_date"] != "":
+            response["start_date"] = response["air_date"]
+        else:
+            response["start_date"] = "Unknown"
+
+        if response["overview"] == "":
+            response["synopsis"] = "No synopsis available."
+        else:
+            response["synopsis"] = response["overview"]
+
         cache.set(cache_key, response, 21600)
 
     return response
