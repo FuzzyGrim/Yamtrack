@@ -45,28 +45,64 @@
       </div>
     </div>
 
-    <div class="episodes">
+    <form class="episodes">
       <div class="d-flex justify-content-between align-items-center episode">
         <div class="p-2 episode-number"></div>
         <div class="p-2 episode-name"><strong>Name</strong></div>
         <div class="p-2 episode-date"><strong>Release Date</strong></div>
-        <div class="p-2 watch-form"><strong>Status</strong></div>
+        <div class="p-2 watch-status"><strong>Status</strong></div>
+        <div class="p-2 check-div">
+          <label for="reverseCheck1">
+            <strong>Edit</strong>
+          </label>
+        
+          <input type="checkbox" class="form-check-input select-all" id="reverseCheck1">
+        </div>
       </div>
       {% for episode in season.episodes %}
-        <div class="d-flex justify-content-between align-items-center episode">
-          <div class="p-2 episode-number">{{episode.episode_number}}</div>
-          <div class="p-2 episode-name">{{episode.name}}</div>
-          <div class="p-2 episode-date">{{episode.air_date}}</div>
-          <form class="p-2 watch-form">
-            <button class="btn watch-btn"><i class="bi bi-eye-fill"></i></button>
-          </form>
+      <div class="d-flex justify-content-between align-items-center episode">
+        <div class="p-2 episode-number">{{episode.episode_number}}</div>
+        <div class="p-2 episode-name">{{episode.name}}</div>
+        <div class="p-2 episode-date">{{episode.air_date}}</div>
+        <div class="p-2 watch-status">
+          {% if episode.watched %}
+            <i class="bi bi-eye-fill"></i>
+          {% else %}
+            <i class="bi bi-eye-slash-fill"></i>
+          {% endif %}
         </div>
+        <div class="p-2 check-div">
+          <input type="checkbox" class="form-check-input check-episode" name="{{episode.episode_number}}">
+        </div>
+      </div>
       {% endfor %}
-    </div>
+      <div class="d-flex flex-column justify-content-center align-items-center">
+        <div class="mt-4 mb-2">When did you watch the episode(s)?</div>
+
+        <div class="btn-group flex-wrap">
+          <button type="button" class="btn btn-release-date flex-fill">Release</button>
+
+          <div class="d-flex date-btn-group flex-fill">
+            <input type="date" class="form-control bg-dark text-white" name="end" value="{% now "Y-m-d" %}">
+            <button type="button" class="btn bg-dark"><i class="bi bi-check-circle-fill"></i></button>
+          </div>
+
+          <button type="button" class="btn btn-danger flex-fill">Unwatch</button>
+        </div>
+      </div>
+    </form>
 
   </div>
 {% endblock content%}
 
 {% block extra_scripts %}
   <script src="{% static 'js/modal-load.js' %}"></script>
+  <script>
+    document.querySelector('.select-all').addEventListener('click', function() {
+      var checkboxes = document.querySelectorAll('input[type="checkbox"]:not(.select-all)');
+      for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = this.checked;
+      }
+    });
+  </script>
 {% endblock extra_scripts %}

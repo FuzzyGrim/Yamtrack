@@ -148,13 +148,27 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #details .episodes .episode .episode-name { flex-grow: 3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-#details .episodes .episode .episode-date { flex-basis: 10em; text-align: center; margin-right: 1rem; }
+#details .episodes .episode .episode-date { flex-basis: 10em; text-align: center; }
 
-#details .episodes .episode .watch-form { flex-basis: 64px; flex-shrink: 0; text-align: center; }
+#details .episodes .episode .watch-status { flex-basis: 64px; flex-shrink: 0; text-align: center; }
 
-#details .episodes .episode .watch-form .watch-btn { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+#details .episodes .episode .watch-status .watch-btn { color: #fff; background-color: #6c757d; border-color: #6c757d; }
 
-#details .episodes .episode .watch-form .watch-btn:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
+#details .episodes .episode .watch-status .watch-btn:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
+
+#details .episodes .episode .check-div { flex-basis: 7em; flex-shrink: 0; text-align: center; }
+
+#details .episodes .episode .check-div .select-all { margin-left: 0.5em; }
+
+#details .episodes .btn-group .btn-release-date { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+
+#details .episodes .btn-group .btn-release-date:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
+
+#details .episodes .btn-group .date-btn-group .form-control { padding-right: 0; border-radius: 0; border-right: 0; }
+
+#details .episodes .btn-group .date-btn-group .btn { border-radius: 0; border-color: #495057; border-left: 0; color: #adb5bd; }
+
+#details .episodes .btn-group .date-btn-group .btn:hover { color: #fff; }
 
 #profile .btn-submit { border-width: 1px; border-style: solid; border-color: #56595d; color: #909294; }
 
@@ -204,8 +218,8 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 @media screen and (min-width: 992px) { body main .search-bar .input-group { width: 50%; margin: auto; } }
 
-@media screen and (max-width: 991px) { body main { padding-top: 2em; } #profile .grid-container { grid-template-columns: 1fr; } }
+@media screen and (max-width: 991px) { body main { padding-top: 2em; } #profile .grid-container { grid-template-columns: 1fr; } #details .episode-date { display: none; } }
 
-@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .content .title { text-align: center; } #details .header .content .media-form { margin-top: 0.5em; } #details .episode-date { display: none; } }
+@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .content .title { text-align: center; } #details .header .content .media-form { margin-top: 0.5em; } #details .btn-group .btn-release-date { border-radius: 0; } #details .btn-group .btn-danger { border-radius: 0; } }
 
 /*# sourceMappingURL=main.css.map */

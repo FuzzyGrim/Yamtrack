@@ -78,10 +78,9 @@
       .episode-date {
         flex-basis: 10em;
         text-align: center;
-        margin-right: 1rem;
       }
     
-      .watch-form {
+      .watch-status {
         flex-basis: 64px;
         flex-shrink: 0;
         text-align: center;
@@ -95,6 +94,46 @@
             color: $white;
             background-color: #5c636a;
             border-color: #565e64;
+          }
+        }
+      }
+
+      .check-div {
+        flex-basis: 7em;
+        flex-shrink: 0;
+        text-align: center;
+        .select-all {
+          margin-left: 0.5em;
+        }
+      }
+    }
+
+    .btn-group {
+      .btn-release-date {
+        color: $white;
+        background-color: #6c757d;
+        border-color: #6c757d;
+
+        &:hover {
+          color: $white;
+          background-color: #5c636a;
+          border-color: #565e64;
+        }
+      }
+      .date-btn-group {
+        .form-control {
+          padding-right: 0;
+          border-radius: 0;
+          border-right: 0;
+        }
+        .btn {
+          border-radius: 0;
+          border-color: #495057;
+          border-left: 0;
+          color: $btn-color;
+
+          &:hover {
+            color: $white;
           }
         }
       }

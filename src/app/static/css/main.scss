@@ -36,6 +36,12 @@
       grid-template-columns: 1fr;
     }
   }
+
+  #details {
+    .episode-date {
+      display: none;
+    }
+  }
 }
 
 // xs
@@ -63,9 +69,13 @@
         }
       }
     }
-    
-    .episode-date {
-      display: none;
+    .btn-group {
+      .btn-release-date {
+        border-radius: 0;
+      }
+      .btn-danger {
+        border-radius: 0;
+      }
     }
   }
 }

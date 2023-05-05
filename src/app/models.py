@@ -48,5 +48,13 @@ class Season(models.Model):
         ordering = ["parent", "-number"]
 
 
+class Episode(models.Model):
+    season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    number = models.IntegerField()
+    title = models.CharField(max_length=255)
+    watched = models.BooleanField(default=False)
+    watch_date = models.DateField(null=True)
+
+
 class User(AbstractUser):
     last_search_type = models.CharField(max_length=10, default="tv")

@@ -9,7 +9,7 @@ from django.conf import settings
 
 from app.utils import database, helpers, search, metadata
 from app.utils.imports import anilist, mal, tmdb
-from app.models import Media, Season
+from app.models import Media, Season, Episode
 from app.forms import (
     UserLoginForm,
     UserRegisterForm,
@@ -164,6 +164,20 @@ def season_details(request, media_id, title, season_number):
 
     tv = metadata.tv(media_id)
     season = metadata.season(media_id, season_number)
+
+    episodes_db = Episode.objects.filter(
+        season__parent__media_id=media_id,
+        season__parent__media_type="tv",
+        season__parent__user=request.user,
+        season__number=season_number,
+    ).values("number", "watched")
+
+    # Convert the QuerySet to a dictionary for easier lookup
+    episodes_dict = {episode["number"]: episode["watched"] for episode in episodes_db}
+
+    # Set the watched status for each episode and default to False
+    for episode in season["episodes"]:
+        episode["watched"] = episodes_dict.get(episode["episode_number"], False)
 
     context = {
         "media_id": media_id,
