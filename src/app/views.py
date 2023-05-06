@@ -7,7 +7,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
 from django.conf import settings
 
-from app.utils import database, helpers, search, metadata
+from app.database import handlers
+from app.utils import helpers, search, metadata
 from app.utils.imports import anilist, mal, tmdb
 from app.models import Media, Season, Episode
 from app.forms import (
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 @login_required
 def home(request):
     if request.method == "POST":
-        database.media_form_handler(request)
+        handlers.form_handler(request)
         return redirect("home")
 
     media_list = (
@@ -68,7 +69,7 @@ def home(request):
 @login_required
 def media_list(request, media_type, status=None):
     if request.method == "POST":
-        database.media_form_handler(request)
+        handlers.form_handler(request)
 
         if status:
             return redirect("medialist", media_type=media_type, status=status)
@@ -112,7 +113,7 @@ def media_search(request):
         request.user.save()
 
         if request.method == "POST":
-            database.media_form_handler(request)
+            handlers.form_handler(request)
             return redirect("/search?media_type=" + media_type + "&q=" + query)
 
         if media_type == "anime" or media_type == "manga":
@@ -136,7 +137,7 @@ def media_search(request):
 @login_required
 def media_details(request, media_type, media_id, title):
     if request.method == "POST":
-        database.media_form_handler(request)
+        handlers.form_handler(request)
         return redirect("media_details", media_type, media_id, title)
 
     media = metadata.get_media_metadata(media_type, media_id)
@@ -158,19 +159,23 @@ def media_details(request, media_type, media_id, title):
 
 @login_required
 def season_details(request, media_id, title, season_number):
-    if request.method == "POST":
-        database.media_form_handler(request)
-        return redirect("season_details", media_id, title, season_number)
-
-    tv = metadata.tv(media_id)
-    season = metadata.season(media_id, season_number)
-
     episodes_db = Episode.objects.filter(
         season__parent__media_id=media_id,
         season__parent__media_type="tv",
         season__parent__user=request.user,
         season__number=season_number,
     ).values("number", "watched")
+
+    season = metadata.season(media_id, season_number)
+
+    if request.method == "POST":
+        if request.POST.get("form-type") == "episode":
+            handlers.episode_form_handler(request, season, episodes_db)
+        else:
+            handlers.form_handler(request)
+        return redirect("season_details", media_id, title, season_number)
+
+    tv = metadata.tv(media_id)
 
     # Convert the QuerySet to a dictionary for easier lookup
     episodes_dict = {episode["number"]: episode["watched"] for episode in episodes_db}
@@ -343,7 +348,7 @@ def progress_edit(request):
 
     operation = request.POST.get("operation")
 
-    media.progress, media.status = database.update_progress_status(
+    media.progress, media.status = handlers.update_progress_status(
         operation, media.progress, max_progress, media.status
     )
     media.save()
@@ -352,7 +357,7 @@ def progress_edit(request):
     if season_number is not None:
         season_number = int(season_number)
 
-        selected_season_metadata = metadata.get_season_metadata(
+        selected_season_metadata = metadata.get_season_metadata_from_tv(
             season_number, media_metadata.get("seasons")
         )
 
@@ -361,7 +366,7 @@ def progress_edit(request):
 
         season = Season.objects.get(parent_id=media.id, number=season_number)
 
-        season.progress, season.status = database.update_progress_status(
+        season.progress, season.status = handlers.update_progress_status(
             operation, season.progress, max_progress, season.status
         )
         season.save()

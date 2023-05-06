@@ -20,9 +20,9 @@ def get_media_metadata(media_type, media_id):
     return media_metadata
 
 
-def get_season_metadata(season_number, seasons_metadata):
+def get_season_metadata_from_tv(season_number, seasons_metadata):
     """
-    Return the metadata for the selected season
+    Return the metadata for the selected season from the tv show metadata
     """
     # when there are specials episodes, they are on season 0,
     # so offset everything by 1

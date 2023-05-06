@@ -7,9 +7,9 @@ import shutil
 import os
 import datetime
 
+from app import database
 from app.models import User, Media, Season
 from app.utils import metadata
-from app.utils.database import add_media, edit_media
 
 
 class CreateMedia(TestCase):
@@ -25,7 +25,7 @@ class CreateMedia(TestCase):
             Media.objects.filter(media_id=5895, user=self.user).exists(), False
         )
 
-        add_media(
+        database.media.add_media(
             media_id=5895,
             title="FLCL",
             image="https://image.tmdb.org/t/p/w500/FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg",
@@ -37,13 +37,6 @@ class CreateMedia(TestCase):
             end_date=datetime.datetime(2023, 1, 2),
             notes="Nice",
             user=self.user,
-            season_number=1,
-            seasons_metadata=[
-                {"episode_count": 6, "season_number": 1, "poster_path": "/lh3KJQTflPHkJHxwmz85kralU6x.jpg"},
-                {"episode_count": 6, "season_number": 2, "poster_path": "/5W1ASsg4Mvd0TJUf6CsIm7RPEg3.jpg"},
-                {"episode_count": 6, "season_number": 3, "poster_path": "/kQDyd7MQ6qCaJU46rBNBecjZufT.jpg"},
-                {"episode_count": 0, "season_number": 4, "poster_path": None},
-            ],
         )
 
         self.assertEqual(
@@ -55,11 +48,9 @@ class CreateMedia(TestCase):
             True,
         )
 
-        # check if FLCL and season 1 in database
+        # check if FLCL in database
         media = Media.objects.get(media_id=5895, user=self.user)
         self.assertEqual(str(media), "FLCL")
-        season = Season.objects.get(parent=media, number=1)
-        self.assertEqual(str(season), "FLCL - Season 1")
 
         # check if it's in medialist
         response = self.client.get(reverse("medialist", kwargs={"media_type": "tv"}))
@@ -93,7 +84,6 @@ class EditMedia(TestCase):
             end_date=datetime.datetime(2023, 1, 2),
             notes="Nice",
             user=self.user,
-
         )
         media.save()
 
@@ -102,7 +92,7 @@ class EditMedia(TestCase):
             Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), True
         )
 
-        edit_media(
+        database.media.edit_media(
             media_id=1668,
             title="Friends",
             image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
@@ -114,8 +104,6 @@ class EditMedia(TestCase):
             end_date=datetime.datetime(2023, 1, 2),
             notes="Nice",
             user=self.user,
-            season_number=None,
-            seasons_metadata=None
         )
         self.assertEqual(
             Media.objects.filter(media_id=1668, user=self.user, score=9).exists(), False
@@ -144,7 +132,7 @@ class EditMedia(TestCase):
             False,
         )
 
-        edit_media(
+        database.media.edit_media(
             media_id=1668,
             title="Friends",
             image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
@@ -156,8 +144,6 @@ class EditMedia(TestCase):
             end_date=datetime.datetime(2023, 1, 2),
             notes="Nice",
             user=self.user,
-            season_number=None,
-            seasons_metadata=None
         )
 
         self.assertEqual(
@@ -168,8 +154,7 @@ class EditMedia(TestCase):
         )
 
     def test_edit_tmdb_dates(self):
-
-        edit_media(
+        database.media.edit_media(
             media_id=1668,
             title="Friends",
             image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
@@ -181,8 +166,6 @@ class EditMedia(TestCase):
             end_date=datetime.datetime(2023, 1, 3),
             notes="Nice",
             user=self.user,
-            season_number=None,
-            seasons_metadata=None,
         )
 
         self.assertEqual(
@@ -199,8 +182,7 @@ class EditMedia(TestCase):
         )
 
     def test_edit_tmdb_notes(self):
-
-        edit_media(
+        database.media.edit_media(
             media_id=1668,
             title="Friends",
             image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
@@ -212,8 +194,6 @@ class EditMedia(TestCase):
             end_date=datetime.datetime(2023, 1, 2),
             notes="test notes",
             user=self.user,
-            season_number=None,
-            seasons_metadata=None,
         )
 
         self.assertEqual(
@@ -250,12 +230,12 @@ class EditSeasons(TestCase):
             end_date=datetime.datetime(2023, 1, 2),
             notes="Nice",
             user=self.user,
-
         )
         media.save()
 
         season_1 = Season(
             parent=media,
+            title="Friends",
             number=1,
             score=10,
             progress=24,
@@ -267,6 +247,7 @@ class EditSeasons(TestCase):
 
         season_10 = Season(
             parent=media,
+            title="Friends",
             number=10,
             score=10,
             progress=18,
@@ -276,26 +257,70 @@ class EditSeasons(TestCase):
         )
         season_10.save()
 
-        self.seasons = [
-            {"episode_count": 39, "season_number": 0, "poster_path": "/xaEj0Vw0LOmp7kBeX2vmYPb5sTg.jpg"},
-            {"episode_count": 24, "season_number": 1, "poster_path": "/odCW88Cq5hAF0ZFVOkeJmeQv1nV.jpg"},
-            {"episode_count": 24, "season_number": 2, "poster_path": "/kC9VHoMh1KkoAYfsY3QlHpZRxDy.jpg"},
-            {"episode_count": 25, "season_number": 3, "poster_path": "/n9u4pslqb6tpiLc8soldL5IbAyG.jpg"},
-            {"episode_count": 24, "season_number": 4, "poster_path": "/3WdH3FNMXgp3Qlx21T7kwKS8Mtc.jpg"},
-            {"episode_count": 24, "season_number": 5, "poster_path": "/aEwLXWbo6gV1TNIv9veu4rRwsPZ.jpg"},
-            {"episode_count": 25, "season_number": 6, "poster_path": "/7EU6bV6d8j1Xbc1F8QoNkOZrpsi.jpg"},
-            {"episode_count": 24, "season_number": 7, "poster_path": "/yvUZVChjOnqCjB9rjdEqEmpDdnQ.jpg"},
-            {"episode_count": 24, "season_number": 8, "poster_path": "/eh6PPkrzkXsEksRJDcdtx9lZsqX.jpg"},
-            {"episode_count": 24, "season_number": 9, "poster_path": "/1IvIdN4I5jJ0bwC3BkmDCy4pQ9j.jpg"},
-            {"episode_count": 18, "season_number": 10, "poster_path": "/67ETB6XIqYc5vZkyAjN8XINOX5i.jpg"},
-        ],
+        self.seasons = (
+            [
+                {
+                    "episode_count": 39,
+                    "season_number": 0,
+                    "poster_path": "/xaEj0Vw0LOmp7kBeX2vmYPb5sTg.jpg",
+                },
+                {
+                    "episode_count": 24,
+                    "season_number": 1,
+                    "poster_path": "/odCW88Cq5hAF0ZFVOkeJmeQv1nV.jpg",
+                },
+                {
+                    "episode_count": 24,
+                    "season_number": 2,
+                    "poster_path": "/kC9VHoMh1KkoAYfsY3QlHpZRxDy.jpg",
+                },
+                {
+                    "episode_count": 25,
+                    "season_number": 3,
+                    "poster_path": "/n9u4pslqb6tpiLc8soldL5IbAyG.jpg",
+                },
+                {
+                    "episode_count": 24,
+                    "season_number": 4,
+                    "poster_path": "/3WdH3FNMXgp3Qlx21T7kwKS8Mtc.jpg",
+                },
+                {
+                    "episode_count": 24,
+                    "season_number": 5,
+                    "poster_path": "/aEwLXWbo6gV1TNIv9veu4rRwsPZ.jpg",
+                },
+                {
+                    "episode_count": 25,
+                    "season_number": 6,
+                    "poster_path": "/7EU6bV6d8j1Xbc1F8QoNkOZrpsi.jpg",
+                },
+                {
+                    "episode_count": 24,
+                    "season_number": 7,
+                    "poster_path": "/yvUZVChjOnqCjB9rjdEqEmpDdnQ.jpg",
+                },
+                {
+                    "episode_count": 24,
+                    "season_number": 8,
+                    "poster_path": "/eh6PPkrzkXsEksRJDcdtx9lZsqX.jpg",
+                },
+                {
+                    "episode_count": 24,
+                    "season_number": 9,
+                    "poster_path": "/1IvIdN4I5jJ0bwC3BkmDCy4pQ9j.jpg",
+                },
+                {
+                    "episode_count": 18,
+                    "season_number": 10,
+                    "poster_path": "/67ETB6XIqYc5vZkyAjN8XINOX5i.jpg",
+                },
+            ],
+        )
 
     # Editing season status, changes media status
     def test_edit_season_status(self):
-        edit_media(
+        database.season.edit_season(
             media_id=1668,
-            title="Friends",
-            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
             media_type="tv",
             score=10,
             progress=18,
@@ -305,12 +330,13 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=10,
-            seasons_metadata=self.seasons[0],
         )
         self.assertEqual(
             Season.objects.filter(
-                parent__media_id=1668, parent__user=self.user,
-                number=10, status="Paused"
+                parent__media_id=1668,
+                parent__user=self.user,
+                number=10,
+                status="Paused",
             ).exists(),
             True,
         )
@@ -323,10 +349,8 @@ class EditSeasons(TestCase):
 
     # media gets average score of all seasons
     def test_edit_season_score(self):
-        edit_media(
+        database.season.edit_season(
             media_id=1668,
-            title="Friends",
-            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
             media_type="tv",
             score=0,
             progress=24,
@@ -336,28 +360,22 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=1,
-            seasons_metadata=self.seasons[0],
         )
         self.assertEqual(
             Season.objects.filter(
-                parent__media_id=1668, parent__user=self.user,
-                number=1, score=0
+                parent__media_id=1668, parent__user=self.user, number=1, score=0
             ).exists(),
             True,
         )
         self.assertEqual(
-            Media.objects.filter(
-                media_id=1668, user=self.user, score=5
-            ).exists(),
+            Media.objects.filter(media_id=1668, user=self.user, score=5).exists(),
             True,
         )
 
     # media gets earliest start date of all seasons
     def test_edit_season_start_date(self):
-        edit_media(
+        database.season.edit_season(
             media_id=1668,
-            title="Friends",
-            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
             media_type="tv",
             score=10,
             progress=24,
@@ -367,12 +385,13 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=1,
-            seasons_metadata=self.seasons[0],
         )
         self.assertEqual(
             Season.objects.filter(
-                parent__media_id=1668, parent__user=self.user,
-                number=1, start_date=datetime.datetime(2022, 1, 1)
+                parent__media_id=1668,
+                parent__user=self.user,
+                number=1,
+                start_date=datetime.datetime(2022, 1, 1),
             ).exists(),
             True,
         )
@@ -386,10 +405,8 @@ class EditSeasons(TestCase):
     # edits start_date, but media start_date is unchanged,
     # because there is a season with an earlier start_date
     def test_edit_start_date_unchanged(self):
-        edit_media(
+        database.season.edit_season(
             media_id=1668,
-            title="Friends",
-            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
             media_type="tv",
             score=10,
             progress=24,
@@ -399,12 +416,13 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=10,
-            seasons_metadata=self.seasons[0],
         )
         self.assertEqual(
             Season.objects.filter(
-                parent__media_id=1668, parent__user=self.user,
-                number=10, start_date=datetime.datetime(2023, 1, 2)
+                parent__media_id=1668,
+                parent__user=self.user,
+                number=10,
+                start_date=datetime.datetime(2023, 1, 2),
             ).exists(),
             True,
         )
@@ -417,10 +435,8 @@ class EditSeasons(TestCase):
 
     # media gets latest end date of all seasons
     def test_edit_season_end_date(self):
-        edit_media(
+        database.season.edit_season(
             media_id=1668,
-            title="Friends",
-            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
             media_type="tv",
             score=10,
             progress=24,
@@ -430,12 +446,13 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=10,
-            seasons_metadata=self.seasons[0],
         )
         self.assertEqual(
             Season.objects.filter(
-                parent__media_id=1668, parent__user=self.user,
-                number=10, end_date=datetime.datetime(2024, 1, 2)
+                parent__media_id=1668,
+                parent__user=self.user,
+                number=10,
+                end_date=datetime.datetime(2024, 1, 2),
             ).exists(),
             True,
         )
@@ -449,10 +466,8 @@ class EditSeasons(TestCase):
     # edits end_date, but media end_date is unchanged,
     # because there is a season with a later end_date
     def test_edit_end_date_unchanged(self):
-        edit_media(
+        database.season.edit_season(
             media_id=1668,
-            title="Friends",
-            image="/f496cm9enuEsZkSPzCwnTESEK5s.jpg",
             media_type="tv",
             score=10,
             progress=24,
@@ -462,12 +477,13 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=1,
-            seasons_metadata=self.seasons[0],
         )
         self.assertEqual(
             Season.objects.filter(
-                parent__media_id=1668, parent__user=self.user,
-                number=1, end_date=datetime.datetime(2022, 1, 2)
+                parent__media_id=1668,
+                parent__user=self.user,
+                number=1,
+                end_date=datetime.datetime(2022, 1, 2),
             ).exists(),
             True,
         )
@@ -486,11 +502,13 @@ class EditSeasons(TestCase):
 
 
 class DetailsMedia(TestCase):
-
     def test_anime(self):
         response = metadata.anime_manga("anime", "1")
         self.assertEqual(response["title"], "Cowboy Bebop")
-        self.assertEqual(response["image"], "https://api-cdn.myanimelist.net/images/anime/4/19644l.jpg")
+        self.assertEqual(
+            response["image"],
+            "https://api-cdn.myanimelist.net/images/anime/4/19644l.jpg",
+        )
         self.assertEqual(response["start_date"], "1998-04-03")
         self.assertEqual(response["status"], "Finished")
         self.assertEqual(response["num_episodes"], 26)
@@ -513,7 +531,10 @@ class DetailsMedia(TestCase):
     def test_manga(self):
         response = metadata.anime_manga("manga", "1")
         self.assertEqual(response["title"], "Monster")
-        self.assertEqual(response["image"], "https://api-cdn.myanimelist.net/images/manga/3/258224l.jpg")
+        self.assertEqual(
+            response["image"],
+            "https://api-cdn.myanimelist.net/images/manga/3/258224l.jpg",
+        )
         self.assertEqual(response["start_date"], "1994-12-05")
         self.assertEqual(response["status"], "Finished")
         self.assertEqual(response["num_chapters"], 162)
@@ -521,7 +542,10 @@ class DetailsMedia(TestCase):
     def test_tv(self):
         response = metadata.tv("1396")
         self.assertEqual(response["title"], "Breaking Bad")
-        self.assertEqual(response["image"], "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg")
+        self.assertEqual(
+            response["image"],
+            "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
+        )
         self.assertEqual(response["start_date"], "2008-01-20")
         self.assertEqual(response["status"], "Ended")
         self.assertEqual(response["num_episodes"], 62)
@@ -536,7 +560,10 @@ class DetailsMedia(TestCase):
     def test_movie(self):
         response = metadata.movie("10494")
         self.assertEqual(response["title"], "Perfect Blue")
-        self.assertEqual(response["image"], "https://image.tmdb.org/t/p/w500/hwCTlm990H6NlrG8W7sk3pxdMtf.jpg")
+        self.assertEqual(
+            response["image"],
+            "https://image.tmdb.org/t/p/w500/hwCTlm990H6NlrG8W7sk3pxdMtf.jpg",
+        )
         self.assertEqual(response["start_date"], "1997-07-25")
         self.assertEqual(response["status"], "Released")
 

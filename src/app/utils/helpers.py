@@ -1,4 +1,5 @@
 from django.conf import settings
+from app.utils import metadata
 
 import aiofiles
 import aiohttp
@@ -52,20 +53,13 @@ async def download_image_async(session, url, media_type):
                 logger.info(f"Downloaded {filename}")
 
 
-def clean_data(request, metadata):
+def clean_data(request, media_metadata):
     post = request.POST.copy()
 
     if post["score"] == "":
         post["score"] = None
 
-    if "num_episodes" in metadata and post["status"] == "Completed":
-        post["progress"] = metadata["num_episodes"]
-        # tmdb doesn't count special episodes in num_episodes
-        if "seasons" in metadata and metadata["seasons"][0]["season_number"] == 0:
-            post["progress"] = (
-                int(post["progress"]) + metadata["seasons"][0]["episode_count"]
-            )
-    elif post["progress"] == "":
+    if post["progress"] == "":
         post["progress"] = 0
 
     if post["start"] == "":
@@ -82,6 +76,16 @@ def clean_data(request, metadata):
 
     if "season_number" in post:
         post["season_number"] = int(post["season_number"])
+        seasons_metadata = media_metadata.get("seasons")
+        selected_season_metadata = metadata.get_season_metadata_from_tv(
+            post["season_number"], seasons_metadata
+        )
+        # if completed and has episode count, set progress to episode count
+        if "episode_count" in selected_season_metadata and post["status"] == "Completed":
+            post["progress"] = selected_season_metadata["episode_count"]
+    else:
+        if "num_episodes" in media_metadata and post["status"] == "Completed":
+            post["progress"] = media_metadata["num_episodes"]
 
     return post
 
