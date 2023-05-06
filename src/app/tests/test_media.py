@@ -263,58 +263,69 @@ class EditSeasons(TestCase):
                     "episode_count": 39,
                     "season_number": 0,
                     "poster_path": "/xaEj0Vw0LOmp7kBeX2vmYPb5sTg.jpg",
+                    "air_date": "2001-02-14",
                 },
                 {
                     "episode_count": 24,
                     "season_number": 1,
                     "poster_path": "/odCW88Cq5hAF0ZFVOkeJmeQv1nV.jpg",
+                    "air_date": "1994-09-22",
                 },
                 {
                     "episode_count": 24,
                     "season_number": 2,
                     "poster_path": "/kC9VHoMh1KkoAYfsY3QlHpZRxDy.jpg",
+                    "air_date": "1995-09-21",
                 },
                 {
                     "episode_count": 25,
                     "season_number": 3,
                     "poster_path": "/n9u4pslqb6tpiLc8soldL5IbAyG.jpg",
+                    "air_date": "1996-09-16",
                 },
                 {
                     "episode_count": 24,
                     "season_number": 4,
                     "poster_path": "/3WdH3FNMXgp3Qlx21T7kwKS8Mtc.jpg",
+                    "air_date": "1997-09-25",
                 },
                 {
                     "episode_count": 24,
                     "season_number": 5,
                     "poster_path": "/aEwLXWbo6gV1TNIv9veu4rRwsPZ.jpg",
+                    "air_date": "1998-09-24",
                 },
                 {
                     "episode_count": 25,
                     "season_number": 6,
                     "poster_path": "/7EU6bV6d8j1Xbc1F8QoNkOZrpsi.jpg",
+                    "air_date": "1999-09-23",
                 },
                 {
                     "episode_count": 24,
                     "season_number": 7,
                     "poster_path": "/yvUZVChjOnqCjB9rjdEqEmpDdnQ.jpg",
+                    "air_date": "2000-10-12",
                 },
                 {
                     "episode_count": 24,
                     "season_number": 8,
                     "poster_path": "/eh6PPkrzkXsEksRJDcdtx9lZsqX.jpg",
+                    "air_date": "2001-09-27",
                 },
                 {
                     "episode_count": 24,
                     "season_number": 9,
                     "poster_path": "/1IvIdN4I5jJ0bwC3BkmDCy4pQ9j.jpg",
+                    "air_date": "2002-09-26",
                 },
                 {
                     "episode_count": 18,
                     "season_number": 10,
                     "poster_path": "/67ETB6XIqYc5vZkyAjN8XINOX5i.jpg",
+                    "air_date": "2003-09-25",
                 },
-            ],
+            ]
         )
 
     # Editing season status, changes media status
@@ -330,6 +341,7 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=10,
+            seasons_metadata=self.seasons,
         )
         self.assertEqual(
             Season.objects.filter(
@@ -360,6 +372,7 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=1,
+            seasons_metadata=self.seasons,
         )
         self.assertEqual(
             Season.objects.filter(
@@ -385,6 +398,7 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=1,
+            seasons_metadata=self.seasons,
         )
         self.assertEqual(
             Season.objects.filter(
@@ -416,6 +430,7 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=10,
+            seasons_metadata=self.seasons,
         )
         self.assertEqual(
             Season.objects.filter(
@@ -446,6 +461,7 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=10,
+            seasons_metadata=self.seasons,
         )
         self.assertEqual(
             Season.objects.filter(
@@ -477,6 +493,7 @@ class EditSeasons(TestCase):
             notes="Nice",
             user=self.user,
             season_number=1,
+            seasons_metadata=self.seasons,
         )
         self.assertEqual(
             Season.objects.filter(

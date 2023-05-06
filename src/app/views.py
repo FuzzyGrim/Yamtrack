@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 @login_required
 def home(request):
     if request.method == "POST":
-        handlers.form_handler(request)
+        handlers.media_season_form_handler(request)
         return redirect("home")
 
     media_list = (
@@ -69,7 +69,7 @@ def home(request):
 @login_required
 def media_list(request, media_type, status=None):
     if request.method == "POST":
-        handlers.form_handler(request)
+        handlers.media_season_form_handler(request)
 
         if status:
             return redirect("medialist", media_type=media_type, status=status)
@@ -113,7 +113,7 @@ def media_search(request):
         request.user.save()
 
         if request.method == "POST":
-            handlers.form_handler(request)
+            handlers.media_season_form_handler(request)
             return redirect("/search?media_type=" + media_type + "&q=" + query)
 
         if media_type == "anime" or media_type == "manga":
@@ -137,7 +137,7 @@ def media_search(request):
 @login_required
 def media_details(request, media_type, media_id, title):
     if request.method == "POST":
-        handlers.form_handler(request)
+        handlers.media_season_form_handler(request)
         return redirect("media_details", media_type, media_id, title)
 
     media = metadata.get_media_metadata(media_type, media_id)
@@ -172,7 +172,7 @@ def season_details(request, media_id, title, season_number):
         if request.POST.get("form-type") == "episode":
             handlers.episode_form_handler(request, season, episodes_db)
         else:
-            handlers.form_handler(request)
+            handlers.media_season_form_handler(request)
         return redirect("season_details", media_id, title, season_number)
 
     tv = metadata.tv(media_id)
@@ -348,7 +348,7 @@ def progress_edit(request):
 
     operation = request.POST.get("operation")
 
-    media.progress, media.status = handlers.update_progress_status(
+    media.progress, media.status = handlers.progress_handler(
         operation, media.progress, max_progress, media.status
     )
     media.save()
@@ -366,7 +366,7 @@ def progress_edit(request):
 
         season = Season.objects.get(parent_id=media.id, number=season_number)
 
-        season.progress, season.status = handlers.update_progress_status(
+        season.progress, season.status = handlers.progress_handler(
             operation, season.progress, max_progress, season.status
         )
         season.save()

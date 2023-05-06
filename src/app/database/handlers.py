@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def form_handler(request):
+def media_season_form_handler(request):
     media_type = request.POST.get("media_type")
     media_id = request.POST.get("media_id")
     season_number = request.POST.get("season_number")
@@ -102,6 +102,7 @@ def season_handler(request, media_metadata, media_id, media_type, season_number)
             request.POST.get("notes"),
             request.user,
             request.POST.get("season_number"),
+            media_metadata.get("seasons"),
         )
     else:
         add_season(
@@ -121,8 +122,12 @@ def season_handler(request, media_metadata, media_id, media_type, season_number)
         )
 
 
+def episode_form_handler(request, season, episodes_db):
+    return
+
+
 # Used when updating progress from homepage.
-def update_progress_status(operation, curr_progress, max_progress, status):
+def progress_handler(operation, curr_progress, max_progress, status):
     """
     Updates progress and status of media object based on operation.
     Sets status to "Completed" if progress is equal to max_progress.
@@ -134,7 +139,3 @@ def update_progress_status(operation, curr_progress, max_progress, status):
     elif operation == "decrement" and curr_progress > 0:
         curr_progress -= 1
     return curr_progress, status
-
-
-def episode_form_handler(request, season, episodes_db):
-    return

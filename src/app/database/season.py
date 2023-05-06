@@ -1,3 +1,4 @@
+from django.db.models import Avg, Sum, Min, Max
 from app.models import Media, Season
 from app.utils import helpers, metadata
 from app.database.media import add_media
@@ -27,6 +28,17 @@ def add_season(
     ).exists():
         media = Media.objects.get(media_id=media_id, media_type=media_type, user=user)
     else:
+        # if season completed, but not last season, set media status watching
+        if (
+            status == "Completed"
+            # check if last season has aired
+            and seasons_metadata[-1]["air_date"]
+            and season_number != seasons_metadata[-1]["season_number"]
+        ):
+            media_status = "Watching"
+        else:
+            media_status = status
+
         media = add_media(
             media_id,
             title,
@@ -34,7 +46,7 @@ def add_season(
             media_type,
             score,
             progress,
-            status,
+            media_status,
             start_date,
             end_date,
             notes,
@@ -64,6 +76,7 @@ def add_season(
         end_date=end_date,
         notes=notes,
     )
+    logger.info(f"Created season {season_number} of {title}")
 
 
 def edit_season(
@@ -77,6 +90,7 @@ def edit_season(
     notes,
     user,
     season_number,
+    seasons_metadata
 ):
     media = Media.objects.get(
         media_id=media_id,
@@ -96,3 +110,29 @@ def edit_season(
     season.end_date = end_date
     season.notes = notes
     season.save()
+    logger.info(f"Updated season {season_number} of {season.title}")
+
+    # Get all the seasons for the parent media instance
+    seasons_all = Season.objects.filter(parent=media)
+
+    # Update the media fields based on the aggregated values of the seasons
+    media.score = seasons_all.aggregate(Avg("score"))["score__avg"]
+    media.progress = seasons_all.aggregate(Sum("progress"))["progress__sum"]
+    media.start_date = seasons_all.aggregate(Min("start_date"))["start_date__min"]
+    media.end_date = seasons_all.aggregate(Max("end_date"))["end_date__max"]
+
+    # if season completed, but not last season, set media status watching
+    if (
+        status == "Completed"
+        # check if last season has aired
+        and seasons_metadata[-1]["air_date"]
+        and season_number != seasons_metadata[-1]["season_number"]
+    ):
+        media.status = "Watching"
+    else:
+        media.status = status
+
+    # Save the updated media instance
+    media.save()
+
+    logger.info(f"Updated {season.title} ({media_id}) with season {season_number} data")
