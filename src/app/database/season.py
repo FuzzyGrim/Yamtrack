@@ -66,7 +66,6 @@ def add_season(
         season_image = "none.svg"
     Season.objects.create(
         parent=media,
-        title=title,
         image=season_image,
         number=season_number,
         score=score,
@@ -110,7 +109,7 @@ def edit_season(
     season.end_date = end_date
     season.notes = notes
     season.save()
-    logger.info(f"Updated season {season_number} of {season.title}")
+    logger.info(f"Updated season {season_number} of {media.title}")
 
     # Get all the seasons for the parent media instance
     seasons_all = Season.objects.filter(parent=media)
@@ -135,4 +134,4 @@ def edit_season(
     # Save the updated media instance
     media.save()
 
-    logger.info(f"Updated {season.title} ({media_id}) with season {season_number} data")
+    logger.info(f"Updated {media.title} ({media_id}) with season {season_number} data")

@@ -7,7 +7,7 @@
     <div class="header d-flex">
       <div class="image">
         {% if season.image != "none.svg" %}
-          <img class="poster" src="{{season.image}}" alt="season.title" />
+          <img class="poster" src="{{season.image}}" alt="{{ season.name }}" />
         {% else %}
           <img class="image-not-found" src="{% get_media_prefix %}{{season.image}}" alt="season.name"/>
         {% endif %}
@@ -45,7 +45,12 @@
       </div>
     </div>
 
-    <form class="episodes">
+    <form class="episodes" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="media_id" value="{{media_id}}">
+      <input type="hidden" name="media_type" value="tv">
+      <input type="hidden" name="season_number" value="{{season.season_number}}">
+      
       <div class="d-flex justify-content-between align-items-center episode">
         <div class="p-2 episode-number"></div>
         <div class="p-2 episode-name"><strong>Name</strong></div>
@@ -72,7 +77,7 @@
           {% endif %}
         </div>
         <div class="p-2 check-div">
-          <input type="checkbox" class="form-check-input check-episode" name="{{episode.episode_number}}">
+          <input type="checkbox" class="form-check-input check-episode" name="episode_number" value="{{episode.episode_number}}">
         </div>
       </div>
       {% endfor %}
@@ -80,14 +85,14 @@
         <div class="mt-4 mb-2">When did you watch the episode(s)?</div>
 
         <div class="btn-group flex-wrap">
-          <button type="button" class="btn btn-release-date flex-fill">Release</button>
+          <button type="submit" class="btn btn-release-date flex-fill" name="release">Release</button>
 
           <div class="d-flex date-btn-group flex-fill">
-            <input type="date" class="form-control bg-dark text-white" name="end" value="{% now "Y-m-d" %}">
-            <button type="button" class="btn bg-dark"><i class="bi bi-check-circle-fill"></i></button>
+            <input type="date" class="form-control bg-dark text-white" name="date" value="{% now "Y-m-d" %}">
+            <button type="submit" class="btn bg-dark"><i class="bi bi-check-circle-fill"></i></button>
           </div>
 
-          <button type="button" class="btn btn-danger flex-fill">Unwatch</button>
+          <button type="submit" class="btn btn-danger flex-fill" name="unwatch">Unwatch</button>
         </div>
       </div>
     </form>

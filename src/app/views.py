@@ -159,30 +159,27 @@ def media_details(request, media_type, media_id, title):
 
 @login_required
 def season_details(request, media_id, title, season_number):
-    episodes_db = Episode.objects.filter(
-        season__parent__media_id=media_id,
-        season__parent__media_type="tv",
-        season__parent__user=request.user,
-        season__number=season_number,
-    ).values("number", "watched")
 
     season = metadata.season(media_id, season_number)
+    tv = metadata.tv(media_id)
 
     if request.method == "POST":
-        if request.POST.get("form-type") == "episode":
-            handlers.episode_form_handler(request, season, episodes_db)
+        if request.POST.get("episode_number"):
+            handlers.episode_form_handler(request, tv, season, season_number)
         else:
             handlers.media_season_form_handler(request)
         return redirect("season_details", media_id, title, season_number)
 
-    tv = metadata.tv(media_id)
-
-    # Convert the QuerySet to a dictionary for easier lookup
-    episodes_dict = {episode["number"]: episode["watched"] for episode in episodes_db}
-
-    # Set the watched status for each episode and default to False
+    watched_episodes = set(
+        Episode.objects.filter(
+            season__parent__media_id=media_id,
+            season__parent__media_type="tv",
+            season__number=season_number,
+            season__parent__user=request.user,
+        ).values_list("number", flat=True)
+    )
     for episode in season["episodes"]:
-        episode["watched"] = episodes_dict.get(episode["episode_number"], False)
+        episode["watched"] = episode["episode_number"] in watched_episodes
 
     context = {
         "media_id": media_id,

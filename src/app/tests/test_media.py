@@ -235,7 +235,6 @@ class EditSeasons(TestCase):
 
         season_1 = Season(
             parent=media,
-            title="Friends",
             number=1,
             score=10,
             progress=24,
@@ -247,7 +246,6 @@ class EditSeasons(TestCase):
 
         season_10 = Season(
             parent=media,
-            title="Friends",
             number=10,
             score=10,
             progress=18,

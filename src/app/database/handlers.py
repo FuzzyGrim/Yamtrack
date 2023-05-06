@@ -1,4 +1,4 @@
-from app.models import Media, Season
+from app.models import Media, Season, Episode
 from app.utils import metadata, helpers
 from app.database.media import add_media, edit_media
 from app.database.season import add_season, edit_season
@@ -122,8 +122,96 @@ def season_handler(request, media_metadata, media_id, media_type, season_number)
         )
 
 
-def episode_form_handler(request, season, episodes_db):
-    return
+def episode_form_handler(request, tv, season, season_number):
+    episodes_checked = request.POST.getlist("episode_number")
+
+    if not Season.objects.filter(
+        parent__media_id=request.POST.get("media_id"),
+        parent__media_type="tv",
+        parent__user=request.user,
+        number=season_number,
+    ).exists():
+        add_season(
+            request.POST.get("media_id"),
+            tv["title"],
+            season["image"],
+            "tv",
+            score=None,
+            progress=0,
+            status="Watching",
+            start_date=None,
+            end_date=None,
+            notes="",
+            user=request.user,
+            season_number=season_number,
+            seasons_metadata=tv["seasons"],
+        )
+
+    if not Media.objects.filter(
+        media_id=request.POST.get("media_id"),
+        media_type="tv",
+        user=request.user,
+    ).exists():
+        add_media(
+            request.POST.get("media_id"),
+            tv["title"],
+            tv["image"],
+            "tv",
+            score=None,
+            progress=0,
+            status="Watching",
+            start_date=None,
+            end_date=None,
+            notes="",
+            user=request.user,
+        )
+
+    season_db = Season.objects.get(
+        parent__media_id=request.POST.get("media_id"),
+        parent__media_type="tv",
+        parent__user=request.user,
+        number=season_number,
+    )
+    if "unwatch" in request.POST:
+        for episode in episodes_checked:
+            Episode.objects.filter(
+                season=season_db, number=episode
+            ).delete()
+    else:
+        episodes_to_create = []
+        episdoes_to_update = []
+
+        for episode in episodes_checked:
+            episode = int(episode)
+            try:
+                episode_db = Episode.objects.get(season=season_db, number=episode)
+                if "release" in request.POST:
+                    if season["episodes"][episode - 1]["air_date"]:
+                        watch_date = season["episodes"][episode - 1]["air_date"]
+                    else:
+                        watch_date = None
+                else:
+                    watch_date = request.POST.get("date")
+                episode_db.watch_date = watch_date
+                episdoes_to_update.append(episode_db)
+
+            except Episode.DoesNotExist:
+                episode_db = Episode(
+                    season=season_db,
+                    number=episode,
+                )
+                if "release" in request.POST:
+                    if season["episodes"][episode - 1]["air_date"]:
+                        watch_date = season["episodes"][episode - 1]["air_date"]
+                    else:
+                        watch_date = None
+                else:
+                    watch_date = request.POST.get("date")
+                episode_db.watch_date = watch_date
+                episodes_to_create.append(episode_db)
+
+        Episode.objects.bulk_create(episodes_to_create)
+        Episode.objects.bulk_update(episdoes_to_update, ["watch_date"])
 
 
 # Used when updating progress from homepage.

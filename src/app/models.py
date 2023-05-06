@@ -30,7 +30,6 @@ class Season(models.Model):
     parent = models.ForeignKey(
         Media, on_delete=models.CASCADE, related_name="seasons"
     )
-    title = models.CharField(max_length=256)
     image = models.ImageField()
     number = models.IntegerField()
     score = models.DecimalField(null=True, max_digits=3, decimal_places=1)
@@ -42,7 +41,7 @@ class Season(models.Model):
     notes = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.title} - Season {self.number}"
+        return f"{self.parent.title} - Season {self.number}"
 
     class Meta:
         ordering = ["parent", "-number"]
@@ -51,8 +50,6 @@ class Season(models.Model):
 class Episode(models.Model):
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     number = models.IntegerField()
-    title = models.CharField(max_length=255)
-    watched = models.BooleanField(default=False)
     watch_date = models.DateField(null=True)
 
 
