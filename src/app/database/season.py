@@ -53,6 +53,7 @@ def add_season(
             notes,
             user,
         )
+
     # get the selected season from the metadata
     selected_season_metadata = metadata.get_season_metadata_from_tv(
         season_number, seasons_metadata
@@ -76,7 +77,7 @@ def add_season(
         end_date=end_date,
         notes=notes,
     )
-    logger.info(f"Created season {season_number} of {title}")
+    logger.info(f"Created {season}")
 
     if season.progress > 0:
         add_episodes_for_season(season)
@@ -115,7 +116,7 @@ def edit_season(
     season.end_date = end_date
     season.notes = notes
     season.save()
-    logger.info(f"Updated season {season_number} of {media.title}")
+    logger.info(f"Updated {season}")
 
     # Get all the seasons for the parent media instance
     seasons_all = Season.objects.filter(parent=media)
@@ -140,9 +141,9 @@ def edit_season(
     # Save the updated media instance
     media.save()
 
-    logger.info(f"Updated {media.title} ({media_id}) with season {season_number} data")
+    logger.info(f"Updated {media} with new aggregated values")
 
     if old_progress != season.progress:
         season.episodes.all().delete()
-        logger.info(f"Progress changed, deleting episodes for season {season_number} of {media.title}")
+        logger.info(f"Progress changed, deleting episodes for {season}")
         add_episodes_for_season(season)

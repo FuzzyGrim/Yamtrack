@@ -26,7 +26,7 @@ class Media(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.media_id})"
 
     class Meta:
         ordering = ["-score"]
@@ -45,7 +45,7 @@ class Season(models.Model):
     notes = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.parent.title} - Season {self.number}"
+        return f"{self.parent} - S{self.number}"
 
     class Meta:
         ordering = ["parent", "-number"]
@@ -57,6 +57,9 @@ class Episode(models.Model):
     )
     number = models.IntegerField()
     watch_date = models.DateField(null=True)
+
+    def __str__(self):
+        return f"{self.season}E{self.number}"
 
 
 class User(AbstractUser):

@@ -36,7 +36,7 @@ def delete_handler(request, media_metadata, media_id, media_type, season_number)
         ).delete()
 
         logger.info(
-            f"Deleted season {request.POST.get('season_number')} of {media_metadata['title']} ({media_id})"
+            f"Deleted {media_metadata['title']} ({media_id}) - S{season_number}"
         )
     else:
         Media.objects.get(

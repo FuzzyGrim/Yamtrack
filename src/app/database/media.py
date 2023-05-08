@@ -19,8 +19,6 @@ def add_media(
     notes,
     user,
 ):
-    logger.info(f"Media {title} ({media_id}) does not exist in database. Adding...")
-
     if image != "none.svg":
         image = helpers.download_image(image, media_type)
 
@@ -39,7 +37,7 @@ def add_media(
     )
 
     media.save()
-    logger.info(f"Added {title} ({media_id})")
+    logger.info(f"Added {media}")
     return media
 
 
@@ -56,9 +54,6 @@ def edit_media(
     notes,
     user,
 ):
-    logger.info(
-        f"Media {title} ({media_id}) already exists in database. Updating..."
-    )
 
     media = Media.objects.get(media_id=media_id, media_type=media_type, user=user)
 
@@ -70,5 +65,5 @@ def edit_media(
     media.notes = notes
     media.save()
 
-    logger.info(f"Edited {title} ({media_id})")
+    logger.info(f"Edited {media}")
     return media

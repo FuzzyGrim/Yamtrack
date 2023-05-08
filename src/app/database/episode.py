@@ -12,5 +12,7 @@ def add_episodes_for_season(season):
     """
 
     for ep_num in range(1, season.progress + 1):
-        Episode.objects.create(season=season, number=ep_num, watch_date=date.today())
-        logger.info(f"Added episode {ep_num} of season {season.number} of {season.parent.title}")
+        episode = Episode.objects.create(
+            season=season, number=ep_num, watch_date=date.today()
+        )
+        logger.info(f"Added {episode}")
