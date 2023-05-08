@@ -58,9 +58,13 @@ def clean_data(request, media_metadata):
 
     if post["score"] == "":
         post["score"] = None
+    else:
+        post["score"] = int(post["score"])
 
     if post["progress"] == "":
         post["progress"] = 0
+    else:
+        post["progress"] = int(post["progress"])
 
     if post["start"] == "":
         if post["status"] == "Watching":

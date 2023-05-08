@@ -2,6 +2,7 @@ from django.db.models import Avg, Sum, Min, Max
 from app.models import Media, Season
 from app.utils import helpers, metadata
 from app.database.media import add_media
+from app.database.episode import add_episodes_for_season
 
 import logging
 
@@ -64,7 +65,7 @@ def add_season(
         season_image = helpers.download_image(url, media_type)
     else:
         season_image = "none.svg"
-    Season.objects.create(
+    season = Season.objects.create(
         parent=media,
         image=season_image,
         number=season_number,
@@ -76,6 +77,9 @@ def add_season(
         notes=notes,
     )
     logger.info(f"Created season {season_number} of {title}")
+
+    if season.progress > 0:
+        add_episodes_for_season(season)
 
 
 def edit_season(
@@ -101,7 +105,9 @@ def edit_season(
         parent=media,
         number=season_number,
     )
+    old_progress = season.progress
 
+    # update season fields
     season.score = score
     season.status = status
     season.progress = progress
@@ -135,3 +141,8 @@ def edit_season(
     media.save()
 
     logger.info(f"Updated {media.title} ({media_id}) with season {season_number} data")
+
+    if old_progress != season.progress:
+        season.episodes.all().delete()
+        logger.info(f"Progress changed, deleting episodes for season {season_number} of {media.title}")
+        add_episodes_for_season(season)
