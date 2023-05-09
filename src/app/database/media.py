@@ -42,9 +42,6 @@ def add_media(
     media.save()
     logger.info(f"Added {media}")
 
-    if media_type == "tv" and progress > 0:
-        add_seasons_episodes_for_media(media)
-
     return media
 
 
@@ -62,24 +59,24 @@ def edit_media(
     user,
 ):
 
-    media = Media.objects.get(media_id=media_id, media_type=media_type, user=user)
-    old_progress = media.progress
+    media_db = Media.objects.get(media_id=media_id, media_type=media_type, user=user)
 
-    media.score = score
-    media.progress = progress
-    media.status = status
-    media.start_date = start_date
-    media.end_date = end_date
-    media.notes = notes
-    media.save()
+    if progress != media_db.progress:
+        is_progress_edited = True
+    else:
+        is_progress_edited = False
 
-    logger.info(f"Edited {media}")
+    media_db.score = score
+    media_db.progress = progress
+    media_db.status = status
+    media_db.start_date = start_date
+    media_db.end_date = end_date
+    media_db.notes = notes
+    media_db.save()
 
-    if media_type == "tv" and media.progress != old_progress:
-        media.seasons.all().delete()
-        add_seasons_episodes_for_media(media)
+    logger.info(f"Edited {media_db}")
 
-    return media
+    return media_db, is_progress_edited
 
 
 def add_seasons_episodes_for_media(media):
@@ -93,12 +90,14 @@ def add_seasons_episodes_for_media(media):
         season_metadata = metadata.get_season_metadata_from_tv(
             season_num, media_metadata["seasons"]
         )
+
         if season_metadata["poster_path"]:
             url = f"https://image.tmdb.org/t/p/w500{season_metadata['poster_path']}"
             image = helpers.download_image(url, media.media_type)
         else:
             image = "none.svg"
 
+        # # Determine the progress and status of the current season
         season_max_episodes = season_metadata["episode_count"]
         if progress_remaining > season_max_episodes:
             season_progress = season_max_episodes
@@ -118,9 +117,11 @@ def add_seasons_episodes_for_media(media):
             end_date=media.end_date,
             notes="",
         )
-        logger.info(f"Added {season_db}")
+        logger.info(f"Added {season_db} because of {media}'s progress update")
 
+        # Add episodes for the current season to the database
         season.add_episodes_for_season(season_db)
 
+        # Update the remaining progress and move on to the next season
         progress_remaining -= season_progress
         season_num += 1

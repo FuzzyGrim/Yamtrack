@@ -1,7 +1,7 @@
 from app.models import Media, Season, Episode
 from app.utils import metadata, helpers
-from app.database.media import add_media, edit_media
-from app.database.season import add_season, edit_season
+from app.database import media, season, episode
+from django.db.models import Sum
 
 import logging
 
@@ -54,7 +54,7 @@ def media_handler(request, media_metadata, media_id, media_type):
         media_type=media_type,
         user=request.user,
     ).exists():
-        edit_media(
+        media_edited, is_progress_edited = media.edit_media(
             media_id,
             media_metadata["title"],
             media_metadata["image"],
@@ -67,9 +67,12 @@ def media_handler(request, media_metadata, media_id, media_type):
             request.POST.get("notes"),
             request.user,
         )
-    # else add it
+        # update seasons and episodes if progress is updated
+        if media_type == "tv" and is_progress_edited:
+            media_edited.seasons.all().delete()
+            media.add_seasons_episodes_for_media(media_edited)
     else:
-        add_media(
+        media_added = media.add_media(
             media_id,
             media_metadata["title"],
             media_metadata["image"],
@@ -82,6 +85,9 @@ def media_handler(request, media_metadata, media_id, media_type):
             request.POST.get("notes"),
             request.user,
         )
+        # add seasons and episodes according to progress
+        if media_type == "tv" and request.POST.get("progress") > 0:
+            media.add_seasons_episodes_for_media(media_added)
 
 
 def season_handler(request, media_metadata, media_id, media_type, season_number):
@@ -91,7 +97,7 @@ def season_handler(request, media_metadata, media_id, media_type, season_number)
         parent__user=request.user,
         number=request.POST.get("season_number"),
     ).exists():
-        edit_season(
+        season_edited, is_progress_edited = season.edit_season(
             media_id,
             media_type,
             request.POST.get("score"),
@@ -104,8 +110,23 @@ def season_handler(request, media_metadata, media_id, media_type, season_number)
             request.POST.get("season_number"),
             media_metadata.get("seasons"),
         )
+
+        # update media fields
+        media_status = season.get_media_status_from_season(
+            season_edited.status,
+            request.POST.get("season_number"),
+            media_metadata.get("seasons"),
+        )
+        season.edit_media_from_season(season_edited.parent, media_status)
+
+        # update episodes if progress is updated
+        if is_progress_edited:
+            season_edited.episodes.all().delete()
+            logger.info(f"Progress changed, deleting episodes for {season_edited}")
+            season.add_episodes_for_season(season_edited)
+
     else:
-        add_season(
+        season_added, is_media_new = season.add_season(
             media_id,
             media_metadata["title"],
             media_metadata["image"],
@@ -120,9 +141,19 @@ def season_handler(request, media_metadata, media_id, media_type, season_number)
             request.POST.get("season_number"),
             media_metadata.get("seasons"),
         )
+        # update media fields if media is not new
+        if not is_media_new:
+            media_status = season.get_media_status_from_season(
+                season_added.status, season_number, media_metadata.get("seasons")
+            )
+            season.edit_media_from_season(season_added.parent, media_status)
+
+        # add episodes according to progress
+        if season_added.progress > 0:
+            season.add_episodes_for_season(season_added)
 
 
-def episode_form_handler(request, tv, season, season_number):
+def episode_form_handler(request, tv, season_metadata, season_number):
     episodes_checked = request.POST.getlist("episode_number")
 
     if not Season.objects.filter(
@@ -131,10 +162,10 @@ def episode_form_handler(request, tv, season, season_number):
         parent__user=request.user,
         number=season_number,
     ).exists():
-        add_season(
+        season_db = season.add_season(
             request.POST.get("media_id"),
             tv["title"],
-            season["image"],
+            season_metadata["image"],
             "tv",
             score=None,
             progress=0,
@@ -146,72 +177,38 @@ def episode_form_handler(request, tv, season, season_number):
             season_number=season_number,
             seasons_metadata=tv["seasons"],
         )
-
-    if not Media.objects.filter(
-        media_id=request.POST.get("media_id"),
-        media_type="tv",
-        user=request.user,
-    ).exists():
-        add_media(
-            request.POST.get("media_id"),
-            tv["title"],
-            tv["image"],
-            "tv",
-            score=None,
-            progress=0,
-            status="Watching",
-            start_date=None,
-            end_date=None,
-            notes="",
-            user=request.user,
+    else:
+        season_db = Season.objects.get(
+            parent__media_id=request.POST.get("media_id"),
+            parent__media_type="tv",
+            parent__user=request.user,
+            number=season_number,
         )
 
-    season_db = Season.objects.get(
-        parent__media_id=request.POST.get("media_id"),
-        parent__media_type="tv",
-        parent__user=request.user,
-        number=season_number,
-    )
     if "unwatch" in request.POST:
-        for episode in episodes_checked:
-            Episode.objects.filter(
-                season=season_db, number=episode
-            ).delete()
+        for episode_checked in episodes_checked:
+            Episode.objects.filter(season=season_db, number=episode_checked).delete()
+        logger.info(f"Deleted episodes for {season_db}")
     else:
-        episodes_to_create = []
-        episdoes_to_update = []
+        episode.add_update_episodes(
+            request, episodes_checked, season_metadata, season_db
+        )
 
-        for episode in episodes_checked:
-            episode = int(episode)
-            try:
-                episode_db = Episode.objects.get(season=season_db, number=episode)
-                if "release" in request.POST:
-                    if season["episodes"][episode - 1]["air_date"]:
-                        watch_date = season["episodes"][episode - 1]["air_date"]
-                    else:
-                        watch_date = None
-                else:
-                    watch_date = request.POST.get("date")
-                episode_db.watch_date = watch_date
-                episdoes_to_update.append(episode_db)
+    # update season progress
+    season_db.progress = season_db.episodes.count()
+    if season_db.progress == len(season_metadata["episodes"]):
+        season_db.status = "Completed"
+    season_db.save()
+    logger.info(f"Updated progress field for {season_db}")
 
-            except Episode.DoesNotExist:
-                episode_db = Episode(
-                    season=season_db,
-                    number=episode,
-                )
-                if "release" in request.POST:
-                    if season["episodes"][episode - 1]["air_date"]:
-                        watch_date = season["episodes"][episode - 1]["air_date"]
-                    else:
-                        watch_date = None
-                else:
-                    watch_date = request.POST.get("date")
-                episode_db.watch_date = watch_date
-                episodes_to_create.append(episode_db)
-
-        Episode.objects.bulk_create(episodes_to_create)
-        Episode.objects.bulk_update(episdoes_to_update, ["watch_date"])
+    # update media progress
+    media_db = season_db.parent
+    media_db.progress = media_db.seasons.aggregate(Sum("progress"))["progress__sum"]
+    media_db.status = season.get_media_status_from_season(
+        season_db.status, season_number, tv["seasons"]
+    )
+    media_db.save()
+    logger.info(f"Updated progress field for {media_db}")
 
 
 # Used when updating progress from homepage.
