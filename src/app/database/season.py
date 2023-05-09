@@ -1,9 +1,9 @@
 from django.db.models import Avg, Sum, Min, Max
-from app.models import Media, Season
+from app.models import Media, Season, Episode
 from app.utils import helpers, metadata
-from app.database.media import add_media
-from app.database.episode import add_episodes_for_season
+from app.database import media
 
+from datetime import date
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,9 @@ def add_season(
     if Media.objects.filter(
         media_id=media_id, media_type=media_type, user=user
     ).exists():
-        media = Media.objects.get(media_id=media_id, media_type=media_type, user=user)
+        media_db = Media.objects.get(
+            media_id=media_id, media_type=media_type, user=user
+        )
     else:
         # if season completed, but not last season, set media status watching
         if (
@@ -40,7 +42,7 @@ def add_season(
         else:
             media_status = status
 
-        media = add_media(
+        media_db = media.add_media(
             media_id,
             title,
             image,
@@ -66,8 +68,9 @@ def add_season(
         season_image = helpers.download_image(url, media_type)
     else:
         season_image = "none.svg"
+
     season = Season.objects.create(
-        parent=media,
+        parent=media_db,
         image=season_image,
         number=season_number,
         score=score,
@@ -94,38 +97,38 @@ def edit_season(
     notes,
     user,
     season_number,
-    seasons_metadata
+    seasons_metadata,
 ):
-    media = Media.objects.get(
+    media_db = Media.objects.get(
         media_id=media_id,
         media_type=media_type,
         user=user,
     )
 
-    season = Season.objects.get(
+    season_db = Season.objects.get(
         parent=media,
         number=season_number,
     )
-    old_progress = season.progress
+    old_progress = season_db.progress
 
     # update season fields
-    season.score = score
-    season.status = status
-    season.progress = progress
-    season.start_date = start_date
-    season.end_date = end_date
-    season.notes = notes
-    season.save()
-    logger.info(f"Updated {season}")
+    season_db.score = score
+    season_db.status = status
+    season_db.progress = progress
+    season_db.start_date = start_date
+    season_db.end_date = end_date
+    season_db.notes = notes
+    season_db.save()
+    logger.info(f"Updated {season_db}")
 
     # Get all the seasons for the parent media instance
     seasons_all = Season.objects.filter(parent=media)
 
     # Update the media fields based on the aggregated values of the seasons
-    media.score = seasons_all.aggregate(Avg("score"))["score__avg"]
-    media.progress = seasons_all.aggregate(Sum("progress"))["progress__sum"]
-    media.start_date = seasons_all.aggregate(Min("start_date"))["start_date__min"]
-    media.end_date = seasons_all.aggregate(Max("end_date"))["end_date__max"]
+    media_db.score = seasons_all.aggregate(Avg("score"))["score__avg"]
+    media_db.progress = seasons_all.aggregate(Sum("progress"))["progress__sum"]
+    media_db.start_date = seasons_all.aggregate(Min("start_date"))["start_date__min"]
+    media_db.end_date = seasons_all.aggregate(Max("end_date"))["end_date__max"]
 
     # if season completed, but not last season, set media status watching
     if (
@@ -134,16 +137,28 @@ def edit_season(
         and seasons_metadata[-1]["air_date"]
         and season_number != seasons_metadata[-1]["season_number"]
     ):
-        media.status = "Watching"
+        media_db.status = "Watching"
     else:
-        media.status = status
+        media_db.status = status
 
     # Save the updated media instance
-    media.save()
+    media_db.save()
 
     logger.info(f"Updated {media} with new aggregated values")
 
-    if old_progress != season.progress:
-        season.episodes.all().delete()
-        logger.info(f"Progress changed, deleting episodes for {season}")
-        add_episodes_for_season(season)
+    if old_progress != season_db.progress:
+        season_db.episodes.all().delete()
+        logger.info(f"Progress changed, deleting episodes for {season_db}")
+        add_episodes_for_season(season_db)
+
+
+def add_episodes_for_season(season):
+    """
+    Adds episodes when season is added or when season's progress is updated
+    """
+
+    for ep_num in range(1, season.progress + 1):
+        episode = Episode.objects.create(
+            season=season, number=ep_num, watch_date=date.today()
+        )
+        logger.info(f"Added {episode}")

@@ -142,33 +142,33 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #details .grid .card .card-img-overlay .card-text .open-modal-button:disabled, #details .grid .card .card-img-overlay .card-text .progress-btn:disabled { color: transparent; }
 
-#details .episodes { margin-top: 2em; margin-bottom: 0.5em; }
+#details .episode-list { margin-top: 2em; margin-bottom: 0.5em; }
 
-#details .episodes .episode .episode-number { flex-basis: 3em; }
+#details .episode-list .episode .episode-number { flex-basis: 3em; }
 
-#details .episodes .episode .episode-name { flex-grow: 3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#details .episode-list .episode .episode-name { flex-grow: 3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-#details .episodes .episode .episode-date { flex-basis: 10em; text-align: center; }
+#details .episode-list .episode .episode-date { flex-basis: 10em; text-align: center; }
 
-#details .episodes .episode .watch-status { flex-basis: 64px; flex-shrink: 0; text-align: center; }
+#details .episode-list .episode .watch-status { flex-basis: 64px; flex-shrink: 0; text-align: center; }
 
-#details .episodes .episode .watch-status .watch-btn { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+#details .episode-list .episode .watch-status .watch-btn { color: #fff; background-color: #6c757d; border-color: #6c757d; }
 
-#details .episodes .episode .watch-status .watch-btn:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
+#details .episode-list .episode .watch-status .watch-btn:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
 
-#details .episodes .episode .check-div { flex-basis: 7em; flex-shrink: 0; text-align: center; }
+#details .episode-list .episode .check-div { flex-basis: 7em; flex-shrink: 0; text-align: center; }
 
-#details .episodes .episode .check-div .select-all { margin-left: 0.5em; }
+#details .episode-list .episode .check-div .select-all { margin-left: 0.5em; }
 
-#details .episodes .btn-group .btn-release-date { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+#details .episode-list .btn-group .btn-release-date { color: #fff; background-color: #6c757d; border-color: #6c757d; }
 
-#details .episodes .btn-group .btn-release-date:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
+#details .episode-list .btn-group .btn-release-date:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
 
-#details .episodes .btn-group .date-btn-group .form-control { padding-right: 0; border-radius: 0; border-right: 0; }
+#details .episode-list .btn-group .date-btn-group .form-control { padding-right: 0; border-radius: 0; border-right: 0; }
 
-#details .episodes .btn-group .date-btn-group .btn { border-radius: 0; border-color: #495057; border-left: 0; color: #adb5bd; }
+#details .episode-list .btn-group .date-btn-group .btn { border-radius: 0; border-color: #495057; border-left: 0; color: #adb5bd; }
 
-#details .episodes .btn-group .date-btn-group .btn:hover { color: #fff; }
+#details .episode-list .btn-group .date-btn-group .btn:hover { color: #fff; }
 
 #profile .btn-submit { border-width: 1px; border-style: solid; border-color: #56595d; color: #909294; }
 
