@@ -52,20 +52,20 @@
       <input type="hidden" name="season_number" value="{{season.season_number}}">
       
       <div class="d-flex justify-content-between align-items-center episode">
-        <div class="p-2 episode-number"></div>
+        <div class="p-2 check-div">
+          <input type="checkbox" class="form-check-input select-all">
+        </div>
+        <div class="p-2 episode-number"><strong>Episode</strong></div>
         <div class="p-2 episode-name"><strong>Name</strong></div>
         <div class="p-2 episode-date"><strong>Release Date</strong></div>
         <div class="p-2 watch-status"><strong>Status</strong></div>
-        <div class="p-2 check-div">
-          <label for="reverseCheck1">
-            <strong>Edit</strong>
-          </label>
-        
-          <input type="checkbox" class="form-check-input select-all" id="reverseCheck1">
-        </div>
       </div>
       {% for episode in season.episodes %}
       <div class="d-flex justify-content-between align-items-center episode">
+        <div class="p-2 check-div">
+          <input type="checkbox" class="form-check-input check-episode" name="episode_number" value="{{episode.episode_number}}">
+        </div>
+
         <div class="p-2 episode-number">{{episode.episode_number}}</div>
         <div class="p-2 episode-name">{{episode.name}}</div>
         <div class="p-2 episode-date">{{episode.air_date}}</div>
@@ -75,9 +75,6 @@
           {% else %}
             <i class="bi bi-eye-slash-fill"></i>
           {% endif %}
-        </div>
-        <div class="p-2 check-div">
-          <input type="checkbox" class="form-check-input check-episode" name="episode_number" value="{{episode.episode_number}}">
         </div>
       </div>
       {% endfor %}

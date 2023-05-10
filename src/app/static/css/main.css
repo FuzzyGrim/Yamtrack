@@ -144,7 +144,9 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #details .episode-list { margin-top: 2em; margin-bottom: 0.5em; }
 
-#details .episode-list .episode .episode-number { flex-basis: 3em; }
+#details .episode-list .episode .check-div { flex-basis: 1em; flex-shrink: 0; }
+
+#details .episode-list .episode .episode-number { flex-basis: 5em; flex-shrink: 0; text-align: center; }
 
 #details .episode-list .episode .episode-name { flex-grow: 3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -155,10 +157,6 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 #details .episode-list .episode .watch-status .watch-btn { color: #fff; background-color: #6c757d; border-color: #6c757d; }
 
 #details .episode-list .episode .watch-status .watch-btn:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
-
-#details .episode-list .episode .check-div { flex-basis: 7em; flex-shrink: 0; text-align: center; }
-
-#details .episode-list .episode .check-div .select-all { margin-left: 0.5em; }
 
 #details .episode-list .btn-group .btn-release-date { color: #fff; background-color: #6c757d; border-color: #6c757d; }
 
