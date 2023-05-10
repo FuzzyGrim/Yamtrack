@@ -38,6 +38,21 @@ def delete_handler(request, media_metadata, media_id, media_type, season_number)
         logger.info(
             f"Deleted {media_metadata['title']} ({media_id}) - S{season_number}"
         )
+
+        # get status of last season
+        last_season = Season.objects.filter(
+            parent__media_id=media_id,
+            parent__media_type=media_type,
+            parent__user=request.user,
+        ).order_by("-number").first()
+
+        if last_season:
+            logger.info(f"Proceeding to update media fields for {last_season.parent}")
+            # media status will be the status of the last season
+            media_status = last_season.status
+            # update media fields
+            season.edit_media_from_season(last_season.parent, media_status)
+
     else:
         Media.objects.get(
             media_id=media_id,

@@ -59,7 +59,7 @@ def clean_data(request, media_metadata):
     if post["score"] == "":
         post["score"] = None
     else:
-        post["score"] = int(post["score"])
+        post["score"] = float(post["score"])
 
     if post["progress"] == "":
         post["progress"] = 0

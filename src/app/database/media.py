@@ -117,7 +117,7 @@ def add_seasons_episodes_for_media(media):
             end_date=media.end_date,
             notes="",
         )
-        logger.info(f"Added {season_db} because of {media}'s progress update")
+        logger.info(f"Added {season_db}")
 
         # Add episodes for the current season to the database
         season.add_episodes_for_season(season_db)

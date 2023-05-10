@@ -144,7 +144,7 @@ def add_episodes_for_season(season):
         episode = Episode.objects.create(
             season=season, number=ep_num, watch_date=date.today()
         )
-        logger.info(f"Added {episode} because of {season}'s progress update")
+        logger.info(f"Added {episode}")
 
 
 def get_media_status_from_season(season_status, season_number, seasons_metadata):
