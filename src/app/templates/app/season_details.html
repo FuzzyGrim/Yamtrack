@@ -13,11 +13,13 @@
         {% endif %}
       </div>
       <div class="content d-flex flex-column align-items-start">
-        <div class="title w-100">{{media_title|capfirst}} - {{season.name}}</div>
 
-        <div class="original-type">
-          <strong>Type:</strong>
-          Season
+        <div class="title w-100">{{season.name}}</div>
+
+        <div class="show-title w-100">
+          <a href="{% url 'media_details' media_type="tv" media_id=media_id title=media_title|slugify %}">
+            {{media_title|capfirst}}
+          </a>
         </div>
 
         <div class="start-date">
@@ -34,13 +36,33 @@
             <strong>Total Episodes: {{ season.episodes|length }}</strong>
         </div>
         
-        <div class="media-form">
+        <div class="buttons-group">
           <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-tv_{{media_id}}_{{season.season_number}}" 
           data-type="tv" data-id="{{media_id}}" data-season-number="{{season.season_number}}">
             <i class="bi bi-pencil-square"></i>
-           </button>
+          </button>
           {% include "app/include/modal.html" with form_id="tv"|addstr:"_"|addstr:media_id|addstr:"_"|addstr:season.season_number title=media_title|capfirst media_id=media_id media_type="tv" season_number=season.season_number csrf_token=csrf_token only %}
+          
+          {% comment %} check for not None because Season 0 evaluates to false {% endcomment %}
+          {% if previous_season != None %}
+            <a href="{% url 'season_details' media_id=media_id title=media_title|slugify season_number=previous_season %}" class="btn btn-secondary ms-1">
+              <i class="bi bi-chevron-double-left"></i>
+            </a>
+          {% else %}
+            <a class="btn btn-secondary disabled ms-1">
+              <i class="bi bi-chevron-double-left"></i>
+            </a>
+          {% endif %}
 
+          {% if next_season != None %}
+            <a href="{% url 'season_details' media_id=media_id title=media_title|slugify season_number=next_season %}" class="btn btn-secondary ms-1">
+              <i class="bi bi-chevron-double-right"></i>
+            </a>
+            {% else %}
+            <a class="btn btn-secondary disabled ms-1">
+              <i class="bi bi-chevron-double-left"></i>
+            </a>
+          {% endif %}
         </div>
       </div>
     </div>

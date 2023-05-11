@@ -24,6 +24,14 @@
         font-weight: 600;
         color: $font-grey;
       }
+      // only present in season_details
+      .show-title {
+        margin-bottom: 0.5em;
+        a { 
+        font-size: 1.2em;
+        color: $font-grey;
+        }
+      }
       .synopsis {
         // show only 4 lines of text
         overflow: hidden;
@@ -31,7 +39,7 @@
         -webkit-line-clamp: 4;
         -webkit-box-orient: vertical;
       }
-      .media-form {
+      .buttons-group {
         margin-top: auto;
         .open-modal-button {
           color: $white;

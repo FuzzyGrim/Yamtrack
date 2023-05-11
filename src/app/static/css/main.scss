@@ -60,11 +60,18 @@
       flex-wrap: wrap;
       // center image
       justify-content: center;
+      .image {
+        margin-bottom: 1em;
+      }
       .content {
         .title {
           text-align: center;
         }
-        .media-form {
+        // only present in season_details
+        .show-title{ 
+          text-align: center;
+        }
+        .buttons-group {
           margin-top: 0.5em;
         }
       }

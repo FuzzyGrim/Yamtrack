@@ -112,13 +112,17 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #details .header .content .title { font-size: 2em; font-weight: 600; color: #d1cdc7; }
 
+#details .header .content .show-title { margin-bottom: 0.5em; }
+
+#details .header .content .show-title a { font-size: 1.2em; color: #d1cdc7; }
+
 #details .header .content .synopsis { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
 
-#details .header .content .media-form { margin-top: auto; }
+#details .header .content .buttons-group { margin-top: auto; }
 
-#details .header .content .media-form .open-modal-button { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+#details .header .content .buttons-group .open-modal-button { color: #fff; background-color: #6c757d; border-color: #6c757d; }
 
-#details .header .content .media-form .open-modal-button:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
+#details .header .content .buttons-group .open-modal-button:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
 
 #details .grid-title { margin-top: 1em; font-size: 1.2em; color: #d1cdc7; margin-bottom: 0.5em; }
 
@@ -218,6 +222,6 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 @media screen and (max-width: 991px) { body main { padding-top: 2em; } #profile .grid-container { grid-template-columns: 1fr; } #details .episode-date { display: none; } }
 
-@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .content .title { text-align: center; } #details .header .content .media-form { margin-top: 0.5em; } #details .btn-group .btn-release-date { border-radius: 0; } #details .btn-group .btn-danger { border-radius: 0; } }
+@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .image { margin-bottom: 1em; } #details .header .content .title { text-align: center; } #details .header .content .show-title { text-align: center; } #details .header .content .buttons-group { margin-top: 0.5em; } #details .btn-group .btn-release-date { border-radius: 0; } #details .btn-group .btn-danger { border-radius: 0; } }
 
 /*# sourceMappingURL=main.css.map */
