@@ -120,10 +120,6 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #details .header .content .buttons-group { margin-top: auto; }
 
-#details .header .content .buttons-group .open-modal-button { color: #fff; background-color: #6c757d; border-color: #6c757d; }
-
-#details .header .content .buttons-group .open-modal-button:hover { color: #fff; background-color: #5c636a; border-color: #565e64; }
-
 #details .grid-title { margin-top: 1em; font-size: 1.2em; color: #d1cdc7; margin-bottom: 0.5em; }
 
 #details .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }

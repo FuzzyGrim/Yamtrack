@@ -54,7 +54,7 @@
         </div>
         
         <div class="buttons-group">
-          <button type="button" title="Track" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-type="{{media.media_type}}" data-id="{{media.media_id}}">
+          <button type="button" title="Track" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-type="{{media.media_type}}" data-id="{{media.media_id}}">
             <i class="bi bi-pencil-square"></i>
           </button>
           {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title media_id=media.media_id media_type=media.media_type csrf_token=csrf_token only %}
