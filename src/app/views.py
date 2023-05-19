@@ -199,7 +199,7 @@ def season_details(request, media_id, title, season_number):
         "season": season,
         "previous_season": previous_season,
         "next_season": next_season,
-        "page": f"{tv['title']} - Season {season_number}",
+        "page": f"{tv['title']} Season {season_number}",
     }
     return render(request, "app/season_details.html", context)
 
