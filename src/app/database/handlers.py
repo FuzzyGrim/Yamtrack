@@ -177,7 +177,7 @@ def episode_form_handler(request, tv, season_metadata, season_number):
         parent__user=request.user,
         number=season_number,
     ).exists():
-        season_db = season.add_season(
+        season_db, is_media_new = season.add_season(
             request.POST.get("media_id"),
             tv["title"],
             season_metadata["image"],

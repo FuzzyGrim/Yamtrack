@@ -137,7 +137,7 @@ def edit_media_from_season(media_db, media_status):
 
 def add_episodes_for_season(season):
     """
-    Adds episodes when season is added or when season's progress is updated
+    Adds episodes depending on the season progress
     """
 
     for ep_num in range(1, season.progress + 1):
