@@ -8,6 +8,10 @@ def add_update_episodes(request, episodes_checked, season_metadata, season_db):
     """
     Add new or update existing episodes for a season
     """
+
+    # convert list of strings to list of ints
+    episodes_checked = [int(episode) for episode in episodes_checked]
+
     episodes_to_create = []
     episdoes_to_update = []
 
@@ -17,11 +21,12 @@ def add_update_episodes(request, episodes_checked, season_metadata, season_db):
     if "release" in request.POST:
         air_dates = {}
         for episode_metadata in season_metadata["episodes"]:
-            if episode_metadata['episode_number'] in episodes_checked:
-                air_dates[episode_metadata['episode_number']] = episode_metadata['air_date']
+            if episode_metadata["episode_number"] in episodes_checked:
+                air_dates[episode_metadata["episode_number"]] = episode_metadata[
+                    "air_date"
+                ]
 
     for episode in episodes_checked:
-        episode = int(episode)
         if "release" in request.POST:
             # set watch date to air date
             # air date could be null
