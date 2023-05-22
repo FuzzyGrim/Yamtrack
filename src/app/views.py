@@ -18,6 +18,7 @@ from app.forms import (
     PasswordChangeForm,
 )
 
+from datetime import date
 import logging
 
 logger = logging.getLogger(__name__)
@@ -368,15 +369,30 @@ def progress_edit(request):
     if season_number is not None:
         season_number = int(season_number)
 
-        selected_season_metadata = metadata.get_season_metadata_from_tv(
-            season_number, media_metadata.get("seasons")
+        season_metadata = metadata.season(
+            media_id, season_number
         )
 
-        if "episode_count" in selected_season_metadata:
-            max_progress = selected_season_metadata["episode_count"]
+        max_progress = len(season_metadata["episodes"])
 
         season = Season.objects.get(parent_id=media.id, number=season_number)
 
+        # save episode progress
+        if operation == "increment":
+            # next episode = current progress + 1, but 0-indexed so -1
+            episode_number = season_metadata["episodes"][season.progress]["episode_number"]
+            episode = Episode.objects.create(
+                season=season, number=episode_number, watch_date=date.today()
+            )
+            logger.info(f"Added {episode}")
+        elif operation == "decrement":
+            episode_number = season_metadata["episodes"][season.progress - 1]["episode_number"]
+            episode = Episode.objects.get(
+                season=season, number=episode_number
+            ).delete()
+            logger.info(f"Deleted {episode}")
+
+        # update season progress and status
         season.progress, season.status = handlers.progress_handler(
             operation, season.progress, max_progress, season.status
         )
