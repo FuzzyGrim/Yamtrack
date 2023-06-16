@@ -10,6 +10,7 @@ Yamtrack is a self hosted simple media tracker. You can track movies, tv shows, 
 
 It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](https://myanimelist.net/) APIs to fetch media information.
 
+
 ## Features
 
 - Track movies, tv shows, anime and manga
@@ -18,6 +19,7 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 - Docker support
 - Multi-users support
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/)
+
 
 # Installation
 
@@ -28,9 +30,11 @@ git clone https://github.com/FuzzyGrim/Yamtrack.git
 cd Yamtrack
 ```
 
+
 ## Docker-compose
 
 https://github.com/FuzzyGrim/Yamtrack/blob/d5d095e4c2dd8c842e5ea5e5664720464235114b/docker-compose.yml#L1-L25C1
+
 
 ## Environment variables
 
@@ -58,6 +62,7 @@ https://github.com/FuzzyGrim/Yamtrack/blob/d5d095e4c2dd8c842e5ea5e56647204642351
 | DB_NAME        | String      | Database name              | No           |'yamtrack'  |                                       |
 | DB_USER        | String      | Database user              | No           |'yamtrack'  |                                       |
 | DB_PASSWORD    | String      | Database password          | No           |'yamtrack'  |                                       |
+
 
 ## Local development
 
