@@ -217,7 +217,7 @@ def register(request):
     return render(request, "app/register.html", {"form": form, "page": "register"})
 
 
-class UpdatedLoginView(LoginView):
+class CustomLoginView(LoginView):
     form_class = UserLoginForm
     template_name = "app/login.html"
 
@@ -235,7 +235,7 @@ class UpdatedLoginView(LoginView):
         logger.info(
             f"User logged in as: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}"
         )
-        return super(UpdatedLoginView, self).form_valid(form)
+        return super(CustomLoginView, self).form_valid(form)
 
     def form_invalid(self, form):
         messages.error(
@@ -245,7 +245,7 @@ class UpdatedLoginView(LoginView):
         logger.error(
             f"Failed login attempt for: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}"
         )
-        return super(UpdatedLoginView, self).form_invalid(form)
+        return super(CustomLoginView, self).form_invalid(form)
 
 
 @login_required
