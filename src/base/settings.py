@@ -144,7 +144,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{asctime:<21} {levelname:<8} [{filename}:{lineno}] {message}",
+            "format": "{asctime:<21} {levelname:<7} [{filename}:{lineno}] {message}",
             # 2023-03-15T21:27:37Z format
             "datefmt": "%Y-%m-%d %H:%M:%S",
             "style": "{",

@@ -2,22 +2,40 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.db.models import Min, Max
-from django.core.validators import MinValueValidator, MaxValueValidator, DecimalValidator
+from django.core.validators import (
+    MinValueValidator,
+    MaxValueValidator,
+    DecimalValidator,
+)
 
 
 class Media(models.Model):
     media_id = models.PositiveIntegerField()
     title = models.CharField(max_length=255)
     image = models.ImageField()
-    score = models.DecimalField(null=True, blank=True, max_digits=3, decimal_places=1, validators=[DecimalValidator(3, 1), MinValueValidator(0), MaxValueValidator(10)])
+    score = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=3,
+        decimal_places=1,
+        validators=[
+            DecimalValidator(3, 1),
+            MinValueValidator(0),
+            MaxValueValidator(10),
+        ],
+    )
     progress = models.PositiveIntegerField(null=True, blank=True)
-    status = models.CharField(max_length=10, default="Completed", choices=[
-        ("Completed", "Completed"),
-        ("Watching", "Watching"),
-        ("Paused", "Paused"),
-        ("Dropped", "Dropped"),
-        ("Planning", "Planning"),
-    ])
+    status = models.CharField(
+        max_length=10,
+        default="Completed",
+        choices=[
+            ("Completed", "Completed"),
+            ("Watching", "Watching"),
+            ("Paused", "Paused"),
+            ("Dropped", "Dropped"),
+            ("Planning", "Planning"),
+        ],
+    )
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -32,10 +50,6 @@ class Media(models.Model):
 
 
 class TV(Media):
-    @property
-    def progress(self):
-        return sum(season.progress for season in self.seasons.all())
-
     status = None
     start_date = None
     end_date = None
@@ -46,25 +60,26 @@ class Season(Media):
 
     @property
     def progress(self):
-        return sum(episode.watched for episode in self.episodes.all())
+        return self.episodes.count()
 
     @property
     def start_date(self):
-        return self.episode_set.aggregate(start_date=Min('watched_date'))['start_date']
+        return self.episodes.aggregate(start_date=Min("watched_date"))["start_date"]
 
     @property
     def end_date(self):
-        return self.episode_set.aggregate(end_date=Max('watched_date'))['end_date']
+        return self.episodes.aggregate(end_date=Max("watched_date"))["end_date"]
 
     def __str__(self):
         return f"{self.title} - S{self.season_number}"
 
 
 class Episode(models.Model):
-    tv_season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name="episodes")
+    tv_season = models.ForeignKey(
+        Season, on_delete=models.CASCADE, related_name="episodes"
+    )
     episode_number = models.PositiveIntegerField()
-    watched = models.BooleanField(default=False)
-    watched_date = models.DateTimeField(null=True, blank=True)
+    watch_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.tv_season} - {self.title}"

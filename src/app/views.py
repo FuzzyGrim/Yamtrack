@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView
@@ -8,17 +8,14 @@ from django.http import JsonResponse
 from django.conf import settings
 from crispy_forms.utils import render_crispy_form
 
-from app.database import handlers
-from app.utils import helpers, search, metadata
+from app.utils import helpers, search, metadata, form_handlers
 from app.utils.imports import anilist, mal, tmdb
-from app.models import Media, Season, Episode, Season
+from app.models import Media, Season, Episode
 from app.forms import (
     UserLoginForm,
     UserRegisterForm,
     UserUpdateForm,
     PasswordChangeForm,
-    MangaForm,
-    AnimeForm,
     SeasonForm,
 )
 
@@ -148,27 +145,14 @@ def media_details(request, media_type, media_id, title):
     if request.method == "POST":
         model, form_type = helpers.media_mapper(media_type)
 
-        if "save" in request.POST:
-            # get media or set default values if it doesn't exist
-            try:
-                media_instance = model.objects.get(media_id=media_id, user=request.user)
-            except model.DoesNotExist:
-                if media_metadata["image"] != "none.svg":
-                    image_path = helpers.download_image(
-                        media_metadata["image"], media_type
-                    )
-                media_instance = model(
-                    user=request.user, title=media_metadata["title"], image=image_path
-                )
-
-            form = form_type(request.POST, instance=media_instance)
-            if form.is_valid():
-                media_instance.save()
-            else:
-                logger.error(form.errors)
-
-        elif "delete" in request.POST:
-            model.objects.filter(media_id=media_id, user=request.user).delete()
+        form_handlers.media_form_handler(
+            request,
+            media_id,
+            media_metadata["title"],
+            media_metadata["image"],
+            model,
+            form_type
+        )
 
         return redirect("media_details", media_type, media_id, title)
 
@@ -193,32 +177,16 @@ def season_details(request, media_id, title, season_number):
     tv_metadata = metadata.tv(media_id)
 
     if request.method == "POST":
-        if "save" in request.POST:
-            # get season or set default values if it doesn't exist
-            try:
-                season_instance = Season.objects.get(
-                    media_id=media_id, season_number=season_number, user=request.user
-                )
-            except Season.DoesNotExist:
-                if season_metadata["image"] != "none.svg":
-                    image_path = helpers.download_image(
-                        season_metadata["image"], "season"
-                    )
-                season_instance = Season(
-                    user=request.user, title=tv_metadata["title"], image=image_path, season_number=season_number
-                )
-
-            form = SeasonForm(request.POST, instance=season_instance)
-            if form.is_valid():
-                season_instance.save()
-            else:
-                logger.error(form.errors)
-
-        elif "delete" in request.POST:
-            Season.objects.filter(media_id=media_id, user=request.user, season_number=season_number).delete()
-
-        elif request.POST.get("episode_number"):
-            handlers.episode_form_handler(request, tv, season_metadata, season_number)
+        form_handlers.media_form_handler(
+            request,
+            media_id,
+            tv_metadata["title"],
+            season_metadata["image"],
+            Season,
+            SeasonForm,
+            season_metadata,
+            season_number
+        )
 
         return redirect("season_details", media_id, title, season_number)
 
