@@ -42,7 +42,6 @@ class TV(Media):
 
 
 class Season(Media):
-    tv_show = models.ForeignKey(TV, on_delete=models.CASCADE, related_name="seasons")
     season_number = models.PositiveIntegerField()
 
     @property
@@ -58,11 +57,12 @@ class Season(Media):
         return self.episode_set.aggregate(end_date=Max('watched_date'))['end_date']
 
     def __str__(self):
-        return f"{self.tv_show} - S{self.season_number}"
+        return f"{self.title} - S{self.season_number}"
 
 
 class Episode(models.Model):
     tv_season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name="episodes")
+    episode_number = models.PositiveIntegerField()
     watched = models.BooleanField(default=False)
     watched_date = models.DateTimeField(null=True, blank=True)
 

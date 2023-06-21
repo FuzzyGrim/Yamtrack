@@ -1,10 +1,14 @@
 from django import forms
-from .models import User
 from django.contrib.auth.forms import (
     UserCreationForm,
     PasswordChangeForm,
     AuthenticationForm,
 )
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Row, Column
+from .models import TV, Season, Manga, Anime, Movie, User
+
+import datetime
 
 
 class UserLoginForm(AuthenticationForm):
@@ -103,3 +107,112 @@ class PasswordChangeForm(PasswordChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["old_password"].widget.attrs.pop("autofocus", None)
+
+
+class MediaForm(forms.ModelForm):
+
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data.get('status')
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        if status == 'Completed' and not end_date:
+            cleaned_data['end_date'] = datetime.date.today()
+        elif status == "Watching" and not start_date:
+            cleaned_data['start_date'] = datetime.date.today()
+
+        return cleaned_data
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            "media_id",
+            Row(
+                Column("score", css_class="form-group col-md-6 pe-1"),
+                Column("progress", css_class="form-group col-md-6 ps-1"),
+                css_class="form-row"
+            ),
+            "status",
+            Row(
+                Column("start_date", css_class="form-group col-md-6 pe-1"),
+                Column("end_date", css_class="form-group col-md-6 ps-1"),
+                css_class="form-row"
+            ),
+            "notes",
+        )
+
+    class Meta:
+        fields = ["media_id", "score", "progress", "status", "start_date", "end_date", "notes"]
+        widgets = {
+            "media_id": forms.HiddenInput(),
+            "score": forms.NumberInput(attrs={"min": 0, "max": 10, "step": 0.1}),
+            "progress": forms.NumberInput(attrs={"min": 0}),
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+
+class MangaForm(MediaForm):
+
+    class Meta(MediaForm.Meta):
+        model = Manga
+
+
+class AnimeForm(MediaForm):
+    class Meta(MediaForm.Meta):
+        model = Anime
+
+
+class MovieForm(MediaForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        # movies don"t have progress, score will fill whole row
+        self.helper.layout = Layout(
+            "media_id",
+            "score",
+            "status",
+            Row(
+                Column("start_date", css_class="form-group col-md-6 pe-1"),
+                Column("end_date", css_class="form-group col-md-6 ps-1"),
+                css_class="form-row"
+            ),
+            "notes",
+        )
+
+    class Meta(MediaForm.Meta):
+        model = Movie
+        exclude = ("progress",)
+
+
+class TVForm(MediaForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            "media_id",
+            "score",
+            "notes",
+        )
+
+    class Meta(MediaForm.Meta):
+        model = TV
+        exclude = ("progress", "status", "start_date", "end_date")
+
+
+class SeasonForm(MediaForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            "media_id",
+            "score",
+            "status",
+            "notes",
+        )
+
+    class Meta(MediaForm.Meta):
+        model = Season
+        exclude = ("progress", "start_date", "end_date")

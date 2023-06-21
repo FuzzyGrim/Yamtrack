@@ -45,7 +45,7 @@
                     <i class="bi bi-pencil-square"></i>
                   </button>
           
-                  {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title media_id=media.media_id media_type=media.media_type csrf_token=csrf_token only %}
+                  {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title only %}
                 </div>
 
               </div>

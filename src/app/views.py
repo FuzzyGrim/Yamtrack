@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView
@@ -6,16 +6,20 @@ from django.contrib.auth.decorators import login_required
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
 from django.conf import settings
+from crispy_forms.utils import render_crispy_form
 
 from app.database import handlers
 from app.utils import helpers, search, metadata
 from app.utils.imports import anilist, mal, tmdb
-from app.models import Media, Season, Episode
+from app.models import Media, Season, Episode, Season
 from app.forms import (
     UserLoginForm,
     UserRegisterForm,
     UserUpdateForm,
     PasswordChangeForm,
+    MangaForm,
+    AnimeForm,
+    SeasonForm,
 )
 
 from datetime import date
@@ -98,7 +102,9 @@ def media_list(request, media_type, status=None):
                 "Dropped",
                 "Planning",
             ],
-            "page": f"{media_type}s {status.capitalize()}" if status else f"{media_type}s"
+            "page": f"{media_type}s {status.capitalize()}"
+            if status
+            else f"{media_type}s",
         },
     )
 
@@ -137,21 +143,44 @@ def media_search(request):
 
 @login_required
 def media_details(request, media_type, media_id, title):
+    media_metadata = metadata.get_media_metadata(media_type, media_id)
+
     if request.method == "POST":
-        handlers.media_season_form_handler(request)
+        model, form_type = helpers.media_mapper(media_type)
+
+        if "save" in request.POST:
+            # get media or set default values if it doesn't exist
+            try:
+                media_instance = model.objects.get(media_id=media_id, user=request.user)
+            except model.DoesNotExist:
+                if media_metadata["image"] != "none.svg":
+                    image_path = helpers.download_image(
+                        media_metadata["image"], media_type
+                    )
+                media_instance = model(
+                    user=request.user, title=media_metadata["title"], image=image_path
+                )
+
+            form = form_type(request.POST, instance=media_instance)
+            if form.is_valid():
+                media_instance.save()
+            else:
+                logger.error(form.errors)
+
+        elif "delete" in request.POST:
+            model.objects.filter(media_id=media_id, user=request.user).delete()
+
         return redirect("media_details", media_type, media_id, title)
 
-    media = metadata.get_media_metadata(media_type, media_id)
-
     related_data_list = [
-        {"name": "Related Animes", "data": media.get("related_anime")},
-        {"name": "Related Mangas", "data": media.get("related_manga")},
-        {"name": "Recommendations", "data": media.get("recommendations")},
+        {"name": "Related Animes", "data": media_metadata.get("related_anime")},
+        {"name": "Related Mangas", "data": media_metadata.get("related_manga")},
+        {"name": "Recommendations", "data": media_metadata.get("recommendations")},
     ]
 
     context = {
-        "media": media,
-        "seasons": media.get("seasons"),
+        "media": media_metadata,
+        "seasons": media_metadata.get("seasons"),
         "related_data_list": related_data_list,
         "page": title,
     }
@@ -160,47 +189,69 @@ def media_details(request, media_type, media_id, title):
 
 @login_required
 def season_details(request, media_id, title, season_number):
-
-    season = metadata.season(media_id, season_number)
-    tv = metadata.tv(media_id)
+    season_metadata = metadata.season(media_id, season_number)
+    tv_metadata = metadata.tv(media_id)
 
     if request.method == "POST":
-        if request.POST.get("episode_number"):
-            handlers.episode_form_handler(request, tv, season, season_number)
-        else:
-            handlers.media_season_form_handler(request)
+        if "save" in request.POST:
+            # get season or set default values if it doesn't exist
+            try:
+                season_instance = Season.objects.get(
+                    media_id=media_id, season_number=season_number, user=request.user
+                )
+            except Season.DoesNotExist:
+                if season_metadata["image"] != "none.svg":
+                    image_path = helpers.download_image(
+                        season_metadata["image"], "season"
+                    )
+                season_instance = Season(
+                    user=request.user, title=tv_metadata["title"], image=image_path, season_number=season_number
+                )
+
+            form = SeasonForm(request.POST, instance=season_instance)
+            if form.is_valid():
+                season_instance.save()
+            else:
+                logger.error(form.errors)
+
+        elif "delete" in request.POST:
+            Season.objects.filter(media_id=media_id, user=request.user, season_number=season_number).delete()
+
+        elif request.POST.get("episode_number"):
+            handlers.episode_form_handler(request, tv, season_metadata, season_number)
+
         return redirect("season_details", media_id, title, season_number)
 
+    # returns tuple of watched episodes in database
     watched_episodes = set(
         Episode.objects.filter(
-            season__parent__media_id=media_id,
-            season__parent__media_type="tv",
-            season__number=season_number,
-            season__parent__user=request.user,
-        ).values_list("number", flat=True)
+            tv_season__media_id=media_id,
+            tv_season__season_number=season_number,
+            tv_season__user=request.user,
+        ).values_list("episode_number", flat=True)
     )
-    for episode in season["episodes"]:
+    for episode in season_metadata["episodes"]:
         episode["watched"] = episode["episode_number"] in watched_episodes
 
     # set previous and next season numbers
-    min_season = tv["seasons"][0]["season_number"]
-    max_season = tv["seasons"][-1]["season_number"]
-    if season_number == min_season:
-        previous_season = None
-    else:
+    min_season = tv_metadata["seasons"][0]["season_number"]
+    max_season = tv_metadata["seasons"][-1]["season_number"]
+    if season_number > min_season:
         previous_season = season_number - 1
-    if season_number == max_season:
-        next_season = None
     else:
+        previous_season = None
+    if season_number < max_season:
         next_season = season_number + 1
+    else:
+        next_season = None
 
     context = {
         "media_id": media_id,
-        "media_title": tv["title"],
-        "season": season,
+        "media_title": tv_metadata["title"],
+        "season": season_metadata,
         "previous_season": previous_season,
         "next_season": next_season,
-        "page": f"{tv['title']} Season {season_number}",
+        "page": f"{tv_metadata['title']} Season {season_number}",
     }
     return render(request, "app/season_details.html", context)
 
@@ -322,27 +373,41 @@ def modal_data(request):
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
 
-    media_filter = Media.objects.filter(
-        media_type=media_type, media_id=media_id, user=request.user.id
-    ).values("id", "score", "status", "progress", "start_date", "end_date", "notes")
-
-    if media_filter:
-        media = media_filter[0]
+    if media_type == "season":
+        model_type = Season
+        form_type = SeasonForm
+        season_number = request.GET.get("season_number")
+        # set up filters to retrieve the appropriate media object
+        filters = {
+            "media_id": media_id,
+            "season_number": season_number,
+            "user": request.user,
+        }
+        initial_data = {"media_id": media_id, "season_number": season_number}
+        form_id = f"form-{media_type}_{media_id}_{season_number}"
     else:
-        return JsonResponse({})
+        model_type, form_type = helpers.media_mapper(media_type)
+        filters = {"media_id": media_id, "user": request.user}
+        initial_data = {"media_id": media_id}
+        form_id = f"form-{media_type}_{media_id}"
 
-    # if selected media is a season, return season stats
-    season_number = request.GET.get("season_number")
-    if season_number is None:
-        return JsonResponse(media)
-    else:
-        season = Season.objects.filter(
-            parent_id=media["id"], number=season_number
-        ).values("score", "status", "progress", "start_date", "end_date", "notes")
-        if season:
-            return JsonResponse(season[0])
-        else:
-            return JsonResponse({})
+    try:
+        # try to retrieve the media object using the filters
+        media = model_type.objects.get(**filters)
+        form = form_type(instance=media, initial=initial_data)
+        allow_delete = True
+    except model_type.DoesNotExist:
+        form = form_type(initial=initial_data)
+        allow_delete = True
+
+    # render form as HTML
+    form_html = render_crispy_form(
+        form, context={"csrf_token": request.COOKIES["csrftoken"]}
+    )
+    # set the form's ID
+    form_html = form_html.replace("<form", f'<form id="{form_id}"')
+
+    return JsonResponse({"html": form_html, "allow_delete": allow_delete})
 
 
 @login_required
@@ -369,9 +434,7 @@ def progress_edit(request):
     if season_number is not None:
         season_number = int(season_number)
 
-        season_metadata = metadata.season(
-            media_id, season_number
-        )
+        season_metadata = metadata.season(media_id, season_number)
 
         max_progress = len(season_metadata["episodes"])
 
@@ -380,16 +443,18 @@ def progress_edit(request):
         # save episode progress
         if operation == "increment":
             # next episode = current progress + 1, but 0-indexed so -1
-            episode_number = season_metadata["episodes"][season.progress]["episode_number"]
+            episode_number = season_metadata["episodes"][season.progress][
+                "episode_number"
+            ]
             episode = Episode.objects.create(
                 season=season, number=episode_number, watch_date=date.today()
             )
             logger.info(f"Added {episode}")
         elif operation == "decrement":
-            episode_number = season_metadata["episodes"][season.progress - 1]["episode_number"]
-            episode = Episode.objects.get(
-                season=season, number=episode_number
-            ).delete()
+            episode_number = season_metadata["episodes"][season.progress - 1][
+                "episode_number"
+            ]
+            episode = Episode.objects.get(season=season, number=episode_number).delete()
             logger.info(f"Deleted {episode}")
 
         # update season progress and status

@@ -202,12 +202,6 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #register .form-signin .form-floating:focus-within { z-index: 2; }
 
-.media-form-modal form { column-gap: 0.6em; row-gap: 1em; }
-
-.media-form-modal form .descriptor { font-size: 0.8rem; margin-bottom: 0.4em; }
-
-.media-form-modal form .form-select { border-radius: 0.2rem; }
-
 .media-form-modal form input[type=number] { appearance: textfield; -moz-appearance: textfield; }
 
 .media-form-modal form input[type=date] { color-scheme: dark; }

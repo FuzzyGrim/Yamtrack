@@ -13,63 +13,10 @@
       </div>
 
       <div class="modal-body">
-        <form method="post" id="form-{{form_id}}">
-          <input type="hidden" name="media_type" value="{{media_type}}">
-          {% if season_number is not None %}
-            <input type="hidden" name="season_number" value="{{season_number}}">
-          {% endif %}
-          <input type="hidden" name="media_id" value="{{media_id}}">
-          {% csrf_token %}
-          <div class="row gx-3 gy-3">
-            <div class="col-12">
-              <div class="descriptor">Status</div>
-              <select name="status" class="form-select bg-dark text-white">
-                <option value="Completed" {% if db.status == "Completed" %}selected{% endif %}>Completed</option>
-                <option value="Planning" {% if db.status == "Planning" %}selected{% endif %}>Planning</option>
-                <option value="Watching" {% if db.status == "Watching" %}selected{% endif %}>Watching</option>
-                <option value="Paused" {% if db.status == "Paused" %}selected{% endif %}>Paused</option>
-                <option value="Dropped" {% if db.status == "Dropped" %}selected{% endif %}>Dropped</option>
-              </select>
-            </div>
-            <div class="col-12 col-sm-6">
-              <div class="descriptor">Score</div>
-              <input type="number" class="form-control bg-dark text-white" name="score" value="{{db.score}}" step="0.1" min="0" max="10">
-            </div>
-            <div class="col-12 col-sm-6">
-              <div class="descriptor">Progress</div>
-              <input type="number" class="form-control bg-dark text-white" name="progress" value="{{db.progress}}" step="1" min="0">
-            </div>
-            <div class="col-12 col-sm-6">
-              <div class="descriptor">Start Date</div>
-              <input type="date" class="form-control bg-dark text-white" name="start" value="{{db.start_date|date:'Y-m-d'}}">
-            </div>
-            <div class="col-12 col-sm-6">
-              <div class="descriptor">End Date</div>
-              <input type="date" class="form-control bg-dark text-white" name="end" value="{{db.end_date|date:'Y-m-d'}}">
-            </div>
-            <div class="col-12">
-              <div class="descriptor">Notes</div>
-              <textarea class="form-control bg-dark text-white" name="notes" value="{{db.notes}}"></textarea>
-            </div>
-          </div>
-        </form>
       </div>
 
-      <div class="modal-footer d-flex justify-content-between">
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="media_type" value="{{media_type}}">
-          <input type="hidden" name="media_id" value="{{media_id}}">
-
-          {% if season_number is not None %}
-            <input type="hidden" name="season_number" value="{{season_number}}">
-          {% endif %}
-
-          {% if db %}
-            <button type="submit" class="btn btn-danger" name="delete">Delete</button>
-          {% endif %}
-        </form>
-        <button type="submit" form="form-{{form_id}}" class="btn btn-primary">Save</button>
+      <div class="modal-footer d-flex flex-row-reverse justify-content-between">
+        <button type="submit" form="form-{{form_id}}" name="save" class="btn btn-primary">Save</button>
       </div>
 
     </div>
