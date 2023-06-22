@@ -111,6 +111,11 @@ class PasswordChangeForm(PasswordChangeForm):
 
 class MediaForm(forms.ModelForm):
 
+    media_type = forms.CharField(
+        max_length=20,
+        widget=forms.HiddenInput(),
+    )
+
     def clean(self):
         cleaned_data = super().clean()
         status = cleaned_data.get('status')
@@ -129,6 +134,7 @@ class MediaForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.layout = Layout(
             "media_id",
+            "media_type",
             Row(
                 Column("score", css_class="form-group col-md-6 pe-1"),
                 Column("progress", css_class="form-group col-md-6 ps-1"),
@@ -144,7 +150,7 @@ class MediaForm(forms.ModelForm):
         )
 
     class Meta:
-        fields = ["media_id", "score", "progress", "status", "start_date", "end_date", "notes"]
+        fields = ["media_id", "media_type", "score", "progress", "status", "start_date", "end_date", "notes"]
         widgets = {
             "media_id": forms.HiddenInput(),
             "score": forms.NumberInput(attrs={"min": 0, "max": 10, "step": 0.1}),
@@ -172,6 +178,7 @@ class MovieForm(MediaForm):
         # movies don"t have progress, score will fill whole row
         self.helper.layout = Layout(
             "media_id",
+            "media_type",
             "score",
             "status",
             Row(
@@ -193,6 +200,7 @@ class TVForm(MediaForm):
         self.helper = FormHelper()
         self.helper.layout = Layout(
             "media_id",
+            "media_type",
             "score",
             "notes",
         )
@@ -203,11 +211,19 @@ class TVForm(MediaForm):
 
 
 class SeasonForm(MediaForm):
+    season_number = forms.IntegerField(
+        min_value=0,
+        step_size=1,
+        widget=forms.HiddenInput(),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
             "media_id",
+            "media_type",
+            "season_number",
             "score",
             "status",
             "notes",

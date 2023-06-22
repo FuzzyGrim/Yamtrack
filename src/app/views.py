@@ -10,7 +10,7 @@ from crispy_forms.utils import render_crispy_form
 
 from app.utils import helpers, search, metadata, form_handlers
 from app.utils.imports import anilist, mal, tmdb
-from app.models import Media, Season, Episode
+from app.models import TV, Season, Episode, Anime, Manga
 from app.forms import (
     UserLoginForm,
     UserRegisterForm,
@@ -21,48 +21,31 @@ from app.forms import (
 
 from datetime import date
 import logging
+from itertools import chain
+from operator import attrgetter
 
 logger = logging.getLogger(__name__)
 
 
 @login_required
 def home(request):
-    if request.method == "POST":
-        handlers.media_season_form_handler(request)
-        return redirect("home")
 
-    media_list = (
-        Media.objects.filter(user_id=request.user, status__in=["Watching"])
-        .order_by("media_type", "title")
-        .prefetch_related("seasons")
-    )
+    watching = {}
 
-    # Create a dictionary to group the results by media_type and status
-    media_dict = {}
-    for media in media_list:
-        key = f"{media.media_type}_{media.status}"
-        if key not in media_dict:
-            if media.media_type == "tv":
-                list_title = "TV in Progress"
-            else:
-                list_title = f"{media.media_type.capitalize()} in Progress"
-            media_dict[key] = {
-                "list_title": list_title,
-                "media_list": [],
-            }
+    seasons = Season.objects.filter(user_id=request.user, status="Watching")
+    if seasons.exists():
+        watching["season"] = seasons
 
-        # template will show the season that is being watched
-        if media.seasons.exists():
-            for season in media.seasons.all():
-                if season.status == "Watching":
-                    media.season_number = season.number
-                    media.progress = season.progress
-                    media.image = season.image
+    animes = Anime.objects.filter(user_id=request.user, status="Watching")
+    if animes.exists():
+        watching["anime"] = animes
 
-        media_dict[key]["media_list"].append(media)
+    mangas = Manga.objects.filter(user_id=request.user, status="Watching")
+    if mangas.exists():
+        watching["manga"] = mangas
 
     context = {
-        "media_dict": media_dict,
+        "watching": watching,
         "page": "home",
     }
     return render(request, "app/home.html", context)
@@ -70,8 +53,20 @@ def home(request):
 
 @login_required
 def media_list(request, media_type, status=None):
+    model, form_type = helpers.media_mapper(media_type)
+
     if request.method == "POST":
-        handlers.media_season_form_handler(request)
+        media_id = request.POST.get("media_id")
+        form_media_type = request.POST.get("media_type")
+        media_metadata = metadata.get_media_metadata(media_type, media_id)
+
+        form_handlers.media_form_handler(
+            request,
+            media_id,
+            media_metadata["title"],
+            media_metadata["image"],
+            form_media_type,
+        )
 
         if status:
             return redirect("medialist", media_type=media_type, status=status)
@@ -79,11 +74,24 @@ def media_list(request, media_type, status=None):
             return redirect("medialist", media_type=media_type)
 
     if status:
-        media_list = Media.objects.filter(
-            user_id=request.user, media_type=media_type, status=status.capitalize()
-        )
+        if media_type == "tv":
+            # as tv doesn't have a status field, only filter seasons
+            media_list = Season.objects.filter(user_id=request.user, status=status.capitalize())
+        else:
+            media_list = model.objects.filter(user_id=request.user, status=status.capitalize())
     else:
-        media_list = Media.objects.filter(user_id=request.user, media_type=media_type)
+        if media_type == "tv":
+            # show both tv and seasons in the same list
+            tv_list = TV.objects.filter(user_id=request.user)
+            season_list = Season.objects.filter(user_id=request.user)
+
+            media_list = sorted(
+                            chain(tv_list, season_list),
+                            key=attrgetter('score'),
+                            reverse=True,
+                        )
+        else:
+            media_list = model.objects.filter(user_id=request.user)
 
     return render(
         request,
@@ -117,7 +125,16 @@ def media_search(request):
         request.user.save()
 
         if request.method == "POST":
-            handlers.media_season_form_handler(request)
+            media_id = request.POST.get("media_id")
+            media_metadata = metadata.get_media_metadata(media_type, media_id)
+
+            form_handlers.media_form_handler(
+                request,
+                media_id,
+                media_metadata["title"],
+                media_metadata["image"],
+                media_type,
+            )
             return redirect("/search?media_type=" + media_type + "&q=" + query)
 
         if media_type == "anime" or media_type == "manga":
@@ -143,15 +160,15 @@ def media_details(request, media_type, media_id, title):
     media_metadata = metadata.get_media_metadata(media_type, media_id)
 
     if request.method == "POST":
-        model, form_type = helpers.media_mapper(media_type)
+        form_media_type = request.POST.get("media_type")
+        model, form_type = helpers.media_mapper(form_media_type)
 
         form_handlers.media_form_handler(
             request,
             media_id,
             media_metadata["title"],
             media_metadata["image"],
-            model,
-            form_type
+            form_media_type
         )
 
         return redirect("media_details", media_type, media_id, title)
@@ -182,8 +199,7 @@ def season_details(request, media_id, title, season_number):
             media_id,
             tv_metadata["title"],
             season_metadata["image"],
-            Season,
-            SeasonForm,
+            "season",
             season_metadata,
             season_number
         )
@@ -340,10 +356,9 @@ def profile(request):
 def modal_data(request):
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
+    model_type, form_type = helpers.media_mapper(media_type)
 
     if media_type == "season":
-        model_type = Season
-        form_type = SeasonForm
         season_number = request.GET.get("season_number")
         # set up filters to retrieve the appropriate media object
         filters = {
@@ -351,12 +366,15 @@ def modal_data(request):
             "season_number": season_number,
             "user": request.user,
         }
-        initial_data = {"media_id": media_id, "season_number": season_number}
+        initial_data = {
+            "media_id": media_id,
+            "media_type": media_type,
+            "season_number": season_number
+        }
         form_id = f"form-{media_type}_{media_id}_{season_number}"
     else:
-        model_type, form_type = helpers.media_mapper(media_type)
         filters = {"media_id": media_id, "user": request.user}
-        initial_data = {"media_id": media_id}
+        initial_data = {"media_id": media_id, "media_type": media_type}
         form_id = f"form-{media_type}_{media_id}"
 
     try:
@@ -366,7 +384,7 @@ def modal_data(request):
         allow_delete = True
     except model_type.DoesNotExist:
         form = form_type(initial=initial_data)
-        allow_delete = True
+        allow_delete = False
 
     # render form as HTML
     form_html = render_crispy_form(
@@ -382,31 +400,15 @@ def modal_data(request):
 def progress_edit(request):
     media_type = request.POST.get("media_type")
     media_id = request.POST.get("media_id")
-
-    media_metadata = metadata.get_media_metadata(media_type, media_id)
-
-    max_progress = media_metadata.get("num_episodes", 1)
-
-    media = Media.objects.get(
-        media_type=media_type, media_id=media_id, user=request.user.id
-    )
-
     operation = request.POST.get("operation")
 
-    media.progress, media.status = handlers.progress_handler(
-        operation, media.progress, max_progress, media.status
-    )
-    media.save()
-
-    season_number = request.POST.get("season_number")
-    if season_number is not None:
-        season_number = int(season_number)
-
+    if media_type == "season":
+        season_number = request.POST.get("season_number")
+        # season_number = int(season_number)
         season_metadata = metadata.season(media_id, season_number)
-
         max_progress = len(season_metadata["episodes"])
 
-        season = Season.objects.get(parent_id=media.id, number=season_number)
+        season = Season.objects.get(media_id=media_id, season_number=season_number)
 
         # save episode progress
         if operation == "increment":
@@ -414,26 +416,40 @@ def progress_edit(request):
             episode_number = season_metadata["episodes"][season.progress][
                 "episode_number"
             ]
-            episode = Episode.objects.create(
-                season=season, number=episode_number, watch_date=date.today()
+            Episode.objects.create(
+                tv_season=season, episode_number=episode_number, watch_date=date.today()
             )
-            logger.info(f"Added {episode}")
         elif operation == "decrement":
             episode_number = season_metadata["episodes"][season.progress - 1][
                 "episode_number"
             ]
-            episode = Episode.objects.get(season=season, number=episode_number).delete()
-            logger.info(f"Deleted {episode}")
+            Episode.objects.get(tv_season=season, episode_number=episode_number).delete()
 
-        # update season progress and status
-        season.progress, season.status = handlers.progress_handler(
-            operation, season.progress, max_progress, season.status
-        )
-        season.save()
+        if season.progress == max_progress:
+            season.status = "Completed"
+            season.save()
 
         response = {"progress": season.progress}
 
-    response = {"progress": media.progress}
+    else:
+        model, form_type = helpers.media_mapper(media_type)
+        media_metadata = metadata.get_media_metadata(media_type, media_id)
+
+        max_progress = media_metadata.get("num_episodes", 1)
+
+        media = model.objects.get(
+            media_id=media_id, user=request.user.id
+        )
+
+        if operation == "increment":
+            media.progress += 1
+        elif operation == "decrement":
+            media.progress -= 1
+
+        if media.progress == max_progress:
+            media.status = "Completed"
+        media.save()
+        response = {"progress": media.progress}
 
     response["min"] = response["progress"] == 0
     response["max"] = response["progress"] == max_progress

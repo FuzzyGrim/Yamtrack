@@ -64,7 +64,6 @@ async def download_image_async(session, url, media_type):
                 f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
-                logger.info(f"Downloaded {filename}")
 
 
 def clean_data(request, media_metadata):
@@ -99,7 +98,10 @@ def clean_data(request, media_metadata):
             post["season_number"], seasons_metadata
         )
         # if completed and has episode count, set progress to episode count
-        if "episode_count" in selected_season_metadata and post["status"] == "Completed":
+        if (
+            "episode_count" in selected_season_metadata
+            and post["status"] == "Completed"
+        ):
             post["progress"] = selected_season_metadata["episode_count"]
     else:
         if "num_episodes" in media_metadata and post["status"] == "Completed":
@@ -130,25 +132,25 @@ def media_mapper(media_type):
     - tuple: A tuple containing the model and form class corresponding to the media type.
     """
     media_mapping = {
-        'manga': {
-            'model': Manga,
-            'form_class': MangaForm,
+        "manga": {
+            "model": Manga,
+            "form_class": MangaForm,
         },
-        'anime': {
-            'model': Anime,
-            'form_class': AnimeForm,
+        "anime": {
+            "model": Anime,
+            "form_class": AnimeForm,
         },
-        'movie': {
-            'model': Movie,
-            'form_class': MovieForm,
+        "movie": {
+            "model": Movie,
+            "form_class": MovieForm,
         },
-        'tv': {
-            'model': TV,
-            'form_class': TVForm,
+        "tv": {
+            "model": TV,
+            "form_class": TVForm,
         },
-        'season': {
-            'model': Season,
-            'form_class': SeasonForm,
+        "season": {
+            "model": Season,
+            "form_class": SeasonForm,
         },
     }
-    return media_mapping[media_type]['model'], media_mapping[media_type]['form_class']
+    return media_mapping[media_type]["model"], media_mapping[media_type]["form_class"]

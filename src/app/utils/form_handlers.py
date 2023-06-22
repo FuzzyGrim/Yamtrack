@@ -1,4 +1,4 @@
-from app.utils import helpers
+from app.utils import helpers, metadata
 from app.models import Season, Episode
 
 import logging
@@ -11,20 +11,23 @@ def media_form_handler(
     media_id,
     title,
     image,
-    model,
-    form,
+    media_type,
     season_metadata=None,
     season_number=None,
-):
+):  
+    if media_type == "season" and season_metadata is None and season_number is None:
+        season_number = request.POST["season_number"]
+        season_metadata = metadata.season(media_id, season_number)
+
     if "save" in request.POST:
-        media_save(request, media_id, title, image, model, form, season_number)
+        media_save(request, media_id, title, image, media_type, season_number)
     elif "delete" in request.POST:
-        media_delete(request, media_id, model, season_number)
+        media_delete(request, media_id, media_type, season_number)
     elif "episode_number" in request.POST:
         episode_handler(request, media_id, title, image, season_metadata, season_number)
 
 
-def media_save(request, media_id, title, image, model, form, season_number=None):
+def media_save(request, media_id, title, image, media_type, season_number=None):
     """
     Saves media data to the database.
 
@@ -37,6 +40,7 @@ def media_save(request, media_id, title, image, model, form, season_number=None)
         form (Form): The form to use for validating the media data.
         season_number (int, optional): The season number of the media. Defaults to None.
     """
+    model, form = helpers.media_mapper(media_type)
     try:
         # Try to get an existing instance of the model with the given media_id and user
         search_params = {
@@ -50,7 +54,7 @@ def media_save(request, media_id, title, image, model, form, season_number=None)
     except model.DoesNotExist:
         # If the model instance doesn't exist, create a new one
         if image != "none.svg":
-            image_path = helpers.download_image(image, "season")
+            image_path = helpers.download_image(image, "media_type")
         default_params = {
             "user": request.user,
             "title": title,
@@ -68,7 +72,7 @@ def media_save(request, media_id, title, image, model, form, season_number=None)
         logger.error(form.errors)
 
 
-def media_delete(request, media_id, model, season_number=None):
+def media_delete(request, media_id, media_type, season_number=None):
     """
     Deletes media data from the database.
 
@@ -78,7 +82,7 @@ def media_delete(request, media_id, model, season_number=None):
         model (Model): The model to use for deleting the media data.
         season_number (int, optional): The season number of the media. Defaults to None.
     """
-
+    model, _ = helpers.media_mapper(media_type)
     search_params = {
         "media_id": media_id,
         "user": request.user,

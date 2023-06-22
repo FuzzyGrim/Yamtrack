@@ -24,7 +24,7 @@ class Media(models.Model):
             MaxValueValidator(10),
         ],
     )
-    progress = models.PositiveIntegerField(null=True, blank=True)
+    progress = models.PositiveIntegerField(default=0)
     status = models.CharField(
         max_length=10,
         default="Completed",
@@ -50,6 +50,7 @@ class Media(models.Model):
 
 
 class TV(Media):
+    progress = None
     status = None
     start_date = None
     end_date = None

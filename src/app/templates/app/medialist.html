@@ -58,20 +58,20 @@
       </div>
     
       <div class="title p-2">
-        <a href={% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}>
-          {{media.title}}
+        <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify%}>
+          {{media}}
         </a>
       </div>
       <div class="score p-2">{{media.score}}</div>
-      <div class="status p-2">{{media.status}}</div>
-      <div class="_progress p-2">{{media.progress}}</div>
+      <div class="status p-2">{{media.status|default_if_none:""}}</div>
+      <div class="_progress p-2">{{media.progress|default_if_none:""}}</div>
       
       <div class="edit p-2">
-        <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-type="{{media.media_type}}" data-id="{{media.media_id}}">
+        <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media_type}}_{{media.media_id}}" data-type="{{media_type}}" data-id="{{media.media_id}}">
           <i class="bi bi-pencil-square"></i>
         </button>
 
-        {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title db=media only %}
+        {% include "app/include/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media.title db=media only %}
       </div>
     
     </div>
@@ -83,4 +83,5 @@
 
 {% block extra_scripts %}
   <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
+  <script src="{% static 'js/modal-load.js' %}"></script>
 {% endblock extra_scripts %}

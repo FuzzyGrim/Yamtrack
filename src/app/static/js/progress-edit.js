@@ -1,39 +1,39 @@
-var progressButtons = document.querySelectorAll(".progress-btn");
+let progressButtons = document.querySelectorAll(".progress-btn");
 
 progressButtons.forEach(function (button) {
   button.addEventListener("click", function () {
     // get the data attribute from the clicked element
-    var type = this.getAttribute("data-type");
-    var id = this.getAttribute("data-id");
-    var operation = this.getAttribute("data-operation");
-    var div_id = type + "_" + id;
+    let type = this.getAttribute("data-type");
+    let id = this.getAttribute("data-id");
+    let operation = this.getAttribute("data-operation");
+    let card_id = type + "_" + id;
 
     if (this.hasAttribute("data-season-number")) {
-      div_id += "_" + this.getAttribute("data-season-number");
+      card_id += "_" + this.getAttribute("data-season-number");
     }
 
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.onload = function () {
       if (xhr.status === 200) {
         const response = JSON.parse(xhr.responseText);
         const progress = response.progress;
 
-        // update progress from div_id .progress_count
-        document.querySelector(`#${div_id} .progress_count`).innerHTML = progress;
-        const incrementButton = document.querySelector(`#${div_id} [data-operation="increment"]`);
-        const decrementButton = document.querySelector(`#${div_id} [data-operation="decrement"]`);
+        // update progress from card_id .progress_count
+        document.querySelector(`#${card_id} .progress_count`).innerHTML = progress;
+        const incrementButton = document.querySelector(`#${card_id} [data-operation="increment"]`);
+        const decrementButton = document.querySelector(`#${card_id} [data-operation="decrement"]`);
 
+        // disable both as it will be marked as completed
         if (response.max) {
           incrementButton.disabled = true;
+          decrementButton.disabled = true;
         }
-        else {
+        else if (response.min) {
           incrementButton.disabled = false;
-        }
-
-        if (response.min) {
           decrementButton.disabled = true;
         }
         else {
+          incrementButton.disabled = false;
           decrementButton.disabled = false;
         }
         
