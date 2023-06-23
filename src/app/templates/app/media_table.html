@@ -67,11 +67,21 @@
       <div class="_progress p-2">{{media.progress|default_if_none:""}}</div>
       
       <div class="edit p-2">
-        <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media_type}}_{{media.media_id}}" data-type="{{media_type}}" data-id="{{media.media_id}}">
-          <i class="bi bi-pencil-square"></i>
-        </button>
+        {% if media.season_number is None %}
+          <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media_type}}_{{media.media_id}}" data-type="{{media_type}}" data-id="{{media.media_id}}">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          {% include "app/include/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media only %}
+        
+        {% else %}
 
-        {% include "app/include/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media.title db=media only %}
+          <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-season_{{media.media_id}}_{{media.season_number}}" 
+          data-type="season" data-id="{{media.media_id}}" data-season-number="{{media.season_number}}">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          {% include "app/include/modal.html" with form_id="season"|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:media.season_number title=media season_number=season.season_number only %}
+        
+        {% endif %}
       </div>
     
     </div>
