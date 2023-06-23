@@ -1,12 +1,10 @@
 from django.conf import settings
-from app.utils import metadata
 from app.models import Manga, Anime, Movie, TV, Season
 from app.forms import MangaForm, AnimeForm, MovieForm, TVForm, SeasonForm
 
 import aiofiles
 import aiohttp
 import asyncio
-import datetime
 import requests
 import pathlib
 import logging
@@ -64,50 +62,6 @@ async def download_image_async(session, url, media_type):
                 f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
-
-
-def clean_data(request, media_metadata):
-    post = request.POST.copy()
-
-    if post["score"] == "":
-        post["score"] = None
-    else:
-        post["score"] = float(post["score"])
-
-    if post["progress"] == "":
-        post["progress"] = 0
-    else:
-        post["progress"] = int(post["progress"])
-
-    if post["start"] == "":
-        if post["status"] == "Watching":
-            post["start"] = datetime.date.today()
-        else:
-            post["start"] = None
-
-    if post["end"] == "":
-        if post["status"] == "Completed":
-            post["end"] = datetime.date.today()
-        else:
-            post["end"] = None
-
-    if "season_number" in post:
-        post["season_number"] = int(post["season_number"])
-        seasons_metadata = media_metadata.get("seasons")
-        selected_season_metadata = metadata.get_season_metadata_from_tv(
-            post["season_number"], seasons_metadata
-        )
-        # if completed and has episode count, set progress to episode count
-        if (
-            "episode_count" in selected_season_metadata
-            and post["status"] == "Completed"
-        ):
-            post["progress"] = selected_season_metadata["episode_count"]
-    else:
-        if "num_episodes" in media_metadata and post["status"] == "Completed":
-            post["progress"] = media_metadata["num_episodes"]
-
-    return post
 
 
 def get_client_ip(request):

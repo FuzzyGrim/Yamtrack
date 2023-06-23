@@ -16,20 +16,17 @@ from app.forms import (
     UserRegisterForm,
     UserUpdateForm,
     PasswordChangeForm,
-    SeasonForm,
 )
 
 from datetime import date
 import logging
 from itertools import chain
-from operator import attrgetter
 
 logger = logging.getLogger(__name__)
 
 
 @login_required
 def home(request):
-
     watching = {}
 
     seasons = Season.objects.filter(user_id=request.user, status="Watching")
@@ -76,9 +73,13 @@ def media_list(request, media_type, status=None):
     if status:
         if media_type == "tv":
             # as tv doesn't have a status field, only filter seasons
-            media_list = Season.objects.filter(user_id=request.user, status=status.capitalize())
+            media_list = Season.objects.filter(
+                user_id=request.user, status=status.capitalize()
+            )
         else:
-            media_list = model.objects.filter(user_id=request.user, status=status.capitalize())
+            media_list = model.objects.filter(
+                user_id=request.user, status=status.capitalize()
+            )
     else:
         if media_type == "tv":
             # show both tv and seasons in the same list
@@ -86,16 +87,18 @@ def media_list(request, media_type, status=None):
             season_list = Season.objects.filter(user_id=request.user)
 
             media_list = sorted(
-                            chain(tv_list, season_list),
-                            key=attrgetter('score'),
-                            reverse=True,
-                        )
+                chain(tv_list, season_list),
+                key=lambda item: item.score
+                if item.score is not None
+                else float("-inf"),
+                reverse=True,
+            )
         else:
             media_list = model.objects.filter(user_id=request.user)
 
     return render(
         request,
-        "app/medialist.html",
+        "app/media_table.html",
         {
             "media_type": media_type,
             "media_list": media_list,
@@ -168,7 +171,7 @@ def media_details(request, media_type, media_id, title):
             media_id,
             media_metadata["title"],
             media_metadata["image"],
-            form_media_type
+            form_media_type,
         )
 
         return redirect("media_details", media_type, media_id, title)
@@ -201,7 +204,7 @@ def season_details(request, media_id, title, season_number):
             season_metadata["image"],
             "season",
             season_metadata,
-            season_number
+            season_number,
         )
 
         return redirect("season_details", media_id, title, season_number)
@@ -369,7 +372,7 @@ def modal_data(request):
         initial_data = {
             "media_id": media_id,
             "media_type": media_type,
-            "season_number": season_number
+            "season_number": season_number,
         }
         form_id = f"form-{media_type}_{media_id}_{season_number}"
     else:
@@ -423,7 +426,9 @@ def progress_edit(request):
             episode_number = season_metadata["episodes"][season.progress - 1][
                 "episode_number"
             ]
-            Episode.objects.get(tv_season=season, episode_number=episode_number).delete()
+            Episode.objects.get(
+                tv_season=season, episode_number=episode_number
+            ).delete()
 
         if season.progress == max_progress:
             season.status = "Completed"
@@ -437,9 +442,7 @@ def progress_edit(request):
 
         max_progress = media_metadata.get("num_episodes", 1)
 
-        media = model.objects.get(
-            media_id=media_id, user=request.user.id
-        )
+        media = model.objects.get(media_id=media_id, user=request.user.id)
 
         if operation == "increment":
             media.progress += 1

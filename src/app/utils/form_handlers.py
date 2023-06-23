@@ -14,7 +14,7 @@ def media_form_handler(
     media_type,
     season_metadata=None,
     season_number=None,
-):  
+):
     if media_type == "season" and season_metadata is None and season_number is None:
         season_number = request.POST["season_number"]
         season_metadata = metadata.season(media_id, season_number)
@@ -54,11 +54,11 @@ def media_save(request, media_id, title, image, media_type, season_number=None):
     except model.DoesNotExist:
         # If the model instance doesn't exist, create a new one
         if image != "none.svg":
-            image_path = helpers.download_image(image, "media_type")
+            image = helpers.download_image(image, "media_type")
         default_params = {
             "user": request.user,
             "title": title,
-            "image": image_path,
+            "image": image,
         }
         if season_number is not None:
             default_params["season_number"] = season_number

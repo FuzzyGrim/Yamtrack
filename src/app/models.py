@@ -42,7 +42,7 @@ class Media(models.Model):
     notes = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.title} ({self.media_id})"
+        return f"{self.title}"
 
     class Meta:
         abstract = True
@@ -95,7 +95,12 @@ class Anime(Media):
 
 
 class Movie(Media):
-    progress = None
+    @property
+    def progress(self):
+        if self.status == "Completed":
+            return 1
+        else:
+            return 0
 
 
 class User(AbstractUser):
