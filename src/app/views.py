@@ -49,8 +49,60 @@ def home(request):
 
 
 @login_required
-def media_list(request, media_type, status=None):
-    model, form_type = helpers.media_mapper(media_type)
+def media_list(request, media_type):
+    media_mapping = helpers.media_type_mapper(media_type)
+
+    if request.method == "POST":
+        media_id = request.POST.get("media_id")
+        form_media_type = request.POST.get("media_type")
+        media_metadata = metadata.get_media_metadata(media_type, media_id)
+
+        form_handlers.media_form_handler(
+            request,
+            media_id,
+            media_metadata["title"],
+            media_metadata["image"],
+            form_media_type,
+        )
+        return redirect("medialist", media_type=media_type)
+
+    if media_type == "tv":
+        # show both tv and seasons in the same list
+        tv_list = TV.objects.filter(user_id=request.user)
+        season_list = Season.objects.filter(user_id=request.user)
+
+        media_list = sorted(
+            chain(tv_list, season_list),
+            key=lambda item: item.score
+            if item.score is not None
+            else float("-inf"),
+            reverse=True,
+        )
+    else:
+        media_list = media_mapping["model"].objects.filter(user_id=request.user)
+
+    return render(
+        request,
+        media_mapping["list_layout"],
+        {
+            "media_type": media_type,
+            "media_list": media_list,
+            "statuses": [
+                "All",
+                "Completed",
+                "Watching",
+                "Paused",
+                "Dropped",
+                "Planning",
+            ],
+            "page": f"{media_type}s"
+        },
+    )
+
+
+@login_required
+def media_list_status(request, media_type, status):
+    media_mapping = helpers.media_type_mapper(media_type)
 
     if request.method == "POST":
         media_id = request.POST.get("media_id")
@@ -65,40 +117,21 @@ def media_list(request, media_type, status=None):
             form_media_type,
         )
 
-        if status:
-            return redirect("medialist", media_type=media_type, status=status)
-        else:
-            return redirect("medialist", media_type=media_type)
+        return redirect("medialist", media_type=media_type, status=status)
 
-    if status:
-        if media_type == "tv":
-            # as tv doesn't have a status field, only filter seasons
-            media_list = Season.objects.filter(
-                user_id=request.user, status=status.capitalize()
-            )
-        else:
-            media_list = model.objects.filter(
-                user_id=request.user, status=status.capitalize()
-            )
+    if media_type == "tv":
+        # as tv doesn't have a status field, only filter seasons
+        media_list = Season.objects.filter(
+            user_id=request.user, status=status.capitalize()
+        )
     else:
-        if media_type == "tv":
-            # show both tv and seasons in the same list
-            tv_list = TV.objects.filter(user_id=request.user)
-            season_list = Season.objects.filter(user_id=request.user)
-
-            media_list = sorted(
-                chain(tv_list, season_list),
-                key=lambda item: item.score
-                if item.score is not None
-                else float("-inf"),
-                reverse=True,
-            )
-        else:
-            media_list = model.objects.filter(user_id=request.user)
+        media_list = media_mapping["model"].objects.filter(
+            user_id=request.user, status=status.capitalize()
+        )
 
     return render(
         request,
-        "app/media_table.html",
+        media_mapping["list_layout"],
         {
             "media_type": media_type,
             "media_list": media_list,
@@ -111,8 +144,6 @@ def media_list(request, media_type, status=None):
                 "Planning",
             ],
             "page": f"{media_type}s {status.capitalize()}"
-            if status
-            else f"{media_type}s",
         },
     )
 
@@ -164,7 +195,6 @@ def media_details(request, media_type, media_id, title):
 
     if request.method == "POST":
         form_media_type = request.POST.get("media_type")
-        model, form_type = helpers.media_mapper(form_media_type)
 
         form_handlers.media_form_handler(
             request,
@@ -359,7 +389,7 @@ def profile(request):
 def modal_data(request):
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
-    model_type, form_type = helpers.media_mapper(media_type)
+    media_mapping = helpers.media_type_mapper(media_type)
 
     if media_type == "season":
         season_number = request.GET.get("season_number")
@@ -382,11 +412,11 @@ def modal_data(request):
 
     try:
         # try to retrieve the media object using the filters
-        media = model_type.objects.get(**filters)
-        form = form_type(instance=media, initial=initial_data)
+        media = media_mapping["model"].objects.get(**filters)
+        form = media_mapping["form"](instance=media, initial=initial_data)
         allow_delete = True
-    except model_type.DoesNotExist:
-        form = form_type(initial=initial_data)
+    except media_mapping["model"].DoesNotExist:
+        form = media_mapping["from"](initial=initial_data)
         allow_delete = False
 
     # render form as HTML
@@ -437,12 +467,12 @@ def progress_edit(request):
         response = {"progress": season.progress}
 
     else:
-        model, form_type = helpers.media_mapper(media_type)
+        media_mapping = helpers.media_type_mapper(media_type)
         media_metadata = metadata.get_media_metadata(media_type, media_id)
 
         max_progress = media_metadata.get("num_episodes", 1)
 
-        media = model.objects.get(media_id=media_id, user=request.user.id)
+        media = media_mapping["model"].objects.get(media_id=media_id, user=request.user.id)
 
         if operation == "increment":
             media.progress += 1

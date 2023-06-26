@@ -50,37 +50,57 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #sidebar .nav-link:not(.active):hover { background-color: #3034388c; }
 
-#medialist { background-color: #1b1e1f; border: 1px solid #383d3f; }
+#medialist .table-layout { background-color: #1b1e1f; border: 1px solid #383d3f; }
 
-#medialist .d-flex .image, #medialist .d-flex .score, #medialist .d-flex .status, #medialist .d-flex ._progress, #medialist .d-flex .edit { text-align: center; }
+#medialist .table-layout .d-flex .image, #medialist .table-layout .d-flex .score, #medialist .table-layout .d-flex .status, #medialist .table-layout .d-flex ._progress, #medialist .table-layout .d-flex .edit { text-align: center; }
 
-#medialist .list-head { margin: 1em 0 0; }
+#medialist .table-layout .list-head { margin: 1em 0 0; }
 
-#medialist .list-head .filter, #medialist .list-section .filter { margin-left: 1em !important; }
+#medialist .table-layout .list-head .filter, #medialist .table-layout .list-section .filter { margin-left: 1em !important; }
 
-#medialist .list-head .filter .filter-btn, #medialist .list-section .filter .filter-btn { width: 3rem; height: 3rem; background-color: #1b1e1f; border: 0; color: #adb5bd; }
+#medialist .table-layout .list-head .filter .filter-btn, #medialist .table-layout .list-section .filter .filter-btn { width: 3rem; height: 3rem; background-color: #1b1e1f; border: 0; color: #adb5bd; }
 
-#medialist .list-head .filter .filter-btn:hover, #medialist .list-section .filter .filter-btn:hover { color: #fff; }
+#medialist .table-layout .list-head .filter .filter-btn:hover, #medialist .table-layout .list-section .filter .filter-btn:hover { color: #fff; }
 
-#medialist .list-head .filter .filter-btn:after, #medialist .list-section .filter .filter-btn:after { vertical-align: 0; }
+#medialist .table-layout .list-head .filter .filter-btn:after, #medialist .table-layout .list-section .filter .filter-btn:after { vertical-align: 0; }
 
-#medialist .list-head .filter .dropdown-menu .text-end, #medialist .list-section .filter .dropdown-menu .text-end { float: right; }
+#medialist .table-layout .list-head .filter .dropdown-menu .text-end, #medialist .table-layout .list-section .filter .dropdown-menu .text-end { float: right; }
 
-#medialist .list-head .image, #medialist .list-section .image { margin-left: 1em !important; }
+#medialist .table-layout .list-head .image, #medialist .table-layout .list-section .image { margin-left: 1em !important; }
 
-#medialist .list-head .image img, #medialist .list-section .image img { width: 3rem; height: 3rem; object-fit: cover; background-color: #383d3f; display: block; overflow: hidden; }
+#medialist .table-layout .list-head .image img, #medialist .table-layout .list-section .image img { width: 3rem; height: 3rem; object-fit: cover; background-color: #383d3f; display: block; overflow: hidden; }
 
-#medialist .list-head .title, #medialist .list-section .title { flex: 3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; line-height: 2; }
+#medialist .table-layout .list-head .title, #medialist .table-layout .list-section .title { flex: 3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; line-height: 2; }
 
-#medialist .list-head .title a, #medialist .list-section .title a { color: #adb5bd; text-decoration: none; }
+#medialist .table-layout .list-head .title a, #medialist .table-layout .list-section .title a { color: #adb5bd; text-decoration: none; }
 
-#medialist .list-head .score, #medialist .list-head .status, #medialist .list-head ._progress, #medialist .list-head .edit, #medialist .list-section .score, #medialist .list-section .status, #medialist .list-section ._progress, #medialist .list-section .edit { flex: 1; }
+#medialist .table-layout .list-head .score, #medialist .table-layout .list-head .status, #medialist .table-layout .list-head ._progress, #medialist .table-layout .list-head .edit, #medialist .table-layout .list-section .score, #medialist .table-layout .list-section .status, #medialist .table-layout .list-section ._progress, #medialist .table-layout .list-section .edit { flex: 1; }
 
-#medialist .list-head .edit .open-modal-button, #medialist .list-section .edit .open-modal-button { background-color: #1b1e1f; color: #adb5bd; border-width: 0; border-radius: 0; }
+#medialist .table-layout .list-head .edit .open-modal-button, #medialist .table-layout .list-section .edit .open-modal-button { background-color: #1b1e1f; color: #adb5bd; border-width: 0; border-radius: 0; }
 
-#medialist .list-head .edit .open-modal-button:hover, #medialist .list-section .edit .open-modal-button:hover { color: #fff; }
+#medialist .table-layout .list-head .edit .open-modal-button:hover, #medialist .table-layout .list-section .edit .open-modal-button:hover { color: #fff; }
 
-#medialist .list-head .edit .modal, #medialist .list-section .edit .modal { text-align: left; }
+#medialist .table-layout .list-head .edit .modal, #medialist .table-layout .list-section .edit .modal { text-align: left; }
+
+#medialist .grid-layout { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+
+#medialist .grid-layout .card { width: 100%; margin-bottom: 1em; }
+
+#medialist .grid-layout .card .poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; cursor: pointer; }
+
+#medialist .grid-layout .card .image-not-found { width: 100%; aspect-ratio: 2/3; object-fit: contain; object-position: center top; background-color: #2c3032; cursor: pointer; }
+
+#medialist .grid-layout .card .card-img-overlay { top: auto; padding: 0.5em; border-top-left-radius: 0px; border-top-right-radius: 0px; background-color: rgba(0, 0, 0, 0.692); }
+
+#medialist .grid-layout .card .card-img-overlay .card-title { margin-bottom: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 0.9rem; }
+
+#medialist .grid-layout .card .card-img-overlay .card-text { font-size: 0.8rem; }
+
+#medialist .grid-layout .card .card-img-overlay .card-text .open-modal-button, #medialist .grid-layout .card .card-img-overlay .card-text .progress-btn { padding: 0 0.5em; color: #adb5bd; }
+
+#medialist .grid-layout .card .card-img-overlay .card-text .open-modal-button:hover, #medialist .grid-layout .card .card-img-overlay .card-text .progress-btn:hover { color: #fff; }
+
+#medialist .grid-layout .card .card-img-overlay .card-text .open-modal-button:disabled, #medialist .grid-layout .card .card-img-overlay .card-text .progress-btn:disabled { color: transparent; }
 
 #search .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 

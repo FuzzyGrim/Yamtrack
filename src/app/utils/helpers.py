@@ -75,7 +75,7 @@ def get_client_ip(request):
     return ip_address
 
 
-def media_mapper(media_type):
+def media_type_mapper(media_type):
     """
     Maps the media type to its corresponding model and form class.
 
@@ -88,23 +88,28 @@ def media_mapper(media_type):
     media_mapping = {
         "manga": {
             "model": Manga,
-            "form_class": MangaForm,
+            "form": MangaForm,
+            "list_layout": "app/media_table.html",
         },
         "anime": {
             "model": Anime,
-            "form_class": AnimeForm,
+            "form": AnimeForm,
+            "list_layout": "app/media_table.html",
         },
         "movie": {
             "model": Movie,
-            "form_class": MovieForm,
+            "form": MovieForm,
+            "list_layout": "app/media_grid.html",
         },
         "tv": {
             "model": TV,
-            "form_class": TVForm,
+            "form": TVForm,
+            "list_layout": "app/media_grid.html",
         },
         "season": {
             "model": Season,
-            "form_class": SeasonForm,
+            "form": SeasonForm,
+            "list_layout": "app/media_grid.html",
         },
     }
-    return media_mapping[media_type]["model"], media_mapping[media_type]["form_class"]
+    return media_mapping[media_type]

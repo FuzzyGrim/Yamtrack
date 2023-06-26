@@ -15,6 +15,7 @@ def media_form_handler(
     season_metadata=None,
     season_number=None,
 ):
+    # when editing from home, medialist and media details
     if media_type == "season" and season_metadata is None and season_number is None:
         season_number = request.POST["season_number"]
         season_metadata = metadata.season(media_id, season_number)
@@ -40,7 +41,9 @@ def media_save(request, media_id, title, image, media_type, season_number=None):
         form (Form): The form to use for validating the media data.
         season_number (int, optional): The season number of the media. Defaults to None.
     """
-    model, form = helpers.media_mapper(media_type)
+    media_mapping = helpers.media_type_mapper(media_type)
+    model = media_mapping["model"]
+    form = media_mapping["form"]
     try:
         # Try to get an existing instance of the model with the given media_id and user
         search_params = {
@@ -82,7 +85,7 @@ def media_delete(request, media_id, media_type, season_number=None):
         model (Model): The model to use for deleting the media data.
         season_number (int, optional): The season number of the media. Defaults to None.
     """
-    model, _ = helpers.media_mapper(media_type)
+    media_mapping = helpers.media_type_mapper(media_type)
     search_params = {
         "media_id": media_id,
         "user": request.user,
@@ -90,9 +93,9 @@ def media_delete(request, media_id, media_type, season_number=None):
     if season_number is not None:
         search_params["season_number"] = season_number
     try:
-        instance = model.objects.get(**search_params)
+        instance = media_mapping["model"].objects.get(**search_params)
         instance.delete()
-    except model.DoesNotExist:
+    except media_mapping["model"].DoesNotExist:
         logger.error("Instance does not exist")
 
 
