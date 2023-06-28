@@ -103,6 +103,7 @@ class UserUpdateForm(forms.ModelForm):
         fields = ["username"]
 
 
+# remove autofocus from password change form
 class PasswordChangeForm(PasswordChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

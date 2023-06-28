@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
 from django.conf import settings
+from django.middleware import csrf
 from crispy_forms.utils import render_crispy_form
 
 from app.utils import helpers, search, metadata, form_handlers
@@ -51,7 +52,6 @@ def home(request):
 @login_required
 def media_list(request, media_type):
     media_mapping = helpers.media_type_mapper(media_type)
-
     if request.method == "POST":
         media_id = request.POST.get("media_id")
         form_media_type = request.POST.get("media_type")
@@ -416,12 +416,12 @@ def modal_data(request):
         form = media_mapping["form"](instance=media, initial=initial_data)
         allow_delete = True
     except media_mapping["model"].DoesNotExist:
-        form = media_mapping["from"](initial=initial_data)
+        form = media_mapping["form"](initial=initial_data)
         allow_delete = False
 
     # render form as HTML
     form_html = render_crispy_form(
-        form, context={"csrf_token": request.COOKIES["csrftoken"]}
+        form, context={"csrf_token": csrf.get_token(request)}
     )
     # set the form's ID
     form_html = form_html.replace("<form", f'<form id="{form_id}"')

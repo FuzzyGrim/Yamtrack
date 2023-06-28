@@ -57,7 +57,7 @@ def media_save(request, media_id, title, image, media_type, season_number=None):
     except model.DoesNotExist:
         # If the model instance doesn't exist, create a new one
         if image != "none.svg":
-            image = helpers.download_image(image, "media_type")
+            image = helpers.download_image(image, media_type)
         default_params = {
             "user": request.user,
             "title": title,

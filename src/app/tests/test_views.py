@@ -90,6 +90,26 @@ class LoggedInView(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/home.html")
 
+    def test_tv_medialist(self):
+        response = self.client.get(reverse("medialist", kwargs={"media_type": "tv"}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/media_grid.html")
+
+    def test_movie_medialist(self):
+        response = self.client.get(reverse("medialist", kwargs={"media_type": "movie"}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/media_grid.html")
+
+    def test_anime_medialist(self):
+        response = self.client.get(reverse("medialist", kwargs={"media_type": "anime"}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/media_table.html")
+
+    def test_manga_medialist(self):
+        response = self.client.get(reverse("medialist", kwargs={"media_type": "manga"}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/media_table.html")
+
     def test_search_tv(self):
         response = self.client.get("/search?media_type=tv&q=breaking+bad")
         self.assertEqual(response.status_code, 200)
