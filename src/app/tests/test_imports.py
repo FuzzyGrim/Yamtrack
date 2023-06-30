@@ -22,9 +22,9 @@ class ImportsMAL(TestCase):
     @override_settings(MEDIA_ROOT=("MAL"))
     @patch("requests.get")
     def test_import_animelist(self, mock_get):
-        with open(mock_path + "/mal_anime.json", "r") as file:
+        with open(mock_path + "/user_mal_anime.json", "r") as file:
             anime_response = json.load(file)
-        with open(mock_path + "/mal_manga.json", "r") as file:
+        with open(mock_path + "/user_mal_manga.json", "r") as file:
             manga_response = json.load(file)
 
         anime_mock = MagicMock()
@@ -52,6 +52,9 @@ class ImportsMAL(TestCase):
             Manga.objects.get(user=self.user, title="Fire Punch").score == 7, True
         )
 
+    def test_user_not_found(self):
+        self.assertEqual(mal.import_myanimelist("fhdsufdsu", self.user), False)
+
     def tearDown(self):
         shutil.rmtree("MAL")
 
@@ -65,7 +68,7 @@ class ImportsTMDB(TestCase):
     @override_settings(MEDIA_ROOT=("TMDB"))
     @patch("requests.get")
     def test_import_tmdb(self, mock_data):
-        with open(mock_path + "/tmdb.json", "r") as file:
+        with open(mock_path + "/user_tmdb.json", "r") as file:
             tmdb_response = json.load(file)
         mock_data.return_value.json.return_value = tmdb_response
         fake_url = "https://api.themoviedb.org/3/account/1/rated/movies?api_key=12345&session_id=12345"
@@ -98,7 +101,7 @@ class ImportsAniList(TestCase):
     @override_settings(MEDIA_ROOT=("AniList"))
     @patch("requests.post")
     def test_import_anilist(self, mock_data):
-        with open(mock_path + "/anilist.json", "r") as file:
+        with open(mock_path + "/user_anilist.json", "r") as file:
             anilist_response = json.load(file)
         mock_data.return_value.json.return_value = anilist_response
 
@@ -115,6 +118,9 @@ class ImportsAniList(TestCase):
         self.assertEqual(
             Manga.objects.get(user=self.user, title="One Punch-Man").score == 9, True
         )
+
+    def test_user_not_found(self):
+        self.assertEqual(anilist.import_anilist("fhdsufdsu", self.user), "User not found")
 
     def tearDown(self):
         shutil.rmtree("AniList")

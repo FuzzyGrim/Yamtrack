@@ -20,21 +20,21 @@ progressButtons.forEach(function (button) {
 
         // update progress from card_id .progress_count
         document.querySelector(`#${card_id} .progress_count`).innerHTML = progress;
-        const incrementButton = document.querySelector(`#${card_id} [data-operation="increment"]`);
-        const decrementButton = document.querySelector(`#${card_id} [data-operation="decrement"]`);
+        const increaseButton = document.querySelector(`#${card_id} [data-operation="increase"]`);
+        const decreaseButton = document.querySelector(`#${card_id} [data-operation="decrease"]`);
 
         // disable both as it will be marked as completed
         if (response.max) {
-          incrementButton.disabled = true;
-          decrementButton.disabled = true;
+          increaseButton.disabled = true;
+          decreaseButton.disabled = true;
         }
         else if (response.min) {
-          incrementButton.disabled = false;
-          decrementButton.disabled = true;
+          increaseButton.disabled = false;
+          decreaseButton.disabled = true;
         }
         else {
-          incrementButton.disabled = false;
-          decrementButton.disabled = false;
+          increaseButton.disabled = false;
+          decreaseButton.disabled = false;
         }
         
       } 
@@ -45,8 +45,8 @@ progressButtons.forEach(function (button) {
     };
     xhr.open("POST", "/progress_edit");
     const formData = new FormData();
-    formData.append("media_type", type);
     formData.append("media_id", id);
+    formData.append("media_type", type);
     formData.append("operation", operation);
     if (this.hasAttribute("data-season-number")) {
       formData.append("season_number", this.getAttribute("data-season-number"));

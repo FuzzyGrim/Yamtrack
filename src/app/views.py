@@ -3,9 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import JsonResponse
-from django.conf import settings
 from django.middleware import csrf
 from crispy_forms.utils import render_crispy_form
 
@@ -73,9 +71,7 @@ def media_list(request, media_type):
 
         media_list = sorted(
             chain(tv_list, season_list),
-            key=lambda item: item.score
-            if item.score is not None
-            else float("-inf"),
+            key=lambda item: item.score if item.score is not None else float("-inf"),
             reverse=True,
         )
     else:
@@ -95,7 +91,7 @@ def media_list(request, media_type):
                 "Dropped",
                 "Planning",
             ],
-            "page": f"{media_type}s"
+            "page": f"{media_type}s",
         },
     )
 
@@ -143,7 +139,7 @@ def media_list_status(request, media_type, status):
                 "Dropped",
                 "Planning",
             ],
-            "page": f"{media_type}s {status.capitalize()}"
+            "page": f"{media_type}s {status.capitalize()}",
         },
     )
 
@@ -444,7 +440,7 @@ def progress_edit(request):
         season = Season.objects.get(media_id=media_id, season_number=season_number)
 
         # save episode progress
-        if operation == "increment":
+        if operation == "increase":
             # next episode = current progress + 1, but 0-indexed so -1
             episode_number = season_metadata["episodes"][season.progress][
                 "episode_number"
@@ -452,7 +448,7 @@ def progress_edit(request):
             Episode.objects.create(
                 tv_season=season, episode_number=episode_number, watch_date=date.today()
             )
-        elif operation == "decrement":
+        elif operation == "decrease":
             episode_number = season_metadata["episodes"][season.progress - 1][
                 "episode_number"
             ]
@@ -472,11 +468,12 @@ def progress_edit(request):
 
         max_progress = media_metadata.get("num_episodes", 1)
 
-        media = media_mapping["model"].objects.get(media_id=media_id, user=request.user.id)
-
-        if operation == "increment":
+        media = media_mapping["model"].objects.get(
+            media_id=media_id, user=request.user.id
+        )
+        if operation == "increase":
             media.progress += 1
-        elif operation == "decrement":
+        elif operation == "decrease":
             media.progress -= 1
 
         if media.progress == max_progress:
@@ -488,20 +485,6 @@ def progress_edit(request):
     response["max"] = response["progress"] == max_progress
 
     return JsonResponse(response)
-
-
-def redirect_after_login(request):
-    next = request.GET.get("next", None)
-    if next is None:
-        return redirect(settings.LOGIN_REDIRECT_URL)
-    elif not url_has_allowed_host_and_scheme(
-        url=next,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
-    ):
-        return redirect(settings.LOGIN_REDIRECT_URL)
-    else:
-        return redirect(next)
 
 
 def error_view(request, exception=None, status_code=None):

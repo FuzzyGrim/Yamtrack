@@ -111,7 +111,6 @@ def episode_handler(request, media_id, title, image, season_metadata, season_num
         season_metadata (dict): A dictionary containing metadata for the TV show's season.
         season_number (int): The season number of the TV show.
     """
-
     episodes_checked = request.POST.getlist("episode_number")
     try:
         season_db = Season.objects.get(

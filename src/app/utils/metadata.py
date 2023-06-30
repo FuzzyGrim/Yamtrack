@@ -44,7 +44,6 @@ def anime_manga(media_type, media_id):
     response = cache.get(cache_key)
     if response is None:
         url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_episodes,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
-
         response = requests.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}).json()
 
         if response["media_type"] == "tv":

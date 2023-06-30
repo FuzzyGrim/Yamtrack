@@ -65,11 +65,11 @@ class Season(Media):
 
     @property
     def start_date(self):
-        return self.episodes.aggregate(start_date=Min("watched_date"))["start_date"]
+        return self.episodes.aggregate(start_date=Min("watch_date"))["start_date"]
 
     @property
     def end_date(self):
-        return self.episodes.aggregate(end_date=Max("watched_date"))["end_date"]
+        return self.episodes.aggregate(end_date=Max("watch_date"))["end_date"]
 
     def __str__(self):
         return f"{self.title} - S{self.season_number}"
@@ -83,7 +83,7 @@ class Episode(models.Model):
     watch_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.tv_season} - {self.title}"
+        return f"{self.tv_season} - {self.episode_number}"
 
 
 class Manga(Media):
@@ -95,6 +95,8 @@ class Anime(Media):
 
 
 class Movie(Media):
+    start_date = None
+
     @property
     def progress(self):
         if self.status == "Completed":

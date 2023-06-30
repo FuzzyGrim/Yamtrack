@@ -182,17 +182,13 @@ class MovieForm(MediaForm):
             "media_type",
             "score",
             "status",
-            Row(
-                Column("start_date", css_class="form-group col-md-6 pe-1"),
-                Column("end_date", css_class="form-group col-md-6 ps-1"),
-                css_class="form-row"
-            ),
+            "end_date",
             "notes",
         )
 
     class Meta(MediaForm.Meta):
         model = Movie
-        exclude = ("progress",)
+        exclude = ("progress", "start_date")
 
 
 class TVForm(MediaForm):

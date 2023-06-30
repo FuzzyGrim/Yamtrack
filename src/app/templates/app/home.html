@@ -42,7 +42,7 @@
                     {% endif %}
                   </div>
                   <div class="card-text d-flex justify-content-center align-items-center" id="{{media_type}}_{{media.media_id}}{% if media.season_number != None %}_{{media.season_number}}{% endif %}">
-                    <button type="button" class="btn progress-btn border-0" data-operation="decrement"
+                    <button type="button" class="btn progress-btn border-0" data-operation="decrease"
                             data-type="{{media_type}}" data-id="{{media.media_id}}"
                             {% if media.season_number != None %} data-season-number="{{media.season_number}}" {% endif %}
                             {% if media.progress == 0 %} disabled {% endif %}>
@@ -51,7 +51,7 @@
 
                     <div class="progress_count">{{ media.progress }}</div>
 
-                    <button type="button" class="btn progress-btn border-0" data-operation="increment"
+                    <button type="button" class="btn progress-btn border-0" data-operation="increase"
                             data-type="{{media_type}}" data-id="{{media.media_id}}"
                             {% if media.season_number != None %} data-season-number="{{media.season_number}}" {% endif %}>
                       +

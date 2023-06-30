@@ -132,7 +132,6 @@ def process_media_list(url, media_type, status, user):
             }
             if media_type == "movie":
                 media_params["status"] = status
-                media_params["start_date"] = None
                 media_params["end_date"] = None
 
             bulk_media.append(
