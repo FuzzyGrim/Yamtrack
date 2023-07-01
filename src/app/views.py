@@ -238,9 +238,9 @@ def season_details(request, media_id, title, season_number):
     # returns tuple of watched episodes in database
     watched_episodes = set(
         Episode.objects.filter(
-            tv_season__media_id=media_id,
-            tv_season__season_number=season_number,
-            tv_season__user=request.user,
+            related_season__media_id=media_id,
+            related_season__season_number=season_number,
+            related_season__user=request.user,
         ).values_list("episode_number", flat=True)
     )
     for episode in season_metadata["episodes"]:
@@ -446,16 +446,17 @@ def progress_edit(request):
                 "episode_number"
             ]
             Episode.objects.create(
-                tv_season=season, episode_number=episode_number, watch_date=date.today()
+                related_season=season, episode_number=episode_number, watch_date=date.today()
             )
         elif operation == "decrease":
             episode_number = season_metadata["episodes"][season.progress - 1][
                 "episode_number"
             ]
             Episode.objects.get(
-                tv_season=season, episode_number=episode_number
+                related_season=season, episode_number=episode_number
             ).delete()
 
+        # change status to completed if progress is max
         if season.progress == max_progress:
             season.status = "Completed"
             season.save()
@@ -476,6 +477,7 @@ def progress_edit(request):
         elif operation == "decrease":
             media.progress -= 1
 
+        # before saving, if progress is max, set status to completed
         if media.progress == max_progress:
             media.status = "Completed"
         media.save()

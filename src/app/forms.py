@@ -7,6 +7,7 @@ from django.contrib.auth.forms import (
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column
 from .models import TV, Season, Manga, Anime, Movie, User
+from app.utils import metadata
 
 import datetime
 
@@ -111,7 +112,6 @@ class PasswordChangeForm(PasswordChangeForm):
 
 
 class MediaForm(forms.ModelForm):
-
     media_type = forms.CharField(
         max_length=20,
         widget=forms.HiddenInput(),
@@ -119,14 +119,42 @@ class MediaForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        status = cleaned_data.get('status')
-        start_date = cleaned_data.get('start_date')
-        end_date = cleaned_data.get('end_date')
+        media_id = cleaned_data.get("media_id")
+        media_type = cleaned_data.get("media_type")
+        progress = cleaned_data.get("progress")
+        status = cleaned_data.get("status")
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
 
-        if status == 'Completed' and not end_date:
-            cleaned_data['end_date'] = datetime.date.today()
+        # if status wasn't completed before, but is now
+        if status == "Completed" and (
+            "status" in self.changed_data or self.instance.pk is None
+        ):
+            if not end_date:
+                cleaned_data["end_date"] = datetime.date.today()
+
+            if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
+                cleaned_data["progress"] = metadata.anime_manga(media_type, media_id)[
+                    "num_episodes"
+                ]
+
         elif status == "Watching" and not start_date:
-            cleaned_data['start_date'] = datetime.date.today()
+            cleaned_data["start_date"] = datetime.date.today()
+
+        if "progress" in self.changed_data:
+            total_episodes = metadata.get_media_metadata(media_type, media_id)["num_episodes"]
+
+            # limit progress to total_episodes
+            if progress > total_episodes:
+                cleaned_data["progress"] = total_episodes
+            # If progress == total_episodes, set status to completed
+            # only if status hasn't been explicitly changed
+            if (
+                progress == total_episodes
+                and "status" not in self.changed_data
+            ):
+                cleaned_data["status"] = "Completed"
+                cleaned_data["end_date"] = datetime.date.today()
 
         return cleaned_data
 
@@ -139,19 +167,28 @@ class MediaForm(forms.ModelForm):
             Row(
                 Column("score", css_class="form-group col-md-6 pe-1"),
                 Column("progress", css_class="form-group col-md-6 ps-1"),
-                css_class="form-row"
+                css_class="form-row",
             ),
             "status",
             Row(
                 Column("start_date", css_class="form-group col-md-6 pe-1"),
                 Column("end_date", css_class="form-group col-md-6 ps-1"),
-                css_class="form-row"
+                css_class="form-row",
             ),
             "notes",
         )
 
     class Meta:
-        fields = ["media_id", "media_type", "score", "progress", "status", "start_date", "end_date", "notes"]
+        fields = [
+            "media_id",
+            "media_type",
+            "score",
+            "progress",
+            "status",
+            "start_date",
+            "end_date",
+            "notes",
+        ]
         widgets = {
             "media_id": forms.HiddenInput(),
             "score": forms.NumberInput(attrs={"min": 0, "max": 10, "step": 0.1}),
@@ -162,7 +199,6 @@ class MediaForm(forms.ModelForm):
 
 
 class MangaForm(MediaForm):
-
     class Meta(MediaForm.Meta):
         model = Manga
 

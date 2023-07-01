@@ -19,13 +19,13 @@ class SeasonProperties(TestCase):
             notes="Nice",
         )
         Episode.objects.create(
-            tv_season=season, episode_number=1, watch_date=date(2023, 6, 1)
+            related_season=season, episode_number=1, watch_date=date(2023, 6, 1)
         )
         Episode.objects.create(
-            tv_season=season, episode_number=2, watch_date=date(2023, 6, 2)
+            related_season=season, episode_number=2, watch_date=date(2023, 6, 2)
         )
         Episode.objects.create(
-            tv_season=season, episode_number=3, watch_date=date(2023, 6, 3)
+            related_season=season, episode_number=3, watch_date=date(2023, 6, 3)
         )
 
     def test_season_progress(self):
@@ -53,7 +53,7 @@ class MovieProperties(TestCase):
             status="Completed",
             user=self.user,
             notes="Nice",
-            end_date=date(2023, 6, 1)
+            end_date=date(2023, 6, 1),
         )
 
     def test_movie_progress(self):

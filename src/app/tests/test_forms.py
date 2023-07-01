@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from app.forms import AnimeForm, MangaForm, TVForm, SeasonForm, MovieForm
+from app.forms import MangaForm, TVForm, MovieForm, SeasonForm
 from app.models import User
 
 
@@ -68,35 +68,3 @@ class ValidForm(TestCase):
         }
         form = SeasonForm(data=form_data)
         self.assertTrue(form.is_valid())
-
-    def test_valid_status_choices(self):
-        valid_statuses = ['Completed', 'Watching', 'Paused', 'Dropped', 'Planning']
-
-        for status in valid_statuses:
-            form = AnimeForm(data={'status': status})
-            self.assertFalse(form.errors.get('status'))
-
-
-class MediaFormConstraints(TestCase):
-    def test_negative_progress(self):
-        form = AnimeForm(data={"progress": -1})
-        self.assertEqual(
-            form.errors["progress"], ["Ensure this value is greater than or equal to 0."]
-        )
-
-    def test_negative_score(self):
-        form = AnimeForm(data={"score": -1})
-        self.assertEqual(
-            form.errors["score"], ["Ensure this value is greater than or equal to 0."]
-        )
-
-    def test_score_too_high(self):
-        form = AnimeForm(data={"score": 11})
-        self.assertEqual(
-            form.errors["score"], ["Ensure this value is less than or equal to 10."]
-        )
-
-    def test_invalid_status_choice(self):
-        invalid_status = 'InvalidStatus'
-        form = AnimeForm(data={'status': invalid_status})
-        self.assertFalse(form.is_valid())

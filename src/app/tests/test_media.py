@@ -85,7 +85,7 @@ class CreateMedia(TestCase):
         )
         self.assertEqual(
             Episode.objects.filter(
-                tv_season__media_id=1668, tv_season__user=self.user
+                related_season__media_id=1668, related_season__user=self.user
             ).count(),
             2,
         )
@@ -100,6 +100,7 @@ class EditMedia(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
+    def test_edit_movie_score(self):
         Movie.objects.create(
             media_id=10494,
             title="Perfect Blue",
@@ -107,10 +108,9 @@ class EditMedia(TestCase):
             status="Completed",
             user=self.user,
             notes="Nice",
-            end_date=date(2023, 6, 1)
+            end_date=date(2023, 6, 1),
         )
 
-    def test_edit_movie_score(self):
         self.client.post(
             # it doesn't matter what url we use
             reverse("medialist", kwargs={"media_type": "movie"}),
@@ -124,6 +124,112 @@ class EditMedia(TestCase):
             },
         )
         self.assertEqual(Movie.objects.get(media_id=10494).score, 10)
+
+
+class CleanFormMedia(TestCase):
+    def setUp(self):
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = User.objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+    def test_movie_complete(self):
+        self.client.post(
+            # it doesn't matter what url we use
+            reverse("medialist", kwargs={"media_type": "movie"}),
+            {
+                "media_id": 10494,
+                "media_type": "movie",
+                "score": 10,
+                "status": "Completed",
+                "save": "",
+            },
+        )
+        self.assertEqual(Movie.objects.get(media_id=10494).end_date, date.today())
+
+    def test_anime_complete(self):
+        """
+        When media completed, end_date = today and progress = total episodes
+        """
+        self.client.post(
+            # it doesn't matter what url we use
+            reverse("medialist", kwargs={"media_type": "anime"}),
+            {
+                "media_id": 1,
+                "media_type": "anime",
+                "score": 10,
+                "progress": 0,
+                "status": "Completed",
+                "save": "",
+            },
+        )
+        self.assertEqual(Anime.objects.get(media_id=1).progress, 26)
+        self.assertEqual(Anime.objects.get(media_id=1).end_date, date.today())
+
+    def test_season_complete(self):
+        """
+        When season completed, create remaining episodes
+        """
+        self.client.post(
+            # it doesn't matter what url we use
+            reverse("medialist", kwargs={"media_type": "tv"}),
+            {
+                "media_id": 1668,
+                "media_type": "season",
+                "season_number": 1,
+                "score": 9,
+                "status": "Completed",
+                "notes": "Nice",
+                "save": "",
+            },
+        )
+        self.assertEqual(
+            Episode.objects.filter(
+                related_season__media_id=1668
+            ).count(),
+            24,
+        )
+
+    def test_progress_set_max(self):
+        """
+        When progress is set to max and status not explicitly edited, status should be set to completed
+        """
+        Anime.objects.create(
+            media_id=1,
+            title="Cowboy Bebop",
+            status="Watching",
+            user=self.user,
+            progress=2,
+            start_date=date(2021, 6, 1),
+        )
+        self.client.post(
+            # it doesn't matter what url we use
+            reverse("medialist", kwargs={"media_type": "anime"}),
+            {
+                "media_id": 1,
+                "media_type": "anime",
+                "progress": 26,
+                "status": "Watching",
+                "save": "",
+            },
+        )
+        self.assertEqual(Anime.objects.get(media_id=1).status, "Completed")
+
+    def test_progress_bigger_than_max(self):
+        """
+        When progress is bigger than max, progress should be set to max
+        """
+        self.client.post(
+            # it doesn't matter what url we use
+            reverse("medialist", kwargs={"media_type": "anime"}),
+            {
+                "media_id": 1,
+                "media_type": "anime",
+                "progress": 27,
+                "status": "Watching",
+                "save": "",
+            },
+        )
+        self.assertEqual(Anime.objects.get(media_id=1).progress, 26)
 
 
 class DeleteMedia(TestCase):
@@ -140,7 +246,7 @@ class DeleteMedia(TestCase):
             status="Completed",
             user=self.user,
             notes="Nice",
-            end_date=date(2023, 6, 1)
+            end_date=date(2023, 6, 1),
         )
 
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
@@ -168,7 +274,7 @@ class DeleteMedia(TestCase):
             notes="Nice",
         )
         Episode.objects.create(
-            tv_season=season, episode_number=1, watch_date=date(2023, 6, 1)
+            related_season=season, episode_number=1, watch_date=date(2023, 6, 1)
         )
 
         self.client.post(
@@ -183,7 +289,9 @@ class DeleteMedia(TestCase):
         )
 
         self.assertEqual(Season.objects.filter(user=self.user).count(), 0)
-        self.assertEqual(Episode.objects.filter(tv_season__user=self.user).count(), 0)
+        self.assertEqual(
+            Episode.objects.filter(related_season__user=self.user).count(), 0
+        )
 
 
 class DetailsMedia(TestCase):
@@ -268,7 +376,7 @@ class ProgressEditSeason(TestCase):
         )
 
         Episode.objects.create(
-            tv_season=Season.objects.get(media_id=1668),
+            related_season=Season.objects.get(media_id=1668),
             episode_number=1,
             watch_date=date(2023, 6, 1),
         )
@@ -285,13 +393,13 @@ class ProgressEditSeason(TestCase):
         )
 
         self.assertEqual(
-            Episode.objects.filter(tv_season__media_id=1668).count(), 2
+            Episode.objects.filter(related_season__media_id=1668).count(), 2
         )
 
         # episode with media_id 1668 and episode_number 2 should exist
         self.assertTrue(
             Episode.objects.filter(
-                tv_season__media_id=1668, episode_number=2
+                related_season__media_id=1668, episode_number=2
             ).exists()
         )
 
@@ -307,7 +415,7 @@ class ProgressEditSeason(TestCase):
         )
 
         self.assertEqual(
-            Episode.objects.filter(tv_season__media_id=1668).count(), 0
+            Episode.objects.filter(related_season__media_id=1668).count(), 0
         )
 
 
