@@ -446,7 +446,9 @@ def progress_edit(request):
                 "episode_number"
             ]
             Episode.objects.create(
-                related_season=season, episode_number=episode_number, watch_date=date.today()
+                related_season=season,
+                episode_number=episode_number,
+                watch_date=date.today(),
             )
         elif operation == "decrease":
             episode_number = season_metadata["episodes"][season.progress - 1][

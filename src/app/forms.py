@@ -126,20 +126,19 @@ class MediaForm(forms.ModelForm):
         start_date = cleaned_data.get("start_date")
         end_date = cleaned_data.get("end_date")
 
-        # if status wasn't completed before, but is now
-        if status == "Completed" and (
-            "status" in self.changed_data or self.instance.pk is None
-        ):
-            if not end_date:
-                cleaned_data["end_date"] = datetime.date.today()
+        # if status is changed or media is being added
+        if "status" in self.changed_data or self.instance.pk is None:
+            if status == "Completed":
+                if not end_date:
+                    cleaned_data["end_date"] = datetime.date.today()
 
-            if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
-                cleaned_data["progress"] = metadata.anime_manga(media_type, media_id)[
-                    "num_episodes"
-                ]
+                if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
+                    cleaned_data["progress"] = metadata.anime_manga(media_type, media_id)[
+                        "num_episodes"
+                    ]
 
-        elif status == "Watching" and not start_date:
-            cleaned_data["start_date"] = datetime.date.today()
+            elif status == "Watching" and not start_date:
+                cleaned_data["start_date"] = datetime.date.today()
 
         if "progress" in self.changed_data:
             total_episodes = metadata.get_media_metadata(media_type, media_id)["num_episodes"]
@@ -147,8 +146,8 @@ class MediaForm(forms.ModelForm):
             # limit progress to total_episodes
             if progress > total_episodes:
                 cleaned_data["progress"] = total_episodes
-            # If progress == total_episodes, set status to completed
-            # only if status hasn't been explicitly changed
+
+            # If progress == total_episodes and status not explicitly changed
             if (
                 progress == total_episodes
                 and "status" not in self.changed_data
