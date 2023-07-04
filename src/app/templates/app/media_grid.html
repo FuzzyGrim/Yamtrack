@@ -14,28 +14,16 @@
           {% else %}
             <a href="{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}">
           {% endif %}
-            {% if forloop.counter0 < 20 %}
-              <img
-                {% if media.image == "none.svg" %}
-                  class="card-img image-not-found"
-                {% else %}
-                  class="card-img poster"
-                {% endif %}
-                src="{{media.image.url}}"
-                alt="{{ media.title }}"
-              />
+            <img
+            {% if media.image == "none.svg" %}
+              class="card-img lazyload image-not-found"
             {% else %}
-              <img
-                {% if media.image == "none.svg" %}
-                  class="card-img image-not-found lazyload"
-                {% else %}
-                  class="card-img poster lazyload"
-                {% endif %}
-                data-src="{{media.image.url}}"
-                data-expand="1000"
-                alt="{{ media.title }}"
-              />
+              class="card-img lazyload poster"
             {% endif %}
+            data-src="{{media.image.url}}"
+            data-expand="1000"
+            alt="{{ media.title }}"
+          />
           </a>
 
           <div class="card-img-overlay">

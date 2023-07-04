@@ -1,4 +1,11 @@
 body {
+
+  // hide lazyload img until loaded
+  img.lazyload:not([src]) {
+    visibility: hidden;
+  }
+
+
   background-color: #181a1b;
 
   main {

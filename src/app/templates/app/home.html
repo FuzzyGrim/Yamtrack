@@ -24,13 +24,14 @@
                       href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}">
                   {% endif %}
                   <img
-                    src="{{ media.image.url }}"
+                    data-src="{{ media.image.url }}"
                     {% if media.image.url == "/media/none.svg"%}
-                      class="card-img open-modal-button image-not-found"
+                      class="card-img open-modal-button lazyload image-not-found"
                       {% else %}
-                      class="card-img open-modal-button poster"
+                      class="card-img open-modal-button lazyload poster"
                     {% endif %}
                     alt="{{ media.title }}"
+                    data-expand="1000"
                   />
                 </a>
 
@@ -70,7 +71,9 @@
 {% endblock content%}
 
 {% block extra_scripts %}
+  <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
   <script>
+    // Set the csrf token for ajax requests in progress-edit.js
     var csrftoken = '{{ csrf_token }}';
   </script>
   <script src="{% static 'js/progress-edit.js' %}"></script>

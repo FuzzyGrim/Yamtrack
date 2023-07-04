@@ -50,13 +50,7 @@
       {% for media in media_list %}
       <div class="d-flex flex-row mb-3 align-items-center list-section">
         <div class="image p-2">
-          {% if forloop.counter0 < 20 %}
-            {% comment %} use src for first 20 images to avoid lazy loading {% endcomment %}
-            <img src="{{media.image.url}}" alt="{{media.title}}"/>
-          {% else %}
-            {% comment %} use data-src for lazy loading with lazysizes.min.js {% endcomment %}
-            <img class="lazyload" data-src="{{media.image.url}}" data-expand="1000" alt="{{media.title}}"/>
-          {% endif %}
+          <img class="lazyload" data-src="{{media.image.url}}" data-expand="1000" alt="{{media.title}}"/>
         </div>
       
         <div class="title p-2">
