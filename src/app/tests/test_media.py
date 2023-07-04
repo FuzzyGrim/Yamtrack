@@ -183,9 +183,7 @@ class CleanFormMedia(TestCase):
             },
         )
         self.assertEqual(
-            Episode.objects.filter(
-                related_season__media_id=1668
-            ).count(),
+            Episode.objects.filter(related_season__media_id=1668).count(),
             24,
         )
 
@@ -291,6 +289,43 @@ class DeleteMedia(TestCase):
         self.assertEqual(Season.objects.filter(user=self.user).count(), 0)
         self.assertEqual(
             Episode.objects.filter(related_season__user=self.user).count(), 0
+        )
+
+    def test_unwatch_episode(self):
+        season = Season.objects.create(
+            media_id=1668,
+            title="Friends",
+            score=9,
+            status="Completed",
+            season_number=1,
+            user=self.user,
+            notes="Nice",
+        )
+        Episode.objects.create(
+            related_season=season, episode_number=1, watch_date=date(2023, 6, 1)
+        )
+        Episode.objects.create(
+            related_season=season, episode_number=2, watch_date=date(2023, 6, 1)
+        )
+
+        self.client.post(
+            # it doesn't matter what url we use
+            reverse(
+                "season_details",
+                kwargs={"media_id": 1668, "title": "friends", "season_number": 1},
+            ),
+            {
+                "media_id": 1668,
+                "season_number": 1,
+                "episode_number": [1, 2],
+                "unwatch": "",
+            },
+        )
+
+        self.assertEqual(
+            Episode.objects.filter(
+                related_season__user=self.user
+            ).count(), 0
         )
 
 

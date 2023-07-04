@@ -147,7 +147,7 @@ def episode_form_handler(
         )
     if "unwatch" in request.POST:
         Episode.objects.filter(
-            related_season=related_season, number__in=episodes_checked
+            related_season=related_season, episode_number__in=episodes_checked
         ).delete()
     else:
         # convert list of strings to list of ints
