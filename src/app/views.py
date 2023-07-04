@@ -42,7 +42,6 @@ def home(request):
 
     context = {
         "watching": watching,
-        "page": "home",
     }
     return render(request, "app/home.html", context)
 
@@ -90,8 +89,7 @@ def media_list(request, media_type):
                 "Paused",
                 "Dropped",
                 "Planning",
-            ],
-            "page": f"{media_type}s",
+            ]
         },
     )
 
@@ -139,7 +137,6 @@ def media_list_status(request, media_type, status):
                 "Dropped",
                 "Planning",
             ],
-            "page": f"{media_type}s {status.capitalize()}",
         },
     )
 
@@ -172,15 +169,10 @@ def media_search(request):
         elif media_type == "tv" or media_type == "movie":
             query_list = search.tmdb(media_type, query)
 
-        context = {
-            "query_list": query_list,
-            "page": "search",
-        }
+        context = {"query_list": query_list}
 
     else:
-        context = {
-            "page": "search",
-        }
+        context = {}
 
     return render(request, "app/search.html", context)
 
@@ -212,7 +204,6 @@ def media_details(request, media_type, media_id, title):
         "media": media_metadata,
         "seasons": media_metadata.get("seasons"),
         "related_data_list": related_data_list,
-        "page": title,
     }
     return render(request, "app/media_details.html", context)
 
@@ -264,7 +255,6 @@ def season_details(request, media_id, title, season_number):
         "season": season_metadata,
         "previous_season": previous_season,
         "next_season": next_season,
-        "page": f"{tv_metadata['title']} Season {season_number}",
     }
     return render(request, "app/season_details.html", context)
 
@@ -278,17 +268,12 @@ def register(request):
             f"New user registered: {form.cleaned_data.get('username')} at {helpers.get_client_ip(request)}"
         )
         return redirect("login")
-    return render(request, "app/register.html", {"form": form, "page": "register"})
+    return render(request, "app/register.html", {"form": form})
 
 
 class CustomLoginView(LoginView):
     form_class = UserLoginForm
     template_name = "app/login.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["page"] = "login"
-        return context
 
     def form_valid(self, form):
         remember_me = form.cleaned_data["remember_me"]
@@ -377,7 +362,6 @@ def profile(request):
     context = {
         "user_form": user_form,
         "password_form": password_form,
-        "page": "profile",
     }
     return render(request, "app/profile.html", context)
 

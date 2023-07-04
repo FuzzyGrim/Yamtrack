@@ -23,13 +23,7 @@
     <meta name="msapplication-config" content="{% static "favicon/browserconfig.xml" %}">
     <meta name="theme-color" content="#181a1b">
 
-    <title>
-      {% if page %} 
-        {{ page|capfirst }} - Yamtrack
-      {% else %}
-        Yamtrack
-      {% endif %}
-    </title>
+    <title>{% block title %}Yamtrack{% endblock %}</title>
 </head>
 
 {% block body %}

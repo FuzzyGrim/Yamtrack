@@ -2,6 +2,14 @@
 {% load static %}
 {% load app_extras %}
 
+{% block title %}
+  {% if media_type == "tv" %}
+    TVs - Yamtrack
+  {% else %}
+    {{ media_type|title }}s - Yamtrack
+  {% endif %}
+{% endblock %}
+
 {% block content %}
 
   <div id="medialist">

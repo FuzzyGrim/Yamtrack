@@ -2,6 +2,8 @@
 {% load static %}
 {% load app_extras %}
 
+{% block title %}Search - Yamtrack{% endblock %}
+
 {% block content %}
   {% comment %} MAL returns "error":"bad_request"  {% endcomment %}
   {% if not query_list%}
