@@ -18,9 +18,9 @@
       {% for media in media_list %}
         <div class="card text-bg-dark mx-auto">
           {% if media.season_number is None %}
-            <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify%}>
+            <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify%}>
           {% else %}
-            <a href="{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}">
+            <a href="{% url 'season_details' media_id=media.media_id title=media|slugify season_number=media.season_number %}">
           {% endif %}
             <img
             {% if media.image == "none.svg" %}
@@ -30,7 +30,7 @@
             {% endif %}
             data-src="{{media.image.url}}"
             data-expand="1000"
-            alt="{{ media.title }}"
+            alt="{{ media }}"
           />
           </a>
 

@@ -52,11 +52,11 @@
       {% for media in media_list %}
       <div class="d-flex flex-row mb-3 align-items-center list-section">
         <div class="image p-2">
-          <img class="lazyload" data-src="{{media.image.url}}" data-expand="1000" alt="{{media.title}}"/>
+          <img class="lazyload" data-src="{{media.image.url}}" data-expand="1000" alt="{{media}}"/>
         </div>
       
         <div class="title p-2">
-          <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify%}>
+          <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify%}>
             {{media}}
           </a>
         </div>

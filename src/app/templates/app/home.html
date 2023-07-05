@@ -21,9 +21,9 @@
             {% for media in watching_list %}
               <div class="card text-bg-dark mx-auto">
                 <a {% if media.season_number != None %}
-                      href="{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}">
+                      href="{% url 'season_details' media_id=media.media_id title=media|slugify season_number=media.season_number %}">
                     {% else %}
-                      href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}">
+                      href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}">
                   {% endif %}
                   <img
                     data-src="{{ media.image.url }}"
@@ -32,17 +32,14 @@
                       {% else %}
                       class="card-img open-modal-button lazyload poster"
                     {% endif %}
-                    alt="{{ media.title }}"
+                    alt="{{ media }}"
                     data-expand="1000"
                   />
                 </a>
 
                 <div class="card-img-overlay">
                   <div class="card-title text-center">
-                    {{ media.title }}
-                    {% if media.season_number != None %}
-                      S{{ media.season_number }}
-                    {% endif %}
+                    {{ media }}
                   </div>
                   <div class="card-text d-flex justify-content-center align-items-center" id="{{media_type}}_{{media.media_id}}{% if media.season_number != None %}_{{media.season_number}}{% endif %}">
                     <button type="button" class="btn progress-btn border-0" data-operation="decrease"
