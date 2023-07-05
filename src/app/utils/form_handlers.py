@@ -135,6 +135,7 @@ def episode_form_handler(
             media_id=media_id, user=request.user, season_number=season_number
         )
     except Season.DoesNotExist:
+        image = helpers.download_image(image, "season")
         related_season = Season.objects.create(
             media_id=media_id,
             title=title,
