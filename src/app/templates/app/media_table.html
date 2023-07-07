@@ -23,7 +23,7 @@
                   <a class="dropdown-item" href="{% url 'medialist' media_type=media_type %}">
                     All
                     <span class="text-end">
-                      {% if request.path == "/medialist/"|addstr:page %} <i class="bi bi-check-lg"></i> {% endif %}
+                      {% if request.path == "/medialist/"|addstr:media_type %} <i class="bi bi-check-lg"></i> {% endif %}
                     </span>
                   </a>
                 </li>

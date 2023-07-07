@@ -13,7 +13,34 @@
 {% block content %}
 
   <div id="medialist">
-    
+    <div class="filter dropdown p-2">
+      <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-funnel-fill"></i>
+      </button>
+      <ul class="dropdown-menu">
+        {% for status in statuses %}
+          {% if forloop.first %}
+            <li>
+              <a class="dropdown-item" href="{% url 'medialist' media_type=media_type %}">
+                All
+                <span class="text-end">
+                  {% if request.path == "/medialist/"|addstr:media_type %} <i class="bi bi-check-lg"></i> {% endif %}
+                </span>
+              </a>
+            </li>
+          {% else %}
+            <li>
+              <a class="dropdown-item" href="{% url 'medialist_status' media_type=media_type status=status|lower %}">
+                {{status}} 
+                <span class="text-end">
+                  {% if request.path == "/medialist/"|addstr:media_type|addstr:'/'|addstr:status|lower %} <i class="bi bi-check-lg"></i> {% endif %}
+                </span>
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
     <div class="container grid-layout">
       {% for media in media_list %}
         <div class="card text-bg-dark mx-auto">

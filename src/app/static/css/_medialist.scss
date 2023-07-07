@@ -1,5 +1,11 @@
 #medialist {
 
+  .dropdown-menu {
+    .text-end {
+      float: right;
+    }
+  }
+
   .table-layout {
     background-color: $container-bg;
     border: 1px solid #383d3f;
@@ -37,12 +43,6 @@
           // move the triangle icon down a bit
           &:after {
             vertical-align: 0;
-          }
-        }
-  
-        .dropdown-menu {
-          .text-end {
-            float: right;
           }
         }
       }

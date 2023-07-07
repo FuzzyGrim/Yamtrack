@@ -52,6 +52,8 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #sidebar .nav-link:not(.active):hover { background-color: #3034388c; }
 
+#medialist .dropdown-menu .text-end { float: right; }
+
 #medialist .table-layout { background-color: #1b1e1f; border: 1px solid #383d3f; }
 
 #medialist .table-layout .d-flex .image, #medialist .table-layout .d-flex .score, #medialist .table-layout .d-flex .status, #medialist .table-layout .d-flex ._progress, #medialist .table-layout .d-flex .edit { text-align: center; }
@@ -65,8 +67,6 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 #medialist .table-layout .list-head .filter .filter-btn:hover, #medialist .table-layout .list-section .filter .filter-btn:hover { color: #fff; }
 
 #medialist .table-layout .list-head .filter .filter-btn:after, #medialist .table-layout .list-section .filter .filter-btn:after { vertical-align: 0; }
-
-#medialist .table-layout .list-head .filter .dropdown-menu .text-end, #medialist .table-layout .list-section .filter .dropdown-menu .text-end { float: right; }
 
 #medialist .table-layout .list-head .image, #medialist .table-layout .list-section .image { margin-left: 1em !important; }
 
