@@ -6,39 +6,34 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def media_form_handler(
-    request,
-    media_id,
-    title,
-    image,
-    media_type,
-    season_metadata=None,
-    season_number=None,
-):
+def media_form_handler(request, media_metadata=None, season_number=None, title=None):
+    media_id = request.POST["media_id"]
+    media_type = request.POST.get("media_type")
     # when editing from home, medialist and media details
-    if media_type == "season" and season_metadata is None and season_number is None:
-        season_number = request.POST["season_number"]
-        season_metadata = metadata.season(media_id, season_number)
+    if media_type == "season":
+        if season_number is None:
+            season_number = request.POST["season_number"]
+        if media_metadata is None:
+            media_metadata = metadata.season(media_id, season_number)
+            media_metadata["title"] = title
+
+    # if not season and media_metadata is None:
+    elif media_metadata is None:
+        media_metadata = metadata.get_media_metadata(media_type, media_id)
 
     if "save" in request.POST:
-        media_save(
-            request, media_id, title, image, media_type, season_metadata, season_number
-        )
+        media_save(request, media_id, media_type, media_metadata, season_number)
     elif "delete" in request.POST:
         media_delete(request, media_id, media_type, season_number)
     elif "episode_number" in request.POST:
-        episode_form_handler(
-            request, media_id, title, image, season_metadata, season_number
-        )
+        episode_form_handler(request, media_id, media_metadata, season_number)
 
 
 def media_save(
     request,
     media_id,
-    title,
-    image,
     media_type,
-    season_metadata=None,
+    media_metadata,
     season_number=None,
 ):
     """
@@ -68,11 +63,11 @@ def media_save(
         instance = model.objects.get(**search_params)
     except model.DoesNotExist:
         # If the model instance doesn't exist, create a new one
-        if image != "none.svg":
-            image = helpers.download_image(image, media_type)
+        if media_metadata["image"] != "none.svg":
+            image = helpers.download_image(media_metadata["image"], media_type)
         default_params = {
             "user": request.user,
-            "title": title,
+            "title": media_metadata["title"],
             "image": image,
         }
         if season_number is not None:
@@ -85,8 +80,8 @@ def media_save(
         form.save()
         # if season status completed but episode count is < total episodes
         if model == Season and form.instance.status == "Completed":
-            if form.instance.episodes.count() < len(season_metadata["episodes"]):
-                create_remaining_episodes(instance, season_metadata)
+            if form.instance.episodes.count() < len(media_metadata["episodes"]):
+                create_remaining_episodes(instance, media_metadata)
     else:
         logger.error(form.errors.as_data())
 
@@ -106,8 +101,10 @@ def media_delete(request, media_id, media_type, season_number=None):
         "media_id": media_id,
         "user": request.user,
     }
+
     if season_number is not None:
         search_params["season_number"] = season_number
+
     try:
         instance = media_mapping["model"].objects.get(**search_params)
         instance.delete()
@@ -115,9 +112,7 @@ def media_delete(request, media_id, media_type, season_number=None):
         logger.error("Instance does not exist")
 
 
-def episode_form_handler(
-    request, media_id, title, image, season_metadata, season_number
-):
+def episode_form_handler(request, media_id, season_metadata, season_number):
     """
     Handles the creation, deletion, and updating of episodes for a season.
 
@@ -135,10 +130,10 @@ def episode_form_handler(
             media_id=media_id, user=request.user, season_number=season_number
         )
     except Season.DoesNotExist:
-        image = helpers.download_image(image, "season")
+        image = helpers.download_image(season_metadata["image"], "season")
         related_season = Season.objects.create(
             media_id=media_id,
-            title=title,
+            title=season_metadata["title"],
             image=image,
             score=None,
             status="Watching",

@@ -48,20 +48,12 @@ def home(request):
 
 @login_required
 def media_list(request, media_type):
-    media_mapping = helpers.media_type_mapper(media_type)
-    if request.method == "POST":
-        media_id = request.POST.get("media_id")
-        form_media_type = request.POST.get("media_type")
-        media_metadata = metadata.get_media_metadata(media_type, media_id)
 
-        form_handlers.media_form_handler(
-            request,
-            media_id,
-            media_metadata["title"],
-            media_metadata["image"],
-            form_media_type,
-        )
+    if request.method == "POST":
+        form_handlers.media_form_handler(request)
         return redirect("medialist", media_type=media_type)
+
+    media_mapping = helpers.media_type_mapper(media_type)
 
     if media_type == "tv":
         # show both tv and seasons in the same list
@@ -96,22 +88,12 @@ def media_list(request, media_type):
 
 @login_required
 def media_list_status(request, media_type, status):
-    media_mapping = helpers.media_type_mapper(media_type)
 
     if request.method == "POST":
-        media_id = request.POST.get("media_id")
-        form_media_type = request.POST.get("media_type")
-        media_metadata = metadata.get_media_metadata(media_type, media_id)
-
-        form_handlers.media_form_handler(
-            request,
-            media_id,
-            media_metadata["title"],
-            media_metadata["image"],
-            form_media_type,
-        )
-
+        form_handlers.media_form_handler(request)
         return redirect("medialist", media_type=media_type, status=status)
+
+    media_mapping = helpers.media_type_mapper(media_type)
 
     if media_type == "tv":
         # as tv doesn't have a status field, only filter seasons
@@ -146,23 +128,14 @@ def media_search(request):
     media_type = request.GET.get("media_type")
     query = request.GET.get("q")
 
+    if request.method == "POST":
+        form_handlers.media_form_handler(request)
+        return redirect("/search?media_type=" + media_type + "&q=" + query)
+
     if media_type and query:
         # update user default search type
         request.user.last_search_type = media_type
         request.user.save()
-
-        if request.method == "POST":
-            media_id = request.POST.get("media_id")
-            media_metadata = metadata.get_media_metadata(media_type, media_id)
-
-            form_handlers.media_form_handler(
-                request,
-                media_id,
-                media_metadata["title"],
-                media_metadata["image"],
-                media_type,
-            )
-            return redirect("/search?media_type=" + media_type + "&q=" + query)
 
         if media_type == "anime" or media_type == "manga":
             query_list = search.mal(media_type, query)
@@ -182,16 +155,7 @@ def media_details(request, media_type, media_id, title):
     media_metadata = metadata.get_media_metadata(media_type, media_id)
 
     if request.method == "POST":
-        form_media_type = request.POST.get("media_type")
-
-        form_handlers.media_form_handler(
-            request,
-            media_id,
-            media_metadata["title"],
-            media_metadata["image"],
-            form_media_type,
-        )
-
+        form_handlers.media_form_handler(request, title=media_metadata["title"])
         return redirect("media_details", media_type, media_id, title)
 
     related_data_list = [
@@ -214,12 +178,10 @@ def season_details(request, media_id, title, season_number):
     tv_metadata = metadata.tv(media_id)
 
     if request.method == "POST":
+        # add tv show title to season metadata
+        season_metadata["title"] = tv_metadata["title"]
         form_handlers.media_form_handler(
             request,
-            media_id,
-            tv_metadata["title"],
-            season_metadata["image"],
-            "season",
             season_metadata,
             season_number,
         )
