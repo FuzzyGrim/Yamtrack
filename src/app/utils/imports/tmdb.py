@@ -46,7 +46,6 @@ def import_tmdb(user, request_token):
     It doesn't track dates because TMDB API doesn't provide that information.
     """
     session_id = get_session_id(request_token)
-    print(session_id)
     tv_images_to_download = []
     movies_images_to_download = []
 
