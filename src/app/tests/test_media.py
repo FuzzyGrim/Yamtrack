@@ -26,8 +26,10 @@ class CreateMedia(TestCase):
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_tv(self):
         self.client.post(
-            # it doesn't matter what url we use
-            reverse("medialist", kwargs={"media_type": "tv"}),
+            reverse(
+                "media_details",
+                kwargs={"media_type": "tv", "media_id": 5895, "title": "FLCL"},
+            ),
             {
                 "media_id": 5895,
                 "media_type": "tv",
@@ -48,8 +50,10 @@ class CreateMedia(TestCase):
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_season(self):
         self.client.post(
-            # it doesn't matter what url we use
-            reverse("medialist", kwargs={"media_type": "tv"}),
+            reverse(
+                "season_details",
+                kwargs={"media_id": 1668, "title": "Friends", "season_number": 1},
+            ),
             {
                 "media_id": 1668,
                 "media_type": "season",
@@ -66,7 +70,7 @@ class CreateMedia(TestCase):
         # check if season poster image is downloaded
         self.assertEqual(
             os.path.exists(
-                settings.MEDIA_ROOT + "/season-f496cm9enuEsZkSPzCwnTESEK5s.jpg"
+                settings.MEDIA_ROOT + "/season-odCW88Cq5hAF0ZFVOkeJmeQv1nV.jpg"
             ),
             True,
         )
@@ -112,7 +116,6 @@ class EditMedia(TestCase):
         )
 
         self.client.post(
-            # it doesn't matter what url we use
             reverse("medialist", kwargs={"media_type": "movie"}),
             {
                 "media_id": 10494,
@@ -134,8 +137,14 @@ class CleanFormMedia(TestCase):
 
     def test_movie_complete(self):
         self.client.post(
-            # it doesn't matter what url we use
-            reverse("medialist", kwargs={"media_type": "movie"}),
+            reverse(
+                "media_details",
+                kwargs={
+                    "media_type": "movie",
+                    "media_id": 10494,
+                    "title": "Perfect Blue",
+                },
+            ),
             {
                 "media_id": 10494,
                 "media_type": "movie",
@@ -151,8 +160,10 @@ class CleanFormMedia(TestCase):
         When media completed, end_date = today and progress = total episodes
         """
         self.client.post(
-            # it doesn't matter what url we use
-            reverse("medialist", kwargs={"media_type": "anime"}),
+            reverse(
+                "media_details",
+                kwargs={"media_type": "anime", "media_id": 1, "title": "Cowboy Bebop"},
+            ),
             {
                 "media_id": 1,
                 "media_type": "anime",
@@ -170,8 +181,10 @@ class CleanFormMedia(TestCase):
         When season completed, create remaining episodes
         """
         self.client.post(
-            # it doesn't matter what url we use
-            reverse("medialist", kwargs={"media_type": "tv"}),
+            reverse(
+                "season_details",
+                kwargs={"media_id": 1668, "title": "Friends", "season_number": 1},
+            ),
             {
                 "media_id": 1668,
                 "media_type": "season",
@@ -200,8 +213,10 @@ class CleanFormMedia(TestCase):
             start_date=date(2021, 6, 1),
         )
         self.client.post(
-            # it doesn't matter what url we use
-            reverse("medialist", kwargs={"media_type": "anime"}),
+            reverse(
+                "media_details",
+                kwargs={"media_type": "anime", "media_id": 1, "title": "Cowboy Bebop"},
+            ),
             {
                 "media_id": 1,
                 "media_type": "anime",
@@ -217,8 +232,10 @@ class CleanFormMedia(TestCase):
         When progress is bigger than max, progress should be set to max
         """
         self.client.post(
-            # it doesn't matter what url we use
-            reverse("medialist", kwargs={"media_type": "anime"}),
+            reverse(
+                "media_details",
+                kwargs={"media_type": "anime", "media_id": 1, "title": "Cowboy Bebop"},
+            ),
             {
                 "media_id": 1,
                 "media_type": "anime",
@@ -250,7 +267,6 @@ class DeleteMedia(TestCase):
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
 
         self.client.post(
-            # it doesn't matter what url we use
             reverse("medialist", kwargs={"media_type": "movie"}),
             {
                 "media_id": 10494,
@@ -276,7 +292,6 @@ class DeleteMedia(TestCase):
         )
 
         self.client.post(
-            # it doesn't matter what url we use
             reverse("medialist", kwargs={"media_type": "tv"}),
             {
                 "media_id": 1668,
@@ -309,7 +324,6 @@ class DeleteMedia(TestCase):
         )
 
         self.client.post(
-            # it doesn't matter what url we use
             reverse(
                 "season_details",
                 kwargs={"media_id": 1668, "title": "friends", "season_number": 1},
@@ -323,9 +337,7 @@ class DeleteMedia(TestCase):
         )
 
         self.assertEqual(
-            Episode.objects.filter(
-                related_season__user=self.user
-            ).count(), 0
+            Episode.objects.filter(related_season__user=self.user).count(), 0
         )
 
 

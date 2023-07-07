@@ -133,25 +133,24 @@ class MediaForm(forms.ModelForm):
                     cleaned_data["end_date"] = datetime.date.today()
 
                 if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
-                    cleaned_data["progress"] = metadata.anime_manga(media_type, media_id)[
-                        "num_episodes"
-                    ]
+                    cleaned_data["progress"] = metadata.anime_manga(
+                        media_type, media_id
+                    )["num_episodes"]
 
             elif status == "Watching" and not start_date:
                 cleaned_data["start_date"] = datetime.date.today()
 
         if "progress" in self.changed_data:
-            total_episodes = metadata.get_media_metadata(media_type, media_id)["num_episodes"]
+            total_episodes = metadata.get_media_metadata(media_type, media_id)[
+                "num_episodes"
+            ]
 
             # limit progress to total_episodes
             if progress > total_episodes:
                 cleaned_data["progress"] = total_episodes
 
             # If progress == total_episodes and status not explicitly changed
-            if (
-                progress == total_episodes
-                and "status" not in self.changed_data
-            ):
+            if progress == total_episodes and "status" not in self.changed_data:
                 cleaned_data["status"] = "Completed"
                 cleaned_data["end_date"] = datetime.date.today()
 

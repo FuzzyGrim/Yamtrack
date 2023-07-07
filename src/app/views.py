@@ -48,7 +48,6 @@ def home(request):
 
 @login_required
 def media_list(request, media_type):
-
     if request.method == "POST":
         form_handlers.media_form_handler(request)
         return redirect("medialist", media_type=media_type)
@@ -81,14 +80,13 @@ def media_list(request, media_type):
                 "Paused",
                 "Dropped",
                 "Planning",
-            ]
+            ],
         },
     )
 
 
 @login_required
 def media_list_status(request, media_type, status):
-
     if request.method == "POST":
         form_handlers.media_form_handler(request)
         return redirect("medialist", media_type=media_type, status=status)

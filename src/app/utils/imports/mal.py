@@ -70,7 +70,12 @@ def add_media_list(response, media_type, user):
             )
         else:
             images_to_download, bulk_add_media = process_media(
-                content, media_type, media_mapping["model"], user, images_to_download, bulk_add_media
+                content,
+                media_type,
+                media_mapping["model"],
+                user,
+                images_to_download,
+                bulk_add_media,
             )
 
             logger.info(
@@ -98,7 +103,7 @@ def process_media(content, media_type, model, user, images_to_download, bulk_add
         score=content["list_status"]["score"],
         status=content["list_status"]["status"],
         user=user,
-        notes=""
+        notes="",
     )
 
     if media_type == "anime":

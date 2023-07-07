@@ -48,9 +48,7 @@ def anime_manga(media_type, media_id):
 
         if response["media_type"] == "tv":
             response["media_type"] = "anime"
-        response["original_type"] = (
-            response["media_type"].replace("_", " ").title()
-        )
+        response["original_type"] = response["media_type"].replace("_", " ").title()
         response["media_type"] = media_type
         response["media_id"] = response["id"]
 

@@ -34,12 +34,8 @@ class ImportsMAL(TestCase):
         mock_get.side_effect = [anime_mock, manga_mock]
 
         mal.import_myanimelist("bloodthirstiness", self.user)
-        self.assertEqual(
-            Anime.objects.filter(user=self.user).count(), 4
-        )
-        self.assertEqual(
-            Manga.objects.filter(user=self.user).count(), 2
-        )
+        self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
+        self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
             Anime.objects.get(user=self.user, title="Ama Gli Animali").image
             == "none.svg",
@@ -78,9 +74,7 @@ class ImportsTMDB(TestCase):
         )
 
         Movie.objects.bulk_create(bulk_movies)
-        self.assertEqual(
-            Movie.objects.filter(user=self.user).count(), 2
-        )
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
             Movie.objects.get(user=self.user, media_id=634649).score == 7, True
         )
@@ -106,12 +100,8 @@ class ImportsAniList(TestCase):
         mock_data.return_value.json.return_value = anilist_response
 
         anilist.import_anilist("bloodthirstiness", self.user)
-        self.assertEqual(
-            Anime.objects.filter(user=self.user).count(), 4
-        )
-        self.assertEqual(
-            Manga.objects.filter(user=self.user).count(), 2
-        )
+        self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
+        self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
             Anime.objects.get(user=self.user, title="FLCL").status == "Paused", True
         )
@@ -120,7 +110,9 @@ class ImportsAniList(TestCase):
         )
 
     def test_user_not_found(self):
-        self.assertEqual(anilist.import_anilist("fhdsufdsu", self.user), "User not found")
+        self.assertEqual(
+            anilist.import_anilist("fhdsufdsu", self.user), "User not found"
+        )
 
     def tearDown(self):
         shutil.rmtree("AniList")

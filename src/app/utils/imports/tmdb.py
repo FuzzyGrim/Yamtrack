@@ -65,9 +65,7 @@ def import_tmdb(user, request_token):
 
     # TVs
     tv_rated_url = f"https://api.themoviedb.org/3/account/{user}/rated/tv?api_key={TMDB_API}&session_id={session_id}"
-    tv_images, bulk_tv = process_media_list(
-        tv_rated_url, "tv", "Completed", user
-    )
+    tv_images, bulk_tv = process_media_list(tv_rated_url, "tv", "Completed", user)
     tv_images_to_download.extend(tv_images)
 
     asyncio.run(helpers.images_downloader(tv_images_to_download, "tv"))
@@ -133,9 +131,7 @@ def process_media_list(url, media_type, status, user):
                 media_params["status"] = status
                 media_params["end_date"] = None
 
-            bulk_media.append(
-                media_mapping["model"](**media_params)
-            )
+            bulk_media.append(media_mapping["model"](**media_params))
 
             logger.info(
                 f"{media_type.capitalize()}: {media['title']} ({media['id']}) added to import list."
