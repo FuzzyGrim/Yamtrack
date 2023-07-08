@@ -3,15 +3,12 @@
     margin-bottom: 2rem;
 
     .title {
-      color: $font-grey;
-      font-size: 1.5rem;
-      font-weight: 600;
       text-align: center;
       margin-top: 0.5rem;
       margin-bottom: 1rem;
     }
     .grid {
-      @include cards-grid(10rem);
+      @include cards-grid;
     }
   }
 }

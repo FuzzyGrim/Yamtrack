@@ -48,7 +48,7 @@
         <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="form-title">The Movie Database</div>
-          <button name="tmdb" class="btn btn-submit bg-dark w-100" type="submit">TMDB Authentication</button>
+          <button name="tmdb" class="btn no-fill-btn bg-dark w-100" type="submit">TMDB Authentication</button>
         </form>
 
         <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
@@ -56,7 +56,7 @@
           <div class="form-title">MyAnimeList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
-            <button class="btn btn-submit bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
         
@@ -65,7 +65,7 @@
           <div class="form-title">AniList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
-            <button class="btn btn-submit bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
       </fieldset>

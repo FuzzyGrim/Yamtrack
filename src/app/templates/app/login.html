@@ -11,7 +11,7 @@
     <form method="POST">
       {% csrf_token %}
       <img class="mb-4" src="{% static "favicon/apple-touch-icon.png" %}" alt="logo" width="58" height="58">
-      <h3 class="h3 mb-3 fw-normal">Log in to Yamtrack</h1>
+      <div class="mb-3 header-text">Log in to Yamtrack</div>
         
       {% if messages %}
         {% for message in messages %}

@@ -1,9 +1,9 @@
 #sidebar {
   width: 230px;
   .nav-link.active {
-    color: $white;
+    color: white;
     font-weight: 600;
-    background-color: #303438;
+    background-color: $selected;
     // bold active icon
     .bi {
       -webkit-text-stroke: .5px white;
@@ -11,9 +11,9 @@
   }
 
   .nav-link:not(.active) {
-    color: $white;
+    color: hsl(0, 0%, 85%);
     &:hover {
-      background-color: #3034388c;
+      color: white;
     }
   }
 }

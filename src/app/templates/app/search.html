@@ -7,7 +7,7 @@
 {% block content %}
   {% comment %} MAL returns "error":"bad_request"  {% endcomment %}
   {% if not query_list%}
-    <div class="not-found">
+    <div class="no-content">
       <div>
         <h2 class="alert-heading text-center">No results found!</h2>
         <p>Try searching for something else.</p>
@@ -46,11 +46,11 @@
                   <i class="bi bi-pencil-square"></i>
                 </button>
         
-                {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title only %}
               </div>
 
             </div>
-          </div>              
+          </div>
+          {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title only %}    
         {% endfor %}
       </div>
     </div>

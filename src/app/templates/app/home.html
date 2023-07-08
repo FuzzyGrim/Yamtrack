@@ -5,7 +5,7 @@
 
 {% block content %}
 {% if watching|length == 0 %}
-  <div class="not-found">
+  <div class="no-content">
     <div>
       <h2 class="alert-heading text-center">No media in progress</h2>
       <p>The homepage will show the media you are currently consuming.</p>
@@ -16,7 +16,7 @@
 
       {% for media_type, watching_list in watching.items %}
         <div class="container">
-          <div class="title">{{ media_type|capfirst }} in Progress</div>
+          <div class="header-text title">{{ media_type|capfirst }} in Progress</div>
           <div class="grid">
             {% for media in watching_list %}
               <div class="card text-bg-dark mx-auto">

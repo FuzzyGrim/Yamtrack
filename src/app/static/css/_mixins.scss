@@ -47,7 +47,7 @@
           padding: 0 0.5em;
           color: $btn-color;
           &:hover {
-            color: $white;
+            color: white;
           }
 
           &:disabled {
@@ -56,15 +56,5 @@
         }
       }
     }
-  }
-}
-
-@mixin form-btn {
-  border-width: 1px;
-  border-style: solid;
-  border-color: #56595d;
-
-  &:hover {
-    border-color: #7a7d81;
   }
 }

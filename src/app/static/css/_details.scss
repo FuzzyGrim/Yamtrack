@@ -19,17 +19,12 @@
 
     .content {
       margin-left: 1em;
-      .title {
-        font-size: 2em;
-        font-weight: 600;
-        color: $font-grey;
-      }
       // only present in season_details
       .show-title {
         margin-bottom: 0.5em;
         a { 
-        font-size: 1.2em;
-        color: $font-grey;
+        font-size: 1.1rem;
+        color: $btn-color;
         }
       }
       .synopsis {
@@ -47,8 +42,7 @@
 
   .grid-title {
     margin-top: 1em;
-    font-size: 1.2em;
-    color: $font-grey;
+    font-size: 1.2rem;
     margin-bottom: 0.5em;
   }
   .grid {
@@ -90,12 +84,12 @@
         text-align: center;
     
         .watch-btn {
-          color: $white;
+          color: white;
           background-color: #6c757d;
           border-color: #6c757d;
 
           &:hover {
-            color: $white;
+            color: white;
             background-color: #5c636a;
             border-color: #565e64;
           }
@@ -105,12 +99,12 @@
 
     .btn-group {
       .btn-release-date {
-        color: $white;
+        color: white;
         background-color: #6c757d;
         border-color: #6c757d;
 
         &:hover {
-          color: $white;
+          color: white;
           background-color: #5c636a;
           border-color: #565e64;
         }
@@ -128,7 +122,7 @@
           color: $btn-color;
 
           &:hover {
-            color: $white;
+            color: white;
           }
         }
       }
