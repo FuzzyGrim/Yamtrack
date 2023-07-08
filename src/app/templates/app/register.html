@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}Register - Yamtrack{% endblock %}
+
 {% block body %}
 
 <body class="text-center d-flex justify-content-center align-items-center" id="register">
@@ -9,7 +11,7 @@
     <form method="POST">
       {% csrf_token %}
       <img class="mb-4" src="{% static "favicon/apple-touch-icon.png" %}" alt="logo" width="58" height="58">
-      <h3 class="h3 mb-3 fw-normal">Register to Yamtrack</h1>
+      <div class="mb-3 header-text">Register to Yamtrack</div>
       
       {{ form.non_field_errors }}
 

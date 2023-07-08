@@ -1,5 +1,30 @@
+.header-text {
+  color: $text;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.no-fill-btn {
+  border-width: 1px;
+  border-style: solid;
+  color: $btn-color;
+  border-color: #56595d;
+  &:hover {
+    border-color: hsl(0, 0%, 60%);
+    color: white;
+  }
+}
+
 body {
-  background-color: #181a1b;
+
+  // hide lazyload img until loaded
+  img.lazyload:not([src]) {
+    visibility: hidden;
+  }
+
+  font-family: $font-body;
+  color: $text;
+  background-color: $background;
 
   main {
     height: 100dvh;
@@ -11,13 +36,13 @@ body {
       margin-bottom: 2em;
 
       .btn {
-        @include form-btn;
+        background-color: rgb(33, 37, 41);
       }
 
       .offcanvas-toggler {
-        font-size: 1.25em;
+        font-size: 1.25rem;
         line-height: 1;
-        color: $white;
+        color: white;
         background-color: transparent;
         border: var(--bs-border-width) solid var(--bs-border-color);
         border-radius: 0.375rem;

@@ -1,9 +1,10 @@
 from django.conf import settings
+from app.models import Manga, Anime, Movie, TV, Season
+from app.forms import MangaForm, AnimeForm, MovieForm, TVForm, SeasonForm
 
 import aiofiles
 import aiohttp
 import asyncio
-import datetime
 import requests
 import pathlib
 import logging
@@ -12,6 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 def download_image(url, media_type):
+    """
+    Downloads an image from the given URL and saves it to the media directory with a filename
+    based on the media type and the last element of the URL.
+
+    Args:
+        url (str): The URL of the image to download.
+        media_type (str): The type of media the image is associated with.
+
+    Returns:
+        str: The filename of the downloaded image.
+    """
+
     # rsplit is used to split the url at the last / and taking the last element
     # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
     filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
@@ -49,41 +62,6 @@ async def download_image_async(session, url, media_type):
                 f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
-                logger.info(f"Downloaded {filename}")
-
-
-def clean_data(request, metadata):
-    post = request.POST.copy()
-
-    if post["score"] == "":
-        post["score"] = None
-
-    if "num_episodes" in metadata and post["status"] == "Completed":
-        post["progress"] = metadata["num_episodes"]
-        # tmdb doesn't count special episodes in num_episodes
-        if "seasons" in metadata and metadata["seasons"][0]["season_number"] == 0:
-            post["progress"] = (
-                int(post["progress"]) + metadata["seasons"][0]["episode_count"]
-            )
-    elif post["progress"] == "":
-        post["progress"] = 0
-
-    if post["start"] == "":
-        if post["status"] == "Watching":
-            post["start"] = datetime.date.today()
-        else:
-            post["start"] = None
-
-    if post["end"] == "":
-        if post["status"] == "Completed":
-            post["end"] = datetime.date.today()
-        else:
-            post["end"] = None
-
-    if "season_number" in post:
-        post["season_number"] = int(post["season_number"])
-
-    return post
 
 
 def get_client_ip(request):
@@ -95,3 +73,43 @@ def get_client_ip(request):
         ip_address = request.META.get("REMOTE_ADDR")
 
     return ip_address
+
+
+def media_type_mapper(media_type):
+    """
+    Maps the media type to its corresponding model and form class.
+
+    Args:
+    - media_type (str): The type of media to map.
+
+    Returns:
+    - tuple: A tuple containing the model and form class corresponding to the media type.
+    """
+    media_mapping = {
+        "manga": {
+            "model": Manga,
+            "form": MangaForm,
+            "list_layout": "app/media_table.html",
+        },
+        "anime": {
+            "model": Anime,
+            "form": AnimeForm,
+            "list_layout": "app/media_table.html",
+        },
+        "movie": {
+            "model": Movie,
+            "form": MovieForm,
+            "list_layout": "app/media_grid.html",
+        },
+        "tv": {
+            "model": TV,
+            "form": TVForm,
+            "list_layout": "app/media_grid.html",
+        },
+        "season": {
+            "model": Season,
+            "form": SeasonForm,
+            "list_layout": "app/media_grid.html",
+        },
+    }
+    return media_mapping[media_type]

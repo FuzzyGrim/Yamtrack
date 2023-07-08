@@ -1,16 +1,5 @@
 .media-form-modal {
   form {
-    column-gap: 0.6em;
-    row-gap: 1em;
-
-    .descriptor {
-      font-size: 0.8rem;
-      margin-bottom: 0.4em;
-    }
-    .form-select {
-      border-radius: 0.2rem;
-    }
-
     // disable num input arrows
     input[type=number] {
       appearance: textfield;

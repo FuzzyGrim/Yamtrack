@@ -1,11 +1,4 @@
 #profile {
-  .btn-submit {
-    @include form-btn;
-    color: #909294;
-    &:hover {
-      color: #c1c5c9;
-    }
-  }
   .grid-container {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_extras %}
+
+{% block title %}
+  {% if media_type == "tv" %}
+    TVs - Yamtrack
+  {% else %}
+    {{ media_type|title }}s - Yamtrack
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+  <div id="medialist">
+    <div class="filter dropdown p-2">
+      <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-funnel-fill"></i>
+      </button>
+      <ul class="dropdown-menu">
+        {% for status in statuses %}
+          {% if forloop.first %}
+            <li>
+              <a class="dropdown-item" href="{% url 'medialist' media_type=media_type %}">
+                All
+                <span class="text-end">
+                  {% if request.path == "/medialist/"|addstr:media_type %} <i class="bi bi-check-lg"></i> {% endif %}
+                </span>
+              </a>
+            </li>
+          {% else %}
+            <li>
+              <a class="dropdown-item" href="{% url 'medialist_status' media_type=media_type status=status|lower %}">
+                {{status}} 
+                <span class="text-end">
+                  {% if request.path == "/medialist/"|addstr:media_type|addstr:'/'|addstr:status|lower %} <i class="bi bi-check-lg"></i> {% endif %}
+                </span>
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="container grid-layout">
+      {% for media in media_list %}
+        <div class="card text-bg-dark mx-auto">
+          {% if media.season_number is None %}
+            <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify%}>
+          {% else %}
+            <a href="{% url 'season_details' media_id=media.media_id title=media|slugify season_number=media.season_number %}">
+          {% endif %}
+            <img
+            {% if media.image == "none.svg" %}
+              class="card-img lazyload image-not-found"
+            {% else %}
+              class="card-img lazyload poster"
+            {% endif %}
+            data-src="{{media.image.url}}"
+            data-expand="1000"
+            alt="{{ media }}"
+          />
+          </a>
+
+          <div class="card-img-overlay">
+            <div class="card-title text-center">
+              {{ media }}
+            </div>
+            <div class="card-text d-flex justify-content-center align-items-center">
+              {{media.score}}
+
+              {% comment %} check if season {% endcomment %}
+              {% if media.season_number is None %}
+                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media_type}}_{{media.media_id}}" data-type="{{media_type}}" data-id="{{media.media_id}}">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+              
+              {% else %}
+      
+                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-season_{{media.media_id}}_{{media.season_number}}" 
+                data-type="season" data-id="{{media.media_id}}" data-season-number="{{media.season_number}}">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+
+        {% if media.season_number is None %}
+          {% include "app/include/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media only %}
+        {% else %}
+          {% include "app/include/modal.html" with form_id="season"|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:media.season_number title=media season_number=season.season_number only %}
+        {% endif %}
+
+      {% endfor %}
+    </div>
+
+  </div>
+
+{% endblock content%}
+
+{% block extra_scripts %}
+  <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
+  <script src="{% static 'js/modal-load.js' %}"></script>
+{% endblock extra_scripts %}

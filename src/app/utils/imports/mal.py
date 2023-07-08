@@ -5,7 +5,7 @@ import datetime
 import requests
 import logging
 
-from app.models import Media
+from app.models import Anime, Manga
 from app.utils import helpers
 
 MAL_API = config("MAL_API", default="")
@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 def import_myanimelist(username, user):
-
     logger.info(f"Importing {username} from MyAnimeList to {user}")
 
     header = {"X-MAL-CLIENT-ID": MAL_API}
@@ -33,7 +32,7 @@ def import_myanimelist(username, user):
         # Update the "paging" key with the new "next" URL (if any)
         animes["paging"] = next_data["paging"]
 
-    bulk_add_media = add_media_list(animes, "anime", user)
+    bulk_add_anime = add_media_list(animes, "anime", user)
 
     manga_url = f"https://api.myanimelist.net/v2/users/{username}/mangalist?fields=list_status&nsfw=true&limit=100"
     mangas = requests.get(manga_url, headers=header).json()
@@ -47,9 +46,10 @@ def import_myanimelist(username, user):
         # Update the "paging" key with the new "next" URL (if any)
         mangas["paging"] = next_data["paging"]
 
-    bulk_add_media.extend(add_media_list(mangas, "manga", user))
+    bulk_add_manga = add_media_list(mangas, "manga", user)
 
-    Media.objects.bulk_create(bulk_add_media)
+    Anime.objects.bulk_create(bulk_add_anime)
+    Manga.objects.bulk_create(bulk_add_manga)
     logger.info(f"Finished importing {username} from MyAnimeList")
 
     return True
@@ -58,17 +58,25 @@ def import_myanimelist(username, user):
 def add_media_list(response, media_type, user):
     bulk_add_media = []
     images_to_download = []
+    media_mapping = helpers.media_type_mapper(media_type)
+
     for content in response["data"]:
-        if Media.objects.filter(
+        if media_mapping["model"].objects.filter(
             media_id=content["node"]["id"],
-            media_type=media_type,
             user=user,
         ).exists():
             logger.warning(
                 f"{media_type.capitalize()}: {content['node']['title']} ({content['node']['id']}) already exists, skipping..."
             )
         else:
-            images_to_download, bulk_add_media = process_media(content, media_type, user, images_to_download, bulk_add_media)
+            images_to_download, bulk_add_media = process_media(
+                content,
+                media_type,
+                media_mapping["model"],
+                user,
+                images_to_download,
+                bulk_add_media,
+            )
 
             logger.info(
                 f"{media_type.capitalize()}: {content['node']['title']} ({content['node']['id']}) added to import list."
@@ -79,7 +87,7 @@ def add_media_list(response, media_type, user):
     return bulk_add_media
 
 
-def process_media(content, media_type, user, images_to_download, bulk_add_media):
+def process_media(content, media_type, model, user, images_to_download, bulk_add_media):
     if content["list_status"]["status"] == "plan_to_watch":
         content["list_status"]["status"] = "Planning"
     elif content["list_status"]["status"] == "on_hold":
@@ -89,13 +97,13 @@ def process_media(content, media_type, user, images_to_download, bulk_add_media)
     else:
         content["list_status"]["status"] = content["list_status"]["status"].capitalize()
 
-    media = Media(
+    media = model(
         media_id=content["node"]["id"],
         title=content["node"]["title"],
-        media_type=media_type,
         score=content["list_status"]["score"],
         status=content["list_status"]["status"],
         user=user,
+        notes="",
     )
 
     if media_type == "anime":
@@ -118,7 +126,7 @@ def process_media(content, media_type, user, images_to_download, bulk_add_media)
         media.end_date = None
 
     if "main_picture" in content["node"]:
-        image_url = content['node']['main_picture']['large']
+        image_url = content["node"]["main_picture"]["large"]
         images_to_download.append(image_url)
 
         # rsplit is used to split the url at the last / and taking the last element

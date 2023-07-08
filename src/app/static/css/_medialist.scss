@@ -1,97 +1,105 @@
 #medialist {
-  background-color: $container-bg;
-  border: 1px solid #383d3f;
 
-  .d-flex {
-    & .image,
-    & .score,
-    & .status,
-    & ._progress,
-    & .edit {
-      text-align: center;
+  .dropdown-menu {
+    .text-end {
+      float: right;
     }
   }
 
-  .list-head {
-    margin: 1em 0 0;
-  }
+  .table-layout {
+    background-color: $container-bg;
+    border: 1px solid #383d3f;
 
-  .list-head,
-  .list-section {
-
-    .filter {
-      margin-left: 1em !important;
-      .filter-btn {
-        width: 3rem;
-        height: 3rem;
-        background-color: $container-bg;
-        border: 0;
-        color: $btn-color;
-
-        &:hover {
-          color: $white;
-        }
-
-        // move the triangle icon down a bit
-        &:after {
-          vertical-align: 0;
-        }
-      }
-
-      .dropdown-menu {
-        .text-end {
-          float: right;
-        }
+    .d-flex {
+      & .image,
+      & .score,
+      & .status,
+      & ._progress,
+      & .edit {
+        text-align: center;
       }
     }
-
-    .image {
-      margin-left: 1em !important;
-      
-      img {
-        width: 3rem;
-        height: 3rem;
-        object-fit: cover;
-        background-color: #383d3f;
-        display: block;
+  
+    .list-head {
+      margin: 1em 0 0;
+    }
+  
+    .list-head,
+    .list-section {
+  
+      .filter {
+        margin-left: 1em !important;
+        .filter-btn {
+          width: 3rem;
+          height: 3rem;
+          background-color: $container-bg;
+          border: 0;
+          color: $btn-color;
+  
+          &:hover {
+            color: white;
+          }
+  
+          // move the triangle icon down a bit
+          &:after {
+            vertical-align: 0;
+          }
+        }
+      }
+  
+      .image {
+        margin-left: 1em !important;
+        
+        img {
+          width: 3rem;
+          height: 3rem;
+          object-fit: cover;
+          background-color: #383d3f;
+          display: block;
+          overflow: hidden;
+        }
+      }
+  
+      .title {
+        flex: 3;
+        // show 1 line, without line-height it will show a little bit of the second line
         overflow: hidden;
-      }
-    }
-
-    .title {
-      flex: 3;
-      // show 1 line, without line-height it will show a little bit of the second line
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      line-height: 2;
-      a {
-        color: $btn-color;
-        text-decoration: none;
-      }
-    }
-
-    .score,
-    .status,
-    ._progress,
-    .edit {
-      flex: 1;
-    }
-
-    .edit {
-      .open-modal-button {
-        background-color: $container-bg;
-        color: $btn-color;
-        border-width: 0;
-        border-radius: 0;
-        &:hover {
-          color: $white;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        line-height: 2;
+        a {
+          color: $btn-color;
+          text-decoration: none;
         }
       }
-      .modal {
-        text-align: left;
+  
+      .score,
+      .status,
+      ._progress,
+      .edit {
+        flex: 1;
+      }
+  
+      .edit {
+        .open-modal-button {
+          background-color: $container-bg;
+          color: $btn-color;
+          border-width: 0;
+          border-radius: 0;
+          &:hover {
+            color: white;
+          }
+        }
+        .modal {
+          text-align: left;
+        }
       }
     }
   }
+
+  .grid-layout {
+    @include cards-grid;
+  }
+
 }
