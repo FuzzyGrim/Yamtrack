@@ -8,5 +8,5 @@ django-sass-processor==1.2.2
 Pillow==9.5.0
 psycopg==3.1.8
 python-decouple==3.8
-requests==2.29.0
+requests==2.31.0
 uWSGI==2.0.21
