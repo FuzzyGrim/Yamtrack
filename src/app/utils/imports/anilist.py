@@ -3,7 +3,7 @@ import datetime
 import requests
 import logging
 
-from app.models import Media
+from app.models import Anime, Manga
 from app.utils import helpers
 
 logger = logging.getLogger(__name__)
@@ -89,17 +89,16 @@ def import_anilist(username, user):
     # error stores media titles that don't have a corresponding MAL ID
     error = add_media_list(query, error="", user=user)
 
-    logger.info(
-        f"Finished importing {username} from Anilist"
-    )
+    logger.info(f"Finished importing {username} from Anilist")
     return error
 
 
 def add_media_list(query, error, user):
-    bulk_add_media = []
+    bulk_add_media = {"anime": [], "manga": []}
 
     for media_type in query["data"]:
         images_to_download = []
+        media_mapping = helpers.media_type_mapper(media_type)
         for status_list in query["data"][media_type]["lists"]:
             if not status_list["isCustomList"]:
                 for content in status_list["entries"]:
@@ -108,17 +107,25 @@ def add_media_list(query, error, user):
                         logger.warning(
                             f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} has no MAL ID."
                         )
-                    elif Media.objects.filter(
-                        media_id=content["media"]["idMal"],
-                        media_type=media_type,
-                        user=user,
-                    ).exists():
+                    elif (
+                        media_mapping["model"]
+                        .objects.filter(
+                            media_id=content["media"]["idMal"],
+                            user=user,
+                        )
+                        .exists()
+                    ):
                         logger.warning(
                             f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) already exists, skipping..."
                         )
                     else:
                         images_to_download, bulk_add_media = process_media(
-                            content, media_type, user, images_to_download, bulk_add_media
+                            content,
+                            media_type,
+                            media_mapping["model"],
+                            user,
+                            images_to_download,
+                            bulk_add_media,
                         )
 
                         logger.info(
@@ -126,12 +133,12 @@ def add_media_list(query, error, user):
                         )
         asyncio.run(helpers.images_downloader(images_to_download, media_type))
 
-    Media.objects.bulk_create(bulk_add_media)
-
+    Anime.objects.bulk_create(bulk_add_media["anime"])
+    Manga.objects.bulk_create(bulk_add_media["manga"])
     return error
 
 
-def process_media(content, media_type, user, images_to_download, bulk_add_media):
+def process_media(content, media_type, model, user, images_to_download, bulk_add_media):
     if content["status"] == "CURRENT":
         status = "Watching"
     else:
@@ -152,19 +159,19 @@ def process_media(content, media_type, user, images_to_download, bulk_add_media)
     else:
         end_date = None
 
-    media = Media(
+    media = model(
         media_id=content["media"]["idMal"],
         title=content["media"]["title"]["userPreferred"],
-        media_type=media_type,
         score=content["score"],
         progress=content["progress"],
         status=status,
         user=user,
         start_date=start_date,
         end_date=end_date,
+        notes="",
     )
 
-    bulk_add_media.append(media)
+    bulk_add_media[media_type].append(media)
 
     image_url = content["media"]["coverImage"]["large"]
     images_to_download.append(image_url)

@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}Home - Yamtrack{% endblock %}
+
 {% block content %}
-{% if media_dict|length == 0 %}
-  <div class="not-found">
+{% if watching|length == 0 %}
+  <div class="no-content">
     <div>
       <h2 class="alert-heading text-center">No media in progress</h2>
       <p>The homepage will show the media you are currently consuming.</p>
@@ -12,34 +14,36 @@
   {% else %}
     <div id="home">
 
-      {% for key, media_group in media_dict.items %}
+      {% for media_type, watching_list in watching.items %}
         <div class="container">
-          <div class="title">{{ media_group.list_title }}</div>
+          <div class="header-text title">{{ media_type|capfirst }} in Progress</div>
           <div class="grid">
-            {% for media in media_group.media_list %}
+            {% for media in watching_list %}
               <div class="card text-bg-dark mx-auto">
-                <a href="{% url 'details' media_type=media.media_type media_id=media.media_id title=media.title|slugify%}">
+                <a {% if media.season_number != None %}
+                      href="{% url 'season_details' media_id=media.media_id title=media|slugify season_number=media.season_number %}">
+                    {% else %}
+                      href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}">
+                  {% endif %}
                   <img
-                    src="{{ media.image.url }}"
+                    data-src="{{ media.image.url }}"
                     {% if media.image.url == "/media/none.svg"%}
-                      class="card-img open-modal-button image-not-found"
+                      class="card-img open-modal-button lazyload image-not-found"
                       {% else %}
-                      class="card-img open-modal-button poster"
+                      class="card-img open-modal-button lazyload poster"
                     {% endif %}
-                    alt="{{ media.title }}"
+                    alt="{{ media }}"
+                    data-expand="1000"
                   />
                 </a>
 
                 <div class="card-img-overlay">
                   <div class="card-title text-center">
-                    {{ media.title }}
-                    {% if media.season_number != None %}
-                      S{{ media.season_number }}
-                    {% endif %}
+                    {{ media }}
                   </div>
-                  <div class="card-text d-flex justify-content-center align-items-center" id="{{media.media_type}}_{{media.media_id}}{% if media.season_number != None %}_{{media.season_number}}{% endif %}">
-                    <button type="button" class="btn progress-btn border-0" data-operation="decrement"
-                            data-type="{{media.media_type}}" data-id="{{media.media_id}}"
+                  <div class="card-text d-flex justify-content-center align-items-center" id="{{media_type}}_{{media.media_id}}{% if media.season_number != None %}_{{media.season_number}}{% endif %}">
+                    <button type="button" class="btn progress-btn border-0" data-operation="decrease"
+                            data-type="{{media_type}}" data-id="{{media.media_id}}"
                             {% if media.season_number != None %} data-season-number="{{media.season_number}}" {% endif %}
                             {% if media.progress == 0 %} disabled {% endif %}>
                       -
@@ -47,8 +51,8 @@
 
                     <div class="progress_count">{{ media.progress }}</div>
 
-                    <button type="button" class="btn progress-btn border-0" data-operation="increment"
-                            data-type="{{media.media_type}}" data-id="{{media.media_id}}"
+                    <button type="button" class="btn progress-btn border-0" data-operation="increase"
+                            data-type="{{media_type}}" data-id="{{media.media_id}}"
                             {% if media.season_number != None %} data-season-number="{{media.season_number}}" {% endif %}>
                       +
                     </button>
@@ -66,7 +70,9 @@
 {% endblock content%}
 
 {% block extra_scripts %}
+  <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
   <script>
+    // Set the csrf token for ajax requests in progress-edit.js
     var csrftoken = '{{ csrf_token }}';
   </script>
   <script src="{% static 'js/progress-edit.js' %}"></script>

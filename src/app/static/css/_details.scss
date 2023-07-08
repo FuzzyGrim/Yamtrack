@@ -9,7 +9,7 @@
       aspect-ratio: 2/3;
       object-fit: cover;
     }
-  
+
     .image-not-found {
       object-fit: contain;
       width: 14rem;
@@ -19,10 +19,13 @@
 
     .content {
       margin-left: 1em;
-      .title {
-        font-size: 2em;
-        font-weight: 600;
-        color: $font-grey;
+      // only present in season_details
+      .show-title {
+        margin-bottom: 0.5em;
+        a { 
+        font-size: 1.1rem;
+        color: $btn-color;
+        }
       }
       .synopsis {
         // show only 4 lines of text
@@ -31,30 +34,98 @@
         -webkit-line-clamp: 4;
         -webkit-box-orient: vertical;
       }
-      .media-form {
+      .buttons-group {
         margin-top: auto;
-        .open-modal-button {
-          color: $white;
-          background-color: #6c757d;
-          border-color: #6c757d;
-
-          &:hover {
-            color: $white;
-            background-color: #5c636a;
-            border-color: #565e64;
-          }
-        }
       }
     }
   }
 
   .grid-title {
     margin-top: 1em;
-    font-size: 1.2em;
-    color: $font-grey;
+    font-size: 1.2rem;
     margin-bottom: 0.5em;
   }
   .grid {
     @include cards-grid;
+  }
+
+  .episode-list {
+    margin-top: 2em;
+    margin-bottom: 0.5em;
+
+    .episode {
+
+      .check-div {
+        flex-basis: 1em;
+        flex-shrink: 0;
+      }
+
+      .episode-number {
+        flex-basis: 5em;
+        flex-shrink: 0;
+        text-align: center;
+      }
+    
+      .episode-name {
+        flex-grow: 3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    
+      .episode-date {
+        flex-basis: 10em;
+        text-align: center;
+      }
+    
+      .watch-status {
+        flex-basis: 64px;
+        flex-shrink: 0;
+        text-align: center;
+    
+        .watch-btn {
+          color: white;
+          background-color: #6c757d;
+          border-color: #6c757d;
+
+          &:hover {
+            color: white;
+            background-color: #5c636a;
+            border-color: #565e64;
+          }
+        }
+      }
+    }
+
+    .btn-group {
+      .btn-release-date {
+        color: white;
+        background-color: #6c757d;
+        border-color: #6c757d;
+
+        &:hover {
+          color: white;
+          background-color: #5c636a;
+          border-color: #565e64;
+        }
+      }
+      .date-btn-group {
+        .form-control {
+          padding-right: 0;
+          border-radius: 0;
+          border-right: 0;
+        }
+        .btn {
+          border-radius: 0;
+          border-color: #495057;
+          border-left: 0;
+          color: $btn-color;
+
+          &:hover {
+            color: white;
+          }
+        }
+      }
+    }
   }
 }

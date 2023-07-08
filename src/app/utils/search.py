@@ -37,7 +37,9 @@ def mal(media_type, query):
 
     if "error" in response:
         if response["error"] == "forbidden":
-            logger.error(f"MAL: {response['error'].title()}, probably no API key provided")
+            logger.error(
+                f"MAL: {response['error'].title()}, probably no API key provided"
+            )
         elif response["error"] == "bad_request":
             if response["message"] == "invalid q":
                 logger.error("MAL: Invalid query")

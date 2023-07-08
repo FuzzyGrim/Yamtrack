@@ -5,7 +5,7 @@ on:
     types: [published]
 
   push:
-    branches: [main]
+    branches: ["dev"]
 
   workflow_dispatch:
 

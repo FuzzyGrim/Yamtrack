@@ -2,6 +2,8 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
+{% block title %}Profile - Yamtrack{% endblock %}
+
 {% block content %}
 
   <div id="profile">
@@ -25,7 +27,7 @@
         {{ user_form|crispy }}
       </fieldset>
       <div class="form-group">
-        <button class="btn btn-submit bg-dark rounded" type="submit">Update</button>
+        <button class="btn btn-secondary rounded" type="submit">Update</button>
       </div>
     </form>
     <form method="POST" class="mt-5">
@@ -35,7 +37,7 @@
         {{ password_form|crispy }}
       </fieldset>
       <div class="form-group">
-        <button class="btn btn-submit bg-dark rounded" type="submit">Update</button>
+        <button class="btn btn-secondary rounded" type="submit">Update</button>
       </div>
     </form>
 
@@ -46,7 +48,7 @@
         <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="form-title">The Movie Database</div>
-          <button name="tmdb" class="btn btn-submit bg-dark rounded-end w-100" type="submit">TMDB Authentication</button>
+          <button name="tmdb" class="btn no-fill-btn bg-dark w-100" type="submit">TMDB Authentication</button>
         </form>
 
         <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
@@ -54,7 +56,7 @@
           <div class="form-title">MyAnimeList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
-            <button class="btn btn-submit bg-dark rounded-end" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
         
@@ -63,7 +65,7 @@
           <div class="form-title">AniList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
-            <button class="btn btn-submit bg-dark rounded-end" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
       </fieldset>

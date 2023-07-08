@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}Error {{ status_code }} - Yamtrack{% endblock %}
+
 {% block content %}
 
-  <div class="not-found">
+  <div class="no-content">
     <div>
-      <h2 class="alert-heading text-center">Error {{ status_code }}</h2>
+      <h2 class="alert-heading text-center header-text">Error {{ status_code }}</h2>
       <p>If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues">report the issue.</a></p>
     </div>
   </div>

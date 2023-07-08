@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_extras %}
+
+{% block title %}{{ media_type|title }}s - Yamtrack{% endblock %}
+
+{% block content %}
+
+  <div id="medialist">
+
+    <div class="table-layout">
+    
+      <div class="d-flex flex-row align-items-center list-head">
+
+        <div class="filter dropdown p-2">
+          <button class="btn btn-secondary dropdown-toggle filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-funnel-fill"></i>
+          </button>
+          <ul class="dropdown-menu">
+            {% for status in statuses %}
+              {% if forloop.first %}
+                <li>
+                  <a class="dropdown-item" href="{% url 'medialist' media_type=media_type %}">
+                    All
+                    <span class="text-end">
+                      {% if request.path == "/medialist/"|addstr:media_type %} <i class="bi bi-check-lg"></i> {% endif %}
+                    </span>
+                  </a>
+                </li>
+              {% else %}
+                <li>
+                  <a class="dropdown-item" href="{% url 'medialist_status' media_type=media_type status=status|lower %}">
+                    {{status}} 
+                    <span class="text-end">
+                      {% if request.path == "/medialist/"|addstr:media_type|addstr:'/'|addstr:status|lower %} <i class="bi bi-check-lg"></i> {% endif %}
+                    </span>
+                  </a>
+                </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="title p-2"><strong>Title</strong></div>
+        <div class="score p-2"><strong>Score</strong></div>
+        <div class="status p-2"><strong>Status</strong></div>
+        {% comment %} bootstrap already uses progress class {% endcomment %}
+        <div class="_progress p-2"><strong>Progress</strong></div>
+        <div class="edit p-2"><strong>Edit</strong></div>
+      </div>
+
+      {% for media in media_list %}
+      <div class="d-flex flex-row mb-3 align-items-center list-section">
+        <div class="image p-2">
+          <img class="lazyload" data-src="{{media.image.url}}" data-expand="1000" alt="{{media}}"/>
+        </div>
+      
+        <div class="title p-2">
+          <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify%}>
+            {{media}}
+          </a>
+        </div>
+        <div class="score p-2">{{media.score}}</div>
+        <div class="status p-2">{{media.status|default_if_none:""}}</div>
+        <div class="_progress p-2">{{media.progress|default_if_none:""}}</div>
+        
+        <div class="edit p-2">
+          <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media_type}}_{{media.media_id}}" data-type="{{media_type}}" data-id="{{media.media_id}}">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          {% include "app/include/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media only %}
+        </div>
+      
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+{% endblock content%}
+
+{% block extra_scripts %}
+  <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
+  <script src="{% static 'js/modal-load.js' %}"></script>
+{% endblock extra_scripts %}

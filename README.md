@@ -10,6 +10,7 @@ Yamtrack is a self hosted simple media tracker. You can track movies, tv shows, 
 
 It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](https://myanimelist.net/) APIs to fetch media information.
 
+
 ## Features
 
 - Track movies, tv shows, anime and manga
@@ -19,20 +20,12 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 - Multi-users support
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/)
 
-# Installation
-
-Clone the repository and change directory to it.
-
-```bash
-git clone https://github.com/FuzzyGrim/Yamtrack.git
-cd Yamtrack
-```
 
 ## Docker-compose
 
-https://github.com/FuzzyGrim/Yamtrack/blob/d5d095e4c2dd8c842e5ea5e5664720464235114b/docker-compose.yml#L1-L25C1
+https://github.com/FuzzyGrim/Yamtrack/blob/501ad2154a5fa9b86bc1b5b002a6b6c298dc600c/docker-compose.yml#L1-L25
 
-## Environment variables
+### Environment variables
 
 | Name           |  Type       | Description                | Required     | Default    | Notes                                 |
 | -------------- | ----------- | -------------------------- | ------------ | ---------- | ------------------------------------- |
@@ -49,7 +42,7 @@ https://github.com/FuzzyGrim/Yamtrack/blob/d5d095e4c2dd8c842e5ea5e56647204642351
 | DEBUG          | Bool        | Django debug mode          | No           | False      |                                       |
 
 
-## Environment variables for PostgreSQL
+### Environment variables for PostgreSQL
 
 | Name           |  Type       | Description                | Required     | Default    | Notes                                 |
 | -------------- | ----------- | -------------------------- | ------------ | ---------- | ------------------------------------- |
@@ -59,7 +52,15 @@ https://github.com/FuzzyGrim/Yamtrack/blob/d5d095e4c2dd8c842e5ea5e56647204642351
 | DB_USER        | String      | Database user              | No           |'yamtrack'  |                                       |
 | DB_PASSWORD    | String      | Database password          | No           |'yamtrack'  |                                       |
 
+
 ## Local development
+
+Clone the repository and change directory to it.
+
+```bash
+git clone https://github.com/FuzzyGrim/Yamtrack.git
+cd Yamtrack
+```
 
 Create a `.env` file in the root directory and add the following variables.
 

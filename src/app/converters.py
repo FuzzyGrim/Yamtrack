@@ -1,5 +1,5 @@
 class MediaTypeChecker:
-    regex = '(anime|manga|tv|movie)'
+    regex = "(anime|manga|tv|movie)"
 
     def to_python(self, value):
         return value
@@ -9,7 +9,7 @@ class MediaTypeChecker:
 
 
 class StatusChecker:
-    regex = '(completed|watching|paused|dropped|planning)'
+    regex = "(completed|watching|paused|dropped|planning)"
 
     def to_python(self, value):
         return value

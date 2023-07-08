@@ -1,0 +1,17 @@
+{
+  "total_pages": 1,
+  "results": [
+    {
+      "id": 361743,
+      "title": "Top Gun: Maverick",
+      "rating": 7,
+      "poster_path": "/62HCnUTziyWcpDaBO2i1DX17ljH.jpg"
+    },
+    {
+      "id": 634649,
+      "title": "Spider-Man: No Way Home",
+      "rating": 7,
+      "poster_path": "/uJYYizSuA9Y3DCs0qS4qWvHfZg4.jpg"
+    }
+  ]
+}
