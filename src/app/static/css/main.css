@@ -60,7 +60,7 @@ body main .not-found { display: flex; flex-direction: column; height: 75%; justi
 
 #sidebar { width: 230px; }
 
-#sidebar .nav-link.active { color: white; font-weight: 600; background-color: #2f3337; }
+#sidebar .nav-link.active { color: white; font-weight: 700; background-color: #2f3337; }
 
 #sidebar .nav-link.active .bi { -webkit-text-stroke: .5px white; }
 
