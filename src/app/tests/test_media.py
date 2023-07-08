@@ -386,9 +386,9 @@ class DetailsMedia(TestCase):
         self.assertEqual(response["title"], "Perfect Blue")
         self.assertEqual(
             response["image"],
-            "https://image.tmdb.org/t/p/w500/hwCTlm990H6NlrG8W7sk3pxdMtf.jpg",
+            "https://image.tmdb.org/t/p/w500/6WTiOCfDPP8XV4jqfloiVWf7KHq.jpg",
         )
-        self.assertEqual(response["start_date"], "1997-07-25")
+        self.assertEqual(response["start_date"], "1998-02-28")
         self.assertEqual(response["status"], "Released")
 
     @patch("requests.get")
