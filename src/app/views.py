@@ -394,6 +394,8 @@ def progress_edit(request):
                 episode_number=episode_number,
                 watch_date=date.today(),
             )
+            logger.info(f"Watched {season}E{episode_number}")
+
         elif operation == "decrease":
             episode_number = season_metadata["episodes"][season.progress - 1][
                 "episode_number"
@@ -401,11 +403,13 @@ def progress_edit(request):
             Episode.objects.get(
                 related_season=season, episode_number=episode_number
             ).delete()
+            logger.info(f"Unwatched {season}E{episode_number}")
 
         # change status to completed if progress is max
         if season.progress == max_progress:
             season.status = "Completed"
             season.save()
+            logger.info(f"Finished watching {season}")
 
         response = {"progress": season.progress}
 
@@ -420,12 +424,16 @@ def progress_edit(request):
         )
         if operation == "increase":
             media.progress += 1
+            logger.info(f"Watched {media} E{media.progress}")
+
         elif operation == "decrease":
+            logger.info(f"Unwatched {media} E{media.progress}")
             media.progress -= 1
 
         # before saving, if progress is max, set status to completed
         if media.progress == max_progress:
             media.status = "Completed"
+            logger.info(f"Finished watching {media}")
         media.save()
         response = {"progress": media.progress}
 
