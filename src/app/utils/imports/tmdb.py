@@ -3,8 +3,8 @@ import requests
 import logging
 import asyncio
 
-from app.models import TV, Movie
-from app.utils import helpers
+from app.models import TV, Season, Movie
+from app.utils import helpers, metadata
 
 TMDB_API = config("TMDB_API", default="")
 logger = logging.getLogger(__name__)
@@ -40,13 +40,13 @@ def import_tmdb(user, request_token):
         - Rated movies
         - Watchlist movies
         - Rated TV shows
-    It currently doesn't import watchlist TV shows because current tv models
-    doesn't have a status field, shows status are tracked per season.
+        - Watchlist TV shows
 
-    It doesn't track dates because TMDB API doesn't provide that information.
+    It can't track dates because not provided by TMDB API.
     """
     session_id = get_session_id(request_token)
     tv_images_to_download = []
+    season_images_to_download = []
     movies_images_to_download = []
 
     # MOVIES
@@ -68,11 +68,22 @@ def import_tmdb(user, request_token):
     tv_images, bulk_tv = process_media_list(tv_rated_url, "tv", "Completed", user)
     tv_images_to_download.extend(tv_images)
 
+    # TVs
+    tv_watchlist_url = f"https://api.themoviedb.org/3/account/{user}/watchlist/tv?api_key={TMDB_API}&session_id={session_id}"
+    # add first season of each media as watchlist
+    season_images, bulk_seasons = process_media_list(
+        tv_watchlist_url, "season", "Planning", user
+    )
+    season_images_to_download.extend(season_images)
+
     asyncio.run(helpers.images_downloader(tv_images_to_download, "tv"))
     asyncio.run(helpers.images_downloader(movies_images_to_download, "movie"))
+    asyncio.run(helpers.images_downloader(season_images_to_download, "season"))
 
     TV.objects.bulk_create(bulk_tv)
     Movie.objects.bulk_create(bulk_movies)
+    print(bulk_seasons)
+    Season.objects.bulk_create(bulk_seasons)
 
 
 def process_media_list(url, media_type, status, user):
@@ -98,16 +109,22 @@ def process_media_list(url, media_type, status, user):
         next_page += 1
 
     for media in data["results"]:
-        if media_type == "tv":
+        if media_type == "tv" or media_type == "season":
             media["title"] = media["name"]
 
-        if media_mapping["model"].objects.filter(
-            media_id=media["id"], user=user
-        ).exists():
-            logger.info(
+        if (
+            media_mapping["model"]
+            .objects.filter(media_id=media["id"], user=user)
+            .exists()
+        ):
+            logger.warning(
                 f"{media_type.capitalize()}: {media['title']} ({media['id']}) already exists, skipping..."
             )
         else:
+            # if tv watchlist, get image of first season
+            if media_type == "season":
+                media["poster_path"] = metadata.season(media["id"], season_number=1).get("poster_path")
+
             if media["poster_path"]:
                 # poster_path e.g: "/aFmqXViWzIKm.jpg", remove the first slash
                 image = media["poster_path"][1:]
@@ -127,9 +144,15 @@ def process_media_list(url, media_type, status, user):
                 "user": user,
                 "notes": "",
             }
+
             if media_type == "movie":
                 media_params["status"] = status
                 media_params["end_date"] = None
+
+            # if tv watchlist, add first season as planning
+            if media_type == "season":
+                media_params["status"] = "Planning"
+                media_params["season_number"] = 1
 
             bulk_media.append(media_mapping["model"](**media_params))
 
