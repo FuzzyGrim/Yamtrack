@@ -247,10 +247,6 @@ class CustomLoginView(LoginView):
         return super(CustomLoginView, self).form_valid(form)
 
     def form_invalid(self, form):
-        messages.error(
-            self.request,
-            "Please enter a correct username and password. Note that both fields are case-sensitive.",
-        )
         logger.error(
             f"Failed login attempt for: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}"
         )

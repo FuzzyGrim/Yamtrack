@@ -4,25 +4,24 @@
 {% block title %}Login - Yamtrack{% endblock %}
 
 {% block body %}
-
-<body class="text-center d-flex justify-content-center align-items-center" id="login">
     
-  <div class="form-signin">
-    <form method="POST">
+  <div class="text-center d-flex justify-content-center align-items-center" id="login">
+    <form class="form-signin" method="POST">
       {% csrf_token %}
       <img class="mb-4" src="{% static "favicon/apple-touch-icon.png" %}" alt="logo" width="58" height="58">
       <div class="mb-3 header-text">Log in to Yamtrack</div>
         
-      {% if messages %}
-        {% for message in messages %}
-          {% if message.tags == 'error' %}
-            <div class="alert alert-danger">
-          {% else %}
-            <div class="alert alert-{{ message.tags }}">
-          {% endif %}
-            {{ message|linebreaksbr }}
-          </div>
-        {% endfor %}
+      {% if form.errors %}
+        <div class="alert alert-danger text-start">
+          {{ form.non_field_errors }}
+            {% for field in form %}
+              {% if field.errors %}
+                {% for error in field.errors%}
+                    <p>{{ error }}</p>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+        </div>
       {% endif %}
       
       {% for field in form %}
@@ -50,6 +49,4 @@
 
     </form>
   </div>
-</body>
-</html>
 {% endblock %}

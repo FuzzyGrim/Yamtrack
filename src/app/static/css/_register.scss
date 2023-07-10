@@ -1,31 +1,30 @@
 #register {
-    height: 100dvh;
-  
-    .form-signin {
-      width: 330px;
-      padding: 15px;
-      margin-top: -5rem;
-  
-      #id_username {
-        margin-bottom: -1px;
-        border-bottom-right-radius: 0;
-        border-bottom-left-radius: 0;
-      }
+  height: 100dvh;
 
-      #id_password1 {
-        margin-bottom: -1px;
-        border-radius: 0;
-      }
+  .form-signin {
+    width: 330px;
+    padding: 15px;
+    margin-top: -5rem;
 
-      #id_password2 {
-        margin-bottom: 10px;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-      }
-  
-      .form-floating:focus-within {
-        z-index: 2;
-      }
+    #id_username {
+      margin-bottom: -1px;
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    #id_password1 {
+      margin-bottom: -1px;
+      border-radius: 0;
+    }
+
+    #id_password2 {
+      margin-bottom: 10px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+
+    .form-floating:focus-within {
+      z-index: 2;
     }
   }
-  
+}
