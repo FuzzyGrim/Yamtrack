@@ -63,8 +63,8 @@ class ImportsTMDB(TestCase):
 
     @override_settings(MEDIA_ROOT=("TMDB"))
     @patch("requests.get")
-    def test_import_tmdb(self, mock_data):
-        with open(mock_path + "/user_tmdb.json", "r") as file:
+    def test_import_rated_movies(self, mock_data):
+        with open(mock_path + "/user_rated_movies_tmdb.json", "r") as file:
             tmdb_response = json.load(file)
         mock_data.return_value.json.return_value = tmdb_response
         fake_url = "https://api.themoviedb.org/3/account/1/rated/movies?api_key=12345&session_id=12345"
