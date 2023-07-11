@@ -3,7 +3,7 @@
 [![App Tests](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/app-tests.yml/badge.svg)](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/app-tests.yml)
 [![Docker Image](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/docker-image.yml/badge.svg)](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/docker-image.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtrack/badge)](https://www.codefactor.io/repository/github/fuzzygrim/yamtrack)
-[![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/main/graph/badge.svg?token=PWUG660120)](https://codecov.io/github/FuzzyGrim/Yamtrack)
+[![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/dev/graph/badge.svg?token=PWUG660120)](https://codecov.io/github/FuzzyGrim/Yamtrack)
 [![GitHub](https://img.shields.io/badge/license-GPL--3.0-blue)](https://github.com/FuzzyGrim/Yamtrack/blob/main/LICENSE)
 
 Yamtrack is a self hosted simple media tracker. You can track movies, tv shows, anime and manga.
@@ -14,8 +14,8 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 ## Features
 
 - Track movies, tv shows, anime and manga
-- Track each tv show season
-- Save score, status, progress, start and end date of each media
+- Track each season of a tv show individually and episodes watched
+- Save score, status, progress, start and end dates, or write a note.
 - Docker support
 - Multi-users support
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/)
@@ -23,7 +23,33 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 
 ## Docker-compose
 
-https://github.com/FuzzyGrim/Yamtrack/blob/501ad2154a5fa9b86bc1b5b002a6b6c298dc600c/docker-compose.yml#L1-L25
+```yml
+version: "3"
+services:
+  yamtrack:
+    container_name: yamtrack
+    image: ghcr.io/fuzzygrim/yamtrack
+    restart: unless-stopped
+    environment:
+      - TMDB_API=TMDB_API_KEY
+      - MAL_API=MAL_API_KEY
+      - SECRET=long_random_string
+      # Change this to your domain or IP
+      - ALLOWED_HOSTS=192.168.x.x, yamtrack.domain.com
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Madrid
+      # - HTTPS_COOKIES=False
+      # - REGISTRATION=False
+    volumes:
+      - ./db:/app/db
+      - media:/app/media
+    ports:
+      - "8000:8000"
+
+volumes:
+  media:
+```
 
 ### Environment variables
 
@@ -76,8 +102,8 @@ Then run the following commands.
 ```bash
 python -m pip install -U -r requirements_dev.txt
 cd src
-python manage.py migrate
-python manage.py runserver
+python src/manage.py migrate
+python src/manage.py runserver
 ```
 
 Go to: [http://localhost:8000](http://localhost:8000)
