@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_extras %}
+{% load crispy_forms_tags %}
+
 
 {% block title %}{{ media_type|title }}s - Yamtrack{% endblock %}
 
@@ -13,33 +15,25 @@
       <div class="d-flex flex-row align-items-center list-head">
 
         <div class="filter dropdown p-2">
-          <button class="btn btn-secondary dropdown-toggle filter-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <button type="button" class="btn btn-secondary filter-btn" data-bs-toggle="modal" data-bs-target="#FilterModal">
             <i class="bi bi-funnel-fill"></i>
           </button>
-          <ul class="dropdown-menu">
-            {% for status in statuses %}
-              {% if forloop.first %}
-                <li>
-                  <a class="dropdown-item" href="{% url 'medialist' media_type=media_type %}">
-                    All
-                    <span class="text-end">
-                      {% if request.path == "/medialist/"|addstr:media_type %} <i class="bi bi-check-lg"></i> {% endif %}
-                    </span>
-                  </a>
-                </li>
-              {% else %}
-                <li>
-                  <a class="dropdown-item" href="{% url 'medialist_status' media_type=media_type status=status|lower %}">
-                    {{status}} 
-                    <span class="text-end">
-                      {% if request.path == "/medialist/"|addstr:media_type|addstr:'/'|addstr:status|lower %} <i class="bi bi-check-lg"></i> {% endif %}
-                    </span>
-                  </a>
-                </li>
-              {% endif %}
-            {% endfor %}
-          </ul>
+          <div class="modal fade" id="FilterModal" tabindex="-1" aria-labelledby="FilterModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-body">
+                  <form method="GET">
+                    {{ filter_form|crispy }}
+                    <div class="text-center">
+                      <button class="btn btn-secondary" type="submit">Filter</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
 
         <div class="title p-2"><strong>Title</strong></div>
         <div class="score p-2"><strong>Score</strong></div>

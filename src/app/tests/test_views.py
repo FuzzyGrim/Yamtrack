@@ -21,24 +21,6 @@ class DefaultView(TestCase):
             + reverse("medialist", kwargs={"media_type": "tv"}),
         )
 
-    def test_medialist_completed(self):
-        response = self.client.get(
-            reverse(
-                "medialist_status",
-                kwargs={"media_type": "tv", "status": "completed"},
-            )
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(
-            response,
-            reverse("login")
-            + "?next="
-            + reverse(
-                "medialist_status",
-                kwargs={"media_type": "tv", "status": "completed"},
-            ),
-        )
-
     def test_register(self):
         response = self.client.get(reverse("register"))
         self.assertEqual(response.status_code, 200)
