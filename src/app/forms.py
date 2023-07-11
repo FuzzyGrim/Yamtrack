@@ -5,7 +5,7 @@ from django.contrib.auth.forms import (
     AuthenticationForm,
 )
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column
+from crispy_forms.layout import Layout, Row, Column, Submit
 from .models import TV, Season, Manga, Anime, Movie, User
 from app.utils import metadata
 
@@ -99,6 +99,11 @@ class UserRegisterForm(UserCreationForm):
 
 
 class UserUpdateForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.add_input(Submit('submit', 'Update', css_class='btn btn-secondary rounded'))
+
     class Meta:
         model = User
         fields = ["username"]
@@ -106,9 +111,12 @@ class UserUpdateForm(forms.ModelForm):
 
 # remove autofocus from password change form
 class PasswordChangeForm(PasswordChangeForm):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["old_password"].widget.attrs.pop("autofocus", None)
+        self.helper = FormHelper()
+        self.helper.add_input(Submit('submit', 'Update', css_class='btn btn-secondary rounded'))
 
 
 class MediaForm(forms.ModelForm):

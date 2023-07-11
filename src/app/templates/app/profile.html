@@ -20,28 +20,23 @@
       {% endfor %}
     {% endif %}
     
-    <form method="POST">
+    <form method="POST" class="mb-4">
       {% csrf_token %}
       <fieldset class="form-group">
         <legend class="border-bottom mb-4">Profile</legend>
-        {{ user_form|crispy }}
+        {% crispy user_form %}
       </fieldset>
-      <div class="form-group">
-        <button class="btn btn-secondary rounded" type="submit">Update</button>
-      </div>
     </form>
-    <form method="POST" class="mt-5">
+  
+    <form method="POST" class="mb-4">
       {% csrf_token %}
       <fieldset class="form-group">
         <legend class="border-bottom mb-4">Password Update</legend>
-        {{ password_form|crispy }}
+        {% crispy password_form %}
       </fieldset>
-      <div class="form-group">
-        <button class="btn btn-secondary rounded" type="submit">Update</button>
-      </div>
     </form>
 
-    <div class="mb-3 mt-5">
+    <div>
       <legend class="border-bottom mb-4">Import</legend>
 
       <fieldset class="input-group grid-container">
