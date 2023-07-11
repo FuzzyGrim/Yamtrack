@@ -12,11 +12,6 @@ register_converter(converters.StatusChecker, "status")
 urlpatterns = [
     path("", views.home, name="home"),
     path("medialist/<media_type:media_type>", views.media_list, name="medialist"),
-    path(
-        "medialist/<media_type:media_type>/<status:status>",
-        views.media_list_status,
-        name="medialist_status",
-    ),
     path("search", views.media_search, name="search"),
     path(
         "details/<media_type:media_type>/<int:media_id>/<str:title>",

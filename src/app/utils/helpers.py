@@ -83,33 +83,60 @@ def media_type_mapper(media_type):
     - media_type (str): The type of media to map.
 
     Returns:
-    - tuple: A tuple containing the model and form class corresponding to the media type.
+    - tuple: A tuple containing properties of the media type.
     """
     media_mapping = {
         "manga": {
             "model": Manga,
             "form": MangaForm,
             "list_layout": "app/media_table.html",
+            "sort_choices": [
+                ("-score", "Score"),
+                ("title", "Title"),
+                ("-progress", "Progress"),
+                ("start_date", "Start Date"),
+                ("end_date", "End Date"),
+            ],
         },
         "anime": {
             "model": Anime,
             "form": AnimeForm,
             "list_layout": "app/media_table.html",
+            "sort_choices": [
+                ("-score", "Score"),
+                ("title", "Title"),
+                ("-progress", "Progress"),
+                ("start_date", "Start Date"),
+                ("end_date", "End Date"),
+            ],
         },
         "movie": {
             "model": Movie,
             "form": MovieForm,
             "list_layout": "app/media_grid.html",
+            "sort_choices": [
+                ("-score", "Score"),
+                ("title", "Title"),
+                ("end_date", "End Date"),
+            ],
         },
         "tv": {
             "model": TV,
             "form": TVForm,
             "list_layout": "app/media_grid.html",
+            "sort_choices": [
+                ("-score", "Score"),
+                ("title", "Title"),
+            ],
         },
         "season": {
             "model": Season,
             "form": SeasonForm,
             "list_layout": "app/media_grid.html",
+            "sort_choices": [
+                ("-score", "Score"),
+                ("title", "Title"),
+            ],
         },
     }
     return media_mapping[media_type]

@@ -15,6 +15,7 @@ from app.forms import (
     UserRegisterForm,
     UserUpdateForm,
     PasswordChangeForm,
+    FilterForm,
 )
 
 from datetime import date
@@ -52,73 +53,59 @@ def media_list(request, media_type):
         form_handlers.media_form_handler(request)
         return redirect("medialist", media_type=media_type)
 
-    media_mapping = helpers.media_type_mapper(media_type)
+    filter_params = {"user_id": request.user.id}
 
-    if media_type == "tv":
-        # show both tv and seasons in the same list
-        tv_list = TV.objects.filter(user_id=request.user)
-        season_list = Season.objects.filter(user_id=request.user)
+    # filter by status if status is not "all", default to "all"
+    status_filter = request.GET.get("status", "all")
+    if status_filter != "all":
+        filter_params["status"] = status_filter.capitalize()
 
-        media_list = sorted(
-            chain(tv_list, season_list),
-            key=lambda item: item.score if item.score is not None else float("-inf"),
-            reverse=True,
-        )
-    else:
-        media_list = media_mapping["model"].objects.filter(user_id=request.user)
-
-    return render(
-        request,
-        media_mapping["list_layout"],
-        {
-            "media_type": media_type,
-            "media_list": media_list,
-            "statuses": [
-                "All",
-                "Completed",
-                "Watching",
-                "Paused",
-                "Dropped",
-                "Planning",
-            ],
-        },
-    )
-
-
-@login_required
-def media_list_status(request, media_type, status):
-    if request.method == "POST":
-        form_handlers.media_form_handler(request)
-        return redirect("medialist", media_type=media_type, status=status)
+    # default sort by descending score
+    sort_filter = request.GET.get("sort", "-score")
 
     media_mapping = helpers.media_type_mapper(media_type)
-
-    if media_type == "tv":
-        # as tv doesn't have a status field, only filter seasons
-        media_list = Season.objects.filter(
-            user_id=request.user, status=status.capitalize()
-        )
-    else:
-        media_list = media_mapping["model"].objects.filter(
-            user_id=request.user, status=status.capitalize()
-        )
-
-    return render(
-        request,
-        media_mapping["list_layout"],
-        {
-            "media_type": media_type,
-            "media_list": media_list,
-            "statuses": [
-                "All",
-                "Completed",
-                "Watching",
-                "Paused",
-                "Dropped",
-                "Planning",
-            ],
-        },
+    filter_form = FilterForm(
+        # fill form with current values if they exist
+        request.GET or None, sort_choices=media_mapping["sort_choices"]
     )
+
+    # if form valid or no form submitted
+    if filter_form.is_valid() or not request.GET:
+
+        if media_type == "tv":
+
+            if "status" in filter_params:
+                # as tv doesn't have a status field, only filter seasons
+                media_list = Season.objects.filter(**filter_params).order_by(sort_filter)
+
+            else:
+                # show both tv and seasons in the list
+                tv_list = TV.objects.filter(user_id=request.user)
+                season_list = Season.objects.filter(user_id=request.user)
+
+                media_list = sorted(
+                    chain(tv_list, season_list),
+                    # when sorting by score, if score is null, use -inf
+                    key=lambda item: getattr(item, sort_filter, float("-inf")),
+                )
+        else:
+            media_list = media_mapping["model"].objects.filter(**filter_params).order_by(
+                sort_filter
+            )
+
+        return render(
+            request,
+            media_mapping["list_layout"],
+            {
+                "media_type": media_type,
+                "media_list": media_list,
+                "filter_form": filter_form,
+            },
+        )
+
+    else:
+        logger.error(f"Invalid filter parameters: {filter_form.errors.as_data}")
+        return redirect("medialist", media_type=media_type)
 
 
 @login_required
@@ -220,7 +207,7 @@ def season_details(request, media_id, title, season_number):
 
 
 def register(request):
-    form = UserRegisterForm(request.POST if request.method == "POST" else None)
+    form = UserRegisterForm(request.POST or None)
     if form.is_valid():
         form.save()
         messages.success(request, "Your account has been created, you can now log in!")

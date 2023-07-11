@@ -263,3 +263,25 @@ class SeasonForm(MediaForm):
     class Meta(MediaForm.Meta):
         model = Season
         exclude = ("progress", "start_date", "end_date")
+
+
+class FilterForm(forms.Form):
+    status = forms.ChoiceField(
+        choices=[
+            ("all", "All"),
+            ("completed", "Completed"),
+            ("watching", "Watching"),
+            ("paused", "Paused"),
+            ("dropped", "Dropped"),
+            ("planning", "Planning"),
+        ],
+    )
+
+    sort = forms.ChoiceField(choices=[])
+
+    def __init__(self, *args, **kwargs):
+        sort_choices = kwargs.pop("sort_choices")
+
+        super().__init__(*args, **kwargs)
+        # add extra sort choices
+        self.fields["sort"].choices = [choice for choice in sort_choices]
