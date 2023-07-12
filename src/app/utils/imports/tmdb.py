@@ -82,7 +82,6 @@ def import_tmdb(user, request_token):
 
     TV.objects.bulk_create(bulk_tv)
     Movie.objects.bulk_create(bulk_movies)
-    print(bulk_seasons)
     Season.objects.bulk_create(bulk_seasons)
 
 

@@ -135,6 +135,7 @@ def add_media_list(query, error, user):
 
     Anime.objects.bulk_create(bulk_add_media["anime"])
     Manga.objects.bulk_create(bulk_add_media["manga"])
+
     return error
 
 

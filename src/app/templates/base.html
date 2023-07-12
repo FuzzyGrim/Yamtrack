@@ -81,7 +81,7 @@
         <button class="offcanvas-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
           <i class="bi bi-list"></i>
         </button>
-        <form class="input-group" method="get" action="{% url 'search' %}">
+        <form class="input-group" method="GET" action="{% url 'search' %}">
           <select name="media_type" class="form-select">
             <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
             <option value="movie" {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
