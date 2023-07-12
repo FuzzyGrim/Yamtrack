@@ -3,11 +3,11 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.middleware import csrf
 from crispy_forms.utils import render_crispy_form
 
-from app.utils import helpers, search, metadata, form_handlers
+from app.utils import helpers, search, metadata, form_handlers, exports
 from app.utils.imports import anilist, mal, tmdb
 from app.models import TV, Season, Episode, Anime, Manga
 from app.forms import (
@@ -66,17 +66,18 @@ def media_list(request, media_type):
     media_mapping = helpers.media_type_mapper(media_type)
     filter_form = FilterForm(
         # fill form with current values if they exist
-        request.GET or None, sort_choices=media_mapping["sort_choices"]
+        request.GET or None,
+        sort_choices=media_mapping["sort_choices"],
     )
 
     # if form valid or no form submitted
     if filter_form.is_valid() or not request.GET:
-
         if media_type == "tv":
-
             if "status" in filter_params:
                 # as tv doesn't have a status field, only filter seasons
-                media_list = Season.objects.filter(**filter_params).order_by(sort_filter)
+                media_list = Season.objects.filter(**filter_params).order_by(
+                    sort_filter
+                )
 
             else:
                 # show both tv and seasons in the list
@@ -89,8 +90,10 @@ def media_list(request, media_type):
                     key=lambda item: getattr(item, sort_filter, float("-inf")),
                 )
         else:
-            media_list = media_mapping["model"].objects.filter(**filter_params).order_by(
-                sort_filter
+            media_list = (
+                media_mapping["model"]
+                .objects.filter(**filter_params)
+                .order_by(sort_filter)
             )
 
         return render(
@@ -297,8 +300,7 @@ def profile(request):
                 )
             else:
                 title = "Couldn't find a matching MAL ID for: \n"
-                messages.error(request, title + error)
-
+                messages.warning(request, title + error)
         else:
             messages.error(request, "There was an error with your request")
 
@@ -314,7 +316,22 @@ def profile(request):
         "user_form": user_form,
         "password_form": password_form,
     }
+
     return render(request, "app/profile.html", context)
+
+
+def export(request):
+    # Create the HttpResponse object with the appropriate CSV header.
+    response = HttpResponse(
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="yamtrack.csv"'},
+    )
+
+    response = exports.export_csv(response, request.user)
+
+    logger.info(f"User {request.user.username} exported their data")
+
+    return response
 
 
 def modal_data(request):

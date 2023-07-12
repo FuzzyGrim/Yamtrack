@@ -36,7 +36,7 @@
       </fieldset>
     </form>
 
-    <div>
+    <div class="mb-4">
       <legend class="border-bottom mb-4">Import</legend>
 
       <fieldset class="input-group grid-container">
@@ -62,6 +62,17 @@
             <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
             <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
+        </form>
+      </fieldset>
+    </div>
+
+    <div>
+      <legend class="border-bottom mb-4">Export</legend>
+
+      <fieldset class="input-group grid-container">
+        <form class="p-2 grid-item" method="POST" action="{% url 'export' %}">
+          {% csrf_token %}
+          <button name="tmdb" class="btn no-fill-btn bg-dark w-100" type="submit">Export as CSV</button>
         </form>
       </fieldset>
     </div>

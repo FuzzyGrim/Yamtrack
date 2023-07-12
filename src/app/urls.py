@@ -24,6 +24,7 @@ urlpatterns = [
         name="season_details",
     ),
     path("profile", views.profile, name="profile"),
+    path("export", views.export, name="export"),
     path("login", views.CustomLoginView.as_view(), name="login"),
     path("logout", auth_views.LogoutView.as_view(), name="logout"),
     path("modal_data", views.modal_data, name="modal_data"),
