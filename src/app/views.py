@@ -257,6 +257,10 @@ def profile(request):
                 logger.info(
                     f"Successful username change from {old_username} to {request.user.username}"
                 )
+            else:
+                logger.error(
+                    f"Failed username change for {request.user.username}: {user_form.errors.as_data()}"
+                )
 
         elif "new_password1" in request.POST:
             password_form = PasswordChangeForm(request.user, request.POST)
@@ -265,6 +269,10 @@ def profile(request):
                 update_session_auth_hash(request, password)
                 messages.success(request, "Your password has been updated!")
                 logger.info(f"Successful password change for: {request.user.username}")
+            else:
+                logger.error(
+                    f"Failed password change for {request.user.username}: {password_form.errors.as_data()}"
+                )
 
         elif "mal" in request.POST:
             if mal.import_myanimelist(request.POST["mal"], request.user):
