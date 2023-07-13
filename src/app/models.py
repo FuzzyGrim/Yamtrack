@@ -47,6 +47,7 @@ class Media(models.Model):
     class Meta:
         abstract = True
         ordering = ["-score"]
+        unique_together = ["media_id", "user"]
 
 
 class TV(Media):
@@ -74,6 +75,9 @@ class Season(Media):
     def __str__(self):
         return f"{self.title} S{self.season_number}"
 
+    class Meta:
+        unique_together = ["media_id", "season_number", "user"]
+
 
 class Episode(models.Model):
     related_season = models.ForeignKey(
@@ -84,6 +88,9 @@ class Episode(models.Model):
 
     def __str__(self):
         return f"{self.related_season}E{self.episode_number}"
+
+    class Meta:
+        unique_together = ["related_season", "episode_number"]
 
 
 class Manga(Media):
