@@ -8,7 +8,13 @@ from django.middleware import csrf
 from crispy_forms.utils import render_crispy_form
 
 from app.utils import helpers, search, metadata, form_handlers, exports
-from app.utils.imports import anilist, mal, tmdb
+from app.utils.imports import (
+    import_anilist,
+    import_mal,
+    import_tmdb,
+    tmdb_auth_url,
+    import_csv,
+)
 from app.models import TV, Season, Episode, Anime, Manga
 from app.forms import (
     UserLoginForm,
@@ -278,7 +284,7 @@ def profile(request):
                 )
 
         elif "mal" in request.POST:
-            if mal.import_myanimelist(request.POST["mal"], request.user):
+            if import_mal(request.POST["mal"], request.user):
                 messages.success(request, "Your MyAnimeList has been imported!")
             else:
                 messages.error(
@@ -286,11 +292,10 @@ def profile(request):
                 )
 
         elif "tmdb" in request.POST:
-            auth_url = tmdb.auth_url()
-            return redirect(f"{auth_url}?redirect_to={request.build_absolute_uri()}")
+            return redirect(f"{tmdb_auth_url()}?redirect_to={request.build_absolute_uri()}")
 
         elif "anilist" in request.POST:
-            error = anilist.import_anilist(request.POST["anilist"], request.user)
+            error = import_anilist(request.POST["anilist"], request.user)
 
             if not error:
                 messages.success(request, "Your AniList has been imported!")
@@ -301,13 +306,17 @@ def profile(request):
             else:
                 title = "Couldn't find a matching MAL ID for: \n"
                 messages.warning(request, title + error)
+
+        elif "csv" in request.FILES:
+            import_csv(request.FILES["csv"], request.user)
+
         else:
             messages.error(request, "There was an error with your request")
 
     # After TMDB authentication
     if "request_token" in request.GET:
         if request.GET["approved"]:
-            tmdb.import_tmdb(request.user, request.GET["request_token"])
+            import_tmdb(request.user, request.GET["request_token"])
             messages.success(request, "Your TMDB has been imported!")
             # To avoid resubmitting by clearing get parameters
             return redirect("profile")
@@ -329,7 +338,7 @@ def export(request):
 
     response = exports.export_csv(response, request.user)
 
-    logger.info(f"User {request.user.username} exported their data")
+    logger.info(f"User {request.user.username} successfully exported their data")
 
     return response
 

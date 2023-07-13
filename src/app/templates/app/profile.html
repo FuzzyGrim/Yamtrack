@@ -40,13 +40,13 @@
       <legend class="border-bottom mb-4">Import</legend>
 
       <fieldset class="input-group grid-container">
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+        <form class="p-2 grid-item" method="POST">
           {% csrf_token %}
           <div class="form-title">The Movie Database</div>
           <button name="tmdb" class="btn no-fill-btn bg-dark w-100" type="submit">TMDB Authentication</button>
         </form>
 
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+        <form class="p-2 grid-item" method="POST">
           {% csrf_token %}
           <div class="form-title">MyAnimeList</div>
           <div class="input-group">
@@ -55,11 +55,20 @@
           </div>
         </form>
         
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+        <form class="p-2 grid-item" method="POST">
           {% csrf_token %}
           <div class="form-title">AniList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
+            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
+          </div>
+        </form>
+
+        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="form-title">CSV</div>
+          <div class="input-group">
+            <input type="file" class="form-control" name="csv">
             <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
