@@ -11,11 +11,11 @@ services:
       - MAL_API=MAL_API_KEY
       - SECRET=long_random_string
       # Change this to your domain or IP
-      - ALLOWED_HOSTS=192.168.*.*, yamtrack.domain.com
       - PUID=1000
       - PGID=1000
       # - HTTPS_COOKIES=False
       # - REGISTRATION=False
+      # - ALLOWED_HOSTS=*
       - TZ=Europe/Madrid
       - DB_HOST=db
       - DB_NAME=yamtrack

@@ -29,8 +29,7 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 
 INTERNAL_IPS = ["127.0.0.1"]
 
-ALLOWED_HOSTS = ["127.0.0.1"]
-ALLOWED_HOSTS.extend(config("ALLOWED_HOSTS", default="", cast=Csv()))
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
