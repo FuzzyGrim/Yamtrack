@@ -33,12 +33,11 @@ services:
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
-      - SECRET=long_random_string
-      # Change this to your domain or IP
-      - ALLOWED_HOSTS=192.168.x.x, yamtrack.domain.com
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Madrid
+      # - SECRET=secret
+      # - ALLOWED_HOSTS=*
       # - HTTPS_COOKIES=False
       # - REGISTRATION=False
     volumes:

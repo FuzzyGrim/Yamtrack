@@ -7,13 +7,13 @@ services:
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
-      - SECRET=long_random_string
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Madrid
+      # - SECRET=secret
+      # - ALLOWED_HOSTS=*
       # - HTTPS_COOKIES=False
       # - REGISTRATION=False
-      # - ALLOWED_HOSTS=*
     volumes:
       - ./db:/app/db
       - media:/app/media
