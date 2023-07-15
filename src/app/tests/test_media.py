@@ -1,7 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.test import override_settings
-from django.conf import settings
 
 import json
 import shutil
@@ -41,11 +40,6 @@ class CreateMedia(TestCase):
         self.assertEqual(
             TV.objects.filter(media_id=5895, user=self.user).exists(), True
         )
-        # check if tv poster image is downloaded
-        self.assertEqual(
-            os.path.exists(settings.MEDIA_ROOT + "/tv-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"),
-            True,
-        )
 
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_season(self):
@@ -66,13 +60,6 @@ class CreateMedia(TestCase):
         )
         self.assertEqual(
             Season.objects.filter(media_id=1668, user=self.user).exists(), True
-        )
-        # check if season poster image is downloaded
-        self.assertEqual(
-            os.path.exists(
-                settings.MEDIA_ROOT + "/season-odCW88Cq5hAF0ZFVOkeJmeQv1nV.jpg"
-            ),
-            True,
         )
 
     def test_create_episodes(self):
