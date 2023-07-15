@@ -23,6 +23,7 @@ from app.forms import (
     PasswordChangeForm,
     FilterForm,
 )
+from app.exceptions import UserNotFoundError
 
 from datetime import date
 import logging
@@ -284,9 +285,10 @@ def profile(request):
                 )
 
         elif "mal" in request.POST:
-            if import_mal(request.POST["mal"], request.user):
+            try:
+                import_mal(request.POST["mal"], request.user)
                 messages.success(request, "Your MyAnimeList has been imported!")
-            else:
+            except UserNotFoundError:
                 messages.error(
                     request, f"User {request.POST['mal']} not found in MyAnimeList."
                 )
