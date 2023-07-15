@@ -1,10 +1,11 @@
+from app.exceptions import UserNotFoundError
+from app.models import Anime, Manga
+from app.utils import helpers
+
 import asyncio
 import datetime
 import requests
 import logging
-
-from app.models import Anime, Manga
-from app.utils import helpers
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ def import_anilist(username, user):
                         month
                         day
                     }
+                    notes
                 }
             }
         }
@@ -69,6 +71,7 @@ def import_anilist(username, user):
                         month
                         day
                     }
+                    notes
                 }
             }
         }
@@ -79,106 +82,85 @@ def import_anilist(username, user):
 
     url = "https://graphql.anilist.co"
 
-    query = requests.post(url, json={"query": query, "variables": variables}).json()
+    response = requests.post(url, json={"query": query, "variables": variables})
+    query = response.json()
+    print(response.status_code)
 
-    if "errors" in query:
-        if query["errors"][0]["message"] == "User not found":
-            logger.error(f"User {username} not found in Anilist.")
-            return "User not found"
+    if response.status_code == 404:
+        error_message = query.get("errors")[0].get("message")
+        raise UserNotFoundError(f"Anilist API Error: {error_message}")
 
-    # error stores media titles that don't have a corresponding MAL ID
-    error = add_media_list(query, error="", user=user)
+    # stores media titles that don't have a corresponding MAL ID
+    warning_message = add_media_list(query, warning_message="", user=user)
 
     logger.info(f"Finished importing {username} from Anilist")
-    return error
+    return warning_message
 
 
-def add_media_list(query, error, user):
-    bulk_add_media = {"anime": [], "manga": []}
+def add_media_list(query, warning_message, user):
+    bulk_media = {"anime": [], "manga": []}
 
     for media_type in query["data"]:
-        images_to_download = []
+        bulk_image = []
         media_mapping = helpers.media_type_mapper(media_type)
         for status_list in query["data"][media_type]["lists"]:
             if not status_list["isCustomList"]:
                 for content in status_list["entries"]:
                     if content["media"]["idMal"] is None:
-                        error += f"\n {content['media']['title']['userPreferred']}"
+                        warning_message += f"\n {content['media']['title']['userPreferred']}"
                         logger.warning(
                             f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} has no MAL ID."
                         )
-                    elif (
-                        media_mapping["model"]
-                        .objects.filter(
-                            media_id=content["media"]["idMal"],
-                            user=user,
-                        )
-                        .exists()
-                    ):
-                        logger.warning(
-                            f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) already exists, skipping..."
-                        )
                     else:
-                        images_to_download, bulk_add_media = process_media(
-                            content,
-                            media_type,
-                            media_mapping["model"],
-                            user,
-                            images_to_download,
-                            bulk_add_media,
+
+                        if content["status"] == "CURRENT":
+                            status = "Watching"
+                        else:
+                            status = content["status"].capitalize()
+
+                        image_url = content["media"]["coverImage"]["large"]
+                        bulk_image.append(image_url)
+
+                        # rsplit is used to split the url at the last / and taking the last element
+                        # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
+                        image_filename = f"{media_type}-{image_url.rsplit('/', 1)[-1]}"
+
+                        instance = media_mapping["model"](
+                            user=user,
+                            title=content["media"]["title"]["userPreferred"],
+                            image=image_filename,
                         )
 
-                        logger.info(
-                            f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} ({content['media']['idMal']}) added to import list."
+                        form = media_mapping["form"](
+                            data={
+                                "media_id": content["media"]["idMal"],
+                                "media_type": media_type,
+                                "score": content["score"],
+                                "progress": content["progress"],
+                                "status": status,
+                                "start_date": get_date(content["startedAt"]),
+                                "end_date": get_date(content["completedAt"]),
+                                "notes": content["notes"],
+                            },
+                            instance=instance,
+                            post_processing=False,
                         )
-        asyncio.run(helpers.images_downloader(images_to_download, media_type))
+                        if form.is_valid():
+                            bulk_media[media_type].append(form.instance)
+                        else:
+                            error_message = f"Error importing {content['media']['title']['userPreferred']}: {form.errors.as_data()}"
+                            logger.error(error_message)
 
-    Anime.objects.bulk_create(bulk_add_media["anime"])
-    Manga.objects.bulk_create(bulk_add_media["manga"])
+        asyncio.run(helpers.images_downloader(bulk_image, media_type))
 
-    return error
+    Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
+    Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)
+
+    return warning_message
 
 
-def process_media(content, media_type, model, user, images_to_download, bulk_add_media):
-    if content["status"] == "CURRENT":
-        status = "Watching"
+def get_date(date):
+    if date["year"]:
+        return datetime.date(date["year"], date["month"], date["day"])
     else:
-        status = content["status"].capitalize()
-
-    start_date = content["startedAt"]
-    end_date = content["completedAt"]
-
-    if start_date["year"]:
-        start_date = datetime.date(
-            start_date["year"], start_date["month"], start_date["day"]
-        )
-    else:
-        start_date = None
-
-    if end_date["year"]:
-        end_date = datetime.date(end_date["year"], end_date["month"], end_date["day"])
-    else:
-        end_date = None
-
-    media = model(
-        media_id=content["media"]["idMal"],
-        title=content["media"]["title"]["userPreferred"],
-        score=content["score"],
-        progress=content["progress"],
-        status=status,
-        user=user,
-        start_date=start_date,
-        end_date=end_date,
-        notes="",
-    )
-
-    bulk_add_media[media_type].append(media)
-
-    image_url = content["media"]["coverImage"]["large"]
-    images_to_download.append(image_url)
-
-    # rsplit is used to split the url at the last / and taking the last element
-    # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
-    media.image = f"{media_type}-{image_url.rsplit('/', 1)[-1]}"
-
-    return images_to_download, bulk_add_media
+        return None

@@ -297,17 +297,18 @@ def profile(request):
             return redirect(f"{tmdb_auth_url()}?redirect_to={request.build_absolute_uri()}")
 
         elif "anilist" in request.POST:
-            error = import_anilist(request.POST["anilist"], request.user)
+            try:
+                warning_message = import_anilist(request.POST["anilist"], request.user)
+                if warning_message:
+                    title = "Couldn't find a matching MAL ID for: \n"
+                    messages.warning(request, title + warning_message)
+                else:
+                    messages.success(request, "Your AniList has been imported!")
 
-            if not error:
-                messages.success(request, "Your AniList has been imported!")
-            elif error == "User not found":
+            except UserNotFoundError:
                 messages.error(
-                    request, f"User {request.POST['anilist']} not found in Anilist."
+                    request, f"User {request.POST['anilist']} not found in AniList."
                 )
-            else:
-                title = "Couldn't find a matching MAL ID for: \n"
-                messages.warning(request, title + error)
 
         elif "csv" in request.FILES:
             import_csv(request.FILES["csv"], request.user)
