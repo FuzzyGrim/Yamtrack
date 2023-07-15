@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /requirements.txt
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends g++ libpq-dev libpcre3-dev gosu \
+	&& apt-get install -y --no-install-recommends g++ libpq5 libpq-dev libpcre3-dev gosu \
 	&& pip install --extra-index-url https://www.piwheels.org/simple --no-cache-dir -r /requirements.txt \
 	&& apt-get purge -y --auto-remove g++ \
 	&& apt-get -y autoremove --purge \
