@@ -6,7 +6,7 @@ from django.contrib.auth.forms import (
 )
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit
-from .models import TV, Season, Manga, Anime, Movie, User
+from .models import TV, Season, Episode, Manga, Anime, Movie, User
 from app.utils import metadata
 
 import datetime
@@ -127,44 +127,46 @@ class MediaForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        media_id = cleaned_data.get("media_id")
-        media_type = cleaned_data.get("media_type")
-        progress = cleaned_data.get("progress")
-        status = cleaned_data.get("status")
-        start_date = cleaned_data.get("start_date")
-        end_date = cleaned_data.get("end_date")
+        if self.post_processing:
+            media_id = cleaned_data.get("media_id")
+            media_type = cleaned_data.get("media_type")
+            progress = cleaned_data.get("progress")
+            status = cleaned_data.get("status")
+            start_date = cleaned_data.get("start_date")
+            end_date = cleaned_data.get("end_date")
 
-        # if status is changed or media is being added
-        if "status" in self.changed_data or self.instance.pk is None:
-            if status == "Completed":
-                if not end_date:
+            # if status is changed or media is being added
+            if "status" in self.changed_data or self.instance.pk is None:
+                if status == "Completed":
+                    if not end_date:
+                        cleaned_data["end_date"] = datetime.date.today()
+
+                    if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
+                        cleaned_data["progress"] = metadata.anime_manga(
+                            media_type, media_id
+                        )["num_episodes"]
+
+                elif status == "Watching" and not start_date:
+                    cleaned_data["start_date"] = datetime.date.today()
+
+            if "progress" in self.changed_data:
+                total_episodes = metadata.get_media_metadata(media_type, media_id)[
+                    "num_episodes"
+                ]
+
+                # limit progress to total_episodes
+                if progress > total_episodes:
+                    cleaned_data["progress"] = total_episodes
+
+                # If progress == total_episodes and status not explicitly changed
+                if progress == total_episodes and "status" not in self.changed_data:
+                    cleaned_data["status"] = "Completed"
                     cleaned_data["end_date"] = datetime.date.today()
-
-                if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
-                    cleaned_data["progress"] = metadata.anime_manga(
-                        media_type, media_id
-                    )["num_episodes"]
-
-            elif status == "Watching" and not start_date:
-                cleaned_data["start_date"] = datetime.date.today()
-
-        if "progress" in self.changed_data:
-            total_episodes = metadata.get_media_metadata(media_type, media_id)[
-                "num_episodes"
-            ]
-
-            # limit progress to total_episodes
-            if progress > total_episodes:
-                cleaned_data["progress"] = total_episodes
-
-            # If progress == total_episodes and status not explicitly changed
-            if progress == total_episodes and "status" not in self.changed_data:
-                cleaned_data["status"] = "Completed"
-                cleaned_data["end_date"] = datetime.date.today()
 
         return cleaned_data
 
     def __init__(self, *args, **kwargs):
+        self.post_processing = kwargs.pop("post_processing", True)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -271,6 +273,12 @@ class SeasonForm(MediaForm):
     class Meta(MediaForm.Meta):
         model = Season
         exclude = ("progress", "start_date", "end_date")
+
+
+class EpisodeForm(forms.ModelForm):
+    class Meta():
+        model = Episode
+        fields = ("episode_number", "watch_date")
 
 
 class FilterForm(forms.Form):

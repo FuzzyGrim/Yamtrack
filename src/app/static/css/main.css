@@ -204,7 +204,7 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 #details .episode-list .btn-group .date-btn-group .btn:hover { color: white; }
 
-#profile .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; }
+#profile .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(20em, 1fr)); gap: 1em; }
 
 #profile .grid-container form.grid-item { text-align: center; }
 

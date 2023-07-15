@@ -12,7 +12,7 @@ MAL_API = config("MAL_API", default="")
 logger = logging.getLogger(__name__)
 
 
-def import_myanimelist(username, user):
+def import_mal(username, user):
     logger.info(f"Importing {username} from MyAnimeList to {user}")
 
     header = {"X-MAL-CLIENT-ID": MAL_API}

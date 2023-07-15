@@ -10,7 +10,7 @@ TMDB_API = config("TMDB_API", default="")
 logger = logging.getLogger(__name__)
 
 
-def auth_url():
+def tmdb_auth_url():
     """
     Returns the URL to authenticate with TMDB.
     """

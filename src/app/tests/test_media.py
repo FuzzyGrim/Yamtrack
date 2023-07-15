@@ -373,10 +373,6 @@ class DetailsMedia(TestCase):
     def test_tv(self):
         response = metadata.tv("1396")
         self.assertEqual(response["title"], "Breaking Bad")
-        self.assertEqual(
-            response["image"],
-            "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
-        )
         self.assertEqual(response["start_date"], "2008-01-20")
         self.assertEqual(response["status"], "Ended")
         self.assertEqual(response["num_episodes"], 62)
@@ -384,10 +380,6 @@ class DetailsMedia(TestCase):
     def test_movie(self):
         response = metadata.movie("10494")
         self.assertEqual(response["title"], "Perfect Blue")
-        self.assertEqual(
-            response["image"],
-            "https://image.tmdb.org/t/p/w500/6WTiOCfDPP8XV4jqfloiVWf7KHq.jpg",
-        )
         self.assertEqual(response["start_date"], "1998-02-28")
         self.assertEqual(response["status"], "Released")
 

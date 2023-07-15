@@ -6,14 +6,20 @@ import json
 import shutil
 import os
 
-from app.utils.imports import anilist, mal, tmdb
-from app.models import User, Movie, Anime, Manga
+from app.utils.imports import (
+    import_anilist,
+    import_mal,
+    process_media_list,
+    import_csv,
+)
+
+from app.models import User, Movie, Anime, Manga, TV, Season, Episode
 
 
 mock_path = os.path.join(os.path.dirname(__file__), "mock_data")
 
 
-class ImportsMAL(TestCase):
+class ImportMAL(TestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -33,7 +39,7 @@ class ImportsMAL(TestCase):
         manga_mock.json.return_value = manga_response
         mock_get.side_effect = [anime_mock, manga_mock]
 
-        mal.import_myanimelist("bloodthirstiness", self.user)
+        import_mal("bloodthirstiness", self.user)
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
@@ -49,13 +55,13 @@ class ImportsMAL(TestCase):
         )
 
     def test_user_not_found(self):
-        self.assertEqual(mal.import_myanimelist("fhdsufdsu", self.user), False)
+        self.assertEqual(import_mal("fhdsufdsu", self.user), False)
 
     def tearDown(self):
         shutil.rmtree("MAL")
 
 
-class ImportsTMDB(TestCase):
+class ImportTMDB(TestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -69,7 +75,7 @@ class ImportsTMDB(TestCase):
         mock_data.return_value.json.return_value = tmdb_response
         fake_url = "https://api.themoviedb.org/3/account/1/rated/movies?api_key=12345&session_id=12345"
 
-        images, bulk_movies = tmdb.process_media_list(
+        images, bulk_movies = process_media_list(
             fake_url, "movie", "Completed", self.user
         )
 
@@ -86,7 +92,7 @@ class ImportsTMDB(TestCase):
         shutil.rmtree("TMDB")
 
 
-class ImportsAniList(TestCase):
+class ImportAniList(TestCase):
     def setUp(self):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -99,7 +105,7 @@ class ImportsAniList(TestCase):
             anilist_response = json.load(file)
         mock_data.return_value.json.return_value = anilist_response
 
-        anilist.import_anilist("bloodthirstiness", self.user)
+        import_anilist("bloodthirstiness", self.user)
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
@@ -110,9 +116,28 @@ class ImportsAniList(TestCase):
         )
 
     def test_user_not_found(self):
-        self.assertEqual(
-            anilist.import_anilist("fhdsufdsu", self.user), "User not found"
-        )
+        self.assertEqual(import_anilist("fhdsufdsu", self.user), "User not found")
 
     def tearDown(self):
         shutil.rmtree("AniList")
+
+
+class ImportCSV(TestCase):
+    def setUp(self):
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = User.objects.create_user(**self.credentials)
+
+    @patch("app.utils.helpers.images_downloader", return_value=None)
+    def test_import_csv(self, mock_asyncio):
+
+        with open(mock_path + "/yamtrack.csv", "rb") as file:
+            import_csv(file, self.user)
+
+        self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(Manga.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(Season.objects.filter(user=self.user).count(), 2)
+        self.assertEqual(
+            Episode.objects.filter(related_season__user=self.user).count(), 24
+        )
