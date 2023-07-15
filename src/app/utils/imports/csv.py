@@ -1,8 +1,10 @@
-from app.models import Anime, Manga, Movie, TV, Season, Episode
+from django.core.exceptions import ValidationError
+
+from app.models import Season, Episode
+from app.forms import EpisodeForm
 from app.utils import helpers
 
 from csv import DictReader
-from datetime import datetime
 
 import logging
 import asyncio
@@ -28,8 +30,6 @@ def import_csv(file, user):
         "season": [],
     }
 
-    episodes = []
-
     bulk_images = {
         "anime": [],
         "manga": [],
@@ -38,159 +38,40 @@ def import_csv(file, user):
         "season": [],
     }
 
+    episodes = []
+
     for row in reader:
         media_type = row["media_type"]
-
-        match media_type:
-            case "tv":
-                bulk_media["tv"].append(
-                    TV(
-                        media_id=row["media_id"],
-                        title=row["title"],
-                        image=row["image"],
-                        score=float(row["score"]) if row["score"] else None,
-                        notes=row["notes"],
-                        user=user,
-                    )
-                )
-                # tv-f496cm9enuEsZkSPzCwnTESEK5s.jpg -> https://image.tmdb.org/t/p/w500/f496cm9enuEsZkSPzCwnTESEK5s.jpg
-                bulk_images["tv"].append(
-                    f"https://image.tmdb.org/t/p/w500/{row['image'].split('-', 1)[-1]}"
-                )
-
-            case "season":
-                bulk_media["season"].append(
-                    Season(
-                        media_id=row["media_id"],
-                        title=row["title"],
-                        image=row["image"],
-                        score=float(row["score"]) if row["score"] else None,
-                        status=row["status"],
-                        notes=row["notes"],
-                        season_number=row["season_number"],
-                        user=user,
-                    )
-                )
-                bulk_images["season"].append(
-                    f"https://image.tmdb.org/t/p/w500/{row['image'].split('-', 1)[-1]}"
-                )
-
-            case "episode":
+        if media_type == "episode":
+            form = EpisodeForm(row)
+            if form.is_valid():
                 episodes.append(
                     {
-                        "instance": Episode(
-                            episode_number=row["episode_number"],
-                            watch_date=datetime.strptime(
-                                row["watch_date"], "%Y-%m-%d"
-                            ).date()
-                            if row["watch_date"]
-                            else None,
-                        ),
+                        "instance": form.instance,
                         "media_id": row["media_id"],
                         "season_number": row["season_number"],
                     }
                 )
-
-            case "movie":
-                bulk_media["movie"].append(
-                    Movie(
-                        media_id=row["media_id"],
-                        title=row["title"],
-                        image=row["image"],
-                        score=float(row["score"]) if row["score"] else None,
-                        status=row["status"],
-                        end_date=datetime.strptime(
-                            row["end_date"], "%Y-%m-%d"
-                        ).date()
-                        if row["end_date"]
-                        else None,
-                        notes=row["notes"],
-                        user=user,
-                    )
-                )
-                bulk_images["movie"].append(
-                    f"https://image.tmdb.org/t/p/w500/{row['image'].split('-', 1)[-1]}"
-                )
-
-            case "anime":
-                bulk_media["anime"].append(
-                    Anime(
-                        media_id=row["media_id"],
-                        title=row["title"],
-                        image=row["image"],
-                        score=float(row["score"]) if row["score"] else None,
-                        progress=row["progress"],
-                        status=row["status"],
-                        start_date=datetime.strptime(
-                            row["start_date"], "%Y-%m-%d"
-                        ).date()
-                        if row["start_date"]
-                        else None,
-                        end_date=datetime.strptime(
-                            row["end_date"], "%Y-%m-%d"
-                        ).date()
-                        if row["end_date"]
-                        else None,
-                        notes=row["notes"],
-                        user=user,
-                    )
-                )
-                # check if anilist or mal
-                # mal -> anime-11111l.jpg (all digits except last letter "l")
-                # anilist -> anime-dv332fds.jpg
-                if row["image"][5:-5].isdigit() and row["image"][-5] == "l":
-                    bulk_images["anime"].append(
-                        f"https://api-cdn.myanimelist.net/images/anime/{row['media_id']}/{row['image'].split('-', 1)[-1]}"
-                    )
-                else:
-                    bulk_images["anime"].append(
-                        f"https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/{row['image'].split('-', 1)[-1]}"
-                    )
-
-            case "manga":
-                bulk_media["manga"].append(
-                    Manga(
-                        media_id=row["media_id"],
-                        title=row["title"],
-                        image=row["image"],
-                        score=float(row["score"]) if row["score"] else None,
-                        progress=row["progress"],
-                        status=row["status"],
-                        start_date=datetime.strptime(
-                            row["start_date"], "%Y-%m-%d"
-                        ).date()
-                        if row["start_date"]
-                        else None,
-                        end_date=datetime.strptime(
-                            row["end_date"], "%Y-%m-%d"
-                        ).date()
-                        if row["end_date"]
-                        else None,
-                        notes=row["notes"],
-                        user=user,
-                    )
-                )
-                # check if anilist or mal
-                # mal -> manga-11111l.jpg (all digits except last letter "l")
-                # anilist -> manga-dv332fds.jpg
-                if row["image"][5:-5].isdigit() and row["image"][-5] == "l":
-                    bulk_images["manga"].append(
-                        f"https://api-cdn.myanimelist.net/images/manga/{row['media_id']}/{row['image'].split('-', 1)[-1]}"
-                    )
-                else:
-                    bulk_images["manga"].append(
-                        f"https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/{row['image'].split('-', 1)[-1]}"
-                    )
+            else:
+                logger.error(form.errors.as_data())
+        else:
+            media_mapper = helpers.media_type_mapper(media_type)
+            try:
+                add_bulk_media(row, media_mapper, user, bulk_media)
+                add_bulk_image(row, media_mapper, bulk_images)
+            except ValidationError as error:
+                logger.error(error)
 
     # download images
     for media_type, images in bulk_images.items():
         asyncio.run(helpers.images_downloader(images, media_type))
 
-    # bulk create media
+    # bulk create tv, season, movie, anime and manga
     for media_type, medias in bulk_media.items():
         model_type = helpers.media_type_mapper(media_type)["model"]
         model_type.objects.bulk_create(medias, ignore_conflicts=True)
 
+    # bulk create episodes
     for episode in episodes:
         media_id = episode["media_id"]
         season_number = episode["season_number"]
@@ -200,3 +81,52 @@ def import_csv(file, user):
 
     episode_instances = [episode["instance"] for episode in episodes]
     Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
+
+
+def add_bulk_media(row, media_mapper, user, bulk_media):
+    media_type = row["media_type"]
+
+    instance = media_mapper["model"](
+        user=user,
+        title=row["title"],
+        image=row["image"],
+    )
+    if media_type == "season":
+        instance.season_number = row["season_number"]
+
+    form = media_mapper["form"](
+        row,
+        instance=instance,
+        initial={"media_type": media_type},
+        post_processing=False,
+    )
+
+    if form.is_valid():
+        bulk_media[media_type].append(form.instance)
+    else:
+        error_message = f"Error importing {row['title']}: {form.errors.as_data()}"
+        raise ValidationError(error_message)
+
+
+def add_bulk_image(row, media_mapper, bulk_image):
+    media_type = row["media_type"]
+    img_url_format = media_mapper["img_url"]
+    img_filename = row["image"].split("-", 1)[-1]
+
+    if media_type == "anime" or media_type == "manga":
+        # check if anilist or mal
+        # mal -> anime-11111l.jpg (all digits except last letter "l")
+        # anilist -> anime-dv332fds.jpg
+        if row["image"][5:-5].isdigit() and row["image"][-5] == "l":
+            bulk_image[media_type].append(
+                img_url_format["mal"].format(
+                    media_id=row["media_id"], image_file=img_filename
+                )
+            )
+        else:
+            bulk_image[media_type].append(
+                img_url_format["anilist"].format(image_file=img_filename)
+            )
+    else:
+        # tv-f496cm9enuEsZkSPzCwnTESEK5s.jpg -> https://image.tmdb.org/t/p/w500/f496cm9enuEsZkSPzCwnTESEK5s.jpg
+        bulk_image[media_type].append(img_url_format.format(image_file=img_filename))

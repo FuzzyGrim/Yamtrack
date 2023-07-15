@@ -97,6 +97,10 @@ def media_type_mapper(media_type):
                 ("start_date", "Start Date"),
                 ("end_date", "End Date"),
             ],
+            "img_url": {
+                "mal": "https://api-cdn.myanimelist.net/images/manga/{media_id}/{image_file}",
+                "anilist": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/{image_file}",
+            },
         },
         "anime": {
             "model": Anime,
@@ -109,6 +113,10 @@ def media_type_mapper(media_type):
                 ("start_date", "Start Date"),
                 ("end_date", "End Date"),
             ],
+            "img_url": {
+                "mal": "https://api-cdn.myanimelist.net/images/anime/{media_id}/{image_file}",
+                "anilist": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/{image_file}",
+            },
         },
         "movie": {
             "model": Movie,
@@ -119,6 +127,7 @@ def media_type_mapper(media_type):
                 ("title", "Title"),
                 ("end_date", "End Date"),
             ],
+            "img_url": "https://image.tmdb.org/t/p/w500/{image_file}",
         },
         "tv": {
             "model": TV,
@@ -128,6 +137,7 @@ def media_type_mapper(media_type):
                 ("-score", "Score"),
                 ("title", "Title"),
             ],
+            "img_url": "https://image.tmdb.org/t/p/w500/{image_file}",
         },
         "season": {
             "model": Season,
@@ -137,6 +147,7 @@ def media_type_mapper(media_type):
                 ("-score", "Score"),
                 ("title", "Title"),
             ],
+            "img_url": "https://image.tmdb.org/t/p/w500/{image_file}",
         },
     }
     return media_mapping[media_type]
