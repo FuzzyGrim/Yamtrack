@@ -7,6 +7,7 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /requirements.txt
 
 RUN apt-get update \
+    # libpq-dev is required for psycopg, libpcre3-dev is required for uwsgi regex support
 	&& apt-get install -y --no-install-recommends g++ libpq-dev libpcre3-dev gosu \
 	&& pip install --extra-index-url https://www.piwheels.org/simple --no-cache-dir -r /requirements.txt \
 	&& apt-get purge -y --auto-remove g++ \
