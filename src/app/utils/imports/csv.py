@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 
+from app.exceptions import ImportSourceError
 from app.models import Season, Episode
 from app.forms import EpisodeForm
 from app.utils import helpers
@@ -14,10 +15,8 @@ logger = logging.getLogger(__name__)
 
 def import_csv(file, user):
     if not file.name.endswith(".csv"):
-        logger.error(
-            "Error importing your list, make sure it's a CSV file and try again."
-        )
-        return False
+        logger.error("File must be a CSV file")
+        raise ImportSourceError("File must be a CSV file")
 
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
@@ -58,7 +57,8 @@ def import_csv(file, user):
             media_mapping = helpers.media_type_mapper(media_type)
             try:
                 add_bulk_media(row, media_mapping, user, bulk_media)
-                add_bulk_image(row, media_mapping, bulk_images)
+                if row["image"] != "none.svg":
+                    add_bulk_image(row, media_mapping, bulk_images)
             except ValidationError as error:
                 logger.error(error)
 
@@ -91,8 +91,6 @@ def add_bulk_media(row, media_mapping, user, bulk_media):
         title=row["title"],
         image=row["image"],
     )
-    if media_type == "season":
-        instance.season_number = row["season_number"]
 
     form = media_mapping["form"](
         row,

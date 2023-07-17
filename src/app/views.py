@@ -328,8 +328,14 @@ def profile(request):
                 )
 
         elif "yamtrack_csv" in request.FILES:
-            import_csv(request.FILES["yamtrack_csv"], request.user)
-            messages.success(request, "Your Yamtrack CSV file has been imported!")
+            try:
+                import_csv(request.FILES["yamtrack_csv"], request.user)
+                messages.success(request, "Your Yamtrack CSV file has been imported!")
+            except ImportSourceError:
+                messages.error(
+                    request,
+                    "The file you uploaded is not a valid Yamtrack CSV export file.",
+                )
 
         else:
             messages.error(request, "There was an error with your request")
