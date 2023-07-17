@@ -1,2 +1,2 @@
-class UserNotFoundError(Exception):
+class ImportSourceError(Exception):
     pass

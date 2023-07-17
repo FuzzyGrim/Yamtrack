@@ -1,162 +1,117 @@
+from app.utils import helpers, metadata
+from app.exceptions import ImportSourceError
+from django.core.exceptions import ValidationError
 from decouple import config
-import requests
+from csv import DictReader
+
 import logging
 import asyncio
-
-from app.models import TV, Season, Movie
-from app.utils import helpers, metadata
 
 TMDB_API = config("TMDB_API", default="")
 logger = logging.getLogger(__name__)
 
 
-def tmdb_auth_url():
-    """
-    Returns the URL to authenticate with TMDB.
-    """
-    auth_url = (
-        f"https://api.themoviedb.org/3/authentication/token/new?api_key={TMDB_API}"
-    )
-    auth_request = requests.get(auth_url).json()
-    logger.info(
-        f"Authentication URL: https://www.themoviedb.org/authenticate/{auth_request['request_token']}"
-    )
-    return f"https://www.themoviedb.org/authenticate/{auth_request['request_token']}"
+def import_tmdb_watchlist(file, user):
+    status = "Planning"
+    tmdb_importer(file, user, status)
 
 
-def get_session_id(request_token):
-    session_url = (
-        f"https://api.themoviedb.org/3/authentication/session/new?api_key={TMDB_API}"
-    )
-    data = {"request_token": request_token}
-    session_request = requests.post(session_url, data=data).json()
-    if session_request["success"]:
-        return session_request["session_id"]
+def import_tmdb_ratings(file, user):
+    status = "Completed"
+    tmdb_importer(file, user, status)
 
 
-def import_tmdb(user, request_token):
-    """
-    Imports:
-        - Rated movies
-        - Watchlist movies
-        - Rated TV shows
-        - Watchlist TV shows
+def tmdb_importer(file, user, status):
+    if not file.name.endswith(".csv"):
+        logger.error("File must be a CSV file")
+        raise ImportSourceError("File must be a CSV file")
 
-    It can't track dates because not provided by TMDB API.
-    """
-    session_id = get_session_id(request_token)
-    tv_images_to_download = []
-    season_images_to_download = []
-    movies_images_to_download = []
+    decoded_file = file.read().decode("utf-8").splitlines()
+    reader = DictReader(decoded_file)
 
-    # MOVIES
-    movies_rated_url = f"https://api.themoviedb.org/3/account/{user}/rated/movies?api_key={TMDB_API}&session_id={session_id}"
-    movies_images, bulk_movies = process_media_list(
-        movies_rated_url, "movie", "Completed", user
-    )
-    movies_images_to_download.extend(movies_images)
+    bulk_media = {
+        "movie": [],
+        "tv": [],
+        "season": [],
+    }
 
-    movies_watchlist_url = f"https://api.themoviedb.org/3/account/{user}/watchlist/movies?api_key={TMDB_API}&session_id={session_id}"
-    movies_images, bulk_watchlist_movies = process_media_list(
-        movies_watchlist_url, "movie", "Planning", user
-    )
-    movies_images_to_download.extend(movies_images)
-    bulk_movies.extend(bulk_watchlist_movies)
+    bulk_images = {
+        "movie": [],
+        "tv": [],
+        "season": [],
+    }
 
-    # TVs
-    tv_rated_url = f"https://api.themoviedb.org/3/account/{user}/rated/tv?api_key={TMDB_API}&session_id={session_id}"
-    tv_images, bulk_tv = process_media_list(tv_rated_url, "tv", "Completed", user)
-    tv_images_to_download.extend(tv_images)
+    for row in reader:
+        media_type = row["Type"]
+        episode_number = row["Episode Number"]
+        media_id = row["TMDb ID"]
 
-    # TVs
-    tv_watchlist_url = f"https://api.themoviedb.org/3/account/{user}/watchlist/tv?api_key={TMDB_API}&session_id={session_id}"
-    # add first season of each media as watchlist
-    season_images, bulk_seasons = process_media_list(
-        tv_watchlist_url, "season", "Planning", user
-    )
-    season_images_to_download.extend(season_images)
+        # if movie or tv show (not episode)
+        if media_type == "movie" or (media_type == "tv" and episode_number == ""):
+            media_mapping = helpers.media_type_mapper(media_type)
 
-    asyncio.run(helpers.images_downloader(tv_images_to_download, "tv"))
-    asyncio.run(helpers.images_downloader(movies_images_to_download, "movie"))
-    asyncio.run(helpers.images_downloader(season_images_to_download, "season"))
+            media_metadata = metadata.get_media_metadata(media_type, media_id)
 
-    TV.objects.bulk_create(bulk_tv)
-    Movie.objects.bulk_create(bulk_movies)
-    Season.objects.bulk_create(bulk_seasons)
+            # if tv show watchlist, add first season as planning
+            if media_type == "tv" and status == "Planning":
+                # get title from tv show metadata as it's not available in season metadata
+                title = media_metadata["title"]
+                media_metadata = metadata.season(media_id, season_number=1)
+                media_metadata["media_type"] = "season"
+                media_metadata["title"] = title
 
-
-def process_media_list(url, media_type, status, user):
-    """
-    Processes rated and watchlist media lists and adds them to the database.
-    Returns a list of images to download.
-    """
-    images_to_download = []
-    media_mapping = helpers.media_type_mapper(media_type)
-    data = requests.get(url).json()
-    bulk_media = []
-
-    if "success" in data and not data["success"]:
-        logger.error(f"Error: {data['status_message']}")
-        return images_to_download, bulk_media
-
-    next_page = 2
-
-    while next_page <= data["total_pages"]:
-        next_url = f"{url}&page={next_page}"
-        next_data = requests.get(next_url).json()
-        data["results"].extend(next_data["results"])
-        next_page += 1
-
-    for media in data["results"]:
-        if media_type == "tv" or media_type == "season":
-            media["title"] = media["name"]
-
-        if (
-            media_mapping["model"]
-            .objects.filter(media_id=media["id"], user=user)
-            .exists()
-        ):
-            logger.warning(
-                f"{media_type.capitalize()}: {media['title']} ({media['id']}) already exists, skipping..."
-            )
-        else:
-            # if tv watchlist, get image of first season
-            if media_type == "season":
-                media["poster_path"] = metadata.season(media["id"], season_number=1).get("poster_path")
-
-            if media["poster_path"]:
-                # poster_path e.g: "/aFmqXViWzIKm.jpg", remove the first slash
-                image = media["poster_path"][1:]
-                # format: movie-aFmqXViWzIKm.jpg
-                image = media_type + "-" + image
-                images_to_download.append(
-                    f"https://image.tmdb.org/t/p/w500{media['poster_path']}"
+            try:
+                add_bulk_media(
+                    row, media_metadata, media_mapping, status, user, bulk_media
                 )
-            else:
-                image = "none.svg"
+                if media_metadata["image"] != "none.svg":
+                    bulk_images[media_type].append(media_metadata["image"])
+            except ValidationError as error:
+                logger.error(error)
 
-            media_params = {
-                "media_id": media["id"],
-                "title": media["title"],
-                "image": image,
-                "score": media["rating"] if "rating" in media else None,
-                "user": user,
-                "notes": "",
-            }
+    # download images
+    for media_type, images in bulk_images.items():
+        asyncio.run(helpers.images_downloader(images, media_type))
 
-            if media_type == "movie":
-                media_params["status"] = status
-                media_params["end_date"] = None
+    # bulk create tv, seasons and movie
+    for media_type, medias in bulk_media.items():
+        model_type = helpers.media_type_mapper(media_type)["model"]
+        model_type.objects.bulk_create(medias)
 
-            # if tv watchlist, add first season as planning
-            if media_type == "season":
-                media_params["status"] = "Planning"
-                media_params["season_number"] = 1
 
-            bulk_media.append(media_mapping["model"](**media_params))
+def add_bulk_media(row, media_metadata, media_mapping, status, user, bulk_media):
+    media_type = media_metadata["media_type"]
 
-            logger.info(
-                f"{media_type.capitalize()}: {media['title']} ({media['id']}) added to import list."
-            )
+    instance = media_mapping["model"](
+        user=user,
+        title=media_metadata["title"],
+        image=helpers.get_image_filename(media_metadata["image"], media_type),
+    )
 
-    return images_to_download, bulk_media
+    data = {
+        "media_id": media_metadata["id"],
+        "media_type": media_type,
+        "score": row["Your Rating"],
+    }
+    if media_type == "movie":
+        instance.status = status
+        instance.end_date = row["Date Rated"]
+
+    # if tv watchlist, add first season as planning
+    if media_type == "season":
+        instance.status = "Planning"
+        instance.season_number = 1
+
+    form = media_mapping["form"](
+        data=data,
+        instance=instance,
+        post_processing=False,
+    )
+
+    if form.is_valid():
+        bulk_media[media_type].append(form.instance)
+    else:
+        error_message = (
+            f"Error importing {media_metadata['title']}: {form.errors.as_data()}"
+        )
+        logger.error(error_message)

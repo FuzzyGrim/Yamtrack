@@ -1,4 +1,4 @@
-from app.exceptions import UserNotFoundError
+from app.exceptions import ImportSourceError
 from app.models import Anime, Manga
 from app.utils import helpers
 
@@ -79,16 +79,15 @@ def import_anilist(username, user):
     """
 
     variables = {"userName": username}
-
     url = "https://graphql.anilist.co"
 
     response = requests.post(url, json={"query": query, "variables": variables})
     query = response.json()
-    print(response.status_code)
 
+    # usually when username not found
     if response.status_code == 404:
         error_message = query.get("errors")[0].get("message")
-        raise UserNotFoundError(f"Anilist API Error: {error_message}")
+        raise ImportSourceError(f"Anilist API Error: {error_message}")
 
     # stores media titles that don't have a corresponding MAL ID
     warning_message = add_media_list(query, warning_message="", user=user)
@@ -107,12 +106,13 @@ def add_media_list(query, warning_message, user):
             if not status_list["isCustomList"]:
                 for content in status_list["entries"]:
                     if content["media"]["idMal"] is None:
-                        warning_message += f"\n {content['media']['title']['userPreferred']}"
+                        warning_message += (
+                            f"\n {content['media']['title']['userPreferred']}"
+                        )
                         logger.warning(
                             f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} has no MAL ID."
                         )
                     else:
-
                         if content["status"] == "CURRENT":
                             status = "Watching"
                         else:
@@ -121,9 +121,9 @@ def add_media_list(query, warning_message, user):
                         image_url = content["media"]["coverImage"]["large"]
                         bulk_image.append(image_url)
 
-                        # rsplit is used to split the url at the last / and taking the last element
-                        # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
-                        image_filename = f"{media_type}-{image_url.rsplit('/', 1)[-1]}"
+                        image_filename = helpers.get_image_filename(
+                            image_url, media_type
+                        )
 
                         instance = media_mapping["model"](
                             user=user,

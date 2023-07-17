@@ -11,8 +11,8 @@ from app.utils import helpers, search, metadata, form_handlers, exports
 from app.utils.imports import (
     import_anilist,
     import_mal,
-    import_tmdb,
-    tmdb_auth_url,
+    import_tmdb_watchlist,
+    import_tmdb_ratings,
     import_csv,
 )
 from app.models import TV, Season, Episode, Anime, Manga
@@ -23,7 +23,7 @@ from app.forms import (
     PasswordChangeForm,
     FilterForm,
 )
-from app.exceptions import UserNotFoundError
+from app.exceptions import ImportSourceError
 
 from datetime import date
 import logging
@@ -288,13 +288,30 @@ def profile(request):
             try:
                 import_mal(request.POST["mal"], request.user)
                 messages.success(request, "Your MyAnimeList has been imported!")
-            except UserNotFoundError:
+            except ImportSourceError:
                 messages.error(
                     request, f"User {request.POST['mal']} not found in MyAnimeList."
                 )
 
-        elif "tmdb" in request.POST:
-            return redirect(f"{tmdb_auth_url()}?redirect_to={request.build_absolute_uri()}")
+        elif "tmdb_ratings" in request.FILES:
+            try:
+                import_tmdb_ratings(request.FILES["tmdb_ratings"], request.user)
+                messages.success(request, "Your TMDB ratings have been imported!")
+            except ImportSourceError:
+                messages.error(
+                    request,
+                    "The file you uploaded is not a valid TMDB ratings export file.",
+                )
+
+        elif "tmdb_watchlist" in request.FILES:
+            try:
+                import_tmdb_watchlist(request.FILES["tmdb_watchlist"], request.user)
+                messages.success(request, "Your TMDB watchlist has been imported!")
+            except ImportSourceError:
+                messages.error(
+                    request,
+                    "The file you uploaded is not a valid TMDB watchlist export file.",
+                )
 
         elif "anilist" in request.POST:
             try:
@@ -305,24 +322,17 @@ def profile(request):
                 else:
                     messages.success(request, "Your AniList has been imported!")
 
-            except UserNotFoundError:
+            except ImportSourceError:
                 messages.error(
                     request, f"User {request.POST['anilist']} not found in AniList."
                 )
 
-        elif "csv" in request.FILES:
-            import_csv(request.FILES["csv"], request.user)
+        elif "yamtrack_csv" in request.FILES:
+            import_csv(request.FILES["yamtrack_csv"], request.user)
+            messages.success(request, "Your Yamtrack CSV file has been imported!")
 
         else:
             messages.error(request, "There was an error with your request")
-
-    # After TMDB authentication
-    if "request_token" in request.GET:
-        if request.GET["approved"]:
-            import_tmdb(request.user, request.GET["request_token"])
-            messages.success(request, "Your TMDB has been imported!")
-            # To avoid resubmitting by clearing get parameters
-            return redirect("profile")
 
     context = {
         "user_form": user_form,

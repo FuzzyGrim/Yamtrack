@@ -1,4 +1,4 @@
-from app.exceptions import UserNotFoundError
+from app.exceptions import ImportSourceError
 from app.models import Anime, Manga
 from app.utils import helpers
 
@@ -40,9 +40,10 @@ def get_whole_response(url, header):
     response = requests.get(url, headers=header)
     data = response.json()
 
+    # usually when username not found
     if response.status_code == 404:
-        error_message = data.get('error')
-        raise UserNotFoundError(f"AnimeList API Error: {error_message}")
+        error_message = data.get("error")
+        raise ImportSourceError(f"AnimeList API Error: {error_message}")
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
@@ -62,8 +63,7 @@ def add_media_list(response, media_type, user):
     media_mapping = helpers.media_type_mapper(media_type)
 
     for content in response["data"]:
-
-        content["list_status"]["status"] = get_status(content["list_status"]["status"])
+        status = get_status(content["list_status"]["status"])
 
         if media_type == "anime":
             progress = content["list_status"]["num_episodes_watched"]
@@ -74,9 +74,7 @@ def add_media_list(response, media_type, user):
             image_url = content["node"]["main_picture"]["large"]
             bulk_images.append(image_url)
 
-            # rsplit is used to split the url at the last / and taking the last element
-            # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
-            image_filename = f"{media_type}-{image_url.rsplit('/', 1)[-1]}"
+            image_filename = helpers.get_filename_from_url(image_url, media_type)
         else:
             image_filename = "none.svg"
 
@@ -92,20 +90,21 @@ def add_media_list(response, media_type, user):
                 "media_type": media_type,
                 "score": content["list_status"]["score"],
                 "progress": progress,
-                "status": content["list_status"]["status"],
+                "status": status,
                 "start_date": content["list_status"].get("start_date", None),
                 "end_date": content["list_status"].get("finish_date", None),
                 "notes": content["list_status"]["comments"],
             },
             instance=instance,
-            initial={"media_type": media_type},
             post_processing=False,
         )
 
         if form.is_valid():
             bulk_media.append(form.instance)
         else:
-            error_message = f"Error importing {content['node']['title']}: {form.errors.as_data()}"
+            error_message = (
+                f"Error importing {content['node']['title']}: {form.errors.as_data()}"
+            )
             logger.error(error_message)
 
     asyncio.run(helpers.images_downloader(bulk_images, media_type))
@@ -114,9 +113,5 @@ def add_media_list(response, media_type, user):
 
 
 def get_status(status):
-    switcher = {
-        "plan_to_watch": "Planning",
-        "on_hold": "Paused",
-        "reading": "Watching"
-    }
+    switcher = {"plan_to_watch": "Planning", "on_hold": "Paused", "reading": "Watching"}
     return switcher.get(status, status.capitalize())
