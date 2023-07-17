@@ -338,7 +338,7 @@ class DetailsMedia(TestCase):
 
     @patch("requests.get")
     def test_anime_unknown(self, mock_data):
-        with open(mock_path + "/media_unknown_anime.json", "r") as file:
+        with open(mock_path + "/metadata_anime_unknown.json", "r") as file:
             anime_response = json.load(file)
         mock_data.return_value.json.return_value = anime_response
 
@@ -372,7 +372,7 @@ class DetailsMedia(TestCase):
 
     @patch("requests.get")
     def test_movie_unknown(self, mock_data):
-        with open(mock_path + "/media_unknown_movie.json", "r") as file:
+        with open(mock_path + "/metadata_movie_unknown.json", "r") as file:
             movie_response = json.load(file)
         mock_data.return_value.json.return_value = movie_response
 

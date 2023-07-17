@@ -91,6 +91,8 @@ def add_bulk_media(row, media_mapping, user, bulk_media):
         title=row["title"],
         image=row["image"],
     )
+    if media_type == "season":
+        instance.season_number = row["season_number"]
 
     form = media_mapping["form"](
         row,

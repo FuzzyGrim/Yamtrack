@@ -130,7 +130,6 @@ def add_media_list(query, warning_message, user):
                             title=content["media"]["title"]["userPreferred"],
                             image=image_filename,
                         )
-
                         form = media_mapping["form"](
                             data={
                                 "media_id": content["media"]["idMal"],

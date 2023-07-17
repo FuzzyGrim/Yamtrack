@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from decouple import config
 from csv import DictReader
 
+import datetime
 import logging
 import asyncio
 
@@ -95,8 +96,10 @@ def add_bulk_media(row, media_metadata, media_mapping, status, user, bulk_media)
         "score": row["Your Rating"],
     }
     if media_type == "movie":
-        instance.status = status
-        instance.end_date = row["Date Rated"]
+        data["status"] = status
+        data["end_date"] = datetime.datetime.strptime(
+            row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ"
+        ).date()
 
     # if tv watchlist, add first season as planning
     if media_type == "season":

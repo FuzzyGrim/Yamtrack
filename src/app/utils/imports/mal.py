@@ -74,7 +74,7 @@ def add_media_list(response, media_type, user):
             image_url = content["node"]["main_picture"]["large"]
             bulk_images.append(image_url)
 
-            image_filename = helpers.get_filename_from_url(image_url, media_type)
+            image_filename = helpers.get_image_filename(image_url, media_type)
         else:
             image_filename = "none.svg"
 
