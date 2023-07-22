@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 
+from app.exceptions import ImportSourceError
 from app.models import Season, Episode
 from app.forms import EpisodeForm
 from app.utils import helpers
@@ -14,10 +15,8 @@ logger = logging.getLogger(__name__)
 
 def import_csv(file, user):
     if not file.name.endswith(".csv"):
-        logger.error(
-            "Error importing your list, make sure it's a CSV file and try again."
-        )
-        return False
+        logger.error("File must be a CSV file")
+        raise ImportSourceError("File must be a CSV file")
 
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
@@ -55,10 +54,11 @@ def import_csv(file, user):
             else:
                 logger.error(form.errors.as_data())
         else:
-            media_mapper = helpers.media_type_mapper(media_type)
+            media_mapping = helpers.media_type_mapper(media_type)
             try:
-                add_bulk_media(row, media_mapper, user, bulk_media)
-                add_bulk_image(row, media_mapper, bulk_images)
+                add_bulk_media(row, media_mapping, user, bulk_media)
+                if row["image"] != "none.svg":
+                    add_bulk_image(row, media_mapping, bulk_images)
             except ValidationError as error:
                 logger.error(error)
 
@@ -83,10 +83,10 @@ def import_csv(file, user):
     Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
 
 
-def add_bulk_media(row, media_mapper, user, bulk_media):
+def add_bulk_media(row, media_mapping, user, bulk_media):
     media_type = row["media_type"]
 
-    instance = media_mapper["model"](
+    instance = media_mapping["model"](
         user=user,
         title=row["title"],
         image=row["image"],
@@ -94,7 +94,7 @@ def add_bulk_media(row, media_mapper, user, bulk_media):
     if media_type == "season":
         instance.season_number = row["season_number"]
 
-    form = media_mapper["form"](
+    form = media_mapping["form"](
         row,
         instance=instance,
         initial={"media_type": media_type},
@@ -108,9 +108,9 @@ def add_bulk_media(row, media_mapper, user, bulk_media):
         raise ValidationError(error_message)
 
 
-def add_bulk_image(row, media_mapper, bulk_image):
+def add_bulk_image(row, media_mapping, bulk_image):
     media_type = row["media_type"]
-    img_url_format = media_mapper["img_url"]
+    img_url_format = media_mapping["img_url"]
     img_filename = row["image"].split("-", 1)[-1]
 
     if media_type == "anime" or media_type == "manga":

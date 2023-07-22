@@ -39,7 +39,7 @@ def export_csv(response, user):
 
 
 def export_model_data(writer, fields, queryset, media_type):
-    logger.info(f"Adding {media_type} data to CSV file")
+    logger.info(f"Adding {media_type}s to CSV")
 
     for item in queryset:
         # write fields if they exist, otherwise write empty string

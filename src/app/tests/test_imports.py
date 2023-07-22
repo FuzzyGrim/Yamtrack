@@ -7,10 +7,11 @@ import os
 from app.utils.imports import (
     import_anilist,
     import_mal,
-    process_media_list,
+    import_tmdb_ratings,
+    import_tmdb_watchlist,
     import_csv,
 )
-
+from app.exceptions import ImportSourceError
 from app.models import User, Movie, Anime, Manga, TV, Season, Episode
 
 
@@ -25,9 +26,9 @@ class ImportMAL(TestCase):
     @patch("requests.get")
     @patch("app.utils.helpers.images_downloader", return_value=None)
     def test_import_animelist(self, mock_asyncio, mock_request):
-        with open(mock_path + "/user_mal_anime.json", "r") as file:
+        with open(mock_path + "/import_mal_anime.json", "r") as file:
             anime_response = json.load(file)
-        with open(mock_path + "/user_mal_manga.json", "r") as file:
+        with open(mock_path + "/import_mal_manga.json", "r") as file:
             manga_response = json.load(file)
 
         anime_mock = MagicMock()
@@ -52,7 +53,7 @@ class ImportMAL(TestCase):
         )
 
     def test_user_not_found(self):
-        self.assertEqual(import_mal("fhdsufdsu", self.user), False)
+        self.assertRaises(ImportSourceError, import_mal, "fhdsufdsu", self.user)
 
 
 class ImportTMDB(TestCase):
@@ -60,26 +61,21 @@ class ImportTMDB(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    @patch("requests.get")
     @patch("app.utils.helpers.images_downloader", return_value=None)
-    def test_import_rated_movies(self, mock_asyncio, mock_request):
-        with open(mock_path + "/user_rated_movies_tmdb.json", "r") as file:
-            tmdb_response = json.load(file)
-        mock_request.return_value.json.return_value = tmdb_response
-        fake_url = "https://api.themoviedb.org/3/account/1/rated/movies?api_key=12345&session_id=12345"
-
-        images, bulk_movies = process_media_list(
-            fake_url, "movie", "Completed", self.user
-        )
-
-        Movie.objects.bulk_create(bulk_movies)
+    def test_tmdb_import_ratings(self, mock_asyncio):
+        with open(mock_path + "/import_tmdb_ratings.csv", "rb") as file:
+            import_tmdb_ratings(file, self.user)
+        print(Movie.objects.filter(user=self.user))
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
-        self.assertEqual(
-            Movie.objects.get(user=self.user, media_id=634649).score == 7, True
-        )
-        self.assertEqual(
-            Movie.objects.get(user=self.user, media_id=361743).score == 7, True
-        )
+        self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
+
+    @patch("app.utils.helpers.images_downloader", return_value=None)
+    def test_tmdb_import_watchlist(self, mock_asyncio):
+        with open(mock_path + "/import_tmdb_watchlist.csv", "rb") as file:
+            import_tmdb_watchlist(file, self.user)
+
+        self.assertEqual(TV.objects.filter(user=self.user).count(), 0)
+        self.assertEqual(Season.objects.filter(user=self.user).count(), 2)
 
 
 class ImportAniList(TestCase):
@@ -90,7 +86,7 @@ class ImportAniList(TestCase):
     @patch("requests.post")
     @patch("app.utils.helpers.images_downloader", return_value=None)
     def test_import_anilist(self, mock_asyncio, mock_request):
-        with open(mock_path + "/user_anilist.json", "r") as file:
+        with open(mock_path + "/import_anilist.json", "r") as file:
             anilist_response = json.load(file)
         mock_request.return_value.json.return_value = anilist_response
 
@@ -105,7 +101,7 @@ class ImportAniList(TestCase):
         )
 
     def test_user_not_found(self):
-        self.assertEqual(import_anilist("fhdsufdsu", self.user), "User not found")
+        self.assertRaises(ImportSourceError, import_anilist, "fhdsufdsu", self.user)
 
 
 class ImportCSV(TestCase):
@@ -116,7 +112,7 @@ class ImportCSV(TestCase):
     @patch("app.utils.helpers.images_downloader", return_value=None)
     def test_import_csv(self, mock_asyncio):
 
-        with open(mock_path + "/yamtrack.csv", "rb") as file:
+        with open(mock_path + "/import_yamtrack.csv", "rb") as file:
             import_csv(file, self.user)
 
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)

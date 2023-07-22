@@ -11,8 +11,8 @@ from app.utils import helpers, search, metadata, form_handlers, exports
 from app.utils.imports import (
     import_anilist,
     import_mal,
-    import_tmdb,
-    tmdb_auth_url,
+    import_tmdb_watchlist,
+    import_tmdb_ratings,
     import_csv,
 )
 from app.models import TV, Season, Episode, Anime, Manga
@@ -23,6 +23,7 @@ from app.forms import (
     PasswordChangeForm,
     FilterForm,
 )
+from app.exceptions import ImportSourceError
 
 from datetime import date
 import logging
@@ -283,43 +284,8 @@ def profile(request):
                     f"Failed password change for {request.user.username}: {password_form.errors.as_data()}"
                 )
 
-        elif "mal" in request.POST:
-            if import_mal(request.POST["mal"], request.user):
-                messages.success(request, "Your MyAnimeList has been imported!")
-            else:
-                messages.error(
-                    request, f"User {request.POST['mal']} not found in MyAnimeList."
-                )
-
-        elif "tmdb" in request.POST:
-            return redirect(f"{tmdb_auth_url()}?redirect_to={request.build_absolute_uri()}")
-
-        elif "anilist" in request.POST:
-            error = import_anilist(request.POST["anilist"], request.user)
-
-            if not error:
-                messages.success(request, "Your AniList has been imported!")
-            elif error == "User not found":
-                messages.error(
-                    request, f"User {request.POST['anilist']} not found in Anilist."
-                )
-            else:
-                title = "Couldn't find a matching MAL ID for: \n"
-                messages.warning(request, title + error)
-
-        elif "csv" in request.FILES:
-            import_csv(request.FILES["csv"], request.user)
-
         else:
             messages.error(request, "There was an error with your request")
-
-    # After TMDB authentication
-    if "request_token" in request.GET:
-        if request.GET["approved"]:
-            import_tmdb(request.user, request.GET["request_token"])
-            messages.success(request, "Your TMDB has been imported!")
-            # To avoid resubmitting by clearing get parameters
-            return redirect("profile")
 
     context = {
         "user_form": user_form,
@@ -329,7 +295,67 @@ def profile(request):
     return render(request, "app/profile.html", context)
 
 
-def export(request):
+def import_media(request):
+    if "mal" in request.POST:
+        try:
+            import_mal(request.POST["mal"], request.user)
+            messages.success(request, "Your MyAnimeList has been imported!")
+        except ImportSourceError:
+            messages.error(
+                request, f"User {request.POST['mal']} not found in MyAnimeList."
+            )
+
+    elif "tmdb_ratings" in request.FILES:
+        try:
+            import_tmdb_ratings(request.FILES["tmdb_ratings"], request.user)
+            messages.success(request, "Your TMDB ratings have been imported!")
+        except ImportSourceError:
+            messages.error(
+                request,
+                "The file you uploaded is not a valid TMDB ratings export file.",
+            )
+
+    elif "tmdb_watchlist" in request.FILES:
+        try:
+            import_tmdb_watchlist(request.FILES["tmdb_watchlist"], request.user)
+            messages.success(request, "Your TMDB watchlist has been imported!")
+        except ImportSourceError:
+            messages.error(
+                request,
+                "The file you uploaded is not a valid TMDB watchlist export file.",
+            )
+
+    elif "anilist" in request.POST:
+        try:
+            warning_message = import_anilist(request.POST["anilist"], request.user)
+            if warning_message:
+                title = "Couldn't find a matching MAL ID for: \n"
+                messages.warning(request, title + warning_message)
+            else:
+                messages.success(request, "Your AniList has been imported!")
+
+        except ImportSourceError:
+            messages.error(
+                request, f"User {request.POST['anilist']} not found in AniList."
+            )
+
+    elif "yamtrack_csv" in request.FILES:
+        try:
+            import_csv(request.FILES["yamtrack_csv"], request.user)
+            messages.success(request, "Your Yamtrack CSV file has been imported!")
+        except ImportSourceError:
+            messages.error(
+                request,
+                "The file you uploaded is not a valid Yamtrack CSV export file.",
+                )
+
+    else:
+        messages.error(request, "No import source selected")
+
+    return redirect("profile")
+
+
+def export_media(request):
     # Create the HttpResponse object with the appropriate CSV header.
     response = HttpResponse(
         content_type="text/csv",

@@ -6,7 +6,8 @@
         "num_episodes_watched": 1,
         "score": 7,
         "status": "completed",
-        "updated_at": "2022-12-28T19:21:04+00:00"
+        "updated_at": "2022-12-28T19:21:04+00:00",
+        "comments": ""
       },
       "node": { "id": 32253, "title": "Ama Gli Animali" }
     },
@@ -16,7 +17,8 @@
         "num_episodes_watched": 0,
         "score": 7,
         "status": "plan_to_watch",
-        "updated_at": "2022-12-28T19:20:54+00:00"
+        "updated_at": "2022-12-28T19:20:54+00:00",
+        "comments": ""
       },
       "node": {
         "id": 44511,
@@ -33,7 +35,8 @@
         "num_episodes_watched": 0,
         "score": 8,
         "status": "on_hold",
-        "updated_at": "2022-12-16T22:35:50+00:00"
+        "updated_at": "2022-12-16T22:35:50+00:00",
+        "comments": ""
       },
       "node": {
         "id": 227,
@@ -52,7 +55,8 @@
         "score": 8,
         "start_date": "2020-03-04",
         "status": "watching",
-        "updated_at": "2023-02-02T21:41:43+00:00"
+        "updated_at": "2023-02-02T21:41:43+00:00",
+        "comments": ""
       },
       "node": {
         "id": 12189,
