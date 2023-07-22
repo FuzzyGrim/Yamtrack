@@ -40,7 +40,7 @@
       <legend class="border-bottom mb-4">Import</legend>
 
       <fieldset class="input-group grid-container">
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data" action="{% url 'import' %}">
           {% csrf_token %}
           <div class="form-title">TMDB Ratings</div>
           <div class="input-group">
@@ -49,7 +49,7 @@
           </div>
         </form>
 
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data" action="{% url 'import' %}">
           {% csrf_token %}
           <div class="form-title">TMDB Watchlist</div>
           <div class="input-group">
@@ -58,7 +58,7 @@
           </div>
         </form>
 
-        <form class="p-2 grid-item" method="POST">
+        <form class="p-2 grid-item" method="POST" action="{% url 'import' %}">
           {% csrf_token %}
           <div class="form-title">MyAnimeList</div>
           <div class="input-group">
@@ -67,7 +67,7 @@
           </div>
         </form>
         
-        <form class="p-2 grid-item" method="POST">
+        <form class="p-2 grid-item" method="POST" action="{% url 'import' %}">
           {% csrf_token %}
           <div class="form-title">AniList</div>
           <div class="input-group">
@@ -76,7 +76,7 @@
           </div>
         </form>
 
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data">
+        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data" action="{% url 'import' %}">
           {% csrf_token %}
           <div class="form-title">Yamtrack CSV</div>
           <div class="input-group">
