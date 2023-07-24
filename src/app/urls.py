@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from decouple import config
-from . import converters, views
+from app import converters, views
 
 register_converter(converters.MediaTypeChecker, "media_type")
 register_converter(converters.StatusChecker, "status")
