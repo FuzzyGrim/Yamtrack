@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
       span.textContent = "Loading...";
 
       spinner.appendChild(span);
-      let submitBtn = form.querySelector(".btn-submit");
+      let submitBtn = form.querySelector(".btn");
 
       // Set the innerHTML of the submit button to the spinner element
       submitBtn.innerHTML = "";
