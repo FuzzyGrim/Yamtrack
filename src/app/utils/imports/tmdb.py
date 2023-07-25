@@ -48,19 +48,20 @@ def tmdb_importer(file, user, status):
         episode_number = row["Episode Number"]
         media_id = row["TMDb ID"]
 
-        # if movie or tv show (not episode)
+        # if movie or tv show (not episode), currently cant import episodes
         if media_type == "movie" or (media_type == "tv" and episode_number == ""):
             media_mapping = helpers.media_type_mapper(media_type)
-
             media_metadata = metadata.get_media_metadata(media_type, media_id)
 
             # if tv show watchlist, add first season as planning
             if media_type == "tv" and status == "Planning":
                 # get title from tv show metadata as it's not available in season metadata
                 title = media_metadata["title"]
+                media_id = media_metadata["id"]
                 media_metadata = metadata.season(media_id, season_number=1)
                 media_metadata["media_type"] = "season"
                 media_metadata["title"] = title
+                media_metadata["id"] = media_id
 
             try:
                 add_bulk_media(
@@ -78,7 +79,7 @@ def tmdb_importer(file, user, status):
     # bulk create tv, seasons and movie
     for media_type, medias in bulk_media.items():
         model_type = helpers.media_type_mapper(media_type)["model"]
-        model_type.objects.bulk_create(medias)
+        model_type.objects.bulk_create(medias, ignore_conflicts=True)
 
 
 def add_bulk_media(row, media_metadata, media_mapping, status, user, bulk_media):
