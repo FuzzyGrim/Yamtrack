@@ -65,7 +65,6 @@ class ImportTMDB(TestCase):
     def test_tmdb_import_ratings(self, mock_asyncio):
         with open(mock_path + "/import_tmdb_ratings.csv", "rb") as file:
             import_tmdb_ratings(file, self.user)
-        print(Movie.objects.filter(user=self.user))
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
 
