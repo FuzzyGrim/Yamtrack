@@ -214,6 +214,8 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 #login .form-signin { width: 330px; padding: 15px; margin-top: -5rem; }
 
+#login .form-signin ul { margin-bottom: 0; }
+
 #login .form-signin input[type="text"] { margin-bottom: -1px; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
 
 #login .form-signin input[type="password"] { margin-bottom: 10px; border-top-left-radius: 0; border-top-right-radius: 0; }
@@ -223,6 +225,8 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 #register { height: 100dvh; }
 
 #register .form-signin { width: 330px; padding: 15px; margin-top: -5rem; }
+
+#register .form-signin ul { margin-bottom: 0; }
 
 #register .form-signin #id_username { margin-bottom: -1px; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
 

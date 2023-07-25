@@ -13,16 +13,16 @@
 
       {% comment %} message usually used when user registered {% endcomment %}
       {% if messages %}
-      {% for message in messages %}
-        {% if message.tags == 'error' %}
-          <div class="alert alert-danger">
-        {% else %}
-          <div class="alert alert-{{ message.tags }}">
-        {% endif %}
-          {{ message|linebreaksbr }}
-        </div>
-      {% endfor %}
-    {% endif %}
+        {% for message in messages %}
+          {% if message.tags == 'error' %}
+            <div class="alert alert-danger">
+          {% else %}
+            <div class="alert alert-{{ message.tags }}">
+          {% endif %}
+            {{ message|linebreaksbr }}
+          </div>
+        {% endfor %}
+      {% endif %}
     
       {% if form.errors %}
         <div class="alert alert-danger text-start">
@@ -30,7 +30,7 @@
             {% for field in form %}
               {% if field.errors %}
                 {% for error in field.errors%}
-                    <p>{{ error }}</p>
+                    {{ error }}
                 {% endfor %}
               {% endif %}
             {% endfor %}
