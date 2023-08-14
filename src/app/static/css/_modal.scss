@@ -1,12 +1,6 @@
 .media-form-modal {
   form {
-    // disable num input arrows
-    input[type=number] {
-      appearance: textfield;
-      -moz-appearance: textfield;
-    }
-
-    input[type=date] {
+    input {
       color-scheme: dark;
     }
   }

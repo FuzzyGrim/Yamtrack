@@ -236,9 +236,7 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 #register .form-signin .form-floating:focus-within { z-index: 2; }
 
-.media-form-modal form input[type=number] { appearance: textfield; -moz-appearance: textfield; }
-
-.media-form-modal form input[type=date] { color-scheme: dark; }
+.media-form-modal form input { color-scheme: dark; }
 
 @media screen and (min-width: 1400px) { .container { max-width: 100%; } }
 
