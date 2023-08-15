@@ -141,6 +141,11 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "loggers": {
+        'asyncio': {
+            'level': 'WARNING',
+        },
+    },
     "formatters": {
         "verbose": {
             "format": "{asctime:<21} {levelname:<7} [{filename}:{lineno}] {message}",
