@@ -5,14 +5,11 @@
     "editor.defaultFormatter": "vscode.html-language-features"
   },
   "[python]": {
-    "editor.defaultFormatter": "ms-python.python"
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
-  "python.formatting.provider": "black",
-  "python.linting.enabled": true,
-  "python.linting.flake8Enabled": true,
-  "python.linting.flake8Args": [
+  "flake8.args": [
     "--max-line-length=88",
     "--max-doc-length=79",
     "--extend-ignore=E501,W505"
-  ],
+  ]
 }
