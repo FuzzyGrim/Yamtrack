@@ -5,11 +5,12 @@
     "editor.defaultFormatter": "vscode.html-language-features"
   },
   "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true,
+      "codeAction.fixViolation.enable": true,
+      "codeAction.disableRuleComment.enable": true,
+    },
     "editor.defaultFormatter": "ms-python.black-formatter"
-  },
-  "flake8.args": [
-    "--max-line-length=88",
-    "--max-doc-length=79",
-    "--extend-ignore=E501,W505"
-  ]
+  }
 }

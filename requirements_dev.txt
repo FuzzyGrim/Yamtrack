@@ -1,8 +1,7 @@
 black==23.3.0
 coverage==7.2.7
 django-compressor==4.3.1
-flake8==6.0.0
-flake8-length==0.3.1
 libsass==0.22.0
+ruff==0.0.285
 
 -r requirements.txt
