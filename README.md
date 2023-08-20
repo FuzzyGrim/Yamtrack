@@ -56,7 +56,7 @@ volumes:
 | -------------- | ----------- | -------------------------- | ------------ | ---------- | ------------------------------------- |
 | TMDB_API       | String      | The Movie Database API key | Yes          | None       | Required for movies and tv shows      |
 | MAL_API        | String      | MyAnimeList API key        | Yes          | None       | Required for anime and manga          |
-| SECRET         | String      | Django secret key          | Recommended  | "secret"   | ["SECRET_KEY](https://docs.djangoproject.com/en/4.2/ref/settings/#secret-key)                                      |
+| SECRET         | String      | Django secret key          | Recommended  | "secret"   | [SECRET_KEY](https://docs.djangoproject.com/en/4.2/ref/settings/#secret-key)                                      |
 | ALLOWED_HOSTS  | List        | Base IP / Domain           | No           | "*"        | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/4.1/ref/settings/#allowed-hosts)    |
 | PUID           | Int         | User ID                    | No           | 911        |                                       |
 | PGID           | Int         | Group ID                   | No           | 911        |                                       |
