@@ -1,17 +1,20 @@
-from app.exceptions import ImportSourceError
-from app.models import Anime, Manga
-from app.utils import helpers
+from __future__ import annotations
 
 import asyncio
 import datetime
-import requests
 import logging
+
+import requests
+from app.models import Anime, Manga, User
+from app.utils import helpers
 
 logger = logging.getLogger(__name__)
 
 
-def import_anilist(username, user):
-    logger.info(f"Importing {username} from Anilist to {user}")
+def anilist_data(username: str, user: User) -> str:
+    """Import anime and manga ratings from Anilist."""
+
+    logger.info("Importing %s from Anilist", username)
 
     query = """
     query ($userName: String){
@@ -81,22 +84,26 @@ def import_anilist(username, user):
     variables = {"userName": username}
     url = "https://graphql.anilist.co"
 
-    response = requests.post(url, json={"query": query, "variables": variables})
+    response = requests.post(
+        url, json={"query": query, "variables": variables}, timeout=5,
+    )
     query = response.json()
 
     # usually when username not found
-    if response.status_code == 404:
+    if response.status_code == 404:  # noqa: PLR2004
         error_message = query.get("errors")[0].get("message")
-        raise ImportSourceError(f"Anilist API Error: {error_message}")
+        raise ValueError(error_message)
 
     # stores media titles that don't have a corresponding MAL ID
     warning_message = add_media_list(query, warning_message="", user=user)
 
-    logger.info(f"Finished importing {username} from Anilist")
+    logger.info("Finished importing %s from Anilist", username)
     return warning_message
 
 
-def add_media_list(query, warning_message, user):
+def add_media_list(query: dict, warning_message: str, user: User) -> str:
+    """Add media to list for bulk creation."""
+
     bulk_media = {"anime": [], "manga": []}
 
     for media_type in query["data"]:
@@ -110,7 +117,9 @@ def add_media_list(query, warning_message, user):
                             f"\n {content['media']['title']['userPreferred']}"
                         )
                         logger.warning(
-                            f"{media_type.capitalize()}: {content['media']['title']['userPreferred']} has no MAL ID."
+                            "%s: %s has no MAL ID.",
+                            media_type.capitalize(),
+                            content["media"]["title"]["userPreferred"],
                         )
                     else:
                         if content["status"] == "CURRENT":
@@ -122,7 +131,7 @@ def add_media_list(query, warning_message, user):
                         bulk_image.append(image_url)
 
                         image_filename = helpers.get_image_filename(
-                            image_url, media_type
+                            image_url, media_type,
                         )
 
                         instance = media_mapping["model"](
@@ -158,8 +167,10 @@ def add_media_list(query, warning_message, user):
     return warning_message
 
 
-def get_date(date):
+def get_date(date: dict) -> datetime.date | None:
+    """Return date object from date dict."""
+
     if date["year"]:
         return datetime.date(date["year"], date["month"], date["day"])
-    else:
-        return None
+
+    return None

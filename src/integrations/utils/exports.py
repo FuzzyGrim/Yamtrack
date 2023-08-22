@@ -1,12 +1,14 @@
-from app.models import TV, Season, Episode, Movie, Anime, Manga
 import csv
 import logging
 
+from app.models import TV, Anime, Episode, Manga, Movie, Season, User
+from django.db.models.query import QuerySet
+from django.http import HttpResponse
 
 logger = logging.getLogger(__name__)
 
 
-def export_csv(response, user):
+def db_to_csv(response: HttpResponse, user: User) -> HttpResponse:
     """Export a CSV file of the user's media."""
 
     fields = [
@@ -28,18 +30,20 @@ def export_csv(response, user):
     writer = csv.writer(response, quoting=csv.QUOTE_ALL)
     writer.writerow(fields)
 
-    export_model_data(writer, fields, TV.objects.filter(user=user), "tv")
-    export_model_data(writer, fields, Movie.objects.filter(user=user), "movie")
-    export_model_data(writer, fields, Season.objects.filter(user=user), "season")
-    export_model_data(writer, fields, Episode.objects.filter(related_season__user=user), "episode")
-    export_model_data(writer, fields, Anime.objects.filter(user=user), "anime")
-    export_model_data(writer, fields, Manga.objects.filter(user=user), "manga")
+    write_model_to_csv(writer, fields, TV.objects.filter(user=user), "tv")
+    write_model_to_csv(writer, fields, Movie.objects.filter(user=user), "movie")
+    write_model_to_csv(writer, fields, Season.objects.filter(user=user), "season")
+    write_model_to_csv(writer, fields, Episode.objects.filter(related_season__user=user), "episode")  # fmt: skip
+    write_model_to_csv(writer, fields, Anime.objects.filter(user=user), "anime")
+    write_model_to_csv(writer, fields, Manga.objects.filter(user=user), "manga")
 
     return response
 
 
-def export_model_data(writer, fields, queryset, media_type):
-    logger.info(f"Adding {media_type}s to CSV")
+def write_model_to_csv(writer: csv.writer, fields: list, queryset: QuerySet, media_type: str) -> None:  # fmt: skip
+    """Export entries from a model to a CSV file."""
+
+    logger.info("Adding %ss to CSV", media_type)
 
     for item in queryset:
         # write fields if they exist, otherwise write empty string

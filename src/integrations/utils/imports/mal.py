@@ -1,19 +1,19 @@
-from app.exceptions import ImportSourceError
-from app.models import Anime, Manga
-from app.utils import helpers
-
-from decouple import config
 import asyncio
-import requests
 import logging
 
+import requests
+from app.models import Anime, Manga, User
+from app.utils import helpers
+from decouple import config
 
 MAL_API = config("MAL_API", default="")
 logger = logging.getLogger(__name__)
 
 
-def import_mal(username, user):
-    logger.info(f"Importing {username} from MyAnimeList to {user}")
+def mal_data(username: str, user: User) -> None:
+    """Import anime and manga from MyAnimeList."""
+
+    logger.info("Importing %s from MyAnimeList", username)
 
     header = {"X-MAL-CLIENT-ID": MAL_API}
     anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status{{comments}}&nsfw=true&limit=1000"
@@ -29,26 +29,26 @@ def import_mal(username, user):
     Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
     Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
 
-    logger.info(f"Finished importing {username} from MyAnimeList")
+    logger.info("Finished importing %s from MyAnimeList", username)
 
 
-def get_whole_response(url, header):
+def get_whole_response(url: str, header: dict) -> dict:
+    """Fetch whole data from user.
+
+    Continues to fetch data from the next URL until there is no more data to fetch.
     """
-    Fetches the whole response from the API, not just the first page.
-    Each page has a maximum of 1000 entries.
-    """
-    response = requests.get(url, headers=header)
+    response = requests.get(url, headers=header, timeout=5)
     data = response.json()
 
     # usually when username not found
-    if response.status_code == 404:
+    if response.status_code == 404:  # noqa: PLR2004
         error_message = data.get("error")
-        raise ImportSourceError(f"AnimeList API Error: {error_message}")
+        raise ValueError(error_message)
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
         # Fetch the data from the next URL
-        next_data = requests.get(next_url, headers=header).json()
+        next_data = requests.get(next_url, headers=header, timeout=5).json()
         # Append the new data to the existing data in the data
         data["data"].extend(next_data["data"])
         # Update the "paging" key with the new "next" URL (if any)
@@ -57,7 +57,9 @@ def get_whole_response(url, header):
     return data
 
 
-def add_media_list(response, media_type, user):
+def add_media_list(response: dict, media_type: str, user: User) -> list:
+    """Add media to list for bulk creation."""
+
     bulk_media = []
     bulk_images = []
     media_mapping = helpers.media_type_mapper(media_type)
@@ -112,6 +114,8 @@ def add_media_list(response, media_type, user):
     return bulk_media
 
 
-def get_status(status):
+def get_status(status: str) -> str:
+    """Convert the status from MyAnimeList to the status used in the app."""
+
     switcher = {"plan_to_watch": "Planning", "on_hold": "Paused", "reading": "Watching"}
     return switcher.get(status, status.capitalize())

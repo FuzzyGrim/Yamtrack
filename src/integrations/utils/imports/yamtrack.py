@@ -1,22 +1,23 @@
-from django.core.exceptions import ValidationError
-
-from app.exceptions import ImportSourceError
-from app.models import Season, Episode
-from app.forms import EpisodeForm
-from app.utils import helpers
-
+import asyncio
+import logging
 from csv import DictReader
 
-import logging
-import asyncio
+from app.forms import EpisodeForm
+from app.models import Episode, Season, User
+from app.utils import helpers
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 logger = logging.getLogger(__name__)
 
 
-def import_csv(file, user):
+def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
+    """Import media from CSV file."""
+
     if not file.name.endswith(".csv"):
         logger.error("File must be a CSV file")
-        raise ImportSourceError("File must be a CSV file")
+        raise ValueError(  # noqa: TRY003
+            "Invalid file format. Please upload a CSV file.",  # noqa: EM101
+        )
 
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
@@ -49,18 +50,17 @@ def import_csv(file, user):
                         "instance": form.instance,
                         "media_id": row["media_id"],
                         "season_number": row["season_number"],
-                    }
+                    },
                 )
             else:
                 logger.error(form.errors.as_data())
         else:
             media_mapping = helpers.media_type_mapper(media_type)
-            try:
-                add_bulk_media(row, media_mapping, user, bulk_media)
-                if row["image"] != "none.svg":
-                    add_bulk_image(row, media_mapping, bulk_images)
-            except ValidationError as error:
-                logger.error(error)
+            add_bulk_media(row, media_mapping, user, bulk_media)
+
+            if row["image"] != "none.svg":
+                add_bulk_image(row, media_mapping, bulk_images)
+
 
     # download images
     for media_type, images in bulk_images.items():
@@ -76,14 +76,23 @@ def import_csv(file, user):
         media_id = episode["media_id"]
         season_number = episode["season_number"]
         episode["instance"].related_season = Season.objects.get(
-            media_id=media_id, season_number=season_number, user=user
+            media_id=media_id,
+            season_number=season_number,
+            user=user,
         )
 
     episode_instances = [episode["instance"] for episode in episodes]
     Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
 
 
-def add_bulk_media(row, media_mapping, user, bulk_media):
+def add_bulk_media(
+    row: dict,
+    media_mapping: dict,
+    user: User,
+    bulk_media: dict,
+) -> None:
+    """Add media to list for bulk creation."""
+
     media_type = row["media_type"]
 
     instance = media_mapping["model"](
@@ -105,27 +114,29 @@ def add_bulk_media(row, media_mapping, user, bulk_media):
         bulk_media[media_type].append(form.instance)
     else:
         error_message = f"Error importing {row['title']}: {form.errors.as_data()}"
-        raise ValidationError(error_message)
+        logger.error(error_message)
 
 
-def add_bulk_image(row, media_mapping, bulk_image):
+def add_bulk_image(row: dict, media_mapping: dict, bulk_image: dict) -> None:
+    """Add image to list for bulk download."""
     media_type = row["media_type"]
     img_url_format = media_mapping["img_url"]
     img_filename = row["image"].split("-", 1)[-1]
 
-    if media_type == "anime" or media_type == "manga":
+    if media_type in ("anime", "manga"):
         # check if anilist or mal
         # mal -> anime-11111l.jpg (all digits except last letter "l")
         # anilist -> anime-dv332fds.jpg
         if row["image"][5:-5].isdigit() and row["image"][-5] == "l":
             bulk_image[media_type].append(
                 img_url_format["mal"].format(
-                    media_id=row["media_id"], image_file=img_filename
-                )
+                    media_id=row["media_id"],
+                    image_file=img_filename,
+                ),
             )
         else:
             bulk_image[media_type].append(
-                img_url_format["anilist"].format(image_file=img_filename)
+                img_url_format["anilist"].format(image_file=img_filename),
             )
     else:
         # tv-f496cm9enuEsZkSPzCwnTESEK5s.jpg -> https://image.tmdb.org/t/p/w500/f496cm9enuEsZkSPzCwnTESEK5s.jpg

@@ -1,9 +1,9 @@
-from django.urls import path, register_converter
-from django.contrib.auth import views as auth_views
+from decouple import config
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
+from django.urls import path, register_converter
 
-from decouple import config
 from app import converters, views
 
 register_converter(converters.MediaTypeChecker, "media_type")
@@ -24,8 +24,6 @@ urlpatterns = [
         name="season_details",
     ),
     path("profile", views.profile, name="profile"),
-    path("import", views.import_media, name="import"),
-    path("export", views.export_media, name="export"),
     path("login", views.CustomLoginView.as_view(), name="login"),
     path("logout", auth_views.LogoutView.as_view(), name="logout"),
     path("modal_data", views.modal_data, name="modal_data"),

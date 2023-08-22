@@ -1,13 +1,18 @@
+import csv
+from datetime import date
+from io import StringIO
+
+from app.models import TV, Anime, Episode, Manga, Movie, Season, User
 from django.test import TestCase
 from django.urls import reverse
-from app.models import User, TV, Movie, Season, Episode, Anime, Manga
-from datetime import date
-import csv
-from io import StringIO
 
 
 class ExportCSVTest(TestCase):
-    def setUp(self):
+    """Test exporting media to CSV."""
+
+    def setUp(self) -> None:
+        """Create necessary data for the tests."""
+
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_superuser(**self.credentials)
         self.client.login(**self.credentials)
@@ -42,7 +47,7 @@ class ExportCSVTest(TestCase):
         )
 
         Episode.objects.create(
-            related_season=season, episode_number=1, watch_date=date(2023, 6, 1)
+            related_season=season, episode_number=1, watch_date=date(2023, 6, 1),
         )
 
         Anime.objects.create(
@@ -63,10 +68,11 @@ class ExportCSVTest(TestCase):
             start_date=date(2021, 6, 1),
         )
 
-    def test_export_csv(self):
+    def test_export_csv(self) -> None:
+        """Basic test exporting media to CSV."""
 
         # Generate the CSV file by accessing the export view
-        response = self.client.get(reverse("export"))
+        response = self.client.get(reverse("integrations:export_csv"))
 
         # Assert that the response is successful (status code 200)
         self.assertEqual(response.status_code, 200)
@@ -82,24 +88,24 @@ class ExportCSVTest(TestCase):
 
         # Get all media IDs from the database
         db_media_ids = set(
-            TV.objects.values_list("media_id", flat=True).filter(user=self.user)
+            TV.objects.values_list("media_id", flat=True).filter(user=self.user),
         )
         db_media_ids.update(
-            Movie.objects.values_list("media_id", flat=True).filter(user=self.user)
+            Movie.objects.values_list("media_id", flat=True).filter(user=self.user),
         )
         db_media_ids.update(
-            Season.objects.values_list("media_id", flat=True).filter(user=self.user)
+            Season.objects.values_list("media_id", flat=True).filter(user=self.user),
         )
         db_media_ids.update(
             Episode.objects.values_list("related_season__media_id", flat=True).filter(
-                related_season__user=self.user
-            )
+                related_season__user=self.user,
+            ),
         )
         db_media_ids.update(
-            Anime.objects.values_list("media_id", flat=True).filter(user=self.user)
+            Anime.objects.values_list("media_id", flat=True).filter(user=self.user),
         )
         db_media_ids.update(
-            Manga.objects.values_list("media_id", flat=True).filter(user=self.user)
+            Manga.objects.values_list("media_id", flat=True).filter(user=self.user),
         )
 
         for row in reader:
