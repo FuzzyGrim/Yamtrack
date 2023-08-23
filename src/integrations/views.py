@@ -67,7 +67,7 @@ def import_anilist(request: HttpRequest) -> HttpResponse:
     try:
         warning_message = imports.anilist_data(request.POST["anilist"], request.user)
         if warning_message:
-            title = "Couldn't find a matching MAL ID for: \n"
+            title = "Couldn't find a matching MyAnimeList ID for: \n"
             messages.warning(request, title + warning_message)
         else:
             messages.success(request, "Your AniList has been imported!")

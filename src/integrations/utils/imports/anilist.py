@@ -85,7 +85,9 @@ def anilist_data(username: str, user: User) -> str:
     url = "https://graphql.anilist.co"
 
     response = requests.post(
-        url, json={"query": query, "variables": variables}, timeout=5,
+        url,
+        json={"query": query, "variables": variables},
+        timeout=5,
     )
     query = response.json()
 
@@ -113,13 +115,11 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
             if not status_list["isCustomList"]:
                 for content in status_list["entries"]:
                     if content["media"]["idMal"] is None:
-                        warning_message += (
-                            f"\n {content['media']['title']['userPreferred']}"
-                        )
+                        warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()})"
                         logger.warning(
-                            "%s: %s has no MAL ID.",
-                            media_type.capitalize(),
+                            "%s: %s, couldn't find a matching MAL ID.",
                             content["media"]["title"]["userPreferred"],
+                            media_type.capitalize(),
                         )
                     else:
                         if content["status"] == "CURRENT":
@@ -131,7 +131,8 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                         bulk_image.append(image_url)
 
                         image_filename = helpers.get_image_filename(
-                            image_url, media_type,
+                            image_url,
+                            media_type,
                         )
 
                         instance = media_mapping["model"](
@@ -156,8 +157,12 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                         if form.is_valid():
                             bulk_media[media_type].append(form.instance)
                         else:
-                            error_message = f"Error importing {content['media']['title']['userPreferred']}: {form.errors.as_data()}"
-                            logger.error(error_message)
+                            logger.warning(
+                                "%s (%s), %s.",
+                                content["media"]["title"]["userPreferred"],
+                                media_type.capitalize(),
+                                form.errors.as_data(),
+                            )
 
         asyncio.run(helpers.images_downloader(bulk_image, media_type))
 
