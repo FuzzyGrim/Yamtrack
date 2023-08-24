@@ -38,7 +38,7 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 #home .container .title { text-align: center; margin-top: 0.5rem; margin-bottom: 1rem; }
 
-#home .container .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+#home .container .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); }
 
 #home .container .grid .card { width: 100%; margin-bottom: 1em; }
 
@@ -100,7 +100,7 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 #medialist .table-layout .list-head .edit .modal, #medialist .table-layout .list-section .edit .modal { text-align: left; }
 
-#medialist .grid-layout { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+#medialist .grid-layout { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); }
 
 #medialist .grid-layout .card { width: 100%; margin-bottom: 1em; }
 
@@ -120,7 +120,7 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 #medialist .grid-layout .card .card-img-overlay .card-text .open-modal-button:disabled, #medialist .grid-layout .card .card-img-overlay .card-text .progress-btn:disabled { color: transparent; }
 
-#search .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+#search .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); }
 
 #search .grid .card { width: 100%; margin-bottom: 1em; }
 
@@ -158,7 +158,7 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 #details .grid-title { margin-top: 1em; font-size: 1.2rem; margin-bottom: 0.5em; }
 
-#details .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+#details .grid { display: grid; grid-gap: .5em; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); }
 
 #details .grid .card { width: 100%; margin-bottom: 1em; }
 
@@ -244,6 +244,6 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 @media screen and (max-width: 991px) { body main { padding-top: 2em; } #profile .grid-container { grid-template-columns: 1fr; } #details .episode-date { display: none; } }
 
-@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .image { margin-bottom: 1em; } #details .header .content .title { text-align: center; } #details .header .content .show-title { text-align: center; } #details .header .content .buttons-group { margin-top: 0.5em; } #details .btn-group .btn-release-date { border-radius: 0; } #details .btn-group .btn-danger { border-radius: 0; } }
+@media screen and (max-width: 575px) { #medialist .list-head ._progress, #medialist .list-section ._progress { display: none; } #details .header { flex-wrap: wrap; justify-content: center; } #details .header .image { margin-bottom: 1em; } #details .header .content .title { width: 100%; text-align: center; } #details .header .content .show-title { width: 100%; text-align: center; } #details .header .content .buttons-group { margin-top: 0.5em; } #details .btn-group .btn-release-date { border-radius: 0; } #details .btn-group .btn-danger { border-radius: 0; } }
 
 /*# sourceMappingURL=main.css.map */
