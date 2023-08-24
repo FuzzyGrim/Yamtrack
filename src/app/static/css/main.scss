@@ -66,10 +66,12 @@
       }
       .content {
         .title {
+          width: 100%;
           text-align: center;
         }
         // only present in season_details
         .show-title{ 
+          width: 100%;
           text-align: center;
         }
         .buttons-group {
