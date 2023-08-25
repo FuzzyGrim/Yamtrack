@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 def anilist_data(username: str, user: User) -> str:
     """Import anime and manga ratings from Anilist."""
 
-    logger.info("Importing %s from Anilist", username)
-
     query = """
     query ($userName: String){
         anime: MediaListCollection(userName: $userName, type: ANIME) {
@@ -96,11 +94,8 @@ def anilist_data(username: str, user: User) -> str:
         error_message = query.get("errors")[0].get("message")
         raise ValueError(error_message)
 
-    # stores media titles that don't have a corresponding MAL ID
-    warning_message = add_media_list(query, warning_message="", user=user)
-
-    logger.info("Finished importing %s from Anilist", username)
-    return warning_message
+    # returns media that couldn't be added
+    return add_media_list(query, warning_message="", user=user)
 
 
 def add_media_list(query: dict, warning_message: str, user: User) -> str:
@@ -110,17 +105,15 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
 
     for media_type in query["data"]:
         bulk_image = []
+
+        logger.info("Importing %ss from Anilist", media_type)
+
         media_mapping = helpers.media_type_mapper(media_type)
         for status_list in query["data"][media_type]["lists"]:
             if not status_list["isCustomList"]:
                 for content in status_list["entries"]:
                     if content["media"]["idMal"] is None:
-                        warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()})"
-                        logger.warning(
-                            "%s: %s, couldn't find a matching MAL ID.",
-                            content["media"]["title"]["userPreferred"],
-                            media_type.capitalize(),
-                        )
+                        warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()}: Couldn't find a matching MyAnimeList ID)"
                     else:
                         if content["status"] == "CURRENT":
                             status = "Watching"
@@ -157,17 +150,15 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                         if form.is_valid():
                             bulk_media[media_type].append(form.instance)
                         else:
-                            logger.warning(
-                                "%s (%s), %s.",
-                                content["media"]["title"]["userPreferred"],
-                                media_type.capitalize(),
-                                form.errors.as_data(),
-                            )
+                            warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()}): {form.errors.as_text()}"
 
         asyncio.run(helpers.images_downloader(bulk_image, media_type))
 
-    Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
-    Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)
+    animes_imported = Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
+    logger.info("Imported %s animes", animes_imported.count())
+
+    mangas_imported = Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)
+    logger.info("Imported %s mangas", mangas_imported.count())
 
     return warning_message
 

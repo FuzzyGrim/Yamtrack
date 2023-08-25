@@ -28,6 +28,8 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
             "Invalid file format. Please upload a CSV file.",  # noqa: EM101
         )
 
+    logger.info("Importing from TMDB")
+
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
 
@@ -83,7 +85,9 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
     # bulk create tv, seasons and movie
     for media_type, medias in bulk_media.items():
         model_type = helpers.media_type_mapper(media_type)["model"]
-        model_type.objects.bulk_create(medias, ignore_conflicts=True)
+
+        media_imported = model_type.objects.bulk_create(medias, ignore_conflicts=True)
+        logger.info("Imported %s %ss", media_imported.count(), media_type)
 
 
 def create_instance(

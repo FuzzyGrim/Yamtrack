@@ -13,8 +13,6 @@ logger = logging.getLogger(__name__)
 def mal_data(username: str, user: User) -> None:
     """Import anime and manga from MyAnimeList."""
 
-    logger.info("Importing %s from MyAnimeList", username)
-
     header = {"X-MAL-CLIENT-ID": MAL_API}
     anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status{{comments}}&nsfw=true&limit=1000"
     animes = get_whole_response(anime_url, header)
@@ -26,10 +24,11 @@ def mal_data(username: str, user: User) -> None:
 
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
-    Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
-    Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
+    animes_imported = Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
+    logger.info("Imported %s animes", animes_imported.count())
 
-    logger.info("Finished importing %s from MyAnimeList", username)
+    mangas_imported = Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
+    logger.info("Imported %s mangas", mangas_imported.count())
 
 
 def get_whole_response(url: str, header: dict) -> dict:
@@ -59,6 +58,8 @@ def get_whole_response(url: str, header: dict) -> dict:
 
 def add_media_list(response: dict, media_type: str, user: User) -> list:
     """Add media to list for bulk creation."""
+
+    logger.info("Importing %ss from MyAnimeList", media_type)
 
     bulk_media = []
     bulk_images = []

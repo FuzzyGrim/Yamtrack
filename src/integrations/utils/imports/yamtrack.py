@@ -19,6 +19,8 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
             "Invalid file format. Please upload a CSV file.",  # noqa: EM101
         )
 
+    logger.info("Importing from Yamtrack")
+
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
 
@@ -61,7 +63,6 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
             if row["image"] != "none.svg":
                 add_bulk_image(row, media_mapping, bulk_images)
 
-
     # download images
     for media_type, images in bulk_images.items():
         asyncio.run(helpers.images_downloader(images, media_type))
@@ -69,20 +70,25 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
     # bulk create tv, season, movie, anime and manga
     for media_type, medias in bulk_media.items():
         model_type = helpers.media_type_mapper(media_type)["model"]
-        model_type.objects.bulk_create(medias, ignore_conflicts=True)
+        media_imported = model_type.objects.bulk_create(medias, ignore_conflicts=True)
 
-    # bulk create episodes
-    for episode in episodes:
-        media_id = episode["media_id"]
-        season_number = episode["season_number"]
-        episode["instance"].related_season = Season.objects.get(
-            media_id=media_id,
-            season_number=season_number,
-            user=user,
-        )
+        logger.info("Imported %s %ss", media_imported.count(), media_type)
 
-    episode_instances = [episode["instance"] for episode in episodes]
-    Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
+    if episodes:
+        # bulk create episodes
+        for episode in episodes:
+            media_id = episode["media_id"]
+            season_number = episode["season_number"]
+            episode["instance"].related_season = Season.objects.get(
+                media_id=media_id,
+                season_number=season_number,
+                user=user,
+            )
+
+        episode_instances = [episode["instance"] for episode in episodes]
+        episodes_imported = Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
+
+        logger.info("Imported %s episodes", episodes_imported.count())
 
 
 def add_bulk_media(

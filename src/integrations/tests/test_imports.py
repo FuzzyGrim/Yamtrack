@@ -15,14 +15,14 @@ mock_path = os.path.join(os.path.dirname(__file__), "mock_data")
 class ImportMAL(TestCase):
     """Test importing media from MyAnimeList."""
 
-    def setUp(self) -> None:
+    def setUp(self: "ImportMAL") -> None:
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
     @patch("requests.get")
     @patch("app.utils.helpers.images_downloader", return_value=None)
-    def test_import_animelist(self, mock_asyncio, mock_request) -> None:
+    def test_import_animelist(self: "ImportMAL", mock_asyncio, mock_request) -> None:
         """Basic test importing anime and manga from MyAnimeList."""
 
         with open(mock_path + "/import_mal_anime.json") as file:
@@ -54,7 +54,7 @@ class ImportMAL(TestCase):
             True,
         )
 
-    def test_user_not_found(self) -> None:
+    def test_user_not_found(self: "ImportMAL") -> None:
         """Test that an error is raised if the user is not found."""
 
         self.assertRaises(ImportSourceError, imports.mal_data, "fhdsufdsu", self.user)
@@ -63,14 +63,14 @@ class ImportMAL(TestCase):
 class ImportTMDB(TestCase):
     """Test importing media from TMDB."""
 
-    def setUp(self) -> None:
+    def setUp(self: "ImportTMDB") -> None:
         """Create user for the tests."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
     @patch("app.utils.helpers.images_downloader", return_value=None)
-    def test_tmdb_import_ratings(self, mock_asyncio) -> None:
+    def test_tmdb_import_ratings(self: "ImportTMDB", mock_asyncio) -> None:
         """Test importing ratings from TMDB."""
 
         with open(mock_path + "/import_tmdb_ratings.csv", "rb") as file:
@@ -79,7 +79,7 @@ class ImportTMDB(TestCase):
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
 
     @patch("app.utils.helpers.images_downloader", return_value=None)
-    def test_tmdb_import_watchlist(self, mock_asyncio) -> None:
+    def test_tmdb_import_watchlist(self: "ImportTMDB", mock_asyncio) -> None:
         """Test importing watchlist from TMDB."""
 
         with open(mock_path + "/import_tmdb_watchlist.csv", "rb") as file:
@@ -92,7 +92,7 @@ class ImportTMDB(TestCase):
 class ImportAniList(TestCase):
     """Test importing media from AniList."""
 
-    def setUp(self) -> None:
+    def setUp(self: "ImportAniList") -> None:
         """Create user for the tests."""
 
         self.credentials = {"username": "test", "password": "12345"}
@@ -100,7 +100,7 @@ class ImportAniList(TestCase):
 
     @patch("requests.post")
     @patch("app.utils.helpers.images_downloader", return_value=None)
-    def test_import_anilist(self, mock_asyncio, mock_request) -> None:
+    def test_import_anilist(self: "ImportAniList", mock_asyncio, mock_request) -> None:
         """Basic test importing anime and manga from AniList."""
 
         with open(mock_path + "/import_anilist.json") as file:
@@ -119,7 +119,7 @@ class ImportAniList(TestCase):
             True,
         )
 
-    def test_user_not_found(self) -> None:
+    def test_user_not_found(self: "ImportAniList") -> None:
         """Test that an error is raised if the user is not found."""
 
         self.assertRaises(
@@ -130,14 +130,14 @@ class ImportAniList(TestCase):
 class ImportYamtrack(TestCase):
     """Test importing media from Yamtrack CSV."""
 
-    def setUp(self) -> None:
+    def setUp(self: "ImportYamtrack") -> None:
         """Create user for the tests."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
     @patch("app.utils.helpers.images_downloader", return_value=None)
-    def test_import_yamtrack(self, mock_asyncio) -> None:
+    def test_import_yamtrack(self: "ImportYamtrack", mock_asyncio) -> None:
         """Basic test importing media from Yamtrack."""
 
         with open(mock_path + "/import_yamtrack.csv", "rb") as file:
