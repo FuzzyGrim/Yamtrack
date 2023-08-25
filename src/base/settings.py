@@ -41,6 +41,7 @@ if config("HTTPS_COOKIES", default=False, cast=bool):
 
 INSTALLED_APPS = [
     "app",
+    "users",
     "integrations",
     "crispy_forms",
     "crispy_bootstrap5",
@@ -200,7 +201,7 @@ LOGIN_REDIRECT_URL = "home"
 
 LOGOUT_REDIRECT_URL = "login"
 
-AUTH_USER_MODEL = "app.User"
+AUTH_USER_MODEL = "users.User"
 
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",

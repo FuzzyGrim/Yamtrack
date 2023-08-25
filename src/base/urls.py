@@ -43,6 +43,7 @@ handler500 = error_500_view
 urlpatterns = [
     path("", include("app.urls")),
     path("", include("integrations.urls")),
+    path("", include("users.urls")),
 ]
 
 if settings.ADMIN_ENABLED:

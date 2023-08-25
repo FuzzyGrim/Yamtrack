@@ -1,77 +1,93 @@
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.views import LoginView
-from django.contrib.auth.decorators import login_required
+import logging
 
 from app.utils import helpers
-from app.forms import (
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect, render
+
+from users.forms import (
+    PasswordChangeForm,
     UserLoginForm,
     UserRegisterForm,
     UserUpdateForm,
-    PasswordChangeForm,
 )
-
-import logging
-
 
 logger = logging.getLogger(__name__)
 
 
-def register(request):
+def register(request: HttpRequest) -> HttpResponse:
+    """Register a new user."""
+
     form = UserRegisterForm(request.POST or None)
+
     if form.is_valid():
         form.save()
         messages.success(request, "Your account has been created, you can now log in!")
         logger.info(
-            f"New user registered: {form.cleaned_data.get('username')} at {helpers.get_client_ip(request)}"
+            "New user registered: %s at %s",
+            form.cleaned_data.get("username"),
+            helpers.get_client_ip(request),
         )
         return redirect("login")
+
     return render(request, "app/register.html", {"form": form})
 
 
 class CustomLoginView(LoginView):
+    """Custom login view with remember me button."""
+
     form_class = UserLoginForm
     template_name = "app/login.html"
 
-    def form_valid(self, form):
+    def form_valid(self: "CustomLoginView", form: UserLoginForm) -> HttpResponse:
+        """Log the user in and set the session expiry."""
+
         remember_me = form.cleaned_data["remember_me"]
         if remember_me:
             self.request.session.set_expiry(2592000)  # 30 days
             self.request.session.modified = True
 
         logger.info(
-            f"User logged in as: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}"
+            "User logged in as: %s at %s",
+            self.request.POST["username"],
+            helpers.get_client_ip(self.request),
         )
-        return super(CustomLoginView, self).form_valid(form)
+        return super().form_valid(form)
 
-    def form_invalid(self, form):
+    def form_invalid(self: "CustomLoginView", form: UserLoginForm) -> HttpResponse:
+        """Log the failed login attempt."""
+
         logger.error(
-            f"Failed login attempt for: {self.request.POST['username']} at {helpers.get_client_ip(self.request)}"
+            "Failed login attempt for: %s at %s",
+            self.request.POST["username"],
+            helpers.get_client_ip(self.request),
         )
-        return super(CustomLoginView, self).form_invalid(form)
+        return super().form_invalid(form)
 
 
 @login_required
-def profile(request):
+def profile(request: HttpRequest) -> HttpResponse:
+    """Update the user's profile and import/export data."""
+
     user_form = UserUpdateForm(instance=request.user)
     password_form = PasswordChangeForm(request.user)
 
     if request.method == "POST":
         if "username" in request.POST:
-            # it's here because UserUpdateForm updates request.user.username
-            old_username = request.user.username
             user_form = UserUpdateForm(request.POST, instance=request.user)
 
             if user_form.is_valid():
                 user_form.save()
                 messages.success(request, "Your username has been updated!")
-                logger.info(
-                    f"Successful username change from {old_username} to {request.user.username}"
-                )
+                logger.info("Successful username change to %s", request.user.username)
             else:
                 logger.error(
-                    f"Failed username change for {request.user.username}: {user_form.errors.as_data()}"
+                    "Failed username change for %s: %s",
+                    request.user.username,
+                    user_form.errors.as_data(),
                 )
 
         elif "new_password1" in request.POST:
@@ -80,11 +96,9 @@ def profile(request):
                 password = password_form.save()
                 update_session_auth_hash(request, password)
                 messages.success(request, "Your password has been updated!")
-                logger.info(f"Successful password change for: {request.user.username}")
+                logger.info("Successful password change for: %s", request.user.username)
             else:
-                logger.error(
-                    f"Failed password change for {request.user.username}: {password_form.errors.as_data()}"
-                )
+                logger.error("Failed password change for %s: %s", request.user.username, password_form.errors.as_data())
 
         else:
             messages.error(request, "There was an error with your request")

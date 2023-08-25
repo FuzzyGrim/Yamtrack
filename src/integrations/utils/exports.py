@@ -1,9 +1,10 @@
 import csv
 import logging
 
-from app.models import TV, Anime, Episode, Manga, Movie, Season, User
+from app.models import TV, Anime, Episode, Manga, Movie, Season
 from django.db.models.query import QuerySet
 from django.http import HttpResponse
+from users.models import User
 
 logger = logging.getLogger(__name__)
 

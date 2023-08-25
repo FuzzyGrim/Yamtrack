@@ -1,16 +1,15 @@
-from django.test import TestCase
-from django.urls import reverse
-from django.test import override_settings
-
 import json
-import shutil
 import os
+import shutil
 from datetime import date
 from unittest.mock import patch
 
-from app.models import User, TV, Season, Episode, Movie, Anime
-from app.utils import metadata
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from users.models import User
 
+from app.models import TV, Anime, Episode, Movie, Season
+from app.utils import metadata
 
 mock_path = os.path.join(os.path.dirname(__file__), "mock_data")
 

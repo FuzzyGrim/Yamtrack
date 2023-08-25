@@ -3,9 +3,10 @@ import logging
 from csv import DictReader
 
 from app.forms import EpisodeForm
-from app.models import Episode, Season, User
+from app.models import Episode, Season
 from app.utils import helpers
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +71,9 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
     # bulk create tv, season, movie, anime and manga
     for media_type, medias in bulk_media.items():
         model_type = helpers.media_type_mapper(media_type)["model"]
-        media_imported = model_type.objects.bulk_create(medias, ignore_conflicts=True)
+        model_type.objects.bulk_create(medias, ignore_conflicts=True)
 
-        logger.info("Imported %s %ss", media_imported.count(), media_type)
+        logger.info("Imported %s %ss", len(medias), media_type)
 
     if episodes:
         # bulk create episodes
@@ -86,9 +87,9 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
             )
 
         episode_instances = [episode["instance"] for episode in episodes]
-        episodes_imported = Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
+        Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
 
-        logger.info("Imported %s episodes", episodes_imported.count())
+        logger.info("Imported %s episodes", len(episode_instances))
 
 
 def add_bulk_media(
@@ -119,8 +120,7 @@ def add_bulk_media(
     if form.is_valid():
         bulk_media[media_type].append(form.instance)
     else:
-        error_message = f"Error importing {row['title']}: {form.errors.as_data()}"
-        logger.error(error_message)
+        logger.error("Error importing %s: %s", row["title"], form.errors.as_data())
 
 
 def add_bulk_image(row: dict, media_mapping: dict, bulk_image: dict) -> None:

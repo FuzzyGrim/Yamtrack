@@ -1,12 +1,11 @@
 import json
 import os
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from app.models import TV, Anime, Episode, Manga, Movie, Season, User
+from app.models import TV, Anime, Episode, Manga, Movie, Season
 from django.test import TestCase
+from users.models import User
 
-from integrations.exceptions import ImportSourceError
 from integrations.utils import imports
 
 mock_path = os.path.join(os.path.dirname(__file__), "mock_data")
@@ -57,7 +56,7 @@ class ImportMAL(TestCase):
     def test_user_not_found(self: "ImportMAL") -> None:
         """Test that an error is raised if the user is not found."""
 
-        self.assertRaises(ImportSourceError, imports.mal_data, "fhdsufdsu", self.user)
+        self.assertRaises(ValueError, imports.mal_data, "fhdsufdsu", self.user)
 
 
 class ImportTMDB(TestCase):
@@ -115,16 +114,15 @@ class ImportAniList(TestCase):
             True,
         )
         self.assertEqual(
-            Manga.objects.get(user=self.user, title="One Punch-Man").score == 9, # noqa: PLR2004
+            Manga.objects.get(user=self.user, title="One Punch-Man").score
+            == 9,  # noqa: PLR2004
             True,
         )
 
     def test_user_not_found(self: "ImportAniList") -> None:
         """Test that an error is raised if the user is not found."""
 
-        self.assertRaises(
-            ImportSourceError, imports.anilist_data, "fhdsufdsu", self.user
-        )
+        self.assertRaises(ValueError, imports.anilist_data, "fhdsufdsu", self.user)
 
 
 class ImportYamtrack(TestCase):
@@ -149,5 +147,6 @@ class ImportYamtrack(TestCase):
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
         self.assertEqual(Season.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
-            Episode.objects.filter(related_season__user=self.user).count(), 24,
+            Episode.objects.filter(related_season__user=self.user).count(),
+            24,
         )

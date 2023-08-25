@@ -1,10 +1,16 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User
+
 from .forms import UserRegisterForm
+from .models import User
 
 
 class UserAdmin(UserAdmin):
+    """Custom user admin model.
+
+    Allows creation of new users from the admin panel.
+    """
+
     add_form = UserRegisterForm
     add_fieldsets = (
         (

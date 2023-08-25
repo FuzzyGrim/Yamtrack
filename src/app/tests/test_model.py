@@ -1,7 +1,9 @@
-from django.test import TestCase
-from app.models import User, Movie, Season, Episode
-
 from datetime import date
+
+from django.test import TestCase
+from users.models import User
+
+from app.models import Episode, Movie, Season
 
 
 class SeasonProperties(TestCase):

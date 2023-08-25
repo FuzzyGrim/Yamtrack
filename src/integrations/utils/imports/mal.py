@@ -2,9 +2,10 @@ import asyncio
 import logging
 
 import requests
-from app.models import Anime, Manga, User
+from app.models import Anime, Manga
 from app.utils import helpers
 from decouple import config
+from users.models import User
 
 MAL_API = config("MAL_API", default="")
 logger = logging.getLogger(__name__)
@@ -24,11 +25,11 @@ def mal_data(username: str, user: User) -> None:
 
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
-    animes_imported = Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
-    logger.info("Imported %s animes", animes_imported.count())
+    Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
+    logger.info("Imported %s animes", len(bulk_add_anime))
 
-    mangas_imported = Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
-    logger.info("Imported %s mangas", mangas_imported.count())
+    Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
+    logger.info("Imported %s mangas", len(bulk_add_manga))
 
 
 def get_whole_response(url: str, header: dict) -> dict:

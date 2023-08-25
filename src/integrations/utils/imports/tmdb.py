@@ -11,8 +11,9 @@ from decouple import config
 
 if TYPE_CHECKING:
     from app.forms import MovieForm, SeasonForm, TVForm
-    from app.models import TV, Movie, Season, User
+    from app.models import TV, Movie, Season
     from django.core.files.uploadedfile import InMemoryUploadedFile
+    from users.models import User
 
 
 TMDB_API = config("TMDB_API", default="")
@@ -86,8 +87,8 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
     for media_type, medias in bulk_media.items():
         model_type = helpers.media_type_mapper(media_type)["model"]
 
-        media_imported = model_type.objects.bulk_create(medias, ignore_conflicts=True)
-        logger.info("Imported %s %ss", media_imported.count(), media_type)
+        model_type.objects.bulk_create(medias, ignore_conflicts=True)
+        logger.info("Imported %s %ss", len(medias), media_type)
 
 
 def create_instance(

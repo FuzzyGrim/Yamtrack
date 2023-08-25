@@ -1,122 +1,12 @@
-from django import forms
-from django.contrib.auth.forms import (
-    UserCreationForm,
-    PasswordChangeForm,
-    AuthenticationForm,
-)
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column, Submit
-from .models import TV, Season, Episode, Manga, Anime, Movie, User
-from app.utils import metadata
-
 import datetime
 
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Column, Layout, Row
+from django import forms
 
-class UserLoginForm(AuthenticationForm):
-    """
-    Subclass of Django ``AuthenticationForm`` which adds a remember me
-    checkbox.
-    """
+from app.utils import metadata
 
-    username = forms.CharField(
-        max_length=150,
-        widget=forms.TextInput(
-            attrs={
-                "autofocus": True,
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_username",
-                "placeholder": "Username",
-            }
-        ),
-        label="Username",
-    )
-    password = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_password1",
-                "placeholder": "Password",
-            }
-        ),
-        label="Password",
-    )
-
-    remember_me = forms.BooleanField(
-        label="Remember Me",
-        initial=False,
-        required=False,
-        widget=forms.CheckboxInput(
-            attrs={"class": "checkboxinput form-check-input", "id": "id_remember_me"}
-        ),
-    )
-
-
-class UserRegisterForm(UserCreationForm):
-    username = forms.CharField(
-        max_length=150,
-        widget=forms.TextInput(
-            attrs={
-                "autofocus": True,
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_username",
-                "placeholder": "Username",
-            }
-        ),
-        label="Username",
-    )
-    password1 = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_password1",
-                "placeholder": "Password",
-            }
-        ),
-        label="Password",
-    )
-    password2 = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_password2",
-                "placeholder": "Password confirmation",
-            }
-        ),
-        label="Password confirmation",
-    )
-
-    class Meta:
-        model = User
-        fields = ["username", "password1", "password2"]
-
-
-class UserUpdateForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.add_input(Submit('submit', 'Update', css_class='btn btn-secondary rounded'))
-
-    class Meta:
-        model = User
-        fields = ["username"]
-
-
-# remove autofocus from password change form
-class PasswordChangeForm(PasswordChangeForm):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["old_password"].widget.attrs.pop("autofocus", None)
-        self.helper = FormHelper()
-        self.helper.add_input(Submit('submit', 'Update', css_class='btn btn-secondary rounded'))
+from .models import TV, Anime, Episode, Manga, Movie, Season
 
 
 class MediaForm(forms.ModelForm):
@@ -276,7 +166,7 @@ class SeasonForm(MediaForm):
 
 
 class EpisodeForm(forms.ModelForm):
-    class Meta():
+    class Meta:
         model = Episode
         fields = ("episode_number", "watch_date")
 

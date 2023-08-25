@@ -3,10 +3,14 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+from typing import TYPE_CHECKING
 
 import requests
-from app.models import Anime, Manga, User
+from app.models import Anime, Manga
 from app.utils import helpers
+
+if TYPE_CHECKING:
+    from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -154,11 +158,11 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
 
         asyncio.run(helpers.images_downloader(bulk_image, media_type))
 
-    animes_imported = Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
-    logger.info("Imported %s animes", animes_imported.count())
+    Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
+    logger.info("Imported %s animes", len(bulk_media["anime"]))
 
-    mangas_imported = Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)
-    logger.info("Imported %s mangas", mangas_imported.count())
+    Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)
+    logger.info("Imported %s mangas", len(bulk_media["manga"]))
 
     return warning_message
 
