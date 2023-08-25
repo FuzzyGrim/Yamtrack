@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
 
   // Get all the import forms
-  let forms = document.querySelectorAll(".grid-item");
+  let forms = document.querySelectorAll(".import-form");
 
   // Add event listeners to each form
   forms.forEach(function(form) {

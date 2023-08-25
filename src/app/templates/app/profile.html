@@ -40,7 +40,7 @@
       <legend class="border-bottom mb-4">Import</legend>
 
       <fieldset class="input-group grid-container">
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data" action="{% url 'integrations:import_tmdb_ratings' %}">
+        <form class="p-2 grid-item import-form" method="POST" enctype="multipart/form-data" action="{% url 'integrations:import_tmdb_ratings' %}">
           {% csrf_token %}
           <div class="form-title">TMDB Ratings</div>
           <div class="input-group">
@@ -49,7 +49,7 @@
           </div>
         </form>
 
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data" action="{% url 'integrations:import_tmdb_watchlist' %}">
+        <form class="p-2 grid-item import-form" method="POST" enctype="multipart/form-data" action="{% url 'integrations:import_tmdb_watchlist' %}">
           {% csrf_token %}
           <div class="form-title">TMDB Watchlist</div>
           <div class="input-group">
@@ -58,7 +58,7 @@
           </div>
         </form>
 
-        <form class="p-2 grid-item" method="POST" action="{% url 'integrations:import_mal' %}">
+        <form class="p-2 grid-item import-form" method="POST" action="{% url 'integrations:import_mal' %}">
           {% csrf_token %}
           <div class="form-title">MyAnimeList</div>
           <div class="input-group">
@@ -67,7 +67,7 @@
           </div>
         </form>
         
-        <form class="p-2 grid-item" method="POST" action="{% url 'integrations:import_anilist' %}">
+        <form class="p-2 grid-item import-form" method="POST" action="{% url 'integrations:import_anilist' %}">
           {% csrf_token %}
           <div class="form-title">AniList</div>
           <div class="input-group">
@@ -76,7 +76,7 @@
           </div>
         </form>
 
-        <form class="p-2 grid-item" method="POST" enctype="multipart/form-data" action="{% url 'integrations:import_yamtrack' %}">
+        <form class="p-2 grid-item import-form" method="POST" enctype="multipart/form-data" action="{% url 'integrations:import_yamtrack' %}">
           {% csrf_token %}
           <div class="form-title">Yamtrack CSV</div>
           <div class="input-group">
