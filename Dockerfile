@@ -18,7 +18,7 @@ RUN apt-get update \
 # https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app
+WORKDIR /yamtrack
 
 COPY ./mime.types /etc/mime.types
 COPY ./entrypoint.sh /entrypoint.sh

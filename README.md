@@ -41,8 +41,8 @@ services:
       # - HTTPS_COOKIES=False
       # - REGISTRATION=False
     volumes:
-      - ./db:/app/db
-      - media:/app/media
+      - ./db:/yamtrack/db
+      - media:/yamtrack/media
     ports:
       - "8000:8000"
 

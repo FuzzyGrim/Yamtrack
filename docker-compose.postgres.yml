@@ -22,7 +22,7 @@ services:
       - DB_PASS=yamtrack
       - DB_PORT=5432
     volumes:
-      - media:/app/media
+      - media:/yamtrack/media
     ports:
       - "8000:8000"
 

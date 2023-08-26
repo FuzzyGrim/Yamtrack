@@ -12,4 +12,4 @@ usermod -o -u "$PUID" abc
 chown -R abc:abc db
 chown -R abc:abc media
 
-exec gosu abc:abc uwsgi --ini /app/base/uwsgi.ini
+exec gosu abc:abc uwsgi --ini /yamtrack/base/uwsgi.ini
