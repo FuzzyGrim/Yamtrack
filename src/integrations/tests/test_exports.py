@@ -2,9 +2,10 @@ import csv
 from datetime import date
 from io import StringIO
 
-from app.models import TV, Anime, Episode, Manga, Movie, Season, User
+from app.models import TV, Anime, Episode, Manga, Movie, Season
 from django.test import TestCase
 from django.urls import reverse
+from users.models import User
 
 
 class ExportCSVTest(TestCase):
@@ -47,7 +48,9 @@ class ExportCSVTest(TestCase):
         )
 
         Episode.objects.create(
-            related_season=season, episode_number=1, watch_date=date(2023, 6, 1),
+            related_season=season,
+            episode_number=1,
+            watch_date=date(2023, 6, 1),
         )
 
         Anime.objects.create(
@@ -72,7 +75,7 @@ class ExportCSVTest(TestCase):
         """Basic test exporting media to CSV."""
 
         # Generate the CSV file by accessing the export view
-        response = self.client.get(reverse("integrations:export_csv"))
+        response = self.client.get(reverse("export_csv"))
 
         # Assert that the response is successful (status code 200)
         self.assertEqual(response.status_code, 200)
