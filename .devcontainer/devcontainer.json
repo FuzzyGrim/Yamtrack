@@ -17,19 +17,20 @@
         "editor.fontFamily": "\"Mononoki Nerd Font Mono\""
       },
       "extensions": [
-        "formulahendry.auto-close-tag",
-        "ms-python.black-formatter",
         "batisteo.vscode-django",
+        "charliermarsh.ruff",
+        "christian-kohler.path-intellisense",
+        "ecmel.vscode-html-css",
+        "esbenp.prettier-vscode",
+        "formulahendry.auto-close-tag",
         "github.copilot",
         "github.copilot-chat",
-        "ecmel.vscode-html-css",
-        "visualstudioexptteam.vscodeintellic",
-        "zignd.html-css-class-completion",
-        "christian-kohler.path-intellisense",
-        "esbenp.prettier-vscode",
+        "monosans.djlint",
+        "ms-python.black-formatter",
         "ms-python.python",
-        "charliermarsh.ruff",
-        "qwtel.sqlite-viewer"
+        "qwtel.sqlite-viewer",
+        "visualstudioexptteam.vscodeintellic",
+        "zignd.html-css-class-completion"
       ]
     }
   },
