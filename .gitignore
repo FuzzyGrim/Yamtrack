@@ -3,6 +3,8 @@ __pycache__
 .env
 .coverage
 venv
+src/static/css/main.css
+src/static/css/main.css.map
 src/db/db.sqlite3
 src/media/*
 !src/media/none.svg

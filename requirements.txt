@@ -2,9 +2,11 @@ aiofiles==23.1.0
 aiohttp==3.8.4
 crispy-bootstrap5==0.7
 Django==4.2.3
+django-compressor==4.3.1
 django-crispy-forms==2.0
 django_debug_toolbar==4.1.0
 django-sass-processor==1.2.2
+libsass==0.22.0
 Pillow==9.5.0
 psycopg-c==3.1.9
 python-decouple==3.8
