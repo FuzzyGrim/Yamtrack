@@ -23,7 +23,7 @@
     <meta name="msapplication-config" content="{% static "favicon/browserconfig.xml" %}">
     <meta name="theme-color" content="#181a1b">
 
-    <title>{% block title %}Yamtrack{% endblock %}</title>
+    <title>{% block title %}Yamtrack{% endblock title %}</title>
 </head>
 
 <body>
@@ -81,7 +81,7 @@
         <button class="offcanvas-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
           <i class="bi bi-list"></i>
         </button>
-        <form class="input-group" method="GET" action="{% url 'search' %}">
+        <form class="input-group" method="get" action="{% url 'search' %}">
           <select name="media_type" class="form-select">
             <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
             <option value="movie" {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
@@ -93,15 +93,15 @@
         </form>
       </div>
 
-      {% block content %}{% endblock %}
+      {% block content %} {% endblock content%}
     </main>
     
   </div>
   
   <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-  {% block extra_scripts %}{% endblock %}
+  {% block extra_scripts %} {% endblock extra_scripts%}
 
-  {% endblock %}
+  {% endblock body%}
 </body>
 
 </html>

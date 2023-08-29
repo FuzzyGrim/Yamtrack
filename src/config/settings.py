@@ -75,7 +75,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, 'templates')],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -209,7 +209,7 @@ STATICFILES_FINDERS = [
     "sass_processor.finders.CssFinder",
 ]
 
-SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR, "app/static")
+SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR, "static")
 
 SASS_OUTPUT_STYLE = "compact"
 

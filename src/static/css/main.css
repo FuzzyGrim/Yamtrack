@@ -238,6 +238,8 @@ body main .no-content { display: flex; flex-direction: column; height: 75%; just
 
 .media-form-modal form input { color-scheme: dark; }
 
+.error-title { color: #d1cdc7; font-weight: 700; margin-bottom: 1rem; text-align: center; }
+
 @media screen and (min-width: 1400px) { .container { max-width: 100%; } }
 
 @media screen and (min-width: 992px) { body main .search-bar .input-group { width: 50%; margin: auto; } }

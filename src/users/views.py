@@ -33,14 +33,14 @@ def register(request: HttpRequest) -> HttpResponse:
         )
         return redirect("login")
 
-    return render(request, "app/register.html", {"form": form})
+    return render(request, "users/register.html", {"form": form})
 
 
 class CustomLoginView(LoginView):
     """Custom login view with remember me button."""
 
     form_class = UserLoginForm
-    template_name = "app/login.html"
+    template_name = "users/login.html"
 
     def form_valid(self: "CustomLoginView", form: UserLoginForm) -> HttpResponse:
         """Log the user in and set the session expiry."""
@@ -108,4 +108,4 @@ def profile(request: HttpRequest) -> HttpResponse:
         "password_form": password_form,
     }
 
-    return render(request, "app/profile.html", context)
+    return render(request, "users/profile.html", context)
