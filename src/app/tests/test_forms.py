@@ -1,7 +1,7 @@
 from django.test import TestCase
+from users.models import User
 
-from app.forms import MangaForm, TVForm, MovieForm, SeasonForm
-from app.models import User
+from app.forms import MangaForm, MovieForm, SeasonForm, TVForm
 
 
 class ValidForm(TestCase):

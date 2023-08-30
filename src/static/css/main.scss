@@ -1,0 +1,92 @@
+@import "variables";
+@import "fonts";
+@import "mixins";
+@import "general";
+@import "home";
+@import "sidebar";
+@import "medialist";
+@import "search";
+@import "details";
+@import "profile";
+@import "login";
+@import "register";
+@import "modal";
+@import "error";
+
+@media screen and (min-width: 1400px) {
+  .container {
+    max-width: 100%;
+  }
+}
+
+@media screen and (min-width: 992px) {
+  body main .search-bar .input-group {
+    width: 50%;
+    margin: auto;
+  }
+}
+
+// applies to medium devices (tablets)
+@media screen and (max-width: 991px) {
+
+  body main {
+    padding-top: 2em;
+  }
+
+  #profile {
+    .grid-container {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  #details {
+    .episode-date {
+      display: none;
+    }
+  }
+}
+
+// xs
+@media screen and (max-width: 575px) {
+  #medialist {
+    .list-head, .list-section {
+      ._progress {
+        display: none;
+      }
+    }
+  }
+  
+  #details {
+    .header {
+      // wrap content under image
+      flex-wrap: wrap;
+      // center image
+      justify-content: center;
+      .image {
+        margin-bottom: 1em;
+      }
+      .content {
+        .title {
+          width: 100%;
+          text-align: center;
+        }
+        // only present in season_details
+        .show-title{ 
+          width: 100%;
+          text-align: center;
+        }
+        .buttons-group {
+          margin-top: 0.5em;
+        }
+      }
+    }
+    .btn-group {
+      .btn-release-date {
+        border-radius: 0;
+      }
+      .btn-danger {
+        border-radius: 0;
+      }
+    }
+  }
+}

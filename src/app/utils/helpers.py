@@ -25,9 +25,7 @@ def download_image(url, media_type):
         str: The filename of the downloaded image.
     """
 
-    # rsplit is used to split the url at the last / and taking the last element
-    # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
-    filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
+    filename = get_image_filename(url, media_type)
 
     location = f"{settings.MEDIA_ROOT}/{filename}"
 
@@ -49,10 +47,7 @@ async def images_downloader(images_to_download, media_type):
 
 
 async def download_image_async(session, url, media_type):
-    # rsplit is used to split the url at the last / and taking the last element
-    # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
-    filename = f"{media_type}-{url.rsplit('/', 1)[-1]}"
-
+    filename = get_image_filename(url, media_type)
     location = f"{settings.MEDIA_ROOT}/{filename}"
 
     # download image if it doesn't exist
@@ -62,6 +57,15 @@ async def download_image_async(session, url, media_type):
                 f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
+
+
+def get_image_filename(url, media_type):
+    """
+    Returns the filename of the image based on the media type and the last element of the URL.
+    """
+    # rsplit is used to split the url at the last / and taking the last element
+    # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
+    return f"{media_type}-{url.rsplit('/', 1)[-1]}"
 
 
 def get_client_ip(request):

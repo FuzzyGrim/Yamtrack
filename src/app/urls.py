@@ -1,10 +1,8 @@
-from django.urls import path, register_converter
-from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+from django.urls import path, register_converter
 
-from decouple import config
-from . import converters, views
+from app import converters, views
 
 register_converter(converters.MediaTypeChecker, "media_type")
 register_converter(converters.StatusChecker, "status")
@@ -23,13 +21,7 @@ urlpatterns = [
         views.season_details,
         name="season_details",
     ),
-    path("profile", views.profile, name="profile"),
-    path("export", views.export, name="export"),
-    path("login", views.CustomLoginView.as_view(), name="login"),
-    path("logout", auth_views.LogoutView.as_view(), name="logout"),
     path("modal_data", views.modal_data, name="modal_data"),
     path("progress_edit", views.progress_edit, name="progress_edit"),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-if config("REGISTRATION", default=True, cast=bool):
-    urlpatterns.append(path("register/", views.register, name="register"))
+    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
+]
