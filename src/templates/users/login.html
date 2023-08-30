@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Login - Yamtrack{% endblock %}
+
+{% block body %}
+    
+  <div class="text-center d-flex justify-content-center align-items-center" id="login">
+    <form class="form-signin" method="POST">
+      {% csrf_token %}
+      <img class="mb-4" src="{% static "favicon/apple-touch-icon.png" %}" alt="logo" width="58" height="58">
+      <div class="mb-3 header-text">Log in to Yamtrack</div>
+
+      {% comment %} message usually used when user registered {% endcomment %}
+      {% if messages %}
+        {% for message in messages %}
+          {% if message.tags == 'error' %}
+            <div class="alert alert-danger">
+          {% else %}
+            <div class="alert alert-{{ message.tags }}">
+          {% endif %}
+            {{ message|linebreaksbr }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    
+      {% if form.errors %}
+        <div class="alert alert-danger text-start">
+          {{ form.non_field_errors }}
+            {% for field in form %}
+              {% if field.errors %}
+                {% for error in field.errors%}
+                    {{ error }}
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+        </div>
+      {% endif %}
+      
+      {% for field in form %}
+        {% if field.name != "remember_me" %}
+          <div class="form-floating">
+            {{ field }}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          </div>
+        {% else %}
+          <div class="checkbox mb-3">
+            {{ field }} {{ field.label }}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      <button class="w-100 btn btn-lg btn btn-secondary" type="submit">Log In</button>
+      
+      {% if REGISTRATION %}
+        <div class="mt-5 mb-3 ">
+          <small class="text-muted">
+            Need An Account? <a class="ml-2" href="{% url 'register' %}">Register Now</a>
+          </small>
+        </div>
+      {% endif %}
+
+    </form>
+  </div>
+{% endblock %}

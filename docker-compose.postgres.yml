@@ -9,11 +9,10 @@ services:
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
-      - SECRET=long_random_string
-      # Change this to your domain or IP
-      - ALLOWED_HOSTS=192.168.*.*, yamtrack.domain.com
       - PUID=1000
       - PGID=1000
+      # - SECRET=secret
+      # - ALLOWED_HOSTS=*
       # - HTTPS_COOKIES=False
       # - REGISTRATION=False
       - TZ=Europe/Madrid
@@ -23,7 +22,7 @@ services:
       - DB_PASS=yamtrack
       - DB_PORT=5432
     volumes:
-      - media:/app/media
+      - media:/yamtrack/media
     ports:
       - "8000:8000"
 

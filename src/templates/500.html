@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Server Error - Yamtrack{% endblock title %}
+
+{% block content %}
+
+  <div class="no-content">
+    <div>
+      <h2 class="error-title">500 - Ooops!</h2>
+
+      <p class="text-center">
+        {% if exception %}
+          {{ exception }}
+        {% else %}
+          Looks like something went wrong!
+        {% endif %}
+      </p>
+
+      <p>If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues">report the issue.</a></p>
+    </div>
+  </div>
+{% endblock content %}

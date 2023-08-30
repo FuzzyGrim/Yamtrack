@@ -20,21 +20,6 @@ def get_media_metadata(media_type, media_id):
     return media_metadata
 
 
-def get_season_metadata_from_tv(season_number, seasons_metadata):
-    """
-    Return the metadata for the selected season from the tv show metadata
-    """
-    # when there are specials episodes, they are on season 0,
-    # so offset everything by 1
-    if seasons_metadata[0]["season_number"] == 0:
-        offset = 0
-    else:
-        offset = 1
-
-    # get the selected season from the metadata
-    return seasons_metadata[season_number - offset]
-
-
 def anime_manga(media_type, media_id):
     """
     Return the metadata for the selected anime or manga

@@ -1,114 +1,12 @@
-from django import forms
-from django.contrib.auth.forms import (
-    UserCreationForm,
-    PasswordChangeForm,
-    AuthenticationForm,
-)
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column
-from .models import TV, Season, Manga, Anime, Movie, User
-from app.utils import metadata
-
 import datetime
 
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Column, Layout, Row
+from django import forms
 
-class UserLoginForm(AuthenticationForm):
-    """
-    Subclass of Django ``AuthenticationForm`` which adds a remember me
-    checkbox.
-    """
+from app.utils import metadata
 
-    username = forms.CharField(
-        max_length=150,
-        widget=forms.TextInput(
-            attrs={
-                "autofocus": True,
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_username",
-                "placeholder": "Username",
-            }
-        ),
-        label="Username",
-    )
-    password = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_password1",
-                "placeholder": "Password",
-            }
-        ),
-        label="Password",
-    )
-
-    remember_me = forms.BooleanField(
-        label="Remember Me",
-        initial=False,
-        required=False,
-        widget=forms.CheckboxInput(
-            attrs={"class": "checkboxinput form-check-input", "id": "id_remember_me"}
-        ),
-    )
-
-
-class UserRegisterForm(UserCreationForm):
-    username = forms.CharField(
-        max_length=150,
-        widget=forms.TextInput(
-            attrs={
-                "autofocus": True,
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_username",
-                "placeholder": "Username",
-            }
-        ),
-        label="Username",
-    )
-    password1 = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_password1",
-                "placeholder": "Password",
-            }
-        ),
-        label="Password",
-    )
-    password2 = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
-                "required": True,
-                "id": "id_password2",
-                "placeholder": "Password confirmation",
-            }
-        ),
-        label="Password confirmation",
-    )
-
-    class Meta:
-        model = User
-        fields = ["username", "password1", "password2"]
-
-
-class UserUpdateForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = ["username"]
-
-
-# remove autofocus from password change form
-class PasswordChangeForm(PasswordChangeForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["old_password"].widget.attrs.pop("autofocus", None)
+from .models import TV, Anime, Episode, Manga, Movie, Season
 
 
 class MediaForm(forms.ModelForm):
@@ -119,44 +17,46 @@ class MediaForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        media_id = cleaned_data.get("media_id")
-        media_type = cleaned_data.get("media_type")
-        progress = cleaned_data.get("progress")
-        status = cleaned_data.get("status")
-        start_date = cleaned_data.get("start_date")
-        end_date = cleaned_data.get("end_date")
+        if self.post_processing:
+            media_id = cleaned_data.get("media_id")
+            media_type = cleaned_data.get("media_type")
+            progress = cleaned_data.get("progress")
+            status = cleaned_data.get("status")
+            start_date = cleaned_data.get("start_date")
+            end_date = cleaned_data.get("end_date")
 
-        # if status is changed or media is being added
-        if "status" in self.changed_data or self.instance.pk is None:
-            if status == "Completed":
-                if not end_date:
+            # if status is changed or media is being added
+            if "status" in self.changed_data or self.instance.pk is None:
+                if status == "Completed":
+                    if not end_date:
+                        cleaned_data["end_date"] = datetime.date.today()
+
+                    if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
+                        cleaned_data["progress"] = metadata.anime_manga(
+                            media_type, media_id
+                        )["num_episodes"]
+
+                elif status == "Watching" and not start_date:
+                    cleaned_data["start_date"] = datetime.date.today()
+
+            if "progress" in self.changed_data:
+                total_episodes = metadata.get_media_metadata(media_type, media_id)[
+                    "num_episodes"
+                ]
+
+                # limit progress to total_episodes
+                if progress > total_episodes:
+                    cleaned_data["progress"] = total_episodes
+
+                # If progress == total_episodes and status not explicitly changed
+                if progress == total_episodes and "status" not in self.changed_data:
+                    cleaned_data["status"] = "Completed"
                     cleaned_data["end_date"] = datetime.date.today()
-
-                if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
-                    cleaned_data["progress"] = metadata.anime_manga(
-                        media_type, media_id
-                    )["num_episodes"]
-
-            elif status == "Watching" and not start_date:
-                cleaned_data["start_date"] = datetime.date.today()
-
-        if "progress" in self.changed_data:
-            total_episodes = metadata.get_media_metadata(media_type, media_id)[
-                "num_episodes"
-            ]
-
-            # limit progress to total_episodes
-            if progress > total_episodes:
-                cleaned_data["progress"] = total_episodes
-
-            # If progress == total_episodes and status not explicitly changed
-            if progress == total_episodes and "status" not in self.changed_data:
-                cleaned_data["status"] = "Completed"
-                cleaned_data["end_date"] = datetime.date.today()
 
         return cleaned_data
 
     def __init__(self, *args, **kwargs):
+        self.post_processing = kwargs.pop("post_processing", True)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -263,3 +163,31 @@ class SeasonForm(MediaForm):
     class Meta(MediaForm.Meta):
         model = Season
         exclude = ("progress", "start_date", "end_date")
+
+
+class EpisodeForm(forms.ModelForm):
+    class Meta:
+        model = Episode
+        fields = ("episode_number", "watch_date")
+
+
+class FilterForm(forms.Form):
+    status = forms.ChoiceField(
+        choices=[
+            ("all", "All"),
+            ("completed", "Completed"),
+            ("watching", "Watching"),
+            ("paused", "Paused"),
+            ("dropped", "Dropped"),
+            ("planning", "Planning"),
+        ],
+    )
+
+    sort = forms.ChoiceField(choices=[])
+
+    def __init__(self, *args, **kwargs):
+        sort_choices = kwargs.pop("sort_choices")
+
+        super().__init__(*args, **kwargs)
+        # add extra sort choices
+        self.fields["sort"].choices = [choice for choice in sort_choices]

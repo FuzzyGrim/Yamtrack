@@ -1,17 +1,15 @@
-from django.test import TestCase
-from django.urls import reverse
-from django.test import override_settings
-from django.conf import settings
-
 import json
-import shutil
 import os
+import shutil
 from datetime import date
 from unittest.mock import patch
 
-from app.models import User, TV, Season, Episode, Movie, Anime
-from app.utils import metadata
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from users.models import User
 
+from app.models import TV, Anime, Episode, Movie, Season
+from app.utils import metadata
 
 mock_path = os.path.join(os.path.dirname(__file__), "mock_data")
 
@@ -41,11 +39,6 @@ class CreateMedia(TestCase):
         self.assertEqual(
             TV.objects.filter(media_id=5895, user=self.user).exists(), True
         )
-        # check if tv poster image is downloaded
-        self.assertEqual(
-            os.path.exists(settings.MEDIA_ROOT + "/tv-FkgA8CcmiLJGVCRYRQ2g2UfVtF.jpg"),
-            True,
-        )
 
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_season(self):
@@ -66,13 +59,6 @@ class CreateMedia(TestCase):
         )
         self.assertEqual(
             Season.objects.filter(media_id=1668, user=self.user).exists(), True
-        )
-        # check if season poster image is downloaded
-        self.assertEqual(
-            os.path.exists(
-                settings.MEDIA_ROOT + "/season-odCW88Cq5hAF0ZFVOkeJmeQv1nV.jpg"
-            ),
-            True,
         )
 
     def test_create_episodes(self):
@@ -351,7 +337,7 @@ class DetailsMedia(TestCase):
 
     @patch("requests.get")
     def test_anime_unknown(self, mock_data):
-        with open(mock_path + "/media_unknown_anime.json", "r") as file:
+        with open(mock_path + "/metadata_anime_unknown.json", "r") as file:
             anime_response = json.load(file)
         mock_data.return_value.json.return_value = anime_response
 
@@ -373,10 +359,6 @@ class DetailsMedia(TestCase):
     def test_tv(self):
         response = metadata.tv("1396")
         self.assertEqual(response["title"], "Breaking Bad")
-        self.assertEqual(
-            response["image"],
-            "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
-        )
         self.assertEqual(response["start_date"], "2008-01-20")
         self.assertEqual(response["status"], "Ended")
         self.assertEqual(response["num_episodes"], 62)
@@ -384,16 +366,12 @@ class DetailsMedia(TestCase):
     def test_movie(self):
         response = metadata.movie("10494")
         self.assertEqual(response["title"], "Perfect Blue")
-        self.assertEqual(
-            response["image"],
-            "https://image.tmdb.org/t/p/w500/6WTiOCfDPP8XV4jqfloiVWf7KHq.jpg",
-        )
         self.assertEqual(response["start_date"], "1998-02-28")
         self.assertEqual(response["status"], "Released")
 
     @patch("requests.get")
     def test_movie_unknown(self, mock_data):
-        with open(mock_path + "/media_unknown_movie.json", "r") as file:
+        with open(mock_path + "/metadata_movie_unknown.json", "r") as file:
             movie_response = json.load(file)
         mock_data.return_value.json.return_value = movie_response
 

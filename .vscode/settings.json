@@ -5,14 +5,15 @@
     "editor.defaultFormatter": "vscode.html-language-features"
   },
   "[python]": {
-    "editor.defaultFormatter": "ms-python.python"
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true,
+      "codeAction.fixViolation.enable": true,
+      "codeAction.disableRuleComment.enable": true,
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
-  "python.formatting.provider": "black",
-  "python.linting.enabled": true,
-  "python.linting.flake8Enabled": true,
-  "python.linting.flake8Args": [
-    "--max-line-length=88",
-    "--max-doc-length=79",
-    "--extend-ignore=E501,W505"
-  ],
+  "[html][django-html][handlebars][hbs][mustache][jinja][jinja-html][nj][njk][nunjucks][twig]": {
+    "editor.defaultFormatter": "monosans.djlint"
+  }
 }
