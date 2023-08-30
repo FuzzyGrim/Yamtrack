@@ -7,12 +7,11 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /requirements.txt
 
 RUN apt-get update \
+    # g++ is required for uWSGI
     # libpq-dev is required for psycopg
 	# libpcre3-dev is required for uwsgi regex support
-	# libwebpmux3 libwebpdemux2 liblcms2-2 libopenjp2-7 are required for Pillow
-	# libstdc++6 is required for libass
-	&& apt-get install -y --no-install-recommends g++ libpq-dev libpcre3-dev libwebpmux3 libwebpdemux2 liblcms2-2 libopenjp2-7 libstdc++6 gosu \
-	&& pip install --extra-index-url https://www.piwheels.org/simple --no-cache-dir -r /requirements.txt \
+	&& apt-get install -y --no-install-recommends g++ libpq-dev libpcre3-dev gosu \
+	&& pip install --no-cache-dir -r /requirements.txt \
 	&& apt-get purge -y --auto-remove g++ \
 	&& apt-get -y autoremove --purge \
 	&& apt-get clean -y \
