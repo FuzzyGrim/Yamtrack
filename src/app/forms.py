@@ -1,5 +1,6 @@
 import datetime
 
+from config import settings
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
@@ -10,12 +11,16 @@ from .models import TV, Anime, Episode, Manga, Movie, Season
 
 
 class MediaForm(forms.ModelForm):
+    """Base form for all media types."""
+
     media_type = forms.CharField(
         max_length=20,
         widget=forms.HiddenInput(),
     )
 
-    def clean(self):
+    def clean(self: "MediaForm") -> dict:
+        """Clean the form data."""
+
         cleaned_data = super().clean()
         if self.post_processing:
             media_id = cleaned_data.get("media_id")
@@ -29,15 +34,20 @@ class MediaForm(forms.ModelForm):
             if "status" in self.changed_data or self.instance.pk is None:
                 if status == "Completed":
                     if not end_date:
-                        cleaned_data["end_date"] = datetime.date.today()
+                        cleaned_data["end_date"] = datetime.datetime.now(
+                            tz=settings.TZ,
+                        ).date()
 
-                    if isinstance(self, AnimeForm) or isinstance(self, MangaForm):
+                    if isinstance(self, (AnimeForm, MangaForm)):
                         cleaned_data["progress"] = metadata.anime_manga(
-                            media_type, media_id
+                            media_type,
+                            media_id,
                         )["num_episodes"]
 
                 elif status == "Watching" and not start_date:
-                    cleaned_data["start_date"] = datetime.date.today()
+                    cleaned_data["start_date"] = datetime.datetime.now(
+                        tz=settings.TZ,
+                    ).date()
 
             if "progress" in self.changed_data:
                 total_episodes = metadata.get_media_metadata(media_type, media_id)[
@@ -51,11 +61,13 @@ class MediaForm(forms.ModelForm):
                 # If progress == total_episodes and status not explicitly changed
                 if progress == total_episodes and "status" not in self.changed_data:
                     cleaned_data["status"] = "Completed"
-                    cleaned_data["end_date"] = datetime.date.today()
+                    cleaned_data["end_date"] = datetime.datetime.now(tz=settings.TZ).date()
 
         return cleaned_data
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self: "MediaForm", *args: dict, **kwargs: dict) -> None:
+        """Initialize the form."""
+
         self.post_processing = kwargs.pop("post_processing", True)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -77,6 +89,8 @@ class MediaForm(forms.ModelForm):
         )
 
     class Meta:
+        """Define fields and input types."""
+
         fields = [
             "media_id",
             "media_type",
@@ -97,17 +111,29 @@ class MediaForm(forms.ModelForm):
 
 
 class MangaForm(MediaForm):
+    """Form for manga."""
+
     class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
         model = Manga
 
 
 class AnimeForm(MediaForm):
+    """Form for anime."""
+
     class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
         model = Anime
 
 
 class MovieForm(MediaForm):
-    def __init__(self, *args, **kwargs):
+    """Form for movies."""
+
+    def __init__(self: "MovieForm", *args: dict, **kwargs: dict) -> None:
+        """Initialize the form."""
+
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         # movies don"t have progress, score will fill whole row
@@ -121,12 +147,18 @@ class MovieForm(MediaForm):
         )
 
     class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
         model = Movie
         exclude = ("progress", "start_date")
 
 
 class TVForm(MediaForm):
-    def __init__(self, *args, **kwargs):
+    """Form for TV shows."""
+
+    def __init__(self: "TVForm", *args: dict, **kwargs: dict) -> None:
+        """Initialize the form."""
+
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -137,18 +169,24 @@ class TVForm(MediaForm):
         )
 
     class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
         model = TV
         exclude = ("progress", "status", "start_date", "end_date")
 
 
 class SeasonForm(MediaForm):
+    """Form for seasons."""
+
     season_number = forms.IntegerField(
         min_value=0,
         step_size=1,
         widget=forms.HiddenInput(),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self: "SeasonForm", *args: dict, **kwargs: dict) -> None:
+        """Initialize the form."""
+
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -161,17 +199,25 @@ class SeasonForm(MediaForm):
         )
 
     class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
         model = Season
         exclude = ("progress", "start_date", "end_date")
 
 
 class EpisodeForm(forms.ModelForm):
+    """Form for episodes."""
+
     class Meta:
+        """Bind form to model."""
+
         model = Episode
         fields = ("episode_number", "watch_date")
 
 
 class FilterForm(forms.Form):
+    """Form for filtering media on media list view."""
+
     status = forms.ChoiceField(
         choices=[
             ("all", "All"),
@@ -185,9 +231,11 @@ class FilterForm(forms.Form):
 
     sort = forms.ChoiceField(choices=[])
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self: "FilterForm", *args: dict, **kwargs: dict) -> None:
+        """Initialize the form."""
+
         sort_choices = kwargs.pop("sort_choices")
 
         super().__init__(*args, **kwargs)
         # add extra sort choices
-        self.fields["sort"].choices = [choice for choice in sort_choices]
+        self.fields["sort"].choices = list(sort_choices)

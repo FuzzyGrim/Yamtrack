@@ -1,6 +1,7 @@
-from decouple import config
-import requests
 import logging
+
+import requests
+from decouple import config
 
 logger = logging.getLogger(__name__)
 
@@ -8,13 +9,15 @@ TMDB_API = config("TMDB_API", default=None)
 MAL_API = config("MAL_API", default=None)
 
 
-def tmdb(media_type, query):
+def tmdb(media_type: str, query: str) -> list:
+    """Search for media on TMDB."""
+
     url = f"https://api.themoviedb.org/3/search/{media_type}?api_key={TMDB_API}&query={query}"
-    response = requests.get(url).json()
+    response = requests.get(url, timeout=5).json()
 
     # when api key is invalid
     if "success" in response and not response["success"]:
-        logger.error(f"TMDB: {response['status_message']}")
+        logger.error("TMDB: %s", response["status_message"])
         return []
 
     response = response["results"]
@@ -31,14 +34,16 @@ def tmdb(media_type, query):
     return response
 
 
-def mal(media_type, query):
+def mal(media_type: str, query: str) -> list:
+    """Search for media on MyAnimeList."""
+
     url = f"https://api.myanimelist.net/v2/{media_type}?q={query}&nsfw=true&fields=media_type"
-    response = requests.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}).json()
+    response = requests.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}, timeout=5).json()
 
     if "error" in response:
         if response["error"] == "forbidden":
             logger.error(
-                f"MAL: {response['error'].title()}, probably no API key provided"
+                "MAL: %s, probably no API key provided", response["error"].title(),
             )
         elif response["error"] == "bad_request":
             if response["message"] == "invalid q":

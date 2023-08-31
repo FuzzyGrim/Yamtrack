@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 import os
+import pytz
 from pathlib import Path
 
 from decouple import Csv, config
@@ -172,6 +173,7 @@ LOGGING = {
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = config("TZ", default="UTC")
+TZ = pytz.timezone(TIME_ZONE)
 
 USE_I18N = True
 

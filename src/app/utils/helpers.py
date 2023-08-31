@@ -1,28 +1,23 @@
-from django.conf import settings
-from app.models import Manga, Anime, Movie, TV, Season
-from app.forms import MangaForm, AnimeForm, MovieForm, TVForm, SeasonForm
+import asyncio
+import logging
+import pathlib
 
 import aiofiles
 import aiohttp
-import asyncio
 import requests
-import pathlib
-import logging
+from django.conf import settings
+from django.http import HttpRequest
+
+from app.forms import AnimeForm, MangaForm, MovieForm, SeasonForm, TVForm
+from app.models import TV, Anime, Manga, Movie, Season
 
 logger = logging.getLogger(__name__)
 
 
-def download_image(url, media_type):
-    """
-    Downloads an image from the given URL and saves it to the media directory with a filename
-    based on the media type and the last element of the URL.
+def download_image(url: str, media_type: str) -> str:
+    """Download an image from the given URL and saves it to the media directory.
 
-    Args:
-        url (str): The URL of the image to download.
-        media_type (str): The type of media the image is associated with.
-
-    Returns:
-        str: The filename of the downloaded image.
+    Returns the filename of the downloaded image.
     """
 
     filename = get_image_filename(url, media_type)
@@ -31,44 +26,55 @@ def download_image(url, media_type):
 
     # download image if it doesn't exist
     if not pathlib.Path(location).is_file():
-        r = requests.get(url)
+        r = requests.get(url, timeout=10)
         with open(location, "wb") as f:
             f.write(r.content)
 
     return filename
 
 
-async def images_downloader(images_to_download, media_type):
+async def images_downloader(images_to_download: list, media_type: str) -> None:
+    """Create tasks to download images asynchronously."""
+
     async with aiohttp.ClientSession() as session:
-        tasks = []
-        for url in images_to_download:
-            tasks.append(download_image_async(session, url, media_type))
+        tasks = [
+            download_image_async(session, url, media_type) for url in images_to_download
+        ]
         await asyncio.gather(*tasks)
 
 
-async def download_image_async(session, url, media_type):
+async def download_image_async(
+    session: aiohttp.ClientSession,
+    url: str,
+    media_type: str,
+) -> None:
+    """Download images asynchronously using aiohttp."""
+
     filename = get_image_filename(url, media_type)
     location = f"{settings.MEDIA_ROOT}/{filename}"
 
     # download image if it doesn't exist
     if not pathlib.Path(location).is_file():
         async with session.get(url) as resp:
-            if resp.status == 200:
+            if resp.status == 200:  # noqa: PLR2004
                 f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
 
 
-def get_image_filename(url, media_type):
-    """
-    Returns the filename of the image based on the media type and the last element of the URL.
-    """
+def get_image_filename(url: str, media_type: str) -> str:
+    """Return filename of image based on the media type and last element of URL."""
     # rsplit is used to split the url at the last / and taking the last element
     # https://api-cdn.myanimelist.net/images/anime/12/76049.jpg -> 76049.jpg
     return f"{media_type}-{url.rsplit('/', 1)[-1]}"
 
 
-def get_client_ip(request):
+def get_client_ip(request: HttpRequest) -> str:
+    """Return the client's IP address.
+
+    Used when logging for user registration and login.
+    """
+
     # get the user's IP address
     ip_address = request.META.get("HTTP_X_FORWARDED_FOR")
 
@@ -79,16 +85,9 @@ def get_client_ip(request):
     return ip_address
 
 
-def media_type_mapper(media_type):
-    """
-    Maps the media type to its corresponding model and form class.
+def media_type_mapper(media_type: str) -> dict:
+    """Map the media type to its corresponding model, form and other properties."""
 
-    Args:
-    - media_type (str): The type of media to map.
-
-    Returns:
-    - tuple: A tuple containing properties of the media type.
-    """
     media_mapping = {
         "manga": {
             "model": Manga,

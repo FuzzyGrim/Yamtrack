@@ -1,16 +1,15 @@
-from django.core.cache import cache
-from decouple import config
 import requests
+from decouple import config
+from django.core.cache import cache
 
 TMDB_API = config("TMDB_API", default=None)
 MAL_API = config("MAL_API", default=None)
 
 
-def get_media_metadata(media_type, media_id):
-    """
-    Return the metadata for the selected media
-    """
-    if media_type == "anime" or media_type == "manga":
+def get_media_metadata(media_type: str, media_id: str) -> dict:
+    """Return the metadata for the selected media."""
+
+    if media_type in ("anime", "manga"):
         media_metadata = anime_manga(media_type, media_id)
     elif media_type == "tv":
         media_metadata = tv(media_id)
@@ -20,16 +19,16 @@ def get_media_metadata(media_type, media_id):
     return media_metadata
 
 
-def anime_manga(media_type, media_id):
-    """
-    Return the metadata for the selected anime or manga
-    """
+def anime_manga(media_type: str, media_id: str) -> dict:
+    """Return the metadata for the selected anime or manga from MyAnimeList."""
 
     cache_key = f"{media_type}_{media_id}"
     response = cache.get(cache_key)
     if response is None:
         url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_episodes,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
-        response = requests.get(url, headers={"X-MAL-CLIENT-ID": MAL_API}).json()
+        response = requests.get(
+            url, headers={"X-MAL-CLIENT-ID": MAL_API}, timeout=5
+        ).json()
 
         if response["media_type"] == "tv":
             response["media_type"] = "anime"
@@ -95,13 +94,15 @@ def anime_manga(media_type, media_id):
     return response
 
 
-def tv(media_id):
+def tv(media_id: str) -> dict:
+    """Return the metadata for the selected tv show from The Movie Database."""
+
     cache_key = f"tv_{media_id}"
     response = cache.get(cache_key)
     if response is None:
         url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
 
-        response = requests.get(url).json()
+        response = requests.get(url, timeout=5).json()
 
         response["original_type"] = "TV"
         response["media_type"] = "tv"
@@ -111,7 +112,9 @@ def tv(media_id):
         # tmdb will either not return the key or return an empty value/string
 
         if response["poster_path"]:
-            response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+            response[
+                "image"
+            ] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
         else:
             response["image"] = "none.svg"
 
@@ -148,7 +151,9 @@ def tv(media_id):
             items = response.get(key)
             for item in items:
                 if item["poster_path"]:
-                    item["image"] = f"https://image.tmdb.org/t/p/w500{item['poster_path']}"
+                    item[
+                        "image"
+                    ] = f"https://image.tmdb.org/t/p/w500{item['poster_path']}"
                 else:
                     item["image"] = "none.svg"
 
@@ -163,13 +168,15 @@ def tv(media_id):
     return response
 
 
-def movie(media_id):
+def movie(media_id: str) -> dict:
+    """Return the metadata for the selected movie from The Movie Database."""
+
     cache_key = f"movie_{media_id}"
     response = cache.get(cache_key)
     if response is None:
         url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
 
-        response = requests.get(url).json()
+        response = requests.get(url, timeout=5).json()
 
         response["original_type"] = "Movie"
         response["media_type"] = "movie"
@@ -179,7 +186,9 @@ def movie(media_id):
         # tmdb will either not return the key or return an empty value/string
 
         if response["poster_path"]:
-            response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+            response[
+                "image"
+            ] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
         else:
             response["image"] = "none.svg"
 
@@ -208,7 +217,9 @@ def movie(media_id):
 
         for recommendation in response["recommendations"]:
             if recommendation["poster_path"]:
-                recommendation["image"] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
+                recommendation[
+                    "image"
+                ] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
             else:
                 recommendation["image"] = "none.svg"
 
@@ -218,15 +229,19 @@ def movie(media_id):
     return response
 
 
-def season(tv_id, season_number):
+def season(tv_id: str, season_number: int) -> dict:
+    """Return the metadata for the selected season from The Movie Database."""
+
     cache_key = f"season_{tv_id}_{season_number}"
     response = cache.get(cache_key)
     if response is None:
         url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}?api_key={TMDB_API}"
-        response = requests.get(url).json()
+        response = requests.get(url, timeout=5).json()
 
         if response["poster_path"]:
-            response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+            response[
+                "image"
+            ] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
         else:
             response["image"] = "none.svg"
 

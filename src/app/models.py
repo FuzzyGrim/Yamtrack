@@ -9,6 +9,8 @@ from django.db.models import Max, Min
 
 
 class Media(models.Model):
+    """Abstract model for all media types."""
+
     media_id = models.PositiveIntegerField()
     title = models.CharField(max_length=255)
     image = models.ImageField()
@@ -40,16 +42,22 @@ class Media(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     notes = models.TextField(blank=True)
 
-    def __str__(self):
-        return f"{self.title}"
-
     class Meta:
+        """Meta options for the model."""
+
         abstract = True
         ordering = ["-score"]
         unique_together = ["media_id", "user"]
 
+    def __str__(self: "Media") -> str:
+        """Return the title of the media."""
+        return f"{self.title}"
+
+
 
 class TV(Media):
+    """Model for TV shows."""
+
     progress = None
     status = None
     start_date = None
@@ -57,55 +65,79 @@ class TV(Media):
 
 
 class Season(Media):
+    """Model for seasons of TV shows."""
+
     season_number = models.PositiveIntegerField()
 
     @property
-    def progress(self):
+    def progress(self: "Season") -> int:
+        """Return the user's episodes watched for the season."""
         return self.episodes.count()
 
     @property
-    def start_date(self):
+    def start_date(self: "Season") -> str:
+        """Return the date of the first episode watched."""
         return self.episodes.aggregate(start_date=Min("watch_date"))["start_date"]
 
     @property
-    def end_date(self):
+    def end_date(self: "Season") -> str:
+        """Return the date of the last episode watched."""
         return self.episodes.aggregate(end_date=Max("watch_date"))["end_date"]
 
-    def __str__(self):
+    class Meta:
+        """Limit the uniqueness of seasons.
+
+        Only one season per media can have the same season number.
+        """
+
+        unique_together = ["media_id", "season_number", "user"]
+
+    def __str__(self: "Season") -> str:
+        """Return the title of the media and season number."""
         return f"{self.title} S{self.season_number}"
 
-    class Meta:
-        unique_together = ["media_id", "season_number", "user"]
 
 
 class Episode(models.Model):
+    """Model for episodes of a season."""
+
     related_season = models.ForeignKey(
-        Season, on_delete=models.CASCADE, related_name="episodes"
+        Season, on_delete=models.CASCADE, related_name="episodes",
     )
     episode_number = models.PositiveIntegerField()
     watch_date = models.DateField(null=True, blank=True)
 
-    def __str__(self):
+    class Meta:
+        """Limit the uniqueness of episodes.
+
+        Only one episode per season can have the same episode number.
+        """
+
+        unique_together = ["related_season", "episode_number"]
+
+    def __str__(self: "Episode") -> str:
+        """Return the season and episode number."""
         return f"{self.related_season}E{self.episode_number}"
 
-    class Meta:
-        unique_together = ["related_season", "episode_number"]
 
 
 class Manga(Media):
-    pass
+    """Model for manga."""
 
 
 class Anime(Media):
-    pass
+    """Model for anime."""
 
 
 class Movie(Media):
+    """Model for movies."""
+
     start_date = None
 
     @property
-    def progress(self):
+    def progress(self: "Movie") -> int:
+        """Return 1 if the movie is completed."""
+
         if self.status == "Completed":
             return 1
-        else:
-            return 0
+        return 0
