@@ -10,9 +10,10 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 import os
-import pytz
 from pathlib import Path
 
+import pytz
+import requests_cache
 from decouple import Csv, config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -76,7 +77,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, 'templates')],
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -97,6 +98,14 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
+# create db folder if it doesn't exist
+# always needed because sqlite will be used for requests-cache
+DB_FOLDER = os.path.join(BASE_DIR, "db")
+os.makedirs(DB_FOLDER, exist_ok=True)
+
+requests_cache.install_cache(DB_FOLDER + "/db.sqlite3", backend="sqlite", expire_after=21600) # 6 hours
+
+
 if config("DB_HOST", default=None):
     DATABASES = {
         "default": {
@@ -109,9 +118,6 @@ if config("DB_HOST", default=None):
         }
     }
 else:
-    # create db folder if it doesn't exist
-    os.makedirs(os.path.join(BASE_DIR, "db"), exist_ok=True)
-
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",

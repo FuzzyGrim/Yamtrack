@@ -5,6 +5,7 @@ import pathlib
 import aiofiles
 import aiohttp
 import requests
+import requests_cache
 from django.conf import settings
 from django.http import HttpRequest
 
@@ -26,9 +27,10 @@ def download_image(url: str, media_type: str) -> str:
 
     # download image if it doesn't exist
     if not pathlib.Path(location).is_file():
-        r = requests.get(url, timeout=10)
-        with open(location, "wb") as f:
-            f.write(r.content)
+        with requests_cache.disabled(): # don't cache images
+            r = requests.get(url, timeout=10)
+            with open(location, "wb") as f:
+                f.write(r.content)
 
     return filename
 
@@ -55,8 +57,8 @@ async def download_image_async(
 
     # download image if it doesn't exist
     if not pathlib.Path(location).is_file():
-        async with session.get(url) as resp:
-            if resp.status == 200:  # noqa: PLR2004
+        with requests_cache.disabled(): # don't cache images
+            async with session.get(url) as resp:
                 f = await aiofiles.open(location, mode="wb")
                 await f.write(await resp.read())
                 await f.close()
