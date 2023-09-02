@@ -3,8 +3,7 @@
 {% load app_extras %}
 {% load crispy_forms_tags %}
 
-
-{% block title %}{{ media_type|title }}s - Yamtrack{% endblock %}
+{% block title %}{{ media_type|title }}s - Yamtrack{% endblock title %}
 
 {% block content %}
 
@@ -20,9 +19,10 @@
           </button>
           <div class="modal fade" id="FilterModal" tabindex="-1" aria-labelledby="FilterModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-sm modal-dialog-centered">
+
               <div class="modal-content">
                 <div class="modal-body">
-                  <form method="GET">
+                  <form method="get">
                     {{ filter_form|crispy }}
                     <div class="text-center">
                       <button class="btn btn-secondary" type="submit">Filter</button>
@@ -30,10 +30,10 @@
                   </form>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
-
 
         <div class="title p-2"><strong>Title</strong></div>
         <div class="score p-2"><strong>Score</strong></div>
@@ -46,20 +46,20 @@
       {% for media in media_list %}
       <div class="d-flex flex-row mb-3 align-items-center list-section">
         <div class="image p-2">
-          <img class="lazyload" data-src="{{media.image.url}}" data-expand="1000" alt="{{media}}"/>
+          <img class="lazyload" data-src="{{ media.image.url }}" data-expand="1000" alt="{{ media }}"/>
         </div>
       
         <div class="title p-2">
-          <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify%}>
-            {{media}}
+          <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}>
+            {{ media }}
           </a>
         </div>
-        <div class="score p-2">{{media.score}}</div>
-        <div class="status p-2">{{media.status|default_if_none:""}}</div>
-        <div class="_progress p-2">{{media.progress|default_if_none:""}}</div>
+        <div class="score p-2">{{ media.score }}</div>
+        <div class="status p-2">{{ media.status|default_if_none:"" }}</div>
+        <div class="_progress p-2">{{ media.progress|default_if_none:"" }}</div>
         
         <div class="edit p-2">
-          <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media_type}}_{{media.media_id}}" data-type="{{media_type}}" data-id="{{media.media_id}}">
+          <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{ media_type }}_{{ media.media_id }}" data-type="{{ media_type }}" data-id="{{ media.media_id }}">
             <i class="bi bi-pencil-square"></i>
           </button>
           {% include "app/include/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media only %}
@@ -70,7 +70,7 @@
     </div>
   </div>
 
-{% endblock content%}
+{% endblock content %}
 
 {% block extra_scripts %}
   <script src="{% static "js/lazysizes.min.js" %}" async=""></script>

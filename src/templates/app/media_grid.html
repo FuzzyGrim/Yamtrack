@@ -3,14 +3,13 @@
 {% load app_extras %}
 {% load crispy_forms_tags %}
 
-
 {% block title %}
   {% if media_type == "tv" %}
     TVs - Yamtrack
   {% else %}
     {{ media_type|title }}s - Yamtrack
   {% endif %}
-{% endblock %}
+{% endblock title %}
 
 {% block content %}
 
@@ -24,7 +23,7 @@
         <div class="modal-dialog modal-sm modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-body">
-              <form method="GET">
+              <form method="get">
                 {{ filter_form|crispy }}
                 <div class="text-center">
                   <button class="btn btn-secondary" type="submit">Filter</button>
@@ -40,7 +39,7 @@
       {% for media in media_list %}
         <div class="card text-bg-dark mx-auto">
           {% if media.season_number is None %}
-            <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify%}>
+            <a href={% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}>
           {% else %}
             <a href="{% url 'season_details' media_id=media.media_id title=media|slugify season_number=media.season_number %}">
           {% endif %}
@@ -50,7 +49,7 @@
             {% else %}
               class="card-img lazyload poster"
             {% endif %}
-            data-src="{{media.image.url}}"
+            data-src="{{ media.image.url }}"
             data-expand="1000"
             alt="{{ media }}"
           />
@@ -61,18 +60,18 @@
               {{ media }}
             </div>
             <div class="card-text d-flex justify-content-center align-items-center">
-              {{media.score}}
+              {{ media.score }}
 
               {% comment %} check if season {% endcomment %}
               {% if media.season_number is None %}
-                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media_type}}_{{media.media_id}}" data-type="{{media_type}}" data-id="{{media.media_id}}">
+                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{ media_type }}_{{ media.media_id }}" data-type="{{ media_type }}" data-id="{{ media.media_id }}">
                   <i class="bi bi-pencil-square"></i>
                 </button>
               
               {% else %}
       
-                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-season_{{media.media_id}}_{{media.season_number}}" 
-                data-type="season" data-id="{{media.media_id}}" data-season-number="{{media.season_number}}">
+                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-season_{{ media.media_id }}_{{ media.season_number }}" 
+                data-type="season" data-id="{{ media.media_id }" data-season-number="{{ media.season_number }}">
                   <i class="bi bi-pencil-square"></i>
                 </button>
               {% endif %}
@@ -92,7 +91,7 @@
 
   </div>
 
-{% endblock content%}
+{% endblock content %}
 
 {% block extra_scripts %}
   <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
