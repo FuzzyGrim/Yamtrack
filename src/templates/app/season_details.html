@@ -43,7 +43,7 @@
           data-type="season" data-id="{{ media_id }}" data-season-number="{{ season.season_number }}">
             <i class="bi bi-pencil-square"></i>
           </button>
-          {% include "app/include/modal.html" with form_id="season"|addstr:"_"|addstr:media_id|addstr:"_"|addstr:season.season_number title=media_title|capfirst season_number=season.season_number only %}
+          {% include "app/components/modal.html" with form_id="season"|addstr:"_"|addstr:media_id|addstr:"_"|addstr:season.season_number title=media_title|capfirst season_number=season.season_number only %}
           
           {% comment %} check for not None because Season 0 evaluates to false {% endcomment %}
           {% if previous_season != None %}

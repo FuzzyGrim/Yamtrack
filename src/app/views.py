@@ -84,7 +84,7 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
             season.save()
             logger.info("Finished watching %s", season)
 
-        response = {"progress": season.progress}
+        response = {"media_id": media_id, "progress": season.progress, "season_number": season_number}
 
     else:
         media_mapping = helpers.media_type_mapper(media_type)
@@ -109,12 +109,11 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
             media.status = "Completed"
             logger.info("Finished watching %s", media)
         media.save()
-        response = {"progress": media.progress}
+        response = {"media_id": media_id, "progress": media.progress}
 
-    response["min"] = response["progress"] == 0
     response["max"] = response["progress"] == max_progress
 
-    return JsonResponse(response)
+    return render(request, "app/components/progress.html", {"media": response, "media_type": media_type})
 
 
 @login_required

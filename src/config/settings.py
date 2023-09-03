@@ -222,5 +222,5 @@ SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR, "static")
 SASS_OUTPUT_STYLE = "compact"
 
 DEBUG_TOOLBAR_CONFIG = {
-    "SKIP_TEMPLATE_PREFIXES": ("app/include/"),
+    "SKIP_TEMPLATE_PREFIXES": ("app/components/"),
 }

@@ -1,0 +1,39 @@
+<button class="btn progress-btn border-0"
+  hx-post="/progress_edit"
+  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+  hx-trigger="click"
+  hx-target="closest .card-text"
+  hx-vals='{"media_type": "{{ media_type }}", 
+            "media_id": "{{ media.media_id }}",
+            "operation": "decrease"
+            {% if media.season_number != None %} 
+              , "season_number": "{{ media.season_number }}"
+            {% endif %}
+          }'
+  {% if media.progress == 0 %} 
+    disabled 
+  {% endif %}
+>
+  - {% comment %} decrease progress button {% endcomment %}
+</button>
+  
+<div class="progress_count">{{ media.progress }}</div>
+
+<button class="btn progress-btn border-0"
+  hx-post="/progress_edit"
+  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+  hx-trigger="click"
+  hx-target="closest .card-text"
+  hx-vals='{"media_type": "{{ media_type }}", 
+            "media_id": "{{ media.media_id }}",
+            "operation": "increase"
+            {% if media.season_number != None %} 
+              , "season_number": "{{ media.season_number }}"
+            {% endif %}
+          }'
+  {% if media.max %} 
+    disabled 
+  {% endif %}
+>
+  + {% comment %} increase progress button {% endcomment %}
+</button>

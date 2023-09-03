@@ -81,9 +81,9 @@
         </div>
 
         {% if media.season_number is None %}
-          {% include "app/include/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media only %}
+          {% include "app/components/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media only %}
         {% else %}
-          {% include "app/include/modal.html" with form_id="season"|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:media.season_number title=media season_number=season.season_number only %}
+          {% include "app/components/modal.html" with form_id="season"|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:media.season_number title=media season_number=season.season_number only %}
         {% endif %}
 
       {% endfor %}

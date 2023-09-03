@@ -59,7 +59,7 @@
           <button type="button" title="Track" class="btn btn-secondary open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{ media.media_type }}_{{ media.media_id }}" data-type="{{ media.media_type }}" data-id="{{ media.media_id }}">
             <i class="bi bi-pencil-square"></i>
           </button>
-          {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title only %}
+          {% include "app/components/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title only %}
         </div>
       </div>
     </div>
@@ -98,7 +98,7 @@
               </div>
             </div>
           </div>
-          {% include "app/include/modal.html" with form_id="season"|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:season.season_number title=media.title|addstr:" "|addstr:season.name only %}
+          {% include "app/components/modal.html" with form_id="season"|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:season.season_number title=media.title|addstr:" "|addstr:season.name only %}
         {% endfor %}
       </div>
     {% endif %}
@@ -140,7 +140,7 @@
                 </div>
               </div>
             </div>
-            {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:related.id title=related.title only %}
+            {% include "app/components/modal.html" with form_id=media.media_type|addstr:"_"|addstr:related.id title=related.title only %}
           {% endfor %}
         </div>
 

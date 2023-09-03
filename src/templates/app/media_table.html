@@ -62,7 +62,7 @@
           <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{ media_type }}_{{ media.media_id }}" data-type="{{ media_type }}" data-id="{{ media.media_id }}">
             <i class="bi bi-pencil-square"></i>
           </button>
-          {% include "app/include/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media only %}
+          {% include "app/components/modal.html" with form_id=media_type|addstr:"_"|addstr:media.media_id title=media only %}
         </div>
       
       </div>

@@ -50,7 +50,7 @@
 
             </div>
           </div>
-          {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title only %}    
+          {% include "app/components/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title only %}    
         {% endfor %}
       </div>
     </div>

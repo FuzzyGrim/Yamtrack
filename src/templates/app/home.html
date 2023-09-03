@@ -43,21 +43,9 @@
                   <div class="card-title text-center">
                     {{ media }}
                   </div>
+
                   <div class="card-text d-flex justify-content-center align-items-center" id="{{ media_type }}_{{ media.media_id }}{% if media.season_number != None %}_{{ media.season_number }}{% endif %}">
-                    <button type="button" class="btn progress-btn border-0" data-operation="decrease"
-                            data-type="{{ media_type }}" data-id="{{ media.media_id }}"
-                            {% if media.season_number != None %} data-season-number="{{ media.season_number }}" {% endif %}
-                            {% if media.progress == 0 %} disabled {% endif %}>
-                      -
-                    </button>
-
-                    <div class="progress_count">{{ media.progress }}</div>
-
-                    <button type="button" class="btn progress-btn border-0" data-operation="increase"
-                            data-type="{{ media_type }}" data-id="{{ media.media_id }}"
-                            {% if media.season_number != None %} data-season-number="{{ media.season_number }}" {% endif %}>
-                      +
-                    </button>
+                    {% include "app/components/progress.html" with media_type=media_type media=media csrf_token=csrf_token only %}
                   </div>
                 </div>                
               </div>
@@ -73,9 +61,4 @@
 
 {% block extra_scripts %}
   <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
-  <script>
-    // Set the csrf token for ajax requests in progress-edit.js
-    var csrftoken = '{{ csrf_token }}';
-  </script>
-  <script src="{% static 'js/progress-edit.js' %}"></script>
 {% endblock extra_scripts %}
