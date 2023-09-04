@@ -84,7 +84,11 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
             season.save()
             logger.info("Finished watching %s", season)
 
-        response = {"media_id": media_id, "progress": season.progress, "season_number": season_number}
+        response = {
+            "media_id": media_id,
+            "progress": season.progress,
+            "season_number": season_number,
+        }
 
     else:
         media_mapping = helpers.media_type_mapper(media_type)
@@ -113,7 +117,11 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
 
     response["max"] = response["progress"] == max_progress
 
-    return render(request, "app/components/progress.html", {"media": response, "media_type": media_type})
+    return render(
+        request,
+        "app/components/progress.html",
+        {"media": response, "media_type": media_type},
+    )
 
 
 @login_required
@@ -212,7 +220,10 @@ def media_search(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def media_details(
-    request: HttpRequest, media_type: str, media_id: str, title: str,
+    request: HttpRequest,
+    media_type: str,
+    media_id: str,
+    title: str,
 ) -> HttpResponse:
     """Return the details page for a media item."""
 
@@ -237,7 +248,9 @@ def media_details(
 
 
 @login_required
-def season_details(request: HttpRequest, media_id: str, title: str, season_number: str) -> HttpResponse:
+def season_details(
+    request: HttpRequest, media_id: str, title: str, season_number: str
+) -> HttpResponse:
     """Return the details page for a season."""
 
     season_metadata = metadata.season(media_id, season_number)
@@ -286,6 +299,7 @@ def season_details(request: HttpRequest, media_id: str, title: str, season_numbe
 def modal_data(request: HttpRequest) -> HttpResponse:
     """Return the form modal for a media item."""
 
+    title = request.GET.get("title")
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
     media_mapping = helpers.media_type_mapper(media_type)
@@ -303,11 +317,11 @@ def modal_data(request: HttpRequest) -> HttpResponse:
             "media_type": media_type,
             "season_number": season_number,
         }
-        form_id = f"form-{media_type}_{media_id}_{season_number}"
+
+        title = f"{title} S{season_number}"
     else:
         filters = {"media_id": media_id, "user": request.user}
         initial_data = {"media_id": media_id, "media_type": media_type}
-        form_id = f"form-{media_type}_{media_id}"
 
     try:
         # try to retrieve the media object using the filters
@@ -318,11 +332,8 @@ def modal_data(request: HttpRequest) -> HttpResponse:
         form = media_mapping["form"](initial=initial_data)
         allow_delete = False
 
-    # render form as HTML
-    form_html = render_crispy_form(
-        form, context={"csrf_token": csrf.get_token(request)},
+    return render(
+        request,
+        "app/components/form_modal_content.html",
+        {"title": title, "form": form, "allow_delete": allow_delete},
     )
-    # set the form's ID
-    form_html = form_html.replace("<form", f'<form id="{form_id}"')
-
-    return JsonResponse({"html": form_html, "allow_delete": allow_delete})
