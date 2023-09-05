@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body %}
+  <div class="d-flex py-4 entry-wrapper">
+    <div class="text-center form-signin w-100 m-auto">
+
+      <form method="post">
+        <div class="h3 mb-3 fw-normal">
+          {% block header_text %}{% endblock header_text %}
+        </div>
+  
+        {% comment %} e.g user registered notification message {% endcomment %}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+              {{ message|linebreaksbr }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      
+        {% if form.errors %}
+          <div class="alert alert-danger text-start">
+            {{ form.non_field_errors }}
+            <ul>
+              {% for field in form %}
+                {% if field.errors %}
+                  {% for error in field.errors %}
+                      <li>{{ error }}</li>
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        {% csrf_token %}
+        
+        {% block form %}
+        {% endblock form %}
+        
+        {% block extras %}
+        {% endblock extras %}
+
+      </form>
+    </div>
+  </div>
+{% endblock body %}

@@ -2,7 +2,14 @@
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[html]": {
-    "editor.defaultFormatter": "vscode.html-language-features"
+    "editor.defaultFormatter": "vscode.html-language-features",
+    "edit.tabSize": 2
+  },
+  "[css]": {
+    "edit.tabSize": 2
+  },
+  "[javascript]": {
+    "edit.tabSize": 2
   },
   "[python]": {
     "editor.formatOnSave": true,

@@ -1,45 +1,27 @@
-{% extends "base.html" %}
+{% extends "users/base_access.html" %}
 {% load static %}
 
 {% block title %}Register - Yamtrack{% endblock title %}
 
-{% block body %}
-    
-  <div class="text-center d-flex justify-content-center align-items-center" id="register">
-    <form class="form-signin" method="post">
-      {% csrf_token %}
-      <img class="mb-4" src="{% static "favicon/apple-touch-icon.png" %}" alt="logo" width="58" height="58">
-      <div class="mb-3 header-text">Register to Yamtrack</div>
+{% block header_text %}Register to Yamtrack{% endblock header_text %}
+
+{% block form %}
+  {% for field in form %}
+    <div class="form-floating">
+      {{ field }}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    </div>
+  {% endfor %}
+
+  <button class="w-100 btn btn-lg btn btn-secondary" type="submit">Sign Up</button>
+
+{% endblock form %}
+
       
-      {% if form.errors %}
-        <div class="alert alert-danger text-start">
-          {{ form.non_field_errors }}
-          <ul>
-            {% for field in form %}
-              {% if field.errors %}
-                {% for error in field.errors%}
-                    <li>{{ error }}</li>
-                {% endfor %}
-              {% endif %}
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-
-      {% for field in form %}
-        <div class="form-floating">
-          {{ field }}
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        </div>
-      {% endfor %}
-
-      <button class="w-100 btn btn-lg btn btn-secondary" type="submit">Sign Up</button>
-
-      <div class="mt-5 mb-3 ">
-        <small class="text-muted">
-          Already Have An Account? <a class="ml-2" href="{% url 'login' %}">Sign In</a>
-        </small>
-      </div>
-    </form>
+{% block extras %}
+  <div class="mt-5 mb-3 ">
+    <small class="text-muted">
+      Already Have An Account? <a class="ml-2" href="{% url 'login' %}">Sign In</a>
+    </small>
   </div>
-{% endblock body %}
+{% endblock extras %}

@@ -1,0 +1,61 @@
+///////////////
+// Variables //
+///////////////
+
+// Alert colors
+
+$white: #fff;
+$mint-green: #d6e9c6;
+$black: #000;
+$pink: #f2dede;
+$dark-pink: #eed3d7;
+$red: #b94a48;
+
+////////////
+// Alerts //
+////////////
+
+// bootstrap alert CSS, translated to the django-standard levels of
+// debug, info, success, warning, error
+
+.alert-debug {
+  background-color: $white;
+  border-color: $mint-green;
+  color: $black;
+}
+
+.alert-error {
+  background-color: $pink;
+  border-color: $dark-pink;
+  color: $red;
+}
+
+.entry-wrapper {
+  height: 100dvh;
+  .form-signin {
+    max-width: 330px;
+    padding: 1rem;
+
+    .first-input {
+      margin-bottom: -1px;
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+  
+    .middle-input {
+      margin-bottom: -1px;
+      border-radius: 0;
+    }
+  
+    .last-input {
+      margin-bottom: 10px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+  }
+
+  ul {
+    margin-bottom: 0;
+  }
+
+}

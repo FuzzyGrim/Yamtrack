@@ -18,7 +18,7 @@ class UserLoginForm(AuthenticationForm):
         widget=forms.TextInput(
             attrs={
                 "autofocus": True,
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control first-input",
                 "required": True,
                 "id": "id_username",
                 "placeholder": "Username",
@@ -30,7 +30,7 @@ class UserLoginForm(AuthenticationForm):
         widget=forms.PasswordInput(
             attrs={
                 "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control last-input",
                 "required": True,
                 "id": "id_password1",
                 "placeholder": "Password",
@@ -44,7 +44,7 @@ class UserLoginForm(AuthenticationForm):
         initial=False,
         required=False,
         widget=forms.CheckboxInput(
-            attrs={"class": "checkboxinput form-check-input", "id": "id_remember_me"},
+            attrs={"class": "form-check-input"},
         ),
     )
 
@@ -57,7 +57,7 @@ class UserRegisterForm(UserCreationForm):
         widget=forms.TextInput(
             attrs={
                 "autofocus": True,
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control first-input",
                 "required": True,
                 "id": "id_username",
                 "placeholder": "Username",
@@ -69,7 +69,7 @@ class UserRegisterForm(UserCreationForm):
         widget=forms.PasswordInput(
             attrs={
                 "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control middle-input",
                 "required": True,
                 "id": "id_password1",
                 "placeholder": "Password",
@@ -81,7 +81,7 @@ class UserRegisterForm(UserCreationForm):
         widget=forms.PasswordInput(
             attrs={
                 "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control last-input",
                 "required": True,
                 "id": "id_password2",
                 "placeholder": "Password confirmation",
