@@ -14,10 +14,10 @@
     </div>
 
   {% else %}
-    <div id="home">
+    <div class="home container p-3">
 
       {% for media_type, watching_list in watching.items %}
-        <div class="container">
+        <div class="category-progress">
           <div class="header-text title">{{ media_type|capfirst }} in Progress</div>
           <div class="grid">
             {% for media in watching_list %}

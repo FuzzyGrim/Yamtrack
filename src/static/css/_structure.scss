@@ -2,6 +2,12 @@
 // Variables //
 ///////////////
 
+// Colors
+$background: #212529;
+$primary: #272c30;
+$secondary: #6c757d;
+$accent: #758fa3;
+
 // Alert colors
 
 $white: #fff;
@@ -30,6 +36,58 @@ $red: #b94a48;
   color: $red;
 }
 
+main {
+  width: 100%;
+}
+
+.sidebar {
+  width: 230px;
+  background-color: $primary !important; // override bootstrap offcanvas bg
+
+  .nav-link.active {
+    background-color: $secondary;
+  }
+
+  .nav-link:not(.active) {
+    color: hsl(0, 0%, 85%);
+    &:hover {
+      color: white;
+    }
+  }
+}
+
+.search-bar {
+  // adjust width of select in search-bar
+  .input-group > .form-select {
+    flex-grow: 0;
+    width: auto;
+  }
+}
+
+@media screen and (min-width: 992px) {
+  .search-bar {
+    width: 50%;
+  }
+}
+
+
+.home {
+  .category-progress {
+    margin-bottom: 2rem;
+
+    .title {
+      text-align: center;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .grid {
+      @include cards-grid;
+    }
+  }
+}
+
+
+// login/register page
 .entry-wrapper {
   height: 100dvh;
   .form-signin {
@@ -54,6 +112,7 @@ $red: #b94a48;
     }
   }
 
+  // messages list
   ul {
     margin-bottom: 0;
   }

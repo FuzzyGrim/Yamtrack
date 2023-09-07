@@ -30,11 +30,12 @@
   {% block body %}
 
   <div class="d-flex flex-nowrap">
-    <div class="d-flex flex-column flex-shrink-0 p-3 offcanvas-lg offcanvas-start text-bg-dark" tabindex="-1" aria-labelledby="sidebarLabel" id="sidebar">
+    {% comment %} sidebar id needed for offcanvas toggler {% endcomment %}
+    <div class="d-flex flex-column flex-shrink-0 p-3 offcanvas-lg offcanvas-start sidebar" id="sidebar" tabindex="-1" aria-labelledby="sidebarLabel">
       <a href="{% url 'home' %}" class="text-center text-decoration-none text-white">
         <span class="header-text">Yamtrack</span>
       </a>
-      <hr>
+      <hr class="text-bg-dark">
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
           <a href="{% url 'home' %}" class="nav-link {% if request.path == "/" %}active{% endif %}">
@@ -61,7 +62,7 @@
             <i class="bi bi-book me-2"></i> Mangas
           </a>
         </li>
-        <li class="border-top my-3"></li>
+        <hr class="text-bg-dark">
         <li>
           <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
             <i class="bi bi-person-circle me-2"></i> Profile
@@ -77,8 +78,8 @@
     </div>
 
     <main>
-      <div class="search-bar d-flex">
-        <button class="offcanvas-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+      <div class="search-bar d-flex p-3 container">
+        <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
           <i class="bi bi-list"></i>
         </button>
         <form class="input-group" method="get" action="{% url 'search' %}">
@@ -89,7 +90,7 @@
             <option value="manga" {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
           </select>
           <input class="form-control" type="search" name="q" placeholder="Search" aria-label="Search" value="{{ request.GET.q }}" required>
-          <button class="btn rounded-end no-fill-btn" type="submit"><i class="bi bi-search"></i></button>
+          <button class="btn btn-secondary rounded-end" type="submit"><i class="bi bi-search"></i></button>
         </form>
       </div>
 

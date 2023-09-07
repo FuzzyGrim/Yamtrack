@@ -1,6 +1,6 @@
 @mixin cards-grid($min-img-size:8rem){
   display: grid;
-  grid-gap: .5em;
+  grid-gap: .5rem;
   grid-template-columns: repeat(auto-fill, minmax($min-img-size, 1fr));
 
   .card {
@@ -45,7 +45,7 @@
         font-size: 0.8rem;
         .open-modal-button, .progress-btn {
           padding: 0 0.5em;
-          color: $btn-color;
+          color: $secondary;
           &:hover {
             color: white;
           }
