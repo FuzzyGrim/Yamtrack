@@ -1,4 +1,4 @@
-<button class="btn progress-btn border-0"
+<button class="btn progress-btn"
   hx-post="/progress_edit"
   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
   hx-trigger="click"
@@ -14,12 +14,12 @@
     disabled 
   {% endif %}
 >
-  - {% comment %} decrease progress button {% endcomment %}
+  <i class="bi bi-dash"></i> {% comment %} decrease progress button {% endcomment %}
 </button>
   
 <div class="progress_count">{{ media.progress }}</div>
 
-<button class="btn progress-btn border-0"
+<button class="btn progress-btn"
   hx-post="/progress_edit"
   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
   hx-trigger="click"
@@ -35,5 +35,5 @@
     disabled 
   {% endif %}
 >
-  + {% comment %} increase progress button {% endcomment %}
+  <i class="bi bi-plus"></i> {% comment %} increase progress button {% endcomment %}
 </button>
