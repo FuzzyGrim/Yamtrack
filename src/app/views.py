@@ -299,7 +299,6 @@ def season_details(
 def modal_data(request: HttpRequest) -> HttpResponse:
     """Return the form modal for a media item."""
 
-    title = request.GET.get("title")
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
     media_mapping = helpers.media_type_mapper(media_type)
@@ -318,7 +317,6 @@ def modal_data(request: HttpRequest) -> HttpResponse:
             "season_number": season_number,
         }
 
-        title = f"{title} S{season_number}"
     else:
         filters = {"media_id": media_id, "user": request.user}
         initial_data = {"media_id": media_id, "media_type": media_type}
@@ -335,5 +333,5 @@ def modal_data(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "app/components/form_modal_content.html",
-        {"title": title, "form": form, "allow_delete": allow_delete},
+        {"title": request.GET.get("title"), "form": form, "allow_delete": allow_delete},
     )
