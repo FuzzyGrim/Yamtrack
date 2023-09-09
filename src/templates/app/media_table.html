@@ -5,73 +5,70 @@
   {{ media_type|title }}s - Yamtrack
 {% endblock title %}
 {% block content %}
-  <div id="medialist">
-    <div class="table-layout">
-      <div class="d-flex flex-row align-items-center list-head">
-        <div class="filter dropdown p-2">
-          <button type="button"
-                  class="btn btn-secondary filter-btn"
-                  data-bs-toggle="modal"
-                  data-bs-target="#FilterModal">
-            <i class="bi bi-funnel-fill"></i>
-          </button>
-          <div class="modal fade"
-               id="FilterModal"
-               tabindex="-1"
-               aria-labelledby="FilterModalLabel"
-               aria-hidden="true">
-            <div class="modal-dialog modal-sm modal-dialog-centered">
-              <div class="modal-content">
-                <div class="modal-body">
-                  <form method="get">
-                    {{ filter_form|crispy }}
-                    <div class="text-center">
-                      <button class="btn btn-secondary" type="submit">Filter</button>
+
+  <div class="container">
+    <div class="table-responsive rounded p-4 mb-4">
+      <table class="table table-borderless table-hover align-middle text-center">
+        <thead>
+          <tr>
+            <th>
+              <button type="button"
+                    class="btn btn-secondary filter-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#FilterModal">
+              <i class="bi bi-funnel-fill"></i>
+              </button>
+              <div class="modal fade"
+                  id="FilterModal"
+                  tabindex="-1"
+                  aria-labelledby="FilterModalLabel"
+                  aria-hidden="true">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                  <div class="modal-content">
+                    <div class="modal-body">
+                      <form method="get">
+                        {{ filter_form|crispy }}
+                        <div class="text-center">
+                          <button class="btn btn-secondary" type="submit">Filter</button>
+                        </div>
+                      </form>
                     </div>
-                  </form>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        <div class="title p-2">
-          <strong>Title</strong>
-        </div>
-        <div class="score p-2">
-          <strong>Score</strong>
-        </div>
-        <div class="status p-2">
-          <strong>Status</strong>
-        </div>
-        {% comment %} bootstrap already uses progress class {% endcomment %}
-        <div class="_progress p-2">
-          <strong>Progress</strong>
-        </div>
-        <div class="edit p-2">
-          <strong>Edit</strong>
-        </div>
-      </div>
-      {% for media in media_list %}
-        <div class="d-flex flex-row mb-3 align-items-center list-section">
-          <div class="image p-2">
-            <img class="lazyload"
-                 data-src="{{ media.image.url }}"
-                 data-expand="1000"
-                 alt="{{ media }}" />
-          </div>
-          <div class="title p-2">
-            <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}">{{ media }}</a>
-          </div>
-          <div class="score p-2">{{ media.score }}</div>
-          <div class="status p-2">{{ media.status|default_if_none:"" }}</div>
-          <div class="_progress p-2">{{ media.progress|default_if_none:"" }}</div>
-          <div class="edit p-2">
-            {% include "app/components/open_form_modal.html" with media_type=media_type media_id=media.media_id title=media only %}
-          </div>
-        </div>
-      {% endfor %}
+            </th>
+            <th class="media-title">Title</th>
+            <th>Score</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>Edit</th>
+          </tr>
+        </thead>
+        <tbody>    
+          {% for media in media_list %}
+            <tr>
+              <td class="nostretch">
+                <img class="lazyload object-fit-cover"
+                    data-src="{{ media.image.url }}"
+                    data-expand="1000"
+                    width="40"
+                    height="40"
+                    {% comment %} adding alt table resizes table {% endcomment %}
+                />
+              </td>
+              <td class="media-title text-truncate"><a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}">{{ media }}</a></td>
+              <td>{{ media.score }}</td>
+              <td>{{ media.status|default_if_none:"" }}</td>
+              <td>{{ media.progress|default_if_none:"" }}</td>
+              <td>{% include "app/components/open_form_modal.html" with media_type=media_type media_id=media.media_id title=media only %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      
+      </table>
     </div>
   </div>
+  
 {% endblock content %}
 {% block extra_scripts %}
   <script src="{% static "js/lazysizes.min.js" %}" async=""></script>

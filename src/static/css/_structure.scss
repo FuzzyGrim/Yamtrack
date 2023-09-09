@@ -7,6 +7,7 @@ $background: #212529;
 $primary: #272c30;
 $secondary: #6c757d;
 $accent: #758fa3;
+$container-bg: hsl(195, 7%, 11%);
 
 // Alert colors
 
@@ -81,6 +82,29 @@ main {
   @include cards-grid;
 }
 
+
+.table-responsive {
+  background-color: $primary;
+}
+
+.table {
+  --bs-table-bg: $primary;
+
+  .nostretch {
+    width: 1%; // set width of image td to the minimum
+  }
+
+  .media-title{
+    text-align: left;
+    max-width: 20dvw; // auto adjust width of title
+    margin-left: 0;
+  }
+
+  a {
+    color: var(--bs-body-color);
+    text-decoration: none;
+  }
+}
 
 // login/register page
 .entry-wrapper {
