@@ -90,6 +90,10 @@ main {
 .table {
   --bs-table-bg: $primary;
 
+  th {
+    vertical-align: middle;
+  }
+
   .nostretch {
     width: 1%; // set width of image td to the minimum
   }
