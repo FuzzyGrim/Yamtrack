@@ -39,6 +39,10 @@ $red: #b94a48;
 
 body {
   font-family: "Roboto", sans-serif;
+  // hide lazyload img until loaded
+  img.lazyload:not([src]) {
+    visibility: hidden;
+  }
 }
 
 main {
