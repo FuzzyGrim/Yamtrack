@@ -145,3 +145,21 @@ main {
   }
 
 }
+
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20em, 1fr));
+  gap: 1em;
+
+  form.grid-item {
+    text-align: center;
+
+    .form-title {
+      font-size: 1.2rem;
+      margin-bottom: 0.5em;
+      text-align: center;
+    }
+  }
+}
+
