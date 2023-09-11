@@ -1,5 +1,5 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
+from crispy_forms.layout import BaseInput
 from django import forms
 from django.contrib.auth.forms import (
     AuthenticationForm,
@@ -105,7 +105,7 @@ class UserUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.add_input(
-            Submit("submit", "Update", css_class="btn btn-secondary rounded"),
+            CustomSubmit("submit", "Update"),
         )
 
     class Meta:
@@ -125,5 +125,15 @@ class PasswordChangeForm(PasswordChangeForm):
         self.fields["old_password"].widget.attrs.pop("autofocus", None)
         self.helper = FormHelper()
         self.helper.add_input(
-            Submit("submit", "Update", css_class="btn btn-secondary rounded"),
+            CustomSubmit("submit", "Update"),
         )
+
+
+class CustomSubmit(BaseInput):
+    """Custom submit button for crispy forms.
+
+    Overrides button class btn-primary to btn-secondary and adds rounded corners.
+    """
+
+    input_type = "submit"
+    field_classes = "btn btn-secondary rounded"
