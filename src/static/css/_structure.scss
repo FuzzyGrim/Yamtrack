@@ -3,11 +3,10 @@
 ///////////////
 
 // Colors
-$background: #212529;
-$primary: #272c30;
+$background: #1c1e1f;
+$primary: #212325;
 $secondary: #6c757d;
 $accent: #758fa3;
-$container-bg: hsl(195, 7%, 11%);
 
 // Alert colors
 
@@ -38,6 +37,7 @@ $red: #b94a48;
 }
 
 body {
+  background-color: $background;
   font-family: "Roboto", sans-serif;
   // hide lazyload img until loaded
   img.lazyload:not([src]) {
