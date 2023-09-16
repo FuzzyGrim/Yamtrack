@@ -1,12 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
-
 {% block title %}
   {{ media.title }} - Yamtrack
 {% endblock title %}
 {% block content %}
-  <div id="details">
-    <div class="header d-flex">
+  <div class="container p-3">
+    <div class="details-top d-flex mb-4">
       <div class="image">
         {% if media.image != "none.svg" %}
           <img class="poster" src="{{ media.image }}" alt="media.title" />
@@ -16,7 +15,7 @@
                alt="media.title" />
         {% endif %}
       </div>
-      <div class="content d-flex flex-column align-items-start">
+      <div class="details-data d-flex flex-column align-items-start">
         <div class="title header-text">{{ media.title }}</div>
         <div class="original-type">
           <strong>Type:</strong>
@@ -58,8 +57,8 @@
       </div>
     </div>
     {% if seasons %}
-      <div class="grid-title">
-        <strong>Seasons</strong>
+      <div class="mt-3 fs-5">
+        Seasons
       </div>
       <div class="grid">
         {% for season in seasons %}
@@ -80,8 +79,8 @@
     {% endif %}
     {% for related_data in related_data_list %}
       {% if related_data.data %}
-        <div class="grid-title">
-          <strong>{{ related_data.name }}</strong>
+        <div class="mt-3 fs-5">
+          {{ related_data.name }}
         </div>
         <div class="grid">
           {% for related in related_data.data %}

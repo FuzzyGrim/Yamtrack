@@ -222,3 +222,42 @@ main {
   }
 }
 
+
+.details-top {
+  .poster {
+    border-radius: 10px;
+    width: 14rem;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+  }
+
+  .image-not-found {
+    object-fit: contain;
+    width: 14rem;
+    aspect-ratio: 2/3;
+    background-color: rgb(44, 48, 50);
+  }
+
+  .details-data {
+    margin-left: 1em;
+    // only present in season_details
+    .show-title {
+      margin-bottom: 0.5em;
+      a { 
+      font-size: 1.1rem;
+      color: #6c757d;
+      }
+    }
+    .synopsis {
+      // show only 4 lines of text
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+    }
+    .buttons-group {
+      margin-top: auto;
+    }
+  }
+}
+
