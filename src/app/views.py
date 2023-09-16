@@ -119,7 +119,7 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
 
     return render(
         request,
-        "app/components/progress.html",
+        "app/components/progress_changer.html",
         {"media": response, "media_type": media_type},
     )
 
