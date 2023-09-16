@@ -52,7 +52,7 @@
             </a>
             <div class="card-img-overlay">
               <div class="card-title text-center">{{ media }}</div>
-              <div class="card-text d-flex justify-content-center align-items-center">
+              <div class="card-text d-flex justify-content-evenly align-items-center">
                 {{ media.score }}
                 {% include "app/components/open_form_modal.html" with media_type="season" media_id=media.media_id season_number=media.season_number title=media only %}
               </div>

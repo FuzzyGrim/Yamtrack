@@ -137,7 +137,6 @@ main {
         }
 
         .open-modal-btn {
-          margin-left: .75rem;
           font-size: 0.75rem;
         }
 
@@ -244,14 +243,11 @@ main {
 
   .details-data {
     margin-left: 1em;
-    // only present in season_details
-    .show-title {
-      margin-bottom: 0.5em;
-      a { 
-      font-size: 1.1rem;
-      color: #6c757d;
-      }
+    // link to main details from season details
+    a { 
+      color: var(--bs-body-color);
     }
+
     .synopsis {
       // show only 4 lines of text
       overflow: hidden;
@@ -265,3 +261,52 @@ main {
   }
 }
 
+
+.episode {
+
+  .check-div {
+    flex-basis: 1em;
+    flex-shrink: 0;
+  }
+
+  .episode-number {
+    flex-basis: 5em;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .episode-name {
+    flex-grow: 3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .episode-date {
+    flex-basis: 10em;
+    text-align: center;
+  }
+
+  .watch-status {
+    flex-basis: 64px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+}
+
+.date-btn-group {
+  .form-control {
+    padding-right: 0;
+    border-radius: 0;
+    border-right: 0;
+  }
+  .btn {
+    border-radius: 0;
+    border-color: #495057;
+    border-left: 0;
+
+    &:hover {
+      color: white;
+    }
+  }
+}
