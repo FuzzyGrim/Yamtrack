@@ -39,6 +39,7 @@ $red: #b94a48;
 body {
   background-color: $background;
   font-family: "Roboto", sans-serif;
+
   // hide lazyload img until loaded
   img.lazyload:not([src]) {
     visibility: hidden;
@@ -57,7 +58,11 @@ main {
 
 .sidebar {
   width: 230px;
-  background-color: $primary !important; // override bootstrap offcanvas bg
+  background-color: $primary !important; // override bootstrap sidebar bg
+
+  &.offcanvas-lg {
+    --bs-offcanvas-width: 75% !important; // override bootstrap offcanvas width
+  }
 
   .nav-link.active {
     background-color: $secondary;
