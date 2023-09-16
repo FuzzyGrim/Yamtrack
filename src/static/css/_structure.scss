@@ -51,6 +51,10 @@ main {
   width: 100%;
 }
 
+.container {
+  padding: 1rem;
+}
+
 .sidebar {
   width: 230px;
   background-color: $primary !important; // override bootstrap offcanvas bg
