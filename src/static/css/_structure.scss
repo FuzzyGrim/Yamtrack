@@ -127,11 +127,16 @@ main {
 
       .card-text {
         font-size: 0.85rem;
-        .open-modal-button {
+
+        .btn {
           padding: 0.1rem 0.3rem;
+        }
+
+        .open-modal-btn {
           margin-left: .75rem;
           font-size: 0.75rem;
         }
+
         .progress-btn:disabled {
           color: transparent;
         }
