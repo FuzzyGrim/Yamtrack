@@ -16,12 +16,12 @@
         {% endif %}
       </div>
       <div class="details-data d-flex flex-column align-items-start">
-        <div>
+        <div class="tv-title">
           <a href="{% url 'media_details' media_type="tv" media_id=media_id title=media_title|slugify %}">
             {{ media_title|capfirst }}
           </a>
         </div>
-        <div class="title header-text">{{ season.name }}</div>
+        <div class="title fs-5">{{ season.name }}</div>
         <div class="start-date">
           <strong>Release date:</strong>
           {{ season.start_date }}
@@ -108,10 +108,11 @@
           <button type="submit" class="btn btn-secondary flex-fill" name="release">Release</button>
           <div class="d-flex date-btn-group flex-fill">
             <input type="date"
-                   class="form-control bg-dark text-white"
+                   class="form-control pe-0 rounded-0 border-end-0"
                    name="date"
-                   value="{% now "Y-m-d" %}">
-            <button type="submit" class="btn bg-dark">
+                   value="{% now "Y-m-d" %}"
+            >
+            <button type="submit" class="btn bg-dark border-start-0 rounded-0">
               <i class="bi bi-check-circle-fill"></i>
             </button>
           </div>

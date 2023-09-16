@@ -1,2 +1,48 @@
 @import "fonts";
 @import "structure";
+
+
+@media screen and (min-width: 992px) {
+  .search-bar {
+    width: 50%;
+  }
+}
+
+
+// xs
+@media screen and (max-width: 575px) {
+  .details-top {
+    // wrap content under image
+    flex-wrap: wrap;
+    // center image
+    justify-content: center;
+    .image {
+      margin-bottom: 1.5rem;
+    }
+
+    // only present in season_details
+    .tv-title{ 
+      width: 100%;
+      text-align: center;
+    }
+
+    .title {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .buttons-group {
+      margin-top: 1rem;
+    }
+  }
+
+  .btn-group {
+    .btn-release-date {
+      border-radius: 0;
+    }
+    .btn-danger {
+      border-radius: 0;
+    }
+  }
+}

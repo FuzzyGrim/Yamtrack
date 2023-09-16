@@ -84,13 +84,6 @@ main {
   }
 }
 
-@media screen and (min-width: 992px) {
-  .search-bar {
-    width: 50%;
-  }
-}
-
-
 .grid {
   display: grid;
   grid-gap: .5rem;
@@ -98,7 +91,7 @@ main {
 
   .card {
     width: 100%;
-    margin-bottom: 1em;
+    margin-bottom: 1rem;
 
     .poster {
       width: 100%;
@@ -171,7 +164,7 @@ main {
 
   .media-title{
     text-align: left;
-    max-width: 20dvw; // auto adjust width of title
+    max-width: 30dvw; // auto adjust width of title
     margin-left: 0;
   }
 
@@ -224,7 +217,7 @@ main {
 
     .form-title {
       font-size: 1.2rem;
-      margin-bottom: 0.5em;
+      margin-bottom: 0r.5em;
       text-align: center;
     }
   }
@@ -247,7 +240,7 @@ main {
   }
 
   .details-data {
-    margin-left: 1em;
+    margin-left: 1rem;
     // link to main details from season details
     a { 
       color: var(--bs-body-color);
@@ -268,7 +261,6 @@ main {
 
 
 .episode {
-
   .check-div {
     flex-basis: 1em;
     flex-shrink: 0;
@@ -300,18 +292,25 @@ main {
 }
 
 .date-btn-group {
-  .form-control {
-    padding-right: 0;
-    border-radius: 0;
-    border-right: 0;
-  }
   .btn {
-    border-radius: 0;
     border-color: #495057;
-    border-left: 0;
 
     &:hover {
       color: white;
     }
   }
+}
+
+.no-content{
+  display: flex;
+  flex-direction: column;
+  height: 75%;
+  justify-content: center;
+  align-items: center;      
+}
+
+.error-title {
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
 }
