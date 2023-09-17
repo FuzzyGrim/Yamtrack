@@ -1,0 +1,22 @@
+{% load crispy_forms_tags %}
+
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+  <div class="modal-content media-form-modal">
+
+    <div class="modal-header">
+      <div class="modal-title fs-5">
+        {{ title }}
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+      {% crispy form %}
+    </div>
+
+    <div class="modal-footer d-flex flex-row-reverse justify-content-between">
+      <button type="submit" form="form-{{ media.media_type }}_{{ media.media_id }}" name="save" class="btn btn-primary">Save</button>
+    </div>
+
+  </div>
+</div>

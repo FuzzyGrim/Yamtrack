@@ -1,53 +1,45 @@
 {% extends "base.html" %}
 {% load static %}
-{% load app_extras %}
-
-{% block title %}{{media_title}} S{{season.season_number}} - Yamtrack{% endblock %}
-
+{% block title %}
+  {{ media_title }} S{{ season.season_number }} - Yamtrack
+{% endblock title %}
 {% block content %}
-  <div id="details">
-    <div class="header d-flex">
+  <div class="container">
+    <div class="details-top d-flex">
       <div class="image">
         {% if season.image != "none.svg" %}
-          <img class="poster" src="{{season.image}}" alt="{{ season.name }}" />
+          <img class="poster" src="{{ season.image }}" alt="{{ season.name }}" />
         {% else %}
-          <img class="image-not-found" src="{% get_media_prefix %}{{season.image}}" alt="season.name"/>
+          <img class="image-not-found"
+               src="{% get_media_prefix %}{{ season.image }}"
+               alt="season.name" />
         {% endif %}
       </div>
-      <div class="content d-flex flex-column align-items-start">
-
-        <div class="title header-text">{{season.name}}</div>
-
-        <div class="show-title">
+      <div class="details-data d-flex flex-column align-items-start">
+        <div class="tv-title">
           <a href="{% url 'media_details' media_type="tv" media_id=media_id title=media_title|slugify %}">
-            {{media_title|capfirst}}
+            {{ media_title|capfirst }}
           </a>
         </div>
-
+        <div class="title fs-4">{{ season.name }}</div>
         <div class="start-date">
           <strong>Release date:</strong>
-          {{season.start_date}}
+          {{ season.start_date }}
         </div>
-
         <div class="synopsis">
           <strong>Synopsis:</strong>
-          {{season.synopsis}}
+          {{ season.synopsis }}
         </div>
-
         <div class="episodes-num">
-            <strong>Total Episodes: {{ season.episodes|length }}</strong>
+          <strong>Total Episodes: {{ season.episodes|length }}</strong>
         </div>
-        
         <div class="buttons-group">
-          <button type="button" title="Track" class="btn btn-secondary open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-season_{{media_id}}_{{season.season_number}}" 
-          data-type="season" data-id="{{media_id}}" data-season-number="{{season.season_number}}">
-            <i class="bi bi-pencil-square"></i>
-          </button>
-          {% include "app/include/modal.html" with form_id="season"|addstr:"_"|addstr:media_id|addstr:"_"|addstr:season.season_number title=media_title|capfirst season_number=season.season_number only %}
-          
+          {% include "app/components/open_form_modal.html" with media_type="season" media_id=media_id season_number=season.season_number title=media_title|capfirst only %}
           {% comment %} check for not None because Season 0 evaluates to false {% endcomment %}
           {% if previous_season != None %}
-            <a href="{% url 'season_details' media_id=media_id title=media_title|slugify season_number=previous_season %}" title="Previous Season" class="btn btn-secondary ms-1">
+            <a href="{% url 'season_details' media_id=media_id title=media_title|slugify season_number=previous_season %}"
+               title="Previous Season"
+               class="btn btn-secondary ms-1">
               <i class="bi bi-chevron-double-left"></i>
             </a>
           {% else %}
@@ -55,73 +47,82 @@
               <i class="bi bi-chevron-double-left"></i>
             </a>
           {% endif %}
-
           {% if next_season != None %}
-            <a href="{% url 'season_details' media_id=media_id title=media_title|slugify season_number=next_season %}" title="Next Season" class="btn btn-secondary ms-1">
+            <a href="{% url 'season_details' media_id=media_id title=media_title|slugify season_number=next_season %}"
+               title="Next Season"
+               class="btn btn-secondary ms-1">
               <i class="bi bi-chevron-double-right"></i>
             </a>
-            {% else %}
+          {% else %}
             <a class="btn btn-secondary disabled ms-1">
-              <i class="bi bi-chevron-double-left"></i>
+              <i class="bi bi-chevron-double-right"></i>
             </a>
           {% endif %}
         </div>
       </div>
     </div>
-
-    <form class="episode-list" method="post">
+    <form class="mt-4" method="post">
       {% csrf_token %}
-      <input type="hidden" name="media_id" value="{{media_id}}">
-      <input type="hidden" name="season_number" value="{{season.season_number}}">
-      
+      <input type="hidden" name="media_id" value="{{ media_id }}">
+      <input type="hidden" name="season_number" value="{{ season.season_number }}">
       <div class="d-flex justify-content-between align-items-center episode">
         <div class="p-2 check-div">
           <input type="checkbox" class="form-check-input select-all">
         </div>
-        <div class="p-2 episode-number"><strong>Episode</strong></div>
-        <div class="p-2 episode-name"><strong>Name</strong></div>
-        <div class="p-2 episode-date"><strong>Release Date</strong></div>
-        <div class="p-2 watch-status"><strong>Status</strong></div>
+        <div class="p-2 episode-number">
+          <strong>Episode</strong>
+        </div>
+        <div class="p-2 episode-name">
+          <strong>Name</strong>
+        </div>
+        <div class="p-2 episode-date">
+          <strong>Release Date</strong>
+        </div>
+        <div class="p-2 watch-status">
+          <strong>Status</strong>
+        </div>
       </div>
       {% for episode in season.episodes %}
-      <div class="d-flex justify-content-between align-items-center episode">
-        <div class="p-2 check-div">
-          <input type="checkbox" class="form-check-input check-episode" name="episode_number" value="{{episode.episode_number}}">
+        <div class="d-flex justify-content-between align-items-center episode">
+          <div class="p-2 check-div">
+            <input type="checkbox"
+                   class="form-check-input check-episode"
+                   name="episode_number"
+                   value="{{ episode.episode_number }}">
+          </div>
+          <div class="p-2 episode-number">{{ episode.episode_number }}</div>
+          <div class="p-2 episode-name">{{ episode.name }}</div>
+          <div class="p-2 episode-date">{{ episode.air_date }}</div>
+          <div class="p-2 watch-status">
+            {% if episode.watched %}
+              <i class="bi bi-eye-fill"></i>
+            {% else %}
+              <i class="bi bi-eye-slash-fill"></i>
+            {% endif %}
+          </div>
         </div>
-
-        <div class="p-2 episode-number">{{episode.episode_number}}</div>
-        <div class="p-2 episode-name">{{episode.name}}</div>
-        <div class="p-2 episode-date">{{episode.air_date}}</div>
-        <div class="p-2 watch-status">
-          {% if episode.watched %}
-            <i class="bi bi-eye-fill"></i>
-          {% else %}
-            <i class="bi bi-eye-slash-fill"></i>
-          {% endif %}
-        </div>
-      </div>
       {% endfor %}
       <div class="d-flex flex-column justify-content-center align-items-center">
         <div class="mt-4 mb-2">When did you watch the episode(s)?</div>
-
         <div class="btn-group flex-wrap">
-          <button type="submit" class="btn btn-release-date flex-fill" name="release">Release</button>
-
+          <button type="submit" class="btn btn-secondary flex-fill" name="release">Release</button>
           <div class="d-flex date-btn-group flex-fill">
-            <input type="date" class="form-control bg-dark text-white" name="date" value="{% now "Y-m-d" %}">
-            <button type="submit" class="btn bg-dark"><i class="bi bi-check-circle-fill"></i></button>
+            <input type="date"
+                   class="form-control pe-0 rounded-0 border-end-0"
+                   name="date"
+                   value="{% now "Y-m-d" %}"
+            >
+            <button type="submit" class="btn bg-dark border-start-0 rounded-0">
+              <i class="bi bi-check-circle-fill"></i>
+            </button>
           </div>
-
           <button type="submit" class="btn btn-danger flex-fill" name="unwatch">Unwatch</button>
         </div>
       </div>
     </form>
-
   </div>
-{% endblock content%}
-
+{% endblock content %}
 {% block extra_scripts %}
-  <script src="{% static 'js/modal-load.js' %}"></script>
   <script>
     document.querySelector('.select-all').addEventListener('click', function() {
       var checkboxes = document.querySelectorAll('input[type="checkbox"]:not(.select-all)');

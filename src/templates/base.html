@@ -4,10 +4,10 @@
 
 <head>
     <!-- Required meta tags -->
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="keyword" content="Yamtrack" />
-    <meta name="description" content="Search and track media on Yamtrack." />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="keywords" content="Yamtrack, Media Tracker">
+    <meta name="description" content="Search and track media on Yamtrack.">
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-icons.css" %}" />
@@ -30,14 +30,15 @@
   {% block body %}
 
   <div class="d-flex flex-nowrap">
-    <div class="d-flex flex-column flex-shrink-0 p-3 offcanvas-lg offcanvas-start text-bg-dark" tabindex="-1" aria-labelledby="sidebarLabel" id="sidebar">
-      <a href="/" class="text-center text-decoration-none text-white">
-        <span class="header-text">Yamtrack</span>
+    {% comment %} sidebar id needed for offcanvas toggler {% endcomment %}
+    <div class="d-flex flex-column flex-shrink-0 p-3 offcanvas-lg offcanvas-start sidebar" id="sidebar" tabindex="-1" aria-labelledby="sidebarLabel">
+      <a href="{% url 'home' %}" class="text-center text-decoration-none text-white">
+        <span class="fs-4">Yamtrack</span>
       </a>
-      <hr>
+      <hr class="text-bg-dark">
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
-          <a href="/" class="nav-link {% if request.path == "/" %}active{% endif %}">
+          <a href="{% url 'home' %}" class="nav-link {% if request.path == "/" %}active{% endif %}">
             <i class="bi bi-house-door me-2"></i> Home
           </a>
         </li>
@@ -61,7 +62,7 @@
             <i class="bi bi-book me-2"></i> Mangas
           </a>
         </li>
-        <li class="border-top my-3"></li>
+        <hr class="text-bg-dark">
         <li>
           <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
             <i class="bi bi-person-circle me-2"></i> Profile
@@ -77,8 +78,8 @@
     </div>
 
     <main>
-      <div class="search-bar d-flex">
-        <button class="offcanvas-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+      <div class="search-bar d-flex container">
+        <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
           <i class="bi bi-list"></i>
         </button>
         <form class="input-group" method="get" action="{% url 'search' %}">
@@ -89,19 +90,20 @@
             <option value="manga" {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
           </select>
           <input class="form-control" type="search" name="q" placeholder="Search" aria-label="Search" value="{{ request.GET.q }}" required>
-          <button class="btn rounded-end no-fill-btn" type="submit"><i class="bi bi-search"></i></button>
+          <button class="btn btn-secondary rounded-end" type="submit"><i class="bi bi-search"></i></button>
         </form>
       </div>
 
-      {% block content %} {% endblock content%}
+      {% block content %} {% endblock content %}
     </main>
     
   </div>
   
   <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-  {% block extra_scripts %} {% endblock extra_scripts%}
+  <script src="{% static 'js/htmx.min.js' %}"></script>
+  {% block extra_scripts %} {% endblock extra_scripts %}
 
-  {% endblock body%}
+  {% endblock body %}
 </body>
 
 </html>

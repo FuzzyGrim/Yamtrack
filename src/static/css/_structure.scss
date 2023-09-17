@@ -1,0 +1,258 @@
+.sidebar {
+  width: 230px;
+  background-color: $primary !important; // override bootstrap sidebar bg
+
+  &.offcanvas-lg {
+    --bs-offcanvas-width: 75% !important; // override bootstrap offcanvas width
+  }
+
+  .nav-link.active {
+    background-color: $secondary;
+  }
+
+  .nav-link:not(.active) {
+    color: hsl(0, 0%, 85%);
+    &:hover {
+      color: white;
+    }
+  }
+}
+
+.search-bar {
+  // adjust width of select in search-bar
+  .input-group > .form-select {
+    flex-grow: 0;
+    width: auto;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-gap: .5rem;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+
+  .card {
+    width: 100%;
+    margin-bottom: 1rem;
+
+    .poster {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .image-not-found {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: contain;
+      object-position: center top;
+      background-color: rgb(44, 48, 50);
+      cursor: pointer;
+    }
+
+    .card-img-overlay {
+      // position bottom of card
+      top: auto;
+      padding: 0.5em;
+      border-top-left-radius: 0px;
+      border-top-right-radius: 0px;
+      background-color: rgba(0, 0, 0, 0.692);
+
+      .card-title {
+        margin-bottom: 0;
+        // show only 2 lines of text
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        font-size: 0.9rem;
+      }
+
+      .card-text {
+        font-size: 0.85rem;
+
+        .btn {
+          padding: 0.1rem 0.3rem;
+        }
+
+        .open-modal-btn {
+          font-size: 0.75rem;
+        }
+
+        .progress-btn:disabled {
+          color: transparent;
+        }
+      }
+    }
+  }
+}
+
+
+.table-responsive {
+  background-color: $primary;
+}
+
+.table {
+  --bs-table-bg: $primary;
+
+  th {
+    vertical-align: middle;
+  }
+
+  .nostretch {
+    width: 1%; // set width of image td to the minimum
+  }
+
+  .media-title{
+    text-align: left;
+    max-width: 30dvw; // auto adjust width of title
+    margin-left: 0;
+  }
+
+  a {
+    color: var(--bs-body-color);
+    text-decoration: none;
+  }
+}
+
+// login/register page
+.entry-wrapper {
+  height: 100dvh;
+  .form-signin {
+    max-width: 330px;
+    padding: 1rem;
+
+    .first-input {
+      margin-bottom: -1px;
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+  
+    .middle-input {
+      margin-bottom: -1px;
+      border-radius: 0;
+    }
+  
+    .last-input {
+      margin-bottom: 10px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+  }
+
+  // messages list
+  ul {
+    margin-bottom: 0;
+  }
+
+}
+
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20em, 1fr));
+  gap: 1em;
+
+  form.grid-item {
+    text-align: center;
+
+    .form-title {
+      font-size: 1.2rem;
+      margin-bottom: 0r.5em;
+      text-align: center;
+    }
+  }
+}
+
+
+.details-top {
+  .poster {
+    border-radius: 10px;
+    width: 14rem;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+  }
+
+  .image-not-found {
+    object-fit: contain;
+    width: 14rem;
+    aspect-ratio: 2/3;
+    background-color: rgb(44, 48, 50);
+  }
+
+  .details-data {
+    margin-left: 1rem;
+    // link to main details from season details
+    a { 
+      color: var(--bs-body-color);
+    }
+
+    .synopsis {
+      // show only 4 lines of text
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+    }
+    .buttons-group {
+      margin-top: auto;
+    }
+  }
+}
+
+
+.episode {
+  .check-div {
+    flex-basis: 1em;
+    flex-shrink: 0;
+  }
+
+  .episode-number {
+    flex-basis: 5em;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .episode-name {
+    flex-grow: 3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .episode-date {
+    flex-basis: 10em;
+    text-align: center;
+  }
+
+  .watch-status {
+    flex-basis: 64px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+}
+
+.date-btn-group {
+  .btn {
+    border-color: #495057;
+
+    &:hover {
+      color: white;
+    }
+  }
+}
+
+.no-content{
+  display: flex;
+  flex-direction: column;
+  height: 75%;
+  justify-content: center;
+  align-items: center;      
+}
+
+.error-title {
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+}

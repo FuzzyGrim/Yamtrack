@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import requests
+import requests_cache
 from app.models import Anime, Manga
 from app.utils import helpers
 from decouple import config
@@ -37,7 +38,8 @@ def get_whole_response(url: str, header: dict) -> dict:
 
     Continues to fetch data from the next URL until there is no more data to fetch.
     """
-    response = requests.get(url, headers=header, timeout=5)
+    with requests_cache.disabled(): # don't cache request as it can change frequently
+        response = requests.get(url, headers=header, timeout=5)
     data = response.json()
 
     # usually when username not found

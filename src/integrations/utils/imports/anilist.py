@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import requests
+import requests_cache
 from app.models import Anime, Manga
 from app.utils import helpers
 
@@ -86,11 +87,12 @@ def anilist_data(username: str, user: User) -> str:
     variables = {"userName": username}
     url = "https://graphql.anilist.co"
 
-    response = requests.post(
-        url,
-        json={"query": query, "variables": variables},
-        timeout=5,
-    )
+    with requests_cache.disabled(): # don't cache request as it can change frequently
+        response = requests.post(
+            url,
+            json={"query": query, "variables": variables},
+            timeout=5,
+        )
     query = response.json()
 
     # usually when username not found

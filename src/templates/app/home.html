@@ -1,24 +1,24 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Home - Yamtrack{% endblock %}
+{% block title %}Home - Yamtrack{% endblock title %}
 
 {% block content %}
 
   {% if watching|length == 0 %}
     <div class="no-content">
       <div>
-        <h2 class="alert-heading text-center header-text">No media in progress</h2>
+        <h2 class="alert-heading text-center fs-5">No media in progress</h2>
         <p>The homepage will show the media you are currently consuming.</p>
       </div>
     </div>
 
   {% else %}
-    <div id="home">
+    <div class="home container">
 
       {% for media_type, watching_list in watching.items %}
-        <div class="container">
-          <div class="header-text title">{{ media_type|capfirst }} in Progress</div>
+        <div class="mb-4">
+          <div class="fs-5 text-center mb-2">{{ media_type|capfirst }} in Progress</div>
           <div class="grid">
             {% for media in watching_list %}
               <div class="card text-bg-dark mx-auto">
@@ -29,11 +29,7 @@
                   {% endif %}
                   <img
                     data-src="{{ media.image.url }}"
-                    {% if media.image.url == "/media/none.svg"%}
-                      class="card-img open-modal-button lazyload image-not-found"
-                      {% else %}
-                      class="card-img open-modal-button lazyload poster"
-                    {% endif %}
+                    class="card-img lazyload {% if media.image.url == "/media/none.svg" %} image-not-found {% else %} poster {% endif %}"''
                     alt="{{ media }}"
                     data-expand="1000"
                   />
@@ -43,21 +39,9 @@
                   <div class="card-title text-center">
                     {{ media }}
                   </div>
-                  <div class="card-text d-flex justify-content-center align-items-center" id="{{media_type}}_{{media.media_id}}{% if media.season_number != None %}_{{media.season_number}}{% endif %}">
-                    <button type="button" class="btn progress-btn border-0" data-operation="decrease"
-                            data-type="{{media_type}}" data-id="{{media.media_id}}"
-                            {% if media.season_number != None %} data-season-number="{{media.season_number}}" {% endif %}
-                            {% if media.progress == 0 %} disabled {% endif %}>
-                      -
-                    </button>
 
-                    <div class="progress_count">{{ media.progress }}</div>
-
-                    <button type="button" class="btn progress-btn border-0" data-operation="increase"
-                            data-type="{{media_type}}" data-id="{{media.media_id}}"
-                            {% if media.season_number != None %} data-season-number="{{media.season_number}}" {% endif %}>
-                      +
-                    </button>
+                  <div class="card-text d-flex justify-content-center align-items-center" id="{{ media_type }}_{{ media.media_id }}{% if media.season_number != None %}_{{ media.season_number }}{% endif %}">
+                    {% include "app/components/progress_changer.html" with media_type=media_type media=media csrf_token=csrf_token only %}
                   </div>
                 </div>                
               </div>
@@ -69,13 +53,8 @@
     </div>
   {% endif %}
 
-{% endblock content%}
+{% endblock content %}
 
 {% block extra_scripts %}
   <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
-  <script>
-    // Set the csrf token for ajax requests in progress-edit.js
-    var csrftoken = '{{ csrf_token }}';
-  </script>
-  <script src="{% static 'js/progress-edit.js' %}"></script>
 {% endblock extra_scripts %}

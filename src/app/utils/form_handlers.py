@@ -1,14 +1,31 @@
-from app.utils import helpers, metadata
-from app.models import Season, Episode
-from datetime import datetime
+from __future__ import annotations
+
+import datetime
 import logging
+from typing import TYPE_CHECKING
+
+from config import settings
+
+from app.models import Episode, Season
+from app.utils import helpers, metadata
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest
 
 logger = logging.getLogger(__name__)
 
 
-def media_form_handler(request, media_metadata=None, season_number=None, title=None):
+def media_form_handler(
+    request: HttpRequest,
+    media_metadata: dict | None = None,  # dict or default None
+    season_number: int | None = None,
+    title: str | None = None,
+) -> None:
+    """Handle the creation, updating and deletion of media."""
+
     media_id = request.POST["media_id"]
     media_type = request.POST.get("media_type")
+
     # when editing from home, medialist and media details
     if media_type == "season":
         if season_number is None:
@@ -30,24 +47,14 @@ def media_form_handler(request, media_metadata=None, season_number=None, title=N
 
 
 def media_save(
-    request,
-    media_id,
-    media_type,
-    media_metadata,
-    season_number=None,
-):
-    """
-    Saves media data to the database.
+    request: HttpRequest,
+    media_id: int,
+    media_type: str,
+    media_metadata: dict,
+    season_number: int | None = None,
+) -> None:
+    """Save or update media data to the database."""
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        media_id (int): The ID of the media.
-        title (str): The title of the media.
-        image (str): The image path of the media.
-        model (Model): The model to use for saving the media data.
-        form (Form): The form to use for validating the media data.
-        season_number (int, optional): The season number of the media.
-    """
     media_mapping = helpers.media_type_mapper(media_type)
     model = media_mapping["model"]
     form = media_mapping["form"]
@@ -79,23 +86,24 @@ def media_save(
     if form.is_valid():
         form.save()
         # if season status completed but episode count is < total episodes
-        if model == Season and form.instance.status == "Completed":
-            if form.instance.episodes.count() < len(media_metadata["episodes"]):
-                create_remaining_episodes(instance, media_metadata)
+        if (
+            model == Season
+            and form.instance.status == "Completed"
+            and form.instance.episodes.count() < len(media_metadata["episodes"])
+        ):
+            create_remaining_episodes(instance, media_metadata)
     else:
         logger.error(form.errors.as_data())
 
 
-def media_delete(request, media_id, media_type, season_number=None):
-    """
-    Deletes media data from the database.
+def media_delete(
+    request: HttpRequest,
+    media_id: int,
+    media_type: str,
+    season_number: int | None = None,
+) -> None:
+    """Delete media data from the database."""
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        media_id (int): The ID of the media.
-        model (Model): The model to use for deleting the media data.
-        season_number (int, optional): The season number of the media.
-    """
     media_mapping = helpers.media_type_mapper(media_type)
     search_params = {
         "media_id": media_id,
@@ -109,25 +117,23 @@ def media_delete(request, media_id, media_type, season_number=None):
         instance = media_mapping["model"].objects.get(**search_params)
         instance.delete()
     except media_mapping["model"].DoesNotExist:
-        logger.error("Instance does not exist")
+        logger.exception("Instance does not exist")
 
 
-def episode_form_handler(request, media_id, season_metadata, season_number):
-    """
-    Handles the creation, deletion, and updating of episodes for a season.
+def episode_form_handler(
+    request: HttpRequest,
+    media_id: int,
+    season_metadata: dict,
+    season_number: int,
+) -> None:
+    """Handle the creation, deletion, and updating of episodes for a season."""
 
-    Args:
-        request (HttpRequest): The HTTP request object.
-        media_id (int): The ID of the TV show.
-        title (str): The title of the TV show.
-        image (str): The URL of the season's image.
-        season_metadata (dict): A dictionary containing season's metadata.
-        season_number (int): The season number of the TV show.
-    """
     episodes_checked = request.POST.getlist("episode_number")
     try:
         related_season = Season.objects.get(
-            media_id=media_id, user=request.user, season_number=season_number
+            media_id=media_id,
+            user=request.user,
+            season_number=season_number,
         )
     except Season.DoesNotExist:
         image = helpers.download_image(season_metadata["image"], "season")
@@ -143,7 +149,8 @@ def episode_form_handler(request, media_id, season_metadata, season_number):
         )
     if "unwatch" in request.POST:
         Episode.objects.filter(
-            related_season=related_season, episode_number__in=episodes_checked
+            related_season=related_season,
+            episode_number__in=episodes_checked,
         ).delete()
     else:
         # convert list of strings to list of ints
@@ -173,7 +180,8 @@ def episode_form_handler(request, media_id, season_metadata, season_number):
             # update episode watch date
             try:
                 episode_db = Episode.objects.get(
-                    related_season=related_season, episode_number=episode_num
+                    related_season=related_season,
+                    episode_number=episode_num,
                 )
                 episode_db.watch_date = watch_date
                 episodes_to_update.append(episode_db)
@@ -195,19 +203,14 @@ def episode_form_handler(request, media_id, season_metadata, season_number):
             related_season.save()
 
 
-def create_remaining_episodes(instance, season_metadata):
-    """
-    Create remaining episodes for a season based on the season metadata.
-
-    Args:
-        instance (Season): The season instance to create episodes for.
-        season_metadata (dict): The metadata for the season.
-    """
+def create_remaining_episodes(instance: Season, season_metadata: dict) -> None:
+    """Create remaining episodes for a season based on the season metadata."""
     episodes_to_create = []
 
     # Get the episode numbers of the episodes already in the database
     episodes_in_db = Episode.objects.filter(related_season=instance).values_list(
-        "episode_number", flat=True
+        "episode_number",
+        flat=True,
     )
 
     # Create Episode objects for the remaining episodes
@@ -216,7 +219,9 @@ def create_remaining_episodes(instance, season_metadata):
             episode_db = Episode(
                 related_season=instance,
                 episode_number=episode["episode_number"],
-                watch_date=datetime.now(),
+                watch_date=datetime.datetime.now(
+                    tz=settings.TZ,
+                ).date(),
             )
             episodes_to_create.append(episode_db)
 

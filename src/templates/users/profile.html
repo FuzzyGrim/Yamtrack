@@ -2,25 +2,21 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block title %}Profile - Yamtrack{% endblock %}
+{% block title %}Profile - Yamtrack{% endblock title %}
 
 {% block content %}
 
-  <div id="profile">
+  <div class="container mb-4">
 
     {% if messages %}
       {% for message in messages %}
-        {% if message.tags == 'error' %}
-          <div class="alert alert-danger">
-        {% else %}
-          <div class="alert alert-{{ message.tags }}">
-        {% endif %}
+        <div class="alert alert-{{ message.tags }}">
           {{ message|linebreaksbr }}
         </div>
       {% endfor %}
     {% endif %}
     
-    <form method="POST" class="mb-4">
+    <form method="post" class="mb-4">
       {% csrf_token %}
       <fieldset class="form-group">
         <legend class="border-bottom mb-4">Profile</legend>
@@ -28,7 +24,7 @@
       </fieldset>
     </form>
   
-    <form method="POST" class="mb-4">
+    <form method="post" class="mb-4">
       {% csrf_token %}
       <fieldset class="form-group">
         <legend class="border-bottom mb-4">Password Update</legend>
@@ -39,49 +35,49 @@
     <div class="mb-4">
       <legend class="border-bottom mb-4">Import</legend>
 
-      <fieldset class="input-group grid-container">
-        <form class="p-2 grid-item import-form" method="POST" enctype="multipart/form-data" action="{% url 'import_tmdb_ratings' %}">
+      <fieldset class="input-group profile-grid">
+        <form class="p-2 grid-item import-form" method="post" enctype="multipart/form-data" action="{% url 'import_tmdb_ratings' %}">
           {% csrf_token %}
           <div class="form-title">TMDB Ratings</div>
           <div class="input-group">
             <input type="file" class="form-control" name="tmdb_ratings">
-            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
 
-        <form class="p-2 grid-item import-form" method="POST" enctype="multipart/form-data" action="{% url 'import_tmdb_watchlist' %}">
+        <form class="p-2 grid-item import-form" method="post" enctype="multipart/form-data" action="{% url 'import_tmdb_watchlist' %}">
           {% csrf_token %}
           <div class="form-title">TMDB Watchlist</div>
           <div class="input-group">
             <input type="file" class="form-control" name="tmdb_watchlist">
-            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
 
-        <form class="p-2 grid-item import-form" method="POST" action="{% url 'import_mal' %}">
+        <form class="p-2 grid-item import-form" method="post" action="{% url 'import_mal' %}">
           {% csrf_token %}
           <div class="form-title">MyAnimeList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="mal" placeholder="MyAnimeList Username">
-            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
         
-        <form class="p-2 grid-item import-form" method="POST" action="{% url 'import_anilist' %}">
+        <form class="p-2 grid-item import-form" method="post" action="{% url 'import_anilist' %}">
           {% csrf_token %}
           <div class="form-title">AniList</div>
           <div class="input-group">
             <input type="text" class="form-control" name="anilist" placeholder="AniList Username">
-            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
 
-        <form class="p-2 grid-item import-form" method="POST" enctype="multipart/form-data" action="{% url 'import_yamtrack' %}">
+        <form class="p-2 grid-item import-form" method="post" enctype="multipart/form-data" action="{% url 'import_yamtrack' %}">
           {% csrf_token %}
           <div class="form-title">Yamtrack CSV</div>
           <div class="input-group">
             <input type="file" class="form-control" name="yamtrack_csv">
-            <button class="btn no-fill-btn bg-dark" type="submit"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-secondary" type="submit"><i class="bi bi-check-lg"></i></button>
           </div>
         </form>
       </fieldset>
@@ -90,18 +86,18 @@
     <div>
       <legend class="border-bottom mb-4">Export</legend>
 
-      <fieldset class="input-group grid-container">
-        <form class="p-2 grid-item" method="POST" action="{% url 'export_csv' %}">
+      <fieldset class="input-group profile-grid">
+        <form class="p-2 grid-item" method="post" action="{% url 'export_csv' %}">
           {% csrf_token %}
-          <button class="btn no-fill-btn bg-dark w-100" type="submit">Export as CSV</button>
+          <button class="btn btn-secondary w-100" type="submit">Export as CSV</button>
         </form>
       </fieldset>
     </div>
 
   </div>
 
-{% endblock %}
+{% endblock content %}
 
 {% block extra_scripts %}
   <script src="{% static 'js/spinner.js' %}"></script>
-{% endblock %}
+{% endblock extra_scripts %}

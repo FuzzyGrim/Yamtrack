@@ -1,5 +1,5 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
+from crispy_forms.layout import BaseInput
 from django import forms
 from django.contrib.auth.forms import (
     AuthenticationForm,
@@ -18,7 +18,7 @@ class UserLoginForm(AuthenticationForm):
         widget=forms.TextInput(
             attrs={
                 "autofocus": True,
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control first-input",
                 "required": True,
                 "id": "id_username",
                 "placeholder": "Username",
@@ -30,7 +30,7 @@ class UserLoginForm(AuthenticationForm):
         widget=forms.PasswordInput(
             attrs={
                 "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control last-input",
                 "required": True,
                 "id": "id_password1",
                 "placeholder": "Password",
@@ -44,7 +44,7 @@ class UserLoginForm(AuthenticationForm):
         initial=False,
         required=False,
         widget=forms.CheckboxInput(
-            attrs={"class": "checkboxinput form-check-input", "id": "id_remember_me"},
+            attrs={"class": "form-check-input"},
         ),
     )
 
@@ -57,7 +57,7 @@ class UserRegisterForm(UserCreationForm):
         widget=forms.TextInput(
             attrs={
                 "autofocus": True,
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control first-input",
                 "required": True,
                 "id": "id_username",
                 "placeholder": "Username",
@@ -69,7 +69,7 @@ class UserRegisterForm(UserCreationForm):
         widget=forms.PasswordInput(
             attrs={
                 "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control middle-input",
                 "required": True,
                 "id": "id_password1",
                 "placeholder": "Password",
@@ -81,7 +81,7 @@ class UserRegisterForm(UserCreationForm):
         widget=forms.PasswordInput(
             attrs={
                 "autocomplete": "new-password",
-                "class": "textinput textInput form-control",
+                "class": "textinput textInput form-control last-input",
                 "required": True,
                 "id": "id_password2",
                 "placeholder": "Password confirmation",
@@ -105,7 +105,7 @@ class UserUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.add_input(
-            Submit("submit", "Update", css_class="btn btn-secondary rounded"),
+            CustomSubmit("submit", "Update"),
         )
 
     class Meta:
@@ -125,5 +125,15 @@ class PasswordChangeForm(PasswordChangeForm):
         self.fields["old_password"].widget.attrs.pop("autofocus", None)
         self.helper = FormHelper()
         self.helper.add_input(
-            Submit("submit", "Update", css_class="btn btn-secondary rounded"),
+            CustomSubmit("submit", "Update"),
         )
+
+
+class CustomSubmit(BaseInput):
+    """Custom submit button for crispy forms.
+
+    Overrides button class btn-primary to btn-secondary and adds rounded corners.
+    """
+
+    input_type = "submit"
+    field_classes = "btn btn-secondary rounded"

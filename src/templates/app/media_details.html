@@ -1,155 +1,104 @@
 {% extends "base.html" %}
 {% load static %}
-{% load app_extras %}
-
-{% block title %}{{media.title}} - Yamtrack{% endblock %}
-
+{% block title %}
+  {{ media.title }} - Yamtrack
+{% endblock title %}
 {% block content %}
-  <div id="details">
-    <div class="header d-flex">
+  <div class="container">
+    <div class="details-top d-flex mb-4">
       <div class="image">
         {% if media.image != "none.svg" %}
-          <img class="poster" src="{{media.image}}" alt="media.title" />
+          <img class="poster" src="{{ media.image }}" alt="media.title" />
         {% else %}
-          <img class="image-not-found" src="{% get_media_prefix %}{{media.image}}" alt="media.title"/>
+          <img class="image-not-found"
+               src="{% get_media_prefix %}{{ media.image }}"
+               alt="media.title" />
         {% endif %}
       </div>
-      <div class="content d-flex flex-column align-items-start">
-        <div class="title header-text">{{media.title}}</div>
-
+      <div class="details-data d-flex flex-column align-items-start">
+        <div class="title fs-4">{{ media.title }}</div>
         <div class="original-type">
           <strong>Type:</strong>
-          {{media.original_type}}
+          {{ media.original_type }}
         </div>
-
         <div class="start-date">
           <strong>Release date:</strong>
-          {{media.start_date}}
+          {{ media.start_date }}
         </div>
-
         <div class="status">
-          <strong>Status:</strong> {{media.status}} 
+          <strong>Status:</strong> {{ media.status }}
         </div>
-
         <div class="synopsis">
           <strong>Synopsis:</strong>
-          {{media.synopsis}}
+          {{ media.synopsis }}
         </div>
-
         <div class="episodes">
-          {% if media.num_episodes %} <strong>Total Episodes:</strong> {{media.num_episodes}}
-          {% elif media.num_chapters %} <strong>Total Chapters:</strong> {{media.num_chapters}}
+          {% if media.num_episodes %}
+            <strong>Total Episodes:</strong> {{ media.num_episodes }}
+          {% elif media.num_chapters %}
+            <strong>Total Chapters:</strong> {{ media.num_chapters }}
           {% endif %}
         </div>
-
         {% if media.runtime %}
           <div class="runtime">
-            <strong>Runtime:</strong> {{media.runtime}}
+            <strong>Runtime:</strong> {{ media.runtime }}
           </div>
         {% endif %}
-
         <div class="genres">
           <strong>Genres:</strong>
           {% for genre in media.genres %}
-              {{ genre.name }}{% if not forloop.last %},{% endif %}
+            {{ genre.name }}
+            {% if not forloop.last %},{% endif %}
           {% endfor %}
         </div>
-        
         <div class="buttons-group">
-          <button type="button" title="Track" class="btn btn-secondary open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{media.media_id}}" data-type="{{media.media_type}}" data-id="{{media.media_id}}">
-            <i class="bi bi-pencil-square"></i>
-          </button>
-          {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:media.media_id title=media.title only %}
+          {% include "app/components/open_form_modal.html" with media_type=media.media_type media_id=media.media_id title=media only %}
         </div>
       </div>
     </div>
-
     {% if seasons %}
-      <div class="grid-title">
-        <strong>Seasons</strong>
+      <div class="mt-3 fs-5">
+        Seasons
       </div>
-
       <div class="grid">
-        {% for season in seasons%}
+        {% for season in seasons %}
           <div class="card text-bg-dark mx-auto">
-            <a href="{% url 'season_details' media_id=media.id title=media.title|slugify season_number=season.season_number%}">
-              <img
-                {% if season.image == "none.svg"%}
-                  src="{% get_media_prefix %}{{season.image}}"
-                  class="card-img image-not-found"
-                  {% else %}
-                  src="{{season.image}}"
-                  class="card-img poster"
-                {% endif %}
-                alt="{{ season.title }}"
-              />
+            <a href="{% url 'season_details' media_id=media.id title=media.title|slugify season_number=season.season_number %}">
+              <img {% if season.image == "none.svg" %} src="{% get_media_prefix %}{{ season.image }}" class="card-img image-not-found" {% else %} src="{{ season.image }}" class="card-img poster" {% endif %}
+                   alt="{{ season }}" />
             </a>
-
             <div class="card-img-overlay">
-              <div class="card-title text-center">
-                {{ season.title }}
-              </div>
-
+              <div class="card-title text-center">{{ season.title }}</div>
               <div class="card-text d-flex justify-content-center align-items-center">
-                <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-season_{{media.media_id}}_{{season.season_number}}" 
-                        data-type="season" data-id="{{media.media_id}}" data-season-number="{{season.season_number}}">
-                  <i class="bi bi-pencil-square"></i>
-                </button>              
+                {% include "app/components/open_form_modal.html" with media_type="season" media_id=media.media_id season_number=season.season_number title=media only %}
               </div>
             </div>
           </div>
-          {% include "app/include/modal.html" with form_id="season"|addstr:"_"|addstr:media.media_id|addstr:"_"|addstr:season.season_number title=media.title|addstr:" "|addstr:season.name only %}
         {% endfor %}
       </div>
     {% endif %}
-    
-
     {% for related_data in related_data_list %}
       {% if related_data.data %}
-
-        <div class="grid-title">
-          <strong>{{ related_data.name }}</strong>
+        <div class="mt-3 fs-5">
+          {{ related_data.name }}
         </div>
-
         <div class="grid">
           {% for related in related_data.data %}
             <div class="card text-bg-dark mx-auto">
-              <a href="{% url 'media_details' media_type=media.media_type media_id=related.id title=related.title|slugify%}">
-                <img
-                  {% if related.image == "none.svg"%}
-                    src="{% get_media_prefix %}{{related.image}}"
-                    class="card-img image-not-found"
-                    {% else %}
-                    src="{{related.image}}"
-                    class="card-img poster"
-                  {% endif %}
-                  alt="{{ related.title }}"
-                />
+              <a href="{% url 'media_details' media_type=media.media_type media_id=related.id title=related.title|slugify %}">
+                <img {% if related.image == "none.svg" %} src="{% get_media_prefix %}{{ related.image }}" class="card-img image-not-found" {% else %} src="{{ related.image }}" class="card-img poster" {% endif %}
+                     alt="{{ related.title }}" />
               </a>
-
               <div class="card-img-overlay">
-                <div class="card-title text-center">
-                  {{ related.title }}
-                </div>
-
+                <div class="card-title text-center">{{ related.title }}</div>
                 <div class="card-text d-flex justify-content-center align-items-center">
-                  <button type="button" class="btn open-modal-button" data-bs-toggle="modal" data-bs-target="#modal-{{media.media_type}}_{{related.id}}" 
-                          data-type="{{media.media_type}}" data-id="{{related.id}}">
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
+                  {% include "app/components/open_form_modal.html" with media_type=media.media_type media_id=related.id title=related.title only %}
                 </div>
               </div>
             </div>
-            {% include "app/include/modal.html" with form_id=media.media_type|addstr:"_"|addstr:related.id title=related.title only %}
           {% endfor %}
         </div>
-
       {% endif %}
     {% endfor %}
-
   </div>
-{% endblock content%}
-
-{% block extra_scripts %}
-  <script src="{% static 'js/modal-load.js' %}"></script>
-{% endblock extra_scripts %}
+{% endblock content %}
