@@ -3,13 +3,13 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[html]": {
     "editor.defaultFormatter": "vscode.html-language-features",
-    "edit.tabSize": 2
+    "editor.tabSize": 2
   },
   "[css]": {
-    "edit.tabSize": 2
+    "editor.tabSize": 2
   },
   "[javascript]": {
-    "edit.tabSize": 2
+    "editor.tabSize": 2
   },
   "[python]": {
     "editor.formatOnSave": true,
@@ -22,5 +22,7 @@
   },
   "[html][django-html][handlebars][hbs][mustache][jinja][jinja-html][nj][njk][nunjucks][twig]": {
     "editor.defaultFormatter": "monosans.djlint"
-  }
+  },
+  "djlint.ignore": ["H006"]
+
 }

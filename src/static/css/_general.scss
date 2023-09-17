@@ -1,0 +1,19 @@
+body {
+  background-color: $background;
+  font-family: "Roboto", sans-serif;
+
+  // hide lazyload img until loaded
+  img.lazyload:not([src]) {
+    visibility: hidden;
+  }
+}
+
+main {
+  height: 100dvh;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.container {
+  padding: 1rem;
+}
