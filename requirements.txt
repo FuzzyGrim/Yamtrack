@@ -7,7 +7,7 @@ django-crispy-forms==2.0
 django_debug_toolbar==4.2.0
 django-sass-processor==1.2.2
 libsass==0.22.0
-Pillow==10.0.0
+Pillow==10.0.1
 psycopg-c==3.1.10
 python-decouple==3.8
 pytz==2023.3.post1
