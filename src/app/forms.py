@@ -69,6 +69,7 @@ class MediaForm(forms.ModelForm):
         """Initialize the form."""
 
         self.post_processing = kwargs.pop("post_processing", True)
+
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(

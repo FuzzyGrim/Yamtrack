@@ -302,9 +302,9 @@ def modal_data(request: HttpRequest) -> HttpResponse:
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
     media_mapping = helpers.media_type_mapper(media_type)
+    season_number = request.GET.get("season_number")
 
     if media_type == "season":
-        season_number = request.GET.get("season_number")
         # set up filters to retrieve the appropriate media object
         filters = {
             "media_id": media_id,
@@ -316,22 +316,30 @@ def modal_data(request: HttpRequest) -> HttpResponse:
             "media_type": media_type,
             "season_number": season_number,
         }
+        form_id = f"form-{media_type}_{media_id}_{season_number}"
 
     else:
         filters = {"media_id": media_id, "user": request.user}
         initial_data = {"media_id": media_id, "media_type": media_type}
+        form_id = f"form-{media_type}_{media_id}"
 
     try:
         # try to retrieve the media object using the filters
         media = media_mapping["model"].objects.get(**filters)
         form = media_mapping["form"](instance=media, initial=initial_data)
-        allow_delete = True
+        form.helper.form_id = form_id
+        allow_delete=True
     except media_mapping["model"].DoesNotExist:
         form = media_mapping["form"](initial=initial_data)
-        allow_delete = False
+        form.helper.form_id = form_id
+        allow_delete=False
 
     return render(
         request,
         "app/components/form_modal_content.html",
-        {"title": request.GET.get("title"), "form": form, "allow_delete": allow_delete},
+        {"title": request.GET.get("title"),
+        "form_id": form_id,
+        "form": form,
+        "allow_delete": allow_delete,
+        },
     )

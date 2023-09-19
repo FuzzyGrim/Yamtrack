@@ -15,7 +15,11 @@
     </div>
 
     <div class="modal-footer d-flex flex-row-reverse justify-content-between">
-      <button type="submit" form="form-{{ media.media_type }}_{{ media.media_id }}" name="save" class="btn btn-primary">Save</button>
+      <button type="submit" form="{{ form_id }}" name="save" class="btn btn-primary">Save</button>
+
+      {% if allow_delete %}
+        <button type="submit" form="{{ form_id }}" name="delete" class="btn btn-danger">Delete</button>
+      {% endif %}
     </div>
 
   </div>
