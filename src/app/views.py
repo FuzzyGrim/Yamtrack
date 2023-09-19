@@ -328,18 +328,19 @@ def modal_data(request: HttpRequest) -> HttpResponse:
         media = media_mapping["model"].objects.get(**filters)
         form = media_mapping["form"](instance=media, initial=initial_data)
         form.helper.form_id = form_id
-        allow_delete=True
+        allow_delete = True
     except media_mapping["model"].DoesNotExist:
         form = media_mapping["form"](initial=initial_data)
         form.helper.form_id = form_id
-        allow_delete=False
+        allow_delete = False
 
     return render(
         request,
-        "app/components/form_modal_content.html",
-        {"title": request.GET.get("title"),
-        "form_id": form_id,
-        "form": form,
-        "allow_delete": allow_delete,
+        "app/components/fill_track_form.html",
+        {
+            "title": request.GET.get("title"),
+            "form_id": form_id,
+            "form": form,
+            "allow_delete": allow_delete,
         },
     )

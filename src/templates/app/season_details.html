@@ -34,7 +34,7 @@
           <strong>Total Episodes: {{ season.episodes|length }}</strong>
         </div>
         <div class="buttons-group">
-          {% include "app/components/open_form_modal.html" with media_type="season" media_id=media_id season_number=season.season_number title=media_title|capfirst only %}
+          {% include "app/components/open_track_form.html" with media_type="season" media_id=media_id season_number=season.season_number title=media_title|capfirst only %}
           {% comment %} check for not None because Season 0 evaluates to false {% endcomment %}
           {% if previous_season != None %}
             <a href="{% url 'season_details' media_id=media_id title=media_title|slugify season_number=previous_season %}"
@@ -110,8 +110,7 @@
             <input type="date"
                    class="form-control pe-0 rounded-0 border-end-0"
                    name="date"
-                   value="{% now "Y-m-d" %}"
-            >
+                   value="{% now "Y-m-d" %}">
             <button type="submit" class="btn bg-dark border-start-0 rounded-0">
               <i class="bi bi-check-circle-fill"></i>
             </button>

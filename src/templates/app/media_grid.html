@@ -18,10 +18,10 @@
         <i class="bi bi-funnel-fill"></i>
       </button>
       <div class="modal fade"
-          id="FilterModal"
-          tabindex="-1"
-          aria-labelledby="FilterModalLabel"
-          aria-hidden="true">
+           id="FilterModal"
+           tabindex="-1"
+           aria-labelledby="FilterModalLabel"
+           aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-body">
@@ -39,28 +39,31 @@
     <div class="grid">
       {% for media in media_list %}
         <div class="card text-bg-dark mx-auto">
-          <a href={% if media.season_number is None %}
-                    "{% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}"
-                  {% else %}
-                    "{% url 'season_details' media_id=media.media_id title=media|slugify season_number=media.season_number %}
-                  "{% endif %}>
-              <img class="card-img lazyload {% if media.image == "none.svg" %} image-not-found {% else %} poster {% endif %}"
-                  data-src="{{ media.image.url }}"
-                  data-expand="1000"
-                  alt="{{ media }}"
-              />
-            </a>
-            <div class="card-img-overlay">
-              <div class="card-title text-center">{{ media }}</div>
-              <div class="card-text d-flex justify-content-evenly align-items-center">
-                {{ media.score }}
-                {% if media.season_number %}
-                  {% include "app/components/open_form_modal.html" with media_type="season" media_id=media.media_id season_number=media.season_number title=media only %}
-                {% else %}
-                  {% include "app/components/open_form_modal.html" with media_type=media_type media_id=media.media_id title=media only %}
-                {% endif %}
-              </div>
+          <a href="{% if media.season_number is None %}"
+             "
+             {% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}
+             "
+             {% else %}
+             "
+             {% url 'season_details' media_id=media.media_id title=media|slugify season_number=media.season_number %}
+             "
+             {% endif %}>
+            <img class="card-img lazyload {% if media.image == "none.svg" %} image-not-found {% else %} poster {% endif %}"
+                 data-src="{{ media.image.url }}"
+                 data-expand="1000"
+                 alt="{{ media }}" />
+          </a>
+          <div class="card-img-overlay">
+            <div class="card-title text-center">{{ media }}</div>
+            <div class="card-text d-flex justify-content-evenly align-items-center">
+              {{ media.score }}
+              {% if media.season_number %}
+                {% include "app/components/open_track_form.html" with media_type="season" media_id=media.media_id season_number=media.season_number title=media only %}
+              {% else %}
+                {% include "app/components/open_track_form.html" with media_type=media_type media_id=media.media_id title=media only %}
+              {% endif %}
             </div>
+          </div>
         </div>
       {% endfor %}
     </div>

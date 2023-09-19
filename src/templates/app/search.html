@@ -18,7 +18,7 @@
         <div class="card text-bg-dark mx-auto">
           <a href="{% url 'media_details' media_type=media.media_type media_id=media.id title=media.title|slugify %}">
             <img {% if media.image == "none.svg" %} src="{% get_media_prefix %}{{ media.image }}" class="card-img image-not-found" {% else %} src="{{ media.image }}" class="card-img poster" {% endif %}
-                  alt="{{ media.title }}" />
+                 alt="{{ media.title }}" />
           </a>
           <div class="card-img-overlay">
             <div class="card-title text-center">{{ media.title }}</div>
@@ -28,7 +28,7 @@
               {% else %}
                 {{ media.original_type|capfirst }}
               {% endif %}
-              {% include "app/components/open_form_modal.html" with media_type=media.media_type media_id=media.media_id title=media only %}
+              {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=media.media_id title=media only %}
             </div>
           </div>
         </div>

@@ -52,14 +52,12 @@
           {% endfor %}
         </div>
         <div class="buttons-group">
-          {% include "app/components/open_form_modal.html" with media_type=media.media_type media_id=media.media_id title=media only %}
+          {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=media.media_id title=media only %}
         </div>
       </div>
     </div>
     {% if seasons %}
-      <div class="mt-3 fs-5">
-        Seasons
-      </div>
+      <div class="mt-3 fs-5">Seasons</div>
       <div class="grid">
         {% for season in seasons %}
           <div class="card text-bg-dark mx-auto">
@@ -70,7 +68,7 @@
             <div class="card-img-overlay">
               <div class="card-title text-center">{{ season.title }}</div>
               <div class="card-text d-flex justify-content-center align-items-center">
-                {% include "app/components/open_form_modal.html" with media_type="season" media_id=media.media_id season_number=season.season_number title=media only %}
+                {% include "app/components/open_track_form.html" with media_type="season" media_id=media.media_id season_number=season.season_number title=media only %}
               </div>
             </div>
           </div>
@@ -79,9 +77,7 @@
     {% endif %}
     {% for related_data in related_data_list %}
       {% if related_data.data %}
-        <div class="mt-3 fs-5">
-          {{ related_data.name }}
-        </div>
+        <div class="mt-3 fs-5">{{ related_data.name }}</div>
         <div class="grid">
           {% for related in related_data.data %}
             <div class="card text-bg-dark mx-auto">
@@ -92,7 +88,7 @@
               <div class="card-img-overlay">
                 <div class="card-title text-center">{{ related.title }}</div>
                 <div class="card-text d-flex justify-content-center align-items-center">
-                  {% include "app/components/open_form_modal.html" with media_type=media.media_type media_id=related.id title=related.title only %}
+                  {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=related.id title=related.title only %}
                 </div>
               </div>
             </div>
