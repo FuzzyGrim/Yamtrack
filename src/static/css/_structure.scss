@@ -72,16 +72,16 @@
       .card-text {
         font-size: 0.85rem;
 
-        .btn {
-          padding: 0.1rem 0.3rem;
-        }
-
         .open-modal-btn {
+          padding: 0.1rem 0.3rem;
           font-size: 0.75rem;
         }
 
-        .progress-btn:disabled {
-          color: transparent;
+        .progress-btn {
+          padding: 0.1rem 0.3rem;
+          &:disabled {
+            color: transparent;
+          }
         }
       }
     }
