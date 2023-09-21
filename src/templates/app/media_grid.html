@@ -40,9 +40,9 @@
       {% for media in media_list %}
         <div class="card text-bg-dark mx-auto">
           <a href={% if media.season_number is None %}
-                    "{% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}"
+                    "{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}"
                   {% else %}
-                    "{% url 'season_details' media_id=media.media_id title=media|slugify season_number=media.season_number %}"
+                    "{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}"
                   {% endif %}>
             <img class="card-img lazyload {% if media.image == "none.svg" %} image-not-found {% else %} poster {% endif %}"
                  data-src="{{ media.image.url }}"
@@ -54,9 +54,9 @@
             <div class="card-text d-flex justify-content-evenly align-items-center">
               {{ media.score }}
               {% if media.season_number %}
-                {% include "app/components/open_track_form.html" with media_type="season" media_id=media.media_id season_number=media.season_number title=media only %}
+                {% include "app/components/open_track_form.html" with media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
               {% else %}
-                {% include "app/components/open_track_form.html" with media_type=media_type media_id=media.media_id title=media only %}
+                {% include "app/components/open_track_form.html" with media_type=media_type media_id=media.media_id title=media.title only %}
               {% endif %}
             </div>
           </div>

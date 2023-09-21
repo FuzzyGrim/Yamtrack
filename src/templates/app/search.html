@@ -28,7 +28,7 @@
               {% else %}
                 {{ media.original_type|capfirst }}
               {% endif %}
-              {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=media.media_id title=media only %}
+              {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=media.media_id title=media.title only %}
             </div>
           </div>
         </div>

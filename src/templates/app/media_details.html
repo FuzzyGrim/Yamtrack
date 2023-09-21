@@ -52,7 +52,7 @@
           {% endfor %}
         </div>
         <div class="buttons-group">
-          {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=media.media_id title=media only %}
+          {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=media.media_id title=media.title only %}
         </div>
       </div>
     </div>
@@ -68,7 +68,7 @@
             <div class="card-img-overlay">
               <div class="card-title text-center">{{ season.title }}</div>
               <div class="card-text d-flex justify-content-center align-items-center">
-                {% include "app/components/open_track_form.html" with media_type="season" media_id=media.media_id season_number=season.season_number title=media only %}
+                {% include "app/components/open_track_form.html" with media_type="season" media_id=media.media_id season_number=season.season_number title=media.title only %}
               </div>
             </div>
           </div>

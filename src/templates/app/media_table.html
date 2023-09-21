@@ -55,13 +55,13 @@
                      {% comment %} adding alt attr resizes table {% endcomment %} />
               </td>
               <td class="media-title text-truncate">
-                <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media|slugify %}">{{ media }}</a>
+                <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}">{{ media }}</a>
               </td>
               <td>{{ media.score }}</td>
               <td>{{ media.status|default_if_none:"" }}</td>
               <td>{{ media.progress|default_if_none:"" }}</td>
               <td>
-                {% include "app/components/open_track_form.html" with media_type=media_type media_id=media.media_id title=media only %}
+                {% include "app/components/open_track_form.html" with media_type=media_type media_id=media.media_id title=media.title only %}
               </td>
             </tr>
           {% endfor %}
