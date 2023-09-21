@@ -1,9 +1,9 @@
 <button type="button"
         hx-get="/modal_data"
-        hx-vals='{"title": "{{ title }}",
+        hx-vals='{"title": "{{ title|addslashes }}",
                   "media_type": "{{ media_type }}",
                   "media_id": "{{ media_id }}"
-                  {% if season_number %}, "season_number": "{{ season_number }}"{% endif %} }'
+                  {% if season_number %}, "season_number": "{{ season_number }}"{% endif %}}'
         hx-target="#modal-{{ media_type }}_{{ media_id }}{% if season_number %}_{{ season_number }}{% endif %}"
         hx-trigger="click once"
         title="Track"
