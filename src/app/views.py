@@ -3,10 +3,8 @@ import logging
 from itertools import chain
 
 from config import settings
-from crispy_forms.utils import render_crispy_form
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.middleware import csrf
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.forms import FilterForm
@@ -249,7 +247,7 @@ def media_details(
 
 @login_required
 def season_details(
-    request: HttpRequest, media_id: str, title: str, season_number: str
+    request: HttpRequest, media_id: str, title: str, season_number: str,
 ) -> HttpResponse:
     """Return the details page for a season."""
 
