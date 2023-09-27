@@ -40,11 +40,6 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
         "season": [],
     }
 
-    bulk_images = {
-        "movie": [],
-        "tv": [],
-        "season": [],
-    }
 
     for row in reader:
         media_type = row["Type"]
@@ -58,9 +53,11 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
             # if tv show watchlist, add first season as planning
             if media_type == "tv" and status == "Planning":
                 media_type = "season"
-                # get title from tv metadata as it's not available in season metadata
+
+                # get title and id from tv metadata as it's not in season metadata
                 tv_title = media_metadata["title"]
                 media_id = media_metadata["id"]
+
                 media_metadata = metadata.season(media_id, season_number=1)
                 media_metadata["media_type"] = "season"
                 media_metadata["title"] = tv_title
@@ -76,12 +73,6 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
                 error_message = f"Error importing {media_metadata['title']}: {form.errors.as_data()}"
                 logger.error(error_message)
 
-            if media_metadata["image"] != "none.svg":
-                bulk_images[media_type].append(media_metadata["image"])
-
-    # download images
-    for media_type, images in bulk_images.items():
-        asyncio.run(helpers.images_downloader(images, media_type))
 
     # bulk create tv, seasons and movie
     for media_type, medias in bulk_media.items():
@@ -103,7 +94,7 @@ def create_instance(
     instance = media_mapping["model"](
         user=user,
         title=media_metadata["title"],
-        image=helpers.get_image_filename(media_metadata["image"], media_type),
+        image=media_metadata["image"],
     )
 
     # if tv watchlist, create first season

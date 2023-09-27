@@ -44,8 +44,8 @@
                   {% else %}
                     "{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}"
                   {% endif %}>
-            <img class="card-img lazyload {% if media.image == "none.svg" %} image-not-found {% else %} poster {% endif %}"
-                 data-src="{{ media.image.url }}"
+            <img class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
+                 data-src="{{ media.image }}"
                  data-expand="1000"
                  alt="{{ media }}" />
           </a>

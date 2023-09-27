@@ -1,7 +1,7 @@
 select = ["ALL"]
 
 # Never enforce `E501` (line length violations). This is handled by Black.
-ignore = ["E501"]
+ignore = ["E501", "D100", "D104", "D202", "D203", "D213", "PT009", "PTH123", "PT027", "RUF012"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

@@ -70,12 +70,10 @@ def media_save(
         instance = model.objects.get(**search_params)
     except model.DoesNotExist:
         # If the model instance doesn't exist, create a new one
-        if media_metadata["image"] != "none.svg":
-            image = helpers.download_image(media_metadata["image"], media_type)
         default_params = {
             "user": request.user,
             "title": media_metadata["title"],
-            "image": image,
+            "image": media_metadata["image"],
         }
         if season_number is not None:
             default_params["season_number"] = season_number
@@ -136,11 +134,10 @@ def episode_form_handler(
             season_number=season_number,
         )
     except Season.DoesNotExist:
-        image = helpers.download_image(season_metadata["image"], "season")
         related_season = Season.objects.create(
             media_id=media_id,
             title=season_metadata["title"],
-            image=image,
+            image=season_metadata["image"],
             score=None,
             status="Watching",
             notes="",

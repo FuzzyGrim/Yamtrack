@@ -1,6 +1,7 @@
 import logging
 
 import requests
+from config import settings
 from decouple import config
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ def tmdb(media_type: str, query: str) -> list:
         if media["poster_path"]:
             media["image"] = f"https://image.tmdb.org/t/p/w500{media['poster_path']}"
         else:
-            media["image"] = "none.svg"
+            media["image"] = settings.IMG_NONE
     return response
 
 
@@ -43,7 +44,8 @@ def mal(media_type: str, query: str) -> list:
     if "error" in response:
         if response["error"] == "forbidden":
             logger.error(
-                "MAL: %s, probably no API key provided", response["error"].title(),
+                "MAL: %s, probably no API key provided",
+                response["error"].title(),
             )
         elif response["error"] == "bad_request":
             if response["message"] == "invalid q":
@@ -66,7 +68,7 @@ def mal(media_type: str, query: str) -> list:
             if "main_picture" in media["node"]:
                 media["image"] = media["node"]["main_picture"]["large"]
             else:
-                media["image"] = "none.svg"
+                media["image"] = settings.IMG_NONE
             # remove node layer
             media.update(media.pop("node"))
     return response

@@ -28,8 +28,8 @@
 
 .grid {
   display: grid;
-  grid-gap: .5rem;
-  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  grid-gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
 
   .card {
     width: 100%;
@@ -37,6 +37,7 @@
 
     .poster {
       width: 100%;
+      aspect-ratio: 2/3;
       object-fit: cover;
       cursor: pointer;
     }
@@ -91,13 +92,17 @@
   }
 }
 
-
 .table-responsive {
   background-color: $primary;
 }
 
 .table {
   --bs-table-bg: $primary;
+
+  // mainly to fill td for image not found
+  td img {
+    background-color: rgb(44, 48, 50);
+  }
 
   th {
     vertical-align: middle;
@@ -107,7 +112,7 @@
     width: 1%; // set width of image td to the minimum
   }
 
-  .media-title{
+  .media-title {
     text-align: left;
     max-width: 30dvw; // auto adjust width of title
     margin-left: 0;
@@ -131,12 +136,12 @@
       border-bottom-right-radius: 0;
       border-bottom-left-radius: 0;
     }
-  
+
     .middle-input {
       margin-bottom: -1px;
       border-radius: 0;
     }
-  
+
     .last-input {
       margin-bottom: 10px;
       border-top-left-radius: 0;
@@ -148,9 +153,7 @@
   ul {
     margin-bottom: 0;
   }
-
 }
-
 
 .profile-grid {
   display: grid;
@@ -168,7 +171,6 @@
   }
 }
 
-
 .details-top {
   .poster {
     border-radius: 10px;
@@ -178,8 +180,9 @@
   }
 
   .image-not-found {
-    object-fit: contain;
+    border-radius: 10px;
     width: 14rem;
+    object-fit: contain;
     aspect-ratio: 2/3;
     background-color: rgb(44, 48, 50);
   }
@@ -187,7 +190,7 @@
   .details-data {
     margin-left: 1rem;
     // link to main details from season details
-    a { 
+    a {
       color: var(--bs-body-color);
     }
 
@@ -203,7 +206,6 @@
     }
   }
 }
-
 
 .episode {
   .check-div {
@@ -246,10 +248,10 @@
   }
 }
 
-.no-content{
+.no-content {
   display: flex;
   flex-direction: column;
   height: 75%;
   justify-content: center;
-  align-items: center;      
+  align-items: center;
 }

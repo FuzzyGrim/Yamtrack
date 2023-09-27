@@ -13,7 +13,7 @@ class Media(models.Model):
 
     media_id = models.PositiveIntegerField()
     title = models.CharField(max_length=255)
-    image = models.ImageField()
+    image = models.URLField()
     score = models.DecimalField(
         null=True,
         blank=True,

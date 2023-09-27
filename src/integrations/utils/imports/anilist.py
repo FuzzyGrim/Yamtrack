@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import datetime
 import logging
 from typing import TYPE_CHECKING
@@ -87,7 +86,7 @@ def anilist_data(username: str, user: User) -> str:
     variables = {"userName": username}
     url = "https://graphql.anilist.co"
 
-    with requests_cache.disabled(): # don't cache request as it can change frequently
+    with requests_cache.disabled():  # don't cache request as it can change frequently
         response = requests.post(
             url,
             json={"query": query, "variables": variables},
@@ -110,8 +109,6 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
     bulk_media = {"anime": [], "manga": []}
 
     for media_type in query["data"]:
-        bulk_image = []
-
         logger.info("Importing %ss from Anilist", media_type)
 
         media_mapping = helpers.media_type_mapper(media_type)
@@ -126,18 +123,10 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                         else:
                             status = content["status"].capitalize()
 
-                        image_url = content["media"]["coverImage"]["large"]
-                        bulk_image.append(image_url)
-
-                        image_filename = helpers.get_image_filename(
-                            image_url,
-                            media_type,
-                        )
-
                         instance = media_mapping["model"](
                             user=user,
                             title=content["media"]["title"]["userPreferred"],
-                            image=image_filename,
+                            image=content["media"]["coverImage"]["large"],
                         )
                         form = media_mapping["form"](
                             data={
@@ -157,8 +146,6 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                             bulk_media[media_type].append(form.instance)
                         else:
                             warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()}): {form.errors.as_text()}"
-
-        asyncio.run(helpers.images_downloader(bulk_image, media_type))
 
     Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
     logger.info("Imported %s animes", len(bulk_media["anime"]))

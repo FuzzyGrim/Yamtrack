@@ -4,6 +4,7 @@ import shutil
 from datetime import date
 from unittest.mock import patch
 
+from config import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from users.models import User
@@ -344,7 +345,7 @@ class DetailsMedia(TestCase):
         # anime without picture, synopsis, duration and genres
         response = metadata.anime_manga("anime", "0")
         self.assertEqual(response["title"], "Unknown Example")
-        self.assertEqual(response["image"], "none.svg")
+        self.assertEqual(response["image"], settings.IMG_NONE)
         self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["runtime"], "Unknown")
         self.assertEqual(response["genres"], [{"name": "Unknown"}])
@@ -377,7 +378,7 @@ class DetailsMedia(TestCase):
 
         response = metadata.movie("0")
         self.assertEqual(response["title"], "Unknown Movie")
-        self.assertEqual(response["image"], "none.svg")
+        self.assertEqual(response["image"], settings.IMG_NONE)
         self.assertEqual(response["start_date"], "Unknown")
         self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["runtime"], "Unknown")

@@ -1,10 +1,10 @@
-import asyncio
 import logging
 
 import requests
 import requests_cache
 from app.models import Anime, Manga
 from app.utils import helpers
+from config import settings
 from decouple import config
 from users.models import User
 
@@ -38,7 +38,7 @@ def get_whole_response(url: str, header: dict) -> dict:
 
     Continues to fetch data from the next URL until there is no more data to fetch.
     """
-    with requests_cache.disabled(): # don't cache request as it can change frequently
+    with requests_cache.disabled():  # don't cache request as it can change frequently
         response = requests.get(url, headers=header, timeout=5)
     data = response.json()
 
@@ -65,7 +65,6 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
     logger.info("Importing %ss from MyAnimeList", media_type)
 
     bulk_media = []
-    bulk_images = []
     media_mapping = helpers.media_type_mapper(media_type)
 
     for content in response["data"]:
@@ -76,18 +75,15 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
         else:
             progress = content["list_status"]["num_chapters_read"]
 
-        if "main_picture" in content["node"]:
+        try:
             image_url = content["node"]["main_picture"]["large"]
-            bulk_images.append(image_url)
-
-            image_filename = helpers.get_image_filename(image_url, media_type)
-        else:
-            image_filename = "none.svg"
+        except KeyError:
+            image_url = settings.IMG_NONE
 
         instance = media_mapping["model"](
             user=user,
             title=content["node"]["title"],
-            image=image_filename,
+            image=image_url,
         )
 
         form = media_mapping["form"](
@@ -112,8 +108,6 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
                 f"Error importing {content['node']['title']}: {form.errors.as_data()}"
             )
             logger.error(error_message)
-
-    asyncio.run(helpers.images_downloader(bulk_images, media_type))
 
     return bulk_media
 

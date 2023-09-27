@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from csv import DictReader
 
@@ -33,14 +32,6 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
         "season": [],
     }
 
-    bulk_images = {
-        "anime": [],
-        "manga": [],
-        "movie": [],
-        "tv": [],
-        "season": [],
-    }
-
     episodes = []
 
     for row in reader:
@@ -60,13 +51,6 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
         else:
             media_mapping = helpers.media_type_mapper(media_type)
             add_bulk_media(row, media_mapping, user, bulk_media)
-
-            if row["image"] != "none.svg":
-                add_bulk_image(row, media_mapping, bulk_images)
-
-    # download images
-    for media_type, images in bulk_images.items():
-        asyncio.run(helpers.images_downloader(images, media_type))
 
     # bulk create tv, season, movie, anime and manga
     for media_type, medias in bulk_media.items():
@@ -121,29 +105,3 @@ def add_bulk_media(
         bulk_media[media_type].append(form.instance)
     else:
         logger.error("Error importing %s: %s", row["title"], form.errors.as_data())
-
-
-def add_bulk_image(row: dict, media_mapping: dict, bulk_image: dict) -> None:
-    """Add image to list for bulk download."""
-    media_type = row["media_type"]
-    img_url_format = media_mapping["img_url"]
-    img_filename = row["image"].split("-", 1)[-1]
-
-    if media_type in ("anime", "manga"):
-        # check if anilist or mal
-        # mal -> anime-11111l.jpg (all digits except last letter "l")
-        # anilist -> anime-dv332fds.jpg
-        if row["image"][5:-5].isdigit() and row["image"][-5] == "l":
-            bulk_image[media_type].append(
-                img_url_format["mal"].format(
-                    media_id=row["media_id"],
-                    image_file=img_filename,
-                ),
-            )
-        else:
-            bulk_image[media_type].append(
-                img_url_format["anilist"].format(image_file=img_filename),
-            )
-    else:
-        # tv-f496cm9enuEsZkSPzCwnTESEK5s.jpg -> https://image.tmdb.org/t/p/w500/f496cm9enuEsZkSPzCwnTESEK5s.jpg
-        bulk_image[media_type].append(img_url_format.format(image_file=img_filename))

@@ -1,4 +1,5 @@
 import requests
+from config import settings
 from decouple import config
 
 TMDB_API = config("TMDB_API", default=None)
@@ -23,7 +24,9 @@ def anime_manga(media_type: str, media_id: str) -> dict:
 
     url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_episodes,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
     response = requests.get(
-        url, headers={"X-MAL-CLIENT-ID": MAL_API}, timeout=5
+        url,
+        headers={"X-MAL-CLIENT-ID": MAL_API},
+        timeout=5,
     ).json()
 
     if response["media_type"] == "tv":
@@ -35,7 +38,7 @@ def anime_manga(media_type: str, media_id: str) -> dict:
     if "main_picture" in response:
         response["image"] = response["main_picture"]["large"]
     else:
-        response["image"] = "none.svg"
+        response["image"] = settings.IMG_NONE
 
     # Map status to human-readable values
     status_map = {
@@ -79,11 +82,10 @@ def anime_manga(media_type: str, media_id: str) -> dict:
             if "main_picture" in item["node"]:
                 item["node"]["image"] = item["node"]["main_picture"]["large"]
             else:
-                item["node"]["image"] = "none.svg"
+                item["node"]["image"] = settings.IMG_NONE
             item.update(item["node"])
 
         response[key] = items
-
 
     return response
 
@@ -103,11 +105,9 @@ def tv(media_id: str) -> dict:
     # tmdb will either not return the key or return an empty value/string
 
     if response["poster_path"]:
-        response[
-            "image"
-        ] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+        response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
     else:
-        response["image"] = "none.svg"
+        response["image"] = settings.IMG_NONE
 
     # tv shows have name instead of title
     response["title"] = response["name"]
@@ -142,11 +142,9 @@ def tv(media_id: str) -> dict:
         items = response.get(key)
         for item in items:
             if item["poster_path"]:
-                item[
-                    "image"
-                ] = f"https://image.tmdb.org/t/p/w500{item['poster_path']}"
+                item["image"] = f"https://image.tmdb.org/t/p/w500{item['poster_path']}"
             else:
-                item["image"] = "none.svg"
+                item["image"] = settings.IMG_NONE
 
             item["title"] = item["name"]
 
@@ -171,11 +169,9 @@ def movie(media_id: str) -> dict:
     # tmdb will either not return the key or return an empty value/string
 
     if response["poster_path"]:
-        response[
-            "image"
-        ] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+        response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
     else:
-        response["image"] = "none.svg"
+        response["image"] = settings.IMG_NONE
 
     if "release_date" in response and response["release_date"] != "":
         response["start_date"] = response["release_date"]
@@ -206,7 +202,7 @@ def movie(media_id: str) -> dict:
                 "image"
             ] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
         else:
-            recommendation["image"] = "none.svg"
+            recommendation["image"] = settings.IMG_NONE
 
     return response
 
@@ -218,11 +214,9 @@ def season(tv_id: str, season_number: int) -> dict:
     response = requests.get(url, timeout=5).json()
 
     if response["poster_path"]:
-        response[
-            "image"
-        ] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+        response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
     else:
-        response["image"] = "none.svg"
+        response["image"] = settings.IMG_NONE
 
     if response["air_date"] != "":
         response["start_date"] = response["air_date"]
