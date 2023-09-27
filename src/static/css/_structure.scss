@@ -37,7 +37,6 @@
 
     .poster {
       width: 100%;
-      aspect-ratio: 2/3;
       object-fit: cover;
       cursor: pointer;
     }
@@ -253,10 +252,4 @@
   height: 75%;
   justify-content: center;
   align-items: center;      
-}
-
-.error-title {
-  font-weight: 700;
-  margin-bottom: 1rem;
-  text-align: center;
 }
