@@ -2,22 +2,14 @@ version: "3"
 services:
   yamtrack:
     container_name: yamtrack
-    build: .
+    image: ghcr.io/fuzzygrim/yamtrack
     restart: unless-stopped
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/Madrid
-      # - SECRET=secret
-      # - ALLOWED_HOSTS=*
-      # - HTTPS_COOKIES=False
-      # - REGISTRATION=False
     volumes:
       - ./db:/yamtrack/db
     ports:
       - "8000:8000"
-
-volumes:
-  media:

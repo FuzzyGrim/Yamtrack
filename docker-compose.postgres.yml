@@ -11,11 +11,6 @@ services:
       - MAL_API=MAL_API_KEY
       - PUID=1000
       - PGID=1000
-      # - SECRET=secret
-      # - ALLOWED_HOSTS=*
-      # - HTTPS_COOKIES=False
-      # - REGISTRATION=False
-      - TZ=Europe/Madrid
       - DB_HOST=db
       - DB_NAME=yamtrack
       - DB_USER=yamtrack
@@ -38,6 +33,3 @@ services:
     volumes:
       - ./db:/var/lib/postgresql/data
     restart: unless-stopped
-
-volumes:
-  media:
