@@ -58,8 +58,8 @@ volumes:
 | MAL_API        | String      | MyAnimeList API key        | Yes          | None       | Required for anime and manga          |
 | SECRET         | String      | Django secret key          | Recommended  | "secret"   | [SECRET_KEY](https://docs.djangoproject.com/en/4.2/ref/settings/#secret-key)                                      |
 | ALLOWED_HOSTS  | List        | Base IP / Domain           | No           | "*"        | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/4.1/ref/settings/#allowed-hosts)    |
-| PUID           | Int         | User ID                    | No           | 911        |                                       |
-| PGID           | Int         | Group ID                   | No           | 911        |                                       |
+| PUID           | Int         | User ID                    | No           | 1000       |                                       |
+| PGID           | Int         | Group ID                   | No           | 1000       |                                       |
 | TZ             | String      | Timezone                   | No           | UTC        |                                       |
 | HTTPS_COOKIES  | Bool        | Cookies over HTTPS         | No           | False      | [SESSION_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-SESSION_COOKIE_SECURE) and [CSRF_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-CSRF_COOKIE_SECURE)|
 | REGISTRATION   | Bool        | User registration          | No           | True       |                                       |

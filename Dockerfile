@@ -19,11 +19,9 @@ WORKDIR /yamtrack
 
 COPY ./entrypoint.sh /entrypoint.sh
 
-# create user abc for later PUID/PGID mapping https://github.com/linuxserver/docker-baseimage-alpine/blob/master/Dockerfile
 RUN chmod +x /entrypoint.sh && \ 
-	groupmod -g 1000 users && \
-	useradd -u 911 -U -M -s /bin/bash abc && \
-	usermod -G users abc
+	# create user abc for later PUID/PGID mapping
+	useradd -U -M -s /bin/bash abc
 
 # Django app
 COPY src ./

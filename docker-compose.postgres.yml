@@ -9,8 +9,6 @@ services:
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
-      - PUID=1000
-      - PGID=1000
       - DB_HOST=db
       - DB_NAME=yamtrack
       - DB_USER=yamtrack
