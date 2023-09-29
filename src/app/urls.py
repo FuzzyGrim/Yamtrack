@@ -1,5 +1,3 @@
-from django.conf import settings
-from django.conf.urls.static import static
 from django.urls import path, register_converter
 
 from app import converters, views
@@ -23,5 +21,4 @@ urlpatterns = [
     ),
     path("modal_data", views.modal_data, name="modal_data"),
     path("progress_edit", views.progress_edit, name="progress_edit"),
-    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]

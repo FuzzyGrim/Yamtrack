@@ -9,7 +9,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
-import os
 from pathlib import Path
 
 import pytz
@@ -48,12 +47,12 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "sass_processor",
+    "debug_toolbar",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "debug_toolbar",
 ]
 
 ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
@@ -63,7 +62,7 @@ if ADMIN_ENABLED:
 
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
@@ -84,7 +83,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, "templates")],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -107,10 +106,10 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # create db folder if it doesn't exist
 # always needed because sqlite will be used for requests-cache
-DB_FOLDER = os.path.join(BASE_DIR, "db")
-os.makedirs(DB_FOLDER, exist_ok=True)
+DB_FOLDER = BASE_DIR / "db"
+Path(DB_FOLDER).mkdir(parents=True, exist_ok=True)
 
-requests_cache.install_cache(DB_FOLDER + "/db.sqlite3", backend="sqlite", expire_after=21600) # 6 hours
+requests_cache.install_cache(DB_FOLDER / "db.sqlite3", backend="sqlite", expire_after=21600) # 6 hours
 
 
 if config("DB_HOST", default=None):
@@ -122,14 +121,14 @@ if config("DB_HOST", default=None):
             "USER": config("DB_USER", default="yamtrack"),
             "PASSWORD": config("DB_PASSWORD", default="yamtrack"),
             "PORT": config("DB_PORT", default="5432"),
-        }
+        },
     }
 else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(BASE_DIR, "db/db.sqlite3"),
-        }
+            "NAME": BASE_DIR / "db" / "db.sqlite3",
+        },
     }
 
 
@@ -164,9 +163,9 @@ LOGGING = {
     },
     "formatters": {
         "verbose": {
-            "format": "{asctime:<21} {levelname:<7} [{filename}:{lineno}] {message}",
-            # 2023-03-15T21:27:37Z format
-            "datefmt": "%Y-%m-%d %H:%M:%S",
+            # format consistent with gunicorn's
+            "format": "[{asctime}] [{process}] [{levelname}] {message}",
+            "datefmt": "%Y-%m-%d %H:%M:%S %z",
             "style": "{",
         },
     },
@@ -197,9 +196,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "static/"
-MEDIA_URL = "media/"
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -224,7 +223,7 @@ STATICFILES_FINDERS = [
     "sass_processor.finders.CssFinder",
 ]
 
-SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR, "static")
+SASS_PROCESSOR_ROOT = BASE_DIR / "static"
 
 SASS_OUTPUT_STYLE = "compact"
 
