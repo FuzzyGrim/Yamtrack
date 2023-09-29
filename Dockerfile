@@ -6,8 +6,7 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /requirements.txt
 
 RUN apt-get update \
-    # libpq-dev is required for psycopg
-	&& apt-get install -y --no-install-recommends libpq-dev gosu \
+	&& apt-get install -y --no-install-recommends gosu \
 	&& pip install --no-cache-dir -r /requirements.txt \
 	&& apt-get -y autoremove --purge \
 	&& apt-get clean -y \
