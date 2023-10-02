@@ -7,7 +7,6 @@ services:
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
-      - WEB_CONCURRENCY=2
     volumes:
       - ./db:/yamtrack/db
     ports:

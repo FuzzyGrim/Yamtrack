@@ -33,13 +33,6 @@ services:
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Madrid
-      # - SECRET=secret
-      # - ALLOWED_HOSTS=*
-      # - HTTPS_COOKIES=False
-      # - REGISTRATION=False
     volumes:
       - ./db:/yamtrack/db
       - media:/yamtrack/media
@@ -52,20 +45,20 @@ volumes:
 
 ### Environment variables
 
-| Name           |  Type       | Description                | Required     | Default    | Notes                                 |
-| -------------- | ----------- | -------------------------- | ------------ | ---------- | ------------------------------------- |
-| TMDB_API       | String      | The Movie Database API key | Yes          | None       | Required for movies and tv shows      |
-| MAL_API        | String      | MyAnimeList API key        | Yes          | None       | Required for anime and manga          |
-| SECRET         | String      | Django secret key          | Recommended  | "secret"   | [SECRET_KEY](https://docs.djangoproject.com/en/4.2/ref/settings/#secret-key)                                      |
-| ALLOWED_HOSTS  | List        | Base IP / Domain           | No           | "*"        | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/4.1/ref/settings/#allowed-hosts)    |
-| PUID           | Int         | User ID                    | No           | 1000       |                                       |
-| PGID           | Int         | Group ID                   | No           | 1000       |                                       |
-| TZ             | String      | Timezone                   | No           | UTC        |                                       |
-| HTTPS_COOKIES  | Bool        | Cookies over HTTPS         | No           | False      | [SESSION_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-SESSION_COOKIE_SECURE) and [CSRF_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-CSRF_COOKIE_SECURE)|
-| REGISTRATION   | Bool        | User registration          | No           | True       |                                       |
-| ADMIN_ENABLED  | Bool        | Django admin page          | No           | False      |                                       |
-| WEB_CONCURRENCY| Int         | Number of worker processes | No           | 1          | [Recommend (2 x $num_cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers)        |
-| DEBUG          | Bool        | Django debug mode          | No           | False      |                                       |
+| Name            |  Type       | Description                | Required     | Default    | Notes                                 |
+| --------------- | ----------- | -------------------------- | ------------ | ---------- | ------------------------------------- |
+| TMDB_API        | String      | The Movie Database API key | Yes          | None       | Required for movies and tv shows      |
+| MAL_API         | String      | MyAnimeList API key        | Yes          | None       | Required for anime and manga          |
+| SECRET          | String      | Django secret key          | Recommended  | "secret"   | [SECRET_KEY](https://docs.djangoproject.com/en/4.2/ref/settings/#secret-key)                                      |
+| ALLOWED_HOSTS   | List        | Base IP / Domain           | No           | "*"        | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/4.1/ref/settings/#allowed-hosts)   |
+| PUID            | Int         | User ID                    | No           | 1000       |                                       |
+| PGID            | Int         | Group ID                   | No           | 1000       |                                       |
+| TZ              | String      | Timezone                   | No           | UTC        |                                       |
+| HTTPS_COOKIES   | Bool        | Cookies over HTTPS         | No           | False      | [SESSION_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-SESSION_COOKIE_SECURE) and [CSRF_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-CSRF_COOKIE_SECURE)|
+| REGISTRATION    | Bool        | User registration          | No           | True       |                                       |
+| ADMIN_ENABLED   | Bool        | Django admin page          | No           | False      |                                       |
+| WEB_CONCURRENCY | Int         | Number of worker processes | No           | 1          | [Recommend (2 x $num_cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers)        |
+| DEBUG           | Bool        | Django debug mode          | No           | False      |                                       |
 
 
 ### Environment variables for PostgreSQL
