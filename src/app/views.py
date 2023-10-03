@@ -20,7 +20,8 @@ def home(request: HttpRequest) -> HttpResponse:
 
     watching = {}
 
-    seasons = Season.objects.filter(user_id=request.user, status="Watching")
+    seasons = Season.objects.filter(user_id=request.user, status="Watching").prefetch_related("episodes")
+
     if seasons.exists():
         watching["season"] = seasons
 
