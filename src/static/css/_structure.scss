@@ -209,12 +209,12 @@
 
 .episode {
   .check-div {
-    flex-basis: 1em;
+    flex-basis: 1rem;
     flex-shrink: 0;
   }
 
   .episode-number {
-    flex-basis: 5em;
+    flex-basis: 5rem;
     flex-shrink: 0;
     text-align: center;
   }
@@ -227,7 +227,8 @@
   }
 
   .episode-date {
-    flex-basis: 10em;
+    flex-basis: 8rem;
+    flex-shrink: 0;
     text-align: center;
   }
 

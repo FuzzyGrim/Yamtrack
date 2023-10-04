@@ -22,25 +22,27 @@
       margin-bottom: 1.5rem;
     }
 
-    // only present in season_details
-    .tv-title{ 
-      width: 100%;
-      text-align: center;
-    }
+    .details-data {
+      // only present in season_details
+      .tv-title{ 
+        width: 100%;
+        text-align: center;
+      }
 
-    .title {
-      width: 100%;
-      text-align: center;
-      margin-bottom: 1rem;
-    }
+      .title {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
 
-    .buttons-group {
-      margin-top: 1rem;
+      .buttons-group {
+        margin-top: 1rem;
+      }
     }
   }
 
   .btn-group {
-    .btn-release-date {
+    .btn-secondary {
       border-radius: 0;
     }
     .btn-danger {
