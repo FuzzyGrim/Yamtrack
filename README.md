@@ -56,7 +56,6 @@ volumes:
 | TZ              | String      | Timezone                   | No           | UTC        |                                       |
 | HTTPS_COOKIES   | Bool        | Cookies over HTTPS         | No           | False      | [SESSION_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-SESSION_COOKIE_SECURE) and [CSRF_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-CSRF_COOKIE_SECURE)|
 | REGISTRATION    | Bool        | User registration          | No           | True       |                                       |
-| ADMIN_ENABLED   | Bool        | Django admin page          | No           | False      |                                       |
 | WEB_CONCURRENCY | Int         | Number of worker processes | No           | 1          | [Recommend (2 x $num_cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers)        |
 | DEBUG           | Bool        | Django debug mode          | No           | False      |                                       |
 
