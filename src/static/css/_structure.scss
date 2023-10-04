@@ -30,64 +30,64 @@
   display: grid;
   grid-gap: 0.5rem;
   grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+}
 
-  .card {
+.card {
+  width: 100%;
+  margin-bottom: 1rem;
+
+  .poster {
     width: 100%;
-    margin-bottom: 1rem;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    cursor: pointer;
+  }
 
-    .poster {
-      width: 100%;
-      aspect-ratio: 2/3;
-      object-fit: cover;
-      cursor: pointer;
+  .image-not-found {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: contain;
+    object-position: center top;
+    background-color: rgb(44, 48, 50);
+    cursor: pointer;
+  }
+}
+
+.card-img-overlay {
+  // position bottom of card
+  top: auto;
+  padding: 0.5em;
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  background-color: rgba(0, 0, 0, 0.692);
+
+  .card-title {
+    margin-bottom: 0;
+    // show only 2 lines of text
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    font-size: 0.9rem;
+  }
+
+  .card-text {
+    font-size: 0.85rem;
+
+    .open-modal-btn {
+      padding: 0.1rem 0.3rem;
+      font-size: 0.75rem;
     }
 
-    .image-not-found {
-      width: 100%;
-      aspect-ratio: 2/3;
-      object-fit: contain;
-      object-position: center top;
-      background-color: rgb(44, 48, 50);
-      cursor: pointer;
+    .progress-btn {
+      padding: 0.1rem 0.3rem;
+      &:disabled {
+        color: transparent;
+      }
     }
 
-    .card-img-overlay {
-      // position bottom of card
-      top: auto;
-      padding: 0.5em;
-      border-top-left-radius: 0px;
-      border-top-right-radius: 0px;
-      background-color: rgba(0, 0, 0, 0.692);
-
-      .card-title {
-        margin-bottom: 0;
-        // show only 2 lines of text
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        font-size: 0.9rem;
-      }
-
-      .card-text {
-        font-size: 0.85rem;
-
-        .open-modal-btn {
-          padding: 0.1rem 0.3rem;
-          font-size: 0.75rem;
-        }
-
-        .progress-btn {
-          padding: 0.1rem 0.3rem;
-          &:disabled {
-            color: transparent;
-          }
-        }
-
-        .modal {
-          font-size: 1rem;
-        }
-      }
+    .modal {
+      font-size: 1rem;
     }
   }
 }
