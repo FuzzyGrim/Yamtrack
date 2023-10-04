@@ -3,7 +3,6 @@ import logging
 from app.utils import helpers
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -68,7 +67,6 @@ class CustomLoginView(LoginView):
         return super().form_invalid(form)
 
 
-@login_required
 def profile(request: HttpRequest) -> HttpResponse:
     """Update the user's profile and import/export data."""
 

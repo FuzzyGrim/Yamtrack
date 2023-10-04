@@ -3,7 +3,6 @@ import logging
 from itertools import chain
 
 from config import settings
-from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
@@ -14,7 +13,6 @@ from app.utils import form_handlers, helpers, metadata, search
 logger = logging.getLogger(__name__)
 
 
-@login_required
 def home(request: HttpRequest) -> HttpResponse:
     """Return the home page."""
 
@@ -39,7 +37,6 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, "app/home.html", context)
 
 
-@login_required
 def progress_edit(request: HttpRequest) -> HttpResponse:
     """Increase or decrease the progress of a media item from home page."""
 
@@ -123,7 +120,6 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
 def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     """Return the media list page."""
 
@@ -188,7 +184,6 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     return redirect("medialist", media_type=media_type)
 
 
-@login_required
 def media_search(request: HttpRequest) -> HttpResponse:
     """Return the media search page."""
 
@@ -217,7 +212,6 @@ def media_search(request: HttpRequest) -> HttpResponse:
     return render(request, "app/search.html", context)
 
 
-@login_required
 def media_details(
     request: HttpRequest,
     media_type: str,
@@ -246,7 +240,6 @@ def media_details(
     return render(request, "app/media_details.html", context)
 
 
-@login_required
 def season_details(
     request: HttpRequest, media_id: str, title: str, season_number: str,
 ) -> HttpResponse:
@@ -295,7 +288,6 @@ def season_details(
     return render(request, "app/season_details.html", context)
 
 
-@login_required
 def modal_data(request: HttpRequest) -> HttpResponse:
     """Return the form modal for a media item."""
 

@@ -3,7 +3,6 @@
 import logging
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
@@ -12,7 +11,6 @@ from integrations.utils import exports, imports
 logger = logging.getLogger(__name__)
 
 
-@login_required
 def import_mal(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from MyAnimeList."""
 
@@ -25,7 +23,6 @@ def import_mal(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
-@login_required
 def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
     """View for importing TMDB movie and TV ratings."""
 
@@ -45,7 +42,6 @@ def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
-@login_required
 def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
     """View for importing TMDB movie and TV watchlist."""
 
@@ -65,7 +61,6 @@ def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
-@login_required
 def import_anilist(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from AniList."""
 
@@ -83,7 +78,6 @@ def import_anilist(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
-@login_required
 def import_yamtrack(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from Yamtrack CSV."""
 
@@ -99,7 +93,6 @@ def import_yamtrack(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
-@login_required
 def export_csv(request: HttpRequest) -> HttpResponse:
     """View for exporting all media data to a CSV file."""
 
