@@ -295,6 +295,7 @@ def season_details(
     return render(request, "app/season_details.html", context)
 
 
+@login_required
 def modal_data(request: HttpRequest) -> HttpResponse:
     """Return the form modal for a media item."""
 
