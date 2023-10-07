@@ -19,6 +19,6 @@ urlpatterns = [
         views.season_details,
         name="season_details",
     ),
-    path("modal_data", views.modal_data, name="modal_data"),
+    path("track_form", views.track_form, name="track_form"),
     path("progress_edit", views.progress_edit, name="progress_edit"),
 ]

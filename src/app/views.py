@@ -288,8 +288,8 @@ def season_details(
     return render(request, "app/season_details.html", context)
 
 
-def modal_data(request: HttpRequest) -> HttpResponse:
-    """Return the form modal for a media item."""
+def track_form(request: HttpRequest) -> HttpResponse:
+    """Return the tracking form for a media item."""
 
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
@@ -308,11 +308,13 @@ def modal_data(request: HttpRequest) -> HttpResponse:
             "media_type": media_type,
             "season_number": season_number,
         }
+        title = f"{request.GET.get('title')} S{season_number}"
         form_id = f"form-{media_type}_{media_id}_{season_number}"
 
     else:
         filters = {"media_id": media_id, "user": request.user}
         initial_data = {"media_id": media_id, "media_type": media_type}
+        title = request.GET.get("title")
         form_id = f"form-{media_type}_{media_id}"
 
     try:
@@ -330,7 +332,7 @@ def modal_data(request: HttpRequest) -> HttpResponse:
         request,
         "app/components/fill_track_form.html",
         {
-            "title": request.GET.get("title"),
+            "title": title,
             "form_id": form_id,
             "form": form,
             "allow_delete": allow_delete,
