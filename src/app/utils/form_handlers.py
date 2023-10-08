@@ -4,7 +4,7 @@ import datetime
 import logging
 from typing import TYPE_CHECKING
 
-from config import settings
+from django.conf import settings
 
 from app.models import Episode, Season
 from app.utils import helpers, metadata

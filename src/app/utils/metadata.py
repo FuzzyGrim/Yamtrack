@@ -1,6 +1,6 @@
 import requests
-from config import settings
 from decouple import config
+from django.conf import settings
 
 TMDB_API = config("TMDB_API", default=None)
 MAL_API = config("MAL_API", default=None)

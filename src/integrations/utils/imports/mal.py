@@ -4,8 +4,8 @@ import requests
 import requests_cache
 from app.models import Anime, Manga
 from app.utils import helpers
-from config import settings
 from decouple import config
+from django.conf import settings
 from users.models import User
 
 MAL_API = config("MAL_API", default="")

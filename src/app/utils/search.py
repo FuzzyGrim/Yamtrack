@@ -1,8 +1,8 @@
 import logging
 
 import requests
-from config import settings
 from decouple import config
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 

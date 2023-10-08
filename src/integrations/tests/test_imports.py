@@ -3,7 +3,7 @@ import os
 from unittest.mock import MagicMock, patch
 
 from app.models import TV, Anime, Episode, Manga, Movie, Season
-from config import settings
+from django.conf import settings
 from django.test import TestCase
 from users.models import User
 

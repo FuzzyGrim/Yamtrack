@@ -1,9 +1,9 @@
 import datetime
 
-from config import settings
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
+from django.conf import settings
 
 from app.utils import metadata
 
@@ -61,7 +61,9 @@ class MediaForm(forms.ModelForm):
                 # If progress == total_episodes and status not explicitly changed
                 if progress == total_episodes and "status" not in self.changed_data:
                     cleaned_data["status"] = "Completed"
-                    cleaned_data["end_date"] = datetime.datetime.now(tz=settings.TZ).date()
+                    cleaned_data["end_date"] = datetime.datetime.now(
+                        tz=settings.TZ,
+                    ).date()
 
         return cleaned_data
 

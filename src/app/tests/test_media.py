@@ -4,7 +4,7 @@ import shutil
 from datetime import date
 from unittest.mock import patch
 
-from config import settings
+from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from users.models import User

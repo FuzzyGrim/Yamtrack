@@ -1,7 +1,7 @@
 # https://docs.djangoproject.com/en/4.2/ref/templates/api/#writing-your-own-context-processors
 
-from config import settings
 from decouple import config
+from django.conf import settings
 from django.http import HttpRequest
 
 
