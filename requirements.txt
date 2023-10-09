@@ -1,5 +1,5 @@
 aiofiles==23.2.1
-aiohttp==3.8.5
+aiohttp==3.8.6
 crispy-bootstrap5==0.7
 Django==4.2.5
 django-compressor==4.4
