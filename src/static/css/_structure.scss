@@ -48,7 +48,7 @@
     aspect-ratio: 2/3;
     object-fit: contain;
     object-position: center top;
-    background-color: rgb(44, 48, 50);
+    background-color: $bg-img-none;
     cursor: pointer;
   }
 }
@@ -101,7 +101,7 @@
 
   // mainly to fill td for image not found
   td img {
-    background-color: rgb(44, 48, 50);
+    background-color: $bg-img-none;
   }
 
   th {
@@ -173,70 +173,65 @@
 
 .details-top {
   .poster {
-    border-radius: 10px;
+    border-radius: 5px;
     width: 14rem;
     aspect-ratio: 2/3;
     object-fit: cover;
   }
 
   .image-not-found {
-    border-radius: 10px;
+    border-radius: 5px;
     width: 14rem;
     object-fit: contain;
     aspect-ratio: 2/3;
-    background-color: rgb(44, 48, 50);
-  }
-
-  .details-data {
-    margin-left: 1rem;
-    // link to main details from season details
-    a {
-      color: var(--bs-body-color);
-    }
-
-    .synopsis {
-      // show only 4 lines of text
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-    }
-    .buttons-group {
-      margin-top: auto;
-    }
+    background-color: $bg-img-none;
   }
 }
 
-.episode {
-  .check-div {
-    flex-basis: 1rem;
-    flex-shrink: 0;
+.details-data {
+  margin-left: 1rem;
+  // link to main details from season details
+  a {
+    color: var(--bs-body-color);
   }
 
-  .episode-number {
-    flex-basis: 5rem;
-    flex-shrink: 0;
-    text-align: center;
-  }
-
-  .episode-name {
-    flex-grow: 3;
-    white-space: nowrap;
+  .synopsis {
+    // show only 4 lines of text
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
   }
+  .buttons-group {
+    margin-top: auto;
+  }
+}
 
-  .episode-date {
-    flex-basis: 8rem;
-    flex-shrink: 0;
-    text-align: center;
-  }
 
-  .watch-status {
-    flex-basis: 64px;
-    flex-shrink: 0;
-    text-align: center;
-  }
+.episode-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.episode-img-none{
+  background-image: url(https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg);
+  background-color: $bg-img-none;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 170px; // aprox height of episode-img
+}
+
+.episode-name {
+  font-size: 1.2rem;
+}
+
+.episode-overview {
+  // show only 2 lines of text
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .date-btn-group {

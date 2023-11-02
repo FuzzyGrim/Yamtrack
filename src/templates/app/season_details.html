@@ -65,65 +65,37 @@
         <div class="p-2 check-div">
           <input type="checkbox" class="form-check-input select-all">
         </div>
-        <div class="p-2 episode-number">
-          <strong>Episode</strong>
+    {% for episode in season.episodes %}
+      <div class="card mb-3">
+        <div class="row g-0">
+          {% if episode.still_path is None %}
+            <div class="col-sm-3 episode-img-none"></div>
+          {% else %} 
+            <div class="col-sm-3">
+              <img src="{% if episode.still_path is None %}
+                          https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg 
+                        {% else %} 
+                          https://image.tmdb.org/t/p/w500{{ episode.still_path }}
+                        {% endif %}"
+                  class="episode-img rounded-start" alt="E{{ episode.episode_number }} image">
         </div>
-        <div class="p-2 episode-name">
-          <strong>Name</strong>
+          {% endif %}
+          
+          <div class="col-sm-9">
+            <div class="card-body">
+              <div class="episode-name">
+                S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.name }}
         </div>
-        <div class="p-2 episode-date">
-          <strong>Release Date</strong>
-        </div>
-        <div class="p-2 watch-status">
-          <strong>Status</strong>
-        </div>
-      </div>
-      {% for episode in season.episodes %}
-        <div class="d-flex justify-content-between align-items-center episode">
-          <div class="p-2 check-div">
-            <input type="checkbox"
-                   class="form-check-input check-episode"
-                   name="episode_number"
-                   value="{{ episode.episode_number }}">
-          </div>
-          <div class="p-2 episode-number">{{ episode.episode_number }}</div>
-          <div class="p-2 episode-name">{{ episode.name }}</div>
-          <div class="p-2 episode-date">{{ episode.air_date }}</div>
-          <div class="p-2 watch-status">
-            {% if episode.watched %}
-              <i class="bi bi-eye-fill"></i>
-            {% else %}
-              <i class="bi bi-eye-slash-fill"></i>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
-      <div class="d-flex flex-column justify-content-center align-items-center">
-        <div class="mt-4 mb-2">When did you watch the episode(s)?</div>
-        <div class="btn-group flex-wrap">
-          <button type="submit" class="btn btn-secondary flex-fill" name="release">Release</button>
-          <div class="d-flex date-btn-group flex-fill">
-            <input type="date"
-                   class="form-control pe-0 rounded-0 border-end-0"
-                   name="date"
-                   value="{% now "Y-m-d" %}">
-            <button type="submit" class="btn bg-dark border-start-0 rounded-0">
-              <i class="bi bi-check-circle-fill"></i>
-            </button>
-          </div>
-          <button type="submit" class="btn btn-danger flex-fill" name="unwatch">Unwatch</button>
+              <div class="mb-2"><small class="text-body-secondary">{{ episode.air_date|default:"Unknown Release Date" }}</small></div>
+              <div class="episode-overview">{{ episode.overview }}</div>
+              <div>
+                <i class="bi bi-check-circle"></i>
         </div>
       </div>
-    </form>
+
+          </div>
+        </div>
+      </div>
+    {% endfor %}
   </div>
 {% endblock content %}
-{% block extra_scripts %}
-  <script>
-    document.querySelector('.select-all').addEventListener('click', function() {
-      var checkboxes = document.querySelectorAll('input[type="checkbox"]:not(.select-all)');
-      for (var i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = this.checked;
-      }
-    });
-  </script>
-{% endblock extra_scripts %}
