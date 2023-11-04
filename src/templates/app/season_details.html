@@ -29,7 +29,7 @@
         <div class="episodes-num">
           <strong>Total Episodes: {{ season.episodes|length }}</strong>
         </div>
-        <div class="buttons-group">
+        <div class="mt-auto">
           {% include "app/components/open_track_form.html" with media_type="season" media_id=media_id season_number=season.season_number title=media_title|capfirst only %}
         </div>
       </div>
@@ -66,15 +66,14 @@
             </div>
           {% endif %}
           
-          <div class="col-sm-9">
-            <div class="card-body">
-              <div class="episode-name">
-                S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.name }}
-              </div>
-              <div class="mb-2"><small class="text-body-secondary">{{ episode.air_date|default:"Unknown Release Date" }}</small></div>
-              <div class="episode-overview">{{ episode.overview }}</div>
+          <div class="col-sm-9 card-body d-flex flex-column align-items-start">
+            <div class="episode-name">
+              S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.name }}
+            </div>
+            <div class="mb-2"><small class="text-body-secondary">{{ episode.air_date|default:"Unknown Release Date" }}</small></div>
+            <div class="episode-overview">{{ episode.overview }}</div>
               <div>
-                <i class="bi bi-check-circle"></i>
+                      <i class="bi bi-check-circle"></i>
               </div>
             </div>
 

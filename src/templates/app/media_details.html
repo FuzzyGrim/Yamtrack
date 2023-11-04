@@ -48,7 +48,7 @@
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         </div>
-        <div class="buttons-group">
+        <div class="mt-auto">
           {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=media.media_id title=media.title only %}
         </div>
       </div>
