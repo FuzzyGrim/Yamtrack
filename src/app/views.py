@@ -275,20 +275,11 @@ def season_details(
     for episode in season_metadata["episodes"]:
         episode["watched"] = episode["episode_number"] in watched_episodes
 
-    # set previous and next season numbers
-    min_season = tv_metadata["seasons"][0]["season_number"]
-    max_season = tv_metadata["seasons"][-1]["season_number"]
-
-    previous_season = season_number - 1 if season_number > min_season else None
-
-    next_season = season_number + 1 if season_number < max_season else None
-
     context = {
         "media_id": media_id,
         "media_title": tv_metadata["title"],
         "season": season_metadata,
-        "previous_season": previous_season,
-        "next_season": next_season,
+        "tv": tv_metadata,
     }
     return render(request, "app/season_details.html", context)
 
