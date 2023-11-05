@@ -71,14 +71,16 @@ class CreateMedia(TestCase):
             {
                 "media_id": 1668,
                 "season_number": 1,
-                "episode_number": [1, 2],
+                "episode_number": 1,
             },
         )
         self.assertEqual(
             Episode.objects.filter(
-                related_season__media_id=1668, related_season__user=self.user
-            ).count(),
-            2,
+                related_season__media_id=1668,
+                related_season__user=self.user,
+                episode_number=1,
+            ).exists(),
+            True,
         )
 
     def tearDown(self):
@@ -306,9 +308,6 @@ class DeleteMedia(TestCase):
         Episode.objects.create(
             related_season=season, episode_number=1, watch_date=date(2023, 6, 1)
         )
-        Episode.objects.create(
-            related_season=season, episode_number=2, watch_date=date(2023, 6, 1)
-        )
 
         self.client.post(
             reverse(
@@ -318,13 +317,13 @@ class DeleteMedia(TestCase):
             {
                 "media_id": 1668,
                 "season_number": 1,
-                "episode_number": [1, 2],
+                "episode_number": 1,
                 "unwatch": "",
             },
         )
 
         self.assertEqual(
-            Episode.objects.filter(related_season__user=self.user).count(), 0
+            Episode.objects.filter(related_season__user=self.user).count(), 0,
         )
 
 
