@@ -126,7 +126,6 @@ def episode_form_handler(
 ) -> None:
     """Handle the creation, deletion, and updating of episodes for a season."""
 
-    episodes_checked = request.POST.getlist("episode_number")
     try:
         related_season = Season.objects.get(
             media_id=media_id,
@@ -144,55 +143,31 @@ def episode_form_handler(
             user=request.user,
             season_number=season_number,
         )
+
+    episode_number = request.POST["episode_number"]
     if "unwatch" in request.POST:
         Episode.objects.filter(
             related_season=related_season,
-            episode_number__in=episodes_checked,
+            episode_number=episode_number,
         ).delete()
     else:
-        # convert list of strings to list of ints
-        episodes_checked = [int(episode) for episode in episodes_checked]
-
-        episodes_to_create = []
-        episodes_to_update = []
 
         # create dict of episode number and air date pairs
         # cant get air date with season_metadata["episodes"][episode - 1]["air_date"]
         # because there could be missing or extra episodes in the middle
         if "release" in request.POST:
-            air_dates = {}
-            for episode in season_metadata["episodes"]:
-                if episode["episode_number"] in episodes_checked:
-                    air_dates[episode["episode_number"]] = episode["air_date"]
+            watch_date = request.POST.get("release")
+        else:
+            # set watch date from form
+            watch_date = request.POST.get("date")
 
-        for episode_num in episodes_checked:
-            if "release" in request.POST:
-                # set watch date to air date
-                # air date could be null
-                watch_date = air_dates.get(episode_num)
-            else:
-                # set watch date from form
-                watch_date = request.POST.get("date")
-
-            # update episode watch date
-            try:
-                episode_db = Episode.objects.get(
-                    related_season=related_season,
-                    episode_number=episode_num,
-                )
-                episode_db.watch_date = watch_date
-                episodes_to_update.append(episode_db)
-            # create new episode if it doesn't exist
-            except Episode.DoesNotExist:
-                episode_db = Episode(
-                    related_season=related_season,
-                    episode_number=episode_num,
-                    watch_date=watch_date,
-                )
-                episodes_to_create.append(episode_db)
-
-        Episode.objects.bulk_create(episodes_to_create)
-        Episode.objects.bulk_update(episodes_to_update, ["watch_date"])
+        Episode.objects.update_or_create(
+            related_season=related_season,
+            episode_number=episode_number,
+            defaults={
+                "watch_date": watch_date,
+            },
+        )
 
         # if all episodes are watched, set season status to completed
         if related_season.progress == len(season_metadata["episodes"]):

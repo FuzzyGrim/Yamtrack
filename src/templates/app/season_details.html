@@ -26,7 +26,7 @@
           <strong>Synopsis:</strong>
           {{ season.synopsis }}
         </div>
-        <div class="episodes-num">
+        <div class="episodes-num mb-2">
           <strong>Total Episodes: {{ season.episodes|length }}</strong>
         </div>
         <div class="mt-auto">
@@ -66,20 +66,71 @@
             </div>
           {% endif %}
           
-          <div class="col-sm-9 card-body d-flex flex-column align-items-start">
+          <div class="col-sm-9 card-body d-flex flex-column align-items-start pb-2">
             <div class="episode-name">
               S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.name }}
             </div>
             <div class="mb-2"><small class="text-body-secondary">{{ episode.air_date|default:"Unknown Release Date" }}</small></div>
-            <div class="episode-overview">{{ episode.overview }}</div>
-              <div>
-                      <i class="bi bi-check-circle"></i>
-              </div>
-            </div>
+            <div class="episode-overview mb-2">{{ episode.overview }}</div>
+            <div class="mt-auto">
+              
+              <button type="button"class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#episode_{{ episode.episode_number }}">
+                {% if episode.watched %}
+                  <i class="bi bi-check-circle-fill"></i>
+                {% else %}
+                  <i class="bi bi-check-circle"></i>
+                {% endif %}
+              </button>
 
+              <div class="modal fade" id="episode_{{ episode.episode_number }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{ media_title|capfirst }} S{{ season.season_number }}.E{{ episode.episode_number }}</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                      <div class="text-center fs-5">When did you watch it?</div>
+                      <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="media_id" value="{{ media_id }}">
+                        <input type="hidden" name="episode_number" value="{{ episode.episode_number }}">
+
+                        <button type="submit" class="btn btn-secondary w-100 mt-3" name="release" value="{{ episode.air_date }}">Release</button>
+
+                        <div class="d-flex date-btn-group mt-2">
+                          <input type="date"
+                                class="form-control pe-0 border-end-0 rounded-end-0"
+                                name="date"
+                                value="{% now "Y-m-d" %}">
+                          <button type="submit" class="btn bg-dark border-start-0 rounded-start-0">
+                            <i class="bi bi-check-circle-fill"></i>
+                          </button>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger w-100 mt-2" name="unwatch">Unwatch</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
           </div>
         </div>
       </div>
     {% endfor %}
   </div>
 {% endblock content %}
+
+{% block extra_scripts %}
+  <script>
+    const myDefaultAllowList = bootstrap.Tooltip.Default.allowList
+    myDefaultAllowList.input = ['type', 'name', 'value']
+    myDefaultAllowList.button = ['value', 'name']
+    const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
+    const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl))
+  </script>
+{% endblock extra_scripts %}
+
