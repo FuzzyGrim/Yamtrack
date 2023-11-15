@@ -3,7 +3,7 @@
 class MediaTypeChecker:
     """Check if the media type is valid."""
 
-    regex = "(anime|manga|tv|movie)"
+    regex = "(anime|manga|tv|season|movie)"
 
     def to_python(self: "MediaTypeChecker", value: str) -> str:
         """Return the media type if it is valid."""

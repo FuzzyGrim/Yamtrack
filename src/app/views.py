@@ -132,8 +132,9 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     filter_params = {"user_id": request.user.id}
 
     # filter by status if status is not "all", default to "all"
+    # tv shows don't have a status field so ignore status filter
     status_filter = request.GET.get("status", "all")
-    if status_filter != "all":
+    if status_filter != "all" and media_type != "tv":
         filter_params["status"] = status_filter.capitalize()
 
     # default sort by descending score
@@ -144,33 +145,16 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
         # fill form with current values if they exist
         request.GET or None,
         sort_choices=media_mapping["sort_choices"],
+        media_type=media_type,
     )
 
     # if form valid or no form submitted
     if filter_form.is_valid() or not request.GET:
-        if media_type == "tv":
-            if "status" in filter_params:
-                # as tv doesn't have a status field, only filter seasons
-                media_list = Season.objects.filter(**filter_params).order_by(
-                    sort_filter,
-                )
-
-            else:
-                # show both tv and seasons in the list
-                tv_list = TV.objects.filter(user_id=request.user)
-                season_list = Season.objects.filter(user_id=request.user)
-
-                media_list = sorted(
-                    chain(tv_list, season_list),
-                    # when sorting by score, if score is null, use -inf
-                    key=lambda item: getattr(item, sort_filter, float("-inf")),
-                )
-        else:
-            media_list = (
-                media_mapping["model"]
-                .objects.filter(**filter_params)
-                .order_by(sort_filter)
-            )
+        media_list = (
+            media_mapping["model"]
+            .objects.filter(**filter_params)
+            .order_by(sort_filter)
+        )
 
         return render(
             request,

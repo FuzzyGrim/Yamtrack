@@ -221,24 +221,27 @@ class EpisodeForm(forms.ModelForm):
 class FilterForm(forms.Form):
     """Form for filtering media on media list view."""
 
-    status = forms.ChoiceField(
-        choices=[
-            ("all", "All"),
-            ("completed", "Completed"),
-            ("watching", "Watching"),
-            ("paused", "Paused"),
-            ("dropped", "Dropped"),
-            ("planning", "Planning"),
-        ],
-    )
-
-    sort = forms.ChoiceField(choices=[])
-
     def __init__(self: "FilterForm", *args: dict, **kwargs: dict) -> None:
         """Initialize the form."""
 
         sort_choices = kwargs.pop("sort_choices")
+        media_type = kwargs.pop("media_type")
 
         super().__init__(*args, **kwargs)
-        # add extra sort choices
-        self.fields["sort"].choices = list(sort_choices)
+
+        # tv shows don"t have a status
+        if media_type != "tv":
+            self.fields["status"] = forms.ChoiceField(
+                choices=[
+                    ("all", "All"),
+                    ("completed", "Completed"),
+                    ("watching", "Watching"),
+                    ("paused", "Paused"),
+                    ("dropped", "Dropped"),
+                    ("planning", "Planning"),
+                ],
+            )
+
+        self.fields["sort"] = forms.ChoiceField(
+            choices=sort_choices,
+        )

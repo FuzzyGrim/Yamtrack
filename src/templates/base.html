@@ -44,7 +44,12 @@
         </li>
         <li>
           <a href="{% url 'medialist' media_type='tv' %}" class="nav-link {% if media_type == "tv" %}active{% endif %}">
-            <i class="bi bi-tv me-2"></i> TV
+            <i class="bi bi-tv me-2"></i> Shows
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'medialist' media_type='season' %}" class="nav-link {% if media_type == "season" %}active{% endif %}">
+            <i class="bi bi-grid me-2"></i> Seasons
           </a>
         </li>
         <li>
