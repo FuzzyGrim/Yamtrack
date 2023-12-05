@@ -1,5 +1,5 @@
 black==23.9.1
 coverage==7.3.1
-ruff==0.0.290
+ruff==0.1.7
 
 -r requirements.txt
