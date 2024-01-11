@@ -13,5 +13,5 @@ psycopg-binary==3.1.12
 python-decouple==3.8
 pytz==2023.3.post1
 requests==2.31.0
-requests-cache==1.1.0
+requests-cache==1.1.1
 whitenoise==6.5.0
