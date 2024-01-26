@@ -54,7 +54,7 @@ volumes:
 | TZ              | String | Timezone                   | No          | UTC      |                                              |
 | HTTPS_COOKIES   | Bool   | Cookies over HTTPS         | No          | False    | [SESSION_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-SESSION_COOKIE_SECURE) and [CSRF_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-CSRF_COOKIE_SECURE) |
 | REGISTRATION    | Bool   | User registration          | No          | True     |                                              |
-| WEB_CONCURRENCY | Int    | Number of worker processes | No          | 1        | [Recommend (2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) |
+| WEB_CONCURRENCY | Int    | Number of worker processes | No          | 1        | [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) recommended|
 | DEBUG           | Bool   | Django debug mode          | No          | False    |                                              |
 
 ### Environment variables for PostgreSQL
