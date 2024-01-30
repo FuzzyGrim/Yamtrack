@@ -31,6 +31,7 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 INTERNAL_IPS = ["127.0.0.1"]
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
@@ -105,7 +106,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 DB_FOLDER = BASE_DIR / "db"
 Path(DB_FOLDER).mkdir(parents=True, exist_ok=True)
 
-requests_cache.install_cache(DB_FOLDER / "db.sqlite3", backend="sqlite", expire_after=21600) # 6 hours
+requests_cache.install_cache(
+    DB_FOLDER / "db.sqlite3", backend="sqlite", expire_after=21600
+)  # 6 hours
 
 
 if config("DB_HOST", default=None):
