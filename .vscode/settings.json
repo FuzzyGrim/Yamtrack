@@ -14,15 +14,14 @@
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true,
-      "codeAction.fixViolation.enable": true,
-      "codeAction.disableRuleComment.enable": true,
+      "source.organizeImports": "explicit",
+      "codeAction.fixViolation.enable": "explicit",
+      "codeAction.disableRuleComment.enable": "explicit"
     },
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "[html][django-html][handlebars][hbs][mustache][jinja][jinja-html][nj][njk][nunjucks][twig]": {
     "editor.defaultFormatter": "monosans.djlint"
   },
-  "djlint.ignore": ["H006"]
-
+  "djlint.ignore": ["H006"],
 }
