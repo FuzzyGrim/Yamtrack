@@ -19,27 +19,18 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 - Multi-users support
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/)
 
-## Docker-compose
+## Installing with Docker
 
-```yml
-version: "3"
-services:
-  yamtrack:
-    container_name: yamtrack
-    image: ghcr.io/fuzzygrim/yamtrack
-    restart: unless-stopped
-    environment:
-      - TMDB_API=TMDB_API_KEY
-      - MAL_API=MAL_API_KEY
-    volumes:
-      - ./db:/yamtrack/db
-      - media:/yamtrack/media
-    ports:
-      - "8000:8000"
+Copy the default `docker-compose.yml` file from the repository and set the environment variables. This would use a SQlite database, which is enough for most use cases.
 
-volumes:
-  media:
+
+To start the containers run:
+
+```bash
+docker-compose up -d
 ```
+
+Alternatively, if you need a PostgreSQL database, you can use the `docker-compose.postgres.yml` file.
 
 ### Environment variables
 
