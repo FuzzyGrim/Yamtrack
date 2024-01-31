@@ -1,4 +1,4 @@
-# https://docs.djangoproject.com/en/4.2/ref/templates/api/#writing-your-own-context-processors
+# https://docs.djangoproject.com/en/stable/ref/templates/api/#writing-your-own-context-processors
 
 from decouple import config
 from django.conf import settings
