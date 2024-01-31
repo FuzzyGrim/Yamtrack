@@ -44,7 +44,7 @@ class MediaForm(forms.ModelForm):
                             media_id,
                         )["num_episodes"]
 
-                elif status == "Watching" and not start_date:
+                elif status == "In progress" and not start_date:
                     cleaned_data["start_date"] = datetime.datetime.now(
                         tz=settings.TZ,
                     ).date()
@@ -233,9 +233,9 @@ class FilterForm(forms.Form):
         if media_type != "tv":
             self.fields["status"] = forms.ChoiceField(
                 choices=[
-                    ("all", "All"),
+                    ("all", "All"), # left side in lower case for better looking url when filtering
                     ("completed", "Completed"),
-                    ("watching", "Watching"),
+                    ("in progress", "In progress"),
                     ("paused", "Paused"),
                     ("dropped", "Dropped"),
                     ("planning", "Planning"),

@@ -3,7 +3,6 @@ from django.urls import path, register_converter
 from app import converters, views
 
 register_converter(converters.MediaTypeChecker, "media_type")
-register_converter(converters.StatusChecker, "status")
 
 urlpatterns = [
     path("", views.home, name="home"),

@@ -27,11 +27,11 @@ class Media(models.Model):
     )
     progress = models.PositiveIntegerField(default=0)
     status = models.CharField(
-        max_length=10,
+        max_length=12,
         default="Completed",
         choices=[
             ("Completed", "Completed"),
-            ("Watching", "Watching"),
+            ("In progress", "In progress"),
             ("Paused", "Paused"),
             ("Dropped", "Dropped"),
             ("Planning", "Planning"),

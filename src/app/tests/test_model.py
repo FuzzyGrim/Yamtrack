@@ -63,8 +63,8 @@ class MovieProperties(TestCase):
         movie = Movie.objects.get(media_id=1, user=self.user)
         self.assertEqual(movie.progress, 1)
 
-        movie.status = "Watching"
+        movie.status = "In progress"
         movie.save()
-        # when a movie is watching, progress should be 0
+        # when a movie is being watched, progress should be 0
         movie = Movie.objects.get(media_id=1, user=self.user)
         self.assertEqual(movie.progress, 0)

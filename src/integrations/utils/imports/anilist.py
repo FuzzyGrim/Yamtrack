@@ -119,7 +119,7 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                         warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()}: Couldn't find a matching MyAnimeList ID)"
                     else:
                         if content["status"] == "CURRENT":
-                            status = "Watching"
+                            status = "In progress"
                         else:
                             status = content["status"].capitalize()
 

@@ -115,5 +115,5 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
 def get_status(status: str) -> str:
     """Convert the status from MyAnimeList to the status used in the app."""
 
-    switcher = {"plan_to_watch": "Planning", "on_hold": "Paused", "reading": "Watching"}
+    switcher = {"plan_to_watch": "Planning", "on_hold": "Paused", "reading": "In progress", "watching": "In progress"}
     return switcher.get(status, status.capitalize())

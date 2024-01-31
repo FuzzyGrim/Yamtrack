@@ -16,25 +16,25 @@ logger = logging.getLogger(__name__)
 def home(request: HttpRequest) -> HttpResponse:
     """Return the home page."""
 
-    watching = {}
+    in_progress = {}
 
     seasons = Season.objects.filter(
-        user_id=request.user, status="Watching"
+        user_id=request.user, status="In progress",
     ).prefetch_related("episodes")
 
     if seasons.exists():
-        watching["season"] = seasons
+        in_progress["season"] = seasons
 
-    animes = Anime.objects.filter(user_id=request.user, status="Watching")
+    animes = Anime.objects.filter(user_id=request.user, status="In progress")
     if animes.exists():
-        watching["anime"] = animes
+        in_progress["anime"] = animes
 
-    mangas = Manga.objects.filter(user_id=request.user, status="Watching")
+    mangas = Manga.objects.filter(user_id=request.user, status="In progress")
     if mangas.exists():
-        watching["manga"] = mangas
+        in_progress["manga"] = mangas
 
     context = {
-        "watching": watching,
+        "in_progress": in_progress,
     }
     return render(request, "app/home.html", context)
 
@@ -80,7 +80,7 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         if season.progress == max_progress:
             season.status = "Completed"
             season.save()
-            logger.info("Finished watching %s", season)
+            logger.info("Finished %s", season)
 
         response = {
             "media_id": media_id,
@@ -109,7 +109,7 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         # before saving, if progress is max, set status to completed
         if media.progress == max_progress:
             media.status = "Completed"
-            logger.info("Finished watching %s", media)
+            logger.info("Finished %s", media)
         media.save()
         response = {"media_id": media_id, "progress": media.progress}
 

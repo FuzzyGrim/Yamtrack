@@ -56,7 +56,7 @@ class ExportCSVTest(TestCase):
         Anime.objects.create(
             media_id=1,
             title="Cowboy Bebop",
-            status="Watching",
+            status="In progress",
             user=self.user,
             progress=2,
             start_date=date(2021, 6, 1),
@@ -65,7 +65,7 @@ class ExportCSVTest(TestCase):
         Manga.objects.create(
             media_id=1,
             title="Berserk",
-            status="Watching",
+            status="In progress",
             user=self.user,
             progress=2,
             start_date=date(2021, 6, 1),

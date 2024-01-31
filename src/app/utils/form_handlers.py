@@ -138,7 +138,7 @@ def episode_form_handler(
             title=season_metadata["title"],
             image=season_metadata["image"],
             score=None,
-            status="Watching",
+            status="In progress",
             notes="",
             user=request.user,
             season_number=season_number,
