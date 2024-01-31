@@ -6,8 +6,8 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-TMDB_API = config("TMDB_API", default=None)
-MAL_API = config("MAL_API", default=None)
+TMDB_API = config("YAMTRACK_TMDB_API", default=None)
+MAL_API = config("YAMTRACK_MAL_API", default=None)
 
 
 def tmdb(media_type: str, query: str) -> list:

@@ -20,24 +20,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
+# See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET", default="secret")
+SECRET_KEY = config("YAMTRACK_SECRET", default="secret")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG", default=False, cast=bool)
+DEBUG = config("YAMTRACK_DEBUG", default=False, cast=bool)
 
 INTERNAL_IPS = ["127.0.0.1"]
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
+ALLOWED_HOSTS = config("YAMTRACK_ALLOWED_HOSTS", default="*", cast=Csv())
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Global default, can be overwritten at CustomLoginView
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-
-if config("HTTPS_COOKIES", default=False, cast=bool):
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
 
 # Application definition
 
@@ -111,15 +108,15 @@ requests_cache.install_cache(
 )  # 6 hours
 
 
-if config("DB_HOST", default=None):
+if config("YAMTRACK_DB_HOST", default=None):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "HOST": config("DB_HOST"),
-            "NAME": config("DB_NAME", default="yamtrack"),
-            "USER": config("DB_USER", default="yamtrack"),
-            "PASSWORD": config("DB_PASSWORD", default="yamtrack"),
-            "PORT": config("DB_PORT", default="5432"),
+            "HOST": config("YAMTRACK_DB_HOST"),
+            "NAME": config("YAMTRACK_DB_NAME", default="yamtrack"),
+            "USER": config("YAMTRACK_DB_USER", default="yamtrack"),
+            "PASSWORD": config("YAMTRACK_DB_PASSWORD", default="yamtrack"),
+            "PORT": config("YAMTRACK_DB_PORT", default="5432"),
         },
     }
 else:

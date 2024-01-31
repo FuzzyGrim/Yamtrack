@@ -24,7 +24,6 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 
 Copy the default `docker-compose.yml` file from the repository and set the environment variables. This would use a SQlite database, which is enough for most use cases.
 
-
 To start the containers run:
 
 ```bash
@@ -35,29 +34,28 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 ### Environment variables
 
-| Name            | Type   | Description                | Required    | Default  | Notes                                        |
-|-----------------|--------|----------------------------|-------------|----------|----------------------------------------------|
-| TMDB_API        | String | The Movie Database API key | Yes         | None     | Required for movies and tv shows             |
-| MAL_API         | String | MyAnimeList API key        | Yes         | None     | Required for anime and manga                 |
-| SECRET          | String | Django secret key          | Recommended | "secret" | [SECRET_KEY](https://docs.djangoproject.com/en/4.2/ref/settings/#secret-key) |
-| ALLOWED_HOSTS   | List   | Base IP / Domain           | No          | "*"      | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/4.1/ref/settings/#allowed-hosts) |
-| PUID            | Int    | User ID                    | No          | 1000     |                                              |
-| PGID            | Int    | Group ID                   | No          | 1000     |                                              |
-| TZ              | String | Timezone                   | No          | UTC      |                                              |
-| HTTPS_COOKIES   | Bool   | Cookies over HTTPS         | No          | False    | [SESSION_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-SESSION_COOKIE_SECURE) and [CSRF_COOKIE_SECURE](https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-CSRF_COOKIE_SECURE) |
-| REGISTRATION    | Bool   | User registration          | No          | True     |                                              |
-| WEB_CONCURRENCY | Int    | Number of worker processes | No          | 1        | [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) recommended|
-| DEBUG           | Bool   | Django debug mode          | No          | False    |                                              |
+| Name                   | Type   | Description                | Required    | Default  | Notes                                                                                               |
+| ---------------------- | ------ | -------------------------- | ----------- | -------- | --------------------------------------------------------------------------------------------------- |
+| YAMTRACK_TMDB_API      | String | The Movie Database API key | Yes         | None     | Required for movies and tv shows                                                                    |
+| YAMTRACK_MAL_API       | String | MyAnimeList API key        | Yes         | None     | Required for anime and manga                                                                        |
+| YAMTRACK_SECRET        | String | Django secret key          | Recommended | "secret" | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                     |
+| YAMTRACK_ALLOWED_HOSTS | List   | Base IP / Domain           | No          | "\*"     | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts)               |
+| YAMTRACK_REGISTRATION  | Bool   | User registration          | No          | True     |                                                                                                     |
+| YAMTRACK_DEBUG         | Bool   | Django debug mode          | No          | False    |                                                                                                     |
+| PUID                   | Int    | User ID                    | No          | 1000     |                                                                                                     |
+| PGID                   | Int    | Group ID                   | No          | 1000     |                                                                                                     |
+| TZ                     | String | Timezone                   | No          | UTC      |                                                                                                     |
+| WEB_CONCURRENCY        | Int    | Number of worker processes | No          | 1        | [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) recommended |
 
 ### Environment variables for PostgreSQL
 
-| Name        | Type   | Description       | Required | Default    | Notes                        |
-|-------------|--------|-------------------|----------|------------|------------------------------|
-| DB_HOST     | String | Database host     | No       | None       | When not set, sqlite is used |
-| DB_PORT     | Int    | Database port     | No       | 5432       |                              |
-| DB_NAME     | String | Database name     | No       | "yamtrack" |                              |
-| DB_USER     | String | Database user     | No       | "yamtrack" |                              |
-| DB_PASSWORD | String | Database password | No       | "yamtrack" |                              |
+| Name                 | Type   | Description       | Required | Default    | Notes                        |
+| -------------------- | ------ | ----------------- | -------- | ---------- | ---------------------------- |
+| YAMTRACK_DB_HOST     | String | Database host     | No       | None       | When not set, sqlite is used |
+| YAMTRACK_DB_PORT     | Int    | Database port     | No       | 5432       |                              |
+| YAMTRACK_DB_NAME     | String | Database name     | No       | "yamtrack" |                              |
+| YAMTRACK_DB_USER     | String | Database user     | No       | "yamtrack" |                              |
+| YAMTRACK_DB_PASSWORD | String | Database password | No       | "yamtrack" |                              |
 
 ## Local development
 

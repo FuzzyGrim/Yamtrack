@@ -8,7 +8,7 @@ from decouple import config
 from django.conf import settings
 from users.models import User
 
-MAL_API = config("MAL_API", default="")
+MAL_API = config("YAMTRACK_MAL_API", default="")
 logger = logging.getLogger(__name__)
 
 

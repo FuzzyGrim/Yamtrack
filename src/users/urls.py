@@ -10,5 +10,5 @@ urlpatterns = [
     path("logout", auth_views.LogoutView.as_view(), name="logout"),
 ]
 
-if config("REGISTRATION", default=True, cast=bool):
+if config("YAMTRACK_REGISTRATION", default=True, cast=bool):
     urlpatterns.append(path("register/", views.register, name="register"))

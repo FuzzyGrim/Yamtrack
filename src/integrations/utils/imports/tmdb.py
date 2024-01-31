@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import datetime
 import logging
 from csv import DictReader
@@ -16,7 +15,7 @@ if TYPE_CHECKING:
     from users.models import User
 
 
-TMDB_API = config("TMDB_API", default="")
+TMDB_API = config("YAMTRACK_TMDB_API", default="")
 logger = logging.getLogger(__name__)
 
 
