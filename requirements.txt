@@ -1,7 +1,7 @@
 aiofiles==23.2.1
 aiohttp==3.9.3
 crispy-bootstrap5==2023.10
-Django==4.2.5
+Django==5.0.1
 django-compressor==4.4
 django-crispy-forms==2.0
 django_debug_toolbar==4.2.0
