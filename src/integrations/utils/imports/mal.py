@@ -3,11 +3,9 @@ import logging
 import requests_cache
 from app.models import Anime, Manga
 from app.utils import helpers
-from decouple import config
 from django.conf import settings
 from users.models import User
 
-MAL_API = config("YAMTRACK_MAL_API", default="")
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +35,7 @@ def get_whole_response(url: str) -> dict:
     Continues to fetch data from the next URL until there is no more data to fetch.
     """
 
-    header = {"X-MAL-CLIENT-ID": MAL_API}
+    header = {"X-MAL-CLIENT-ID": settings.MAL_API}
 
     with requests_cache.disabled():  # don't cache request as it can change frequently
         data = helpers.api_request(url, "GET", header)

@@ -209,6 +209,9 @@ IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-b
 
 REQUEST_TIMEOUT = 10  # seconds
 
+TMDB_API = config("YAMTRACK_TMDB_API", default=None)
+MAL_API = config("YAMTRACK_MAL_API", default=None)
+REGISTRATION = config("YAMTRACK_REGISTRATION", default=True, cast=bool)
 
 # Third party settings
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

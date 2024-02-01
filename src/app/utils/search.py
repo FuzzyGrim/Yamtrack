@@ -1,20 +1,16 @@
 import logging
 
-from decouple import config
 from django.conf import settings
 
 from app.utils import helpers
 
 logger = logging.getLogger(__name__)
 
-TMDB_API = config("YAMTRACK_TMDB_API", default=None)
-MAL_API = config("YAMTRACK_MAL_API", default=None)
-
 
 def tmdb(media_type: str, query: str) -> list:
     """Search for media on TMDB."""
 
-    url = f"https://api.themoviedb.org/3/search/{media_type}?api_key={TMDB_API}&query={query}"
+    url = f"https://api.themoviedb.org/3/search/{media_type}?api_key={settings.TMDB_API}&query={query}"
     response = helpers.api_request(url, "GET")
 
     response = response["results"]
@@ -35,7 +31,7 @@ def mal(media_type: str, query: str) -> list:
     """Search for media on MyAnimeList."""
 
     url = f"https://api.myanimelist.net/v2/{media_type}?q={query}&nsfw=true&fields=media_type"
-    response = helpers.api_request(url, "GET", headers={"X-MAL-CLIENT-ID": MAL_API})
+    response = helpers.api_request(url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API})
 
     if "data" in response:
         response = response["data"]

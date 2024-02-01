@@ -6,7 +6,6 @@ from csv import DictReader
 from typing import TYPE_CHECKING
 
 from app.utils import helpers, metadata
-from decouple import config
 
 if TYPE_CHECKING:
     from app.forms import MovieForm, SeasonForm, TVForm
@@ -15,7 +14,6 @@ if TYPE_CHECKING:
     from users.models import User
 
 
-TMDB_API = config("YAMTRACK_TMDB_API", default=None)
 logger = logging.getLogger(__name__)
 
 
