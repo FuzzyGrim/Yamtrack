@@ -13,6 +13,12 @@ from .models import User
 class UserLoginForm(AuthenticationForm):
     """Add a remember me checkbox and style the form."""
 
+    # Override the default error messages
+    error_messages = {
+        "invalid_login": "Please enter a correct username and password.",
+        "inactive": "This account is inactive.",
+    }
+
     username = forms.CharField(
         max_length=150,
         widget=forms.TextInput(
