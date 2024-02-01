@@ -4,11 +4,9 @@ import datetime
 import logging
 from typing import TYPE_CHECKING
 
-import requests
 import requests_cache
 from app.models import Anime, Manga
 from app.utils import helpers
-from django.conf import settings
 
 if TYPE_CHECKING:
     from users.models import User
@@ -88,17 +86,7 @@ def anilist_data(username: str, user: User) -> str:
     url = "https://graphql.anilist.co"
 
     with requests_cache.disabled():  # don't cache request as it can change frequently
-        response = requests.post(
-            url,
-            json={"query": query, "variables": variables},
-            timeout=settings.REQUEST_TIMEOUT,
-        )
-    query = response.json()
-
-    # usually when username not found
-    if response.status_code == 404:  # noqa: PLR2004
-        error_message = query.get("errors")[0].get("message")
-        raise ValueError(error_message)
+        query = helpers.api_request(url, "POST", json={"query": query, "variables": variables})
 
     # returns media that couldn't be added
     return add_media_list(query, warning_message="", user=user)

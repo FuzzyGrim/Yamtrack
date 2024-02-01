@@ -1,6 +1,7 @@
-import requests
 from decouple import config
 from django.conf import settings
+
+from app.utils import helpers
 
 TMDB_API = config("YAMTRACK_TMDB_API", default=None)
 MAL_API = config("YAMTRACK_MAL_API", default=None)
@@ -23,11 +24,7 @@ def anime_manga(media_type: str, media_id: str) -> dict:
     """Return the metadata for the selected anime or manga from MyAnimeList."""
 
     url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_episodes,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
-    response = requests.get(
-        url,
-        headers={"X-MAL-CLIENT-ID": MAL_API},
-        timeout=settings.REQUEST_TIMEOUT,
-    ).json()
+    response = helpers.api_request(url, "GET", headers={"X-MAL-CLIENT-ID": MAL_API})
 
     if response["media_type"] == "tv":
         response["media_type"] = "anime"
@@ -94,8 +91,7 @@ def tv(media_id: str) -> dict:
     """Return the metadata for the selected tv show from The Movie Database."""
 
     url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
-
-    response = requests.get(url, timeout=settings.REQUEST_TIMEOUT).json()
+    response = helpers.api_request(url, "GET")
 
     response["original_type"] = "TV"
     response["media_type"] = "tv"
@@ -158,8 +154,7 @@ def movie(media_id: str) -> dict:
     """Return the metadata for the selected movie from The Movie Database."""
 
     url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
-
-    response = requests.get(url, timeout=settings.REQUEST_TIMEOUT).json()
+    response = helpers.api_request(url, "GET")
 
     response["original_type"] = "Movie"
     response["media_type"] = "movie"
@@ -211,7 +206,7 @@ def season(tv_id: str, season_number: int) -> dict:
     """Return the metadata for the selected season from The Movie Database."""
 
     url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}?api_key={TMDB_API}"
-    response = requests.get(url, timeout=settings.REQUEST_TIMEOUT).json()
+    response = helpers.api_request(url, "GET")
 
     if response["poster_path"]:
         response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"

@@ -340,6 +340,7 @@ class DetailsMedia(TestCase):
         with open(mock_path + "/metadata_anime_unknown.json", "r") as file:
             anime_response = json.load(file)
         mock_data.return_value.json.return_value = anime_response
+        mock_data.return_value.status_code = 200
 
         # anime without picture, synopsis, duration and genres
         response = metadata.anime_manga("anime", "0")
@@ -374,6 +375,7 @@ class DetailsMedia(TestCase):
         with open(mock_path + "/metadata_movie_unknown.json", "r") as file:
             movie_response = json.load(file)
         mock_data.return_value.json.return_value = movie_response
+        mock_data.return_value.status_code = 200
 
         response = metadata.movie("0")
         self.assertEqual(response["title"], "Unknown Movie")

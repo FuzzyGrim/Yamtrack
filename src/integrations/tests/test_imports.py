@@ -49,7 +49,7 @@ class ImportMAL(TestCase):
         )
         self.assertEqual(
             Manga.objects.get(user=self.user, title="Fire Punch").score
-            == 7,  # noqa: PLR2004
+            == 7,
             True,
         )
 
@@ -112,7 +112,7 @@ class ImportAniList(TestCase):
         )
         self.assertEqual(
             Manga.objects.get(user=self.user, title="One Punch-Man").score
-            == 9,  # noqa: PLR2004
+            == 9,
             True,
         )
 

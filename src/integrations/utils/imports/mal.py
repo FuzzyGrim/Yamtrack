@@ -1,6 +1,5 @@
 import logging
 
-import requests
 import requests_cache
 from app.models import Anime, Manga
 from app.utils import helpers
@@ -15,14 +14,13 @@ logger = logging.getLogger(__name__)
 def mal_data(username: str, user: User) -> None:
     """Import anime and manga from MyAnimeList."""
 
-    header = {"X-MAL-CLIENT-ID": MAL_API}
     anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status{{comments}}&nsfw=true&limit=1000"
-    animes = get_whole_response(anime_url, header)
+    animes = get_whole_response(anime_url)
 
     bulk_add_anime = add_media_list(animes, "anime", user)
 
     manga_url = f"https://api.myanimelist.net/v2/users/{username}/mangalist?fields=list_status{{comments}}&nsfw=true&limit=1000"
-    mangas = get_whole_response(manga_url, header)
+    mangas = get_whole_response(manga_url)
 
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
@@ -33,24 +31,21 @@ def mal_data(username: str, user: User) -> None:
     logger.info("Imported %s mangas", len(bulk_add_manga))
 
 
-def get_whole_response(url: str, header: dict) -> dict:
+def get_whole_response(url: str) -> dict:
     """Fetch whole data from user.
 
     Continues to fetch data from the next URL until there is no more data to fetch.
     """
-    with requests_cache.disabled():  # don't cache request as it can change frequently
-        response = requests.get(url, headers=header, timeout=settings.REQUEST_TIMEOUT)
-    data = response.json()
 
-    # usually when username not found
-    if response.status_code == 404:  # noqa: PLR2004
-        error_message = data.get("error")
-        raise ValueError(error_message)
+    header = {"X-MAL-CLIENT-ID": MAL_API}
+
+    with requests_cache.disabled():  # don't cache request as it can change frequently
+        data = helpers.api_request(url, "GET", header)
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
         # Fetch the data from the next URL
-        next_data = requests.get(next_url, headers=header, timeout=settings.REQUEST_TIMEOUT).json()
+        next_data = helpers.api_request(next_url, "GET", header)
         # Append the new data to the existing data in the data
         data["data"].extend(next_data["data"])
         # Update the "paging" key with the new "next" URL (if any)
@@ -115,5 +110,10 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
 def get_status(status: str) -> str:
     """Convert the status from MyAnimeList to the status used in the app."""
 
-    switcher = {"plan_to_watch": "Planning", "on_hold": "Paused", "reading": "In progress", "watching": "In progress"}
+    switcher = {
+        "plan_to_watch": "Planning",
+        "on_hold": "Paused",
+        "reading": "In progress",
+        "watching": "In progress",
+    }
     return switcher.get(status, status.capitalize())

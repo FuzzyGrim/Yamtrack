@@ -14,10 +14,9 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
     """Import media from CSV file."""
 
     if not file.name.endswith(".csv"):
-        logger.error("File must be a CSV file")
-        raise ValueError(  # noqa: TRY003
-            "Invalid file format. Please upload a CSV file.",  # noqa: EM101
-        )
+        error = "Invalid file format. Please upload a CSV file."
+        logger.error(error)
+        raise ValueError(error)
 
     logger.info("Importing from Yamtrack")
 

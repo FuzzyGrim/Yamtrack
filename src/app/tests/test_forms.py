@@ -1,7 +1,7 @@
 from django.test import TestCase
 from users.models import User
 
-from app.forms import MangaForm, MovieForm, SeasonForm, TVForm
+from app.forms import AnimeForm, MovieForm, SeasonForm, TVForm
 
 
 class ValidForm(TestCase):
@@ -11,7 +11,7 @@ class ValidForm(TestCase):
     def test_valid_media_form(self):
         form_data = {
             "media_id": 1,
-            "media_type": "manga",
+            "media_type": "anime",
             "title": "Sample",
             "image": "sample.jpg",
             "score": 7.5,
@@ -22,7 +22,7 @@ class ValidForm(TestCase):
             "user": self.user.id,
             "notes": "New notes",
         }
-        form = MangaForm(data=form_data)
+        form = AnimeForm(data=form_data)
         self.assertTrue(form.is_valid())
 
     def test_valid_movie_form(self):

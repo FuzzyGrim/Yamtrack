@@ -1,11 +1,58 @@
+from __future__ import annotations
+
 import logging
+import time
+from typing import TYPE_CHECKING
 
-from django.http import HttpRequest
+import requests
+from django.conf import settings
 
-from app.forms import AnimeForm, MangaForm, MovieForm, SeasonForm, TVForm
 from app.models import TV, Anime, Manga, Movie, Season
 
+if TYPE_CHECKING:
+    from django.http import HttpRequest
+
 logger = logging.getLogger(__name__)
+
+
+def api_request(
+    url: str,
+    method: str,
+    headers: dict | None = None,
+    json: dict | None = None,
+) -> dict:
+    """Make a request to the API and return the response as a dictionary."""
+
+    if method == "GET":
+        response = requests.get(url, headers=headers, timeout=settings.REQUEST_TIMEOUT)
+    elif method == "POST":
+        response = requests.post(url, json=json, timeout=settings.REQUEST_TIMEOUT)
+
+    if response.status_code != 200:
+        if "anilist" in url:
+            message = response.json().get("errors")[0].get("message")
+        elif "tmdb" in url:
+            message = response.json().get("status_message")
+        elif "myanimelist" in url and response.json().get("message") == "invalid q": # when no results are found
+            return []
+        else:
+            message = f"Request failed with status code {response.status_code} for {url}"
+
+        logger.error(
+            "Request failed with status code %s for %s",
+            response.status_code,
+            url,
+        )
+
+        # rate limit exceeded
+        if response.status_code == 429:
+            seconds_to_wait = int(response.headers["Retry-After"])
+            time.sleep(seconds_to_wait)
+            return api_request(url, method, json)
+
+        raise ValueError(message)
+
+    return response.json()
 
 
 def get_client_ip(request: HttpRequest) -> str:
@@ -25,6 +72,9 @@ def get_client_ip(request: HttpRequest) -> str:
 
 
 def media_type_mapper(media_type: str) -> dict:
+    # avoid circular import between forms.py, helpers.py and metadata.py
+    from app.forms import AnimeForm, MangaForm, MovieForm, SeasonForm, TVForm
+
     """Map the media type to its corresponding model, form and other properties."""
 
     media_mapping = {

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from users.models import User
 
 
-TMDB_API = config("YAMTRACK_TMDB_API", default="")
+TMDB_API = config("YAMTRACK_TMDB_API", default=None)
 logger = logging.getLogger(__name__)
 
 
@@ -23,10 +23,9 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
     """Import movie and TV ratings or watchlist depending on status from TMDB."""
 
     if not file.name.endswith(".csv"):
-        logger.error("File must be a CSV file")
-        raise ValueError(  # noqa: TRY003
-            "Invalid file format. Please upload a CSV file.",  # noqa: EM101
-        )
+        error = "Invalid file format. Please upload a CSV file."
+        logger.error(error)
+        raise ValueError(error)
 
     logger.info("Importing from TMDB")
 
@@ -38,7 +37,6 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
         "tv": [],
         "season": [],
     }
-
 
     for row in reader:
         media_type = row["Type"]

@@ -17,8 +17,11 @@ def import_mal(request: HttpRequest) -> HttpResponse:
     try:
         imports.mal_data(request.POST["mal"], request.user)
         messages.success(request, "Your MyAnimeList has been imported!")
-    except ValueError:
-        messages.error(request, f"User {request.POST['mal']} not found in MyAnimeList.")
+    except ValueError as error:
+        if str(error) == "not_found":
+            messages.error(request, f"User {request.POST['mal']} not found in MyAnimeList.")
+        else:
+            messages.error(request, "Something went wrong while importing your MyAnimeList.")
 
     return redirect("profile")
 
@@ -33,11 +36,8 @@ def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
             status="Completed",
         )
         messages.success(request, "Your TMDB ratings have been imported!")
-    except ValueError:
-        messages.error(
-            request,
-            "The file you uploaded is not a valid TMDB ratings export file.",
-        )
+    except ValueError as error:
+        messages.error(request, error)
 
     return redirect("profile")
 
@@ -52,11 +52,8 @@ def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
             status="Planning",
         )
         messages.success(request, "Your TMDB watchlist has been imported!")
-    except ValueError:
-        messages.error(
-            request,
-            "The file you uploaded is not a valid TMDB watchlist export file.",
-        )
+    except ValueError as error:
+        messages.error(request, error)
 
     return redirect("profile")
 
@@ -72,8 +69,11 @@ def import_anilist(request: HttpRequest) -> HttpResponse:
         else:
             messages.success(request, "Your AniList has been imported!")
 
-    except ValueError:
-        messages.error(request, f"User {request.POST['anilist']} not found in AniList.")
+    except ValueError as error:
+        if str(error) == "User not found":
+            messages.error(request, f"User {request.POST['anilist']} not found in AniList.")
+        else:
+            messages.error(request, "Something went wrong while importing your AniList.")
 
     return redirect("profile")
 
@@ -84,11 +84,8 @@ def import_yamtrack(request: HttpRequest) -> HttpResponse:
     try:
         imports.yamtrack_data(request.FILES["yamtrack_csv"], request.user)
         messages.success(request, "Your Yamtrack CSV file has been imported!")
-    except ValueError:
-        messages.error(
-            request,
-            "The file you uploaded is not a valid Yamtrack CSV export file.",
-        )
+    except ValueError as error:
+        messages.error(request, error)
 
     return redirect("profile")
 
