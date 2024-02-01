@@ -8,6 +8,7 @@ import requests
 import requests_cache
 from app.models import Anime, Manga
 from app.utils import helpers
+from django.conf import settings
 
 if TYPE_CHECKING:
     from users.models import User
@@ -90,7 +91,7 @@ def anilist_data(username: str, user: User) -> str:
         response = requests.post(
             url,
             json={"query": query, "variables": variables},
-            timeout=5,
+            timeout=settings.REQUEST_TIMEOUT,
         )
     query = response.json()
 

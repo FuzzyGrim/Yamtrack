@@ -39,7 +39,7 @@ def get_whole_response(url: str, header: dict) -> dict:
     Continues to fetch data from the next URL until there is no more data to fetch.
     """
     with requests_cache.disabled():  # don't cache request as it can change frequently
-        response = requests.get(url, headers=header, timeout=5)
+        response = requests.get(url, headers=header, timeout=settings.REQUEST_TIMEOUT)
     data = response.json()
 
     # usually when username not found
@@ -50,7 +50,7 @@ def get_whole_response(url: str, header: dict) -> dict:
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
         # Fetch the data from the next URL
-        next_data = requests.get(next_url, headers=header, timeout=5).json()
+        next_data = requests.get(next_url, headers=header, timeout=settings.REQUEST_TIMEOUT).json()
         # Append the new data to the existing data in the data
         data["data"].extend(next_data["data"])
         # Update the "paging" key with the new "next" URL (if any)

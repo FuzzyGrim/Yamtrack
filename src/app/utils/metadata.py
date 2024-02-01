@@ -26,7 +26,7 @@ def anime_manga(media_type: str, media_id: str) -> dict:
     response = requests.get(
         url,
         headers={"X-MAL-CLIENT-ID": MAL_API},
-        timeout=5,
+        timeout=settings.REQUEST_TIMEOUT,
     ).json()
 
     if response["media_type"] == "tv":
@@ -95,7 +95,7 @@ def tv(media_id: str) -> dict:
 
     url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
 
-    response = requests.get(url, timeout=5).json()
+    response = requests.get(url, timeout=settings.REQUEST_TIMEOUT).json()
 
     response["original_type"] = "TV"
     response["media_type"] = "tv"
@@ -159,7 +159,7 @@ def movie(media_id: str) -> dict:
 
     url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={TMDB_API}&append_to_response=recommendations"
 
-    response = requests.get(url, timeout=5).json()
+    response = requests.get(url, timeout=settings.REQUEST_TIMEOUT).json()
 
     response["original_type"] = "Movie"
     response["media_type"] = "movie"
@@ -211,7 +211,7 @@ def season(tv_id: str, season_number: int) -> dict:
     """Return the metadata for the selected season from The Movie Database."""
 
     url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}?api_key={TMDB_API}"
-    response = requests.get(url, timeout=5).json()
+    response = requests.get(url, timeout=settings.REQUEST_TIMEOUT).json()
 
     if response["poster_path"]:
         response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
