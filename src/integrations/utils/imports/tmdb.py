@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from app import forms
 from app.utils import helpers, metadata
+from django.apps import apps
 
 if TYPE_CHECKING:
     from app.forms import MovieForm, SeasonForm, TVForm
@@ -59,9 +60,8 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
                 media_metadata["title"] = tv_title
                 media_metadata["id"] = media_id
 
-            media_mapping = helpers.media_type_mapper(media_type)
-            instance = create_instance(media_metadata, media_mapping, user)
-            form = create_form(row, instance, media_metadata, media_mapping, status)
+            instance = create_instance(media_metadata, user)
+            form = create_form(row, instance, media_metadata, status)
 
             if form.is_valid():
                 bulk_media[media_type].append(form.instance)
@@ -79,14 +79,14 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
 
 def create_instance(
     media_metadata: dict,
-    media_mapping: dict,
     user: User,
 ) -> TV | Season | Movie:
     """Create instance of media."""
 
     media_type = media_metadata["media_type"]
+    model = apps.get_model(app_label="app", model_name=media_type)
 
-    instance = media_mapping["model"](
+    instance = model(
         user=user,
         title=media_metadata["title"],
         image=media_metadata["image"],
@@ -103,7 +103,6 @@ def create_form(
     row: dict,
     instance: TV | Movie,
     media_metadata: dict,
-    media_mapping: dict,
     status: str,
 ) -> TVForm | SeasonForm | MovieForm:
     """Create form for media."""

@@ -4,6 +4,7 @@ import requests_cache
 from app import forms
 from app.models import Anime, Manga
 from app.utils import helpers
+from django.apps import apps
 from django.conf import settings
 from users.models import User
 
@@ -59,7 +60,6 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
     logger.info("Importing %ss from MyAnimeList", media_type)
 
     bulk_media = []
-    media_mapping = helpers.media_type_mapper(media_type)
 
     for content in response["data"]:
         status = get_status(content["list_status"]["status"])
@@ -74,11 +74,8 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
         except KeyError:
             image_url = settings.IMG_NONE
 
-        instance = media_mapping["model"](
-            user=user,
-            title=content["node"]["title"],
-            image=image_url,
-        )
+        model = apps.get_model(app_label="app", model_name=media_type)
+        instance = model(user=user, title=content["node"]["title"], image=image_url)
 
         form = forms.get_form_class(media_type)(
             data={

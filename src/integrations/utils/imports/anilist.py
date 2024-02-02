@@ -8,6 +8,7 @@ import requests_cache
 from app import forms
 from app.models import Anime, Manga
 from app.utils import helpers
+from django.apps import apps
 
 if TYPE_CHECKING:
     from users.models import User
@@ -88,7 +89,7 @@ def anilist_data(username: str, user: User) -> str:
 
     with requests_cache.disabled():  # don't cache request as it can change frequently
         query = helpers.api_request(
-            url, "POST", json={"query": query, "variables": variables}
+            url, "POST", json={"query": query, "variables": variables},
         )
 
     # returns media that couldn't be added
@@ -103,7 +104,6 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
     for media_type in query["data"]:
         logger.info("Importing %ss from Anilist", media_type)
 
-        media_mapping = helpers.media_type_mapper(media_type)
         for status_list in query["data"][media_type]["lists"]:
             if not status_list["isCustomList"]:
                 for content in status_list["entries"]:
@@ -115,7 +115,10 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                         else:
                             status = content["status"].capitalize()
 
-                        instance = media_mapping["model"](
+                        instance = apps.get_model(
+                            app_label="app",
+                            model_name=media_type,
+                        )(
                             user=user,
                             title=content["media"]["title"]["userPreferred"],
                             image=content["media"]["coverImage"]["large"],

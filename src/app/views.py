@@ -1,6 +1,7 @@
 import datetime
 import logging
 
+from django.apps import apps
 from django.conf import settings
 from django.db.models import F
 from django.http import HttpRequest, HttpResponse
@@ -90,12 +91,12 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         }
 
     else:
-        media_mapping = helpers.media_type_mapper(media_type)
         media_metadata = metadata.get_media_metadata(media_type, media_id)
 
         max_progress = media_metadata.get("num_episodes", 1)
 
-        media = media_mapping["model"].objects.get(
+        model = apps.get_model(app_label="app", model_name=media_type)
+        media = model.objects.get(
             media_id=media_id,
             user=request.user.id,
         )
@@ -152,19 +153,16 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     # if form valid or no form submitted
     if filter_form.is_valid() or not request.GET:
 
+        model = apps.get_model(app_label="app", model_name=media_type)
         # asc order
         if sort_filter == "title":
-            media_list = (
-                media_mapping["model"]
-                .objects.filter(**filter_params)
-                .order_by(F(sort_filter).asc(nulls_last=True))
+            media_list = model.objects.filter(**filter_params).order_by(
+                F(sort_filter).asc(nulls_last=True)
             )
         # desc order
         else:
-            media_list = (
-                media_mapping["model"]
-                .objects.filter(**filter_params)
-                .order_by(F(sort_filter).desc(nulls_last=True))
+            media_list = model.objects.filter(**filter_params).order_by(
+                F(sort_filter).desc(nulls_last=True)
             )
 
         return render(
@@ -308,13 +306,15 @@ def track_form(request: HttpRequest) -> HttpResponse:
         title = request.GET.get("title")
         form_id = f"form-{media_type}_{media_id}"
 
+    model = apps.get_model(app_label="app", model_name=media_type)
+
     try:
         # try to retrieve the media object using the filters
-        media = media_mapping["model"].objects.get(**filters)
+        media = model.objects.get(**filters)
         form = get_form_class(instance=media, initial=initial_data)
         form.helper.form_id = form_id
         allow_delete = True
-    except media_mapping["model"].DoesNotExist:
+    except model.DoesNotExist:
         form = get_form_class(initial=initial_data)
         form.helper.form_id = form_id
         allow_delete = False

@@ -4,11 +4,12 @@ import datetime
 import logging
 from typing import TYPE_CHECKING
 
+from django.apps import apps
 from django.conf import settings
 
 from app import forms
 from app.models import Episode, Season
-from app.utils import helpers, metadata
+from app.utils import metadata
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -56,8 +57,7 @@ def media_save(
 ) -> None:
     """Save or update media data to the database."""
 
-    media_mapping = helpers.media_type_mapper(media_type)
-    model = media_mapping["model"]
+    model = apps.get_model(app_label="app", model_name=media_type)
     form = forms.get_form_class(media_type)
     try:
         # Try get existing instance of model with given media_id and user
@@ -112,10 +112,11 @@ def media_delete(
     if season_number is not None:
         search_params["season_number"] = season_number
 
+    model = apps.get_model(app_label="app", model_name=media_type)
     try:
-        instance = media_mapping["model"].objects.get(**search_params)
+        instance = model.objects.get(**search_params)
         instance.delete()
-    except media_mapping["model"].DoesNotExist:
+    except model.DoesNotExist:
         logger.exception("Instance does not exist")
 
 

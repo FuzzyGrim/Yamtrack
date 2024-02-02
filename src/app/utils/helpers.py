@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING
 import requests
 from django.conf import settings
 
-from app.models import TV, Anime, Manga, Movie, Season
-
 if TYPE_CHECKING:
     from django.http import HttpRequest
 
@@ -33,10 +31,14 @@ def api_request(
             message = response.json().get("errors")[0].get("message")
         elif "tmdb" in url:
             message = response.json().get("status_message")
-        elif "myanimelist" in url and response.json().get("message") == "invalid q": # when no results are found
+        elif (
+            "myanimelist" in url and response.json().get("message") == "invalid q"
+        ):  # when no results are found
             return []
         else:
-            message = f"Request failed with status code {response.status_code} for {url}"
+            message = (
+                f"Request failed with status code {response.status_code} for {url}"
+            )
 
         logger.error(
             "Request failed with status code %s for %s",
@@ -76,7 +78,6 @@ def media_type_mapper(media_type: str) -> dict:
 
     media_mapping = {
         "manga": {
-            "model": Manga,
             "list_layout": "app/media_table.html",
             "sort_choices": [
                 ("score", "Score"),
@@ -87,7 +88,6 @@ def media_type_mapper(media_type: str) -> dict:
             ],
         },
         "anime": {
-            "model": Anime,
             "list_layout": "app/media_table.html",
             "sort_choices": [
                 ("score", "Score"),
@@ -98,7 +98,6 @@ def media_type_mapper(media_type: str) -> dict:
             ],
         },
         "movie": {
-            "model": Movie,
             "list_layout": "app/media_grid.html",
             "sort_choices": [
                 ("score", "Score"),
@@ -108,7 +107,6 @@ def media_type_mapper(media_type: str) -> dict:
             ],
         },
         "tv": {
-            "model": TV,
             "list_layout": "app/media_grid.html",
             "sort_choices": [
                 ("score", "Score"),
@@ -116,7 +114,6 @@ def media_type_mapper(media_type: str) -> dict:
             ],
         },
         "season": {
-            "model": Season,
             "list_layout": "app/media_grid.html",
             "sort_choices": [
                 ("score", "Score"),

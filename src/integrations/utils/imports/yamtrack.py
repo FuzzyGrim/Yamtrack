@@ -5,6 +5,7 @@ from app import forms
 from app.forms import EpisodeForm
 from app.models import Episode, Season
 from app.utils import helpers
+from django.apps import apps
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from users.models import User
 
@@ -49,8 +50,7 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
             else:
                 logger.error(form.errors.as_data())
         else:
-            media_mapping = helpers.media_type_mapper(media_type)
-            add_bulk_media(row, media_mapping, user, bulk_media)
+            add_bulk_media(row, user, bulk_media)
 
     # bulk create tv, season, movie, anime and manga
     for media_type, medias in bulk_media.items():
@@ -78,19 +78,15 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
 
 def add_bulk_media(
     row: dict,
-    media_mapping: dict,
     user: User,
     bulk_media: dict,
 ) -> None:
     """Add media to list for bulk creation."""
 
     media_type = row["media_type"]
+    model = apps.get_model(app_label="app", model_name=media_type)
+    instance = model(user=user, title=row["title"], image=row["image"])
 
-    instance = media_mapping["model"](
-        user=user,
-        title=row["title"],
-        image=row["image"],
-    )
     if media_type == "season":
         instance.season_number = row["season_number"]
 
