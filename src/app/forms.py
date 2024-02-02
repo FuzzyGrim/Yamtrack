@@ -145,6 +145,7 @@ class MovieForm(MediaForm):
             "media_type",
             "score",
             "status",
+            "start_date",
             "end_date",
             "notes",
         )
@@ -153,7 +154,7 @@ class MovieForm(MediaForm):
         """Bind form to model."""
 
         model = Movie
-        exclude = ("progress", "start_date")
+        exclude = ("progress",)
 
 
 class TVForm(MediaForm):

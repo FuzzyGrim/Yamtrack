@@ -1,8 +1,8 @@
 import datetime
 import logging
-from itertools import chain
 
 from django.conf import settings
+from django.db.models import F
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
@@ -19,7 +19,8 @@ def home(request: HttpRequest) -> HttpResponse:
     in_progress = {}
 
     seasons = Season.objects.filter(
-        user_id=request.user, status="In progress",
+        user_id=request.user,
+        status="In progress",
     ).prefetch_related("episodes")
 
     if seasons.exists():
@@ -138,7 +139,7 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
         filter_params["status"] = status_filter.capitalize()
 
     # default sort by descending score
-    sort_filter = request.GET.get("sort", "-score")
+    sort_filter = request.GET.get("sort", "score")
 
     media_mapping = helpers.media_type_mapper(media_type)
     filter_form = FilterForm(
@@ -150,11 +151,21 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
 
     # if form valid or no form submitted
     if filter_form.is_valid() or not request.GET:
-        media_list = (
-            media_mapping["model"]
-            .objects.filter(**filter_params)
-            .order_by(sort_filter)
-        )
+
+        # asc order
+        if sort_filter == "title":
+            media_list = (
+                media_mapping["model"]
+                .objects.filter(**filter_params)
+                .order_by(F(sort_filter).asc(nulls_last=True))
+            )
+        # desc order
+        else:
+            media_list = (
+                media_mapping["model"]
+                .objects.filter(**filter_params)
+                .order_by(F(sort_filter).desc(nulls_last=True))
+            )
 
         return render(
             request,

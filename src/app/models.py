@@ -132,8 +132,6 @@ class Anime(Media):
 class Movie(Media):
     """Model for movies."""
 
-    start_date = None
-
     @property
     def progress(self: "Movie") -> int:
         """Return 1 if the movie is completed."""

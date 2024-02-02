@@ -101,6 +101,7 @@ class EditMedia(TestCase):
             status="Completed",
             user=self.user,
             notes="Nice",
+            start_date=date(2023, 6, 1),
             end_date=date(2023, 6, 1),
         )
 
@@ -250,6 +251,7 @@ class DeleteMedia(TestCase):
             status="Completed",
             user=self.user,
             notes="Nice",
+            start_date=date(2023, 6, 1),
             end_date=date(2023, 6, 1),
         )
 
