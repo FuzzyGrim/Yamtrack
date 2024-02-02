@@ -282,7 +282,6 @@ def track_form(request: HttpRequest) -> HttpResponse:
 
     media_type = request.GET.get("media_type")
     media_id = request.GET.get("media_id")
-    media_mapping = helpers.media_type_mapper(media_type)
     season_number = request.GET.get("season_number")
 
     if media_type == "season":
@@ -311,11 +310,11 @@ def track_form(request: HttpRequest) -> HttpResponse:
     try:
         # try to retrieve the media object using the filters
         media = model.objects.get(**filters)
-        form = get_form_class(instance=media, initial=initial_data)
+        form = get_form_class(media_type)(instance=media, initial=initial_data)
         form.helper.form_id = form_id
         allow_delete = True
     except model.DoesNotExist:
-        form = get_form_class(initial=initial_data)
+        form = get_form_class(media_type)(initial=initial_data)
         form.helper.form_id = form_id
         allow_delete = False
 

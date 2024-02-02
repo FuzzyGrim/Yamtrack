@@ -103,7 +103,6 @@ def media_delete(
 ) -> None:
     """Delete media data from the database."""
 
-    media_mapping = helpers.media_type_mapper(media_type)
     search_params = {
         "media_id": media_id,
         "user": request.user,
