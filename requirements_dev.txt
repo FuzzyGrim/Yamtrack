@@ -1,6 +1,6 @@
 black==23.9.1
 coverage==7.4.0
 djlint==1.34.1
-ruff==0.1.9
+ruff==0.2.0
 
 -r requirements.txt
