@@ -1,6 +1,7 @@
 import logging
 
 import requests_cache
+from app import forms
 from app.models import Anime, Manga
 from app.utils import helpers
 from django.conf import settings
@@ -79,7 +80,7 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
             image=image_url,
         )
 
-        form = media_mapping["form"](
+        form = forms.get_form_class(media_type)(
             data={
                 "media_id": content["node"]["id"],
                 "media_type": media_type,

@@ -10,6 +10,21 @@ from app.utils import metadata
 from .models import TV, Anime, Episode, Manga, Movie, Season
 
 
+def get_form_class(media_type: str) -> forms.ModelForm:
+    """Return the form class for the media type."""
+
+    form_classes = {
+        "manga": MangaForm,
+        "anime": AnimeForm,
+        "movie": MovieForm,
+        "tv": TVForm,
+        "season": SeasonForm,
+        "episode": EpisodeForm,
+    }
+
+    return form_classes[media_type]
+
+
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 

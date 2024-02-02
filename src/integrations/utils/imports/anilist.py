@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import requests_cache
+from app import forms
 from app.models import Anime, Manga
 from app.utils import helpers
 
@@ -86,7 +87,9 @@ def anilist_data(username: str, user: User) -> str:
     url = "https://graphql.anilist.co"
 
     with requests_cache.disabled():  # don't cache request as it can change frequently
-        query = helpers.api_request(url, "POST", json={"query": query, "variables": variables})
+        query = helpers.api_request(
+            url, "POST", json={"query": query, "variables": variables}
+        )
 
     # returns media that couldn't be added
     return add_media_list(query, warning_message="", user=user)
@@ -117,7 +120,7 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                             title=content["media"]["title"]["userPreferred"],
                             image=content["media"]["coverImage"]["large"],
                         )
-                        form = media_mapping["form"](
+                        form = forms.get_form_class(media_type)(
                             data={
                                 "media_id": content["media"]["idMal"],
                                 "media_type": media_type,

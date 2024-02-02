@@ -6,8 +6,8 @@ from django.db.models import F
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
-from app.forms import FilterForm
-from app.models import TV, Anime, Episode, Manga, Season
+from app.forms import FilterForm, get_form_class
+from app.models import TV, Anime, Episode, Manga, Movie, Season
 from app.utils import form_handlers, helpers, metadata, search
 
 logger = logging.getLogger(__name__)
@@ -311,11 +311,11 @@ def track_form(request: HttpRequest) -> HttpResponse:
     try:
         # try to retrieve the media object using the filters
         media = media_mapping["model"].objects.get(**filters)
-        form = media_mapping["form"](instance=media, initial=initial_data)
+        form = get_form_class(instance=media, initial=initial_data)
         form.helper.form_id = form_id
         allow_delete = True
     except media_mapping["model"].DoesNotExist:
-        form = media_mapping["form"](initial=initial_data)
+        form = get_form_class(initial=initial_data)
         form.helper.form_id = form_id
         allow_delete = False
 

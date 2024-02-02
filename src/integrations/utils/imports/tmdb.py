@@ -5,6 +5,7 @@ import logging
 from csv import DictReader
 from typing import TYPE_CHECKING
 
+from app import forms
 from app.utils import helpers, metadata
 
 if TYPE_CHECKING:
@@ -68,7 +69,6 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
                 error_message = f"Error importing {media_metadata['title']}: {form.errors.as_data()}"
                 logger.error(error_message)
 
-
     # bulk create tv, seasons and movie
     for media_type, medias in bulk_media.items():
         model_type = helpers.media_type_mapper(media_type)["model"]
@@ -128,7 +128,7 @@ def create_form(
         data["status"] = "Planning"
         data["season_number"] = 1
 
-    return media_mapping["form"](
+    return forms.get_form_class(media_type)(
         data=data,
         instance=instance,
         post_processing=False,

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 
+from app import forms
 from app.models import Episode, Season
 from app.utils import helpers, metadata
 
@@ -57,7 +58,7 @@ def media_save(
 
     media_mapping = helpers.media_type_mapper(media_type)
     model = media_mapping["model"]
-    form = media_mapping["form"]
+    form = forms.get_form_class(media_type)
     try:
         # Try get existing instance of model with given media_id and user
         search_params = {

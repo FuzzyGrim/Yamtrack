@@ -1,6 +1,7 @@
 import logging
 from csv import DictReader
 
+from app import forms
 from app.forms import EpisodeForm
 from app.models import Episode, Season
 from app.utils import helpers
@@ -93,7 +94,7 @@ def add_bulk_media(
     if media_type == "season":
         instance.season_number = row["season_number"]
 
-    form = media_mapping["form"](
+    form = forms.get_form_class(media_type)(
         row,
         instance=instance,
         initial={"media_type": media_type},
