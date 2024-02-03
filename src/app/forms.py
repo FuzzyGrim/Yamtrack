@@ -102,23 +102,10 @@ class MovieForm(MediaForm):
 class TVForm(MediaForm):
     """Form for TV shows."""
 
-    def __init__(self: "TVForm", *args: dict, **kwargs: dict) -> None:
-        """Initialize the form."""
-
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            "media_id",
-            "media_type",
-            "score",
-            "notes",
-        )
-
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
         model = TV
-        exclude = ("progress", "status", "start_date", "end_date")
 
 
 class SeasonForm(MediaForm):
@@ -168,23 +155,20 @@ class FilterForm(forms.Form):
         """Initialize the form."""
 
         sort_choices = kwargs.pop("sort_choices")
-        media_type = kwargs.pop("media_type")
 
         super().__init__(*args, **kwargs)
 
-        # tv shows don"t have a status
-        if media_type != "tv":
-            self.fields["status"] = forms.ChoiceField(
-                choices=[
-                    # left side in lower case for better looking url when filtering
-                    ("all", "All"),
-                    ("completed", "Completed"),
-                    ("in progress", "In progress"),
-                    ("paused", "Paused"),
-                    ("dropped", "Dropped"),
-                    ("planning", "Planning"),
-                ],
-            )
+        self.fields["status"] = forms.ChoiceField(
+            choices=[
+                # left side in lower case for better looking url when filtering
+                ("all", "All"),
+                ("completed", "Completed"),
+                ("in progress", "In progress"),
+                ("paused", "Paused"),
+                ("dropped", "Dropped"),
+                ("planning", "Planning"),
+            ],
+        )
 
         self.fields["sort"] = forms.ChoiceField(
             choices=sort_choices,

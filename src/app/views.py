@@ -8,7 +8,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.forms import FilterForm, get_form_class
-from app.models import Anime, Episode, Manga, Movie, Season
+from app.models import TV, Anime, Episode, Manga, Movie, Season
 from app.utils import form_handlers, helpers, metadata, search
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,10 @@ def home(request: HttpRequest) -> HttpResponse:
     movies = Movie.objects.filter(user_id=request.user, status="In progress")
     if movies.exists():
         in_progress["movie"] = movies
+
+    tv = TV.objects.filter(user_id=request.user, status="In progress")
+    if tv.exists():
+        in_progress["tv"] = tv
 
     seasons = Season.objects.filter(
         user_id=request.user,
@@ -140,9 +144,8 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     filter_params = {"user_id": request.user.id}
 
     # filter by status if status is not "all", default to "all"
-    # tv shows don't have a status field so ignore status filter
     status_filter = request.GET.get("status", "all")
-    if status_filter != "all" and media_type != "tv":
+    if status_filter != "all":
         filter_params["status"] = status_filter.capitalize()
 
     # default sort by descending score
@@ -153,7 +156,6 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
         # fill form with current values if they exist
         request.GET or None,
         sort_choices=media_mapping["sort_choices"],
-        media_type=media_type,
     )
 
     # if form valid or no form submitted
@@ -163,12 +165,12 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
         # asc order
         if sort_filter == "title":
             media_list = model.objects.filter(**filter_params).order_by(
-                F(sort_filter).asc(nulls_last=True)
+                F(sort_filter).asc(nulls_last=True),
             )
         # desc order
         else:
             media_list = model.objects.filter(**filter_params).order_by(
-                F(sort_filter).desc(nulls_last=True)
+                F(sort_filter).desc(nulls_last=True),
             )
 
         return render(

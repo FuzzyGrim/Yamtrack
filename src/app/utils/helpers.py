@@ -112,6 +112,9 @@ def media_type_mapper(media_type: str) -> dict:
             "sort_choices": [
                 ("score", "Score"),
                 ("title", "Title"),
+                ("progress", "Progress"),
+                ("start_date", "Start Date"),
+                ("end_date", "End Date"),
             ],
         },
         "season": {

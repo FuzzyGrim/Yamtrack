@@ -47,19 +47,6 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
         if media_type == "movie" or (media_type == "tv" and episode_number == ""):
             media_metadata = metadata.get_media_metadata(media_type, media_id)
 
-            # if tv show watchlist, add first season as planning
-            if media_type == "tv" and status == "Planning":
-                media_type = "season"
-
-                # get title and id from tv metadata as it's not in season metadata
-                tv_title = media_metadata["title"]
-                media_id = media_metadata["id"]
-
-                media_metadata = metadata.season(media_id, season_number=1)
-                media_metadata["media_type"] = "season"
-                media_metadata["title"] = tv_title
-                media_metadata["id"] = media_id
-
             instance = create_instance(media_metadata, user)
             form = create_form(row, instance, media_metadata, status)
 
@@ -113,23 +100,17 @@ def create_form(
         "media_id": media_metadata["id"],
         "media_type": media_type,
         "score": row["Your Rating"],
+        "status": status,
     }
-    if media_type == "movie":
-        data["status"] = status
-        if status == "Completed":
-            data["end_date"] = (
-                datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ")
-                .astimezone()
-                .date()
-            )
-            data["progress"] = 1
-        else:
-            data["progress"] = 0
 
-    # if tv watchlist, add first season as planning
-    if media_type == "season":
-        data["status"] = "Planning"
-        data["season_number"] = 1
+    if status == "Completed":
+        data["end_date"] = (
+            datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ")
+            .astimezone()
+            .date()
+        )
+        data["progress"] = media_metadata["num_episodes"]
+
 
     return forms.get_form_class(media_type)(
         data=data,

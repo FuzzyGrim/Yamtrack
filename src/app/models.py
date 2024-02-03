@@ -64,7 +64,7 @@ class Media(models.Model):
 
         media_type = self.__class__.__name__.lower()
 
-        if media_type not in ("season", "tv"):
+        if media_type != "season":
             if "status" in self.tracker.changed() or self._state.adding:
                 if self.status == "Completed":
                     if not self.end_date:
@@ -99,10 +99,6 @@ class Media(models.Model):
 class TV(Media):
     """Model for TV shows."""
 
-    progress = None
-    status = None
-    start_date = None
-    end_date = None
     tracker = FieldTracker()
 
 
