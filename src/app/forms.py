@@ -93,27 +93,10 @@ class AnimeForm(MediaForm):
 class MovieForm(MediaForm):
     """Form for movies."""
 
-    def __init__(self: "MovieForm", *args: dict, **kwargs: dict) -> None:
-        """Initialize the form."""
-
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        # movies don"t have progress, score will fill whole row
-        self.helper.layout = Layout(
-            "media_id",
-            "media_type",
-            "score",
-            "status",
-            "start_date",
-            "end_date",
-            "notes",
-        )
-
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
         model = Movie
-        exclude = ("progress",)
 
 
 class TVForm(MediaForm):

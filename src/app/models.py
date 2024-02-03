@@ -181,11 +181,3 @@ class Movie(Media):
     """Model for movies."""
 
     tracker = FieldTracker()
-
-    @property
-    def progress(self: "Movie") -> int:
-        """Return 1 if the movie is completed."""
-
-        if self.status == "Completed":
-            return 1
-        return 0

@@ -8,7 +8,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.forms import FilterForm, get_form_class
-from app.models import TV, Anime, Episode, Manga, Movie, Season
+from app.models import Anime, Episode, Manga, Movie, Season
 from app.utils import form_handlers, helpers, metadata, search
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,10 @@ def home(request: HttpRequest) -> HttpResponse:
     """Return the home page."""
 
     in_progress = {}
+
+    movies = Movie.objects.filter(user_id=request.user, status="In progress")
+    if movies.exists():
+        in_progress["movie"] = movies
 
     seasons = Season.objects.filter(
         user_id=request.user,

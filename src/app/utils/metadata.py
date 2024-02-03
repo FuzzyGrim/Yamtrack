@@ -182,6 +182,8 @@ def movie(media_id: str) -> dict:
     else:
         response["runtime"] = "Unknown"
 
+    response["num_episodes"] = 1
+
     if not response["genres"]:
         response["genres"] = [{"name": "Unknown"}]
 

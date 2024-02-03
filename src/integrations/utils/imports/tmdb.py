@@ -116,11 +116,15 @@ def create_form(
     }
     if media_type == "movie":
         data["status"] = status
-        data["end_date"] = (
-            datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ")
-            .astimezone()
-            .date()
-        )
+        if status == "Completed":
+            data["end_date"] = (
+                datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ")
+                .astimezone()
+                .date()
+            )
+            data["progress"] = 1
+        else:
+            data["progress"] = 0
 
     # if tv watchlist, add first season as planning
     if media_type == "season":

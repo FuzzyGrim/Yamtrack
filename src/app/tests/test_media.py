@@ -1,7 +1,7 @@
+import datetime
 import json
 import os
 import shutil
-from datetime import date
 from unittest.mock import patch
 
 from django.conf import settings
@@ -98,11 +98,12 @@ class EditMedia(TestCase):
             media_id=10494,
             title="Perfect Blue",
             score=9,
+            progress=1,
             status="Completed",
             user=self.user,
             notes="Nice",
-            start_date=date(2023, 6, 1),
-            end_date=date(2023, 6, 1),
+            start_date=datetime.date(2023, 6, 1),
+            end_date=datetime.date(2023, 6, 1),
         )
 
         self.client.post(
@@ -111,6 +112,7 @@ class EditMedia(TestCase):
                 "media_id": 10494,
                 "media_type": "movie",
                 "score": 10,
+                "progress": 1,
                 "status": "Completed",
                 "notes": "Nice",
                 "save": "",
@@ -139,11 +141,15 @@ class CleanFormMedia(TestCase):
                 "media_id": 10494,
                 "media_type": "movie",
                 "score": 10,
+                "progress": 1,
                 "status": "Completed",
                 "save": "",
             },
         )
-        self.assertEqual(Movie.objects.get(media_id=10494).end_date, date.today())
+        self.assertEqual(
+            Movie.objects.get(media_id=10494).end_date,
+            datetime.datetime.now(tz=settings.TZ).date(),
+        )
 
     def test_anime_complete(self):
         """
@@ -164,7 +170,10 @@ class CleanFormMedia(TestCase):
             },
         )
         self.assertEqual(Anime.objects.get(media_id=1).progress, 26)
-        self.assertEqual(Anime.objects.get(media_id=1).end_date, date.today())
+        self.assertEqual(
+            Anime.objects.get(media_id=1).end_date,
+            datetime.datetime.now(tz=settings.TZ).date(),
+        )
 
     def test_season_complete(self):
         """
@@ -200,7 +209,7 @@ class CleanFormMedia(TestCase):
             status="In progress",
             user=self.user,
             progress=2,
-            start_date=date(2021, 6, 1),
+            start_date=datetime.date(2021, 6, 1),
         )
         self.client.post(
             reverse(
@@ -248,11 +257,12 @@ class DeleteMedia(TestCase):
             media_id=10494,
             title="Perfect Blue",
             score=9,
+            progress=1,
             status="Completed",
             user=self.user,
             notes="Nice",
-            start_date=date(2023, 6, 1),
-            end_date=date(2023, 6, 1),
+            start_date=datetime.date(2023, 6, 1),
+            end_date=datetime.date(2023, 6, 1),
         )
 
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
@@ -279,7 +289,9 @@ class DeleteMedia(TestCase):
             notes="Nice",
         )
         Episode.objects.create(
-            related_season=season, episode_number=1, watch_date=date(2023, 6, 1)
+            related_season=season,
+            episode_number=1,
+            watch_date=datetime.date(2023, 6, 1),
         )
 
         self.client.post(
@@ -308,7 +320,9 @@ class DeleteMedia(TestCase):
             notes="Nice",
         )
         Episode.objects.create(
-            related_season=season, episode_number=1, watch_date=date(2023, 6, 1)
+            related_season=season,
+            episode_number=1,
+            watch_date=datetime.date(2023, 6, 1),
         )
 
         self.client.post(
@@ -325,7 +339,8 @@ class DeleteMedia(TestCase):
         )
 
         self.assertEqual(
-            Episode.objects.filter(related_season__user=self.user).count(), 0,
+            Episode.objects.filter(related_season__user=self.user).count(),
+            0,
         )
 
 
@@ -408,7 +423,7 @@ class ProgressEditSeason(TestCase):
         Episode.objects.create(
             related_season=Season.objects.get(media_id=1668),
             episode_number=1,
-            watch_date=date(2023, 6, 1),
+            watch_date=datetime.date(2023, 6, 1),
         )
 
     def test_progress_increase(self):
@@ -461,7 +476,7 @@ class ProgressEditAnime(TestCase):
             score=9,
             status="In progress",
             progress=2,
-            start_date=date(2023, 6, 1),
+            start_date=datetime.date(2023, 6, 1),
             end_date=None,
             user=self.user,
             notes="",
