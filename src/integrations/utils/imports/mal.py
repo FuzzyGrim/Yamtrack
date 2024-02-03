@@ -89,7 +89,6 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
                 "notes": content["list_status"]["comments"],
             },
             instance=instance,
-            post_processing=False,
         )
 
         if form.is_valid():

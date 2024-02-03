@@ -1,3 +1,5 @@
+import datetime
+
 from django.conf import settings
 from django.core.validators import (
     DecimalValidator,
@@ -6,6 +8,9 @@ from django.core.validators import (
 )
 from django.db import models
 from django.db.models import Max, Min
+from model_utils import FieldTracker
+
+from app.utils import metadata
 
 
 class Media(models.Model):
@@ -51,8 +56,44 @@ class Media(models.Model):
 
     def __str__(self: "Media") -> str:
         """Return the title of the media."""
+
         return f"{self.title}"
 
+    def save(self: "Media", *args: dict, **kwargs: dict) -> None:
+        """Update some fields before saving the instance."""
+
+        media_type = self.__class__.__name__.lower()
+
+        if media_type not in ("season", "tv"):
+            if "status" in self.tracker.changed() or self._state.adding:
+                if self.status == "Completed":
+                    if not self.end_date:
+                        self.end_date = datetime.datetime.now(tz=settings.TZ).date()
+
+                    self.progress = metadata.get_media_metadata(
+                        media_type,
+                        self.media_id,
+                    )["num_episodes"]
+
+                elif self.status == "In progress" and not self.start_date:
+                    self.start_date = datetime.datetime.now(tz=settings.TZ).date()
+
+            if "progress" in self.tracker.changed():
+                max_episodes = metadata.get_media_metadata(
+                    media_type,
+                    self.media_id,
+                )["num_episodes"]
+
+                if self.progress > max_episodes:
+                    self.progress = max_episodes
+
+                if self.progress == max_episodes:
+                    self.status = "Completed"
+                    self.end_date = datetime.datetime.now(
+                        tz=settings.TZ,
+                    ).date()
+
+        super().save(*args, **kwargs)
 
 
 class TV(Media):
@@ -62,12 +103,14 @@ class TV(Media):
     status = None
     start_date = None
     end_date = None
+    tracker = FieldTracker()
 
 
 class Season(Media):
     """Model for seasons of TV shows."""
 
     season_number = models.PositiveIntegerField()
+    tracker = FieldTracker()
 
     @property
     def progress(self: "Season") -> int:
@@ -97,15 +140,17 @@ class Season(Media):
         return f"{self.title} S{self.season_number}"
 
 
-
 class Episode(models.Model):
     """Model for episodes of a season."""
 
     related_season = models.ForeignKey(
-        Season, on_delete=models.CASCADE, related_name="episodes",
+        Season,
+        on_delete=models.CASCADE,
+        related_name="episodes",
     )
     episode_number = models.PositiveIntegerField()
     watch_date = models.DateField(null=True, blank=True)
+    tracker = FieldTracker()
 
     class Meta:
         """Limit the uniqueness of episodes.
@@ -120,17 +165,22 @@ class Episode(models.Model):
         return f"{self.related_season}E{self.episode_number}"
 
 
-
 class Manga(Media):
     """Model for manga."""
+
+    tracker = FieldTracker()
 
 
 class Anime(Media):
     """Model for anime."""
 
+    tracker = FieldTracker()
+
 
 class Movie(Media):
     """Model for movies."""
+
+    tracker = FieldTracker()
 
     @property
     def progress(self: "Movie") -> int:

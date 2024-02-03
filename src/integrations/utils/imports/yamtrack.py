@@ -54,8 +54,8 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
 
     # bulk create tv, season, movie, anime and manga
     for media_type, medias in bulk_media.items():
-        model_type = helpers.media_type_mapper(media_type)["model"]
-        model_type.objects.bulk_create(medias, ignore_conflicts=True)
+        model = apps.get_model(app_label="app", model_name=media_type)
+        model.objects.bulk_create(medias, ignore_conflicts=True)
 
         logger.info("Imported %s %ss", len(medias), media_type)
 
@@ -94,7 +94,6 @@ def add_bulk_media(
         row,
         instance=instance,
         initial={"media_type": media_type},
-        post_processing=False,
     )
 
     if form.is_valid():

@@ -1,11 +1,6 @@
-import datetime
-
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
-from django.conf import settings
-
-from app.utils import metadata
 
 from .models import TV, Anime, Episode, Manga, Movie, Season
 
@@ -33,59 +28,8 @@ class MediaForm(forms.ModelForm):
         widget=forms.HiddenInput(),
     )
 
-    def clean(self: "MediaForm") -> dict:
-        """Clean the form data."""
-
-        cleaned_data = super().clean()
-        if self.post_processing:
-            media_id = cleaned_data.get("media_id")
-            media_type = cleaned_data.get("media_type")
-            progress = cleaned_data.get("progress")
-            status = cleaned_data.get("status")
-            start_date = cleaned_data.get("start_date")
-            end_date = cleaned_data.get("end_date")
-
-            # if status is changed or media is being added
-            if "status" in self.changed_data or self.instance.pk is None:
-                if status == "Completed":
-                    if not end_date:
-                        cleaned_data["end_date"] = datetime.datetime.now(
-                            tz=settings.TZ,
-                        ).date()
-
-                    if isinstance(self, (AnimeForm, MangaForm)):
-                        cleaned_data["progress"] = metadata.anime_manga(
-                            media_type,
-                            media_id,
-                        )["num_episodes"]
-
-                elif status == "In progress" and not start_date:
-                    cleaned_data["start_date"] = datetime.datetime.now(
-                        tz=settings.TZ,
-                    ).date()
-
-            if "progress" in self.changed_data:
-                total_episodes = metadata.get_media_metadata(media_type, media_id)[
-                    "num_episodes"
-                ]
-
-                # limit progress to total_episodes
-                if progress > total_episodes:
-                    cleaned_data["progress"] = total_episodes
-
-                # If progress == total_episodes and status not explicitly changed
-                if progress == total_episodes and "status" not in self.changed_data:
-                    cleaned_data["status"] = "Completed"
-                    cleaned_data["end_date"] = datetime.datetime.now(
-                        tz=settings.TZ,
-                    ).date()
-
-        return cleaned_data
-
     def __init__(self: "MediaForm", *args: dict, **kwargs: dict) -> None:
         """Initialize the form."""
-
-        self.post_processing = kwargs.pop("post_processing", True)
 
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -249,7 +193,8 @@ class FilterForm(forms.Form):
         if media_type != "tv":
             self.fields["status"] = forms.ChoiceField(
                 choices=[
-                    ("all", "All"), # left side in lower case for better looking url when filtering
+                    # left side in lower case for better looking url when filtering
+                    ("all", "All"),
                     ("completed", "Completed"),
                     ("in progress", "In progress"),
                     ("paused", "Paused"),

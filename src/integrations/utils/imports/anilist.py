@@ -135,7 +135,6 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                                 "notes": content["notes"],
                             },
                             instance=instance,
-                            post_processing=False,
                         )
                         if form.is_valid():
                             bulk_media[media_type].append(form.instance)

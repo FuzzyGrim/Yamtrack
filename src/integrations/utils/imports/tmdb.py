@@ -6,7 +6,7 @@ from csv import DictReader
 from typing import TYPE_CHECKING
 
 from app import forms
-from app.utils import helpers, metadata
+from app.utils import metadata
 from django.apps import apps
 
 if TYPE_CHECKING:
@@ -71,9 +71,9 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
 
     # bulk create tv, seasons and movie
     for media_type, medias in bulk_media.items():
-        model_type = helpers.media_type_mapper(media_type)["model"]
+        model = apps.get_model(app_label="app", model_name=media_type)
 
-        model_type.objects.bulk_create(medias, ignore_conflicts=True)
+        model.objects.bulk_create(medias, ignore_conflicts=True)
         logger.info("Imported %s %ss", len(medias), media_type)
 
 
@@ -130,5 +130,4 @@ def create_form(
     return forms.get_form_class(media_type)(
         data=data,
         instance=instance,
-        post_processing=False,
     )
