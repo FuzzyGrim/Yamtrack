@@ -61,10 +61,11 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
 
         # save episode progress
         if operation == "increase":
-            # next episode = current progress + 1, but 0-indexed so -1
-            episode_number = season_metadata["episodes"][season.progress][
-                "episode_number"
-            ]
+            # get next episode number
+            episode_number = Episode.objects.filter(
+                related_season=season,
+            ).order_by("-episode_number").first().episode_number + 1
+
             Episode.objects.create(
                 related_season=season,
                 episode_number=episode_number,
@@ -73,9 +74,10 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
             logger.info("Watched %sE%s", season, episode_number)
 
         elif operation == "decrease":
-            episode_number = season_metadata["episodes"][season.progress - 1][
-                "episode_number"
-            ]
+            episode_number = Episode.objects.filter(
+                related_season=season,
+            ).order_by("-episode_number").first().episode_number
+
             Episode.objects.get(
                 related_season=season,
                 episode_number=episode_number,
