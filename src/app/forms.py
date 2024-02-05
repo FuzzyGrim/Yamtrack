@@ -102,14 +102,31 @@ class MovieForm(MediaForm):
 class TVForm(MediaForm):
     """Form for TV shows."""
 
+    def __init__(self: "TVForm", *args: dict, **kwargs: dict) -> None:
+        """Initialize the form."""
+
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            "media_id",
+            "media_type",
+            "score",
+            "status",
+            "notes",
+        )
+
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
         model = TV
 
+        exclude = ("progress", "start_date", "end_date")
+
 
 class SeasonForm(MediaForm):
     """Form for seasons."""
+
+    media_id = forms.IntegerField(widget=forms.HiddenInput())
 
     season_number = forms.IntegerField(
         min_value=0,
@@ -164,9 +181,9 @@ class FilterForm(forms.Form):
                 ("all", "All"),
                 ("completed", "Completed"),
                 ("in progress", "In progress"),
+                ("planning", "Planning"),
                 ("paused", "Paused"),
                 ("dropped", "Dropped"),
-                ("planning", "Planning"),
             ],
         )
 

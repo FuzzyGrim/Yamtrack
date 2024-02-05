@@ -37,9 +37,9 @@ class Media(models.Model):
         choices=[
             ("Completed", "Completed"),
             ("In progress", "In progress"),
+            ("Planning", "Planning"),
             ("Paused", "Paused"),
             ("Dropped", "Dropped"),
-            ("Planning", "Planning"),
         ],
     )
     start_date = models.DateField(null=True, blank=True)
@@ -64,7 +64,7 @@ class Media(models.Model):
 
         media_type = self.__class__.__name__.lower()
 
-        if media_type != "season":
+        if media_type not in ("tv", "season"):
             if "status" in self.tracker.changed() or self._state.adding:
                 if self.status == "Completed":
                     if not self.end_date:
@@ -101,11 +101,34 @@ class TV(Media):
 
     tracker = FieldTracker()
 
+    @property
+    def progress(self: "Season") -> int:
+        """Return the user's episodes watched for the TV show."""
+        return Episode.objects.filter(related_season__related_tv=self).exclude(related_season__season_number=0).count()
+
+    @property
+    def start_date(self: "TV") -> datetime.date:
+        """Return the date of the first episode watched."""
+        earliest_date = Episode.objects.filter(season__show=self).aggregate(start_date=Min("watch_date"))["start_date"]
+        return earliest_date if earliest_date is not None else None
+
+    @property
+    def end_date(self: "TV") -> datetime.date:
+        """Return the date of the last episode watched."""
+        latest_date = Episode.objects.filter(season__show=self).aggregate(end_date=Max("watch_date"))["end_date"]
+        return latest_date if latest_date is not None else None
+
 
 class Season(Media):
     """Model for seasons of TV shows."""
 
+    related_tv = models.ForeignKey(
+        TV,
+        on_delete=models.CASCADE,
+        related_name="seasons",
+    )
     season_number = models.PositiveIntegerField()
+
     tracker = FieldTracker()
 
     @property
@@ -114,14 +137,16 @@ class Season(Media):
         return self.episodes.count()
 
     @property
-    def start_date(self: "Season") -> str:
+    def start_date(self: "Season") -> datetime.date:
         """Return the date of the first episode watched."""
-        return self.episodes.aggregate(start_date=Min("watch_date"))["start_date"]
+        earliest_date = self.episodes.aggregate(start_date=Min("watch_date"))["start_date"]
+        return earliest_date if earliest_date is not None else None
 
     @property
-    def end_date(self: "Season") -> str:
+    def end_date(self: "Season") -> datetime.date:
         """Return the date of the last episode watched."""
-        return self.episodes.aggregate(end_date=Max("watch_date"))["end_date"]
+        latest_date = self.episodes.aggregate(end_date=Max("watch_date"))["end_date"]
+        return latest_date if latest_date is not None else None
 
     class Meta:
         """Limit the uniqueness of seasons.
@@ -129,7 +154,7 @@ class Season(Media):
         Only one season per media can have the same season number.
         """
 
-        unique_together = ["media_id", "season_number", "user"]
+        unique_together = ["related_tv", "season_number"]
 
     def __str__(self: "Season") -> str:
         """Return the title of the media and season number."""
@@ -146,7 +171,6 @@ class Episode(models.Model):
     )
     episode_number = models.PositiveIntegerField()
     watch_date = models.DateField(null=True, blank=True)
-    tracker = FieldTracker()
 
     class Meta:
         """Limit the uniqueness of episodes.

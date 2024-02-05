@@ -49,10 +49,7 @@ class ValidForm(TestCase):
             "title": "Sample",
             "image": "sample.jpg",
             "score": 7.5,
-            "progress": 25,
             "status": "Completed",
-            "start_date": "2023-02-01",
-            "end_date": "2023-06-30",
             "user": self.user.id,
             "notes": "New notes",
         }

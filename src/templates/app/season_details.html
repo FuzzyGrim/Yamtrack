@@ -73,14 +73,17 @@
             <div class="mb-2"><small class="text-body-secondary">{{ episode.air_date|default:"Unknown Release Date" }}</small></div>
             <div class="episode-overview mb-2">{{ episode.overview }}</div>
             <div class="mt-auto">
-              
-              <button type="button"class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#episode_{{ episode.episode_number }}">
-                {% if episode.watched %}
+
+              {% if episode.watched %}
+                <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#episode_{{ episode.episode_number }}">
                   <i class="bi bi-check-circle-fill"></i>
-                {% else %}
+                </button>
+                <small class="ms-2">On {{ episode.watch_date|date:"Y-m-d" }}</small>
+              {% else %}
+              <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#episode_{{ episode.episode_number }}">
                   <i class="bi bi-check-circle"></i>
-                {% endif %}
-              </button>
+                </button>
+              {% endif %}
 
               <div class="modal fade" id="episode_{{ episode.episode_number }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-sm">

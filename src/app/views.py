@@ -8,7 +8,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.forms import FilterForm, get_form_class
-from app.models import TV, Anime, Episode, Manga, Movie, Season
+from app.models import Anime, Episode, Manga, Movie, Season
 from app.utils import form_handlers, helpers, metadata, search
 
 logger = logging.getLogger(__name__)
@@ -23,15 +23,10 @@ def home(request: HttpRequest) -> HttpResponse:
     if movies.exists():
         in_progress["movie"] = movies
 
-    tv = TV.objects.filter(user_id=request.user, status="In progress")
-    if tv.exists():
-        in_progress["tv"] = tv
-
     seasons = Season.objects.filter(
-        user_id=request.user,
+        related_tv__user_id=request.user,
         status="In progress",
-    ).prefetch_related("episodes")
-
+    ).prefetch_related("episodes", "related_tv")
     if seasons.exists():
         in_progress["season"] = seasons
 
@@ -61,14 +56,24 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         season_metadata = metadata.season(media_id, season_number)
         max_progress = len(season_metadata["episodes"])
 
-        season = Season.objects.get(media_id=media_id, season_number=season_number)
+        season = Season.objects.get(
+            related_tv__media_id=media_id,
+            related_tv__user=request.user,
+            season_number=season_number,
+        )
 
         # save episode progress
         if operation == "increase":
             # get next episode number
-            episode_number = Episode.objects.filter(
-                related_season=season,
-            ).order_by("-episode_number").first().episode_number + 1
+            episode_number = (
+                Episode.objects.filter(
+                    related_season=season,
+                )
+                .order_by("-episode_number")
+                .first()
+                .episode_number
+                + 1
+            )
 
             Episode.objects.create(
                 related_season=season,
@@ -78,9 +83,14 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
             logger.info("Watched %sE%s", season, episode_number)
 
         elif operation == "decrease":
-            episode_number = Episode.objects.filter(
-                related_season=season,
-            ).order_by("-episode_number").first().episode_number
+            episode_number = (
+                Episode.objects.filter(
+                    related_season=season,
+                )
+                .order_by("-episode_number")
+                .first()
+                .episode_number
+            )
 
             Episode.objects.get(
                 related_season=season,
@@ -141,7 +151,10 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
         form_handlers.media_form_handler(request)
         return redirect("medialist", media_type=media_type)
 
-    filter_params = {"user_id": request.user.id}
+    if media_type == "season":
+        filter_params = {"related_tv__user_id": request.user.id}
+    else:
+        filter_params = {"user_id": request.user.id}
 
     # filter by status if status is not "all", default to "all"
     status_filter = request.GET.get("status", "all")
@@ -265,16 +278,19 @@ def season_details(
 
         return redirect("season_details", media_id, title, season_number)
 
-    # returns tuple of watched episodes in database
-    watched_episodes = set(
-        Episode.objects.filter(
-            related_season__media_id=media_id,
-            related_season__season_number=season_number,
-            related_season__user=request.user,
-        ).values_list("episode_number", flat=True),
-    )
+    watched_episodes = Episode.objects.filter(
+        related_season__related_tv__media_id=media_id,
+        related_season__season_number=season_number,
+        related_season__user=request.user,
+    ).values_list("episode_number", "watch_date")
+
+    watched_episodes_dict = dict(watched_episodes)
+
     for episode in season_metadata["episodes"]:
-        episode["watched"] = episode["episode_number"] in watched_episodes
+        episode_number = episode["episode_number"]
+        episode["watched"] = episode_number in watched_episodes_dict
+        if episode["watched"]:
+            episode["watch_date"] = watched_episodes_dict[episode_number]
 
     context = {
         "media_id": media_id,
@@ -295,9 +311,9 @@ def track_form(request: HttpRequest) -> HttpResponse:
     if media_type == "season":
         # set up filters to retrieve the appropriate media object
         filters = {
-            "media_id": media_id,
+            "related_tv__media_id": media_id,
+            "related_tv__user": request.user,
             "season_number": season_number,
-            "user": request.user,
         }
         initial_data = {
             "media_id": media_id,
