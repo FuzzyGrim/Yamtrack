@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import datetime
 import logging
 from typing import TYPE_CHECKING
 
 from django.apps import apps
-from django.conf import settings
-from django.db.models import Max
 
 from app import forms
 from app.models import TV, Episode, Season
@@ -82,15 +79,25 @@ def media_save(
                 related_tv = TV.objects.get(media_id=media_id, user=request.user)
             except TV.DoesNotExist:
                 tv_metadata = metadata.tv(media_id)
-                related_tv = TV.objects.create(
+
+                season_status = request.POST.get("status")
+                if season_status == "Completed" and tv_metadata["season_number"] > 1:
+                    tv_status = "In progress"
+                else:
+                    tv_status = season_status
+
+                related_tv = TV(
                     title=tv_metadata["title"],
                     image=tv_metadata["image"],
                     score=None,
-                    status=request.POST.get("status"),
+                    status=tv_status,
                     notes="",
                     user=request.user,
                     media_id=media_id,
                 )
+
+                # save_base to avoid custom save method
+                TV.save_base(related_tv)
             default_params["season_number"] = season_number
             default_params["related_tv"] = related_tv
 
@@ -101,23 +108,6 @@ def media_save(
     form = form_class(request.POST, instance=instance)
     if form.is_valid():
         form.save()
-        # if tv status completed but episode count is < total episodes
-        if (
-            model == TV
-            and form.instance.status == "Completed"
-            and form.instance.progress < media_metadata["number_of_episodes"]
-        ):
-            create_remaining_seasons(request, media_id, media_metadata, form.instance)
-        # if season status completed but episode count is < total episodes
-        elif (
-            model == Season
-            and form.instance.status == "Completed"
-            and form.instance.progress
-            < len(
-                media_metadata["episodes"],
-            )
-        ):
-            Episode.objects.bulk_create(remaining_ep_list(instance, media_metadata))
     else:
         logger.error(form.errors.as_data())
 
@@ -167,7 +157,7 @@ def episode_form_handler(
         except TV.DoesNotExist:
             tv_metadata = metadata.tv(media_id)
 
-            related_tv = TV.objects.create(
+            related_tv = TV(
                 media_id=media_id,
                 title=tv_metadata["title"],
                 image=tv_metadata["image"],
@@ -177,7 +167,10 @@ def episode_form_handler(
                 user=request.user,
             )
 
-        related_season = Season.objects.create(
+            # save_base to avoid custom save method
+            TV.save_base(related_tv)
+
+        related_season = Season(
             media_id=media_id,
             title=season_metadata["title"],
             image=season_metadata["image"],
@@ -188,6 +181,8 @@ def episode_form_handler(
             season_number=season_number,
             related_tv=related_tv,
         )
+        # save_base to avoid custom save method
+        Season.save_base(related_season)
 
     episode_number = request.POST["episode_number"]
     if "unwatch" in request.POST:
@@ -198,7 +193,8 @@ def episode_form_handler(
 
         if related_season.status == "Completed":
             related_season.status = "In progress"
-            related_season.save()
+            # save_base to avoid custom save method
+            related_season.save_base(update_fields=["status"])
     else:
 
         if "release" in request.POST:
@@ -214,71 +210,3 @@ def episode_form_handler(
                 "watch_date": watch_date,
             },
         )
-
-        # if all episodes are watched, set season status to completed
-        if related_season.progress == len(season_metadata["episodes"]):
-            related_season.status = "Completed"
-            related_season.save()
-
-
-def create_remaining_seasons(
-    request: HttpRequest, media_id: int, media_metadata: dict, instance: TV
-) -> None:
-    """Create remaining seasons and episodes for a TV show."""
-
-    seasons_to_create = []
-    episodes_to_create = []
-    for season_number in range(1, media_metadata["number_of_seasons"]):
-        season_metadata = metadata.season(media_id, season_number)
-        try:
-            season_instance = Season.objects.get(
-                media_id=media_id,
-                user=request.user,
-                season_number=season_number,
-            )
-        except Season.DoesNotExist:
-            season_instance = Season(
-                media_id=media_id,
-                title=media_metadata["title"],
-                image=season_metadata["image"],
-                score=None,
-                status="Completed",
-                notes="",
-                season_number=season_number,
-                related_tv=instance,
-                user=request.user,
-            )
-            seasons_to_create.append(season_instance)
-        episodes_to_create.extend(
-            remaining_ep_list(season_instance, season_metadata),
-        )
-
-    Season.objects.bulk_create(seasons_to_create)
-    Episode.objects.bulk_create(episodes_to_create)
-
-
-def remaining_ep_list(instance: Season, season_metadata: dict) -> None:
-    """Return remaining episodes to complete for a season."""
-
-    # Get the maximum episode number already in the database
-    max_episode_number = Episode.objects.filter(related_season=instance).aggregate(
-        max_episode_number=Max("episode_number"),
-    )["max_episode_number"]
-
-    if max_episode_number is None:
-        max_episode_number = 0
-
-    # Initialize the list to store new episodes
-    episodes_to_create = []
-
-    # Create Episode objects for the remaining episodes
-    for episode in season_metadata["episodes"]:
-        if episode["episode_number"] > max_episode_number:
-            episode_db = Episode(
-                related_season=instance,
-                episode_number=episode["episode_number"],
-                watch_date=datetime.datetime.now(tz=settings.TZ).date(),
-            )
-            episodes_to_create.append(episode_db)
-
-    return episodes_to_create

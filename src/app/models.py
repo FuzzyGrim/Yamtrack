@@ -59,39 +59,36 @@ class Media(models.Model):
 
         return f"{self.title}"
 
-    def save(self: "Media", *args: dict, **kwargs: dict) -> None:
-        """Update some fields before saving the instance."""
+    def save(self: "Media", *args: list, **kwargs: dict) -> None:
+        """Save the media instance."""
 
         media_type = self.__class__.__name__.lower()
 
-        if media_type not in ("tv", "season"):
-            if "status" in self.tracker.changed() or self._state.adding:
-                if self.status == "Completed":
-                    if not self.end_date:
-                        self.end_date = datetime.datetime.now(tz=settings.TZ).date()
+        if "status" in self.tracker.changed():
+            if self.status == "Completed":
+                if not self.end_date:
+                    self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
-                    self.progress = metadata.get_media_metadata(
-                        media_type,
-                        self.media_id,
-                    )["num_episodes"]
+                self.progress = metadata.get_media_metadata(media_type, self.media_id)[
+                    "num_episodes"
+                ]
 
-                elif self.status == "In progress" and not self.start_date:
-                    self.start_date = datetime.datetime.now(tz=settings.TZ).date()
+            elif self.status == "In progress" and not self.start_date:
+                self.start_date = datetime.datetime.now(tz=settings.TZ).date()
 
-            if "progress" in self.tracker.changed():
-                max_episodes = metadata.get_media_metadata(
-                    media_type,
-                    self.media_id,
-                )["num_episodes"]
+        if "progress" in self.tracker.changed():
+            max_episodes = metadata.get_media_metadata(media_type, self.media_id)[
+                "num_episodes"
+            ]
 
-                if self.progress > max_episodes:
-                    self.progress = max_episodes
+            if self.progress > max_episodes:
+                self.progress = max_episodes
 
-                if self.progress == max_episodes:
-                    self.status = "Completed"
-                    self.end_date = datetime.datetime.now(
-                        tz=settings.TZ,
-                    ).date()
+            if self.progress == max_episodes:
+                self.status = "Completed"
+
+                if not self.end_date:
+                    self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
         super().save(*args, **kwargs)
 
@@ -104,19 +101,41 @@ class TV(Media):
     @property
     def progress(self: "Season") -> int:
         """Return the user's episodes watched for the TV show."""
-        return Episode.objects.filter(related_season__related_tv=self).exclude(related_season__season_number=0).count()
+        return (
+            Episode.objects.filter(related_season__related_tv=self)
+            .exclude(related_season__season_number=0)
+            .count()
+        )
 
     @property
     def start_date(self: "TV") -> datetime.date:
         """Return the date of the first episode watched."""
-        earliest_date = Episode.objects.filter(season__show=self).aggregate(start_date=Min("watch_date"))["start_date"]
+        earliest_date = Episode.objects.filter(season__show=self).aggregate(
+            start_date=Min("watch_date"),
+        )["start_date"]
         return earliest_date if earliest_date is not None else None
 
     @property
     def end_date(self: "TV") -> datetime.date:
         """Return the date of the last episode watched."""
-        latest_date = Episode.objects.filter(season__show=self).aggregate(end_date=Max("watch_date"))["end_date"]
+        latest_date = Episode.objects.filter(season__show=self).aggregate(
+            end_date=Max("watch_date"),
+        )["end_date"]
         return latest_date if latest_date is not None else None
+
+    # postpone field reset until after the save
+    @tracker
+    def save(self: "Media", *args: list, **kwargs: dict) -> None:
+        """Save the media instance."""
+        super(Media, self).save(*args, **kwargs)
+
+        tv_metadata = metadata.tv(self.media_id)
+        if (
+            "status" in self.tracker.changed()
+            and self.status == "Completed"
+            and self.progress < tv_metadata["num_episodes"]
+        ):
+            create_remaining_seasons(self, tv_metadata)
 
 
 class Season(Media):
@@ -139,7 +158,9 @@ class Season(Media):
     @property
     def start_date(self: "Season") -> datetime.date:
         """Return the date of the first episode watched."""
-        earliest_date = self.episodes.aggregate(start_date=Min("watch_date"))["start_date"]
+        earliest_date = self.episodes.aggregate(start_date=Min("watch_date"))[
+            "start_date"
+        ]
         return earliest_date if earliest_date is not None else None
 
     @property
@@ -159,6 +180,18 @@ class Season(Media):
     def __str__(self: "Season") -> str:
         """Return the title of the media and season number."""
         return f"{self.title} S{self.season_number}"
+
+    # postpone field reset until after the save
+    @tracker
+    def save(self: "Media", *args: list, **kwargs: dict) -> None:
+        """Save the media instance."""
+        super(Media, self).save(*args, **kwargs)
+
+        season_metadata = metadata.season(self.media_id, self.season_number)
+        if "status" in self.tracker.changed() and self.status == "Completed":
+            Episode.objects.bulk_create(
+                get_remaining_eps(self, season_metadata),
+            )
 
 
 class Episode(models.Model):
@@ -184,6 +217,19 @@ class Episode(models.Model):
         """Return the season and episode number."""
         return f"{self.related_season}E{self.episode_number}"
 
+    def save(self: "Episode", *args: list, **kwargs: dict) -> None:
+        """Save the episode instance."""
+        super().save(*args, **kwargs)
+
+        season_metadata = metadata.season(
+            self.related_season.media_id,
+            self.related_season.season_number,
+        )
+        if self.related_season.progress == len(season_metadata["episodes"]):
+            self.related_season.status = "Completed"
+            # save_base to avoid custom save method
+            self.related_season.save_base(update_fields=["status"])
+
 
 class Manga(Media):
     """Model for manga."""
@@ -201,3 +247,72 @@ class Movie(Media):
     """Model for movies."""
 
     tracker = FieldTracker()
+
+
+################################
+# METHODS FOR MODEL MANAGEMENT #
+################################
+
+
+def create_remaining_seasons(
+    tv: TV,
+    metadata: dict,
+) -> None:
+    """Create remaining seasons and episodes for a TV show."""
+
+    seasons_to_create = []
+    episodes_to_create = []
+    for season_number in range(1, metadata["number_of_seasons"]):
+        season_metadata = metadata.season(tv.media_id, season_number)
+        try:
+            season_instance = Season.objects.get(
+                media_id=tv.media_id,
+                user=tv.user,
+                season_number=season_number,
+            )
+        except Season.DoesNotExist:
+            season_instance = Season(
+                media_id=tv.media_id,
+                title=metadata["title"],
+                image=season_metadata["image"],
+                score=None,
+                status="Completed",
+                notes="",
+                season_number=season_number,
+                related_tv=tv.instance,
+                user=tv.user,
+            )
+            seasons_to_create.append(season_instance)
+        episodes_to_create.extend(
+            get_remaining_eps(season_instance, season_metadata),
+        )
+
+    Season.objects.bulk_create(seasons_to_create)
+    Episode.objects.bulk_create(episodes_to_create)
+
+
+def get_remaining_eps(season: Season, season_metadata: dict) -> None:
+    """Return remaining episodes to complete for a season."""
+
+    max_episode_number = Episode.objects.filter(related_season=season).aggregate(
+        max_episode_number=Max("episode_number"),
+    )["max_episode_number"]
+
+    if max_episode_number is None:
+        max_episode_number = 0
+
+    episodes_to_create = []
+
+    # Create Episode objects for the remaining episodes
+    for episode in reversed(season_metadata["episodes"]):
+        if episode["episode_number"] <= max_episode_number:
+            break
+
+        episode_db = Episode(
+            related_season=season,
+            episode_number=episode["episode_number"],
+            watch_date=datetime.datetime.now(tz=settings.TZ).date(),
+        )
+        episodes_to_create.append(episode_db)
+
+    return episodes_to_create
