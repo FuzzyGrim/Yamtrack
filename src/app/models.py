@@ -129,13 +129,12 @@ class TV(Media):
         """Save the media instance."""
         super(Media, self).save(*args, **kwargs)
 
-        tv_metadata = metadata.tv(self.media_id)
         if (
             "status" in self.tracker.changed()
             and self.status == "Completed"
-            and self.progress < tv_metadata["num_episodes"]
+            and self.progress < metadata.tv(self.media_id)["num_episodes"]
         ):
-            create_remaining_seasons(self, tv_metadata)
+            create_remaining_seasons(self, metadata.tv(self.media_id))
 
 
 class Season(Media):
@@ -187,8 +186,8 @@ class Season(Media):
         """Save the media instance."""
         super(Media, self).save(*args, **kwargs)
 
-        season_metadata = metadata.season(self.media_id, self.season_number)
         if "status" in self.tracker.changed() and self.status == "Completed":
+            season_metadata = metadata.season(self.media_id, self.season_number)
             Episode.objects.bulk_create(
                 get_remaining_eps(self, season_metadata),
             )

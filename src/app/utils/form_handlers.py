@@ -75,29 +75,7 @@ def media_save(
             "user": request.user,
         }
         if media_type == "season":
-            try:
-                related_tv = TV.objects.get(media_id=media_id, user=request.user)
-            except TV.DoesNotExist:
-                tv_metadata = metadata.tv(media_id)
-
-                season_status = request.POST.get("status")
-                if season_status == "Completed" and tv_metadata["season_number"] > 1:
-                    tv_status = "In progress"
-                else:
-                    tv_status = season_status
-
-                related_tv = TV(
-                    title=tv_metadata["title"],
-                    image=tv_metadata["image"],
-                    score=None,
-                    status=tv_status,
-                    notes="",
-                    user=request.user,
-                    media_id=media_id,
-                )
-
-                # save_base to avoid custom save method
-                TV.save_base(related_tv)
+            related_tv = get_related_tv(request, media_id)
             default_params["season_number"] = season_number
             default_params["related_tv"] = related_tv
 
@@ -152,23 +130,7 @@ def episode_form_handler(
         )
     except Season.DoesNotExist:
 
-        try:
-            related_tv = TV.objects.get(media_id=media_id, user=request.user)
-        except TV.DoesNotExist:
-            tv_metadata = metadata.tv(media_id)
-
-            related_tv = TV(
-                media_id=media_id,
-                title=tv_metadata["title"],
-                image=tv_metadata["image"],
-                score=None,
-                status="In progress",
-                notes="",
-                user=request.user,
-            )
-
-            # save_base to avoid custom save method
-            TV.save_base(related_tv)
+        related_tv = get_related_tv(request, media_id, status="In progress")
 
         related_season = Season(
             media_id=media_id,
@@ -210,3 +172,34 @@ def episode_form_handler(
                 "watch_date": watch_date,
             },
         )
+
+
+
+def get_related_tv(request: HttpRequest, media_id: int, status: str | None = None ) -> TV:
+    """Get related TV instance for a season or create it if it doesn't exist."""
+    try:
+        related_tv = TV.objects.get(media_id=media_id, user=request.user)
+    except TV.DoesNotExist:
+        tv_metadata = metadata.tv(media_id)
+
+        # when status is not certain, get status from form (Episode form or Season form)
+        if not status:
+            status = request.POST.get("status")
+            # creating tv with multiple seasons from a completed season
+            if status == "Completed" and tv_metadata["season_number"] > 1:
+                status = "In progress"
+
+        related_tv = TV(
+            media_id=media_id,
+            title=tv_metadata["title"],
+            image=tv_metadata["image"],
+            score=None,
+            status=status,
+            notes="",
+            user=request.user,
+        )
+
+        # save_base to avoid custom save method
+        TV.save_base(related_tv)
+
+    return related_tv
