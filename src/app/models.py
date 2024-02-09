@@ -179,8 +179,7 @@ class Season(Media):
         """Return the title of the media and season number."""
         return f"{self.title} S{self.season_number}"
 
-    # postpone field reset until after the save
-    @tracker
+    @tracker  # postpone field reset until after the save
     def save(self: "Media", *args: list, **kwargs: dict) -> None:
         """Save the media instance."""
         super(Media, self).save(*args, **kwargs)

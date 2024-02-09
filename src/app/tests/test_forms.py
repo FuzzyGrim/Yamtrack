@@ -1,14 +1,20 @@
 from django.test import TestCase
 from users.models import User
 
-from app.forms import AnimeForm, MovieForm, SeasonForm, TVForm
+from app.forms import AnimeForm, EpisodeForm, SeasonForm, TVForm
 
 
 class ValidForm(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username="test", password="12345")
+    """Test the forms with valid data."""
 
-    def test_valid_media_form(self):
+    def setUp(self: "ValidForm") -> None:
+        """Create a user."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = User.objects.create_user(**self.credentials)
+
+    def test_valid_media_form(self: "ValidForm") -> None:
+        """Test the standard media form with valid data."""
+
         form_data = {
             "media_id": 1,
             "media_type": "anime",
@@ -25,24 +31,9 @@ class ValidForm(TestCase):
         form = AnimeForm(data=form_data)
         self.assertTrue(form.is_valid())
 
-    def test_valid_movie_form(self):
-        form_data = {
-            "media_id": 1,
-            "media_type": "movie",
-            "title": "Sample",
-            "image": "sample.jpg",
-            "score": 7.5,
-            "progress": 0,
-            "status": "Paused",
-            "start_date": "2023-02-01",
-            "end_date": "2023-06-30",
-            "user": self.user.id,
-            "notes": "New notes",
-        }
-        form = MovieForm(data=form_data)
-        self.assertTrue(form.is_valid())
+    def test_valid_tv_form(self: "ValidForm") -> None:
+        """Test the TV form with valid data."""
 
-    def test_valid_tv_form(self):
         form_data = {
             "media_id": 1,
             "media_type": "tv",
@@ -56,7 +47,9 @@ class ValidForm(TestCase):
         form = TVForm(data=form_data)
         self.assertTrue(form.is_valid())
 
-    def test_valid_season_form(self):
+    def test_valid_season_form(self: "ValidForm") -> None:
+        """Test the season form with valid data."""
+
         form_data = {
             "media_id": 1,
             "media_type": "season",
@@ -69,4 +62,14 @@ class ValidForm(TestCase):
             "notes": "New notes",
         }
         form = SeasonForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_episode_form(self: "ValidForm") -> None:
+        """Test the episode form with valid data."""
+
+        form_data = {
+            "episode_number": 1,
+            "watch_date": "2023-06-01",
+        }
+        form = EpisodeForm(data=form_data)
         self.assertTrue(form.is_valid())

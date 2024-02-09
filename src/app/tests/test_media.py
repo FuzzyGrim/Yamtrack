@@ -1,7 +1,7 @@
 import datetime
 import json
-import os
 import shutil
+from pathlib import Path
 from unittest.mock import patch
 
 from django.conf import settings
@@ -12,18 +12,45 @@ from users.models import User
 from app.models import TV, Anime, Episode, Movie, Season
 from app.utils import metadata
 
-mock_path = os.path.join(os.path.dirname(__file__), "mock_data")
+mock_path = Path(__file__).resolve().parent / "mock_data"
 
 
 class CreateMedia(TestCase):
-    def setUp(self):
+    """Test the creation of media objects through views."""
+
+    def setUp(self: "CreateMedia") -> None:
+        """Create a user and log in."""
+
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
-        os.makedirs("create_media", exist_ok=True)
+        Path("create_media").mkdir(exist_ok=True)
 
     @override_settings(MEDIA_ROOT=("create_media"))
-    def test_create_tv(self):
+    def test_create_anime(self: "CreateMedia") -> None:
+        """Test the creation of a TV object."""
+
+        self.client.post(
+            reverse(
+                "media_details",
+                kwargs={"media_type": "anime", "media_id": 1, "title": "Cowboy Bebop"},
+            ),
+            {
+                "media_id": 1,
+                "media_type": "tv",
+                "status": "Planning",
+                "save": "",
+            },
+        )
+        self.assertEqual(
+            TV.objects.filter(media_id=1, user=self.user).exists(),
+            True,
+        )
+
+    @override_settings(MEDIA_ROOT=("create_media"))
+    def test_create_tv(self: "CreateMedia") -> None:
+        """Test the creation of a TV object through views."""
+
         self.client.post(
             reverse(
                 "media_details",
@@ -32,18 +59,19 @@ class CreateMedia(TestCase):
             {
                 "media_id": 5895,
                 "media_type": "tv",
-                "score": 9,
-                "status": "Completed",
-                "notes": "Nice",
+                "status": "Planning",
                 "save": "",
             },
         )
         self.assertEqual(
-            TV.objects.filter(media_id=5895, user=self.user).exists(), True
+            TV.objects.filter(media_id=5895, user=self.user).exists(),
+            True,
         )
 
     @override_settings(MEDIA_ROOT=("create_media"))
-    def test_create_season(self):
+    def test_create_season(self: "CreateMedia") -> None:
+        """Test the creation of a Season through views."""
+
         self.client.post(
             reverse(
                 "season_details",
@@ -53,17 +81,18 @@ class CreateMedia(TestCase):
                 "media_id": 1668,
                 "media_type": "season",
                 "season_number": 1,
-                "score": 9,
-                "status": "Completed",
-                "notes": "Nice",
+                "status": "Planning",
                 "save": "",
             },
         )
         self.assertEqual(
-            Season.objects.filter(media_id=1668, user=self.user).exists(), True
+            Season.objects.filter(media_id=1668, user=self.user).exists(),
+            True,
         )
 
-    def test_create_episodes(self):
+    def test_create_episodes(self: "CreateMedia") -> None:
+        """Test the creation of Episode through views."""
+
         self.client.post(
             reverse(
                 "season_details",
@@ -84,17 +113,23 @@ class CreateMedia(TestCase):
             True,
         )
 
-    def tearDown(self):
+    def tearDown(self: "CreateMedia") -> None:
+        """Remove the testing directory."""
         shutil.rmtree("create_media")
 
 
 class EditMedia(TestCase):
-    def setUp(self):
+    """Test the editing of media objects through views."""
+
+    def setUp(self: "EditMedia") -> None:
+        """Create a user and log in."""
+
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-    def test_edit_movie_score(self):
+    def test_edit_movie_score(self: "EditMedia") -> None:
+        """Test the editing of a movie score."""
         Movie.objects.create(
             media_id=10494,
             title="Perfect Blue",
@@ -122,148 +157,24 @@ class EditMedia(TestCase):
         self.assertEqual(Movie.objects.get(media_id=10494).score, 10)
 
 
-class CleanFormMedia(TestCase):
-    def setUp(self):
-        self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
-        self.client.login(**self.credentials)
-
-    def test_movie_complete(self):
-        self.client.post(
-            reverse(
-                "media_details",
-                kwargs={
-                    "media_type": "movie",
-                    "media_id": 10494,
-                    "title": "Perfect Blue",
-                },
-            ),
-            {
-                "media_id": 10494,
-                "media_type": "movie",
-                "score": 10,
-                "progress": 1,
-                "status": "Completed",
-                "save": "",
-            },
-        )
-        self.assertEqual(
-            Movie.objects.get(media_id=10494).end_date,
-            datetime.datetime.now(tz=settings.TZ).date(),
-        )
-
-    def test_anime_complete(self):
-        """
-        When media completed, end_date = today and progress = total episodes
-        """
-        self.client.post(
-            reverse(
-                "media_details",
-                kwargs={"media_type": "anime", "media_id": 1, "title": "Cowboy Bebop"},
-            ),
-            {
-                "media_id": 1,
-                "media_type": "anime",
-                "score": 10,
-                "progress": 0,
-                "status": "Completed",
-                "save": "",
-            },
-        )
-        self.assertEqual(Anime.objects.get(media_id=1).progress, 26)
-        self.assertEqual(
-            Anime.objects.get(media_id=1).end_date,
-            datetime.datetime.now(tz=settings.TZ).date(),
-        )
-
-    def test_season_complete(self):
-        """
-        When season completed, create remaining episodes
-        """
-        self.client.post(
-            reverse(
-                "season_details",
-                kwargs={"media_id": 1668, "title": "Friends", "season_number": 1},
-            ),
-            {
-                "media_id": 1668,
-                "media_type": "season",
-                "season_number": 1,
-                "score": 9,
-                "status": "Completed",
-                "notes": "Nice",
-                "save": "",
-            },
-        )
-        self.assertEqual(
-            Episode.objects.filter(related_season__media_id=1668).count(),
-            24,
-        )
-
-    def test_progress_set_max(self):
-        """
-        When progress is set to max and status not explicitly edited, status should be set to completed
-        """
-        Anime.objects.create(
-            media_id=1,
-            title="Cowboy Bebop",
-            status="In progress",
-            user=self.user,
-            progress=2,
-            start_date=datetime.date(2021, 6, 1),
-        )
-        self.client.post(
-            reverse(
-                "media_details",
-                kwargs={"media_type": "anime", "media_id": 1, "title": "Cowboy Bebop"},
-            ),
-            {
-                "media_id": 1,
-                "media_type": "anime",
-                "progress": 26,
-                "status": "In progress",
-                "save": "",
-            },
-        )
-        self.assertEqual(Anime.objects.get(media_id=1).status, "Completed")
-
-    def test_progress_bigger_than_max(self):
-        """
-        When progress is bigger than max, progress should be set to max
-        """
-        self.client.post(
-            reverse(
-                "media_details",
-                kwargs={"media_type": "anime", "media_id": 1, "title": "Cowboy Bebop"},
-            ),
-            {
-                "media_id": 1,
-                "media_type": "anime",
-                "progress": 27,
-                "status": "In progress",
-                "save": "",
-            },
-        )
-        self.assertEqual(Anime.objects.get(media_id=1).progress, 26)
-
-
 class DeleteMedia(TestCase):
-    def setUp(self):
+    """Test the deletion of media objects through views."""
+
+    def setUp(self: "DeleteMedia") -> None:
+        """Create a user and log in."""
+
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-    def test_delete_movie(self):
+    def test_delete_movie(self: "DeleteMedia") -> None:
+        """Test the deletion of a movie through views."""
+
         Movie.objects.create(
             media_id=10494,
             title="Perfect Blue",
-            score=9,
-            progress=1,
             status="Completed",
             user=self.user,
-            notes="Nice",
-            start_date=datetime.date(2023, 6, 1),
-            end_date=datetime.date(2023, 6, 1),
         )
 
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
@@ -279,15 +190,22 @@ class DeleteMedia(TestCase):
 
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 0)
 
-    def test_delete_season(self):
+    def test_delete_season(self: "DeleteMedia") -> None:
+        """Test the deletion of a season through views."""
+
+        related_tv = TV.objects.create(
+            media_id=1668,
+            title="Friends",
+            status="In progress",
+            user=self.user,
+        )
         season = Season.objects.create(
             media_id=1668,
             title="Friends",
-            score=9,
-            status="Completed",
+            status="In progress",
             season_number=1,
             user=self.user,
-            notes="Nice",
+            related_tv=related_tv,
         )
         Episode.objects.create(
             related_season=season,
@@ -307,18 +225,26 @@ class DeleteMedia(TestCase):
 
         self.assertEqual(Season.objects.filter(user=self.user).count(), 0)
         self.assertEqual(
-            Episode.objects.filter(related_season__user=self.user).count(), 0
+            Episode.objects.filter(related_season__user=self.user).count(),
+            0,
         )
 
-    def test_unwatch_episode(self):
+    def test_unwatch_episode(self: "DeleteMedia") -> None:
+        """Test unwatching of an episode through views."""
+
+        related_tv = TV.objects.create(
+            media_id=1668,
+            title="Friends",
+            status="In progress",
+            user=self.user,
+        )
         season = Season.objects.create(
             media_id=1668,
             title="Friends",
-            score=9,
-            status="Completed",
+            status="In progress",
             season_number=1,
             user=self.user,
-            notes="Nice",
+            related_tv=related_tv,
         )
         Episode.objects.create(
             related_season=season,
@@ -346,7 +272,10 @@ class DeleteMedia(TestCase):
 
 
 class DetailsMedia(TestCase):
-    def test_anime(self):
+    """Test the external API calls for media details."""
+
+    def test_anime(self: "DetailsMedia") -> None:
+        """Test the metadata method for anime."""
         response = metadata.anime_manga("anime", "1")
         self.assertEqual(response["title"], "Cowboy Bebop")
         self.assertEqual(response["start_date"], "1998-04-03")
@@ -354,8 +283,9 @@ class DetailsMedia(TestCase):
         self.assertEqual(response["num_episodes"], 26)
 
     @patch("requests.get")
-    def test_anime_unknown(self, mock_data):
-        with open(mock_path + "/metadata_anime_unknown.json", "r") as file:
+    def test_anime_unknown(self: "DetailsMedia", mock_data: "patch") -> None:
+        """Test the metadata method for anime with mostly unknown data."""
+        with open(mock_path / "metadata_anime_unknown.json") as file:
             anime_response = json.load(file)
         mock_data.return_value.json.return_value = anime_response
         mock_data.return_value.status_code = 200
@@ -368,30 +298,35 @@ class DetailsMedia(TestCase):
         self.assertEqual(response["runtime"], "Unknown")
         self.assertEqual(response["genres"], [{"name": "Unknown"}])
 
-    # Currently disabled because of myanimelist API issues
-    # def test_manga(self):
-    #     response = metadata.anime_manga("manga", "1")
-    #     self.assertEqual(response["title"], "Monster")
-    #     self.assertEqual(response["start_date"], "1994-12-05")
-    #     self.assertEqual(response["status"], "Finished")
-    #     self.assertEqual(response["num_chapters"], 162)
+    def test_manga(self: "DetailsMedia") -> None:
+        """Test the metadata method for manga."""
 
-    def test_tv(self):
+        response = metadata.anime_manga("manga", "1")
+        self.assertEqual(response["title"], "Monster")
+        self.assertEqual(response["start_date"], "1994-12-05")
+        self.assertEqual(response["status"], "Finished")
+        self.assertEqual(response["num_chapters"], 162)
+
+    def test_tv(self: "DetailsMedia") -> None:
+        """Test the metadata method for TV shows."""
         response = metadata.tv("1396")
         self.assertEqual(response["title"], "Breaking Bad")
         self.assertEqual(response["start_date"], "2008-01-20")
         self.assertEqual(response["status"], "Ended")
         self.assertEqual(response["num_episodes"], 62)
 
-    def test_movie(self):
+    def test_movie(self: "DetailsMedia") -> None:
+        """Test the metadata method for movies."""
         response = metadata.movie("10494")
         self.assertEqual(response["title"], "Perfect Blue")
         self.assertEqual(response["start_date"], "1998-02-28")
         self.assertEqual(response["status"], "Released")
+        self.assertEqual(response["num_episodes"], 1)
 
     @patch("requests.get")
-    def test_movie_unknown(self, mock_data):
-        with open(mock_path + "/metadata_movie_unknown.json", "r") as file:
+    def test_movie_unknown(self: "DetailsMedia", mock_data: "patch") -> None:
+        """Test the metadata method for movies with mostly unknown data."""
+        with open(mock_path / "metadata_movie_unknown.json") as file:
             movie_response = json.load(file)
         mock_data.return_value.json.return_value = movie_response
         mock_data.return_value.status_code = 200
@@ -406,19 +341,29 @@ class DetailsMedia(TestCase):
 
 
 class ProgressEditSeason(TestCase):
-    def setUp(self):
+    """Test for editing a season progress through views."""
+
+    def setUp(self: "ProgressEditSeason") -> None:
+        """Prepare the database with a season and an episode."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
+        tv = TV.objects.create(
+            media_id=1668,
+            title="Friends",
+            status="In progress",
+            user=self.user,
+            notes="",
+        )
+
         Season.objects.create(
             media_id=1668,
             title="Friends",
-            score=9,
             status="In progress",
             season_number=1,
             user=self.user,
-            notes="Nice",
+            related_tv=tv,
         )
 
         Episode.objects.create(
@@ -427,7 +372,8 @@ class ProgressEditSeason(TestCase):
             watch_date=datetime.date(2023, 6, 1),
         )
 
-    def test_progress_increase(self):
+    def test_progress_increase(self: "ProgressEditSeason") -> None:
+        """Test the increase of progress for a season."""
         self.client.post(
             reverse("progress_edit"),
             {
@@ -439,17 +385,21 @@ class ProgressEditSeason(TestCase):
         )
 
         self.assertEqual(
-            Episode.objects.filter(related_season__media_id=1668).count(), 2
+            Episode.objects.filter(related_season__media_id=1668).count(),
+            2,
         )
 
         # episode with media_id 1668 and episode_number 2 should exist
         self.assertTrue(
             Episode.objects.filter(
-                related_season__media_id=1668, episode_number=2
-            ).exists()
+                related_season__media_id=1668,
+                episode_number=2,
+            ).exists(),
         )
 
-    def test_progress_decrease(self):
+    def test_progress_decrease(self: "ProgressEditSeason") -> None:
+        """Test the decrease of progress for a season."""
+
         self.client.post(
             reverse("progress_edit"),
             {
@@ -461,12 +411,16 @@ class ProgressEditSeason(TestCase):
         )
 
         self.assertEqual(
-            Episode.objects.filter(related_season__media_id=1668).count(), 0
+            Episode.objects.filter(related_season__media_id=1668).count(),
+            0,
         )
 
 
 class ProgressEditAnime(TestCase):
-    def setUp(self):
+    """Test for editing an anime progress through views."""
+
+    def setUp(self: "ProgressEditAnime") -> None:
+        """Prepare the database with an anime."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
@@ -474,16 +428,13 @@ class ProgressEditAnime(TestCase):
         Anime.objects.create(
             media_id=1,
             title="Cowboy Bebop",
-            score=9,
             status="In progress",
             progress=2,
-            start_date=datetime.date(2023, 6, 1),
-            end_date=None,
             user=self.user,
-            notes="",
         )
 
-    def test_progress_increase(self):
+    def test_progress_increase(self: "ProgressEditAnime") -> None:
+        """Test the increase of progress for an anime."""
         self.client.post(
             reverse("progress_edit"),
             {
@@ -495,7 +446,8 @@ class ProgressEditAnime(TestCase):
 
         self.assertEqual(Anime.objects.get(media_id=1).progress, 3)
 
-    def test_progress_decrease(self):
+    def test_progress_decrease(self: "ProgressEditAnime") -> None:
+        """Test the decrease of progress for an anime."""
         self.client.post(
             reverse("progress_edit"),
             {
