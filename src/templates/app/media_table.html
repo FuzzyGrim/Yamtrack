@@ -17,12 +17,9 @@
                       data-bs-target="#filter-modal">
                 <i class="bi bi-funnel-fill"></i>
               </button>
-              <div class="modal fade"
-                   id="filter-modal"
-                   tabindex="-1"
-                   aria-hidden="true">
+              <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-sm modal-dialog-centered">
-                  <div class="modal-content">
+                  <div class="modal-content text-start">
                     <div class="modal-body">
                       <form method="get">
                         {{ filter_form|crispy }}
@@ -51,7 +48,13 @@
                      data-expand="1000"
                      width="40"
                      height="40"
-                     {% comment %} adding alt attr resizes table {% endcomment %} />
+                     {% comment %}
+                     adding
+                     alt
+                     attr
+                     resizes
+                     table
+                     {% endcomment %} />
               </td>
               <td class="media-title text-truncate">
                 <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}">{{ media }}</a>
