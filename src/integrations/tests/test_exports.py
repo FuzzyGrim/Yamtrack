@@ -19,10 +19,11 @@ class ExportCSVTest(TestCase):
         self.client.login(**self.credentials)
 
         # Create test data for each model
-        TV.objects.create(
+        tv = TV.objects.create(
             media_id=1668,
             title="Friends",
             score=9,
+            status="In progress",
             user=self.user,
             notes="Nice",
         )
@@ -42,10 +43,11 @@ class ExportCSVTest(TestCase):
             media_id=1668,
             title="Friends",
             score=9,
-            status="Completed",
+            status="In progress",
             season_number=1,
             user=self.user,
             notes="Nice",
+            related_tv=tv,
         )
 
         Episode.objects.create(

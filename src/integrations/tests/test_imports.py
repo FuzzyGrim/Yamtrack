@@ -1,7 +1,8 @@
 import json
-import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import requests
 from app.models import TV, Anime, Episode, Manga, Movie, Season
 from django.conf import settings
 from django.test import TestCase
@@ -9,7 +10,7 @@ from users.models import User
 
 from integrations.utils import imports
 
-mock_path = os.path.join(os.path.dirname(__file__), "mock_data")
+mock_path = Path(__file__).resolve().parent / "mock_data"
 
 
 class ImportMAL(TestCase):
@@ -21,12 +22,12 @@ class ImportMAL(TestCase):
         self.user = User.objects.create_user(**self.credentials)
 
     @patch("requests.get")
-    def test_import_animelist(self: "ImportMAL", mock_request) -> None:
+    def test_import_animelist(self: "ImportMAL", mock_request: "patch") -> None:
         """Basic test importing anime and manga from MyAnimeList."""
 
-        with open(mock_path + "/import_mal_anime.json") as file:
+        with open(mock_path / "import_mal_anime.json") as file:
             anime_response = json.load(file)
-        with open(mock_path + "/import_mal_manga.json") as file:
+        with open(mock_path / "import_mal_manga.json") as file:
             manga_response = json.load(file)
 
         anime_mock = MagicMock()
@@ -48,15 +49,14 @@ class ImportMAL(TestCase):
             True,
         )
         self.assertEqual(
-            Manga.objects.get(user=self.user, title="Fire Punch").score
-            == 7,
+            Manga.objects.get(user=self.user, title="Fire Punch").score == 7,
             True,
         )
 
     def test_user_not_found(self: "ImportMAL") -> None:
         """Test that an error is raised if the user is not found."""
 
-        self.assertRaises(ValueError, imports.mal_data, "fhdsufdsu", self.user)
+        self.assertRaises(requests.exceptions.HTTPError, imports.mal_data, "fhdsufdsu", self.user)
 
 
 class ImportTMDB(TestCase):
@@ -71,7 +71,7 @@ class ImportTMDB(TestCase):
     def test_tmdb_import_ratings(self: "ImportTMDB") -> None:
         """Test importing ratings from TMDB."""
 
-        with open(mock_path + "/import_tmdb_ratings.csv", "rb") as file:
+        with open(mock_path / "import_tmdb_ratings.csv", "rb") as file:
             imports.tmdb_data(file, self.user, "Completed")
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
@@ -79,11 +79,10 @@ class ImportTMDB(TestCase):
     def test_tmdb_import_watchlist(self: "ImportTMDB") -> None:
         """Test importing watchlist from TMDB."""
 
-        with open(mock_path + "/import_tmdb_watchlist.csv", "rb") as file:
+        with open(mock_path / "import_tmdb_watchlist.csv", "rb") as file:
             imports.tmdb_data(file, self.user, "Planning")
 
-        self.assertEqual(TV.objects.filter(user=self.user).count(), 0)
-        self.assertEqual(Season.objects.filter(user=self.user).count(), 2)
+        self.assertEqual(TV.objects.filter(user=self.user).count(), 2)
 
 
 class ImportAniList(TestCase):
@@ -96,10 +95,10 @@ class ImportAniList(TestCase):
         self.user = User.objects.create_user(**self.credentials)
 
     @patch("requests.post")
-    def test_import_anilist(self: "ImportAniList", mock_request) -> None:
+    def test_import_anilist(self: "ImportAniList", mock_request: "patch") -> None:
         """Basic test importing anime and manga from AniList."""
 
-        with open(mock_path + "/import_anilist.json") as file:
+        with open(mock_path / "import_anilist.json") as file:
             anilist_response = json.load(file)
         mock_request.return_value.json.return_value = anilist_response
 
@@ -111,15 +110,14 @@ class ImportAniList(TestCase):
             True,
         )
         self.assertEqual(
-            Manga.objects.get(user=self.user, title="One Punch-Man").score
-            == 9,
+            Manga.objects.get(user=self.user, title="One Punch-Man").score == 9,
             True,
         )
 
     def test_user_not_found(self: "ImportAniList") -> None:
         """Test that an error is raised if the user is not found."""
 
-        self.assertRaises(ValueError, imports.anilist_data, "fhdsufdsu", self.user)
+        self.assertRaises(requests.exceptions.HTTPError, imports.anilist_data, "fhdsufdsu", self.user)
 
 
 class ImportYamtrack(TestCase):
@@ -134,14 +132,14 @@ class ImportYamtrack(TestCase):
     def test_import_yamtrack(self: "ImportYamtrack") -> None:
         """Basic test importing media from Yamtrack."""
 
-        with open(mock_path + "/import_yamtrack.csv", "rb") as file:
+        with open(mock_path / "import_yamtrack.csv", "rb") as file:
             imports.yamtrack_data(file, self.user)
 
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 1)
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
-        self.assertEqual(Season.objects.filter(user=self.user).count(), 2)
+        self.assertEqual(Season.objects.filter(user=self.user).count(), 1)
         self.assertEqual(
             Episode.objects.filter(related_season__user=self.user).count(),
             24,

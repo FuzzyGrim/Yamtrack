@@ -38,6 +38,8 @@ jobs:
         YAMTRACK_MAL_API: ${{ secrets.YAMTRACK_MAL_API }}
       run: |
         coverage run --source='src/app' --parallel-mode src/manage.py test app
+        coverage run --source='src/users' --parallel-mode src/manage.py test users
+        coverage run --source='src/integrations' --parallel-mode src/manage.py test integrations
 
     - name: Build Coverage Report
       run: |
