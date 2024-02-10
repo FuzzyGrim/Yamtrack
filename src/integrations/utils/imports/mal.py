@@ -25,10 +25,7 @@ def mal_data(username: str, user: User) -> None:
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
     Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
-    logger.info("Imported %s animes", len(bulk_add_anime))
-
     Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
-    logger.info("Imported %s mangas", len(bulk_add_manga))
 
 
 def get_whole_response(url: str) -> dict:

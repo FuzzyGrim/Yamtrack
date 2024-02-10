@@ -50,7 +50,6 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
         if media_type not in ["season", "episodes"]:
             model = apps.get_model(app_label="app", model_name=media_type)
             model.objects.bulk_create(medias, ignore_conflicts=True)
-            logger.info("Imported %s %ss", len(medias), media_type)
 
     if bulk_media["season"]:
         # bulk create seasons
@@ -58,8 +57,6 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
             season.related_tv = TV.objects.get(media_id=season.media_id, user=user)
 
         Season.objects.bulk_create(bulk_media["season"], ignore_conflicts=True)
-
-        logger.info("Imported %s seasons", len(bulk_media["season"]))
 
     if bulk_media["episodes"]:
         # bulk create episodes
@@ -72,8 +69,6 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
 
         episode_instances = [episode["instance"] for episode in bulk_media["episodes"]]
         Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
-
-        logger.info("Imported %s episodes", len(episode_instances))
 
 
 def add_bulk_media(

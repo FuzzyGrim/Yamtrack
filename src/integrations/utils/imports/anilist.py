@@ -142,10 +142,7 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                             warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()}): {form.errors.as_text()}"
 
     Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
-    logger.info("Imported %s animes", len(bulk_media["anime"]))
-
     Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)
-    logger.info("Imported %s mangas", len(bulk_media["manga"]))
 
     return warning_message
 
