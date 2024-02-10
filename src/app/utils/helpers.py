@@ -26,33 +26,13 @@ def api_request(
     elif method == "POST":
         response = requests.post(url, json=json, timeout=settings.REQUEST_TIMEOUT)
 
-    if response.status_code != 200:
-        if "anilist" in url:
-            message = response.json().get("errors")[0].get("message")
-        elif "tmdb" in url:
-            message = response.json().get("status_message")
-        elif (
-            "myanimelist" in url and response.json().get("message") == "invalid q"
-        ):  # when no results are found
-            return []
-        else:
-            message = (
-                f"Request failed with status code {response.status_code} for {url}"
-            )
+    # rate limit exceeded
+    if response.status_code == 429:
+        seconds_to_wait = int(response.headers["Retry-After"])
+        time.sleep(seconds_to_wait)
+        return api_request(url, method, json)
 
-        logger.error(
-            "Request failed with status code %s for %s",
-            response.status_code,
-            url,
-        )
-
-        # rate limit exceeded
-        if response.status_code == 429:
-            seconds_to_wait = int(response.headers["Retry-After"])
-            time.sleep(seconds_to_wait)
-            return api_request(url, method, json)
-
-        raise ValueError(message)
+    response.raise_for_status()
 
     return response.json()
 

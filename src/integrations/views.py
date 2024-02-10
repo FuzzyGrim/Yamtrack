@@ -2,6 +2,7 @@
 
 import logging
 
+import requests
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
@@ -17,11 +18,11 @@ def import_mal(request: HttpRequest) -> HttpResponse:
     try:
         imports.mal_data(request.POST["mal"], request.user)
         messages.success(request, "Your MyAnimeList has been imported!")
-    except ValueError as error:
-        if str(error) == "not_found":
-            messages.error(request, f"User {request.POST['mal']} not found in MyAnimeList.")
-        else:
-            messages.error(request, "Something went wrong while importing your MyAnimeList.")
+    except requests.exceptions.HTTPError:
+        messages.error(
+            request,
+            "Something went wrong while importing your MyAnimeList.",
+        )
 
     return redirect("profile")
 
@@ -36,8 +37,16 @@ def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
             status="Completed",
         )
         messages.success(request, "Your TMDB ratings have been imported!")
-    except ValueError as error:
-        messages.error(request, error)
+    except UnicodeDecodeError:  # when the file is not a CSV file
+        messages.error(
+            request,
+            "Couldn't import your TMDB ratings. Please make sure the file is a CSV file.",
+        )
+    except KeyError: # error parsing csv
+        messages.error(
+            request,
+            "Something went wrong while parsing your TMDB ratings.",
+        )
 
     return redirect("profile")
 
@@ -52,8 +61,16 @@ def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
             status="Planning",
         )
         messages.success(request, "Your TMDB watchlist has been imported!")
-    except ValueError as error:
-        messages.error(request, error)
+    except UnicodeDecodeError:  # when the file is not a CSV file
+        messages.error(
+            request,
+            "Couldn't import your TMDB ratings. Please make sure the file is a CSV file.",
+        )
+    except KeyError: # error parsing csv
+        messages.error(
+            request,
+            "Something went wrong while parsing your TMDB ratings.",
+        )
 
     return redirect("profile")
 
@@ -69,11 +86,17 @@ def import_anilist(request: HttpRequest) -> HttpResponse:
         else:
             messages.success(request, "Your AniList has been imported!")
 
-    except ValueError as error:
-        if str(error) == "User not found":
-            messages.error(request, f"User {request.POST['anilist']} not found in AniList.")
+    except requests.exceptions.HTTPError as error:
+        if error.response.json().get("errors")[0].get("message") == "User not found":
+            messages.error(
+                request,
+                f"User {request.POST['anilist']} not found in AniList.",
+            )
         else:
-            messages.error(request, "Something went wrong while importing your AniList.")
+            messages.error(
+                request,
+                "Something went wrong while importing your AniList.",
+            )
 
     return redirect("profile")
 
@@ -84,8 +107,16 @@ def import_yamtrack(request: HttpRequest) -> HttpResponse:
     try:
         imports.yamtrack_data(request.FILES["yamtrack_csv"], request.user)
         messages.success(request, "Your Yamtrack CSV file has been imported!")
-    except ValueError as error:
-        messages.error(request, error)
+    except UnicodeDecodeError:  # when the file is not a CSV file
+        messages.error(
+            request,
+            "Couldn't import your Yamtrack CSV. Please make sure the file is a CSV file.",
+        )
+    except KeyError: # error parsing csv
+        messages.error(
+            request,
+            "Something went wrong while parsing your Yamtrack CSV.",
+        )
 
     return redirect("profile")
 

@@ -3,7 +3,7 @@ from csv import DictReader
 
 from app import forms
 from app.forms import EpisodeForm
-from app.models import Episode, Season
+from app.models import TV, Episode, Season
 from django.apps import apps
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from users.models import User
@@ -14,15 +14,10 @@ logger = logging.getLogger(__name__)
 def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
     """Import media from CSV file."""
 
-    if not file.name.endswith(".csv"):
-        error = "Invalid file format. Please upload a CSV file."
-        logger.error(error)
-        raise ValueError(error)
-
-    logger.info("Importing from Yamtrack")
-
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
+
+    logger.info("Importing from Yamtrack")
 
     bulk_media = {
         "anime": [],
@@ -30,16 +25,15 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
         "movie": [],
         "tv": [],
         "season": [],
+        "episodes": [],
     }
-
-    episodes = []
 
     for row in reader:
         media_type = row["media_type"]
         if media_type == "episode":
             form = EpisodeForm(row)
             if form.is_valid():
-                episodes.append(
+                bulk_media["episodes"].append(
                     {
                         "instance": form.instance,
                         "media_id": row["media_id"],
@@ -51,25 +45,32 @@ def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
         else:
             add_bulk_media(row, user, bulk_media)
 
-    # bulk create tv, season, movie, anime and manga
+    # bulk create tv, movie, anime and manga
     for media_type, medias in bulk_media.items():
-        model = apps.get_model(app_label="app", model_name=media_type)
-        model.objects.bulk_create(medias, ignore_conflicts=True)
+        if media_type not in ["season", "episodes"]:
+            model = apps.get_model(app_label="app", model_name=media_type)
+            model.objects.bulk_create(medias, ignore_conflicts=True)
+            logger.info("Imported %s %ss", len(medias), media_type)
 
-        logger.info("Imported %s %ss", len(medias), media_type)
+    if bulk_media["season"]:
+        # bulk create seasons
+        for season in bulk_media["season"]:
+            season.related_tv = TV.objects.get(media_id=season.media_id, user=user)
 
-    if episodes:
+        Season.objects.bulk_create(bulk_media["season"], ignore_conflicts=True)
+
+        logger.info("Imported %s seasons", len(bulk_media["season"]))
+
+    if bulk_media["episodes"]:
         # bulk create episodes
-        for episode in episodes:
-            media_id = episode["media_id"]
-            season_number = episode["season_number"]
+        for episode in bulk_media["episodes"]:
             episode["instance"].related_season = Season.objects.get(
-                media_id=media_id,
-                season_number=season_number,
+                media_id=episode["media_id"],
+                season_number=episode["season_number"],
                 user=user,
             )
 
-        episode_instances = [episode["instance"] for episode in episodes]
+        episode_instances = [episode["instance"] for episode in bulk_media["episodes"]]
         Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
 
         logger.info("Imported %s episodes", len(episode_instances))

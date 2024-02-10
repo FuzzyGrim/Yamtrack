@@ -1,5 +1,6 @@
 import logging
 
+import requests
 from django.conf import settings
 
 from app.utils import helpers
@@ -31,7 +32,15 @@ def mal(media_type: str, query: str) -> list:
     """Search for media on MyAnimeList."""
 
     url = f"https://api.myanimelist.net/v2/{media_type}?q={query}&nsfw=true&fields=media_type"
-    response = helpers.api_request(url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API})
+
+    try:
+        response = helpers.api_request(
+            url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API}
+        )
+    except requests.exceptions.HTTPError as error:
+        # if the query is invalid, return an empty list
+        if error.response.json().get("message") == "invalid q":
+            response = []
 
     if "data" in response:
         response = response["data"]

@@ -34,14 +34,14 @@ def db_to_csv(response: HttpResponse, user: User) -> HttpResponse:
     write_model_to_csv(writer, fields, TV.objects.filter(user=user), "tv")
     write_model_to_csv(writer, fields, Movie.objects.filter(user=user), "movie")
     write_model_to_csv(writer, fields, Season.objects.filter(user=user), "season")
-    write_model_to_csv(writer, fields, Episode.objects.filter(related_season__user=user), "episode")  # fmt: skip
+    write_model_to_csv(writer, fields, Episode.objects.filter(related_season__user=user), "episode")
     write_model_to_csv(writer, fields, Anime.objects.filter(user=user), "anime")
     write_model_to_csv(writer, fields, Manga.objects.filter(user=user), "manga")
 
     return response
 
 
-def write_model_to_csv(writer: csv.writer, fields: list, queryset: QuerySet, media_type: str) -> None:  # fmt: skip
+def write_model_to_csv(writer: csv.writer, fields: list, queryset: QuerySet, media_type: str) -> None:
     """Export entries from a model to a CSV file."""
 
     logger.info("Adding %ss to CSV", media_type)

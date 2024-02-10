@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import csv
 import datetime
 import logging
-from csv import DictReader
 from typing import TYPE_CHECKING
 
 from app import forms
@@ -22,21 +22,10 @@ logger = logging.getLogger(__name__)
 def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
     """Import movie and TV ratings or watchlist depending on status from TMDB."""
 
-    if not file.name.endswith(".csv"):
-        error = "Invalid file format. Please upload a CSV file."
-        logger.error(error)
-        raise ValueError(error)
+    decoded_file = file.read().decode("utf-8").splitlines()
+    reader = csv.DictReader(decoded_file)
 
     logger.info("Importing from TMDB")
-
-    decoded_file = file.read().decode("utf-8").splitlines()
-    reader = DictReader(decoded_file)
-
-    bulk_media = {
-        "movie": [],
-        "tv": [],
-        "season": [],
-    }
 
     for row in reader:
         media_type = row["Type"]
@@ -51,17 +40,12 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
             form = create_form(row, instance, media_metadata, status)
 
             if form.is_valid():
-                bulk_media[media_type].append(form.instance)
+                # not using bulk_create because need of custom save method
+                form.save()
+
             else:
                 error_message = f"Error importing {media_metadata['title']}: {form.errors.as_data()}"
                 logger.error(error_message)
-
-    # bulk create tv, seasons and movie
-    for media_type, medias in bulk_media.items():
-        model = apps.get_model(app_label="app", model_name=media_type)
-
-        model.objects.bulk_create(medias, ignore_conflicts=True)
-        logger.info("Imported %s %ss", len(medias), media_type)
 
 
 def create_instance(
@@ -104,13 +88,13 @@ def create_form(
     }
 
     if status == "Completed":
-        data["end_date"] = (
-            datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ")
-            .astimezone()
-            .date()
-        )
+        if media_type == "movie":  # tv doesn't have end date
+            data["end_date"] = (
+                datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ")
+                .astimezone()
+                .date()
+            )
         data["progress"] = media_metadata["num_episodes"]
-
 
     return forms.get_form_class(media_type)(
         data=data,
