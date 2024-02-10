@@ -175,16 +175,34 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     if filter_form.is_valid() or not request.GET:
 
         model = apps.get_model(app_label="app", model_name=media_type)
-        # asc order
-        if sort_filter == "title":
-            media_list = model.objects.filter(**filter_params).order_by(
-                F(sort_filter).asc(nulls_last=True),
+
+        # python for @property sorting
+        if media_type in ("tv", "season") and sort_filter in (
+            "progress",
+            "start_date",
+            "end_date",
+        ):
+            if sort_filter == "progress":
+                min_value = 0
+            else:
+                min_value = datetime.date(datetime.MINYEAR, 1, 1)
+            media_list = sorted(
+                model.objects.filter(**filter_params),
+                key=lambda x: getattr(x, sort_filter) or min_value,
+                reverse=True,
             )
-        # desc order
         else:
-            media_list = model.objects.filter(**filter_params).order_by(
-                F(sort_filter).desc(nulls_last=True),
-            )
+            model = apps.get_model(app_label="app", model_name=media_type)
+            # asc order
+            if sort_filter == "title":
+                media_list = model.objects.filter(**filter_params).order_by(
+                    F(sort_filter).asc(nulls_last=True),
+                )
+            # desc order
+            else:
+                media_list = model.objects.filter(**filter_params).order_by(
+                    F(sort_filter).desc(nulls_last=True),
+                )
 
         return render(
             request,
