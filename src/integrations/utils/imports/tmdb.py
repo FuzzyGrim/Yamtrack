@@ -35,17 +35,20 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
         # if movie or tv show (not episode), currently cant import episodes
         if media_type == "movie" or (media_type == "tv" and episode_number == ""):
             media_metadata = metadata.get_media_metadata(media_type, media_id)
+            model = apps.get_model(app_label="app", model_name=media_type)
 
-            instance = create_instance(media_metadata, user)
-            form = create_form(row, instance, media_metadata, status)
+            # only import if not already in database
+            if not model.objects.filter(user=user, media_id=media_id).exists():
+                instance = create_instance(media_metadata, user)
+                form = create_form(row, instance, media_metadata, status)
 
-            if form.is_valid():
-                # not using bulk_create because need of custom save method
-                form.save()
+                if form.is_valid():
+                    # not using bulk_create because need of custom save method
+                    form.save()
 
-            else:
-                error_message = f"Error importing {media_metadata['title']}: {form.errors.as_data()}"
-                logger.error(error_message)
+                else:
+                    error_message = f"Error importing {media_metadata['title']}: {form.errors.as_data()}"
+                    logger.error(error_message)
 
 
 def create_instance(
