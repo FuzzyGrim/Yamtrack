@@ -2,7 +2,7 @@ import datetime
 import logging
 
 from django.apps import apps
-from django.conf import settings
+from django.contrib import messages
 from django.db.models import F
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -55,87 +55,39 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         season_number = request.POST.get("season_number")
         season_metadata = metadata.season(media_id, season_number)
         max_progress = len(season_metadata["episodes"])
-
-        season = Season.objects.get(
-            related_tv__media_id=media_id,
-            related_tv__user=request.user,
-            season_number=season_number,
-        )
-
-        # save episode progress
-        if operation == "increase":
-            # get next episode number
-            episode_number = (
-                Episode.objects.filter(
-                    related_season=season,
-                )
-                .order_by("-episode_number")
-                .first()
-                .episode_number
-                + 1
-            )
-
-            Episode.objects.create(
-                related_season=season,
-                episode_number=episode_number,
-                watch_date=datetime.datetime.now(tz=settings.TZ).date(),
-            )
-            logger.info("Watched %sE%s", season, episode_number)
-
-        elif operation == "decrease":
-            episode_number = (
-                Episode.objects.filter(
-                    related_season=season,
-                )
-                .order_by("-episode_number")
-                .first()
-                .episode_number
-            )
-
-            Episode.objects.get(
-                related_season=season,
-                episode_number=episode_number,
-            ).delete()
-            logger.info("Unwatched %sE%s", season, episode_number)
-
-        # change status to completed if progress is max
-        if season.progress == max_progress:
-            season.status = "Completed"
-            season.save()
-            logger.info("Finished %s", season)
-
-        response = {
+        search_params = {
             "media_id": media_id,
-            "progress": season.progress,
+            "user": request.user,
             "season_number": season_number,
         }
 
     else:
         media_metadata = metadata.get_media_metadata(media_type, media_id)
-
         max_progress = media_metadata.get("num_episodes", 1)
+        search_params = {"media_id": media_id, "user": request.user}
 
-        model = apps.get_model(app_label="app", model_name=media_type)
-        media = model.objects.get(
-            media_id=media_id,
-            user=request.user.id,
-        )
-        if operation == "increase":
-            media.progress += 1
-            logger.info("Watched %sE%s", media, media.progress)
+    model = apps.get_model(app_label="app", model_name=media_type)
 
-        elif operation == "decrease":
-            logger.info("Unwatched %sE%s", media, media.progress)
-            media.progress -= 1
+    try:
+        media = model.objects.get(**search_params)
+    except model.DoesNotExist:
+        messages.error(request, "Media item was deleted")
+        return redirect("home")
 
-        # before saving, if progress is max, set status to completed
-        if media.progress == max_progress:
-            media.status = "Completed"
-            logger.info("Finished %s", media)
-        media.save()
-        response = {"media_id": media_id, "progress": media.progress}
+    if operation == "increase":
+        media.increase_progress()
 
-    response["max"] = response["progress"] == max_progress
+    elif operation == "decrease":
+        media.decrease_progress()
+
+    response = {
+        "media_id": media_id,
+        "progress": media.progress,
+        "max": media.progress == max_progress,
+    }
+
+    if media_type == "season":
+        response["season_number"] = season_number
 
     return render(
         request,

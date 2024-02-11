@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from django.conf import settings
 from django.core.validators import (
@@ -11,6 +12,8 @@ from django.db.models import Max, Min
 from model_utils import FieldTracker
 
 from app.utils import metadata
+
+logger = logging.getLogger(__name__)
 
 
 class Media(models.Model):
@@ -91,6 +94,18 @@ class Media(models.Model):
                     self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
         super().save(*args, **kwargs)
+
+    def increase_progress(self: "Media") -> None:
+        """Increase the progress of the media by one."""
+        self.progress += 1
+        self.save()
+        logger.info("Watched %sE%s", self, self.progress)
+
+    def decrease_progress(self: "Media") -> None:
+        """Decrease the progress of the media by one."""
+        self.progress -= 1
+        self.save()
+        logger.info("Unwatched %sE%s", self, self.progress)
 
 
 class TV(Media):
@@ -189,6 +204,53 @@ class Season(Media):
             Episode.objects.bulk_create(
                 get_remaining_eps(self, season_metadata),
             )
+
+    def increase_progress(self: "Season") -> None:
+        """Increase the progress of the season by one."""
+
+        last_watched = (
+            Episode.objects.filter(
+                related_season=self,
+            )
+            .order_by("-episode_number")
+            .first()
+            .episode_number
+        )
+
+        # get next episode number as there could be gaps in the episode numbers
+        season_metadata = metadata.season(self.media_id, self.season_number)
+        found_current = False
+        for episode in season_metadata["episodes"]:
+            if episode["episode_number"] == last_watched:
+                found_current = True
+            elif found_current:
+                episode_number = episode["episode_number"]
+                break
+
+        Episode.objects.create(
+            related_season=self,
+            episode_number=episode_number,
+            watch_date=datetime.datetime.now(tz=settings.TZ).date(),
+        )
+        logger.info("Watched %sE%s", self, episode_number)
+
+    def decrease_progress(self: "Season") -> None:
+        """Decrease the progress of the season by one."""
+        last_watched = (
+            Episode.objects.filter(
+                related_season=self,
+            )
+            .order_by("-episode_number")
+            .first()
+            .episode_number
+        )
+
+        Episode.objects.filter(
+            related_season=self,
+            episode_number=last_watched,
+        ).delete()
+
+        logger.info("Unwatched %sE%s", self, last_watched)
 
 
 class Episode(models.Model):
