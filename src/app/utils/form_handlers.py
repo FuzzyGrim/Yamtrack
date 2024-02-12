@@ -129,9 +129,7 @@ def episode_form_handler(
             season_number=season_number,
         )
     except Season.DoesNotExist:
-
-        related_tv = get_related_tv(request, media_id, status="In progress")
-
+        related_tv = get_related_tv(request, media_id)
         related_season = Season(
             media_id=media_id,
             title=season_metadata["title"],
@@ -174,20 +172,18 @@ def episode_form_handler(
         )
 
 
-
-def get_related_tv(request: HttpRequest, media_id: int, status: str | None = None ) -> TV:
+def get_related_tv(request: HttpRequest, media_id: int) -> TV:
     """Get related TV instance for a season or create it if it doesn't exist."""
     try:
         related_tv = TV.objects.get(media_id=media_id, user=request.user)
     except TV.DoesNotExist:
         tv_metadata = metadata.tv(media_id)
 
-        # when status is not certain, get status from form (Episode form or Season form)
-        if not status:
-            status = request.POST.get("status")
-            # creating tv with multiple seasons from a completed season
-            if status == "Completed" and tv_metadata["season_number"] > 1:
-                status = "In progress"
+        # default to in progress for when handling episode form
+        status = request.POST.get("status", "In progress")
+        # creating tv with multiple seasons from a completed season
+        if status == "Completed" and tv_metadata["season_number"] > 1:
+            status = "In progress"
 
         related_tv = TV(
             media_id=media_id,

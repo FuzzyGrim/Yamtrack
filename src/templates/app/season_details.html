@@ -27,7 +27,8 @@
           {{ season.synopsis }}
         </div>
         <div class="episodes-num mb-2">
-          <strong>Total Episodes: {{ season.episodes|length }}</strong>
+          <strong>Total Episodes:</strong>
+          {{ season.episodes|length }}
         </div>
         <div class="mt-auto">
           {% include "app/components/open_track_form.html" with media_type="season" media_id=media_id season_number=season.season_number title=media_title|capfirst only %}

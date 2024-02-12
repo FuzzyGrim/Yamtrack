@@ -35,7 +35,7 @@ def mal(media_type: str, query: str) -> list:
 
     try:
         response = helpers.api_request(
-            url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API}
+            url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API},
         )
     except requests.exceptions.HTTPError as error:
         # if the query is invalid, return an empty list
