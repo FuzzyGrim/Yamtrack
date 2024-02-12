@@ -4,6 +4,6 @@ register = template.Library()
 
 
 @register.filter
-def addstr(arg1, arg2):
-    """concatenate arg1 & arg2"""
-    return str(arg1) + str(arg2)
+def addslashes_double(arg1: str) -> str:
+    """Add slashes before double quotes."""
+    return arg1.replace('"', '\\"')
