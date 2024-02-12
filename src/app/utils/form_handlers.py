@@ -86,6 +86,7 @@ def media_save(
     form = form_class(request.POST, instance=instance)
     if form.is_valid():
         form.save()
+        logger.info("%s saved successfully.", form.instance)
     else:
         logger.error(form.errors.as_data())
 
@@ -108,10 +109,10 @@ def media_delete(
 
     model = apps.get_model(app_label="app", model_name=media_type)
     try:
-        instance = model.objects.get(**search_params)
-        instance.delete()
+        model.objects.get(**search_params).delete()
+        logger.info("%s deleted successfully.", media_type)
     except model.DoesNotExist:
-        logger.exception("Instance does not exist")
+        logger.exception("The %s was already deleted before.", media_type)
 
 
 def episode_form_handler(
@@ -143,6 +144,7 @@ def episode_form_handler(
         )
         # save_base to avoid custom save method
         Season.save_base(related_season)
+        logger.info("%s did not exist, it was created successfully.", related_season)
 
     episode_number = request.POST["episode_number"]
     if "unwatch" in request.POST:
@@ -150,6 +152,8 @@ def episode_form_handler(
             related_season=related_season,
             episode_number=episode_number,
         ).delete()
+
+        logger.info("%s %s deleted successfully.", related_season, episode_number)
 
         if related_season.status == "Completed":
             related_season.status = "In progress"
@@ -170,6 +174,7 @@ def episode_form_handler(
                 "watch_date": watch_date,
             },
         )
+        logger.info("%s %s saved successfully.", related_season, episode_number)
 
 
 def get_related_tv(request: HttpRequest, media_id: int) -> TV:
@@ -197,5 +202,6 @@ def get_related_tv(request: HttpRequest, media_id: int) -> TV:
 
         # save_base to avoid custom save method
         TV.save_base(related_tv)
+        logger.info("%s did not exist, it was created successfully.", related_tv)
 
     return related_tv
