@@ -17,38 +17,39 @@
     <div class="home container">
 
       {% for media_type, in_progress_list in in_progress.items %}
-        <div class="mb-4">
-          <div class="fs-5 text-center mb-2">{{ media_type|capfirst }} in Progress</div>
-          <div class="grid">
-            {% for media in in_progress_list %}
-              <div class="card text-bg-dark mx-auto">
-                <a href={% if media.season_number != None %}
-                          "{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}"
-                        {% else %}
-                          "{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}"
-                        {% endif %}>
-                  <img
-                    data-src="{{ media.image }}"
-                    class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
-                    alt="{{ media }}"
-                    data-expand="1000"
-                  />
-                </a>
+        {% if in_progress_list|length > 0 %}
+          <div class="mb-4">
+            <div class="fs-5 text-center mb-2">{{ media_type|capfirst }} in Progress</div>
+            <div class="grid">
+              {% for media in in_progress_list %}
+                <div class="card text-bg-dark mx-auto">
+                  <a href={% if media.season_number != None %}
+                            "{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}"
+                          {% else %}
+                            "{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}"
+                          {% endif %}>
+                    <img
+                      data-src="{{ media.image }}"
+                      class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
+                      alt="{{ media }}"
+                      data-expand="1000"
+                    />
+                  </a>
 
-                <div class="card-img-overlay">
-                  <div class="card-title text-center">
-                    {{ media }}
-                  </div>
+                  <div class="card-img-overlay">
+                    <div class="card-title text-center">
+                      {{ media }}
+                    </div>
 
-                  <div class="card-text d-flex justify-content-center align-items-center" id="{{ media_type }}_{{ media.media_id }}{% if media.season_number != None %}_{{ media.season_number }}{% endif %}">
-                    {% include "app/components/progress_changer.html" with media_type=media_type media=media csrf_token=csrf_token only %}
-                  </div>
-                </div>                
-              </div>
-
-            {% endfor %}
+                    <div class="card-text d-flex justify-content-center align-items-center" id="{{ media_type }}_{{ media.media_id }}{% if media.season_number != None %}_{{ media.season_number }}{% endif %}">
+                      {% include "app/components/progress_changer.html" with media_type=media_type media=media csrf_token=csrf_token only %}
+                    </div>
+                  </div>                
+                </div>
+              {% endfor %}
+            </div>
           </div>
-        </div>
+        {% endif %}
       {% endfor %}
     </div>
   {% endif %}

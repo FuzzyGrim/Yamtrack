@@ -19,24 +19,16 @@ def home(request: HttpRequest) -> HttpResponse:
 
     in_progress = {}
 
-    movies = Movie.objects.filter(user_id=request.user, status="In progress")
-    if movies.exists():
-        in_progress["movie"] = movies
+    in_progress["movie"] = Movie.objects.filter(user=request.user, status="In progress")
 
-    seasons = Season.objects.filter(
-        related_tv__user_id=request.user,
+    in_progress["season"] = Season.objects.filter(
+        user=request.user,
         status="In progress",
     ).prefetch_related("episodes", "related_tv")
-    if seasons.exists():
-        in_progress["season"] = seasons
 
-    animes = Anime.objects.filter(user_id=request.user, status="In progress")
-    if animes.exists():
-        in_progress["anime"] = animes
+    in_progress["anime"] = Anime.objects.filter(user=request.user, status="In progress")
 
-    mangas = Manga.objects.filter(user_id=request.user, status="In progress")
-    if mangas.exists():
-        in_progress["manga"] = mangas
+    in_progress["manga"] = Manga.objects.filter(user=request.user, status="In progress")
 
     context = {
         "in_progress": in_progress,
@@ -103,10 +95,7 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
         form_handlers.media_form_handler(request)
         return redirect("medialist", media_type=media_type)
 
-    if media_type == "season":
-        filter_params = {"related_tv__user_id": request.user.id}
-    else:
-        filter_params = {"user_id": request.user.id}
+    filter_params = {"user": request.user.id}
 
     # filter by status if status is not "all", default to "all"
     status_filter = request.GET.get("status", "all")
@@ -249,7 +238,7 @@ def season_details(
         return redirect("season_details", media_id, title, season_number)
 
     watched_episodes = Episode.objects.filter(
-        related_season__related_tv__media_id=media_id,
+        related_season__media_id=media_id,
         related_season__season_number=season_number,
         related_season__user=request.user,
     ).values_list("episode_number", "watch_date")
@@ -281,8 +270,8 @@ def track_form(request: HttpRequest) -> HttpResponse:
     if media_type == "season":
         # set up filters to retrieve the appropriate media object
         filters = {
-            "related_tv__media_id": media_id,
-            "related_tv__user": request.user,
+            "media_id": media_id,
+            "user": request.user,
             "season_number": season_number,
         }
         initial_data = {
