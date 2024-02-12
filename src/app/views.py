@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.db.models import F
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 
 from app.forms import FilterForm, get_form_class
 from app.models import Anime, Episode, Manga, Movie, Season
@@ -16,19 +17,26 @@ logger = logging.getLogger(__name__)
 
 def home(request: HttpRequest) -> HttpResponse:
     """Return the home page."""
-
     in_progress = {}
 
-    in_progress["movie"] = Movie.objects.filter(user=request.user, status="In progress")
+    movies = Movie.objects.filter(user=request.user, status="In progress")
+    if movies.exists():
+        in_progress["movie"] = movies
 
-    in_progress["season"] = Season.objects.filter(
-        user=request.user,
-        status="In progress",
+    seasons = Season.objects.filter(
+        user=request.user, status="In progress"
     ).prefetch_related("episodes", "related_tv")
 
-    in_progress["anime"] = Anime.objects.filter(user=request.user, status="In progress")
+    if seasons.exists():
+        in_progress["season"] = seasons
 
-    in_progress["manga"] = Manga.objects.filter(user=request.user, status="In progress")
+    animes = Anime.objects.filter(user=request.user, status="In progress")
+    if animes.exists():
+        in_progress["anime"] = animes
+
+    mangas = Manga.objects.filter(user=request.user, status="In progress")
+    if mangas.exists():
+        in_progress["manga"] = mangas
 
     context = {
         "in_progress": in_progress,

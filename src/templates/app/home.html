@@ -36,7 +36,6 @@
       {% endif %}
 
       {% for media_type, in_progress_list in in_progress.items %}
-        {% if in_progress_list|length > 0 %}
         <div class="mb-4">
           <div class="fs-5 text-center mb-2">{{ media_type|capfirst }} in Progress</div>
           <div class="grid">
