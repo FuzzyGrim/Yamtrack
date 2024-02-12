@@ -62,30 +62,36 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
 
     try:
         media = model.objects.get(**search_params)
+
+        if operation == "increase":
+            media.increase_progress()
+
+        elif operation == "decrease":
+            media.decrease_progress()
+
+        response = {
+            "media_id": media_id,
+            "progress": media.progress,
+            "max": media.progress == max_progress,
+        }
+
+        if media_type == "season":
+            response["season_number"] = season_number
+
+        return render(
+            request,
+            "app/components/progress_changer.html",
+            {"media": response, "media_type": media_type},
+        )
     except model.DoesNotExist:
-        messages.error(request, "Media item was deleted")
-        return redirect("home")
+        messages.error(
+            request, "Media item was deleted before trying to change progress"
+        )
+        logger.exception("Media item was deleted before trying to change progress")
 
-    if operation == "increase":
-        media.increase_progress()
-
-    elif operation == "decrease":
-        media.decrease_progress()
-
-    response = {
-        "media_id": media_id,
-        "progress": media.progress,
-        "max": media.progress == max_progress,
-    }
-
-    if media_type == "season":
-        response["season_number"] = season_number
-
-    return render(
-        request,
-        "app/components/progress_changer.html",
-        {"media": response, "media_type": media_type},
-    )
+        response = HttpResponse()
+        response["HX-Redirect"] = reverse("home")
+        return response
 
 
 def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
