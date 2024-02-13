@@ -168,25 +168,40 @@ class EpisodeForm(forms.ModelForm):
 class FilterForm(forms.Form):
     """Form for filtering media on media list view."""
 
+    status = forms.ChoiceField(
+        choices=[
+            # left side in lower case for better looking url when filtering
+            ("all", "All"),
+            ("completed", "Completed"),
+            ("in progress", "In progress"),
+            ("planning", "Planning"),
+            ("paused", "Paused"),
+            ("dropped", "Dropped"),
+        ],
+    )
+
+    sort = forms.ChoiceField(
+        choices=[
+            ("score", "Score"),
+            ("title", "Title"),
+            ("progress", "Progress"),
+            ("start_date", "Start Date"),
+            ("end_date", "End Date"),
+        ],
+    )
+
+    layout = forms.ChoiceField(
+        choices=[
+            ("app/media_grid.html", "Grid"),
+            ("app/media_table.html", "Table"),
+        ],
+    )
+
     def __init__(self: "FilterForm", *args: dict, **kwargs: dict) -> None:
         """Initialize the form."""
 
-        sort_choices = kwargs.pop("sort_choices")
+        default_layout = kwargs.pop("default_layout")
 
         super().__init__(*args, **kwargs)
 
-        self.fields["status"] = forms.ChoiceField(
-            choices=[
-                # left side in lower case for better looking url when filtering
-                ("all", "All"),
-                ("completed", "Completed"),
-                ("in progress", "In progress"),
-                ("planning", "Planning"),
-                ("paused", "Paused"),
-                ("dropped", "Dropped"),
-            ],
-        )
-
-        self.fields["sort"] = forms.ChoiceField(
-            choices=sort_choices,
-        )
+        self.fields["layout"].initial = default_layout

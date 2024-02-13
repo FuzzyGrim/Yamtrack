@@ -1,4 +1,3 @@
-import datetime
 import logging
 
 from django.apps import apps
@@ -10,7 +9,7 @@ from django.urls import reverse
 
 from app.forms import FilterForm, get_form_class
 from app.models import Anime, Episode, Manga, Movie, Season
-from app.utils import form_handlers, helpers, metadata, search
+from app.utils import form_handlers, metadata, search
 
 logger = logging.getLogger(__name__)
 
@@ -120,17 +119,37 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     # default sort by descending score
     sort_filter = request.GET.get("sort", "score")
 
-    media_mapping = helpers.media_type_mapper(media_type)
-    filter_form = FilterForm(
-        # fill form with current values if they exist
-        request.GET or None,
-        sort_choices=media_mapping["sort_choices"],
-    )
+    # update user default layout for media type
+    default_layout = request.user.default_layout[media_type]
+    current_layout = request.GET.get("layout", default_layout)
+    request.user.default_layout[media_type] = current_layout
+    request.user.save()
+
+    # fill form with current values if they exist
+    filter_form = FilterForm(request.GET or None, default_layout=current_layout)
 
     # if form valid or no form submitted
     if filter_form.is_valid() or not request.GET:
 
         model = apps.get_model(app_label="app", model_name=media_type)
+
+        if media_type == "tv" and (
+            current_layout == "app/media_table.html"
+            or sort_filter in ("progress", "start_date", "end_date")
+        ):
+            media_list = model.objects.filter(**filter_params).prefetch_related(
+                "seasons",
+                "seasons__episodes",
+            )
+        elif media_type == "season" and (
+            current_layout == "app/media_table.html"
+            or sort_filter in ("progress", "start_date", "end_date")
+        ):
+            media_list = Season.objects.filter(**filter_params).prefetch_related(
+                "episodes",
+            )
+        else:
+            media_list = model.objects.filter(**filter_params)
 
         # python for @property sorting
         if media_type in ("tv", "season") and sort_filter in (
@@ -138,31 +157,27 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
             "start_date",
             "end_date",
         ):
-            if sort_filter == "progress":
-                min_value = 0
-            else:
-                min_value = datetime.date(datetime.MINYEAR, 1, 1)
             media_list = sorted(
-                model.objects.filter(**filter_params),
-                key=lambda x: getattr(x, sort_filter) or min_value,
+                media_list,
+                key=lambda x: getattr(x, sort_filter),
                 reverse=True,
             )
         else:
             model = apps.get_model(app_label="app", model_name=media_type)
             # asc order
             if sort_filter == "title":
-                media_list = model.objects.filter(**filter_params).order_by(
-                    F(sort_filter).asc(nulls_last=True),
+                media_list = media_list.order_by(
+                    F(sort_filter).asc(),
                 )
             # desc order
             else:
-                media_list = model.objects.filter(**filter_params).order_by(
-                    F(sort_filter).desc(nulls_last=True),
+                media_list = media_list.order_by(
+                    F(sort_filter).desc(),
                 )
 
         return render(
             request,
-            media_mapping["list_layout"],
+            request.user.default_layout[media_type],
             {
                 "media_type": media_type,
                 "media_list": media_list,
