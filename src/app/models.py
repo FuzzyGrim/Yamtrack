@@ -8,7 +8,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
-from django.db.models import Max, Min
+from django.db.models import Max
 from model_utils import FieldTracker
 
 from app.utils import metadata
@@ -116,27 +116,17 @@ class TV(Media):
     @property
     def progress(self: "Season") -> int:
         """Return the user's episodes watched for the TV show."""
-        return (
-            Episode.objects.filter(related_season__related_tv=self)
-            .exclude(related_season__season_number=0)
-            .count()
-        )
+        return sum(season.progress for season in self.seasons.all())
 
     @property
     def start_date(self: "TV") -> datetime.date:
         """Return the date of the first episode watched."""
-        earliest_date = Episode.objects.filter(
-            related_season__related_tv=self,
-        ).aggregate(start_date=Min("watch_date"))["start_date"]
-        return earliest_date if earliest_date is not None else None
+        return min(season.start_date for season in self.seasons.all())
 
     @property
     def end_date(self: "TV") -> datetime.date:
         """Return the date of the last episode watched."""
-        latest_date = Episode.objects.filter(
-            related_season__related_tv=self,
-        ).aggregate(end_date=Max("watch_date"))["end_date"]
-        return latest_date if latest_date is not None else None
+        return max(season.end_date for season in self.seasons.all())
 
     @tracker  # postpone field reset until after the save
     def save(self: "Media", *args: list, **kwargs: dict) -> None:
@@ -171,16 +161,20 @@ class Season(Media):
     @property
     def start_date(self: "Season") -> datetime.date:
         """Return the date of the first episode watched."""
-        earliest_date = self.episodes.aggregate(start_date=Min("watch_date"))[
-            "start_date"
-        ]
-        return earliest_date if earliest_date is not None else None
+        try:
+            start = min(episode.watch_date for episode in self.episodes.all())
+        except ValueError: # no episodes watched
+            start = datetime.date(datetime.MINYEAR, 1, 1)
+        return start
 
     @property
     def end_date(self: "Season") -> datetime.date:
         """Return the date of the last episode watched."""
-        latest_date = self.episodes.aggregate(end_date=Max("watch_date"))["end_date"]
-        return latest_date if latest_date is not None else None
+        try:
+            end = max(episode.watch_date for episode in self.episodes.all())
+        except ValueError:
+            end = datetime.date(datetime.MINYEAR, 1, 1)
+        return end
 
     class Meta:
         """Limit the uniqueness of seasons.

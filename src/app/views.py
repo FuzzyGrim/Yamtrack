@@ -24,8 +24,9 @@ def home(request: HttpRequest) -> HttpResponse:
         in_progress["movie"] = movies
 
     seasons = Season.objects.filter(
-        user=request.user, status="In progress"
-    ).prefetch_related("episodes", "related_tv")
+        user=request.user,
+        status="In progress",
+    ).prefetch_related("episodes")
 
     if seasons.exists():
         in_progress["season"] = seasons
