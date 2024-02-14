@@ -10,7 +10,7 @@ from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from app.forms import FilterForm, get_form_class
-from app.models import Anime, Episode, Manga, Movie, Season, get_or_create_tv
+from app.models import Anime, Episode, Manga, Movie, Season
 from app.utils import metadata, search
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         )
     except model.DoesNotExist:
         messages.error(
-            request, "Media item was deleted before trying to change progress"
+            request, "Media item was deleted before trying to change progress",
         )
         logger.exception("Media item was deleted before trying to change progress")
 
@@ -357,9 +357,7 @@ def media_save(request: HttpRequest) -> HttpResponse:
             "user": request.user,
         }
         if media_type == "season":
-            related_tv = get_or_create_tv(request, media_id)
             default_params["season_number"] = season_number
-            default_params["related_tv"] = related_tv
 
         instance = model(**default_params)
 
@@ -420,18 +418,18 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
             season_number=season_number,
         )
     except Season.DoesNotExist:
-        related_tv = get_or_create_tv(request, media_id)
         related_season = Season(
             media_id=media_id,
-            title=related_tv.title,
             image=season_metadata["image"],
             score=None,
             status="In progress",
             notes="",
             user=request.user,
             season_number=season_number,
-            related_tv=related_tv,
         )
+        related_season.related_tv = related_season.get_tv()
+        related_season.title=related_season.related_tv.title
+
         # save_base to avoid custom save method
         Season.save_base(related_season)
         logger.info("%s did not exist, it was created successfully.", related_season)

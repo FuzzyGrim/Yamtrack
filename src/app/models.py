@@ -139,7 +139,51 @@ class TV(Media):
             and self.status == "Completed"
             and self.progress < metadata.tv(self.media_id)["num_episodes"]
         ):
-            tv_complete(self)
+            self.completed()
+
+    def completed(self: "TV") -> None:
+        """Create remaining seasons and episodes for a TV show."""
+
+        seasons_to_update = []
+        seasons_to_create = []
+        episodes_to_create = []
+
+        tv_metadata = metadata.tv(self.media_id)
+        season_numbers = range(1, tv_metadata["number_of_seasons"] + 1)
+        tv_seasons_metadata = metadata.tv_with_seasons(self.media_id, season_numbers)
+        for season_number in season_numbers:
+            season_metadata = tv_seasons_metadata[f"season/{season_number}"]
+            try:
+                season_instance = Season.objects.get(
+                    media_id=self.media_id,
+                    user=self.user,
+                    season_number=season_number,
+                )
+
+                if season_instance.status != "Completed":
+                    season_instance.status = "Completed"
+                    seasons_to_update.append(season_instance)
+
+            except Season.DoesNotExist:
+                season_instance = Season(
+                    media_id=self.media_id,
+                    title=tv_metadata["title"],
+                    image=season_metadata["image"],
+                    score=None,
+                    status="Completed",
+                    notes="",
+                    season_number=season_number,
+                    related_tv=self,
+                    user=self.user,
+                )
+                seasons_to_create.append(season_instance)
+            episodes_to_create.extend(
+                season_instance.get_remaining_eps(season_metadata),
+            )
+
+        Season.objects.bulk_update(seasons_to_update, ["status"])
+        Season.objects.bulk_create(seasons_to_create)
+        Episode.objects.bulk_create(episodes_to_create)
 
 
 class Season(Media):
@@ -192,12 +236,17 @@ class Season(Media):
     @tracker  # postpone field reset until after the save
     def save(self: "Media", *args: list, **kwargs: dict) -> None:
         """Save the media instance."""
+
+        # if related_tv is not set
+        if self.related_tv_id is None:
+            self.related_tv = self.get_tv()
+
         super(Media, self).save(*args, **kwargs)
 
         if "status" in self.tracker.changed() and self.status == "Completed":
             season_metadata = metadata.season(self.media_id, self.season_number)
             Episode.objects.bulk_create(
-                get_remaining_eps(self, season_metadata),
+                self.get_remaining_eps(season_metadata),
             )
 
     def increase_progress(self: "Season") -> None:
@@ -246,6 +295,61 @@ class Season(Media):
         ).delete()
 
         logger.info("Unwatched %sE%s", self, last_watched)
+
+    def get_tv(self: "Season") -> TV:
+        """Get related TV instance for a season and create it if it doesn't exist."""
+        try:
+            tv = TV.objects.get(media_id=self.media_id, user=self.user)
+        except TV.DoesNotExist:
+            tv_metadata = metadata.tv(self.media_id)
+
+            # creating tv with multiple seasons from a completed season
+            if self.status == "Completed" and tv_metadata["number_of_seasons"] > 1:
+                status = "In progress"
+            else:
+                status = self.status
+
+            tv = TV(
+                media_id=self.media_id,
+                title=tv_metadata["title"],
+                image=tv_metadata["image"],
+                score=None,
+                status=status,
+                notes="",
+                user=self.user,
+            )
+
+            # save_base to avoid custom save method
+            TV.save_base(tv)
+            logger.info("%s did not exist, it was created successfully.", tv)
+
+        return tv
+
+    def get_remaining_eps(self: "Season", season_metadata: dict) -> None:
+        """Return episodes needed to complete a season."""
+
+        max_episode_number = Episode.objects.filter(related_season=self).aggregate(
+            max_episode_number=Max("episode_number"),
+        )["max_episode_number"]
+
+        if max_episode_number is None:
+            max_episode_number = 0
+
+        episodes_to_create = []
+
+        # Create Episode objects for the remaining episodes
+        for episode in reversed(season_metadata["episodes"]):
+            if episode["episode_number"] <= max_episode_number:
+                break
+
+            episode_db = Episode(
+                related_season=self,
+                episode_number=episode["episode_number"],
+                watch_date=datetime.datetime.now(tz=settings.TZ).date(),
+            )
+            episodes_to_create.append(episode_db)
+
+        return episodes_to_create
 
 
 class Episode(models.Model):
@@ -301,110 +405,3 @@ class Movie(Media):
     """Model for movies."""
 
     tracker = FieldTracker()
-
-
-################################
-# METHODS FOR MODEL MANAGEMENT #
-################################
-
-
-def get_or_create_tv(request: HttpRequest, media_id: int) -> TV:
-    """Get related TV instance for a season or create it if it doesn't exist."""
-    try:
-        tv = TV.objects.get(media_id=media_id, user=request.user)
-    except TV.DoesNotExist:
-        tv_metadata = metadata.tv(media_id)
-
-        # default to in progress for when handling episode form
-        status = request.POST.get("status", "In progress")
-        # creating tv with multiple seasons from a completed season
-        if status == "Completed" and tv_metadata["season_number"] > 1:
-            status = "In progress"
-
-        tv = TV(
-            media_id=media_id,
-            title=tv_metadata["title"],
-            image=tv_metadata["image"],
-            score=None,
-            status=status,
-            notes="",
-            user=request.user,
-        )
-
-        # save_base to avoid custom save method
-        TV.save_base(tv)
-        logger.info("%s did not exist, it was created successfully.", tv)
-
-    return tv
-
-
-def tv_complete(tv: TV) -> None:
-    """Create remaining seasons and episodes for a TV show."""
-
-    seasons_to_update = []
-    seasons_to_create = []
-    episodes_to_create = []
-
-    tv_metadata = metadata.tv(tv.media_id)
-    season_numbers = range(1, tv_metadata["number_of_seasons"] + 1)
-    tv_seasons_metadata = metadata.tv_with_seasons(tv.media_id, season_numbers)
-    for season_number in season_numbers:
-        season_metadata = tv_seasons_metadata[f"season/{season_number}"]
-        try:
-            season_instance = Season.objects.get(
-                media_id=tv.media_id,
-                user=tv.user,
-                season_number=season_number,
-            )
-
-            if season_instance.status != "Completed":
-                season_instance.status = "Completed"
-                seasons_to_update.append(season_instance)
-
-        except Season.DoesNotExist:
-            season_instance = Season(
-                media_id=tv.media_id,
-                title=tv_metadata["title"],
-                image=season_metadata["image"],
-                score=None,
-                status="Completed",
-                notes="",
-                season_number=season_number,
-                related_tv=tv,
-                user=tv.user,
-            )
-            seasons_to_create.append(season_instance)
-        episodes_to_create.extend(
-            get_remaining_eps(season_instance, season_metadata),
-        )
-
-    Season.objects.bulk_update(seasons_to_update, ["status"])
-    Season.objects.bulk_create(seasons_to_create)
-    Episode.objects.bulk_create(episodes_to_create)
-
-
-def get_remaining_eps(season: Season, season_metadata: dict) -> None:
-    """Return remaining episodes to complete for a season."""
-
-    max_episode_number = Episode.objects.filter(related_season=season).aggregate(
-        max_episode_number=Max("episode_number"),
-    )["max_episode_number"]
-
-    if max_episode_number is None:
-        max_episode_number = 0
-
-    episodes_to_create = []
-
-    # Create Episode objects for the remaining episodes
-    for episode in reversed(season_metadata["episodes"]):
-        if episode["episode_number"] <= max_episode_number:
-            break
-
-        episode_db = Episode(
-            related_season=season,
-            episode_number=episode["episode_number"],
-            watch_date=datetime.datetime.now(tz=settings.TZ).date(),
-        )
-        episodes_to_create.append(episode_db)
-
-    return episodes_to_create

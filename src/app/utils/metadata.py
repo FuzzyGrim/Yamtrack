@@ -21,7 +21,7 @@ def anime_manga(media_type: str, media_id: str) -> dict:
 
     url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_episodes,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
     response = helpers.api_request(
-        url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API}
+        url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API},
     )
 
     response["original_type"] = response["media_type"].replace("_", " ").title()
