@@ -31,7 +31,7 @@
           {{ season.episodes|length }}
         </div>
         <div class="mt-auto">
-          {% include "app/components/open_track_form.html" with media_type="season" media_id=media_id season_number=season.season_number title=media_title|capfirst only %}
+          {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media_id season_number=season.season_number title=media_title|capfirst only %}
         </div>
       </div>
     </div>
@@ -96,9 +96,10 @@
 
                     <div class="modal-body">
                       <div class="text-center fs-5">When did you watch it?</div>
-                      <form method="post">
+                      <form method="post" action="{% url 'episode_handler' %}?next={{ request.path }}" >
                         {% csrf_token %}
                         <input type="hidden" name="media_id" value="{{ media_id }}">
+                        <input type="hidden" name="season_number" value="{{ season.season_number }}">
                         <input type="hidden" name="episode_number" value="{{ episode.episode_number }}">
 
                         <button type="submit" class="btn btn-secondary w-100 mt-3" name="release" value="{{ episode.air_date }}">Release</button>

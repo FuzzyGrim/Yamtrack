@@ -31,15 +31,11 @@ class CreateMedia(TestCase):
         """Test the creation of a TV object."""
 
         self.client.post(
-            reverse(
-                "media_details",
-                kwargs={"media_type": "anime", "media_id": 1, "title": "Cowboy Bebop"},
-            ),
+            reverse("media_save"),
             {
                 "media_id": 1,
                 "media_type": "tv",
                 "status": "Planning",
-                "save": "",
             },
         )
         self.assertEqual(
@@ -52,15 +48,11 @@ class CreateMedia(TestCase):
         """Test the creation of a TV object through views."""
 
         self.client.post(
-            reverse(
-                "media_details",
-                kwargs={"media_type": "tv", "media_id": 5895, "title": "FLCL"},
-            ),
+            reverse("media_save"),
             {
                 "media_id": 5895,
                 "media_type": "tv",
                 "status": "Planning",
-                "save": "",
             },
         )
         self.assertEqual(
@@ -73,16 +65,12 @@ class CreateMedia(TestCase):
         """Test the creation of a Season through views."""
 
         self.client.post(
-            reverse(
-                "season_details",
-                kwargs={"media_id": 1668, "title": "Friends", "season_number": 1},
-            ),
+            reverse("media_save"),
             {
                 "media_id": 1668,
                 "media_type": "season",
                 "season_number": 1,
                 "status": "Planning",
-                "save": "",
             },
         )
         self.assertEqual(
@@ -94,10 +82,7 @@ class CreateMedia(TestCase):
         """Test the creation of Episode through views."""
 
         self.client.post(
-            reverse(
-                "season_details",
-                kwargs={"media_id": 1668, "title": "friends", "season_number": 1},
-            ),
+            reverse("episode_handler"),
             {
                 "media_id": 1668,
                 "season_number": 1,
@@ -143,7 +128,7 @@ class EditMedia(TestCase):
         )
 
         self.client.post(
-            reverse("medialist", kwargs={"media_type": "movie"}),
+            reverse("media_save"),
             {
                 "media_id": 10494,
                 "media_type": "movie",
@@ -151,7 +136,6 @@ class EditMedia(TestCase):
                 "progress": 1,
                 "status": "Completed",
                 "notes": "Nice",
-                "save": "",
             },
         )
         self.assertEqual(Movie.objects.get(media_id=10494).score, 10)
@@ -180,11 +164,10 @@ class DeleteMedia(TestCase):
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
 
         self.client.post(
-            reverse("medialist", kwargs={"media_type": "movie"}),
+            reverse("media_delete"),
             {
                 "media_id": 10494,
                 "media_type": "movie",
-                "delete": "",
             },
         )
 
@@ -214,12 +197,11 @@ class DeleteMedia(TestCase):
         )
 
         self.client.post(
-            reverse("medialist", kwargs={"media_type": "tv"}),
+            reverse("media_delete"),
             {
                 "media_id": 1668,
                 "media_type": "season",
                 "season_number": 1,
-                "delete": "",
             },
         )
 
@@ -254,8 +236,7 @@ class DeleteMedia(TestCase):
 
         self.client.post(
             reverse(
-                "season_details",
-                kwargs={"media_id": 1668, "title": "friends", "season_number": 1},
+                "episode_handler",
             ),
             {
                 "media_id": 1668,

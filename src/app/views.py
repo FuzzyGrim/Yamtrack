@@ -6,10 +6,12 @@ from django.db.models import F
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.encoding import iri_to_uri
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from app.forms import FilterForm, get_form_class
-from app.models import Anime, Episode, Manga, Movie, Season
-from app.utils import form_handlers, metadata, search
+from app.models import Anime, Episode, Manga, Movie, Season, get_or_create_tv
+from app.utils import metadata, search
 
 logger = logging.getLogger(__name__)
 
@@ -105,10 +107,6 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
 def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     """Return the media list page."""
 
-    if request.method == "POST":
-        form_handlers.media_form_handler(request)
-        return redirect("medialist", media_type=media_type)
-
     filter_params = {"user": request.user.id}
 
     # filter by status if status is not "all", default to "all"
@@ -195,10 +193,6 @@ def media_search(request: HttpRequest) -> HttpResponse:
     media_type = request.GET.get("media_type")
     query = request.GET.get("q")
 
-    if request.method == "POST":
-        form_handlers.media_form_handler(request)
-        return redirect("/search?media_type=" + media_type + "&q=" + query)
-
     if media_type and query:
         # update user default search type
         request.user.last_search_type = media_type
@@ -221,15 +215,11 @@ def media_details(
     request: HttpRequest,
     media_type: str,
     media_id: str,
-    title: str,
+    title: str,  # noqa: ARG001 for URL
 ) -> HttpResponse:
     """Return the details page for a media item."""
 
     media_metadata = metadata.get_media_metadata(media_type, media_id)
-
-    if request.method == "POST":
-        form_handlers.media_form_handler(request, title=media_metadata["title"])
-        return redirect("media_details", media_type, media_id, title)
 
     related_data_list = [
         {"name": "Related Animes", "data": media_metadata.get("related_anime")},
@@ -248,24 +238,13 @@ def media_details(
 def season_details(
     request: HttpRequest,
     media_id: str,
-    title: str,
+    title: str,  # noqa: ARG001 for URL
     season_number: str,
 ) -> HttpResponse:
     """Return the details page for a season."""
 
     season_metadata = metadata.season(media_id, season_number)
     tv_metadata = metadata.tv(media_id)
-
-    if request.method == "POST":
-        # add tv show title to season metadata
-        season_metadata["title"] = tv_metadata["title"]
-        form_handlers.media_form_handler(
-            request,
-            season_metadata,
-            season_number,
-        )
-
-        return redirect("season_details", media_id, title, season_number)
 
     watched_episodes = Episode.objects.filter(
         related_season__media_id=media_id,
@@ -339,5 +318,153 @@ def track_form(request: HttpRequest) -> HttpResponse:
             "form_id": form_id,
             "form": form,
             "allow_delete": allow_delete,
+            "return_url": request.GET.get("return_url", reverse("home")),
         },
     )
+
+
+def media_save(request: HttpRequest) -> HttpResponse:
+    """Save or update media data to the database."""
+
+    media_id = request.POST["media_id"]
+    media_type = request.POST["media_type"]
+    model = apps.get_model(app_label="app", model_name=media_type)
+
+    if media_type == "season":
+        season_number = request.POST["season_number"]
+        media_metadata = metadata.season(media_id, season_number)
+        # get title from tv metadata
+        media_metadata["title"] = metadata.tv(media_id)["title"]
+    else:
+        media_metadata = metadata.get_media_metadata(media_type, media_id)
+
+    try:
+        search_params = {
+            "media_id": media_id,
+            "user": request.user,
+        }
+
+        if media_type == "season":
+            search_params["season_number"] = season_number
+
+        instance = model.objects.get(**search_params)
+    except model.DoesNotExist:
+
+        default_params = {
+            "title": media_metadata["title"],
+            "image": media_metadata["image"],
+            "user": request.user,
+        }
+        if media_type == "season":
+            related_tv = get_or_create_tv(request, media_id)
+            default_params["season_number"] = season_number
+            default_params["related_tv"] = related_tv
+
+        instance = model(**default_params)
+
+    # Validate the form and save the instance if it's valid
+    form_class = get_form_class(media_type)
+    form = form_class(request.POST, instance=instance)
+    if form.is_valid():
+        form.save()
+        logger.info("%s saved successfully.", form.instance)
+    else:
+        logger.error(form.errors.as_data())
+        messages.error(request, "Could not save the media item, there were errors in the form.")
+
+    if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
+        url = iri_to_uri(request.GET["next"])
+        return redirect(url)
+    return redirect("home")
+
+
+def media_delete(request: HttpRequest) -> HttpResponse:
+    """Delete media data from the database."""
+
+    media_id = request.POST["media_id"]
+    media_type = request.POST["media_type"]
+
+    search_params = {
+        "media_id": media_id,
+        "user": request.user,
+    }
+
+    if media_type == "season":
+        search_params["season_number"] = request.POST["season_number"]
+
+    model = apps.get_model(app_label="app", model_name=media_type)
+    try:
+        model.objects.get(**search_params).delete()
+        logger.info("%s deleted successfully.", media_type)
+    except model.DoesNotExist:
+        logger.exception("The %s was already deleted before.", media_type)
+
+    if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
+        url = iri_to_uri(request.GET["next"])
+        return redirect(url)
+    return redirect("home")
+
+
+def episode_handler(request: HttpRequest) -> HttpResponse:
+    """Handle the creation, deletion, and updating of episodes for a season."""
+
+    media_id = request.POST["media_id"]
+    season_number = request.POST["season_number"]
+    season_metadata = metadata.season(media_id, season_number)
+
+    try:
+        related_season = Season.objects.get(
+            media_id=media_id,
+            user=request.user,
+            season_number=season_number,
+        )
+    except Season.DoesNotExist:
+        related_tv = get_or_create_tv(request, media_id)
+        related_season = Season(
+            media_id=media_id,
+            title=related_tv.title,
+            image=season_metadata["image"],
+            score=None,
+            status="In progress",
+            notes="",
+            user=request.user,
+            season_number=season_number,
+            related_tv=related_tv,
+        )
+        # save_base to avoid custom save method
+        Season.save_base(related_season)
+        logger.info("%s did not exist, it was created successfully.", related_season)
+
+    episode_number = request.POST["episode_number"]
+    if "unwatch" in request.POST:
+        Episode.objects.filter(
+            related_season=related_season,
+            episode_number=episode_number,
+        ).delete()
+
+        logger.info("%s %s deleted successfully.", related_season, episode_number)
+
+        if related_season.status == "Completed":
+            related_season.status = "In progress"
+            # save_base to avoid custom save method
+            related_season.save_base(update_fields=["status"])
+    else:
+        if "release" in request.POST:
+            watch_date = request.POST.get("release")
+        else:
+            # set watch date from form
+            watch_date = request.POST.get("date")
+
+        Episode.objects.update_or_create(
+            related_season=related_season,
+            episode_number=episode_number,
+            defaults={
+                "watch_date": watch_date,
+            },
+        )
+        logger.info("%s %s saved successfully.", related_season, episode_number)
+
+    if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
+        url = iri_to_uri(request.GET["next"])
+        return redirect(url)
+    return redirect("home")

@@ -49,7 +49,7 @@
           {% endfor %}
         </div>
         <div class="mt-auto">
-          {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=media.media_id title=media.title only %}
+          {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=media.media_id title=media.title only %}
         </div>
       </div>
     </div>
@@ -66,7 +66,7 @@
             <div class="card-img-overlay">
               <div class="card-title text-center">{{ season.title }}</div>
               <div class="card-text d-flex justify-content-center align-items-center">
-                {% include "app/components/open_track_form.html" with media_type="season" media_id=media.media_id season_number=season.season_number title=media.title only %}
+                {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=season.season_number title=media.title only %}
               </div>
             </div>
           </div>
@@ -87,7 +87,7 @@
               <div class="card-img-overlay">
                 <div class="card-title text-center">{{ related.title }}</div>
                 <div class="card-text d-flex justify-content-center align-items-center">
-                  {% include "app/components/open_track_form.html" with media_type=media.media_type media_id=related.id title=related.title only %}
+                  {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=related.id title=related.title only %}
                 </div>
               </div>
             </div>

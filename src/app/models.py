@@ -9,6 +9,7 @@ from django.core.validators import (
 )
 from django.db import models
 from django.db.models import Max
+from django.http import HttpRequest
 from model_utils import FieldTracker
 
 from app.utils import metadata
@@ -163,7 +164,7 @@ class Season(Media):
         """Return the date of the first episode watched."""
         try:
             start = min(episode.watch_date for episode in self.episodes.all())
-        except ValueError: # no episodes watched
+        except ValueError:  # no episodes watched
             start = datetime.date(datetime.MINYEAR, 1, 1)
         return start
 
@@ -305,6 +306,36 @@ class Movie(Media):
 ################################
 # METHODS FOR MODEL MANAGEMENT #
 ################################
+
+
+def get_or_create_tv(request: HttpRequest, media_id: int) -> TV:
+    """Get related TV instance for a season or create it if it doesn't exist."""
+    try:
+        tv = TV.objects.get(media_id=media_id, user=request.user)
+    except TV.DoesNotExist:
+        tv_metadata = metadata.tv(media_id)
+
+        # default to in progress for when handling episode form
+        status = request.POST.get("status", "In progress")
+        # creating tv with multiple seasons from a completed season
+        if status == "Completed" and tv_metadata["season_number"] > 1:
+            status = "In progress"
+
+        tv = TV(
+            media_id=media_id,
+            title=tv_metadata["title"],
+            image=tv_metadata["image"],
+            score=None,
+            status=status,
+            notes="",
+            user=request.user,
+        )
+
+        # save_base to avoid custom save method
+        TV.save_base(tv)
+        logger.info("%s did not exist, it was created successfully.", tv)
+
+    return tv
 
 
 def tv_complete(
