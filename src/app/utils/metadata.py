@@ -20,7 +20,9 @@ def anime_manga(media_type: str, media_id: str) -> dict:
     """Return the metadata for the selected anime or manga from MyAnimeList."""
 
     url = f"https://api.myanimelist.net/v2/{media_type}/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_episodes,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
-    response = helpers.api_request(url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API})
+    response = helpers.api_request(
+        url, "GET", headers={"X-MAL-CLIENT-ID": settings.MAL_API}
+    )
 
     response["original_type"] = response["media_type"].replace("_", " ").title()
     response["media_type"] = media_type
@@ -81,11 +83,86 @@ def anime_manga(media_type: str, media_id: str) -> dict:
     return response
 
 
+def movie(media_id: str) -> dict:
+    """Return the metadata for the selected movie from The Movie Database."""
+
+    url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
+    response = helpers.api_request(url, "GET")
+
+    response["original_type"] = "Movie"
+    response["media_type"] = "movie"
+    response["media_id"] = response["id"]
+
+    # when specific data is not available
+    # tmdb will either not return the key or return an empty value/string
+
+    if response["poster_path"]:
+        response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+    else:
+        response["image"] = settings.IMG_NONE
+
+    if "release_date" in response and response["release_date"] != "":
+        response["start_date"] = response["release_date"]
+    else:
+        response["start_date"] = "Unknown"
+
+    if response["overview"] == "":
+        response["synopsis"] = "No synopsis available."
+    else:
+        response["synopsis"] = response["overview"]
+
+    # movies uses runtime in minutes, convert to hours and minutes
+    duration = response.get("runtime")
+    if duration:
+        hours, minutes = divmod(int(duration), 60)
+        response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+    else:
+        response["runtime"] = "Unknown"
+
+    response["num_episodes"] = 1
+
+    if not response["genres"]:
+        response["genres"] = [{"name": "Unknown"}]
+
+    response["recommendations"] = response["recommendations"]["results"][:15]
+
+    for recommendation in response["recommendations"]:
+        if recommendation["poster_path"]:
+            recommendation["image"] = (
+                f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
+            )
+        else:
+            recommendation["image"] = settings.IMG_NONE
+
+    return response
+
+
+def tv_with_seasons(media_id: str, season_numbers: list[int]) -> dict:
+    """Return the metadata for the tv show with a season appended to the response."""
+
+    append_text = ",".join([f"season/{season}" for season in season_numbers])
+
+    url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations,{append_text}"
+    response = helpers.api_request(url, "GET")
+    response = process_tv(response)
+
+    for season_number in season_numbers:
+        response[f"season/{season_number}"] = process_season(
+            response[f"season/{season_number}"],
+        )
+    return response
+
+
 def tv(media_id: str) -> dict:
     """Return the metadata for the selected tv show from The Movie Database."""
 
     url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
     response = helpers.api_request(url, "GET")
+    return process_tv(response)
+
+
+def process_tv(response: dict) -> dict:
+    """Process the metadata for the selected tv show from The Movie Database."""
 
     response["original_type"] = "TV"
     response["media_type"] = "tv"
@@ -144,65 +221,17 @@ def tv(media_id: str) -> dict:
     return response
 
 
-def movie(media_id: str) -> dict:
-    """Return the metadata for the selected movie from The Movie Database."""
-
-    url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
-    response = helpers.api_request(url, "GET")
-
-    response["original_type"] = "Movie"
-    response["media_type"] = "movie"
-    response["media_id"] = response["id"]
-
-    # when specific data is not available
-    # tmdb will either not return the key or return an empty value/string
-
-    if response["poster_path"]:
-        response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
-    else:
-        response["image"] = settings.IMG_NONE
-
-    if "release_date" in response and response["release_date"] != "":
-        response["start_date"] = response["release_date"]
-    else:
-        response["start_date"] = "Unknown"
-
-    if response["overview"] == "":
-        response["synopsis"] = "No synopsis available."
-    else:
-        response["synopsis"] = response["overview"]
-
-    # movies uses runtime in minutes, convert to hours and minutes
-    duration = response.get("runtime")
-    if duration:
-        hours, minutes = divmod(int(duration), 60)
-        response["runtime"] = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
-    else:
-        response["runtime"] = "Unknown"
-
-    response["num_episodes"] = 1
-
-    if not response["genres"]:
-        response["genres"] = [{"name": "Unknown"}]
-
-    response["recommendations"] = response["recommendations"]["results"][:15]
-
-    for recommendation in response["recommendations"]:
-        if recommendation["poster_path"]:
-            recommendation[
-                "image"
-            ] = f"https://image.tmdb.org/t/p/w500{recommendation['poster_path']}"
-        else:
-            recommendation["image"] = settings.IMG_NONE
-
-    return response
-
-
 def season(tv_id: str, season_number: int) -> dict:
     """Return the metadata for the selected season from The Movie Database."""
 
     url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}?api_key={settings.TMDB_API}"
     response = helpers.api_request(url, "GET")
+
+    return process_season(response)
+
+
+def process_season(response: dict) -> dict:
+    """Process the metadata for the selected season from The Movie Database."""
 
     if response["poster_path"]:
         response["image"] = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"

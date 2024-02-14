@@ -139,7 +139,7 @@ class TV(Media):
             and self.status == "Completed"
             and self.progress < metadata.tv(self.media_id)["num_episodes"]
         ):
-            tv_complete(self, metadata.tv(self.media_id))
+            tv_complete(self)
 
 
 class Season(Media):
@@ -338,17 +338,18 @@ def get_or_create_tv(request: HttpRequest, media_id: int) -> TV:
     return tv
 
 
-def tv_complete(
-    tv: TV,
-    tv_metadata: dict,
-) -> None:
+def tv_complete(tv: TV) -> None:
     """Create remaining seasons and episodes for a TV show."""
 
     seasons_to_update = []
     seasons_to_create = []
     episodes_to_create = []
-    for season_number in range(1, tv_metadata["number_of_seasons"] + 1):
-        season_metadata = metadata.season(tv.media_id, season_number)
+
+    tv_metadata = metadata.tv(tv.media_id)
+    season_numbers = range(1, tv_metadata["number_of_seasons"] + 1)
+    tv_seasons_metadata = metadata.tv_with_seasons(tv.media_id, season_numbers)
+    for season_number in season_numbers:
+        season_metadata = tv_seasons_metadata[f"season/{season_number}"]
         try:
             season_instance = Season.objects.get(
                 media_id=tv.media_id,

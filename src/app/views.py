@@ -243,8 +243,8 @@ def season_details(
 ) -> HttpResponse:
     """Return the details page for a season."""
 
-    season_metadata = metadata.season(media_id, season_number)
-    tv_metadata = metadata.tv(media_id)
+    tv_metadata = metadata.tv_with_seasons(media_id, [season_number])
+    season_metadata = tv_metadata[f"season/{season_number}"]
 
     watched_episodes = Episode.objects.filter(
         related_season__media_id=media_id,
@@ -332,9 +332,10 @@ def media_save(request: HttpRequest) -> HttpResponse:
 
     if media_type == "season":
         season_number = request.POST["season_number"]
-        media_metadata = metadata.season(media_id, season_number)
+        tv_metadata = metadata.tv_with_seasons(media_id, [season_number])
+        media_metadata = tv_metadata[f"season/{season_number}"]
         # get title from tv metadata
-        media_metadata["title"] = metadata.tv(media_id)["title"]
+        media_metadata["title"] = tv_metadata["title"]
     else:
         media_metadata = metadata.get_media_metadata(media_type, media_id)
 
