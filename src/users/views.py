@@ -1,12 +1,12 @@
 import logging
 
-from app.utils import helpers
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
+from users import services
 from users.forms import (
     PasswordChangeForm,
     UserLoginForm,
@@ -28,7 +28,7 @@ def register(request: HttpRequest) -> HttpResponse:
         logger.info(
             "New user registered: %s at %s",
             form.cleaned_data.get("username"),
-            helpers.get_client_ip(request),
+            services.get_client_ip(request),
         )
         return redirect("login")
 
@@ -52,7 +52,7 @@ class CustomLoginView(LoginView):
         logger.info(
             "User logged in as: %s at %s",
             self.request.POST["username"],
-            helpers.get_client_ip(self.request),
+            services.get_client_ip(self.request),
         )
         return super().form_valid(form)
 
@@ -62,7 +62,7 @@ class CustomLoginView(LoginView):
         logger.error(
             "Failed login attempt for: %s at %s",
             self.request.POST["username"],
-            helpers.get_client_ip(self.request),
+            services.get_client_ip(self.request),
         )
         return super().form_invalid(form)
 
@@ -96,7 +96,11 @@ def profile(request: HttpRequest) -> HttpResponse:
                 messages.success(request, "Your password has been updated!")
                 logger.info("Successful password change for: %s", request.user.username)
             else:
-                logger.error("Failed password change for %s: %s", request.user.username, password_form.errors.as_data())
+                logger.error(
+                    "Failed password change for %s: %s",
+                    request.user.username,
+                    password_form.errors.as_data(),
+                )
 
         else:
             messages.error(request, "There was an error with your request")
