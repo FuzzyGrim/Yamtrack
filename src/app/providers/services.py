@@ -6,6 +6,8 @@ import time
 import requests
 from django.conf import settings
 
+from app.providers import mal, tmdb
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,3 +33,18 @@ def api_request(
     response.raise_for_status()
 
     return response.json()
+
+
+def get_media_metadata(media_type: str, media_id: str) -> dict:
+    """Return the metadata for the selected media."""
+
+    if media_type == "anime":
+        media_metadata = mal.anime(media_id)
+    elif media_type == "manga":
+        media_metadata = mal.manga(media_id)
+    elif media_type == "tv":
+        media_metadata = tmdb.tv(media_id)
+    elif media_type == "movie":
+        media_metadata = tmdb.movie(media_id)
+
+    return media_metadata

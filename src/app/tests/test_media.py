@@ -10,7 +10,7 @@ from django.urls import reverse
 from users.models import User
 
 from app.models import TV, Anime, Episode, Movie, Season
-from app.utils import metadata
+from app.providers import mal, tmdb
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -257,11 +257,11 @@ class DetailsMedia(TestCase):
 
     def test_anime(self: "DetailsMedia") -> None:
         """Test the metadata method for anime."""
-        response = metadata.anime_manga("anime", "1")
+        response = mal.anime("1")
         self.assertEqual(response["title"], "Cowboy Bebop")
-        self.assertEqual(response["start_date"], "1998-04-03")
-        self.assertEqual(response["status"], "Finished")
-        self.assertEqual(response["num_episodes"], 26)
+        self.assertEqual(response["details"]["start_date"], "1998-04-03")
+        self.assertEqual(response["details"]["status"], "Finished")
+        self.assertEqual(response["details"]["number_of_episodes"], 26)
 
     @patch("requests.get")
     def test_anime_unknown(self: "DetailsMedia", mock_data: "patch") -> None:
@@ -272,37 +272,37 @@ class DetailsMedia(TestCase):
         mock_data.return_value.status_code = 200
 
         # anime without picture, synopsis, duration and genres
-        response = metadata.anime_manga("anime", "0")
+        response = mal.anime("0")
         self.assertEqual(response["title"], "Unknown Example")
         self.assertEqual(response["image"], settings.IMG_NONE)
-        self.assertEqual(response["synopsis"], "No synopsis available.")
-        self.assertEqual(response["runtime"], "Unknown")
-        self.assertEqual(response["genres"], [{"name": "Unknown"}])
+        self.assertEqual(response["details"]["synopsis"], "No synopsis available.")
+        self.assertEqual(response["details"]["runtime"], "Unknown")
+        self.assertEqual(response["details"]["genres"], "Unknown")
 
     def test_manga(self: "DetailsMedia") -> None:
         """Test the metadata method for manga."""
 
-        response = metadata.anime_manga("manga", "1")
+        response = mal.manga("1")
         self.assertEqual(response["title"], "Monster")
-        self.assertEqual(response["start_date"], "1994-12-05")
-        self.assertEqual(response["status"], "Finished")
-        self.assertEqual(response["num_chapters"], 162)
+        self.assertEqual(response["details"]["start_date"], "1994-12-05")
+        self.assertEqual(response["details"]["status"], "Finished")
+        self.assertEqual(response["details"]["number_of_episodes"], 162)
 
     def test_tv(self: "DetailsMedia") -> None:
         """Test the metadata method for TV shows."""
-        response = metadata.tv("1396")
+        response = tmdb.tv("1396")
         self.assertEqual(response["title"], "Breaking Bad")
-        self.assertEqual(response["start_date"], "2008-01-20")
-        self.assertEqual(response["status"], "Ended")
-        self.assertEqual(response["num_episodes"], 62)
+        self.assertEqual(response["details"]["start_date"], "2008-01-20")
+        self.assertEqual(response["details"]["status"], "Ended")
+        self.assertEqual(response["details"]["number_of_episodes"], 62)
 
     def test_movie(self: "DetailsMedia") -> None:
         """Test the metadata method for movies."""
-        response = metadata.movie("10494")
+        response = tmdb.movie("10494")
         self.assertEqual(response["title"], "Perfect Blue")
-        self.assertEqual(response["start_date"], "1998-02-28")
-        self.assertEqual(response["status"], "Released")
-        self.assertEqual(response["num_episodes"], 1)
+        self.assertEqual(response["details"]["start_date"], "1998-02-28")
+        self.assertEqual(response["details"]["status"], "Released")
+        self.assertEqual(response["details"]["number_of_episodes"], 1)
 
     @patch("requests.get")
     def test_movie_unknown(self: "DetailsMedia", mock_data: "patch") -> None:
@@ -312,13 +312,13 @@ class DetailsMedia(TestCase):
         mock_data.return_value.json.return_value = movie_response
         mock_data.return_value.status_code = 200
 
-        response = metadata.movie("0")
+        response = tmdb.movie("0")
         self.assertEqual(response["title"], "Unknown Movie")
         self.assertEqual(response["image"], settings.IMG_NONE)
-        self.assertEqual(response["start_date"], "Unknown")
-        self.assertEqual(response["synopsis"], "No synopsis available.")
-        self.assertEqual(response["runtime"], "Unknown")
-        self.assertEqual(response["genres"], [{"name": "Unknown"}])
+        self.assertEqual(response["details"]["start_date"], "Unknown")
+        self.assertEqual(response["details"]["synopsis"], "No synopsis available.")
+        self.assertEqual(response["details"]["runtime"], "Unknown")
+        self.assertEqual(response["details"]["genres"], "Unknown")
 
 
 class ProgressEditSeason(TestCase):

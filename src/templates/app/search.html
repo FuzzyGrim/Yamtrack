@@ -16,7 +16,7 @@
     <div class="container grid">
       {% for media in query_list %}
         <div class="card text-bg-dark mx-auto">
-          <a href="{% url 'media_details' media_type=media.media_type media_id=media.id title=media.title|slugify %}">
+          <a href="{% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slugify %}">
             <img src="{{ media.image }}"
                  class="card-img {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                  alt="{{ media.title }}" />

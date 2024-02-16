@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from app import forms
-from app.utils import metadata
+from app.providers import services
 from django.apps import apps
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
 
         # if movie or tv show (not episode), currently cant import episodes
         if media_type == "movie" or (media_type == "tv" and episode_number == ""):
-            media_metadata = metadata.get_media_metadata(media_type, media_id)
+            media_metadata = services.get_media_metadata(media_type, media_id)
             model = apps.get_model(app_label="app", model_name=media_type)
 
             # only import if not already in database
@@ -84,7 +84,7 @@ def create_form(
     media_type = media_metadata["media_type"]
 
     data = {
-        "media_id": media_metadata["id"],
+        "media_id": media_metadata["media_id"],
         "media_type": media_type,
         "score": row["Your Rating"],
         "status": status,
@@ -97,7 +97,7 @@ def create_form(
                 .astimezone()
                 .date()
             )
-        data["progress"] = media_metadata["num_episodes"]
+        data["progress"] = media_metadata["details"]["number_of_episodes"]
 
     return forms.get_form_class(media_type)(
         data=data,

@@ -11,7 +11,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 from app.forms import FilterForm, get_form_class
 from app.models import Anime, Episode, Manga, Movie, Season
-from app.utils import metadata, search
+from app.providers import mal, services, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
 
     if media_type == "season":
         season_number = request.POST.get("season_number")
-        season_metadata = metadata.season(media_id, season_number)
+        season_metadata = tmdb.season(media_id, season_number)
         max_progress = len(season_metadata["episodes"])
         search_params = {
             "media_id": media_id,
@@ -64,8 +64,8 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         }
 
     else:
-        media_metadata = metadata.get_media_metadata(media_type, media_id)
-        max_progress = media_metadata.get("num_episodes", 1)
+        media_metadata = services.get_media_metadata(media_type, media_id)
+        max_progress = media_metadata["details"]["number_of_episodes"]
         search_params = {"media_id": media_id, "user": request.user}
 
     model = apps.get_model(app_label="app", model_name=media_type)
@@ -95,7 +95,8 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         )
     except model.DoesNotExist:
         messages.error(
-            request, "Media item was deleted before trying to change progress",
+            request,
+            "Media item was deleted before trying to change progress",
         )
         logger.exception("Media item was deleted before trying to change progress")
 
@@ -117,11 +118,14 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     # default sort by descending score
     sort_filter = request.GET.get("sort", "score")
 
-    # update user default layout for media type
-    default_layout = request.user.default_layout[media_type]
-    current_layout = request.GET.get("layout", default_layout)
-    request.user.default_layout[media_type] = current_layout
-    request.user.save()
+    current_layout = request.GET.get("layout")
+    if current_layout:
+        # update user default layout for media type
+        request.user.default_layout[media_type] = current_layout
+        request.user.save()
+    else:
+        # get user default layout for media type
+        current_layout = request.user.default_layout[media_type]
 
     # fill form with current values if they exist
     filter_form = FilterForm(request.GET or None, default_layout=current_layout)
@@ -199,9 +203,9 @@ def media_search(request: HttpRequest) -> HttpResponse:
         request.user.save()
 
         if media_type in ("anime", "manga"):
-            query_list = search.mal(media_type, query)
+            query_list = mal.search(media_type, query)
         elif media_type in ("tv", "movie"):
-            query_list = search.tmdb(media_type, query)
+            query_list = tmdb.search(media_type, query)
 
         context = {"query_list": query_list}
 
@@ -219,19 +223,9 @@ def media_details(
 ) -> HttpResponse:
     """Return the details page for a media item."""
 
-    media_metadata = metadata.get_media_metadata(media_type, media_id)
+    media_metadata = services.get_media_metadata(media_type, media_id)
 
-    related_data_list = [
-        {"name": "Related Animes", "data": media_metadata.get("related_anime")},
-        {"name": "Related Mangas", "data": media_metadata.get("related_manga")},
-        {"name": "Recommendations", "data": media_metadata.get("recommendations")},
-    ]
-
-    context = {
-        "media": media_metadata,
-        "seasons": media_metadata.get("seasons"),
-        "related_data_list": related_data_list,
-    }
+    context = {"media": media_metadata}
     return render(request, "app/media_details.html", context)
 
 
@@ -243,29 +237,21 @@ def season_details(
 ) -> HttpResponse:
     """Return the details page for a season."""
 
-    tv_metadata = metadata.tv_with_seasons(media_id, [season_number])
+    tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
     season_metadata = tv_metadata[f"season/{season_number}"]
 
-    watched_episodes = Episode.objects.filter(
+    watched_episodes = dict(Episode.objects.filter(
         related_season__media_id=media_id,
         related_season__season_number=season_number,
         related_season__user=request.user,
-    ).values_list("episode_number", "watch_date")
+    ).values_list("episode_number", "watch_date"))
 
-    watched_episodes_dict = dict(watched_episodes)
+    season_metadata["episodes"] = tmdb.process_episodes(
+        season_metadata,
+        watched_episodes,
+    )
 
-    for episode in season_metadata["episodes"]:
-        episode_number = episode["episode_number"]
-        episode["watched"] = episode_number in watched_episodes_dict
-        if episode["watched"]:
-            episode["watch_date"] = watched_episodes_dict[episode_number]
-
-    context = {
-        "media_id": media_id,
-        "media_title": tv_metadata["title"],
-        "season": season_metadata,
-        "tv": tv_metadata,
-    }
+    context = {"season": season_metadata, "tv": tv_metadata}
     return render(request, "app/season_details.html", context)
 
 
@@ -332,12 +318,12 @@ def media_save(request: HttpRequest) -> HttpResponse:
 
     if media_type == "season":
         season_number = request.POST["season_number"]
-        tv_metadata = metadata.tv_with_seasons(media_id, [season_number])
+        tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
         media_metadata = tv_metadata[f"season/{season_number}"]
         # get title from tv metadata
         media_metadata["title"] = tv_metadata["title"]
     else:
-        media_metadata = metadata.get_media_metadata(media_type, media_id)
+        media_metadata = services.get_media_metadata(media_type, media_id)
 
     try:
         search_params = {
@@ -369,7 +355,9 @@ def media_save(request: HttpRequest) -> HttpResponse:
         logger.info("%s saved successfully.", form.instance)
     else:
         logger.error(form.errors.as_data())
-        messages.error(request, "Could not save the media item, there were errors in the form.")
+        messages.error(
+            request, "Could not save the media item, there were errors in the form."
+        )
 
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
         url = iri_to_uri(request.GET["next"])
@@ -409,7 +397,7 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
 
     media_id = request.POST["media_id"]
     season_number = request.POST["season_number"]
-    season_metadata = metadata.season(media_id, season_number)
+    season_metadata = tmdb.season(media_id, season_number)
 
     try:
         related_season = Season.objects.get(
@@ -428,7 +416,7 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
             season_number=season_number,
         )
         related_season.related_tv = related_season.get_tv()
-        related_season.title=related_season.related_tv.title
+        related_season.title = related_season.related_tv.title
 
         # save_base to avoid custom save method
         Season.save_base(related_season)
@@ -461,7 +449,7 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
                 "watch_date": watch_date,
             },
         )
-        logger.info("%s %s saved successfully.", related_season, episode_number)
+        logger.info("%sE%s saved successfully.", related_season, episode_number)
 
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
         url = iri_to_uri(request.GET["next"])

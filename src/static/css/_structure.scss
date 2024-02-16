@@ -210,7 +210,7 @@
   object-fit: cover;
 }
 
-.episode-img-none{
+.episode-img-none {
   background-image: url(https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg);
   background-color: $bg-img-none;
   background-position: center;
@@ -218,7 +218,7 @@
   height: 170px; // aprox height of episode-img
 }
 
-.episode-name {
+.episode-title {
   font-size: 1.2rem;
 }
 

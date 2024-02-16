@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
+{% load app_extras %}
+
 {% block title %}
   {{ media.title }} - Yamtrack
 {% endblock title %}
+
 {% block content %}
   <div class="container">
     <div class="details-top d-flex mb-4">
@@ -14,86 +17,50 @@
 
       <div class="details-data d-flex flex-column align-items-start">
         <div class="title fs-4">{{ media.title }}</div>
-        <div class="original-type">
-          <strong>Type:</strong>
-          {{ media.original_type }}
-        </div>
-        <div class="start-date">
-          <strong>Release date:</strong>
-          {{ media.start_date }}
-        </div>
-        <div class="status">
-          <strong>Status:</strong> {{ media.status }}
-        </div>
-        <div class="synopsis">
-          <strong>Synopsis:</strong>
-          {{ media.synopsis }}
-        </div>
-        <div class="episodes">
-          {% if media.num_episodes %}
-            <strong>Total Episodes:</strong> {{ media.num_episodes }}
-          {% elif media.num_chapters %}
-            <strong>Total Chapters:</strong> {{ media.num_chapters }}
-          {% endif %}
-        </div>
-        {% if media.runtime %}
-          <div class="runtime">
-            <strong>Runtime:</strong> {{ media.runtime }}
+
+        {% for key, value in media.details.items %}
+          <div class="{{ key }}">
+            <strong>{{ key|totitle }}:</strong> {{ value }}
           </div>
-        {% endif %}
-        <div class="genres mb-2">
-          <strong>Genres:</strong>
-          {% for genre in media.genres %}
-            {{ genre.name }}
-            {% if not forloop.last %},{% endif %}
-          {% endfor %}
-        </div>
+        {% endfor %}
+  
         <div class="mt-auto">
           {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=media.media_id title=media.title only %}
         </div>
       </div>
     </div>
-    {% if seasons %}
-      <div class="mt-3 fs-5">Seasons</div>
-      <div class="grid">
-        {% for season in seasons %}
-          <div class="card text-bg-dark mx-auto">
-            <a href="{% url 'season_details' media_id=media.id title=media.title|slugify season_number=season.season_number %}">
-              <img src="{{ season.image }}"
-                   class="card-img {% if season.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
-                   alt="{{ season.title }}"/>
-            </a>
-            <div class="card-img-overlay">
-              <div class="card-title text-center">{{ season.title }}</div>
-              <div class="card-text d-flex justify-content-center align-items-center">
-                {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=season.season_number title=media.title only %}
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-    {% for related_data in related_data_list %}
-      {% if related_data.data %}
-        <div class="mt-3 fs-5">{{ related_data.name }}</div>
+
+    {% for name, related_items in media.related.items %}
+
+      {% if related_items %}
+        <div class="mt-3 fs-5">{{ name|totitle }}</div>
         <div class="grid">
-          {% for related in related_data.data %}
+          {% for related in related_items %}
             <div class="card text-bg-dark mx-auto">
-              <a href="{% url 'media_details' media_type=media.media_type media_id=related.id title=related.title|slugify %}">
+              {% if name == "seasons" %}
+                <a href="{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=related.season_number %}">
+              {% else %}
+                <a href="{% url 'media_details' media_type=media.media_type media_id=related.media_id title=related.title|slugify %}">
+              {% endif %}
                 <img src="{{ related.image }}"
-                     class="card-img {% if related.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
+                    class="card-img {% if related.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                       alt="{{ related.title }}"/>
-              </a>
+                </a>
               <div class="card-img-overlay">
                 <div class="card-title text-center">{{ related.title }}</div>
                 <div class="card-text d-flex justify-content-center align-items-center">
-                  {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=related.id title=related.title only %}
+                  {% if name == "seasons" %}
+                    {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=related.season_number title=media.title only %}
+                  {% else %}
+                    {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=related.media_id title=related.title only %}
+                  {% endif %}
                 </div>
               </div>
             </div>
           {% endfor %}
         </div>
       {% endif %}
+
     {% endfor %}
   </div>
 {% endblock content %}
