@@ -3,7 +3,7 @@ import logging
 import requests_cache
 from app import forms
 from app.models import Anime, Manga
-from app.utils import helpers
+from app.providers import services
 from django.apps import apps
 from django.conf import settings
 from users.models import User
@@ -37,12 +37,12 @@ def get_whole_response(url: str) -> dict:
     header = {"X-MAL-CLIENT-ID": settings.MAL_API}
 
     with requests_cache.disabled():  # don't cache request as it can change frequently
-        data = helpers.api_request(url, "GET", header)
+        data = services.api_request(url, "GET", header)
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
         # Fetch the data from the next URL
-        next_data = helpers.api_request(next_url, "GET", header)
+        next_data = services.api_request(next_url, "GET", header)
         # Append the new data to the existing data in the data
         data["data"].extend(next_data["data"])
         # Update the "paging" key with the new "next" URL (if any)

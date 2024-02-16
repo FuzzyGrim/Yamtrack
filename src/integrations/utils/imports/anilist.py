@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import requests_cache
 from app import forms
 from app.models import Anime, Manga
-from app.utils import helpers
+from app.providers import services
 from django.apps import apps
 
 if TYPE_CHECKING:
@@ -88,7 +88,7 @@ def anilist_data(username: str, user: User) -> str:
     url = "https://graphql.anilist.co"
 
     with requests_cache.disabled():  # don't cache request as it can change frequently
-        query = helpers.api_request(
+        query = services.api_request(
             url, "POST", json={"query": query, "variables": variables},
         )
 

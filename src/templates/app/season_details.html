@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
+{% load app_extras %}
+
 {% block title %}
-  {{ media_title }} S{{ season.season_number }} - Yamtrack
+  {{ tv.title }} S{{ season.season_number }} - Yamtrack
 {% endblock title %}
+
 {% block content %}
   <div class="container">
     <div class="details-top d-flex">
@@ -13,38 +16,33 @@
       </div>
       <div class="details-data d-flex flex-column align-items-start">
         <div class="tv-title">
-          <a href="{% url 'media_details' media_type="tv" media_id=media_id title=media_title|slugify %}">
-            {{ media_title|capfirst }}
+          <a href="{% url 'media_details' media_type="tv" media_id=tv.media_id title=tv.title|slugify %}">
+            {{ tv.title|capfirst }}
           </a>
         </div>
-        <div class="title fs-4">{{ season.name }}</div>
-        <div class="start-date">
-          <strong>Release date:</strong>
-          {{ season.start_date }}
-        </div>
-        <div class="synopsis">
-          <strong>Synopsis:</strong>
-          {{ season.synopsis }}
-        </div>
-        <div class="episodes-num mb-2">
-          <strong>Total Episodes:</strong>
-          {{ season.episodes|length }}
-        </div>
+        <div class="title fs-4">{{ season.title }}</div>
+
+        {% for key, value in season.details.items %}
+          <div class="{{ key }}">
+            <strong>{{ key|totitle }}:</strong> {{ value }}
+          </div>
+        {% endfor %}
+
         <div class="mt-auto">
-          {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media_id season_number=season.season_number title=media_title|capfirst only %}
+          {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst only %}
         </div>
       </div>
     </div>
 
     <div class="dropdown mt-5 mb-3">
       <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        {{ season.name }}
+        {{ season.title }}
       </button>
       <ul class="dropdown-menu">
-        {% for tv_season in tv.seasons %}
+        {% for tv_season in tv.related.seasons %}
           <li>
-            <a class="dropdown-item" href="{% url 'season_details' media_id=media_id title=media_title|slugify season_number=tv_season.season_number %}">
-              {{ tv_season.name }}
+            <a class="dropdown-item" href="{% url 'season_details' media_id=tv.media_id title=tv.title|slugify season_number=tv_season.season_number %}">
+              {{ tv_season.title }}
             </a>
           </li>
         {% endfor %}
@@ -54,24 +52,20 @@
     {% for episode in season.episodes %}
       <div class="card mb-3">
         <div class="row g-0">
-          {% if episode.still_path is None %}
+          {% if episode.image is None %}
             <div class="col-sm-3 episode-img-none"></div>
           {% else %} 
             <div class="col-sm-3">
-              <img src="{% if episode.still_path is None %}
-                          https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg 
-                        {% else %} 
-                          https://image.tmdb.org/t/p/w500{{ episode.still_path }}
-                        {% endif %}"
+              <img src="https://image.tmdb.org/t/p/w500{{ episode.image }}"
                   class="episode-img rounded-start" alt="E{{ episode.episode_number }} image">
             </div>
           {% endif %}
           
           <div class="col-sm-9 card-body d-flex flex-column align-items-start pb-2">
-            <div class="episode-name">
-              S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.name }}
+            <div class="episode-title">
+              S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.title }}
             </div>
-            <div class="mb-2"><small class="text-body-secondary">{{ episode.air_date|default:"Unknown Release Date" }}</small></div>
+            <div class="mb-2"><small class="text-body-secondary">{{ episode.start_date|default:"Unknown Release Date" }}</small></div>
             <div class="episode-overview mb-2">{{ episode.overview }}</div>
             <div class="mt-auto">
 
@@ -90,7 +84,7 @@
                 <div class="modal-dialog modal-dialog-centered modal-sm">
                   <div class="modal-content">
                     <div class="modal-header">
-                      <h5 class="modal-title">{{ media_title|capfirst }} S{{ season.season_number }}.E{{ episode.episode_number }}</h5>
+                      <h5 class="modal-title">{{ tv.title|capfirst }} S{{ season.season_number }}.E{{ episode.episode_number }}</h5>
                       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
 
@@ -98,11 +92,11 @@
                       <div class="text-center fs-5">When did you watch it?</div>
                       <form method="post" action="{% url 'episode_handler' %}?next={{ request.path }}" >
                         {% csrf_token %}
-                        <input type="hidden" name="media_id" value="{{ media_id }}">
+                        <input type="hidden" name="media_id" value="{{ tv.media_id }}">
                         <input type="hidden" name="season_number" value="{{ season.season_number }}">
                         <input type="hidden" name="episode_number" value="{{ episode.episode_number }}">
 
-                        <button type="submit" class="btn btn-secondary w-100 mt-3" name="release" value="{{ episode.air_date }}">Release</button>
+                        <button type="submit" class="btn btn-secondary w-100 mt-3" name="release" value="{{ episode.start_date }}">Release</button>
 
                         <div class="d-flex date-btn-group mt-2">
                           <input type="date"
@@ -128,14 +122,3 @@
     {% endfor %}
   </div>
 {% endblock content %}
-
-{% block extra_scripts %}
-  <script>
-    const myDefaultAllowList = bootstrap.Tooltip.Default.allowList
-    myDefaultAllowList.input = ['type', 'name', 'value']
-    myDefaultAllowList.button = ['value', 'name']
-    const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
-    const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl))
-  </script>
-{% endblock extra_scripts %}
-

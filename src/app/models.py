@@ -11,7 +11,7 @@ from django.db import models
 from django.db.models import Max
 from model_utils import FieldTracker
 
-from app.utils import metadata
+from app.providers import services, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -72,17 +72,17 @@ class Media(models.Model):
                 if not self.end_date:
                     self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
-                self.progress = metadata.get_media_metadata(media_type, self.media_id)[
-                    "num_episodes"
-                ]
+                self.progress = services.get_media_metadata(media_type, self.media_id)[
+                    "details"
+                ]["number_of_episodes"]
 
             elif self.status == "In progress" and not self.start_date:
                 self.start_date = datetime.datetime.now(tz=settings.TZ).date()
 
         if "progress" in self.tracker.changed():
-            max_episodes = metadata.get_media_metadata(media_type, self.media_id)[
-                "num_episodes"
-            ]
+            max_episodes = services.get_media_metadata(media_type, self.media_id)[
+                "details"
+            ]["number_of_episodes"]
 
             if self.progress > max_episodes:
                 self.progress = max_episodes
@@ -136,7 +136,7 @@ class TV(Media):
         if (
             "status" in self.tracker.changed()
             and self.status == "Completed"
-            and self.progress < metadata.tv(self.media_id)["num_episodes"]
+            and self.progress < tmdb.tv(self.media_id)["details"]["number_of_episodes"]
         ):
             self.completed()
 
@@ -147,9 +147,9 @@ class TV(Media):
         seasons_to_create = []
         episodes_to_create = []
 
-        tv_metadata = metadata.tv(self.media_id)
-        season_numbers = range(1, tv_metadata["number_of_seasons"] + 1)
-        tv_seasons_metadata = metadata.tv_with_seasons(self.media_id, season_numbers)
+        tv_metadata = tmdb.tv(self.media_id)
+        season_numbers = range(1, tv_metadata["details"]["number_of_seasons"] + 1)
+        tv_seasons_metadata = tmdb.tv_with_seasons(self.media_id, season_numbers)
         for season_number in season_numbers:
             season_metadata = tv_seasons_metadata[f"season/{season_number}"]
             try:
@@ -243,7 +243,7 @@ class Season(Media):
         super(Media, self).save(*args, **kwargs)
 
         if "status" in self.tracker.changed() and self.status == "Completed":
-            season_metadata = metadata.season(self.media_id, self.season_number)
+            season_metadata = tmdb.season(self.media_id, self.season_number)
             Episode.objects.bulk_create(
                 self.get_remaining_eps(season_metadata),
             )
@@ -259,7 +259,7 @@ class Season(Media):
             .first()
         )
 
-        season_metadata = metadata.season(self.media_id, self.season_number)
+        season_metadata = tmdb.season(self.media_id, self.season_number)
 
         # if no episodes have been watched
         if last_watched is None:
@@ -305,10 +305,13 @@ class Season(Media):
         try:
             tv = TV.objects.get(media_id=self.media_id, user=self.user)
         except TV.DoesNotExist:
-            tv_metadata = metadata.tv(self.media_id)
+            tv_metadata = tmdb.tv(self.media_id)
 
             # creating tv with multiple seasons from a completed season
-            if self.status == "Completed" and tv_metadata["number_of_seasons"] > 1:
+            if (
+                self.status == "Completed"
+                and tv_metadata["details"]["number_of_seasons"] > 1
+            ):
                 status = "In progress"
             else:
                 status = self.status
@@ -383,10 +386,11 @@ class Episode(models.Model):
         """Save the episode instance."""
         super().save(*args, **kwargs)
 
-        season_metadata = metadata.season(
+        season_metadata = tmdb.season(
             self.related_season.media_id,
             self.related_season.season_number,
         )
+
         if self.related_season.progress == len(season_metadata["episodes"]):
             self.related_season.status = "Completed"
             # save_base to avoid custom save method
