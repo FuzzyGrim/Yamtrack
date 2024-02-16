@@ -258,25 +258,30 @@ class Season(Media):
             )
             .order_by("-episode_number")
             .first()
-            .episode_number
         )
 
-        # get next episode number as there could be gaps in the episode numbers
-        season_metadata = metadata.season(self.media_id, self.season_number)
-        found_current = False
-        for episode in season_metadata["episodes"]:
-            if episode["episode_number"] == last_watched:
-                found_current = True
-            elif found_current:
-                episode_number = episode["episode_number"]
-                break
+        season_metadata = tmdb.season(self.media_id, self.season_number)
+
+        # if no episodes have been watched
+        if last_watched is None:
+            next_episode = season_metadata["episodes"][0]["episode_number"]
+        else:
+            last_watched = last_watched.episode_number
+            # iterate through all episodes as there could be gaps in episode numbers
+            found_current = False
+            for episode in season_metadata["episodes"]:
+                if episode["episode_number"] == last_watched:
+                    found_current = True
+                elif found_current:
+                    next_episode = episode["episode_number"]
+                    break
 
         Episode.objects.create(
             related_season=self,
-            episode_number=episode_number,
+            episode_number=next_episode,
             watch_date=datetime.datetime.now(tz=settings.TZ).date(),
         )
-        logger.info("Watched %sE%s", self, episode_number)
+        logger.info("Watched %sE%s", self, next_episode)
 
     def decrease_progress(self: "Season") -> None:
         """Decrease the progress of the season by one."""
