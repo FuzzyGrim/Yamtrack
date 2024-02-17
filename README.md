@@ -36,12 +36,12 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 | Name                   | Type   | Description                | Required    | Default  | Notes                                                                                               |
 | ---------------------- | ------ | -------------------------- | ----------- | -------- | --------------------------------------------------------------------------------------------------- |
-| YAMTRACK_TMDB_API      | String | The Movie Database API key | Yes         | None     | Required for movies and tv shows                                                                    |
-| YAMTRACK_MAL_API       | String | MyAnimeList API key        | Yes         | None     | Required for anime and manga                                                                        |
-| YAMTRACK_SECRET        | String | Django secret key          | Recommended | "secret" | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                     |
-| YAMTRACK_ALLOWED_HOSTS | List   | Base IP / Domain           | No          | "\*"     | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts)               |
-| YAMTRACK_REGISTRATION  | Bool   | User registration          | No          | True     |                                                                                                     |
-| YAMTRACK_DEBUG         | Bool   | Django debug mode          | No          | False    |                                                                                                     |
+| TMDB_API      | String | The Movie Database API key | Yes         | None     | Required for movies and tv shows                                                                    |
+| MAL_API       | String | MyAnimeList API key        | Yes         | None     | Required for anime and manga                                                                        |
+| SECRET        | String | Django secret key          | Recommended | "secret" | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                     |
+| ALLOWED_HOSTS | List   | Base IP / Domain           | No          | "\*"     | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts)               |
+| REGISTRATION  | Bool   | User registration          | No          | True     |                                                                                                     |
+| DEBUG         | Bool   | Django debug mode          | No          | False    |                                                                                                     |
 | PUID                   | Int    | User ID                    | No          | 1000     |                                                                                                     |
 | PGID                   | Int    | Group ID                   | No          | 1000     |                                                                                                     |
 | TZ                     | String | Timezone                   | No          | UTC      |                                                                                                     |
@@ -51,11 +51,11 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 | Name                 | Type   | Description       | Required | Default    | Notes                        |
 | -------------------- | ------ | ----------------- | -------- | ---------- | ---------------------------- |
-| YAMTRACK_DB_HOST     | String | Database host     | No       | None       | When not set, sqlite is used |
-| YAMTRACK_DB_PORT     | Int    | Database port     | No       | 5432       |                              |
-| YAMTRACK_DB_NAME     | String | Database name     | No       | "yamtrack" |                              |
-| YAMTRACK_DB_USER     | String | Database user     | No       | "yamtrack" |                              |
-| YAMTRACK_DB_PASSWORD | String | Database password | No       | "yamtrack" |                              |
+| DB_HOST     | String | Database host     | No       | None       | When not set, sqlite is used |
+| DB_PORT     | Int    | Database port     | No       | 5432       |                              |
+| DB_NAME     | String | Database name     | No       | "yamtrack" |                              |
+| DB_USER     | String | Database user     | No       | "yamtrack" |                              |
+| DB_PASSWORD | String | Database password | No       | "yamtrack" |                              |
 
 ## Local development
 

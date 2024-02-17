@@ -14,14 +14,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("YAMTRACK_SECRET", default="secret")
+SECRET_KEY = config("SECRET", default="secret")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("YAMTRACK_DEBUG", default=False, cast=bool)
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 INTERNAL_IPS = ["127.0.0.1"]
 
-ALLOWED_HOSTS = config("YAMTRACK_ALLOWED_HOSTS", default="*", cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Global default, can be overwritten at CustomLoginView
@@ -99,15 +99,15 @@ requests_cache.install_cache(
 )  # 6 hours
 
 
-if config("YAMTRACK_DB_HOST", default=None):
+if config("DB_HOST", default=None):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "HOST": config("YAMTRACK_DB_HOST"),
-            "NAME": config("YAMTRACK_DB_NAME", default="yamtrack"),
-            "USER": config("YAMTRACK_DB_USER", default="yamtrack"),
-            "PASSWORD": config("YAMTRACK_DB_PASSWORD", default="yamtrack"),
-            "PORT": config("YAMTRACK_DB_PORT", default="5432"),
+            "HOST": config("DB_HOST"),
+            "NAME": config("DB_NAME", default="yamtrack"),
+            "USER": config("DB_USER", default="yamtrack"),
+            "PASSWORD": config("DB_PASSWORD", default="yamtrack"),
+            "PORT": config("DB_PORT", default="5432"),
         },
     }
 else:
@@ -209,9 +209,9 @@ IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-b
 
 REQUEST_TIMEOUT = 10  # seconds
 
-TMDB_API = config("YAMTRACK_TMDB_API", default=None)
-MAL_API = config("YAMTRACK_MAL_API", default=None)
-REGISTRATION = config("YAMTRACK_REGISTRATION", default=True, cast=bool)
+TMDB_API = config("TMDB_API", default=None)
+MAL_API = config("MAL_API", default=None)
+REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
 # Third party settings
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

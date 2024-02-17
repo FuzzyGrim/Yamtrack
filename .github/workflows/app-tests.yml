@@ -33,9 +33,9 @@ jobs:
 
     - name: Run Tests
       env:
-        YAMTRACK_SECRET: ${{ secrets.YAMTRACK_SECRET }}
-        YAMTRACK_TMDB_API: ${{ secrets.YAMTRACK_TMDB_API }}
-        YAMTRACK_MAL_API: ${{ secrets.YAMTRACK_MAL_API }}
+        SECRET: ${{ secrets.SECRET }}
+        TMDB_API: ${{ secrets.TMDB_API }}
+        MAL_API: ${{ secrets.MAL_API }}
       run: |
         coverage run --source='src/app' --parallel-mode src/manage.py test app
         coverage run --source='src/users' --parallel-mode src/manage.py test users
