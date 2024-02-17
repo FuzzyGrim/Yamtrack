@@ -65,7 +65,7 @@
             <div class="episode-title">
               S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.title }}
             </div>
-            <div class="mb-2"><small class="text-body-secondary">{{ episode.start_date|default:"Unknown Release Date" }}</small></div>
+            <div class="mb-2"><small class="text-body-secondary">{{ episode.start_date }}</small></div>
             <div class="episode-overview mb-2">{{ episode.overview }}</div>
             <div class="mt-auto">
 

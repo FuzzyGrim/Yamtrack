@@ -227,7 +227,7 @@ def process_episodes(season_metadata: dict, watched_episodes: dict) -> list:
         episodes_metadata.append(
             {
                 "episode_number": episode_number,
-                "start_date": episode["air_date"],
+                "start_date": get_episode_air_date(episode["air_date"]),
                 "image": episode["still_path"],
                 "title": episode["name"],
                 "overview": episode["overview"],
@@ -239,3 +239,12 @@ def process_episodes(season_metadata: dict, watched_episodes: dict) -> list:
         )
 
     return episodes_metadata
+
+
+def get_episode_air_date(date: str) -> str:
+    """Return the air date for the episode."""
+
+    # can be null
+    if not date:
+        return "Unknown air date"
+    return date

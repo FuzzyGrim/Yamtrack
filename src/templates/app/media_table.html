@@ -64,8 +64,8 @@
                 {% endif %}
               </td>
               <td>{{ media.score }}</td>
-              <td>{{ media.status|default_if_none:"" }}</td>
-              <td>{{ media.progress|default_if_none:"" }}</td>
+              <td>{{ media.status }}</td>
+              <td>{{ media.progress }}</td>
               <td>
                 {% if media.season_number %}
                   {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
