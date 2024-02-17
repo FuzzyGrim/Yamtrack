@@ -144,7 +144,6 @@ class TV(Media):
         """Create remaining seasons and episodes for a TV show."""
 
         seasons_to_update = []
-        seasons_to_create = []
         episodes_to_create = []
 
         tv_metadata = tmdb.tv(self.media_id)
@@ -175,13 +174,12 @@ class TV(Media):
                     related_tv=self,
                     user=self.user,
                 )
-                seasons_to_create.append(season_instance)
+                Season.save_base(season_instance)
             episodes_to_create.extend(
                 season_instance.get_remaining_eps(season_metadata),
             )
 
         Season.objects.bulk_update(seasons_to_update, ["status"])
-        Season.objects.bulk_create(seasons_to_create)
         Episode.objects.bulk_create(episodes_to_create)
 
 
