@@ -257,9 +257,9 @@ def track_form(request: HttpRequest) -> HttpResponse:
 
     media_type = request.GET["media_type"]
     media_id = request.GET["media_id"]
-    season_number = request.GET["season_number"]
 
     if media_type == "season":
+        season_number = request.GET["season_number"]
         # set up filters to retrieve the appropriate media object
         filters = {
             "media_id": media_id,
