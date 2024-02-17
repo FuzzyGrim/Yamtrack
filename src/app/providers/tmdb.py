@@ -41,7 +41,7 @@ def movie(media_id: str) -> dict:
             "status": response["status"],
             "synopsis": get_synopsis(response["overview"]),
             "number_of_episodes": 1,
-            "runtime": get_runtime(response["runtime"]),
+            "runtime": get_readable_duration(response["runtime"]),
             "genres": get_genres(response["genres"]),
         },
         "related": {
@@ -86,7 +86,7 @@ def process_tv(response: dict, season_numbers: list[int] | None = None) -> dict:
             "synopsis": get_synopsis(response["overview"]),
             "number_of_seasons": response.get("number_of_seasons", 1),
             "number_of_episodes": response.get("number_of_episodes", 1),
-            "runtime": get_runtime(response["episode_run_time"][0]),
+            "runtime": get_runtime_tv(response["episode_run_time"]),
             "genres": get_genres(response["genres"]),
         },
         "related": {
@@ -179,8 +179,18 @@ def get_synopsis(text: str) -> str:
     return text
 
 
-def get_runtime(duration: int) -> str:
-    """Return the runtime for the media."""
+def get_runtime_tv(runtime: list) -> str:
+    """Return the runtime for the tv show."""
+
+    # runtime can be empty list
+    if runtime:
+        return get_readable_duration(runtime[0])
+    return "Unknown"
+
+
+def get_readable_duration(duration: int) -> str:
+    """Convert duration in minutes to a readable format."""
+
     # duration can be null
     if duration:
         hours, minutes = divmod(int(duration), 60)

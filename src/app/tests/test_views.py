@@ -81,6 +81,7 @@ class CreateMedia(TestCase):
                 "media_id": 1668,
                 "season_number": 1,
                 "episode_number": 1,
+                "date": "2023-06-01",
             },
         )
         self.assertEqual(

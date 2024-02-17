@@ -395,7 +395,6 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
 
     media_id = request.POST["media_id"]
     season_number = request.POST["season_number"]
-    season_metadata = tmdb.season(media_id, season_number)
 
     try:
         related_season = Season.objects.get(
@@ -404,6 +403,7 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
             season_number=season_number,
         )
     except Season.DoesNotExist:
+        season_metadata = tmdb.season(media_id, season_number)
         related_season = Season(
             media_id=media_id,
             image=season_metadata["image"],
