@@ -18,6 +18,18 @@
   }
 }
 
+.logout-form {
+  button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: hsl(0, 0%, 85%);
+    &:hover {
+      color: white;
+    }
+  }
+}
+
 .search-bar {
   // adjust width of select in search-bar
   .input-group > .form-select {
