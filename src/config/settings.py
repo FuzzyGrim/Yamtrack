@@ -224,8 +224,6 @@ STATICFILES_FINDERS = [
     "sass_processor.finders.CssFinder",
 ]
 
-SASS_PROCESSOR_ROOT = BASE_DIR / "static"
-
 SASS_OUTPUT_STYLE = "compact"
 
 DEBUG_TOOLBAR_CONFIG = {

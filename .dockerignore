@@ -3,6 +3,5 @@ __pycache__
 .env
 .coverage
 venv
-src/static/css/main.css
-src/static/css/main.css.map
+src/staticfiles
 src/db/db.sqlite3
