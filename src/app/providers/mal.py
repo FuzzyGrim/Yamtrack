@@ -36,7 +36,7 @@ def search(media_type: str, query: str) -> list:
 def anime(media_id: str) -> dict:
     """Return the metadata for the selected anime or manga from MyAnimeList."""
 
-    url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_episodes,average_episode_duration,related_anime,related_manga,recommendations"
+    url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_episodes,average_episode_duration,related_anime,related_manga,recommendations"
     response = services.api_request(
         url,
         "GET",
@@ -51,6 +51,7 @@ def anime(media_id: str) -> dict:
         "details": {
             "original_type": get_original_type(response),
             "start_date": response.get("start_date", "Unknown"),
+            "end_date": response.get("end_date", "Unknown"),
             "status": get_readable_status(response),
             "synopsis": get_synopsis(response),
             "number_of_episodes": response.get("num_episodes", "Unknown"),
@@ -67,7 +68,7 @@ def anime(media_id: str) -> dict:
 def manga(media_id: str) -> dict:
     """Return the metadata for the selected anime or manga from MyAnimeList."""
 
-    url = f"https://api.myanimelist.net/v2/manga/{media_id}?fields=title,main_picture,media_type,start_date,synopsis,status,genres,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
+    url = f"https://api.myanimelist.net/v2/manga/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
     response = services.api_request(
         url,
         "GET",
@@ -82,6 +83,7 @@ def manga(media_id: str) -> dict:
         "details": {
             "original_type": get_original_type(response),
             "start_date": response.get("start_date", "Unknown"),
+            "end_date": response.get("end_date", "Unknown"),
             "status": get_readable_status(response),
             "synopsis": get_synopsis(response),
             "number_of_episodes": response.get("num_chapters", "Unknown"),

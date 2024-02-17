@@ -81,13 +81,12 @@ def process_tv(response: dict, season_numbers: list[int] | None = None) -> dict:
         "details": {
             "original_type": "TV",
             "start_date": get_start_date(response["first_air_date"]),
+            "end_date": get_start_date(response["last_air_date"]),
             "status": response.get("status", "Unknown"),
             "synopsis": get_synopsis(response["overview"]),
             "number_of_seasons": response.get("number_of_seasons", 1),
             "number_of_episodes": response.get("number_of_episodes", 1),
-            "runtime": get_runtime(
-                response.get("last_episode_to_air", {}).get("runtime"),
-            ),
+            "runtime": get_runtime(response["episode_run_time"][0]),
             "genres": get_genres(response["genres"]),
         },
         "related": {
