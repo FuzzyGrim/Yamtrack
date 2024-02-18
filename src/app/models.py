@@ -333,16 +333,12 @@ class Season(Media):
     def get_remaining_eps(self: "Season", season_metadata: dict) -> None:
         """Return episodes needed to complete a season."""
 
-        # if season is being created means no episodes have been watched
-        if self._state.adding:
-            max_episode_number = 0
-        else:
-            max_episode_number = Episode.objects.filter(related_season=self).aggregate(
-                max_episode_number=Max("episode_number"),
-            )["max_episode_number"]
+        max_episode_number = Episode.objects.filter(related_season=self).aggregate(
+            max_episode_number=Max("episode_number"),
+        )["max_episode_number"]
 
-            if max_episode_number is None:
-                max_episode_number = 0
+        if max_episode_number is None:
+            max_episode_number = 0
 
         episodes_to_create = []
 
