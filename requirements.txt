@@ -3,7 +3,7 @@ aiohttp==3.9.3
 crispy-bootstrap5==2023.10
 Django==5.0.2
 django-compressor==4.4
-django-crispy-forms==2.0
+django-crispy-forms==2.1
 django_debug_toolbar==4.2.0
 django-model-utils==4.3.1
 django-sass-processor==1.4
