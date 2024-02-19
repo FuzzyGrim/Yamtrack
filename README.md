@@ -34,23 +34,23 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 ### Environment variables
 
-| Name                   | Type   | Description                | Required    | Default  | Notes                                                                                               |
-| ---------------------- | ------ | -------------------------- | ----------- | -------- | --------------------------------------------------------------------------------------------------- |
-| TMDB_API      | String | The Movie Database API key | Yes         | None     | Required for movies and tv shows                                                                    |
-| MAL_API       | String | MyAnimeList API key        | Yes         | None     | Required for anime and manga                                                                        |
-| SECRET        | String | Django secret key          | Recommended | "secret" | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                     |
-| ALLOWED_HOSTS | List   | Base IP / Domain           | No          | "\*"     | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts)               |
-| REGISTRATION  | Bool   | User registration          | No          | True     |                                                                                                     |
-| DEBUG         | Bool   | Django debug mode          | No          | False    |                                                                                                     |
-| PUID                   | Int    | User ID                    | No          | 1000     |                                                                                                     |
-| PGID                   | Int    | Group ID                   | No          | 1000     |                                                                                                     |
-| TZ                     | String | Timezone                   | No          | UTC      |                                                                                                     |
-| WEB_CONCURRENCY        | Int    | Number of worker processes | No          | 1        | [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) recommended |
+| Name            | Type   | Description                | Required    | Default  | Notes                                                                                               |
+| --------------- | ------ | -------------------------- | ----------- | -------- | --------------------------------------------------------------------------------------------------- |
+| TMDB_API        | String | The Movie Database API key | Yes         | None     | Required for movies and tv shows                                                                    |
+| MAL_API         | String | MyAnimeList API key        | Yes         | None     | Required for anime and manga                                                                        |
+| SECRET          | String | Django secret key          | Recommended | "secret" | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                     |
+| ALLOWED_HOSTS   | List   | Base IP / Domain           | No          | "\*"     | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts)               |
+| REGISTRATION    | Bool   | User registration          | No          | True     |                                                                                                     |
+| DEBUG           | Bool   | Django debug mode          | No          | False    |                                                                                                     |
+| PUID            | Int    | User ID                    | No          | 1000     |                                                                                                     |
+| PGID            | Int    | Group ID                   | No          | 1000     |                                                                                                     |
+| TZ              | String | Timezone                   | No          | UTC      |                                                                                                     |
+| WEB_CONCURRENCY | Int    | Number of worker processes | No          | 1        | [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) recommended |
 
 ### Environment variables for PostgreSQL
 
-| Name                 | Type   | Description       | Required | Default    | Notes                        |
-| -------------------- | ------ | ----------------- | -------- | ---------- | ---------------------------- |
+| Name        | Type   | Description       | Required | Default    | Notes                        |
+| ----------- | ------ | ----------------- | -------- | ---------- | ---------------------------- |
 | DB_HOST     | String | Database host     | No       | None       | When not set, sqlite is used |
 | DB_PORT     | Int    | Database port     | No       | 5432       |                              |
 | DB_NAME     | String | Database name     | No       | "yamtrack" |                              |
