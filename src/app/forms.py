@@ -200,8 +200,8 @@ class FilterForm(forms.Form):
     def __init__(self: "FilterForm", *args: dict, **kwargs: dict) -> None:
         """Initialize the form."""
 
-        default_layout = kwargs.pop("default_layout")
+        layout = kwargs.pop("layout")
 
         super().__init__(*args, **kwargs)
 
-        self.fields["layout"].initial = default_layout
+        self.fields["layout"].initial = layout

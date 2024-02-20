@@ -108,9 +108,21 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
 def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     """Return the media list page."""
 
+    layout = request.user.default_layout[media_type]
+    filter_form = FilterForm(layout=layout)
+
+    # form submitted
+    if request.GET:
+        layout = request.GET.get("layout", layout)
+        filter_form = FilterForm(request.GET, layout=layout)
+        if filter_form.is_valid():
+            # update user default layout for media type
+            request.user.default_layout[media_type] = layout
+            request.user.save()
+
     filter_params = {"user": request.user.id}
 
-    # filter by status if status is not "all", default to "all"
+    # filter by status if status is not "all"
     status_filter = request.GET.get("status", "all")
     if status_filter != "all":
         filter_params["status"] = status_filter.capitalize()
@@ -118,77 +130,45 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     # default sort by descending score
     sort_filter = request.GET.get("sort", "score")
 
-    current_layout = request.GET.get("layout")
-    if current_layout:
-        # update user default layout for media type
-        request.user.default_layout[media_type] = current_layout
-        request.user.save()
-    else:
-        # get user default layout for media type
-        current_layout = request.user.default_layout[media_type]
+    model = apps.get_model(app_label="app", model_name=media_type)
+    layout_is_table = layout == "app/media_table.html"
+    sort_is_property = sort_filter in ("progress", "start_date", "end_date")
 
-    # fill form with current values if they exist
-    filter_form = FilterForm(request.GET or None, default_layout=current_layout)
-
-    # if form valid or no form submitted
-    if filter_form.is_valid() or not request.GET:
-
-        model = apps.get_model(app_label="app", model_name=media_type)
-
-        if media_type == "tv" and (
-            current_layout == "app/media_table.html"
-            or sort_filter in ("progress", "start_date", "end_date")
-        ):
-            media_list = model.objects.filter(**filter_params).prefetch_related(
-                "seasons",
-                "seasons__episodes",
-            )
-        elif media_type == "season" and (
-            current_layout == "app/media_table.html"
-            or sort_filter in ("progress", "start_date", "end_date")
-        ):
-            media_list = Season.objects.filter(**filter_params).prefetch_related(
-                "episodes",
-            )
-        else:
-            media_list = model.objects.filter(**filter_params)
-
-        # python for @property sorting
-        if media_type in ("tv", "season") and sort_filter in (
-            "progress",
-            "start_date",
-            "end_date",
-        ):
-            media_list = sorted(
-                media_list,
-                key=lambda x: getattr(x, sort_filter),
-                reverse=True,
-            )
-        else:
-            model = apps.get_model(app_label="app", model_name=media_type)
-            # asc order
-            if sort_filter == "title":
-                media_list = media_list.order_by(
-                    F(sort_filter).asc(),
-                )
-            # desc order
-            else:
-                media_list = media_list.order_by(
-                    F(sort_filter).desc(),
-                )
-
-        return render(
-            request,
-            request.user.default_layout[media_type],
-            {
-                "media_type": media_type,
-                "media_list": media_list,
-                "filter_form": filter_form,
-            },
+    if media_type == "tv" and (layout_is_table or sort_is_property):
+        media_list = model.objects.filter(**filter_params).prefetch_related(
+            "seasons",
+            "seasons__episodes",
         )
+    elif media_type == "season" and (layout_is_table or sort_is_property):
+        media_list = Season.objects.filter(**filter_params).prefetch_related("episodes")
+    else:
+        media_list = model.objects.filter(**filter_params)
 
-    logger.error("Invalid filter parameters: %s", {filter_form.errors.as_data})
-    return redirect("medialist", media_type=media_type)
+    # python for @property sorting
+    if media_type in ("tv", "season") and sort_is_property:
+        media_list = sorted(
+            media_list,
+            key=lambda x: getattr(x, sort_filter),
+            reverse=True,
+        )
+    else:
+        model = apps.get_model(app_label="app", model_name=media_type)
+        # asc order
+        if sort_filter == "title":
+            media_list = media_list.order_by(F(sort_filter).asc())
+        # desc order
+        else:
+            media_list = media_list.order_by(F(sort_filter).desc())
+
+    return render(
+        request,
+        request.user.default_layout[media_type],
+        {
+            "media_type": media_type,
+            "media_list": media_list,
+            "filter_form": filter_form,
+        },
+    )
 
 
 def media_search(request: HttpRequest) -> HttpResponse:
