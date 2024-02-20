@@ -1,4 +1,4 @@
-black==23.9.1
+black==24.2.0
 coverage==7.4.1
 djlint==1.34.1
 ruff==0.2.2
