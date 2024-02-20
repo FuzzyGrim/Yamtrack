@@ -122,6 +122,7 @@ class UserUpdateForm(forms.ModelForm):
         self.helper.add_input(
             CustomSubmit("submit", "Update"),
         )
+        self.fields["username"].help_text = None
 
     class Meta:
         """Only allow updating username."""
@@ -151,6 +152,7 @@ class PasswordChangeForm(PasswordChangeForm):
         self.helper.add_input(
             CustomSubmit("submit", "Update"),
         )
+        self.fields["new_password1"].help_text = None
 
 
 class CustomSubmit(BaseInput):
