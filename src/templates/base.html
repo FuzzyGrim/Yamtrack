@@ -1,8 +1,8 @@
-{% load static %} {% load sass_tags %}
+{% load static %}
+{% load sass_tags %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
-
-<head>
+  <head>
     <!-- Required meta tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,6 @@
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-icons.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% sass_src "css/main.scss" %}" />
-
     <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static "favicon/favicon-32x32.png" %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static "favicon/favicon-16x16.png" %}">
@@ -22,95 +21,117 @@
     <meta name="msapplication-TileColor" content="#181a1b">
     <meta name="msapplication-config" content="{% static "favicon/browserconfig.xml" %}">
     <meta name="theme-color" content="#181a1b">
-
-    <title>{% block title %}Yamtrack{% endblock title %}</title>
-</head>
-
-<body>
-  {% block body %}
-
-  <div class="d-flex flex-nowrap">
-    {% comment %} sidebar id needed for offcanvas toggler {% endcomment %}
-    <div class="d-flex flex-column flex-shrink-0 p-3 offcanvas-lg offcanvas-start sidebar" id="sidebar" tabindex="-1" aria-labelledby="sidebarLabel">
-      <a href="{% url 'home' %}" class="text-center text-decoration-none text-white">
-        <span class="fs-4">Yamtrack</span>
-      </a>
-      <hr class="text-bg-dark">
-      <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item">
-          <a href="{% url 'home' %}" class="nav-link {% if request.path == "/" %}active{% endif %}">
-            <i class="bi bi-house-door me-2"></i> Home
+    <title>
+      {% block title %}
+        Yamtrack
+      {% endblock title %}
+    </title>
+  </head>
+  <body>
+    {% block body %}
+      <div class="d-flex flex-nowrap">
+        {% comment %} sidebar id needed for offcanvas toggler {% endcomment %}
+        <div class="d-flex flex-column flex-shrink-0 p-3 offcanvas-lg offcanvas-start sidebar"
+             id="sidebar"
+             tabindex="-1"
+             aria-labelledby="sidebarLabel">
+          <a href="{% url 'home' %}"
+             class="text-center text-decoration-none text-white">
+            <span class="fs-4">Yamtrack</span>
           </a>
-        </li>
-        <li>
-          <a href="{% url 'medialist' media_type='tv' %}" class="nav-link {% if media_type == "tv" %}active{% endif %}">
-            <i class="bi bi-tv me-2"></i> Shows
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'medialist' media_type='season' %}" class="nav-link {% if media_type == "season" %}active{% endif %}">
-            <i class="bi bi-grid me-2"></i> Seasons
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'medialist' media_type='movie' %}" class="nav-link {% if media_type == "movie" %}active{% endif %}">
-            <i class="bi bi-film me-2"></i> Movies
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'medialist' media_type='anime' %}" class="nav-link {% if media_type == "anime" %}active{% endif %}">
-            <i class="bi bi-collection-play me-2"></i> Animes
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'medialist' media_type='manga' %}" class="nav-link {% if media_type == "manga" %}active{% endif %}">
-            <i class="bi bi-book me-2"></i> Mangas
-          </a>
-        </li>
-        <hr class="text-bg-dark">
-        <li>
-          <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
-            <i class="bi bi-person-circle me-2"></i> Profile
-          </a>
-        </li>
-        <li>
-          <form class="logout-form nav-link" method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <i class="bi bi-box-arrow-left me-2"></i>
-            <button type="submit">Logout</button>
-          </form>
-
-        </li>
-      </ul>
-    </div>
-
-    <main>
-      <div class="search-bar d-flex container">
-        <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
-          <i class="bi bi-list"></i>
-        </button>
-        <form class="input-group" method="get" action="{% url 'search' %}">
-          <select name="media_type" class="form-select">
-            <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
-            <option value="movie" {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
-            <option value="anime" {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
-            <option value="manga" {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
-          </select>
-          <input class="form-control" type="search" name="q" placeholder="Search" aria-label="Search" value="{{ request.GET.q }}" required>
-          <button class="btn btn-secondary rounded-end" type="submit"><i class="bi bi-search"></i></button>
-        </form>
+          <hr class="text-bg-dark">
+          <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+              <a href="{% url 'home' %}" class="nav-link {% if request.path == "/" %}active{% endif %}">
+                <i class="bi bi-house-door me-2"></i> Home
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'medialist' media_type='tv' %}"
+                 class="nav-link {% if media_type == "tv" %}active{% endif %}">
+                <i class="bi bi-tv me-2"></i> Shows
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'medialist' media_type='season' %}"
+                 class="nav-link {% if media_type == "season" %}active{% endif %}">
+                <i class="bi bi-grid me-2"></i> Seasons
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'medialist' media_type='movie' %}"
+                 class="nav-link {% if media_type == "movie" %}active{% endif %}">
+                <i class="bi bi-film me-2"></i> Movies
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'medialist' media_type='anime' %}"
+                 class="nav-link {% if media_type == "anime" %}active{% endif %}">
+                <i class="bi bi-collection-play me-2"></i> Animes
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'medialist' media_type='manga' %}"
+                 class="nav-link {% if media_type == "manga" %}active{% endif %}">
+                <i class="bi bi-book me-2"></i> Mangas
+              </a>
+            </li>
+            <hr class="text-bg-dark">
+            <li>
+              <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
+                <i class="bi bi-person-circle me-2"></i> Profile
+              </a>
+            </li>
+            <li>
+              <form class="logout-form nav-link"
+                    method="post"
+                    action="{% url 'logout' %}">
+                {% csrf_token %}
+                <i class="bi bi-box-arrow-left me-2"></i>
+                <button type="submit">Logout</button>
+              </form>
+            </li>
+          </ul>
+        </div>
+        <main>
+          <div class="search-bar d-flex container">
+            <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
+                    type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#sidebar"
+                    aria-controls="sidebar">
+              <i class="bi bi-list"></i>
+            </button>
+            <form class="input-group" method="get" action="{% url 'search' %}">
+              <select name="media_type" class="form-select">
+                <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
+                <option value="movie"
+                        {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
+                <option value="anime"
+                        {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
+                <option value="manga"
+                        {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
+              </select>
+              <input class="form-control"
+                     type="search"
+                     name="q"
+                     placeholder="Search"
+                     aria-label="Search"
+                     value="{{ request.GET.q }}"
+                     required>
+              <button class="btn btn-secondary rounded-end" type="submit">
+                <i class="bi bi-search"></i>
+              </button>
+            </form>
+          </div>
+          {% block content %}
+          {% endblock content %}
+        </main>
       </div>
-
-      {% block content %} {% endblock content %}
-    </main>
-    
-  </div>
-  
-  <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'js/htmx.min.js' %}"></script>
-  {% block extra_scripts %} {% endblock extra_scripts %}
-
-  {% endblock body %}
-</body>
-
+      <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+      <script src="{% static 'js/htmx.min.js' %}"></script>
+      {% block extra_scripts %}
+      {% endblock extra_scripts %}
+    {% endblock body %}
+  </body>
 </html>

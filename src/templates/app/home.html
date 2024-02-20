@@ -1,68 +1,45 @@
 {% extends "base.html" %}
 {% load static %}
-
-{% block title %}Home - Yamtrack{% endblock title %}
-
+{% block title %}
+  Home - Yamtrack
+{% endblock title %}
 {% block content %}
-
   {% if in_progress|length == 0 %}
-
     {% comment %} e.g when media deleted and try to change progress {% endcomment %}
     {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-          {{ message|linebreaksbr }}
-        </div>
-      {% endfor %}
+      {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
     {% endif %}
-
     <div class="no-content">
       <div>
         <h2 class="text-center fs-3">No media in progress</h2>
         <p class="text-center">This page will show the media you are currently consuming.</p>
       </div>
     </div>
-
   {% else %}
-
     {% comment %} e.g when media deleted and try to change progress {% endcomment %}
     <div class="container">
       {% if messages %}
-        {% for message in messages %}
-          <div class="alert alert-{{ message.tags }}">
-            {{ message|linebreaksbr }}
-          </div>
-        {% endfor %}
+        {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
       {% endif %}
-
       {% for media_type, in_progress_list in in_progress.items %}
         <div class="mb-4">
           <div class="fs-5 text-center mb-2">{{ media_type|capfirst }} in Progress</div>
           <div class="grid">
             {% for media in in_progress_list %}
               <div class="card text-bg-dark mx-auto">
-                <a href={% if media.season_number %}
-                          "{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}"
-                        {% else %}
-                          "{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}"
-                        {% endif %}>
-                  <img
-                    data-src="{{ media.image }}"
-                    class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
-                    alt="{{ media }}"
-                    data-expand="1000"
-                  />
+                <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}{% endif %}">
+                  <img data-src="{{ media.image }}"
+                       class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
+                       alt="{{ media }}"
+                       data-expand="1000" />
                 </a>
-
                 <div class="card-img-overlay">
-                  <div class="card-title text-center">
-                    {{ media }}
-                  </div>
-
-                  <div class="card-text d-flex justify-content-center align-items-center" id="{{ media_type }}_{{ media.media_id }}{% if media.season_number != None %}_{{ media.season_number }}{% endif %}">
+                  <div class="card-title text-center">{{ media }}</div>
+                  <div class="card-text d-flex justify-content-center align-items-center"
+                       id="{{ media_type }}_{{ media.media_id }}{% if media.season_number != None %}_{{ media.season_number }}{% endif %}">
                     {% include "app/components/progress_changer.html" with media_type=media_type media=media csrf_token=csrf_token only %}
                   </div>
-                </div>                
+                </div>
               </div>
             {% endfor %}
           </div>
@@ -70,9 +47,7 @@
       {% endfor %}
     </div>
   {% endif %}
-
 {% endblock content %}
-
 {% block extra_scripts %}
   <script src="{% static "js/lazysizes.min.js" %}" async=""></script>
 {% endblock extra_scripts %}

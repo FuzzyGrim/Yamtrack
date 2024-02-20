@@ -43,17 +43,13 @@
           {% for media in media_list %}
             <tr>
               <td class="nostretch">
-                <a href={% if media.season_number %}
-                          "{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}"
-                        {% else %}
-                          "{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}"
-                        {% endif %}>
+                <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}{% endif %}">
                   <img class="lazyload object-fit-cover"
-                      data-src="{{ media.image }}"
-                      data-expand="1000"
-                      width="40"
-                      height="40"
-                      {% comment %} adding alt attr resizes table {% endcomment %} />
+                       data-src="{{ media.image }}"
+                       data-expand="1000"
+                       width="40"
+                       height="40"
+                       alt="img" />
                 </a>
               </td>
               <td class="media-title text-truncate">

@@ -17,10 +17,7 @@
               data-bs-target="#filter-modal">
         <i class="bi bi-funnel-fill"></i>
       </button>
-      <div class="modal fade"
-           id="filter-modal"
-           tabindex="-1"
-           aria-hidden="true">
+      <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-body">
@@ -38,11 +35,7 @@
     <div class="grid">
       {% for media in media_list %}
         <div class="card text-bg-dark mx-auto">
-          <a href={% if media.season_number %}
-                    "{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}"
-                  {% else %}
-                    "{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}"
-                  {% endif %}>
+          <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}{% endif %}">
             <img class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                  data-src="{{ media.image }}"
                  data-expand="1000"
