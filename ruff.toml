@@ -1,47 +1,9 @@
+# Assume Python 3.11
+target-version = "py311"
+
+[lint]
 select = ["ALL"]
-
-# Never enforce `E501` (line length violations). This is handled by Black.
-ignore = ["E501", "D100", "D104", "D202", "D203", "D213", "PT009", "PTH123", "PT027", "RUF012", "PLR2004"]
-
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["ALL"]
-unfixable = []
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-]
-per-file-ignores = {}
-
-# Same as Black.
-line-length = 88
-
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-# Assume Python 3.9
-target-version = "py39"
-
+ignore = ["D100", "D104", "D202", "D203", "D213", "PT009", "PT027", "PLR2004", "PTH123", "RUF012"]
 
 [pycodestyle]
 max-doc-length = 88

@@ -1,17 +1,12 @@
-from __future__ import annotations
-
 import datetime
 import logging
-from typing import TYPE_CHECKING
 
 import requests_cache
 from app import forms
 from app.models import Anime, Manga
 from app.providers import services
 from django.apps import apps
-
-if TYPE_CHECKING:
-    from users.models import User
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +84,9 @@ def anilist_data(username: str, user: User) -> str:
 
     with requests_cache.disabled():  # don't cache request as it can change frequently
         query = services.api_request(
-            url, "POST", json={"query": query, "variables": variables},
+            url,
+            "POST",
+            json={"query": query, "variables": variables},
         )
 
     # returns media that couldn't be added
@@ -108,7 +105,12 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
             if not status_list["isCustomList"]:
                 for content in status_list["entries"]:
                     if content["media"]["idMal"] is None:
-                        warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()}: Couldn't find a matching MyAnimeList ID)"
+                        warning_message += (
+                            "\n {} ({}): No matching MyAnimeList ID".format(
+                                content["media"]["title"]["userPreferred"],
+                                media_type.capitalize(),
+                            )
+                        )
                     else:
                         if content["status"] == "CURRENT":
                             status = "In progress"
@@ -139,7 +141,10 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                         if form.is_valid():
                             bulk_media[media_type].append(form.instance)
                         else:
-                            warning_message += f"\n {content['media']['title']['userPreferred']} ({media_type.capitalize()}): {form.errors.as_text()}"
+                            warning_message += "\n {} ({}): Import failed".format(
+                                content["media"]["title"]["userPreferred"],
+                                media_type.capitalize(),
+                            )
 
     Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
     Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)

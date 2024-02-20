@@ -95,7 +95,9 @@ DB_FOLDER = BASE_DIR / "db"
 Path(DB_FOLDER).mkdir(parents=True, exist_ok=True)
 
 requests_cache.install_cache(
-    DB_FOLDER / "db.sqlite3", backend="sqlite", expire_after=21600
+    DB_FOLDER / "db.sqlite3",
+    backend="sqlite",
+    expire_after=21600,
 )  # 6 hours
 
 

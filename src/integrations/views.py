@@ -40,9 +40,9 @@ def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
     except UnicodeDecodeError:  # when the file is not a CSV file
         messages.error(
             request,
-            "Couldn't import your TMDB ratings. Please make sure the file is a CSV file.",
+            "Couldn't import your TMDB ratings. Make sure the file is a CSV file.",
         )
-    except KeyError: # error parsing csv
+    except KeyError:  # error parsing csv
         messages.error(
             request,
             "Something went wrong while parsing your TMDB ratings.",
@@ -64,9 +64,9 @@ def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
     except UnicodeDecodeError:  # when the file is not a CSV file
         messages.error(
             request,
-            "Couldn't import your TMDB ratings. Please make sure the file is a CSV file.",
+            "Couldn't import your TMDB ratings. Make sure the file is a CSV file.",
         )
-    except KeyError: # error parsing csv
+    except KeyError:  # error parsing csv
         messages.error(
             request,
             "Something went wrong while parsing your TMDB ratings.",
@@ -110,9 +110,9 @@ def import_yamtrack(request: HttpRequest) -> HttpResponse:
     except UnicodeDecodeError:  # when the file is not a CSV file
         messages.error(
             request,
-            "Couldn't import your Yamtrack CSV. Please make sure the file is a CSV file.",
+            "Couldn't import your Yamtrack CSV. Make sure the file is a CSV file.",
         )
-    except KeyError: # error parsing csv
+    except KeyError:  # error parsing csv
         messages.error(
             request,
             "Something went wrong while parsing your Yamtrack CSV.",

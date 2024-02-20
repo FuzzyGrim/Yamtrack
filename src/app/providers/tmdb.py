@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from django.conf import settings
 
 from app.providers import services
@@ -216,9 +214,7 @@ def get_related(related_medias: list, media_id: int | None = None) -> dict:
             "media_id": media_id if media_id else media["id"],
             "title": get_title(media),
             "image": get_image_url(media["poster_path"]),
-            "season_number": (
-                media["season_number"] if "season_number" in media else None
-            ),
+            "season_number": (media.get("season_number", None)),
         }
         for media in related_medias
     ]

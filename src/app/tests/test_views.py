@@ -247,7 +247,6 @@ class DeleteMedia(TestCase):
         )
 
 
-
 class ProgressEditSeason(TestCase):
     """Test for editing a season progress through views."""
 

@@ -56,7 +56,12 @@ class ImportMAL(TestCase):
     def test_user_not_found(self: "ImportMAL") -> None:
         """Test that an error is raised if the user is not found."""
 
-        self.assertRaises(requests.exceptions.HTTPError, imports.mal_data, "fhdsufdsu", self.user)
+        self.assertRaises(
+            requests.exceptions.HTTPError,
+            imports.mal_data,
+            "fhdsufdsu",
+            self.user,
+        )
 
 
 class ImportTMDB(TestCase):
@@ -117,7 +122,12 @@ class ImportAniList(TestCase):
     def test_user_not_found(self: "ImportAniList") -> None:
         """Test that an error is raised if the user is not found."""
 
-        self.assertRaises(requests.exceptions.HTTPError, imports.anilist_data, "fhdsufdsu", self.user)
+        self.assertRaises(
+            requests.exceptions.HTTPError,
+            imports.anilist_data,
+            "fhdsufdsu",
+            self.user,
+        )
 
 
 class ImportYamtrack(TestCase):

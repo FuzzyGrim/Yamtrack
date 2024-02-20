@@ -119,8 +119,7 @@ class TVForm(MediaForm):
         """Bind form to model."""
 
         model = TV
-
-        exclude = ("progress", "start_date", "end_date")
+        fields = ["media_id", "media_type", "score", "status", "notes"]
 
 
 class SeasonForm(MediaForm):
@@ -152,7 +151,7 @@ class SeasonForm(MediaForm):
         """Bind form to model."""
 
         model = Season
-        exclude = ("progress", "start_date", "end_date")
+        fields = ["media_id", "media_type", "season_number", "score", "status", "notes"]
 
 
 class EpisodeForm(forms.ModelForm):

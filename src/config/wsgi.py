@@ -1,5 +1,4 @@
-"""
-WSGI config for yamtrack project.
+"""WSGI config for yamtrack project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

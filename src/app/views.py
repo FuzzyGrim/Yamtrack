@@ -313,7 +313,6 @@ def media_save(request: HttpRequest) -> HttpResponse:
 
         instance = model.objects.get(**search_params)
     except model.DoesNotExist:
-
         default_params = {
             "title": media_metadata["title"],
             "image": media_metadata["image"],

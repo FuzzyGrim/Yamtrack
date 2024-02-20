@@ -1,20 +1,14 @@
-from __future__ import annotations
-
 import csv
 import datetime
 import logging
-from typing import TYPE_CHECKING
 
 from app import forms
+from app.forms import MovieForm, SeasonForm, TVForm
+from app.models import TV, Movie, Season
 from app.providers import services
 from django.apps import apps
-
-if TYPE_CHECKING:
-    from app.forms import MovieForm, SeasonForm, TVForm
-    from app.models import TV, Movie, Season
-    from django.core.files.uploadedfile import InMemoryUploadedFile
-    from users.models import User
-
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +41,9 @@ def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
                     form.save()
 
                 else:
-                    error_message = f"Error importing {media_metadata['title']}: {form.errors.as_data()}"
+                    error_message = (
+                        f"{media_metadata['title']} ({media_type}): Import failed."
+                    )
                     logger.error(error_message)
 
 
