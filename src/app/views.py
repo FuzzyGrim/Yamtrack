@@ -281,7 +281,7 @@ def track_form(request: HttpRequest) -> HttpResponse:
             "form_id": form_id,
             "form": form,
             "allow_delete": allow_delete,
-            "return_url": request.GET.get("return_url", reverse("home")),
+            "return_url": request.GET["return_url"],
         },
     )
 
