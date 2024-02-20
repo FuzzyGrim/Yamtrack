@@ -16,6 +16,8 @@ def get_default_layout() -> dict:
 class User(AbstractUser):
     """Custom user model that saves the last media search type."""
 
+    editable = models.BooleanField(default=True)
+
     last_search_type = models.CharField(
         max_length=10,
         default="tv",

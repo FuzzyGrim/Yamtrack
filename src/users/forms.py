@@ -106,6 +106,15 @@ class UserRegisterForm(UserCreationForm):
 class UserUpdateForm(forms.ModelForm):
     """Custom form for updating username."""
 
+    def clean(self: "PasswordChangeForm") -> dict:
+        """Check if the user is editable before changing the password."""
+
+        cleaned_data = super().clean()
+        if not self.instance.editable:
+            msg = "Changing the username is not allowed for this account."
+            self.add_error("username", msg)
+        return cleaned_data
+
     def __init__(self: "UserUpdateForm", *args: dict, **kwargs: dict) -> None:
         """Add crispy form helper to add submit button."""
         super().__init__(*args, **kwargs)
@@ -123,6 +132,15 @@ class UserUpdateForm(forms.ModelForm):
 
 class PasswordChangeForm(PasswordChangeForm):
     """Custom form for changing password."""
+
+    def clean(self: "PasswordChangeForm") -> dict:
+        """Check if the user is editable before changing the password."""
+
+        cleaned_data = super().clean()
+        if not self.user.editable:
+            msg = "Changing the password is not allowed for this account."
+            self.add_error("new_password2", msg)
+        return cleaned_data
 
     def __init__(self: "PasswordChangeForm", *args: dict, **kwargs: dict) -> None:
         """Remove autofocus from password change form."""

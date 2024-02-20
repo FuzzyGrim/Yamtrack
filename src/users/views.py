@@ -94,7 +94,10 @@ def profile(request: HttpRequest) -> HttpResponse:
                 password = password_form.save()
                 update_session_auth_hash(request, password)
                 messages.success(request, "Your password has been updated!")
-                logger.info("Successful password change for: %s", request.user.username)
+                logger.info(
+                    "Successful password change for: %s",
+                    request.user.username,
+                )
             else:
                 logger.error(
                     "Failed password change for %s: %s",
