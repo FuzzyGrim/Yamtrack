@@ -118,7 +118,7 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
         if filter_form.is_valid():
             # update user default layout for media type
             request.user.default_layout[media_type] = layout
-            request.user.save()
+            request.user.save(update_fields=["default_layout"])
 
     filter_params = {"user": request.user.id}
 
@@ -178,7 +178,7 @@ def media_search(request: HttpRequest) -> HttpResponse:
     query = request.GET["q"]
     # update user default search type
     request.user.last_search_type = media_type
-    request.user.save()
+    request.user.save(update_fields=["last_search_type"])
 
     if media_type in ("anime", "manga"):
         query_list = mal.search(media_type, query)

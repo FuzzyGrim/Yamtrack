@@ -180,7 +180,7 @@ class TVModel(TestCase):
 
         tv = TV.objects.get(media_id=1668, user=self.user)
         tv.status = "Completed"
-        tv.save()
+        tv.save(update_fields=["status"])
 
         # check if all seasons are created with the status "Completed"
         self.assertEqual(tv.seasons.filter(status="Completed").count(), 10)
@@ -244,7 +244,7 @@ class SeasonModel(TestCase):
 
         season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
         season.status = "Completed"
-        season.save()
+        season.save(update_fields=["status"])
 
         # check if all episodes are created
         self.assertEqual(season.episodes.count(), 24)
