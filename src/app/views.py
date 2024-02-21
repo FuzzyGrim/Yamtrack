@@ -302,15 +302,15 @@ def media_save(request: HttpRequest) -> HttpResponse:
     else:
         media_metadata = services.get_media_metadata(media_type, media_id)
 
+    search_params = {
+        "media_id": media_id,
+        "user": request.user,
+    }
+
+    if media_type == "season":
+        search_params["season_number"] = season_number
+
     try:
-        search_params = {
-            "media_id": media_id,
-            "user": request.user,
-        }
-
-        if media_type == "season":
-            search_params["season_number"] = season_number
-
         instance = model.objects.get(**search_params)
     except model.DoesNotExist:
         default_params = {
