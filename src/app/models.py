@@ -87,6 +87,9 @@ class Media(models.Model):
             if self.progress > max_episodes:
                 self.progress = max_episodes
 
+            if self.progress < 0:
+                self.progress = 0
+
             if self.progress == max_episodes:
                 self.status = "Completed"
 
@@ -98,14 +101,16 @@ class Media(models.Model):
     def increase_progress(self: "Media") -> None:
         """Increase the progress of the media by one."""
         self.progress += 1
-        self.save()
+        # need extra fields because if completed,
+        # the save method changes status and end_date
+        self.save(update_fields=["progress", "status", "end_date"])
         logger.info("Watched %s E%s", self, self.progress)
 
     def decrease_progress(self: "Media") -> None:
         """Decrease the progress of the media by one."""
         self.progress -= 1
-        self.save()
-        logger.info("Unwatched %s E%s", self, self.progress)
+        self.save(update_fields=["progress"])
+        logger.info("Unwatched %s E%s", self, self.progress + 1)
 
 
 class TV(Media):
@@ -249,54 +254,43 @@ class Season(Media):
     def increase_progress(self: "Season") -> None:
         """Increase the progress of the season by one."""
 
-        last_watched = (
-            Episode.objects.filter(
-                related_season=self,
-            )
-            .order_by("-episode_number")
-            .first()
-        )
-
         season_metadata = tmdb.season(self.media_id, self.season_number)
 
-        # if no episodes have been watched
-        if last_watched is None:
-            next_episode = season_metadata["episodes"][0]["episode_number"]
-        else:
-            last_watched = last_watched.episode_number
-            # iterate through all episodes as there could be gaps in episode numbers
-            found_current = False
-            for episode in season_metadata["episodes"]:
-                if episode["episode_number"] == last_watched:
-                    found_current = True
-                elif found_current:
-                    next_episode = episode["episode_number"]
-                    break
+        progress = self.progress
 
-        Episode.objects.create(
-            related_season=self,
-            episode_number=next_episode,
-            watch_date=datetime.datetime.now(tz=settings.TZ).date(),
-        )
-        logger.info("Watched %sE%s", self, next_episode)
+        if progress == 0:
+            next_episode = season_metadata["episodes"][0]["episode_number"]
+        elif progress < len(season_metadata["episodes"]):
+            next_episode = season_metadata["episodes"][progress]["episode_number"]
+
+        try:
+            Episode.objects.create(
+                related_season=self,
+                episode_number=next_episode,
+                watch_date=datetime.datetime.now(tz=settings.TZ).date(),
+            )
+            logger.info("Watched %sE%s", self, next_episode)
+
+        # next_episode not defined,
+        # happens when another request completes the season
+        except UnboundLocalError:
+            logger.warning("No episodes to watch, %s is already completed", self)
 
     def decrease_progress(self: "Season") -> None:
         """Decrease the progress of the season by one."""
-        last_watched = (
-            Episode.objects.filter(
+
+        try:
+            last_watched = Episode.objects.filter(
                 related_season=self,
-            )
-            .order_by("-episode_number")
-            .first()
-            .episode_number
-        )
+            ).latest("episode_number")
 
-        Episode.objects.filter(
-            related_season=self,
-            episode_number=last_watched,
-        ).delete()
+            last_watched_number = last_watched.episode_number
 
-        logger.info("Unwatched %sE%s", self, last_watched)
+            last_watched.delete()
+
+            logger.info("Unwatched %sE%s", self, last_watched_number)
+        except Episode.DoesNotExist:
+            logger.warning("No episodes to unwatch in %s", self)
 
     def get_tv(self: "Season") -> TV:
         """Get related TV instance for a season and create it if it doesn't exist."""
