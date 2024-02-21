@@ -5,7 +5,7 @@ Django==5.0.2
 django-compressor==4.4
 django-crispy-forms==2.1
 django_debug_toolbar==4.3.0
-django-model-utils==4.3.1
+django-model-utils==4.4.0
 django-sass-processor==1.4
 gunicorn==21.2.0
 libsass==0.23.0
