@@ -98,6 +98,7 @@ requests_cache.install_cache(
     DB_FOLDER / "db.sqlite3",
     backend="sqlite",
     expire_after=21600,
+    retries=1,
 )  # 6 hours
 
 

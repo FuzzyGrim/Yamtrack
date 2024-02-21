@@ -382,17 +382,19 @@ class Episode(models.Model):
 
     def save(self: "Episode", *args: list, **kwargs: dict) -> None:
         """Save the episode instance."""
-        super().save(*args, **kwargs)
+        if self._state.adding:
+            super().save(*args, **kwargs)
+            season_metadata = tmdb.season(
+                self.related_season.media_id,
+                self.related_season.season_number,
+            )
 
-        season_metadata = tmdb.season(
-            self.related_season.media_id,
-            self.related_season.season_number,
-        )
-
-        if self.related_season.progress == len(season_metadata["episodes"]):
-            self.related_season.status = "Completed"
-            # save_base to avoid custom save method
-            self.related_season.save_base(update_fields=["status"])
+            if self.related_season.progress == len(season_metadata["episodes"]):
+                self.related_season.status = "Completed"
+                # save_base to avoid custom save method
+                self.related_season.save_base(update_fields=["status"])
+        else:
+            super().save(*args, **kwargs)
 
 
 class Manga(Media):

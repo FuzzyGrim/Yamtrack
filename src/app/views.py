@@ -425,7 +425,13 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
             defaults={
                 "watch_date": watch_date,
             },
+            create_defaults={
+                "related_season": related_season,
+                "episode_number": episode_number,
+                "watch_date": watch_date,
+            },
         )
+
         logger.info("%sE%s saved successfully.", related_season, episode_number)
 
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
