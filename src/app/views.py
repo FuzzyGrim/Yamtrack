@@ -395,8 +395,7 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
         related_season.related_tv = related_season.get_tv()
         related_season.title = related_season.related_tv.title
 
-        # save_base to avoid custom save method
-        Season.save_base(related_season)
+        Season.save(related_season)
         logger.info("%s did not exist, it was created successfully.", related_season)
 
     episode_number = request.POST["episode_number"]
@@ -410,8 +409,7 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
 
         if related_season.status == "Completed":
             related_season.status = "In progress"
-            # save_base to avoid custom save method
-            related_season.save_base(update_fields=["status"])
+            related_season.save(update_fields=["status"])
     else:
         if "release" in request.POST:
             watch_date = request.POST["release"]
