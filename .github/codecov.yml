@@ -5,4 +5,6 @@ coverage:
       default:
         paths:
         - "src/app"
+        - "src/integrations"
+        - "src/users"
         threshold: 5.0
