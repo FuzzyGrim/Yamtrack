@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="user",
             name="default_layout",
-            field=models.JSONField(default=users.models.get_default_layout),
+            field=models.JSONField(default="users.models.get_default_layout"),
         ),
     ]

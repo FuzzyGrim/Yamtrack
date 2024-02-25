@@ -108,17 +108,17 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
 def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     """Return the media list page."""
 
-    layout = request.user.default_layout[media_type]
-    filter_form = FilterForm(layout=layout)
+    layout_user = request.user.get_layout(media_type)
+    filter_form = FilterForm(layout=layout_user)
 
     # form submitted
     if request.GET:
-        layout = request.GET.get("layout", layout)
-        filter_form = FilterForm(request.GET, layout=layout)
-        if filter_form.is_valid():
+        layout_request = request.GET.get("layout", layout_user)
+        filter_form = FilterForm(request.GET, layout=layout_request)
+        if filter_form.is_valid() and layout_request != layout_user:
             # update user default layout for media type
-            request.user.default_layout[media_type] = layout
-            request.user.save(update_fields=["default_layout"])
+            request.user.set_layout(media_type, layout_request)
+            layout_user = layout_request
 
     filter_params = {"user": request.user.id}
 
@@ -131,7 +131,7 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     sort_filter = request.GET.get("sort", "score")
 
     model = apps.get_model(app_label="app", model_name=media_type)
-    layout_is_table = layout == "app/media_table.html"
+    layout_is_table = layout_user == "app/media_table.html"
     sort_is_property = sort_filter in ("progress", "start_date", "end_date")
 
     if media_type == "tv" and (layout_is_table or sort_is_property):
@@ -162,7 +162,7 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
 
     return render(
         request,
-        request.user.default_layout[media_type],
+        layout_user,
         {
             "media_type": media_type,
             "media_list": media_list,
