@@ -191,8 +191,8 @@ class FilterForm(forms.Form):
 
     layout = forms.ChoiceField(
         choices=[
-            ("app/media_grid.html", "Grid"),
-            ("app/media_table.html", "Table"),
+            ("grid", "Grid"),
+            ("table", "Table"),
         ],
     )
 

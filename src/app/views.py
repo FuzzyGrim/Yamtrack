@@ -131,7 +131,7 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     sort_filter = request.GET.get("sort", "score")
 
     model = apps.get_model(app_label="app", model_name=media_type)
-    layout_is_table = layout_user == "app/media_table.html"
+    layout_is_table = layout_user == "table"
     sort_is_property = sort_filter in ("progress", "start_date", "end_date")
 
     if media_type == "tv" and (layout_is_table or sort_is_property):
@@ -162,7 +162,7 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
 
     return render(
         request,
-        layout_user,
+        request.user.get_layout_template(media_type),
         {
             "media_type": media_type,
             "media_list": media_list,

@@ -2,8 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 layouts = [
-    ("app/media_grid.html", "grid"),
-    ("app/media_table.html", "table"),
+    ("grid", "Grid"),
+    ("table", "Table"),
 ]
 
 
@@ -25,31 +25,31 @@ class User(AbstractUser):
 
     tv_layout = models.CharField(
         max_length=20,
-        default="app/media_grid.html",
+        default="grid",
         choices=layouts,
     )
 
     season_layout = models.CharField(
         max_length=20,
-        default="app/media_grid.html",
+        default="grid",
         choices=layouts,
     )
 
     movie_layout = models.CharField(
         max_length=20,
-        default="app/media_grid.html",
+        default="grid",
         choices=layouts,
     )
 
     anime_layout = models.CharField(
         max_length=20,
-        default="app/media_table.html",
+        default="table",
         choices=layouts,
     )
 
     manga_layout = models.CharField(
         max_length=20,
-        default="app/media_grid.html",
+        default="table",
         choices=layouts,
     )
 
@@ -63,6 +63,14 @@ class User(AbstractUser):
             "manga": self.manga_layout,
         }
         return layout[media_type]
+
+    def get_layout_template(self: "User", media_type: str) -> str:
+        """Return the layout template for the media type."""
+        template = {
+            "grid": "app/media_grid.html",
+            "table": "app/media_table.html",
+        }
+        return template[self.get_layout(media_type)]
 
     def set_layout(self: "User", media_type: str, layout: str) -> None:
         """Set the layout for the media type."""
