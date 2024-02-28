@@ -5,6 +5,7 @@ from pathlib import Path
 import pytz
 import requests_cache
 from decouple import Csv, config
+from redislite import Redis
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -85,22 +86,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-
 # Database
 # https://docs.djangoproject.com/en/stable/ref/settings/#databases
-
-# create db folder if it doesn't exist
-# always needed because sqlite will be used for requests-cache
-DB_FOLDER = BASE_DIR / "db"
-Path(DB_FOLDER).mkdir(parents=True, exist_ok=True)
-
-requests_cache.install_cache(
-    DB_FOLDER / "db.sqlite3",
-    backend="sqlite",
-    expire_after=21600,
-    retries=1,
-)  # 6 hours
-
 
 if config("DB_HOST", default=None):
     DATABASES = {
@@ -114,13 +101,14 @@ if config("DB_HOST", default=None):
         },
     }
 else:
+    # create db folder if it doesn't exist
+    Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db" / "db.sqlite3",
         },
     }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/stable/ref/settings/#auth-password-validators
@@ -172,7 +160,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
 
@@ -185,7 +172,6 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 
 # Auth settings
 
@@ -201,15 +187,21 @@ AUTH_USER_MODEL = "users.User"
 
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"
 
-REQUEST_TIMEOUT = 10  # seconds
+backend = requests_cache.RedisCache(connection=Redis())
+requests_cache.install_cache(
+    backend=backend,
+    expire_after=21600,
+)  # 6 hours
+
+REQUEST_TIMEOUT = 5  # seconds
 
 TMDB_API = config("TMDB_API", default=None)
 MAL_API = config("MAL_API", default=None)
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
 # Third party settings
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 STATICFILES_FINDERS = [

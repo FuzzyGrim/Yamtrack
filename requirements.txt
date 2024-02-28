@@ -11,5 +11,6 @@ Pillow==10.2.0
 psycopg-binary==3.1.18
 python-decouple==3.8
 pytz==2024.1
+redislite==6.2.912183
 requests-cache==1.2.0
 whitenoise==6.6.0

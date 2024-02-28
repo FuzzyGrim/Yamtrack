@@ -82,12 +82,12 @@ def anilist_data(username: str, user: User) -> str:
     variables = {"userName": username}
     url = "https://graphql.anilist.co"
 
-    with requests_cache.disabled():  # don't cache request as it can change frequently
-        query = services.api_request(
-            url,
-            "POST",
-            json={"query": query, "variables": variables},
-        )
+    # dont need to disable cache, as POST requests are not cached
+    query = services.api_request(
+        url,
+        "POST",
+        json={"query": query, "variables": variables},
+    )
 
     # returns media that couldn't be added
     return add_media_list(query, warning_message="", user=user)
