@@ -213,5 +213,10 @@ STATICFILES_FINDERS = [
 SASS_OUTPUT_STYLE = "compact"
 
 DEBUG_TOOLBAR_CONFIG = {
-    "SKIP_TEMPLATE_PREFIXES": ("app/components/"),
+    "SKIP_TEMPLATE_PREFIXES": (
+        "django/forms/widgets/",
+        "admin/widgets/",
+        "app/components/",
+        "bootstrap5/",
+    ),
 }
