@@ -5,3 +5,5 @@ __pycache__
 venv
 src/staticfiles
 src/db/db.sqlite3
+src/db/redis.db
+src/db/redis.db.settings
