@@ -4,7 +4,6 @@ import atexit
 from pathlib import Path
 
 import pytz
-import requests_cache
 from decouple import Csv, config
 from redislite import Redis
 
@@ -93,12 +92,6 @@ WSGI_APPLICATION = "config.wsgi.application"
 # create db folder if it doesn't exist
 Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
 
-RDB = Redis(BASE_DIR / "db" / "redis.db")
-
-backend = requests_cache.RedisCache(connection=RDB)
-
-atexit.register(RDB.shutdown)
-
 if config("DB_HOST", default=None):
     DATABASES = {
         "default": {
@@ -117,6 +110,22 @@ else:
             "NAME": BASE_DIR / "db" / "db.sqlite3",
         },
     }
+
+
+# Cache
+# https://docs.djangoproject.com/en/stable/topics/cache/
+
+RDB = Redis(BASE_DIR / "db" / "redis.db")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": f"unix://{RDB.socket_file}",
+        "TIMEOUT": 21600,
+    },
+}
+
+atexit.register(RDB.shutdown)
 
 # Password validation
 # https://docs.djangoproject.com/en/stable/ref/settings/#auth-password-validators
@@ -194,12 +203,6 @@ AUTH_USER_MODEL = "users.User"
 # Yamtrack settings
 
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"
-
-
-requests_cache.install_cache(
-    backend=backend,
-    expire_after=21600,
-)  # 6 hours
 
 REQUEST_TIMEOUT = 5  # seconds
 

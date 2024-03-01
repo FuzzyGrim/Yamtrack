@@ -1,7 +1,6 @@
 import datetime
 import logging
 
-import requests_cache
 from app import forms
 from app.models import Anime, Manga
 from app.providers import services

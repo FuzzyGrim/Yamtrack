@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.cache import cache
 
 from app.providers import services
 
@@ -6,72 +7,116 @@ from app.providers import services
 def search(media_type: str, query: str) -> list:
     """Search for media on TMDB."""
 
-    url = f"https://api.themoviedb.org/3/search/{media_type}?api_key={settings.TMDB_API}&query={query}"
-    response = services.api_request(url, "GET")
+    data = cache.get(f"search_{media_type}_{query}")
 
-    response = response["results"]
-    return [
-        {
-            "media_id": media["id"],
-            "media_type": media_type,
-            "original_type": get_type_capitalize(media_type),
-            "title": get_title(media),
-            "image": get_image_url(media["poster_path"]),
-        }
-        for media in response
-    ]
+    if not data:
+        url = f"https://api.themoviedb.org/3/search/{media_type}?api_key={settings.TMDB_API}&query={query}"
+        response = services.api_request(url, "GET")
+
+        response = response["results"]
+        data = [
+            {
+                "media_id": media["id"],
+                "media_type": media_type,
+                "original_type": get_type_capitalize(media_type),
+                "title": get_title(media),
+                "image": get_image_url(media["poster_path"]),
+            }
+            for media in response
+        ]
+
+        cache.set(f"search_{media_type}_{query}", data)
+
+    return data
 
 
 def movie(media_id: str) -> dict:
     """Return the metadata for the selected movie from The Movie Database."""
 
-    url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
-    response = services.api_request(url, "GET")
+    data = cache.get(f"movie_{media_id}")
 
-    return {
-        "media_id": media_id,
-        "media_type": "movie",
-        "title": response["title"],
-        "image": get_image_url(response["poster_path"]),
-        "details": {
-            "original_type": "Movie",
-            "start_date": get_start_date(response["release_date"]),
-            "status": response["status"],
-            "synopsis": get_synopsis(response["overview"]),
-            "number_of_episodes": 1,
-            "runtime": get_readable_duration(response["runtime"]),
-            "genres": get_genres(response["genres"]),
-        },
-        "related": {
-            "recommendations": get_related(
-                response["recommendations"]["results"][:15],
-            ),
-        },
-    }
+    if not data:
+        url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
+        response = services.api_request(url, "GET")
+
+        data = {
+            "media_id": media_id,
+            "media_type": "movie",
+            "title": response["title"],
+            "image": get_image_url(response["poster_path"]),
+            "details": {
+                "original_type": "Movie",
+                "start_date": get_start_date(response["release_date"]),
+                "status": response["status"],
+                "synopsis": get_synopsis(response["overview"]),
+                "number_of_episodes": 1,
+                "runtime": get_readable_duration(response["runtime"]),
+                "genres": get_genres(response["genres"]),
+            },
+            "related": {
+                "recommendations": get_related(
+                    response["recommendations"]["results"][:15],
+                ),
+            },
+        }
+
+        cache.set(f"movie_{media_id}", data)
+
+    return data
 
 
 def tv_with_seasons(media_id: str, season_numbers: list[int]) -> dict:
     """Return the metadata for the tv show with a season appended to the response."""
 
     append_text = ",".join([f"season/{season}" for season in season_numbers])
-
     url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations,{append_text}"
-    response = services.api_request(url, "GET")
-    return process_tv(response, season_numbers)
+    requested = False
+
+    data = cache.get(f"tv_{media_id}")
+    if not data:
+        response = services.api_request(url, "GET")
+        requested = True
+
+        data = process_tv(response)
+        cache.set(f"tv_{media_id}", data)
+
+    # add seasons metadata to the response
+    for season_number in season_numbers:
+        season_data = cache.get(f"season_{media_id}_{season_number}")
+
+        if not season_data:
+            if not requested:
+                response = services.api_request(url, "GET")
+                requested = True
+
+            season_data = process_season(
+                response[f"season/{season_number}"],
+            )
+            cache.set(f"season_{media_id}_{season_number}", season_data)
+
+        data[f"season/{season_number}"] = season_data
+
+    return data
 
 
 def tv(media_id: str) -> dict:
     """Return the metadata for the selected tv show from The Movie Database."""
 
-    url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
-    response = services.api_request(url, "GET")
-    return process_tv(response)
+    data = cache.get(f"tv_{media_id}")
+
+    if not data:
+        url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
+        response = services.api_request(url, "GET")
+        data = process_tv(response)
+        cache.set(f"tv_{media_id}", data)
+
+    return data
 
 
-def process_tv(response: dict, season_numbers: list[int] | None = None) -> dict:
+def process_tv(response: dict) -> dict:
     """Process the metadata for the selected tv show from The Movie Database."""
 
-    metadata = {
+    return {
         "media_id": response["id"],
         "media_type": "tv",
         "title": response["name"],
@@ -95,23 +140,19 @@ def process_tv(response: dict, season_numbers: list[int] | None = None) -> dict:
         },
     }
 
-    # add processed seasons to metadata
-    if season_numbers:
-        for season_number in season_numbers:
-            metadata[f"season/{season_number}"] = process_season(
-                response[f"season/{season_number}"],
-            )
-
-    return metadata
-
 
 def season(tv_id: str, season_number: int) -> dict:
     """Return the metadata for the selected season from The Movie Database."""
 
-    url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}?api_key={settings.TMDB_API}"
-    response = services.api_request(url, "GET")
+    data = cache.get(f"season_{tv_id}_{season_number}")
 
-    return process_season(response)
+    if not data:
+        url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}?api_key={settings.TMDB_API}"
+        response = services.api_request(url, "GET")
+        data = process_season(response)
+        cache.set(f"season_{tv_id}_{season_number}", data)
+
+    return data
 
 
 def process_season(response: dict) -> dict:

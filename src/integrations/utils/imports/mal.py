@@ -1,6 +1,5 @@
 import logging
 
-import requests_cache
 from app import forms
 from app.models import Anime, Manga
 from app.providers import services
@@ -36,8 +35,7 @@ def get_whole_response(url: str) -> dict:
 
     header = {"X-MAL-CLIENT-ID": settings.MAL_API}
 
-    with requests_cache.disabled():  # don't cache request as it can change frequently
-        data = services.api_request(url, "GET", header)
+    data = services.api_request(url, "GET", header)
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]

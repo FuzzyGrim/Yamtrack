@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+from django.core.cache import cache
 
 from app.providers import services
 
@@ -7,94 +8,115 @@ from app.providers import services
 def search(media_type: str, query: str) -> list:
     """Search for media on MyAnimeList."""
 
-    url = f"https://api.myanimelist.net/v2/{media_type}?q={query}&nsfw=true&fields=media_type"
+    data = cache.get(f"search_{media_type}_{query}")
 
-    try:
-        response = services.api_request(
-            url,
-            "GET",
-            headers={"X-MAL-CLIENT-ID": settings.MAL_API},
-        )
-    except requests.exceptions.HTTPError as error:
-        # if the query is invalid, return an empty list
-        if error.response.json().get("message") == "invalid q":
-            return []
+    if not data:
+        url = f"https://api.myanimelist.net/v2/{media_type}?q={query}&nsfw=true&fields=media_type"
 
-    response = response["data"]
-    return [
-        {
-            "media_id": media["node"]["id"],
-            "media_type": media_type,
-            "original_type": get_original_type(media["node"]),
-            "title": media["node"]["title"],
-            "image": get_image_url(media["node"]),
-        }
-        for media in response
-    ]
+        try:
+            response = services.api_request(
+                url,
+                "GET",
+                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+            )
+        except requests.exceptions.HTTPError as error:
+            # if the query is invalid, return an empty list
+            if error.response.json().get("message") == "invalid q":
+                return []
+
+        response = response["data"]
+        data = [
+            {
+                "media_id": media["node"]["id"],
+                "media_type": media_type,
+                "original_type": get_original_type(media["node"]),
+                "title": media["node"]["title"],
+                "image": get_image_url(media["node"]),
+            }
+            for media in response
+        ]
+
+        cache.set(f"search_{media_type}_{query}", data)
+
+    return data
 
 
 def anime(media_id: str) -> dict:
     """Return the metadata for the selected anime or manga from MyAnimeList."""
 
-    url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_episodes,average_episode_duration,related_anime,related_manga,recommendations"
-    response = services.api_request(
-        url,
-        "GET",
-        headers={"X-MAL-CLIENT-ID": settings.MAL_API},
-    )
+    data = cache.get(f"anime_{media_id}")
 
-    return {
-        "media_id": media_id,
-        "media_type": "anime",
-        "title": response["title"],
-        "image": get_image_url(response),
-        "details": {
-            "original_type": get_original_type(response),
-            "start_date": response.get("start_date", "Unknown"),
-            "end_date": response.get("end_date", "Unknown"),
-            "status": get_readable_status(response),
-            "synopsis": get_synopsis(response),
-            "number_of_episodes": response.get("num_episodes", "Unknown"),
-            "runtime": get_runtime(response),
-            "genres": get_genres(response),
-        },
-        "related": {
-            "related_animes": get_related(response.get("related_anime")),
-            "recommendations": get_related(response.get("recommendations")),
-        },
-    }
+    if not data:
+        url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_episodes,average_episode_duration,related_anime,related_manga,recommendations"
+        response = services.api_request(
+            url,
+            "GET",
+            headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+        )
+
+        data = {
+            "media_id": media_id,
+            "media_type": "anime",
+            "title": response["title"],
+            "image": get_image_url(response),
+            "details": {
+                "original_type": get_original_type(response),
+                "start_date": response.get("start_date", "Unknown"),
+                "end_date": response.get("end_date", "Unknown"),
+                "status": get_readable_status(response),
+                "synopsis": get_synopsis(response),
+                "number_of_episodes": response.get("num_episodes", "Unknown"),
+                "runtime": get_runtime(response),
+                "genres": get_genres(response),
+            },
+            "related": {
+                "related_animes": get_related(response.get("related_anime")),
+                "recommendations": get_related(response.get("recommendations")),
+            },
+        }
+
+        cache.set(f"anime_{media_id}", data)
+
+    return data
 
 
 def manga(media_id: str) -> dict:
     """Return the metadata for the selected anime or manga from MyAnimeList."""
 
-    url = f"https://api.myanimelist.net/v2/manga/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
-    response = services.api_request(
-        url,
-        "GET",
-        headers={"X-MAL-CLIENT-ID": settings.MAL_API},
-    )
+    data = cache.get(f"manga_{media_id}")
 
-    return {
-        "media_id": media_id,
-        "media_type": "manga",
-        "title": response["title"],
-        "image": get_image_url(response),
-        "details": {
-            "original_type": get_original_type(response),
-            "start_date": response.get("start_date", "Unknown"),
-            "end_date": response.get("end_date", "Unknown"),
-            "status": get_readable_status(response),
-            "synopsis": get_synopsis(response),
-            "number_of_episodes": response.get("num_chapters", "Unknown"),
-            "runtime": get_runtime(response),
-            "genres": get_genres(response),
-        },
-        "related": {
-            "related_mangas": get_related(response.get("related_manga")),
-            "recommendations": get_related(response.get("recommendations")),
-        },
-    }
+    if not data:
+        url = f"https://api.myanimelist.net/v2/manga/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
+        response = services.api_request(
+            url,
+            "GET",
+            headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+        )
+
+        data = {
+            "media_id": media_id,
+            "media_type": "manga",
+            "title": response["title"],
+            "image": get_image_url(response),
+            "details": {
+                "original_type": get_original_type(response),
+                "start_date": response.get("start_date", "Unknown"),
+                "end_date": response.get("end_date", "Unknown"),
+                "status": get_readable_status(response),
+                "synopsis": get_synopsis(response),
+                "number_of_episodes": response.get("num_chapters", "Unknown"),
+                "runtime": get_runtime(response),
+                "genres": get_genres(response),
+            },
+            "related": {
+                "related_mangas": get_related(response.get("related_manga")),
+                "recommendations": get_related(response.get("recommendations")),
+            },
+        }
+
+        cache.set(f"manga_{media_id}", data)
+
+    return data
 
 
 def get_original_type(response: dict) -> dict:
