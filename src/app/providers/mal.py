@@ -128,9 +128,9 @@ def get_original_type(response: dict) -> dict:
 
     # for light_novel, tv_special, etc
     original_type = response["media_type"].replace("_", " ")
-    if len(original_type) < 3:
+    if len(original_type) <= 3:
         # ona, ova, etc
-        return original_type.capitalize()
+        return original_type.upper()
     return original_type.title()
 
 
