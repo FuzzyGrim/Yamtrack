@@ -405,7 +405,7 @@ def episode_handler(request: HttpRequest) -> HttpResponse:
             episode_number=episode_number,
         ).delete()
 
-        logger.info("%s %s deleted successfully.", related_season, episode_number)
+        logger.info("%sE%s deleted successfully.", related_season, episode_number)
 
         if related_season.status == "Completed":
             related_season.status = "In progress"
