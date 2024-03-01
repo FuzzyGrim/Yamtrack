@@ -79,7 +79,6 @@ Then run the following commands.
 
 ```bash
 python -m pip install -U -r requirements_dev.txt
-cd src
 python src/manage.py migrate
 python src/manage.py runserver
 ```
