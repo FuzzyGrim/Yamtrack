@@ -1,5 +1,6 @@
 """Django settings for Yamtrack project."""
 
+import atexit
 from pathlib import Path
 
 import pytz
@@ -89,6 +90,15 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/stable/ref/settings/#databases
 
+# create db folder if it doesn't exist
+Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
+
+RDB = Redis(BASE_DIR / "db" / "redis.db")
+
+backend = requests_cache.RedisCache(connection=RDB)
+
+atexit.register(RDB.shutdown)
+
 if config("DB_HOST", default=None):
     DATABASES = {
         "default": {
@@ -101,8 +111,6 @@ if config("DB_HOST", default=None):
         },
     }
 else:
-    # create db folder if it doesn't exist
-    Path(BASE_DIR / "db").mkdir(parents=True, exist_ok=True)
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -187,7 +195,7 @@ AUTH_USER_MODEL = "users.User"
 
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"
 
-backend = requests_cache.RedisCache(connection=Redis(BASE_DIR / "db" / "redis.db"))
+
 requests_cache.install_cache(
     backend=backend,
     expire_after=21600,
