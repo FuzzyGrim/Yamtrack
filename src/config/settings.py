@@ -25,9 +25,6 @@ INTERNAL_IPS = ["127.0.0.1"]
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-# Global default, can be overwritten at CustomLoginView
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,7 +37,6 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "django.contrib.auth",
     "django.contrib.contenttypes",
-    "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
@@ -126,6 +122,14 @@ CACHES = {
 }
 
 atexit.register(RDB.shutdown)
+
+# Session
+# https://docs.djangoproject.com/en/stable/topics/http/sessions/
+
+# Global default, can be overwritten at CustomLoginView
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 # Password validation
 # https://docs.djangoproject.com/en/stable/ref/settings/#auth-password-validators
