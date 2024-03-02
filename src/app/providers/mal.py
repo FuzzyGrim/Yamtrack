@@ -47,7 +47,7 @@ def anime(media_id: str) -> dict:
     data = cache.get(f"anime_{media_id}")
 
     if not data:
-        url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_episodes,average_episode_duration,related_anime,related_manga,recommendations"
+        url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_episodes,average_episode_duration,related_anime,recommendations"
         response = services.api_request(
             url,
             "GET",
@@ -65,7 +65,7 @@ def anime(media_id: str) -> dict:
                 "end_date": response.get("end_date", "Unknown"),
                 "status": get_readable_status(response),
                 "synopsis": get_synopsis(response),
-                "number_of_episodes": response.get("num_episodes", "Unknown"),
+                "number_of_episodes": get_number_of_episodes(response["num_episodes"]),
                 "runtime": get_runtime(response),
                 "genres": get_genres(response),
             },
@@ -86,7 +86,7 @@ def manga(media_id: str) -> dict:
     data = cache.get(f"manga_{media_id}")
 
     if not data:
-        url = f"https://api.myanimelist.net/v2/manga/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_chapters,average_episode_duration,related_anime,related_manga,recommendations"
+        url = f"https://api.myanimelist.net/v2/manga/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_chapters,related_manga,recommendations"
         response = services.api_request(
             url,
             "GET",
@@ -104,8 +104,7 @@ def manga(media_id: str) -> dict:
                 "end_date": response.get("end_date", "Unknown"),
                 "status": get_readable_status(response),
                 "synopsis": get_synopsis(response),
-                "number_of_episodes": response.get("num_chapters", "Unknown"),
-                "runtime": get_runtime(response),
+                "number_of_episodes": get_number_of_episodes(response["num_chapters"]),
                 "genres": get_genres(response),
             },
             "related": {
@@ -165,6 +164,14 @@ def get_synopsis(response: dict) -> dict:
         return "No synopsis available."
 
     return response["synopsis"]
+
+
+def get_number_of_episodes(episodes: int) -> dict:
+    """Return the number of episodes for the media."""
+
+    if episodes == 0:
+        return "Unknown"
+    return episodes
 
 
 def get_runtime(response: dict) -> dict:
