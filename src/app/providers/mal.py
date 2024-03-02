@@ -65,7 +65,7 @@ def anime(media_id: str) -> dict:
                 "end_date": response.get("end_date", "Unknown"),
                 "status": get_readable_status(response),
                 "synopsis": get_synopsis(response),
-                "number_of_episodes": get_number_of_episodes(response["num_episodes"]),
+                "number_of_episodes": get_number_of_episodes(response),
                 "runtime": get_runtime(response),
                 "genres": get_genres(response),
             },
@@ -104,7 +104,7 @@ def manga(media_id: str) -> dict:
                 "end_date": response.get("end_date", "Unknown"),
                 "status": get_readable_status(response),
                 "synopsis": get_synopsis(response),
-                "number_of_episodes": get_number_of_episodes(response["num_chapters"]),
+                "number_of_episodes": get_number_of_episodes(response),
                 "genres": get_genres(response),
             },
             "related": {
@@ -118,7 +118,7 @@ def manga(media_id: str) -> dict:
     return data
 
 
-def get_original_type(response: dict) -> dict:
+def get_original_type(response: dict) -> str:
     """Return the original type of the media."""
 
     # MAL return tv in metadata for anime
@@ -133,15 +133,17 @@ def get_original_type(response: dict) -> dict:
     return original_type.title()
 
 
-def get_image_url(response: dict) -> dict:
+def get_image_url(response: dict) -> str:
     """Return the image URL for the media."""
 
+    # when no picture, main_picture is not present in the response
+    # e.g anime: 38869
     if "main_picture" in response:
         return response["main_picture"]["large"]
     return settings.IMG_NONE
 
 
-def get_readable_status(response: dict) -> dict:
+def get_readable_status(response: dict) -> str:
     """Return the status in human-readable format."""
 
     # Map status to human-readable values
@@ -154,20 +156,32 @@ def get_readable_status(response: dict) -> dict:
         "not_yet_published": "Upcoming",
         "on_hiatus": "On Hiatus",
     }
-    return status_map.get(response.get("status"), "Unknown")
+    return status_map.get(response["status"])
 
 
-def get_synopsis(response: dict) -> dict:
+def get_synopsis(response: dict) -> str:
     """Add the synopsis to the response."""
 
+    # when no synopsis, value from response is empty string
+    # e.g manga: 160219
     if response["synopsis"] == "":
         return "No synopsis available."
 
     return response["synopsis"]
 
 
-def get_number_of_episodes(episodes: int) -> dict:
+def get_number_of_episodes(response: dict) -> int | str:
     """Return the number of episodes for the media."""
+
+    # when unknown episodes, value from response is 0
+    # e.g manga: 160219
+
+    # anime
+    if "num_episodes" in response:
+        episodes = response["num_episodes"]
+    # manga
+    elif "num_chapters" in response:
+        episodes = response["num_chapters"]
 
     if episodes == 0:
         return "Unknown"
@@ -177,28 +191,25 @@ def get_number_of_episodes(episodes: int) -> dict:
 def get_runtime(response: dict) -> dict:
     """Return the average episode duration."""
 
+    # when unknown duration, value from response is 0
+    # e.g anime: 43333
+    duration = response["average_episode_duration"]
+
     # Convert average_episode_duration to hours and minutes
-    if (
-        "average_episode_duration" in response
-        and response["average_episode_duration"] != 0
-    ):
-        duration = response["average_episode_duration"]
+    if duration:
         # duration are in seconds
         hours, minutes = divmod(int(duration / 60), 60)
         return f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
     return "Unknown"
 
 
-def get_genres(response: dict) -> dict:
+def get_genres(response: dict) -> str:
     """Return the genres for the media."""
 
-    if "genres" in response:
-        return ", ".join(genre["name"] for genre in response["genres"])
-
-    return "Unknown"
+    return ", ".join(genre["name"] for genre in response["genres"])
 
 
-def get_related(related_medias: list) -> dict:
+def get_related(related_medias: list) -> list:
     """Return list of related media for the selected media."""
 
     return [

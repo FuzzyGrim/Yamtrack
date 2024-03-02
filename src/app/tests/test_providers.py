@@ -63,13 +63,13 @@ class Metadata(TestCase):
         mock_data.return_value.json.return_value = anime_response
         mock_data.return_value.status_code = 200
 
-        # anime without picture, synopsis, duration and genres
+        # anime without picture, synopsis, duration, or number of episodes
         response = mal.anime("0")
         self.assertEqual(response["title"], "Unknown Example")
         self.assertEqual(response["image"], settings.IMG_NONE)
         self.assertEqual(response["details"]["synopsis"], "No synopsis available.")
+        self.assertEqual(response["details"]["number_of_episodes"], "Unknown")
         self.assertEqual(response["details"]["runtime"], "Unknown")
-        self.assertEqual(response["details"]["genres"], "Unknown")
 
     def test_manga(self: "Metadata") -> None:
         """Test the metadata method for manga."""

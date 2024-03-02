@@ -6,8 +6,14 @@
     "synopsis": "",
     "media_type": "movie",
     "status": "finished_airing",
-    "num_episodes": 1,
+    "num_episodes": 0,
     "average_episode_duration": 0,
+    "genres": [
+      {
+        "id": 1,
+        "name": "Action"
+      }
+    ],
     "related_anime": [],
     "related_manga": [],
     "recommendations": []

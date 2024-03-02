@@ -18,7 +18,7 @@ def search(media_type: str, query: str) -> list:
             {
                 "media_id": media["id"],
                 "media_type": media_type,
-                "original_type": get_type(media_type),
+                "original_type": get_original_type(media_type),
                 "title": get_title(media),
                 "image": get_image_url(media["poster_path"]),
             }
@@ -171,7 +171,7 @@ def process_season(response: dict) -> dict:
     }
 
 
-def get_type(media_type: str) -> dict:
+def get_original_type(media_type: str) -> str:
     """Return media_type capitalized."""
 
     if media_type == "tv":
@@ -179,16 +179,17 @@ def get_type(media_type: str) -> dict:
     return "Movie"
 
 
-def get_image_url(path: str) -> dict:
+def get_image_url(path: str) -> str:
     """Return the image URL for the media."""
 
-    # path can be null
+    # when no image, value from response is null
+    # e.g movie: 445290
     if path:
         return f"https://image.tmdb.org/t/p/w500{path}"
     return settings.IMG_NONE
 
 
-def get_title(response: dict) -> dict:
+def get_title(response: dict) -> str:
     """Return the title for the media."""
 
     # tv shows have name instead of title
@@ -200,6 +201,8 @@ def get_title(response: dict) -> dict:
 def get_start_date(date: str) -> str:
     """Return the start date for the media."""
 
+    # when unknown date, value from response is empty string
+    # e.g movie: 445290
     if date == "":
         return "Unknown"
     return date
@@ -208,6 +211,8 @@ def get_start_date(date: str) -> str:
 def get_synopsis(text: str) -> str:
     """Return the synopsis for the media."""
 
+    # when unknown synopsis, value from response is empty string
+    # e.g movie: 445290
     if text == "":
         return "No synopsis available."
     return text
@@ -216,7 +221,8 @@ def get_synopsis(text: str) -> str:
 def get_runtime_tv(runtime: list) -> str:
     """Return the runtime for the tv show."""
 
-    # runtime can be empty list
+    # when unknown runtime, value from response is empty list
+    # e.g: tv:66672
     if runtime:
         return get_readable_duration(runtime[0])
     return "Unknown"
@@ -225,24 +231,26 @@ def get_runtime_tv(runtime: list) -> str:
 def get_readable_duration(duration: int) -> str:
     """Convert duration in minutes to a readable format."""
 
-    # duration can be null
+    # if unknown movie runtime, value from response is 0
+    # e.g movie: 274613
     if duration:
         hours, minutes = divmod(int(duration), 60)
         return f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
     return "Unknown"
 
 
-def get_genres(genres: list) -> dict:
+def get_genres(genres: list) -> str:
     """Return the genres for the media."""
 
-    # if genres not empty list
+    # when unknown genres, value from response is empty list
+    # e.g tv: 24795
     if genres:
         return ", ".join(genre["name"] for genre in genres)
 
     return "Unknown"
 
 
-def get_related(related_medias: list, media_id: int | None = None) -> dict:
+def get_related(related_medias: list, media_id: int | None = None) -> list:
     """Return list of related media for the selected media."""
 
     return [
@@ -285,7 +293,8 @@ def process_episodes(season_metadata: dict, watched_episodes: dict) -> list:
 def get_episode_air_date(date: str) -> str:
     """Return the air date for the episode."""
 
-    # can be null
+    # when unknown air date, value from response is null
+    # e.g tv: 1668, season 0, episode 3
     if not date:
         return "Unknown air date"
     return date
