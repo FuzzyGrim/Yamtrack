@@ -10,7 +10,7 @@ from users.models import User
 logger = logging.getLogger(__name__)
 
 
-def mal_data(username: str, user: User) -> None:
+def importer(username: str, user: User) -> None:
     """Import anime and manga from MyAnimeList."""
 
     anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status{{comments}}&nsfw=true&limit=1000"

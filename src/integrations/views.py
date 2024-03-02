@@ -7,7 +7,8 @@ from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
-from integrations.utils import exports, imports
+from integrations import exports
+from integrations.imports import anilist, mal, tmdb, yamtrack
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ def import_mal(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from MyAnimeList."""
 
     try:
-        imports.mal_data(request.POST["mal"], request.user)
+        mal.importer(request.POST["mal"], request.user)
         messages.success(request, "Your MyAnimeList has been imported!")
     except requests.exceptions.HTTPError:
         messages.error(
@@ -31,7 +32,7 @@ def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
     """View for importing TMDB movie and TV ratings."""
 
     try:
-        imports.tmdb_data(
+        tmdb.importer(
             request.FILES["tmdb_ratings"],
             request.user,
             status="Completed",
@@ -55,7 +56,7 @@ def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
     """View for importing TMDB movie and TV watchlist."""
 
     try:
-        imports.tmdb_data(
+        tmdb.importer(
             request.FILES["tmdb_watchlist"],
             request.user,
             status="Planning",
@@ -79,7 +80,7 @@ def import_anilist(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from AniList."""
 
     try:
-        warning_message = imports.anilist_data(request.POST["anilist"], request.user)
+        warning_message = anilist.importer(request.POST["anilist"], request.user)
         if warning_message:
             title = "Couldn't import the following Anime or Manga: \n"
             messages.warning(request, title + warning_message)
@@ -105,7 +106,7 @@ def import_yamtrack(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from Yamtrack CSV."""
 
     try:
-        imports.yamtrack_data(request.FILES["yamtrack_csv"], request.user)
+        yamtrack.importer(request.FILES["yamtrack_csv"], request.user)
         messages.success(request, "Your Yamtrack CSV file has been imported!")
     except UnicodeDecodeError:  # when the file is not a CSV file
         messages.error(

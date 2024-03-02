@@ -10,7 +10,7 @@ from users.models import User
 logger = logging.getLogger(__name__)
 
 
-def anilist_data(username: str, user: User) -> str:
+def importer(username: str, user: User) -> str:
     """Import anime and manga ratings from Anilist."""
 
     query = """

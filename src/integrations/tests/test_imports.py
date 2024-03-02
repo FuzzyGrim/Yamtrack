@@ -8,7 +8,7 @@ from django.conf import settings
 from django.test import TestCase
 from users.models import User
 
-from integrations.utils import imports
+from integrations.imports import mal, tmdb, anilist, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -36,7 +36,7 @@ class ImportMAL(TestCase):
         manga_mock.json.return_value = manga_response
         mock_request.side_effect = [anime_mock, manga_mock]
 
-        imports.mal_data("bloodthirstiness", self.user)
+        mal.importer("bloodthirstiness", self.user)
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
@@ -58,7 +58,7 @@ class ImportMAL(TestCase):
 
         self.assertRaises(
             requests.exceptions.HTTPError,
-            imports.mal_data,
+            mal.importer,
             "fhdsufdsu",
             self.user,
         )
@@ -77,7 +77,7 @@ class ImportTMDB(TestCase):
         """Test importing ratings from TMDB."""
 
         with open(mock_path / "import_tmdb_ratings.csv", "rb") as file:
-            imports.tmdb_data(file, self.user, "Completed")
+            tmdb.importer(file, self.user, "Completed")
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
 
@@ -85,7 +85,7 @@ class ImportTMDB(TestCase):
         """Test importing watchlist from TMDB."""
 
         with open(mock_path / "import_tmdb_watchlist.csv", "rb") as file:
-            imports.tmdb_data(file, self.user, "Planning")
+            tmdb.importer(file, self.user, "Planning")
 
         self.assertEqual(TV.objects.filter(user=self.user).count(), 2)
 
@@ -107,7 +107,7 @@ class ImportAniList(TestCase):
             anilist_response = json.load(file)
         mock_request.return_value.json.return_value = anilist_response
 
-        imports.anilist_data("bloodthirstiness", self.user)
+        anilist.importer("bloodthirstiness", self.user)
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
@@ -124,7 +124,7 @@ class ImportAniList(TestCase):
 
         self.assertRaises(
             requests.exceptions.HTTPError,
-            imports.anilist_data,
+            anilist.importer,
             "fhdsufdsu",
             self.user,
         )
@@ -143,7 +143,7 @@ class ImportYamtrack(TestCase):
         """Basic test importing media from Yamtrack."""
 
         with open(mock_path / "import_yamtrack.csv", "rb") as file:
-            imports.yamtrack_data(file, self.user)
+            yamtrack.importer(file, self.user)
 
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 1)

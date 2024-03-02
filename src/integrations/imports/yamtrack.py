@@ -11,7 +11,7 @@ from users.models import User
 logger = logging.getLogger(__name__)
 
 
-def yamtrack_data(file: InMemoryUploadedFile, user: User) -> None:
+def importer(file: InMemoryUploadedFile, user: User) -> None:
     """Import media from CSV file."""
 
     decoded_file = file.read().decode("utf-8").splitlines()

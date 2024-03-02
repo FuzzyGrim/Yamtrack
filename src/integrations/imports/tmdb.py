@@ -13,7 +13,7 @@ from users.models import User
 logger = logging.getLogger(__name__)
 
 
-def tmdb_data(file: InMemoryUploadedFile, user: User, status: str) -> None:
+def importer(file: InMemoryUploadedFile, user: User, status: str) -> None:
     """Import movie and TV ratings or watchlist depending on status from TMDB."""
 
     decoded_file = file.read().decode("utf-8").splitlines()
