@@ -18,7 +18,7 @@ def search(media_type: str, query: str) -> list:
             {
                 "media_id": media["id"],
                 "media_type": media_type,
-                "original_type": get_type_capitalize(media_type),
+                "original_type": get_type(media_type),
                 "title": get_title(media),
                 "image": get_image_url(media["poster_path"]),
             }
@@ -171,17 +171,12 @@ def process_season(response: dict) -> dict:
     }
 
 
-def get_type_capitalize(media_type: str) -> dict:
+def get_type(media_type: str) -> dict:
     """Return media_type capitalized."""
 
-    title = media_type.capitalize()
-
     if media_type == "tv":
-        title = "TV"
-    elif media_type == "movie":
-        title = "Movie"
-
-    return title
+        return "TV"
+    return "Movie"
 
 
 def get_image_url(path: str) -> dict:
