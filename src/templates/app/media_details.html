@@ -30,7 +30,7 @@
         <div class="grid">
           {% for related in related_items %}
             <div class="card text-bg-dark mx-auto">
-              <a href="{% if name == "seasons" %}{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=related.season_number %}{% else %}{% url 'media_details' media_type=media.media_type media_id=related.media_id title=related.title|slugify %}{% endif %}">
+              <a href="{% if name == "seasons" %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=related.season_number %}{% else %}{% url 'media_details' media_type=media.media_type media_id=related.media_id title=related.title|slug %}{% endif %}">
                 <img src="{{ related.image }}"
                      class="card-img {% if related.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                      alt="{{ related.title }}" />

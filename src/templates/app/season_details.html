@@ -14,7 +14,7 @@
       </div>
       <div class="details-data d-flex flex-column align-items-start">
         <div class="tv-title">
-          <a href="{% url 'media_details' media_type="tv" media_id=tv.media_id title=tv.title|slugify %}">
+          <a href="{% url 'media_details' media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
             {{ tv.title|capfirst }}
           </a>
         </div>
@@ -38,7 +38,7 @@
         {% for tv_season in tv.related.seasons %}
           <li>
             <a class="dropdown-item"
-               href="{% url 'season_details' media_id=tv.media_id title=tv.title|slugify season_number=tv_season.season_number %}">
+               href="{% url 'season_details' media_id=tv.media_id title=tv.title|slug season_number=tv_season.season_number %}">
               {{ tv_season.title }}
             </a>
           </li>

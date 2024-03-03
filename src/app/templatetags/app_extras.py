@@ -1,4 +1,5 @@
 from django import template
+from unidecode import unidecode
 
 register = template.Library()
 
@@ -13,3 +14,9 @@ def addslashes_double(arg1: str) -> str:
 def totitle(arg1: str) -> str:
     """Return the title case of the string."""
     return arg1.replace("_", " ").title()
+
+
+@register.filter()
+def slug(arg1: str) -> str:
+    """Return the slug of the string."""
+    return template.defaultfilters.slugify(unidecode(arg1))

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load app_extras %}
 {% block title %}
   {{ media_type|title }}s - Yamtrack
 {% endblock title %}
@@ -43,7 +44,7 @@
           {% for media in media_list %}
             <tr>
               <td class="nostretch">
-                <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}{% endif %}">
+                <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
                   <img class="lazyload object-fit-cover"
                        data-src="{{ media.image }}"
                        data-expand="1000"
@@ -54,9 +55,9 @@
               </td>
               <td class="media-title text-truncate">
                 {% if media.season_number %}
-                  <a href="{% url 'season_details' media_id=media.media_id title=media.title|slugify season_number=media.season_number %}">{{ media }}</a>
+                  <a href="{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}">{{ media }}</a>
                 {% else %}
-                  <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slugify %}">{{ media.title }}</a>
+                  <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}">{{ media.title }}</a>
                 {% endif %}
               </td>
               <td>{{ media.score }}</td>
