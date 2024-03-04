@@ -1,9 +1,9 @@
 """Django settings for Yamtrack project."""
 
 import warnings
+import zoneinfo
 from pathlib import Path
 
-import pytz
 from decouple import Csv, config
 from django.core.cache import CacheKeyWarning
 
@@ -178,7 +178,6 @@ LOGGING = {
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = config("TZ", default="UTC")
-TZ = pytz.timezone(TIME_ZONE)
 
 USE_I18N = True
 
@@ -208,6 +207,8 @@ LOGOUT_REDIRECT_URL = "login"
 AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
+
+TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"
 
