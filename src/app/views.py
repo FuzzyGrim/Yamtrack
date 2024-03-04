@@ -359,7 +359,7 @@ def media_delete(request: HttpRequest) -> HttpResponse:
     model = apps.get_model(app_label="app", model_name=media_type)
     try:
         model.objects.get(**search_params).delete()
-        logger.info("%s deleted successfully.", media_type)
+        logger.info("%s %s deleted successfully.", media_type, media_id)
     except model.DoesNotExist:
         logger.exception("The %s was already deleted before.", media_type)
 
