@@ -1,13 +1,11 @@
 """Django settings for Yamtrack project."""
 
-import atexit
 import warnings
 from pathlib import Path
 
 import pytz
 from decouple import Csv, config
 from django.core.cache import CacheKeyWarning
-from redislite import Redis
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -114,22 +112,19 @@ else:
 # Cache
 # https://docs.djangoproject.com/en/stable/topics/cache/
 
-RDB = Redis(BASE_DIR / "db" / "redis.db")
-
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": f"unix://{RDB.socket_file}",
-        "TIMEOUT": 21600,
-    },
-}
+# use redis if available, otherwise use django default which is local memory
+if config("REDIS_URL", default=None):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": config("REDIS_URL"),
+        },
+    }
 
 # not using Memcached, ignore CacheKeyWarning
 # https://docs.djangoproject.com/en/stable/topics/cache/#cache-key-warnings
 warnings.simplefilter("ignore", CacheKeyWarning)
 
-# cleanly shutdown the Redis server when the app is closed
-atexit.register(RDB.shutdown)
 
 # Session
 # https://docs.djangoproject.com/en/stable/topics/http/sessions/

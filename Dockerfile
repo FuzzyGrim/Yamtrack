@@ -6,9 +6,9 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /requirements.txt
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends g++ build-essential gosu \
+	&& apt-get install -y --no-install-recommends g++ gosu \
 	&& pip install --no-cache-dir -r /requirements.txt \
-	&& apt-get -y autoremove --purge g++ build-essential \
+	&& apt-get -y autoremove --purge g++ \
 	&& apt-get clean -y \
 	&& rm -rf /var/lib/apt/lists/*
 

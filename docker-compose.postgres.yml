@@ -6,9 +6,11 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+      - redis
     environment:
       - TMDB_API=TMDB_API_KEY
       - MAL_API=MAL_API_KEY
+      - REDIS_URL=redis://redis:6379
       - DB_HOST=db
       - DB_NAME=yamtrack
       - DB_USER=yamtrack
@@ -24,8 +26,17 @@ services:
       - POSTGRES_DB=yamtrack
       - POSTGRES_USER=yamtrack
       - POSTGRES_PASSWORD=yamtrack
-      - TZ=Europe/Madrid
-      - PGTZ=Europe/Madrid
+
     volumes:
       - ./db:/var/lib/postgresql/data
     restart: unless-stopped
+
+  redis:
+    container_name: yamtrack-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
