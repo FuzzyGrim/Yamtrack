@@ -18,8 +18,8 @@ services:
       - "8000:8000"
 
   db:
-    image: docker.io/library/postgres:15-alpine
-    container_name: yamtrack_db
+    image: postgres:16-alpine
+    container_name: yamtrack-db
     environment:
       - POSTGRES_DB=yamtrack
       - POSTGRES_USER=yamtrack
