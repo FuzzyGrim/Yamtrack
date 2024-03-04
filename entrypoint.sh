@@ -10,5 +10,6 @@ PGID=${PGID:-1000}
 groupmod -o -g "$PGID" abc
 usermod -o -u "$PUID" abc
 chown -R abc:abc db
+chown -R abc:abc staticfiles
 
 exec gosu abc:abc gunicorn --bind :8000 --timeout 120 --preload config.wsgi:application
