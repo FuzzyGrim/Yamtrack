@@ -1,5 +1,5 @@
 crispy-bootstrap5==2023.10
-Django==5.0.2
+Django==5.0.3
 django-compressor==4.4
 django-crispy-forms==2.1
 django_debug_toolbar==4.3.0
