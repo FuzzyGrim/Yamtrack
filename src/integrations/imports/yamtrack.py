@@ -33,11 +33,12 @@ def importer(file: InMemoryUploadedFile, user: User) -> None:
         if media_type == "episode":
             form = EpisodeForm(row)
             if form.is_valid():
+                # media_id and season_number needed for later fetching related season
                 bulk_media["episodes"].append(
                     {
                         "instance": form.instance,
-                        "media_id": row["media_id"],
-                        "season_number": row["season_number"],
+                        "media_id": int(row["media_id"]),
+                        "season_number": int(row["season_number"]),
                     },
                 )
             else:
@@ -45,27 +46,50 @@ def importer(file: InMemoryUploadedFile, user: User) -> None:
         else:
             add_bulk_media(row, user, bulk_media)
 
-    # bulk create tv, movie, anime and manga
-    for media_type, medias in bulk_media.items():
-        if media_type not in ["season", "episodes"]:
+    for media_type in ["anime", "manga", "movie", "tv"]:
+        if bulk_media[media_type]:
             model = apps.get_model(app_label="app", model_name=media_type)
-            model.objects.bulk_create(medias, ignore_conflicts=True)
+            model.objects.bulk_create(bulk_media[media_type], ignore_conflicts=True)
 
     if bulk_media["season"]:
-        # bulk create seasons
+        # Extract unique media IDs from the seasons
+        unique_media_ids = {season.media_id for season in bulk_media["season"]}
+
+        # Fetch TV for all unique media IDs
+        tv_objects = TV.objects.filter(media_id__in=unique_media_ids, user=user)
+
+        # Create a mapping from media ID to TV
+        tv_mapping = {tv.media_id: tv for tv in tv_objects}
+
+        # Assign related_tv to each season using the mapping
         for season in bulk_media["season"]:
-            season.related_tv = TV.objects.get(media_id=season.media_id, user=user)
+            season.related_tv = tv_mapping[season.media_id]
 
         Season.objects.bulk_create(bulk_media["season"], ignore_conflicts=True)
 
     if bulk_media["episodes"]:
-        # bulk create episodes
+        # Extract unique media IDs and season numbers from the episodes
+        unique_season_keys = {
+            (episode["media_id"], episode["season_number"])
+            for episode in bulk_media["episodes"]
+        }
+
+        # Fetch Season objects for all unique combinations of media ID and season number
+        season_objects = Season.objects.filter(
+            user=user,
+            media_id__in=[key[0] for key in unique_season_keys],
+            season_number__in=[key[1] for key in unique_season_keys],
+        )
+
+        # Create a mapping from (media_id, season_number) tuple to Season
+        season_mapping = {
+            (season.media_id, season.season_number): season for season in season_objects
+        }
+
+        # Assign related_season to each episode using the mapping
         for episode in bulk_media["episodes"]:
-            episode["instance"].related_season = Season.objects.get(
-                media_id=episode["media_id"],
-                season_number=episode["season_number"],
-                user=user,
-            )
+            season_key = (episode["media_id"], episode["season_number"])
+            episode["instance"].related_season = season_mapping[season_key]
 
         episode_instances = [episode["instance"] for episode in bulk_media["episodes"]]
         Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)

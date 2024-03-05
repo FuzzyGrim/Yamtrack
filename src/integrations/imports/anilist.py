@@ -1,7 +1,6 @@
 import datetime
 import logging
 
-from app import forms
 from app.models import Anime, Manga
 from app.providers import services
 from django.apps import apps
@@ -116,34 +115,28 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
                         else:
                             status = content["status"].capitalize()
 
-                        instance = apps.get_model(
+                        if content["notes"] is None:
+                            content["notes"] = ""
+
+                        model_type = apps.get_model(
                             app_label="app",
                             model_name=media_type,
-                        )(
-                            user=user,
+                        )
+
+                        instance = model_type(
+                            media_id=content["media"]["idMal"],
                             title=content["media"]["title"]["userPreferred"],
                             image=content["media"]["coverImage"]["large"],
+                            score=content["score"],
+                            progress=content["progress"],
+                            status=status,
+                            start_date=get_date(content["startedAt"]),
+                            end_date=get_date(content["completedAt"]),
+                            user=user,
+                            notes=content["notes"],
                         )
-                        form = forms.get_form_class(media_type)(
-                            data={
-                                "media_id": content["media"]["idMal"],
-                                "media_type": media_type,
-                                "score": content["score"],
-                                "progress": content["progress"],
-                                "status": status,
-                                "start_date": get_date(content["startedAt"]),
-                                "end_date": get_date(content["completedAt"]),
-                                "notes": content["notes"],
-                            },
-                            instance=instance,
-                        )
-                        if form.is_valid():
-                            bulk_media[media_type].append(form.instance)
-                        else:
-                            warning_message += "\n {} ({}): Import failed".format(
-                                content["media"]["title"]["userPreferred"],
-                                media_type.capitalize(),
-                            )
+
+                        bulk_media[media_type].append(instance)
 
     Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
     Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)

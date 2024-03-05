@@ -1,6 +1,5 @@
 import logging
 
-from app import forms
 from app.models import Anime, Manga
 from app.providers import services
 from django.apps import apps
@@ -23,8 +22,8 @@ def importer(username: str, user: User) -> None:
 
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
-    Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
-    Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
+    Anime.objects.bulk_create(bulk_add_anime)
+    Manga.objects.bulk_create(bulk_add_manga)
 
 
 def get_whole_response(url: str) -> dict:
@@ -70,29 +69,21 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
             image_url = settings.IMG_NONE
 
         model = apps.get_model(app_label="app", model_name=media_type)
-        instance = model(user=user, title=content["node"]["title"], image=image_url)
 
-        form = forms.get_form_class(media_type)(
-            data={
-                "media_id": content["node"]["id"],
-                "media_type": media_type,
-                "score": content["list_status"]["score"],
-                "progress": progress,
-                "status": status,
-                "start_date": content["list_status"].get("start_date", None),
-                "end_date": content["list_status"].get("finish_date", None),
-                "notes": content["list_status"]["comments"],
-            },
-            instance=instance,
+        instance = model(
+            media_id=content["node"]["id"],
+            title=content["node"]["title"],
+            image=image_url,
+            score=content["list_status"]["score"],
+            progress=progress,
+            status=status,
+            start_date=content["list_status"].get("start_date", None),
+            end_date=content["list_status"].get("finish_date", None),
+            user=user,
+            notes=content["list_status"]["comments"],
         )
 
-        if form.is_valid():
-            bulk_media.append(form.instance)
-        else:
-            error_message = (
-                f"Error importing {content['node']['title']}: {form.errors.as_data()}"
-            )
-            logger.error(error_message)
+        bulk_media.append(instance)
 
     return bulk_media
 

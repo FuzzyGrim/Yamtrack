@@ -48,7 +48,7 @@ class Media(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    notes = models.TextField(blank=True)
+    notes = models.TextField(blank=True, default="")
 
     class Meta:
         """Meta options for the model."""
@@ -153,12 +153,18 @@ class TV(Media):
     @property
     def start_date(self: "TV") -> datetime.date:
         """Return the date of the first episode watched."""
-        return min(season.start_date for season in self.seasons.all())
+        return min(
+            (season.start_date for season in self.seasons.all()),
+            default=datetime.date(datetime.MINYEAR, 1, 1),
+        )
 
     @property
     def end_date(self: "TV") -> datetime.date:
         """Return the date of the last episode watched."""
-        return max(season.end_date for season in self.seasons.all())
+        return max(
+            (season.end_date for season in self.seasons.all()),
+            default=datetime.date(datetime.MINYEAR, 1, 1),
+        )
 
     def completed(self: "TV") -> None:
         """Create remaining seasons and episodes for a TV show."""
@@ -251,20 +257,18 @@ class Season(Media):
     @property
     def start_date(self: "Season") -> datetime.date:
         """Return the date of the first episode watched."""
-        try:
-            start = min(episode.watch_date for episode in self.episodes.all())
-        except ValueError:  # no episodes watched
-            start = datetime.date(datetime.MINYEAR, 1, 1)
-        return start
+        return min(
+            (episode.watch_date for episode in self.episodes.all()),
+            default=datetime.date(datetime.MINYEAR, 1, 1),
+        )
 
     @property
     def end_date(self: "Season") -> datetime.date:
         """Return the date of the last episode watched."""
-        try:
-            end = max(episode.watch_date for episode in self.episodes.all())
-        except ValueError:
-            end = datetime.date(datetime.MINYEAR, 1, 1)
-        return end
+        return max(
+            (episode.watch_date for episode in self.episodes.all()),
+            default=datetime.date(datetime.MINYEAR, 1, 1),
+        )
 
     def increase_progress(self: "Season") -> None:
         """Increase the progress of the season by one."""
