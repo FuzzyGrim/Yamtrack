@@ -132,7 +132,13 @@ warnings.simplefilter("ignore", CacheKeyWarning)
 # Global default, can be overwritten at CustomLoginView
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# save sessions in redis if available
+if config("REDIS_URL", default=None):
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# if not using redis, save sessions to database
+else:
+    INSTALLED_APPS.append("django.contrib.sessions")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/stable/ref/settings/#auth-password-validators
