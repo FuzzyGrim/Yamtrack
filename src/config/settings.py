@@ -34,7 +34,6 @@ INSTALLED_APPS = [
     "integrations",
     "crispy_forms",
     "crispy_bootstrap5",
-    "sass_processor",
     "debug_toolbar",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -228,14 +227,6 @@ REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
-
-STATICFILES_FINDERS = [
-    "django.contrib.staticfiles.finders.FileSystemFinder",
-    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    "sass_processor.finders.CssFinder",
-]
-
-SASS_OUTPUT_STYLE = "compact"
 
 DEBUG_TOOLBAR_CONFIG = {
     "SKIP_TEMPLATE_PREFIXES": (

@@ -9,7 +9,7 @@
     <div class="details-top d-flex">
       <div class="image">
         <img src="{{ season.image }}"
-             class="{% if season.image != IMG_NONE %} poster {% else %} image-not-found {% endif %}"
+             class="{% if season.image != IMG_NONE %}poster{% else %}image-not-found{% endif %}"
              alt="{{ season.name }}" />
       </div>
       <div class="details-data d-flex flex-column align-items-start">
@@ -24,7 +24,7 @@
             <strong>{{ key|totitle }}:</strong> {{ value }}
           </div>
         {% endfor %}
-        <div class="mt-auto">
+        <div class="mt-sm-auto mt-3">
           {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst only %}
         </div>
       </div>

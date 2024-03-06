@@ -25,7 +25,6 @@ RUN chmod +x /entrypoint.sh && \
 
 # Django app
 COPY src ./
-RUN python manage.py compilescss
-RUN python manage.py collectstatic --noinput --ignore=*.scss
+RUN python manage.py collectstatic
 
 CMD ["/entrypoint.sh"]

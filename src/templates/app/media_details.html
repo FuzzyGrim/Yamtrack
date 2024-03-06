@@ -19,7 +19,7 @@
             <strong>{{ key|totitle }}:</strong> {{ value }}
           </div>
         {% endfor %}
-        <div class="mt-auto">
+        <div class="mt-sm-auto mt-3">
           {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=media.media_id title=media.title only %}
         </div>
       </div>

@@ -1,5 +1,4 @@
 {% load static %}
-{% load sass_tags %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
   <head>
@@ -11,7 +10,7 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-icons.css" %}" />
-    <link rel="stylesheet" type="text/css" href="{% sass_src "css/main.scss" %}" />
+    <link rel="stylesheet" type="text/css" href="{% static "css/main.css" %}" />
     <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static "favicon/favicon-32x32.png" %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static "favicon/favicon-16x16.png" %}">
@@ -83,12 +82,10 @@
               </a>
             </li>
             <li>
-              <form class="logout-form nav-link"
-                    method="post"
-                    action="{% url 'logout' %}">
+              <form class="nav-link" method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <i class="bi bi-box-arrow-left me-2"></i>
-                <button type="submit">Logout</button>
+                <button class="logout-btn" type="submit">Logout</button>
               </form>
             </li>
           </ul>
