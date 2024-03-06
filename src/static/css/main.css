@@ -44,12 +44,9 @@
 
 :root {
   --background: #1c1e1f;
-  --primary: #212325;
-  --secondary: #6c757d;
-  --accent: #758fa3;
+  --secondary-bg: #212325;
+  --selected: #6c757d;
   --bg-img-none: #2c3032;
-  --white: #fff;
-  --black: #000;
 }
 
 body {
@@ -85,7 +82,7 @@ debug, info, success, warning, error */
   width: 230px;
 
   /* override bootstrap sidebar bg */
-  background-color: var(--primary) !important;
+  background-color: var(--secondary-bg) !important;
 
   /* override bootstrap offcanvas width */
   &.offcanvas-lg {
@@ -95,7 +92,7 @@ debug, info, success, warning, error */
 
 .nav-pills {
   .nav-link.active {
-    background-color: var(--secondary);
+    background-color: var(--selected);
   }
 
   .nav-link:not(.active) {
@@ -198,11 +195,11 @@ debug, info, success, warning, error */
 }
 
 .table-responsive {
-  background-color: var(--primary);
+  background-color: var(--secondary-bg);
 }
 
 .table {
-  --bs-table-bg: var(--primary);
+  --bs-table-bg: var(--secondary-bg);
 
   /* mainly to fill td for image not found */
   td img {
