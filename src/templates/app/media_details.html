@@ -30,8 +30,8 @@
     </div>
     {% for name, related_items in media.related.items %}
       {% if related_items %}
-        <p class="mt-3 fs-5">{{ name|no_under|title }}</p>
-        <div class="grid">
+        <h2 class="fs-5">{{ name|no_under|title }}</h2>
+        <div class="grid mb-4">
           {% for related in related_items %}
             <div class="card text-bg-dark mx-auto">
               <a href="{% if name == "seasons" %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=related.season_number %}{% else %}{% url 'media_details' media_type=media.media_type media_id=related.media_id title=related.title|slug %}{% endif %}">

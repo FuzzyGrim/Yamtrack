@@ -13,12 +13,12 @@
              alt="{{ season.name }}" />
       </div>
       <div class="details-data d-flex flex-column align-items-start">
-        <h2 class="tv-title fs-4 mb-0">
+        <h2 class="tv-title fs-5 mb-0">
           <a href="{% url 'media_details' media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
             {{ tv.title|capfirst }}
           </a>
         </h2>
-        <div class="title">{{ season.title }}</div>
+        <h1 class="title">{{ season.title }}</h1>
         <p>{{ season.synopsis }}</p>
         <div class="additional-data">
           {% for key, value in season.details.items %}

@@ -129,13 +129,12 @@ debug, info, success, warning, error */
 
 .grid {
   display: grid;
-  grid-gap: 0.5rem;
-  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 }
 
 .card {
   width: 100%;
-  margin-bottom: 1rem;
 
   .poster {
     width: 100%;
@@ -174,7 +173,6 @@ debug, info, success, warning, error */
 }
 
 .card-text {
-  font-size: 0.85rem;
 
   .open-track-btn {
     padding: 0.1rem 0.3rem;
@@ -186,6 +184,10 @@ debug, info, success, warning, error */
 
     &:disabled {
       color: transparent;
+    }
+
+    &:hover {
+      color: white;
     }
   }
 }
@@ -243,13 +245,11 @@ debug, info, success, warning, error */
   padding: 1rem;
 
   .first-input {
-    margin-bottom: -1px;
     border-bottom-right-radius: 0;
     border-bottom-left-radius: 0;
   }
 
   .middle-input {
-    margin-bottom: -1px;
     border-radius: 0;
   }
 
@@ -307,7 +307,7 @@ debug, info, success, warning, error */
   margin-left: 1rem;
 
   .title {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
     font-weight: 700;
   }
 
