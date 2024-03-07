@@ -18,7 +18,7 @@ def search(media_type: str, query: str) -> list:
             {
                 "media_id": media["id"],
                 "media_type": media_type,
-                "original_type": get_original_type(media_type),
+                "format": get_format(media_type),
                 "title": get_title(media),
                 "image": get_image_url(media["poster_path"]),
             }
@@ -38,20 +38,22 @@ def movie(media_id: str) -> dict:
     if not data:
         url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
         response = services.api_request(url, "GET")
-
         data = {
             "media_id": media_id,
             "media_type": "movie",
             "title": response["title"],
             "image": get_image_url(response["poster_path"]),
+            "synopsis": get_synopsis(response["overview"]),
             "details": {
-                "original_type": "Movie",
+                "format": "Movie",
                 "start_date": get_start_date(response["release_date"]),
                 "status": response["status"],
-                "synopsis": get_synopsis(response["overview"]),
                 "number_of_episodes": 1,
                 "runtime": get_readable_duration(response["runtime"]),
                 "genres": get_genres(response["genres"]),
+                "studios": get_companies(response["production_companies"]),
+                "country": get_country(response["production_countries"]),
+                "languages": get_languages(response["spoken_languages"]),
             },
             "related": {
                 "recommendations": get_related(
@@ -121,16 +123,19 @@ def process_tv(response: dict) -> dict:
         "media_type": "tv",
         "title": response["name"],
         "image": get_image_url(response["poster_path"]),
+        "synopsis": get_synopsis(response["overview"]),
         "details": {
-            "original_type": "TV",
+            "format": "TV",
             "start_date": get_start_date(response["first_air_date"]),
-            "end_date": get_start_date(response["last_air_date"]),
+            "end_date": get_end_date(response["last_air_date"]),
             "status": response.get("status", "Unknown"),
-            "synopsis": get_synopsis(response["overview"]),
             "number_of_seasons": response.get("number_of_seasons", 1),
             "number_of_episodes": response.get("number_of_episodes", 1),
             "runtime": get_runtime_tv(response["episode_run_time"]),
             "genres": get_genres(response["genres"]),
+            "studios": get_companies(response["production_companies"]),
+            "country": get_country(response["production_countries"]),
+            "languages": get_languages(response["spoken_languages"]),
         },
         "related": {
             "seasons": get_related(response["seasons"], response["id"]),
@@ -162,16 +167,16 @@ def process_season(response: dict) -> dict:
         "title": response["name"],
         "image": get_image_url(response["poster_path"]),
         "season_number": response["season_number"],
+        "synopsis": get_synopsis(response["overview"]),
         "details": {
             "start_date": get_start_date(response["air_date"]),
-            "synopsis": get_synopsis(response["overview"]),
             "number_of_episodes": len(response["episodes"]),
         },
         "episodes": response["episodes"],
     }
 
 
-def get_original_type(media_type: str) -> str:
+def get_format(media_type: str) -> str:
     """Return media_type capitalized."""
 
     if media_type == "tv":
@@ -206,6 +211,17 @@ def get_start_date(date: str) -> str:
     if date == "":
         return "Unknown"
     return date
+
+
+def get_end_date(date: str) -> str:
+    """Return the last date for the media."""
+
+    # when unknown date, value from response is null
+    # e.g tv: 87818
+
+    if date:
+        return date
+    return "Unknown"
 
 
 def get_synopsis(text: str) -> str:
@@ -246,6 +262,42 @@ def get_genres(genres: list) -> str:
     # e.g tv: 24795
     if genres:
         return ", ".join(genre["name"] for genre in genres)
+
+    return "Unknown"
+
+
+def get_country(countries: list) -> str:
+    """Return the production country for the media."""
+
+    # when unknown production country, value from response is empty list
+    # e.g tv: 24795
+
+    if countries:
+        return countries[0]["name"]
+
+    return "Unknown"
+
+
+def get_languages(languages: list) -> str:
+    """Return the languages for the media."""
+
+    # when unknown spoken languages, value from response is empty list
+    # e.g tv: 24795
+
+    if languages:
+        return ", ".join(language["english_name"] for language in languages)
+
+    return "Unknown"
+
+
+def get_companies(companies: list) -> str:
+    """Return the production companies for the media."""
+
+    # when unknown production companies, value from response is empty list
+    # e.g tv: 24795
+
+    if companies:
+        return ", ".join(company["name"] for company in companies)
 
     return "Unknown"
 

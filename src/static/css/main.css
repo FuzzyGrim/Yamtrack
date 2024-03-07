@@ -294,12 +294,10 @@ debug, info, success, warning, error */
 
   /* xs */
   @media screen and (max-width: 575px) {
-    /* wrap content under image */
-    flex-wrap: wrap;
-    /* center image */
-    justify-content: center;
+    flex-direction: column;
 
     .image {
+      text-align: center;
       margin-bottom: 1.5rem;
     }
   }
@@ -308,12 +306,18 @@ debug, info, success, warning, error */
 .details-data {
   margin-left: 1rem;
 
+  .title {
+    font-size: 2.5rem;
+    font-weight: 700;
+  }
+
   /* link to main details from season details */
   a {
     color: var(--bs-body-color);
   }
 
-  .synopsis {
+  p {
+    font-size: 1.2rem;
     /* show only 3 lines of text */
     overflow: hidden;
     display: -webkit-box;
@@ -337,6 +341,12 @@ debug, info, success, warning, error */
       margin-bottom: 1rem;
     }
   }
+}
+
+
+.additional-data {
+  margin-block: auto;
+  column-gap: 2rem;
 }
 
 .episode-img {

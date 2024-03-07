@@ -11,9 +11,9 @@ def addslashes_double(arg1: str) -> str:
 
 
 @register.filter()
-def totitle(arg1: str) -> str:
+def no_under(arg1: str) -> str:
     """Return the title case of the string."""
-    return arg1.replace("_", " ").title()
+    return arg1.replace("_", " ")
 
 
 @register.filter()

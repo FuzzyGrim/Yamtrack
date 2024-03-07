@@ -20,7 +20,7 @@ class Search(TestCase):
         """
         response = mal.search("anime", "Cowboy Bebop")
 
-        required_keys = {"media_id", "media_type", "original_type", "title", "image"}
+        required_keys = {"media_id", "media_type", "format", "title", "image"}
 
         for anime in response:
             self.assertTrue(all(key in anime for key in required_keys))
@@ -38,7 +38,7 @@ class Search(TestCase):
         Assert that all required keys are present in each entry.
         """
         response = tmdb.search("tv", "Breaking Bad")
-        required_keys = {"media_id", "media_type", "original_type", "title", "image"}
+        required_keys = {"media_id", "media_type", "format", "title", "image"}
 
         for tv in response:
             self.assertTrue(all(key in tv for key in required_keys))
@@ -67,7 +67,7 @@ class Metadata(TestCase):
         response = mal.anime("0")
         self.assertEqual(response["title"], "Unknown Example")
         self.assertEqual(response["image"], settings.IMG_NONE)
-        self.assertEqual(response["details"]["synopsis"], "No synopsis available.")
+        self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["details"]["number_of_episodes"], "Unknown")
         self.assertEqual(response["details"]["runtime"], "Unknown")
 
@@ -107,7 +107,10 @@ class Metadata(TestCase):
         response = tmdb.movie("0")
         self.assertEqual(response["title"], "Unknown Movie")
         self.assertEqual(response["image"], settings.IMG_NONE)
+        self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["details"]["start_date"], "Unknown")
-        self.assertEqual(response["details"]["synopsis"], "No synopsis available.")
         self.assertEqual(response["details"]["runtime"], "Unknown")
         self.assertEqual(response["details"]["genres"], "Unknown")
+        self.assertEqual(response["details"]["studios"], "Unknown")
+        self.assertEqual(response["details"]["country"], "Unknown")
+        self.assertEqual(response["details"]["languages"], "Unknown")

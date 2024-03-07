@@ -6,30 +6,34 @@
 {% endblock title %}
 {% block content %}
   <div class="container">
-    <div class="details-top d-flex">
+    <div class="details-top d-flex mb-4">
       <div class="image">
         <img src="{{ season.image }}"
              class="{% if season.image != IMG_NONE %}poster{% else %}image-not-found{% endif %}"
              alt="{{ season.name }}" />
       </div>
       <div class="details-data d-flex flex-column align-items-start">
-        <div class="tv-title">
+        <h2 class="tv-title fs-4 mb-0">
           <a href="{% url 'media_details' media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
             {{ tv.title|capfirst }}
           </a>
+        </h2>
+        <div class="title">{{ season.title }}</div>
+        <p>{{ season.synopsis }}</p>
+        <div class="additional-data">
+          {% for key, value in season.details.items %}
+            <div>
+              <label class="text-body-secondary">{{ key|no_under|upper }}</label>
+              <span>{{ value }}</span>
+            </div>
+          {% endfor %}
         </div>
-        <div class="title fs-4">{{ season.title }}</div>
-        {% for key, value in season.details.items %}
-          <div class="{{ key }}">
-            <strong>{{ key|totitle }}:</strong> {{ value }}
-          </div>
-        {% endfor %}
         <div class="mt-sm-auto mt-3">
           {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst only %}
         </div>
       </div>
     </div>
-    <div class="dropdown mt-5 mb-3">
+    <div class="dropdown mb-3">
       <button class="btn btn-secondary dropdown-toggle"
               type="button"
               data-bs-toggle="dropdown"
@@ -58,13 +62,13 @@
             </div>
           {% endif %}
           <div class="col-sm-9 card-body d-flex flex-column align-items-start pb-2">
-            <div class="episode-title">
+            <h3 class="episode-title">
               S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.title }}
-            </div>
+            </h3>
             <div class="mb-2">
               <small class="text-body-secondary">{{ episode.start_date }}</small>
             </div>
-            <div class="episode-overview mb-2">{{ episode.overview }}</div>
+            <p class="episode-overview mb-2">{{ episode.overview }}</p>
             <div class="mt-auto">
               {% if episode.watched %}
                 <button type="button"

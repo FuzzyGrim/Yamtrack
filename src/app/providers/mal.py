@@ -29,7 +29,7 @@ def search(media_type: str, query: str) -> list:
             {
                 "media_id": media["node"]["id"],
                 "media_type": media_type,
-                "original_type": get_original_type(media["node"]),
+                "format": get_format(media["node"]),
                 "title": media["node"]["title"],
                 "image": get_image_url(media["node"]),
             }
@@ -47,7 +47,7 @@ def anime(media_id: str) -> dict:
     data = cache.get(f"anime_{media_id}")
 
     if not data:
-        url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_episodes,average_episode_duration,related_anime,recommendations"
+        url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,num_episodes,average_episode_duration,studios,start_season,source,genres,related_anime,recommendations"
         response = services.api_request(
             url,
             "GET",
@@ -59,14 +59,17 @@ def anime(media_id: str) -> dict:
             "media_type": "anime",
             "title": response["title"],
             "image": get_image_url(response),
+            "synopsis": get_synopsis(response),
             "details": {
-                "original_type": get_original_type(response),
+                "format": get_format(response),
                 "start_date": response.get("start_date", "Unknown"),
                 "end_date": response.get("end_date", "Unknown"),
                 "status": get_readable_status(response),
-                "synopsis": get_synopsis(response),
                 "number_of_episodes": get_number_of_episodes(response),
                 "runtime": get_runtime(response),
+                "studios": get_studios(response),
+                "season": get_season(response),
+                "source": get_source(response),
                 "genres": get_genres(response),
             },
             "related": {
@@ -98,12 +101,12 @@ def manga(media_id: str) -> dict:
             "media_type": "manga",
             "title": response["title"],
             "image": get_image_url(response),
+            "synopsis": get_synopsis(response),
             "details": {
-                "original_type": get_original_type(response),
+                "format": get_format(response),
                 "start_date": response.get("start_date", "Unknown"),
                 "end_date": response.get("end_date", "Unknown"),
                 "status": get_readable_status(response),
-                "synopsis": get_synopsis(response),
                 "number_of_episodes": get_number_of_episodes(response),
                 "genres": get_genres(response),
             },
@@ -118,7 +121,7 @@ def manga(media_id: str) -> dict:
     return data
 
 
-def get_original_type(response: dict) -> str:
+def get_format(response: dict) -> str:
     """Return the original type of the media."""
 
     # MAL return tv in metadata for anime
@@ -126,11 +129,11 @@ def get_original_type(response: dict) -> str:
         response["media_type"] = "anime"
 
     # for light_novel, tv_special, etc
-    original_type = response["media_type"].replace("_", " ")
-    if len(original_type) <= 3:
+    formatted = response["media_type"].replace("_", " ")
+    if len(formatted) <= 3:
         # ona, ova, etc
-        return original_type.upper()
-    return original_type.title()
+        return formatted.upper()
+    return formatted.title()
 
 
 def get_image_url(response: dict) -> str:
@@ -207,6 +210,37 @@ def get_genres(response: dict) -> str:
     """Return the genres for the media."""
 
     return ", ".join(genre["name"] for genre in response["genres"])
+
+
+def get_studios(response: dict) -> str:
+    """Return the studios for the media."""
+
+    # when unknown studio, studios is an empty list
+    # e.g anime: 43333
+
+    if response["studios"]:
+        return ", ".join(studio["name"] for studio in response["studios"])
+    return "Unknown"
+
+
+def get_season(response: dict) -> str:
+    """Return the season for the media."""
+
+    # when unknown start season, no start_season key in response
+    # e.g anime: 43333
+
+    season = response.get("start_season")
+
+    if season:
+        return f"{season['season'].title()} {season['year']}"
+
+    return "Unknown"
+
+
+def get_source(response: dict) -> str:
+    """Return the source for the media."""
+
+    return response["source"].replace("_", " ").title()
 
 
 def get_related(related_medias: list) -> list:

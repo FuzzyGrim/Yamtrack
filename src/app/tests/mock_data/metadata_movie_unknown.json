@@ -8,6 +8,9 @@
     "runtime": 0,
     "status": "Planned",
     "title": "Unknown Movie",
+    "production_companies": [],
+    "production_countries": [],
+    "spoken_languages": [],
     "recommendations": {
       "page": 1,
       "results": [],
