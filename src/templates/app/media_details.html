@@ -33,14 +33,14 @@
         <h2 class="fs-5">{{ name|no_under|title }}</h2>
         <div class="grid mb-4">
           {% for related in related_items %}
-            <div class="card text-bg-dark mx-auto">
+            <div class="card">
               <a href="{% if name == "seasons" %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=related.season_number %}{% else %}{% url 'media_details' media_type=media.media_type media_id=related.media_id title=related.title|slug %}{% endif %}">
                 <img src="{{ related.image }}"
                      class="card-img {% if related.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                      alt="{{ related.title }}" />
               </a>
               <div class="card-img-overlay">
-                <div class="card-title text-center">{{ related.title }}</div>
+                <div class="card-title">{{ related.title }}</div>
                 <div class="card-text d-flex justify-content-center align-items-center">
                   {% if name == "seasons" %}
                     {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=related.season_number title=media.title only %}

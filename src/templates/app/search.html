@@ -16,14 +16,14 @@
   {% else %}
     <div class="container grid">
       {% for media in query_list %}
-        <div class="card text-bg-dark mx-auto">
+        <div class="card">
           <a href="{% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slug %}">
             <img src="{{ media.image }}"
                  class="card-img {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                  alt="{{ media.title }}" />
           </a>
           <div class="card-img-overlay">
-            <div class="card-title text-center">{{ media.title }}</div>
+            <div class="card-title">{{ media.title }}</div>
             <div class="card-text d-flex justify-content-evenly align-items-center">
               {% if media.type == "tv" %}
                 TV

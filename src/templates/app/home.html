@@ -35,7 +35,7 @@
                        data-expand="1000" />
                 </a>
                 <div class="card-img-overlay">
-                  <div class="card-title text-center">{{ media }}</div>
+                  <div class="card-title">{{ media }}</div>
                   <div class="card-text d-flex justify-content-center align-items-center"
                        id="{{ media_type }}_{{ media.media_id }}{% if media.season_number != None %}_{{ media.season_number }}{% endif %}">
                     {% include "app/components/progress_changer.html" with media_type=media_type media=media csrf_token=csrf_token only %}

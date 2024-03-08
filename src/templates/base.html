@@ -38,7 +38,7 @@
              class="text-center text-decoration-none text-white">
             <span class="fs-4">Yamtrack</span>
           </a>
-          <hr class="text-bg-dark">
+          <hr>
           <ul class="nav nav-pills flex-column mb-auto">
             <li class="nav-item">
               <a href="{% url 'home' %}" class="nav-link {% if request.path == "/" %}active{% endif %}">
@@ -75,7 +75,7 @@
                 <i class="bi bi-book me-2"></i> Mangas
               </a>
             </li>
-            <hr class="text-bg-dark">
+            <hr>
             <li>
               <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
                 <i class="bi bi-person-circle me-2"></i> Profile
