@@ -178,10 +178,8 @@ debug, info, success, warning, error */
 }
 
 .card-text {
-
   .open-track-btn {
     padding: 0;
-    font-size: 1rem;
     background-color: transparent;
     border-color: transparent;
   }
@@ -341,7 +339,6 @@ debug, info, success, warning, error */
     }
   }
 }
-
 
 .additional-data {
   margin-block: auto;

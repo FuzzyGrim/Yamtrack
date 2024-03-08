@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_extras %}
+
 {% block title %}
   Home - Yamtrack
 {% endblock title %}
+
 {% block content %}
   {% if in_progress|length == 0 %}
     {% comment %} e.g when media deleted and try to change progress {% endcomment %}
@@ -17,11 +19,13 @@
       </div>
     </div>
   {% else %}
-    {% comment %} e.g when media deleted and try to change progress {% endcomment %}
     <div class="container">
+
+      {% comment %} e.g when media deleted and try to change progress {% endcomment %}
       {% if messages %}
         {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
       {% endif %}
+  
       {% for media_type, in_progress_list in in_progress.items %}
         <div class="mb-4">
           <h1 class="fs-4 text-center mb-2">{{ media_type|capfirst }} in Progress</h1>

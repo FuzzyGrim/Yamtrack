@@ -1,9 +1,13 @@
 {% extends "users/base.html" %}
 {% load static %}
 
-{% block title %}Login - Yamtrack{% endblock title %}
+{% block title %}
+  Login - Yamtrack
+{% endblock title %}
 
-{% block header_text %}Log in to Yamtrack{% endblock header_text %}
+{% block header_text %}
+  Log in to Yamtrack
+{% endblock header_text %}
 
 {% block form %}
   {% for field in form %}
@@ -13,22 +17,18 @@
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
       </div>
     {% else %}
-      <div class="checkbox my-3">
-        {{ field }} {{ field.label }}
-      </div>
+      <div class="checkbox my-3">{{ field }} {{ field.label }}</div>
     {% endif %}
   {% endfor %}
-
   <button class="w-100 btn btn-lg btn-secondary" type="submit">Log In</button>
 {% endblock form %}
 
-      
 {% block extras %}
   {% if REGISTRATION %}
-  <div class="mt-5 mb-3 ">
-    <small class="text-muted">
-      Need An Account? <a class="ml-2" href="{% url 'register' %}">Register Now</a>
-    </small>
-  </div>
+    <div class="mt-5 mb-3 ">
+      <small class="text-muted">
+        Need An Account? <a class="ml-2" href="{% url 'register' %}">Register Now</a>
+      </small>
+    </div>
   {% endif %}
 {% endblock extras %}

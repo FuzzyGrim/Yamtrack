@@ -1,4 +1,5 @@
 {% load app_extras %}
+
 <button type="button"
         hx-get="/track_form"
         hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "title": "{{ title|addslashes_double }}", "media_type": "{{ media_type }}", "media_id": "{{ media_id }}"{% if season_number %}, "season_number": "{{ season_number }}"{% endif %}}'
@@ -10,6 +11,7 @@
         data-bs-target="#track-modal-{{ media_type }}_{{ media_id }}{% if season_number %}_{{ season_number }}{% endif %}">
   <i class="bi bi-pencil-square"></i>
 </button>
+
 <div class="modal fade track-modal"
      id="track-modal-{{ media_type }}_{{ media_id }}{% if season_number %}_{{ season_number }}{% endif %}"
      tabindex="-1"

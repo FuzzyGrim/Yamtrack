@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load app_extras %}
+
 {% block title %}
   {% if media_type == "tv" %}
     TVs - Yamtrack
@@ -9,6 +10,7 @@
     {{ media_type|title }}s - Yamtrack
   {% endif %}
 {% endblock title %}
+
 {% block content %}
   <div class="container">
     <div class="mb-3">
@@ -33,6 +35,7 @@
         </div>
       </div>
     </div>
+
     <div class="grid">
       {% for media in media_list %}
         <div class="card">

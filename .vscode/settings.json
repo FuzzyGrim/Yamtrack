@@ -24,4 +24,5 @@
   "djlint.ignore": [
     "H006"
   ],
+  "djlint.preserveBlankLines": true,
 }

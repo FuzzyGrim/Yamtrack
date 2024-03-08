@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_extras %}
+
 {% block title %}
   {{ media.title }} - Yamtrack
 {% endblock title %}
+
 {% block content %}
   <div class="container">
     <div class="details-top d-flex mb-4">
@@ -28,6 +30,7 @@
         </div>
       </div>
     </div>
+
     {% for name, related_items in media.related.items %}
       {% if related_items %}
         <h2 class="fs-5">{{ name|no_under|title }}</h2>

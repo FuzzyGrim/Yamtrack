@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_extras %}
+
 {% block title %}
   Search - Yamtrack
 {% endblock title %}
+
 {% block content %}
   {% comment %} MAL returns "error":"bad_request"  {% endcomment %}
   {% if not query_list %}
@@ -22,6 +24,7 @@
                  class="card-img {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                  alt="{{ media.title }}" />
           </a>
+
           <div class="card-img-overlay">
             <div class="card-title">{{ media.title }}</div>
             <div class="card-text d-flex justify-content-evenly align-items-center">
@@ -33,6 +36,7 @@
               {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=media.media_id title=media.title only %}
             </div>
           </div>
+
         </div>
       {% endfor %}
     </div>

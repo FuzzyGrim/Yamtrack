@@ -2,9 +2,11 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load app_extras %}
+
 {% block title %}
   {{ media_type|title }}s - Yamtrack
 {% endblock title %}
+
 {% block content %}
   <div class="container">
     <div class="table-responsive rounded p-4 mb-4">
@@ -40,6 +42,7 @@
             <th>Edit</th>
           </tr>
         </thead>
+
         <tbody>
           {% for media in media_list %}
             <tr>

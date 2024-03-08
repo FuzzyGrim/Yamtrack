@@ -7,7 +7,9 @@
         {% if media.progress == 0 %}disabled{% endif %}>
   <i class="bi bi-dash"></i> {% comment %} decrease progress button {% endcomment %}
 </button>
+
 <div class="progress_count">{{ media.progress }}</div>
+
 <button class="btn progress-btn"
         hx-post="/progress_edit"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'

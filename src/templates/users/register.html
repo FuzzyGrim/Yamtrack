@@ -1,9 +1,13 @@
 {% extends "users/base.html" %}
 {% load static %}
 
-{% block title %}Register - Yamtrack{% endblock title %}
+{% block title %}
+  Register - Yamtrack
+{% endblock title %}
 
-{% block header_text %}Register to Yamtrack{% endblock header_text %}
+{% block header_text %}
+  Register to Yamtrack
+{% endblock header_text %}
 
 {% block form %}
   {% for field in form %}
@@ -14,10 +18,8 @@
   {% endfor %}
 
   <button class="w-100 btn btn-lg btn-secondary" type="submit">Sign Up</button>
-
 {% endblock form %}
 
-      
 {% block extras %}
   <div class="mt-5 mb-3 ">
     <small class="text-muted">
