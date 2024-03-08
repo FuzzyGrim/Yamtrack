@@ -69,6 +69,11 @@ img.lazyload:not([src]) {
   visibility: hidden;
 }
 
+/* hides asterisk for required fields in form */
+.asteriskField {
+  display: none;
+}
+
 /* bootstrap alert CSS, translated to the django-standard levels of
 debug, info, success, warning, error */
 
