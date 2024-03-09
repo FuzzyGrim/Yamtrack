@@ -45,15 +45,6 @@ class UserLoginForm(AuthenticationForm):
         label="Password",
     )
 
-    remember_me = forms.BooleanField(
-        label="Remember Me",
-        initial=False,
-        required=False,
-        widget=forms.CheckboxInput(
-            attrs={"class": "form-check-input"},
-        ),
-    )
-
 
 class UserRegisterForm(UserCreationForm):
     """Style the form."""

@@ -128,9 +128,6 @@ warnings.simplefilter("ignore", CacheKeyWarning)
 # Session
 # https://docs.djangoproject.com/en/stable/topics/http/sessions/
 
-# Global default, can be overwritten at CustomLoginView
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-
 # save sessions in redis if available
 if config("REDIS_URL", default=None):
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"

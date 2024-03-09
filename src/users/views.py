@@ -36,18 +36,13 @@ def register(request: HttpRequest) -> HttpResponse:
 
 
 class CustomLoginView(LoginView):
-    """Custom login view with remember me button."""
+    """Custom login view with logging."""
 
     form_class = UserLoginForm
     template_name = "users/login.html"
 
     def form_valid(self: "CustomLoginView", form: UserLoginForm) -> HttpResponse:
         """Log the user in and set the session expiry."""
-
-        remember_me = form.cleaned_data["remember_me"]
-        if remember_me:
-            self.request.session.set_expiry(2592000)  # 30 days
-            self.request.session.modified = True
 
         logger.info(
             "User logged in as: %s at %s",
