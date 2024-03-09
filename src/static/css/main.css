@@ -43,15 +43,8 @@
 }
 
 :root {
-  --background: #1c1e1f;
-  --secondary-bg: #212325;
-  --selected: #6c757d;
+  --bs-body-font-family: "Roboto", sans-serif;
   --bg-img-none: #2c3032;
-}
-
-body {
-  background-color: var(--background);
-  font-family: "Roboto", sans-serif;
 }
 
 main {
@@ -83,11 +76,8 @@ debug, info, success, warning, error */
   color: #ea868f;
 }
 
-.sidebar {
+#sidebar {
   width: 230px;
-
-  /* override bootstrap sidebar bg */
-  background-color: var(--secondary-bg) !important;
 
   /* override bootstrap offcanvas width */
   &.offcanvas-lg {
@@ -97,11 +87,11 @@ debug, info, success, warning, error */
 
 .nav-pills {
   .nav-link.active {
-    background-color: var(--selected);
+    background-color: transparent;
   }
 
   .nav-link:not(.active) {
-    color: hsl(0, 0%, 85%);
+    color: hsl(0, 0%, 75%);
 
     &:hover {
       color: white;
@@ -113,7 +103,7 @@ debug, info, success, warning, error */
   background: none;
   border: none;
   padding: 0;
-  color: hsl(0, 0%, 85%);
+  color: hsl(0, 0%, 75%);
 
   &:hover {
     color: white;
@@ -198,11 +188,11 @@ debug, info, success, warning, error */
 }
 
 .table-responsive {
-  background-color: var(--secondary-bg);
+  background-color: hsl(210, 10.8%, 16%);
 }
 
 .table {
-  --bs-table-bg: var(--secondary-bg);
+  --bs-table-bg: hsl(210, 10.8%, 16%);
 
   /* mainly to fill td for image not found */
   td img {
@@ -234,30 +224,22 @@ debug, info, success, warning, error */
 /* login/register page */
 .entry-wrapper {
   height: 100svh;
+}
+
+.form-signin {
+  max-width: 500px;
+
+  @media screen and (max-width: 575px) {
+    max-width: 330px;
+  }
+
+  h1 {
+    margin-top: -6rem !important;
+  }
 
   /* messages list */
   ul {
     margin-bottom: 0;
-  }
-}
-
-.form-signin {
-  max-width: 330px;
-  padding: 1rem;
-
-  .first-input {
-    border-bottom-right-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-
-  .middle-input {
-    border-radius: 0;
-  }
-
-  .last-input {
-    margin-bottom: 10px;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
   }
 }
 

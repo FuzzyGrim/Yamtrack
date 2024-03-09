@@ -1,27 +1,13 @@
 {% extends "users/base.html" %}
-{% load static %}
+
+{% load crispy_forms_tags %}
 
 {% block title %}
   Register - Yamtrack
 {% endblock title %}
 
-{% block header_text %}
-  Register to Yamtrack
-{% endblock header_text %}
-
-{% block form %}
-  {% for field in form %}
-    <div class="form-floating">
-      {{ field }}
-      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-    </div>
-  {% endfor %}
-
-  <button class="w-100 btn btn-lg btn-secondary" type="submit">Sign Up</button>
-{% endblock form %}
-
 {% block extras %}
-  <div class="mt-5 mb-3 ">
+  <div class="mt-4 text-center">
     <small class="text-muted">
       Already Have An Account? <a class="ml-2" href="{% url 'login' %}">Sign In</a>
     </small>

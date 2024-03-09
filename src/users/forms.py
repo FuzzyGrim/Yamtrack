@@ -1,5 +1,5 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import BaseInput
+from crispy_forms.layout import Submit
 from django import forms
 from django.contrib.auth.forms import (
     AuthenticationForm,
@@ -11,7 +11,7 @@ from .models import User
 
 
 class UserLoginForm(AuthenticationForm):
-    """Add a remember me checkbox and style the form."""
+    """Override the default login form."""
 
     # Override the default error messages
     error_messages = {
@@ -21,69 +21,39 @@ class UserLoginForm(AuthenticationForm):
 
     username = forms.CharField(
         max_length=150,
-        widget=forms.TextInput(
-            attrs={
-                "autofocus": True,
-                "class": "textinput textInput form-control first-input",
-                "required": True,
-                "id": "id_username",
-                "placeholder": "Username",
-            },
-        ),
-        label="Username",
+        widget=forms.TextInput(),
     )
     password = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control last-input",
-                "required": True,
-                "id": "id_password1",
-                "placeholder": "Password",
-            },
-        ),
-        label="Password",
+        widget=forms.PasswordInput(),
     )
+
+    def __init__(self: "UserUpdateForm", *args: dict, **kwargs: dict) -> None:
+        """Add crispy form helper to add submit button."""
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.add_input(
+            Submit(
+                "submit",
+                "Log In",
+                css_class="btn btn-primary w-100 mt-3",
+            ),
+        )
 
 
 class UserRegisterForm(UserCreationForm):
-    """Style the form."""
+    """Override the default registration form."""
 
     username = forms.CharField(
         max_length=150,
-        widget=forms.TextInput(
-            attrs={
-                "autofocus": True,
-                "class": "textinput textInput form-control first-input",
-                "required": True,
-                "id": "id_username",
-                "placeholder": "Username",
-            },
-        ),
-        label="Username",
+        widget=forms.TextInput(),
     )
     password1 = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control middle-input",
-                "required": True,
-                "id": "id_password1",
-                "placeholder": "Password",
-            },
-        ),
+        widget=forms.PasswordInput(),
         label="Password",
     )
+
     password2 = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={
-                "autocomplete": "new-password",
-                "class": "textinput textInput form-control last-input",
-                "required": True,
-                "id": "id_password2",
-                "placeholder": "Password confirmation",
-            },
-        ),
+        widget=forms.PasswordInput(),
         label="Password confirmation",
     )
 
@@ -92,6 +62,18 @@ class UserRegisterForm(UserCreationForm):
 
         model = User
         fields = ["username", "password1", "password2"]
+
+    def __init__(self: "UserUpdateForm", *args: dict, **kwargs: dict) -> None:
+        """Add crispy form helper to add submit button."""
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.add_input(
+            Submit(
+                "submit",
+                "Sign Up",
+                css_class="btn btn-primary w-100 mt-3",
+            ),
+        )
 
 
 class UserUpdateForm(forms.ModelForm):
@@ -111,7 +93,11 @@ class UserUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.add_input(
-            CustomSubmit("submit", "Update"),
+            Submit(
+                "submit",
+                "Update",
+                css_class="btn btn-secondary",
+            ),
         )
         self.fields["username"].help_text = None
 
@@ -141,16 +127,10 @@ class PasswordChangeForm(PasswordChangeForm):
         self.fields["old_password"].widget.attrs.pop("autofocus", None)
         self.helper = FormHelper()
         self.helper.add_input(
-            CustomSubmit("submit", "Update"),
+            Submit(
+                "submit",
+                "Update",
+                css_class="btn btn-secondary",
+            ),
         )
         self.fields["new_password1"].help_text = None
-
-
-class CustomSubmit(BaseInput):
-    """Custom submit button for crispy forms.
-
-    Overrides button class btn-primary to btn-secondary and adds rounded corners.
-    """
-
-    input_type = "submit"
-    field_classes = "btn btn-secondary rounded"

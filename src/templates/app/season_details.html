@@ -23,6 +23,7 @@
         </h2>
         <h1 class="title">{{ season.title }}</h1>
         <p>{{ season.synopsis }}</p>
+
         <div class="additional-data">
           {% for key, value in season.details.items %}
             <div>
@@ -31,10 +32,9 @@
             </div>
           {% endfor %}
         </div>
+
         <div class="mt-sm-auto mt-3">
-
           {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst only %}
-
         </div>
       </div>
     </div>
@@ -65,7 +65,7 @@
           {% else %}
             <div class="col-sm-3">
               <img src="https://image.tmdb.org/t/p/w500{{ episode.image }}"
-                   class="episode-img rounded-start"
+                   class="w-100 h-100 object-fit-cove rounded-start"
                    alt="E{{ episode.episode_number }} image">
             </div>
           {% endif %}
@@ -114,7 +114,7 @@
                               data-bs-dismiss="modal"
                               aria-label="Close"></button>
                     </div>
-  
+ 
                     <div class="modal-body">
                       <div class="text-center fs-5">When did you watch it?</div>
                       <form method="post"
