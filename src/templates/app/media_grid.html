@@ -5,61 +5,82 @@
 
 {% block title %}
   {% if media_type == "tv" %}
-    TVs - Yamtrack
+    TV shows - Yamtrack
   {% else %}
     {{ media_type|title }}s - Yamtrack
   {% endif %}
 {% endblock title %}
 
 {% block content %}
-  <div class="container">
-    <div class="mb-3">
-      <button type="button"
-              class="btn btn-secondary"
-              data-bs-toggle="modal"
-              data-bs-target="#filter-modal">
-        <i class="bi bi-funnel-fill"></i>
-      </button>
-      <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-body">
-              <form method="get">
-                {{ filter_form|crispy }}
-                <div class="text-center">
-                  <button class="btn btn-secondary" type="submit">Filter</button>
-                </div>
-              </form>
+  {% if media_list %}
+    <div class="container">
+      <div class="mb-3">
+        <button type="button"
+                class="btn btn-secondary"
+                data-bs-toggle="modal"
+                data-bs-target="#filter-modal">
+          <i class="bi bi-funnel-fill"></i>
+        </button>
+        <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-body">
+                <form method="get">
+                  {{ filter_form|crispy }}
+                  <div class="text-center">
+                    <button class="btn btn-secondary" type="submit">Filter</button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="grid">
-      {% for media in media_list %}
-        <div class="card">
-          <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
-            <img class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
-                 data-src="{{ media.image }}"
-                 data-expand="1000"
-                 alt="{{ media }}" />
-          </a>
-          <div class="card-img-overlay">
-            <div class="card-title">{{ media }}</div>
-            <div class="card-text d-flex justify-content-evenly align-items-center">
-              <span>{{ media.score }}</span>
-              {% if media.season_number %}
-                {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
-              {% else %}
-                {% include "app/components/open_track_form.html" with request=request media_type=media_type media_id=media.media_id title=media.title only %}
-              {% endif %}
+      <div class="grid">
+        {% for media in media_list %}
+          <div class="card">
+            <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
+              <img class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
+                   data-src="{{ media.image }}"
+                   data-expand="1000"
+                   alt="{{ media }}" />
+            </a>
+            <div class="card-img-overlay">
+              <div class="card-title">{{ media }}</div>
+              <div class="card-text d-flex justify-content-evenly align-items-center">
+                <span>{{ media.score }}</span>
+                {% if media.season_number %}
+                  {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
+                {% else %}
+                  {% include "app/components/open_track_form.html" with request=request media_type=media_type media_id=media.media_id title=media.title only %}
+                {% endif %}
+              </div>
             </div>
           </div>
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     </div>
-  </div>
+  {% else %}
+    <div class="no-content">
+      <div>
+        <h1 class="text-center fs-3">
+          {% if media_type == "tv" %}
+            Your tv show tracker is empty.
+          {% else %}
+            Your {{ media_type }} tracker is empty.
+          {% endif %}
+        </h1>
+        <p class="text-center">
+          {% if media_type == "tv" %}
+            Why not start by adding your favorite tv shows?
+          {% else %}
+            Why not start by adding your favorite {{ media_type }}s?
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  {% endif %}
 {% endblock content %}
 
 {% block extra_scripts %}

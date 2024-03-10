@@ -327,12 +327,6 @@ debug, info, success, warning, error */
   column-gap: 2rem;
 }
 
-.episode-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 .episode-img-none {
   background-image: url(https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg);
   background-color: var(--bg-img-none);

@@ -7,25 +7,13 @@
 {% endblock title %}
 
 {% block content %}
-  {% if in_progress|length == 0 %}
-    {% comment %} e.g when media deleted and try to change progress {% endcomment %}
-    {% if messages %}
-      {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
-    {% endif %}
-    <div class="no-content">
-      <div>
-        <h1 class="text-center fs-3">No media in progress</h1>
-        <p class="text-center">This page will show the media you are currently consuming.</p>
-      </div>
-    </div>
-  {% else %}
+  {% if in_progress %}
     <div class="container">
-
       {% comment %} e.g when media deleted and try to change progress {% endcomment %}
       {% if messages %}
         {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
       {% endif %}
-  
+ 
       {% for media_type, in_progress_list in in_progress.items %}
         <div class="mb-4">
           <h1 class="fs-4 text-center mb-2">{{ media_type|capfirst }} in Progress</h1>
@@ -50,6 +38,18 @@
           </div>
         </div>
       {% endfor %}
+    </div>
+  {% else %}
+    <div class="no-content">
+      {% comment %} e.g when media deleted and try to change progress {% endcomment %}
+      {% if messages %}
+        {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
+      {% endif %}
+
+      <div>
+        <h1 class="text-center fs-3">You don't have any media in progress.</h1>
+        <p class="text-center">Time to explore new media to enjoy!</p>
+      </div>
     </div>
   {% endif %}
 {% endblock content %}

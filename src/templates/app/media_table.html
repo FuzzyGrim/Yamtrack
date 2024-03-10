@@ -4,81 +4,106 @@
 {% load app_extras %}
 
 {% block title %}
-  {{ media_type|title }}s - Yamtrack
+  {% if media_type == "tv" %}
+    TV shows - Yamtrack
+  {% else %}
+    {{ media_type|title }}s - Yamtrack
+  {% endif %}
 {% endblock title %}
 
 {% block content %}
-  <div class="container">
-    <div class="table-responsive rounded border p-4 mb-4">
-      <table class="table table-borderless table-hover align-middle text-center">
-        <thead>
-          <tr>
-            <th>
-              <button type="button"
-                      class="btn btn-secondary filter-btn"
-                      data-bs-toggle="modal"
-                      data-bs-target="#filter-modal">
-                <i class="bi bi-funnel-fill"></i>
-              </button>
-              <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-sm modal-dialog-centered">
-                  <div class="modal-content text-start">
-                    <div class="modal-body">
-                      <form method="get">
-                        {{ filter_form|crispy }}
-                        <div class="text-center">
-                          <button class="btn btn-secondary" type="submit">Filter</button>
-                        </div>
-                      </form>
+  {% if media_list %}
+    <div class="container">
+      <div class="table-responsive rounded border p-4 mb-4">
+        <table class="table table-borderless table-hover align-middle text-center">
+          <thead>
+            <tr>
+              <th>
+                <button type="button"
+                        class="btn btn-secondary filter-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#filter-modal">
+                  <i class="bi bi-funnel-fill"></i>
+                </button>
+                <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-sm modal-dialog-centered">
+                    <div class="modal-content text-start">
+                      <div class="modal-body">
+                        <form method="get">
+                          {{ filter_form|crispy }}
+                          <div class="text-center">
+                            <button class="btn btn-secondary" type="submit">Filter</button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </th>
-            <th class="media-title">Title</th>
-            <th>Score</th>
-            <th>Status</th>
-            <th>Progress</th>
-            <th>Edit</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for media in media_list %}
-            <tr>
-              <td class="nostretch">
-                <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
-                  <img class="lazyload object-fit-cover"
-                       data-src="{{ media.image }}"
-                       data-expand="1000"
-                       width="40"
-                       height="40"
-                       alt="img" />
-                </a>
-              </td>
-              <td class="media-title text-truncate">
-                {% if media.season_number %}
-                  <a href="{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}">{{ media }}</a>
-                {% else %}
-                  <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}">{{ media.title }}</a>
-                {% endif %}
-              </td>
-              <td>{{ media.score }}</td>
-              <td>{{ media.status }}</td>
-              <td>{{ media.progress }}</td>
-              <td>
-                {% if media.season_number %}
-                  {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
-                {% else %}
-                  {% include "app/components/open_track_form.html" with request=request media_type=media_type media_id=media.media_id title=media.title only %}
-                {% endif %}
-              </td>
+              </th>
+              <th class="media-title">Title</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Progress</th>
+              <th>Edit</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {% for media in media_list %}
+              <tr>
+                <td class="nostretch">
+                  <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
+                    <img class="lazyload object-fit-cover"
+                         data-src="{{ media.image }}"
+                         data-expand="1000"
+                         width="40"
+                         height="40"
+                         alt="img" />
+                  </a>
+                </td>
+                <td class="media-title text-truncate">
+                  {% if media.season_number %}
+                    <a href="{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}">{{ media }}</a>
+                  {% else %}
+                    <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}">{{ media.title }}</a>
+                  {% endif %}
+                </td>
+                <td>{{ media.score }}</td>
+                <td>{{ media.status }}</td>
+                <td>{{ media.progress }}</td>
+                <td>
+                  {% if media.season_number %}
+                    {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
+                  {% else %}
+                    {% include "app/components/open_track_form.html" with request=request media_type=media_type media_id=media.media_id title=media.title only %}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  {% else %}
+    <div class="no-content">
+      <div>
+        <h1 class="text-center fs-3">
+          {% if media_type == "tv" %}
+            Your tv show tracker is empty.
+          {% else %}
+            Your {{ media_type }} tracker is empty.
+          {% endif %}
+        </h1>
+        <p class="text-center">
+          {% if media_type == "tv" %}
+            Why not start by adding your favorite tv shows?
+          {% else %}
+            Why not start by adding your favorite {{ media_type }}s?
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  {% endif %}
 {% endblock content %}
 
 {% block extra_scripts %}
