@@ -10,6 +10,7 @@
     <div>
       <h1 class="text-center fs-3">404 - Page not found</h1>
       <p class="text-center">
+        {% if exception %}{{ exception }}<br>{% endif %}
         If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues">report the issue.</a>
       </p>
     </div>

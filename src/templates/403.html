@@ -10,13 +10,7 @@
     <div>
       <h1 class="text-center fs-3">403 - Forbidden</h1>
       <p class="text-center">
-        {% if exception %}
-          {{ exception }}
-        {% else %}
-          You're not allowed to access this page.
-        {% endif %}
-      </p>
-      <p>
+        {% if exception %}{{ exception }}<br>{% endif %}
         If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues">report the issue.</a>
       </p>
     </div>
