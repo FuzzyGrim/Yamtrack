@@ -25,6 +25,6 @@ RUN chmod +x /entrypoint.sh && \
 
 # Django app
 COPY src ./
-RUN python manage.py collectstatic
+RUN python manage.py collectstatic --noinput
 
 CMD ["/entrypoint.sh"]
