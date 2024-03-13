@@ -8,7 +8,7 @@ from django.conf import settings
 from django.test import TestCase
 from users.models import User
 
-from integrations.imports import mal, tmdb, anilist, yamtrack
+from integrations.imports import anilist, mal, tmdb, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
