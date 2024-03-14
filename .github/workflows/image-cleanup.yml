@@ -1,0 +1,15 @@
+name: Cleanup Docker Images
+on:
+  workflow_dispatch:
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/actions/delete-package-versions
+      - name: Delete old untagged images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: "yamtrack"
+          package-type: "container"
+          min-versions-to-keep: 15
+          delete-only-untagged-versions: "true"
