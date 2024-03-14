@@ -1,7 +1,7 @@
 __pycache__
 *.pyc
 .env
-.coverage
+.coverage*
 venv
 src/staticfiles
 src/db/db.sqlite3
