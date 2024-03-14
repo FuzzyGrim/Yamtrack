@@ -4,15 +4,14 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'dev'
+      - "dev"
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches:
-      - 'dev'
+      - "dev"
 
 env:
-  # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
@@ -35,7 +34,6 @@ jobs:
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login to GitHub Container Registry
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v3
@@ -47,9 +45,8 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
+      - name: Extract Docker metadata tags
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -61,7 +58,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
 
-      # Build and push Docker image with Buildx
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image release
         id: build-and-push-release
