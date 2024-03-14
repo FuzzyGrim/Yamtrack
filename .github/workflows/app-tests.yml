@@ -30,9 +30,9 @@ jobs:
           TMDB_API: ${{ secrets.TMDB_API }}
           MAL_API: ${{ secrets.MAL_API }}
         run: |
-          coverage run --source='src/app' --parallel-mode src/manage.py test app
-          coverage run --source='src/users' --parallel-mode src/manage.py test users
-          coverage run --source='src/integrations' --parallel-mode src/manage.py test integrations
+          coverage run --parallel-mode src/manage.py test app
+          coverage run --parallel-mode src/manage.py test users
+          coverage run --parallel-mode src/manage.py test integrations
 
       - name: Build Coverage Report
         run: |
