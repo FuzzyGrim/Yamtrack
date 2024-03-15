@@ -111,7 +111,7 @@ debug, info, success, warning, error */
 }
 
 .search-bar {
-  @media screen and (min-width: 992px) {
+  @media screen and (width >= 992px) {
     width: 50%;
   }
 
@@ -229,7 +229,7 @@ debug, info, success, warning, error */
 .form-signin {
   max-width: 500px;
 
-  @media screen and (max-width: 575px) {
+  @media screen and (width <= 575px) {
     max-width: 330px;
   }
 
@@ -272,7 +272,7 @@ debug, info, success, warning, error */
   }
 
   /* xs */
-  @media screen and (max-width: 575px) {
+  @media screen and (width <= 575px) {
     flex-direction: column;
 
     .image {
@@ -305,7 +305,7 @@ debug, info, success, warning, error */
   }
 
   /* xs */
-  @media screen and (max-width: 575px) {
+  @media screen and (width <= 575px) {
     margin-left: 0;
 
     /* only present in season_details */
