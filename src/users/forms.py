@@ -80,11 +80,11 @@ class UserUpdateForm(forms.ModelForm):
     """Custom form for updating username."""
 
     def clean(self: "PasswordChangeForm") -> dict:
-        """Check if the user is editable before changing the password."""
+        """Check if the user is demo before changing the password."""
 
         cleaned_data = super().clean()
-        if not self.instance.editable:
-            msg = "Changing the username is not allowed for this account."
+        if self.instance.is_demo:
+            msg = "Changing the username is not allowed for the demo account."
             self.add_error("username", msg)
         return cleaned_data
 
@@ -112,11 +112,11 @@ class PasswordChangeForm(PasswordChangeForm):
     """Custom form for changing password."""
 
     def clean(self: "PasswordChangeForm") -> dict:
-        """Check if the user is editable before changing the password."""
+        """Check if the user is demo before changing the password."""
 
         cleaned_data = super().clean()
-        if not self.user.editable:
-            msg = "Changing the password is not allowed for this account."
+        if self.user.is_demo:
+            msg = "Changing the password is not allowed for the demo account."
             self.add_error("new_password2", msg)
         return cleaned_data
 

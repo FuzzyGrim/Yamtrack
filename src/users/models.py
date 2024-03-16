@@ -10,7 +10,7 @@ layouts = [
 class User(AbstractUser):
     """Custom user model that saves the last media search type."""
 
-    editable = models.BooleanField(default=True)
+    is_demo = models.BooleanField(default=False)
 
     last_search_type = models.CharField(
         max_length=10,

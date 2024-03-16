@@ -1,6 +1,9 @@
 """Contains views for importing and exporting media data from various sources."""
 
 import logging
+from collections.abc import Callable
+from functools import wraps
+from typing import ParamSpec, TypeVar
 
 import requests
 from django.contrib import messages
@@ -12,7 +15,25 @@ from integrations.imports import anilist, mal, tmdb, yamtrack
 
 logger = logging.getLogger(__name__)
 
+P = ParamSpec("P")
+T = TypeVar("T")
 
+
+def check_demo(view: Callable[P, T]) -> Callable[P, T]:
+    """Check if the user is a demo account, used as decorator."""
+
+    @wraps(view)
+    def wrapper(request: HttpRequest, *args: P.args, **kwargs: P.kwargs) -> T:
+        if request.user.is_demo:
+            messages.error(request, "Demo accounts are not allowed to import.")
+            return redirect("profile")
+
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+@check_demo
 def import_mal(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from MyAnimeList."""
 
@@ -28,6 +49,7 @@ def import_mal(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
+@check_demo
 def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
     """View for importing TMDB movie and TV ratings."""
 
@@ -52,6 +74,7 @@ def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
+@check_demo
 def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
     """View for importing TMDB movie and TV watchlist."""
 
@@ -76,6 +99,7 @@ def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
+@check_demo
 def import_anilist(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from AniList."""
 
@@ -102,6 +126,7 @@ def import_anilist(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
+@check_demo
 def import_yamtrack(request: HttpRequest) -> HttpResponse:
     """View for importing anime and manga data from Yamtrack CSV."""
 
