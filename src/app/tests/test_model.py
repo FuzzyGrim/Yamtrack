@@ -14,13 +14,13 @@ mock_path = Path(__file__).resolve().parent / "mock_data"
 class MediaModel(TestCase):
     """Test the custom save of the Media model."""
 
-    def setUp(self: "TVModel") -> None:
+    def setUp(self):
         """Create a user."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    def test_movie_completed_no_end(self: "MediaModel") -> None:
+    def test_movie_completed_no_end(self):
         """When completed, if not specified end_date, it should be the current date."""
 
         Movie.objects.create(
@@ -35,7 +35,7 @@ class MediaModel(TestCase):
             datetime.datetime.now(tz=settings.TZ).date(),
         )
 
-    def test_movie_completed_end(self: "MediaModel") -> None:
+    def test_movie_completed_end(self):
         """When completed, if specified end_date, it should be the specified date."""
 
         Movie.objects.create(
@@ -51,7 +51,7 @@ class MediaModel(TestCase):
             date(2023, 6, 1),
         )
 
-    def test_anime_completed_progress(self: "MediaModel") -> None:
+    def test_anime_completed_progress(self):
         """When completed, the progress should be the total number of episodes."""
 
         Anime.objects.create(
@@ -63,7 +63,7 @@ class MediaModel(TestCase):
         )
         self.assertEqual(Anime.objects.get(media_id=1, user=self.user).progress, 26)
 
-    def test_progress_is_max(self: "MediaModel") -> None:
+    def test_progress_is_max(self):
         """Test when progress is set to the maximum number of episodes.
 
         Status should be completed and end_date the current date if not specified.
@@ -86,7 +86,7 @@ class MediaModel(TestCase):
             datetime.datetime.now(tz=settings.TZ).date(),
         )
 
-    def test_progress_bigger_than_max(self: "MediaModel") -> None:
+    def test_progress_bigger_than_max(self):
         """When progress is bigger than max, it should be set to max."""
 
         Anime.objects.create(
@@ -103,7 +103,7 @@ class MediaModel(TestCase):
 class TVModel(TestCase):
     """Test the @properties and custom save of the TV model."""
 
-    def setUp(self: "TVModel") -> None:
+    def setUp(self):
         """Create a user and a season with episodes."""
 
         self.credentials = {"username": "test", "password": "12345"}
@@ -157,25 +157,25 @@ class TVModel(TestCase):
             watch_date=date(2023, 6, 5),
         )
 
-    def test_tv_progress(self: "TVModel") -> None:
+    def test_tv_progress(self):
         """Test the progress property of the Season model."""
 
         tv = TV.objects.get(media_id=1668, user=self.user)
         self.assertEqual(tv.progress, 4)
 
-    def test_tv_start_date(self: "TVModel") -> None:
+    def test_tv_start_date(self):
         """Test the start_date property of the Season model."""
 
         tv = TV.objects.get(media_id=1668, user=self.user)
         self.assertEqual(tv.start_date, date(2023, 6, 1))
 
-    def test_tv_end_date(self: "TVModel") -> None:
+    def test_tv_end_date(self):
         """Test the end_date property of the Season model."""
 
         tv = TV.objects.get(media_id=1668, user=self.user)
         self.assertEqual(tv.end_date, date(2023, 6, 5))
 
-    def test_tv_save(self: "TVModel") -> None:
+    def test_tv_save(self):
         """Test the custom save method of the TV model."""
 
         tv = TV.objects.get(media_id=1668, user=self.user)
@@ -189,7 +189,7 @@ class TVModel(TestCase):
 class SeasonModel(TestCase):
     """Test the @properties and custom save of the Season model."""
 
-    def setUp(self: "SeasonModel") -> None:
+    def setUp(self):
         """Create a user and a season with episodes."""
 
         self.credentials = {"username": "test", "password": "12345"}
@@ -221,25 +221,25 @@ class SeasonModel(TestCase):
             watch_date=date(2023, 6, 2),
         )
 
-    def test_season_progress(self: "SeasonModel") -> None:
+    def test_season_progress(self):
         """Test the progress property of the Season model."""
 
         season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
         self.assertEqual(season.progress, 2)
 
-    def test_season_start_date(self: "SeasonModel") -> None:
+    def test_season_start_date(self):
         """Test the start_date property of the Season model."""
 
         season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
         self.assertEqual(season.start_date, date(2023, 6, 1))
 
-    def test_season_end_date(self: "SeasonModel") -> None:
+    def test_season_end_date(self):
         """Test the end_date property of the Season model."""
 
         season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
         self.assertEqual(season.end_date, date(2023, 6, 2))
 
-    def test_season_save(self: "SeasonModel") -> None:
+    def test_season_save(self):
         """Test the custom save method of the Season model."""
 
         season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
@@ -253,7 +253,7 @@ class SeasonModel(TestCase):
 class EpisodeModel(TestCase):
     """Test the custom save of the Episode model."""
 
-    def setUp(self: "EpisodeModel") -> None:
+    def setUp(self):
         """Create a user and a season."""
 
         self.credentials = {"username": "test", "password": "12345"}
@@ -277,7 +277,7 @@ class EpisodeModel(TestCase):
             related_tv=related_tv,
         )
 
-    def test_episode_save(self: "EpisodeModel") -> None:
+    def test_episode_save(self):
         """Test the custom save method of the Episode model."""
 
         season = Season.objects.get(media_id=1668, season_number=1, user=self.user)

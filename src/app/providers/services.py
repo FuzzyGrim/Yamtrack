@@ -9,12 +9,7 @@ from app.providers import mal, tmdb
 logger = logging.getLogger(__name__)
 
 
-def api_request(
-    url: str,
-    method: str,
-    headers: dict | None = None,
-    json: dict | None = None,
-) -> dict:
+def api_request(url, method, headers=None, json=None):
     """Make a request to the API and return the response as a dictionary."""
 
     if method == "GET":
@@ -33,7 +28,7 @@ def api_request(
     return response.json()
 
 
-def get_media_metadata(media_type: str, media_id: str) -> dict:
+def get_media_metadata(media_type, media_id):
     """Return the metadata for the selected media."""
 
     if media_type == "anime":

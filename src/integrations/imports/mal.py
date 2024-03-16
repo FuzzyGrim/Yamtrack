@@ -4,12 +4,11 @@ from app.models import Anime, Manga
 from app.providers import services
 from django.apps import apps
 from django.conf import settings
-from users.models import User
 
 logger = logging.getLogger(__name__)
 
 
-def importer(username: str, user: User) -> None:
+def importer(username, user):
     """Import anime and manga from MyAnimeList."""
 
     anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status{{comments}}&nsfw=true&limit=1000"
@@ -26,7 +25,7 @@ def importer(username: str, user: User) -> None:
     Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
 
 
-def get_whole_response(url: str) -> dict:
+def get_whole_response(url):
     """Fetch whole data from user.
 
     Continues to fetch data from the next URL until there is no more data to fetch.
@@ -48,7 +47,7 @@ def get_whole_response(url: str) -> dict:
     return data
 
 
-def add_media_list(response: dict, media_type: str, user: User) -> list:
+def add_media_list(response, media_type, user):
     """Add media to list for bulk creation."""
 
     logger.info("Importing %ss from MyAnimeList", media_type)
@@ -88,13 +87,15 @@ def add_media_list(response: dict, media_type: str, user: User) -> list:
     return bulk_media
 
 
-def get_status(status: str) -> str:
+def get_status(status):
     """Convert the status from MyAnimeList to the status used in the app."""
 
     switcher = {
-        "plan_to_watch": "Planning",
-        "on_hold": "Paused",
+        "completed": "Completed",
         "reading": "In progress",
         "watching": "In progress",
+        "plan_to_watch": "Planning",
+        "on_hold": "Paused",
+        "dropped": "Dropped",
     }
-    return switcher.get(status, status.capitalize())
+    return switcher[status]

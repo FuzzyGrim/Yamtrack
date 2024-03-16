@@ -4,7 +4,7 @@ from django.core.cache import cache
 from app.providers import services
 
 
-def search(media_type: str, query: str) -> list:
+def search(media_type, query):
     """Search for media on TMDB."""
 
     data = cache.get(f"search_{media_type}_{query}")
@@ -30,7 +30,7 @@ def search(media_type: str, query: str) -> list:
     return data
 
 
-def movie(media_id: str) -> dict:
+def movie(media_id):
     """Return the metadata for the selected movie from The Movie Database."""
 
     data = cache.get(f"movie_{media_id}")
@@ -67,7 +67,7 @@ def movie(media_id: str) -> dict:
     return data
 
 
-def tv_with_seasons(media_id: str, season_numbers: list[int]) -> dict:
+def tv_with_seasons(media_id, season_numbers):
     """Return the metadata for the tv show with a season appended to the response."""
 
     append_text = ",".join([f"season/{season}" for season in season_numbers])
@@ -101,7 +101,7 @@ def tv_with_seasons(media_id: str, season_numbers: list[int]) -> dict:
     return data
 
 
-def tv(media_id: str) -> dict:
+def tv(media_id):
     """Return the metadata for the selected tv show from The Movie Database."""
 
     data = cache.get(f"tv_{media_id}")
@@ -115,7 +115,7 @@ def tv(media_id: str) -> dict:
     return data
 
 
-def process_tv(response: dict) -> dict:
+def process_tv(response):
     """Process the metadata for the selected tv show from The Movie Database."""
 
     return {
@@ -146,7 +146,7 @@ def process_tv(response: dict) -> dict:
     }
 
 
-def season(tv_id: str, season_number: int) -> dict:
+def season(tv_id, season_number):
     """Return the metadata for the selected season from The Movie Database."""
 
     data = cache.get(f"season_{tv_id}_{season_number}")
@@ -160,7 +160,7 @@ def season(tv_id: str, season_number: int) -> dict:
     return data
 
 
-def process_season(response: dict) -> dict:
+def process_season(response):
     """Process the metadata for the selected season from The Movie Database."""
 
     return {
@@ -176,7 +176,7 @@ def process_season(response: dict) -> dict:
     }
 
 
-def get_format(media_type: str) -> str:
+def get_format(media_type):
     """Return media_type capitalized."""
 
     if media_type == "tv":
@@ -184,7 +184,7 @@ def get_format(media_type: str) -> str:
     return "Movie"
 
 
-def get_image_url(path: str) -> str:
+def get_image_url(path):
     """Return the image URL for the media."""
 
     # when no image, value from response is null
@@ -194,7 +194,7 @@ def get_image_url(path: str) -> str:
     return settings.IMG_NONE
 
 
-def get_title(response: dict) -> str:
+def get_title(response):
     """Return the title for the media."""
 
     # tv shows have name instead of title
@@ -203,7 +203,7 @@ def get_title(response: dict) -> str:
     return response["name"]
 
 
-def get_start_date(date: str) -> str:
+def get_start_date(date):
     """Return the start date for the media."""
 
     # when unknown date, value from response is empty string
@@ -213,7 +213,7 @@ def get_start_date(date: str) -> str:
     return date
 
 
-def get_end_date(date: str) -> str:
+def get_end_date(date):
     """Return the last date for the media."""
 
     # when unknown date, value from response is null
@@ -224,7 +224,7 @@ def get_end_date(date: str) -> str:
     return "Unknown"
 
 
-def get_synopsis(text: str) -> str:
+def get_synopsis(text):
     """Return the synopsis for the media."""
 
     # when unknown synopsis, value from response is empty string
@@ -234,7 +234,7 @@ def get_synopsis(text: str) -> str:
     return text
 
 
-def get_runtime_tv(runtime: list) -> str:
+def get_runtime_tv(runtime):
     """Return the runtime for the tv show."""
 
     # when unknown runtime, value from response is empty list
@@ -244,7 +244,7 @@ def get_runtime_tv(runtime: list) -> str:
     return "Unknown"
 
 
-def get_readable_duration(duration: int) -> str:
+def get_readable_duration(duration):
     """Convert duration in minutes to a readable format."""
 
     # if unknown movie runtime, value from response is 0
@@ -255,7 +255,7 @@ def get_readable_duration(duration: int) -> str:
     return "Unknown"
 
 
-def get_genres(genres: list) -> str:
+def get_genres(genres):
     """Return the genres for the media."""
 
     # when unknown genres, value from response is empty list
@@ -266,7 +266,7 @@ def get_genres(genres: list) -> str:
     return "Unknown"
 
 
-def get_country(countries: list) -> str:
+def get_country(countries):
     """Return the production country for the media."""
 
     # when unknown production country, value from response is empty list
@@ -278,7 +278,7 @@ def get_country(countries: list) -> str:
     return "Unknown"
 
 
-def get_languages(languages: list) -> str:
+def get_languages(languages):
     """Return the languages for the media."""
 
     # when unknown spoken languages, value from response is empty list
@@ -290,7 +290,7 @@ def get_languages(languages: list) -> str:
     return "Unknown"
 
 
-def get_companies(companies: list) -> str:
+def get_companies(companies):
     """Return the production companies for the media."""
 
     # when unknown production companies, value from response is empty list
@@ -302,7 +302,7 @@ def get_companies(companies: list) -> str:
     return "Unknown"
 
 
-def get_related(related_medias: list, media_id: int | None = None) -> list:
+def get_related(related_medias, media_id=None):
     """Return list of related media for the selected media."""
 
     return [
@@ -316,7 +316,7 @@ def get_related(related_medias: list, media_id: int | None = None) -> list:
     ]
 
 
-def process_episodes(season_metadata: dict, watched_episodes: dict) -> list:
+def process_episodes(season_metadata, watched_episodes):
     """Process the episodes for the selected season."""
 
     episodes_metadata = []
@@ -342,7 +342,7 @@ def process_episodes(season_metadata: dict, watched_episodes: dict) -> list:
     return episodes_metadata
 
 
-def get_episode_air_date(date: str) -> str:
+def get_episode_air_date(date):
     """Return the air date for the episode."""
 
     # when unknown air date, value from response is null

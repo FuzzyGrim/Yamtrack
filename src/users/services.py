@@ -1,7 +1,4 @@
-from django.http import HttpRequest
-
-
-def get_client_ip(request: HttpRequest) -> str:
+def get_client_ip(request):
     """Return the client's IP address.
 
     Used when logging for user registration and login.

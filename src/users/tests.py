@@ -8,14 +8,14 @@ from users.models import User
 class Profile(TestCase):
     """Test profile page."""
 
-    def setUp(self: "Profile") -> None:
+    def setUp(self):
         """Create user for the tests."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-    def test_change_username(self: "Profile") -> None:
+    def test_change_username(self):
         """Test changing username."""
 
         self.assertEqual(auth.get_user(self.client).username, "test")
@@ -27,7 +27,7 @@ class Profile(TestCase):
         )
         self.assertEqual(auth.get_user(self.client).username, "new_test")
 
-    def test_change_password(self: "Profile") -> None:
+    def test_change_password(self):
         """Test changing password."""
 
         self.assertEqual(auth.get_user(self.client).check_password("12345"), True)

@@ -4,12 +4,11 @@ import logging
 from app.models import Anime, Manga
 from app.providers import services
 from django.apps import apps
-from users.models import User
 
 logger = logging.getLogger(__name__)
 
 
-def importer(username: str, user: User) -> str:
+def importer(username, user):
     """Import anime and manga ratings from Anilist."""
 
     query = """
@@ -91,7 +90,7 @@ def importer(username: str, user: User) -> str:
     return add_media_list(query, warning_message="", user=user)
 
 
-def add_media_list(query: dict, warning_message: str, user: User) -> str:
+def add_media_list(query, warning_message, user):
     """Add media to list for bulk creation."""
 
     bulk_media = {"anime": [], "manga": []}
@@ -144,7 +143,7 @@ def add_media_list(query: dict, warning_message: str, user: User) -> str:
     return warning_message
 
 
-def get_date(date: dict) -> datetime.date | None:
+def get_date(date):
     """Return date object from date dict."""
 
     if date["year"]:

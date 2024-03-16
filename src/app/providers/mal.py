@@ -5,7 +5,7 @@ from django.core.cache import cache
 from app.providers import services
 
 
-def search(media_type: str, query: str) -> list:
+def search(media_type, query):
     """Search for media on MyAnimeList."""
 
     data = cache.get(f"search_{media_type}_{query}")
@@ -41,7 +41,7 @@ def search(media_type: str, query: str) -> list:
     return data
 
 
-def anime(media_id: str) -> dict:
+def anime(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
 
     data = cache.get(f"anime_{media_id}")
@@ -83,7 +83,7 @@ def anime(media_id: str) -> dict:
     return data
 
 
-def manga(media_id: str) -> dict:
+def manga(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
 
     data = cache.get(f"manga_{media_id}")
@@ -121,7 +121,7 @@ def manga(media_id: str) -> dict:
     return data
 
 
-def get_format(response: dict) -> str:
+def get_format(response):
     """Return the original type of the media."""
 
     # MAL return tv in metadata for anime
@@ -136,7 +136,7 @@ def get_format(response: dict) -> str:
     return formatted.title()
 
 
-def get_image_url(response: dict) -> str:
+def get_image_url(response):
     """Return the image URL for the media."""
 
     # when no picture, main_picture is not present in the response
@@ -146,7 +146,7 @@ def get_image_url(response: dict) -> str:
     return settings.IMG_NONE
 
 
-def get_readable_status(response: dict) -> str:
+def get_readable_status(response):
     """Return the status in human-readable format."""
 
     # Map status to human-readable values
@@ -159,10 +159,10 @@ def get_readable_status(response: dict) -> str:
         "not_yet_published": "Upcoming",
         "on_hiatus": "On Hiatus",
     }
-    return status_map.get(response["status"])
+    return status_map[(response["status"])]
 
 
-def get_synopsis(response: dict) -> str:
+def get_synopsis(response):
     """Add the synopsis to the response."""
 
     # when no synopsis, value from response is empty string
@@ -173,7 +173,7 @@ def get_synopsis(response: dict) -> str:
     return response["synopsis"]
 
 
-def get_number_of_episodes(response: dict) -> int | str:
+def get_number_of_episodes(response):
     """Return the number of episodes for the media."""
 
     # when unknown episodes, value from response is 0
@@ -191,7 +191,7 @@ def get_number_of_episodes(response: dict) -> int | str:
     return episodes
 
 
-def get_runtime(response: dict) -> dict:
+def get_runtime(response):
     """Return the average episode duration."""
 
     # when unknown duration, value from response is 0
@@ -206,13 +206,13 @@ def get_runtime(response: dict) -> dict:
     return "Unknown"
 
 
-def get_genres(response: dict) -> str:
+def get_genres(response):
     """Return the genres for the media."""
 
     return ", ".join(genre["name"] for genre in response["genres"])
 
 
-def get_studios(response: dict) -> str:
+def get_studios(response):
     """Return the studios for the media."""
 
     # when unknown studio, studios is an empty list
@@ -223,7 +223,7 @@ def get_studios(response: dict) -> str:
     return "Unknown"
 
 
-def get_season(response: dict) -> str:
+def get_season(response):
     """Return the season for the media."""
 
     # when unknown start season, no start_season key in response
@@ -237,20 +237,22 @@ def get_season(response: dict) -> str:
     return "Unknown"
 
 
-def get_source(response: dict) -> str:
+def get_source(response):
     """Return the source for the media."""
 
     return response["source"].replace("_", " ").title()
 
 
-def get_related(related_medias: list) -> list:
+def get_related(related_medias):
     """Return list of related media for the selected media."""
 
-    return [
-        {
-            "media_id": media["node"]["id"],
-            "title": media["node"]["title"],
-            "image": get_image_url(media["node"]),
-        }
-        for media in related_medias
-    ]
+    if related_medias:
+        return [
+            {
+                "media_id": media["node"]["id"],
+                "title": media["node"]["title"],
+                "image": get_image_url(media["node"]),
+            }
+            for media in related_medias
+        ]
+    return []

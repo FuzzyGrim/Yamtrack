@@ -5,7 +5,7 @@ extend-exclude = ["migrations"]
 
 [lint]
 select = ["ALL"]
-ignore = ["D100", "D104", "D202", "D203", "D213", "PT009", "PT027", "PLR2004", "PTH123", "RUF012"]
+ignore = ["ANN", "D100", "D104", "D202", "D203", "D213", "PT009", "PT027", "PLR2004", "PTH123", "RUF012"]
 
 [lint.pycodestyle]
 max-doc-length = 88

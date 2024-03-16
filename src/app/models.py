@@ -57,12 +57,12 @@ class Media(models.Model):
         ordering = ["-score"]
         unique_together = ["media_id", "user"]
 
-    def __str__(self: "Media") -> str:
+    def __str__(self):
         """Return the title of the media."""
 
         return f"{self.title}"
 
-    def save(self: "Media", *args: list, **kwargs: dict) -> None:
+    def save(self, *args, **kwargs):
         """Save the media instance."""
 
         if "status" in self.tracker.changed():
@@ -73,7 +73,7 @@ class Media(models.Model):
 
         super().save(*args, **kwargs)
 
-    def process_status(self: "Media") -> str:
+    def process_status(self):
         """Update fields depending on the status of the media."""
 
         if self.status == "Completed":
@@ -91,7 +91,7 @@ class Media(models.Model):
         elif self.status == "In progress" and not self.start_date:
             self.start_date = datetime.datetime.now(tz=settings.TZ).date()
 
-    def process_progress(self: "Media") -> None:
+    def process_progress(self):
         """Update fields depending on the progress of the media."""
 
         media_type = self.__class__.__name__.lower()
@@ -113,7 +113,7 @@ class Media(models.Model):
                 if not self.end_date:
                     self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
-    def increase_progress(self: "Media") -> None:
+    def increase_progress(self):
         """Increase the progress of the media by one."""
         self.progress += 1
         # need extra fields because if completed,
@@ -121,7 +121,7 @@ class Media(models.Model):
         self.save(update_fields=["progress", "status", "end_date"])
         logger.info("Watched %s E%s", self, self.progress)
 
-    def decrease_progress(self: "Media") -> None:
+    def decrease_progress(self):
         """Decrease the progress of the media by one."""
         self.progress -= 1
         self.save(update_fields=["progress"])
@@ -134,7 +134,7 @@ class TV(Media):
     tracker = FieldTracker()
 
     @tracker  # postpone field reset until after the save
-    def save(self: "Media", *args: list, **kwargs: dict) -> None:
+    def save(self, *args, **kwargs):
         """Save the media instance."""
         super(Media, self).save(*args, **kwargs)
 
@@ -146,12 +146,12 @@ class TV(Media):
             self.completed()
 
     @property
-    def progress(self: "Season") -> int:
+    def progress(self):
         """Return the user's episodes watched for the TV show."""
         return sum(season.progress for season in self.seasons.all())
 
     @property
-    def start_date(self: "TV") -> datetime.date:
+    def start_date(self):
         """Return the date of the first episode watched."""
         return min(
             (season.start_date for season in self.seasons.all()),
@@ -159,14 +159,14 @@ class TV(Media):
         )
 
     @property
-    def end_date(self: "TV") -> datetime.date:
+    def end_date(self):
         """Return the date of the last episode watched."""
         return max(
             (season.end_date for season in self.seasons.all()),
             default=datetime.date(datetime.MINYEAR, 1, 1),
         )
 
-    def completed(self: "TV") -> None:
+    def completed(self):
         """Create remaining seasons and episodes for a TV show."""
 
         seasons_to_update = []
@@ -229,12 +229,12 @@ class Season(Media):
 
         unique_together = ["related_tv", "season_number"]
 
-    def __str__(self: "Season") -> str:
+    def __str__(self):
         """Return the title of the media and season number."""
         return f"{self.title} S{self.season_number}"
 
     @tracker  # postpone field reset until after the save
-    def save(self: "Media", *args: list, **kwargs: dict) -> None:
+    def save(self, *args, **kwargs):
         """Save the media instance."""
 
         # if related_tv is not set
@@ -250,12 +250,12 @@ class Season(Media):
             )
 
     @property
-    def progress(self: "Season") -> int:
+    def progress(self):
         """Return the user's episodes watched for the season."""
         return self.episodes.count()
 
     @property
-    def start_date(self: "Season") -> datetime.date:
+    def start_date(self):
         """Return the date of the first episode watched."""
         return min(
             (episode.watch_date for episode in self.episodes.all()),
@@ -263,14 +263,14 @@ class Season(Media):
         )
 
     @property
-    def end_date(self: "Season") -> datetime.date:
+    def end_date(self):
         """Return the date of the last episode watched."""
         return max(
             (episode.watch_date for episode in self.episodes.all()),
             default=datetime.date(datetime.MINYEAR, 1, 1),
         )
 
-    def increase_progress(self: "Season") -> None:
+    def increase_progress(self):
         """Increase the progress of the season by one."""
 
         season_metadata = tmdb.season(self.media_id, self.season_number)
@@ -295,7 +295,7 @@ class Season(Media):
         except UnboundLocalError:
             logger.warning("No episodes to watch, %s is already completed", self)
 
-    def decrease_progress(self: "Season") -> None:
+    def decrease_progress(self):
         """Decrease the progress of the season by one."""
 
         try:
@@ -311,7 +311,7 @@ class Season(Media):
         except Episode.DoesNotExist:
             logger.warning("No episodes to unwatch in %s", self)
 
-    def get_tv(self: "Season") -> TV:
+    def get_tv(self):
         """Get related TV instance for a season and create it if it doesn't exist."""
         try:
             tv = TV.objects.get(media_id=self.media_id, user=self.user)
@@ -343,7 +343,7 @@ class Season(Media):
 
         return tv
 
-    def get_remaining_eps(self: "Season", season_metadata: dict) -> None:
+    def get_remaining_eps(self, season_metadata):
         """Return episodes needed to complete a season."""
 
         max_episode_number = Episode.objects.filter(related_season=self).aggregate(
@@ -389,11 +389,11 @@ class Episode(models.Model):
 
         unique_together = ["related_season", "episode_number"]
 
-    def __str__(self: "Episode") -> str:
+    def __str__(self):
         """Return the season and episode number."""
         return f"{self.related_season}E{self.episode_number}"
 
-    def save(self: "Episode", *args: list, **kwargs: dict) -> None:
+    def save(self, *args, **kwargs):
         """Save the episode instance."""
         if self._state.adding:
             super().save(*args, **kwargs)

@@ -3,7 +3,6 @@ import logging
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView
-from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from users import services
@@ -17,7 +16,7 @@ from users.forms import (
 logger = logging.getLogger(__name__)
 
 
-def register(request: HttpRequest) -> HttpResponse:
+def register(request):
     """Register a new user."""
 
     form = UserRegisterForm(request.POST or None)
@@ -41,7 +40,7 @@ class CustomLoginView(LoginView):
     form_class = UserLoginForm
     template_name = "users/login.html"
 
-    def form_valid(self: "CustomLoginView", form: UserLoginForm) -> HttpResponse:
+    def form_valid(self, form):
         """Log the user in and set the session expiry."""
 
         logger.info(
@@ -51,7 +50,7 @@ class CustomLoginView(LoginView):
         )
         return super().form_valid(form)
 
-    def form_invalid(self: "CustomLoginView", form: UserLoginForm) -> HttpResponse:
+    def form_invalid(self, form):
         """Log the failed login attempt."""
 
         logger.error(
@@ -62,7 +61,7 @@ class CustomLoginView(LoginView):
         return super().form_invalid(form)
 
 
-def profile(request: HttpRequest) -> HttpResponse:
+def profile(request):
     """Update the user's profile and import/export data."""
 
     user_form = UserUpdateForm(instance=request.user)

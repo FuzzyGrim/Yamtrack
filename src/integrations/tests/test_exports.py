@@ -11,7 +11,7 @@ from users.models import User
 class ExportCSVTest(TestCase):
     """Test exporting media to CSV."""
 
-    def setUp(self: "ExportCSVTest") -> None:
+    def setUp(self):
         """Create necessary data for the tests."""
 
         self.credentials = {"username": "test", "password": "12345"}
@@ -74,7 +74,7 @@ class ExportCSVTest(TestCase):
             start_date=date(2021, 6, 1),
         )
 
-    def test_export_csv(self: "ExportCSVTest") -> None:
+    def test_export_csv(self):
         """Basic test exporting media to CSV."""
 
         # Generate the CSV file by accessing the export view

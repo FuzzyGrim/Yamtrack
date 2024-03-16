@@ -1,13 +1,12 @@
 """Contains views for importing and exporting media data from various sources."""
 
 import logging
-from collections.abc import Callable
 from functools import wraps
 from typing import ParamSpec, TypeVar
 
 import requests
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import redirect
 
 from integrations import exports
@@ -19,11 +18,11 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-def check_demo(view: Callable[P, T]) -> Callable[P, T]:
+def check_demo(view):
     """Check if the user is a demo account, used as decorator."""
 
     @wraps(view)
-    def wrapper(request: HttpRequest, *args: P.args, **kwargs: P.kwargs) -> T:
+    def wrapper(request, *args, **kwargs):
         if request.user.is_demo:
             messages.error(request, "Demo accounts are not allowed to import.")
             return redirect("profile")
@@ -34,7 +33,7 @@ def check_demo(view: Callable[P, T]) -> Callable[P, T]:
 
 
 @check_demo
-def import_mal(request: HttpRequest) -> HttpResponse:
+def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
 
     try:
@@ -50,7 +49,7 @@ def import_mal(request: HttpRequest) -> HttpResponse:
 
 
 @check_demo
-def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
+def import_tmdb_ratings(request):
     """View for importing TMDB movie and TV ratings."""
 
     try:
@@ -75,7 +74,7 @@ def import_tmdb_ratings(request: HttpRequest) -> HttpResponse:
 
 
 @check_demo
-def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
+def import_tmdb_watchlist(request):
     """View for importing TMDB movie and TV watchlist."""
 
     try:
@@ -100,7 +99,7 @@ def import_tmdb_watchlist(request: HttpRequest) -> HttpResponse:
 
 
 @check_demo
-def import_anilist(request: HttpRequest) -> HttpResponse:
+def import_anilist(request):
     """View for importing anime and manga data from AniList."""
 
     try:
@@ -127,7 +126,7 @@ def import_anilist(request: HttpRequest) -> HttpResponse:
 
 
 @check_demo
-def import_yamtrack(request: HttpRequest) -> HttpResponse:
+def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""
 
     try:
@@ -147,7 +146,7 @@ def import_yamtrack(request: HttpRequest) -> HttpResponse:
     return redirect("profile")
 
 
-def export_csv(request: HttpRequest) -> HttpResponse:
+def export_csv(request):
     """View for exporting all media data to a CSV file."""
 
     # Create the HttpResponse object with the appropriate CSV header.

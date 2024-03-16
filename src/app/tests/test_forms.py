@@ -7,12 +7,12 @@ from app.forms import AnimeForm, EpisodeForm, SeasonForm, TVForm
 class ValidForm(TestCase):
     """Test the forms with valid data."""
 
-    def setUp(self: "ValidForm") -> None:
+    def setUp(self):
         """Create a user."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user: User = User.objects.create_user(**self.credentials)
 
-    def test_valid_media_form(self: "ValidForm") -> None:
+    def test_valid_media_form(self):
         """Test the standard media form with valid data."""
 
         form_data = {
@@ -31,7 +31,7 @@ class ValidForm(TestCase):
         form = AnimeForm(data=form_data)
         self.assertTrue(form.is_valid())
 
-    def test_valid_tv_form(self: "ValidForm") -> None:
+    def test_valid_tv_form(self):
         """Test the TV form with valid data."""
 
         form_data = {
@@ -47,7 +47,7 @@ class ValidForm(TestCase):
         form = TVForm(data=form_data)
         self.assertTrue(form.is_valid())
 
-    def test_valid_season_form(self: "ValidForm") -> None:
+    def test_valid_season_form(self):
         """Test the season form with valid data."""
 
         form_data = {
@@ -64,7 +64,7 @@ class ValidForm(TestCase):
         form = SeasonForm(data=form_data)
         self.assertTrue(form.is_valid())
 
-    def test_valid_episode_form(self: "ValidForm") -> None:
+    def test_valid_episode_form(self):
         """Test the episode form with valid data."""
 
         form_data = {

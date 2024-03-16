@@ -5,13 +5,11 @@ from app import forms
 from app.forms import EpisodeForm
 from app.models import TV, Episode, Season
 from django.apps import apps
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from users.models import User
 
 logger = logging.getLogger(__name__)
 
 
-def importer(file: InMemoryUploadedFile, user: User) -> None:
+def importer(file, user):
     """Import media from CSV file."""
 
     decoded_file = file.read().decode("utf-8").splitlines()
@@ -95,11 +93,7 @@ def importer(file: InMemoryUploadedFile, user: User) -> None:
         Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
 
 
-def add_bulk_media(
-    row: dict,
-    user: User,
-    bulk_media: dict,
-) -> None:
+def add_bulk_media(row, user, bulk_media):
     """Add media to list for bulk creation."""
 
     media_type = row["media_type"]

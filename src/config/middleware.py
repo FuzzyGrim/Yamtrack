@@ -11,7 +11,7 @@ class LoginRequiredMiddleware(MiddlewareMixin):
     in settings by setting a tuple of routes to ignore
     """
 
-    def process_view(self, request, view_func, view_args, view_kwargs):  # noqa: ANN201, ANN001, ANN101
+    def process_view(self, request, view_func, view_args, view_kwargs):
         """Process the request and view."""
 
         current_route_name = resolve(request.path_info).url_name

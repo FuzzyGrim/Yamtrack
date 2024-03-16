@@ -2,14 +2,11 @@ import csv
 import logging
 
 from app.models import TV, Anime, Episode, Manga, Movie, Season
-from django.db.models.query import QuerySet
-from django.http import HttpResponse
-from users.models import User
 
 logger = logging.getLogger(__name__)
 
 
-def db_to_csv(response: HttpResponse, user: User) -> HttpResponse:
+def db_to_csv(response, user):
     """Export a CSV file of the user's media."""
 
     fields = [
@@ -46,12 +43,7 @@ def db_to_csv(response: HttpResponse, user: User) -> HttpResponse:
     return response
 
 
-def write_model_to_csv(
-    writer: csv.writer,
-    fields: list,
-    queryset: QuerySet,
-    media_type: str,
-) -> None:
+def write_model_to_csv(writer, fields, queryset, media_type):
     """Export entries from a model to a CSV file."""
 
     logger.info("Adding %ss to CSV", media_type)

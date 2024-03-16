@@ -4,18 +4,14 @@ import datetime
 import logging
 
 from app import forms
-from app.forms import MovieForm, SeasonForm, TVForm
-from app.models import TV, Movie, Season
 from app.providers import services
 from django.apps import apps
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import IntegrityError
-from users.models import User
 
 logger = logging.getLogger(__name__)
 
 
-def importer(file: InMemoryUploadedFile, user: User, status: str) -> None:
+def importer(file, user, status):
     """Import movie and TV ratings or watchlist depending on status from TMDB."""
 
     decoded_file = file.read().decode("utf-8").splitlines()
@@ -48,10 +44,7 @@ def importer(file: InMemoryUploadedFile, user: User, status: str) -> None:
                 logger.error(error_message)
 
 
-def create_instance(
-    media_metadata: dict,
-    user: User,
-) -> TV | Season | Movie:
+def create_instance(media_metadata, user):
     """Create instance of media."""
 
     media_type = media_metadata["media_type"]
@@ -64,12 +57,7 @@ def create_instance(
     )
 
 
-def create_form(
-    row: dict,
-    instance: TV | Movie,
-    media_metadata: dict,
-    status: str,
-) -> TVForm | SeasonForm | MovieForm:
+def create_form(row, instance, media_metadata, status):
     """Create form for media."""
 
     media_type = media_metadata["media_type"]

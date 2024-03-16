@@ -16,13 +16,13 @@ mock_path = Path(__file__).resolve().parent / "mock_data"
 class ImportMAL(TestCase):
     """Test importing media from MyAnimeList."""
 
-    def setUp(self: "ImportMAL") -> None:
+    def setUp(self):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
     @patch("requests.get")
-    def test_import_animelist(self: "ImportMAL", mock_request: "patch") -> None:
+    def test_import_animelist(self, mock_request):
         """Basic test importing anime and manga from MyAnimeList."""
 
         with open(mock_path / "import_mal_anime.json") as file:
@@ -53,7 +53,7 @@ class ImportMAL(TestCase):
             True,
         )
 
-    def test_user_not_found(self: "ImportMAL") -> None:
+    def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
 
         self.assertRaises(
@@ -67,13 +67,13 @@ class ImportMAL(TestCase):
 class ImportTMDB(TestCase):
     """Test importing media from TMDB."""
 
-    def setUp(self: "ImportTMDB") -> None:
+    def setUp(self):
         """Create user for the tests."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    def test_tmdb_import_ratings(self: "ImportTMDB") -> None:
+    def test_tmdb_import_ratings(self):
         """Test importing ratings from TMDB."""
 
         with open(mock_path / "import_tmdb_ratings.csv", "rb") as file:
@@ -81,7 +81,7 @@ class ImportTMDB(TestCase):
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
 
-    def test_tmdb_import_watchlist(self: "ImportTMDB") -> None:
+    def test_tmdb_import_watchlist(self):
         """Test importing watchlist from TMDB."""
 
         with open(mock_path / "import_tmdb_watchlist.csv", "rb") as file:
@@ -93,14 +93,14 @@ class ImportTMDB(TestCase):
 class ImportAniList(TestCase):
     """Test importing media from AniList."""
 
-    def setUp(self: "ImportAniList") -> None:
+    def setUp(self):
         """Create user for the tests."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
     @patch("requests.post")
-    def test_import_anilist(self: "ImportAniList", mock_request: "patch") -> None:
+    def test_import_anilist(self, mock_request: "patch"):
         """Basic test importing anime and manga from AniList."""
 
         with open(mock_path / "import_anilist.json") as file:
@@ -119,7 +119,7 @@ class ImportAniList(TestCase):
             True,
         )
 
-    def test_user_not_found(self: "ImportAniList") -> None:
+    def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
 
         self.assertRaises(
@@ -133,13 +133,13 @@ class ImportAniList(TestCase):
 class ImportYamtrack(TestCase):
     """Test importing media from Yamtrack CSV."""
 
-    def setUp(self: "ImportYamtrack") -> None:
+    def setUp(self):
         """Create user for the tests."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    def test_import_yamtrack(self: "ImportYamtrack") -> None:
+    def test_import_yamtrack(self):
         """Basic test importing media from Yamtrack."""
 
         with open(mock_path / "import_yamtrack.csv", "rb") as file:

@@ -3,7 +3,7 @@ import logging
 from django.apps import apps
 from django.contrib import messages
 from django.db.models import F
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.encoding import iri_to_uri
@@ -16,7 +16,7 @@ from app.providers import mal, services, tmdb
 logger = logging.getLogger(__name__)
 
 
-def home(request: HttpRequest) -> HttpResponse:
+def home(request):
     """Return the home page."""
     in_progress = {}
 
@@ -46,7 +46,7 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, "app/home.html", context)
 
 
-def progress_edit(request: HttpRequest) -> HttpResponse:
+def progress_edit(request):
     """Increase or decrease the progress of a media item from home page."""
 
     media_type = request.POST["media_type"]
@@ -105,7 +105,7 @@ def progress_edit(request: HttpRequest) -> HttpResponse:
         return response
 
 
-def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
+def media_list(request, media_type):
     """Return the media list page."""
 
     layout_user = request.user.get_layout(media_type)
@@ -171,7 +171,7 @@ def media_list(request: HttpRequest, media_type: str) -> HttpResponse:
     )
 
 
-def media_search(request: HttpRequest) -> HttpResponse:
+def media_search(request):
     """Return the media search page."""
 
     media_type = request.GET["media_type"]
@@ -190,12 +190,7 @@ def media_search(request: HttpRequest) -> HttpResponse:
     return render(request, "app/search.html", context)
 
 
-def media_details(
-    request: HttpRequest,
-    media_type: str,
-    media_id: str,
-    title: str,  # noqa: ARG001 for URL
-) -> HttpResponse:
+def media_details(request, media_type, media_id, title):  # noqa: ARG001 for URL
     """Return the details page for a media item."""
 
     media_metadata = services.get_media_metadata(media_type, media_id)
@@ -204,12 +199,7 @@ def media_details(
     return render(request, "app/media_details.html", context)
 
 
-def season_details(
-    request: HttpRequest,
-    media_id: str,
-    title: str,  # noqa: ARG001 for URL
-    season_number: str,
-) -> HttpResponse:
+def season_details(request, media_id, title, season_number): # noqa: ARG001 for URL
     """Return the details page for a season."""
 
     tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
@@ -232,7 +222,7 @@ def season_details(
     return render(request, "app/season_details.html", context)
 
 
-def track_form(request: HttpRequest) -> HttpResponse:
+def track_form(request):
     """Return the tracking form for a media item."""
 
     media_type = request.GET["media_type"]
@@ -286,7 +276,7 @@ def track_form(request: HttpRequest) -> HttpResponse:
     )
 
 
-def media_save(request: HttpRequest) -> HttpResponse:
+def media_save(request):
     """Save or update media data to the database."""
 
     media_id = request.POST["media_id"]
@@ -342,7 +332,7 @@ def media_save(request: HttpRequest) -> HttpResponse:
     return redirect("home")
 
 
-def media_delete(request: HttpRequest) -> HttpResponse:
+def media_delete(request):
     """Delete media data from the database."""
 
     media_id = request.POST["media_id"]
@@ -369,7 +359,7 @@ def media_delete(request: HttpRequest) -> HttpResponse:
     return redirect("home")
 
 
-def episode_handler(request: HttpRequest) -> HttpResponse:
+def episode_handler(request):
     """Handle the creation, deletion, and updating of episodes for a season."""
 
     media_id = request.POST["media_id"]

@@ -27,7 +27,7 @@ class UserLoginForm(AuthenticationForm):
         widget=forms.PasswordInput(),
     )
 
-    def __init__(self: "UserUpdateForm", *args: dict, **kwargs: dict) -> None:
+    def __init__(self, *args, **kwargs):
         """Add crispy form helper to add submit button."""
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -63,7 +63,7 @@ class UserRegisterForm(UserCreationForm):
         model = User
         fields = ["username", "password1", "password2"]
 
-    def __init__(self: "UserUpdateForm", *args: dict, **kwargs: dict) -> None:
+    def __init__(self, *args, **kwargs):
         """Add crispy form helper to add submit button."""
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -79,7 +79,7 @@ class UserRegisterForm(UserCreationForm):
 class UserUpdateForm(forms.ModelForm):
     """Custom form for updating username."""
 
-    def clean(self: "PasswordChangeForm") -> dict:
+    def clean(self):
         """Check if the user is demo before changing the password."""
 
         cleaned_data = super().clean()
@@ -88,7 +88,7 @@ class UserUpdateForm(forms.ModelForm):
             self.add_error("username", msg)
         return cleaned_data
 
-    def __init__(self: "UserUpdateForm", *args: dict, **kwargs: dict) -> None:
+    def __init__(self, *args, **kwargs):
         """Add crispy form helper to add submit button."""
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -111,7 +111,7 @@ class UserUpdateForm(forms.ModelForm):
 class PasswordChangeForm(PasswordChangeForm):
     """Custom form for changing password."""
 
-    def clean(self: "PasswordChangeForm") -> dict:
+    def clean(self):
         """Check if the user is demo before changing the password."""
 
         cleaned_data = super().clean()
@@ -120,7 +120,7 @@ class PasswordChangeForm(PasswordChangeForm):
             self.add_error("new_password2", msg)
         return cleaned_data
 
-    def __init__(self: "PasswordChangeForm", *args: dict, **kwargs: dict) -> None:
+    def __init__(self, *args, **kwargs):
         """Remove autofocus from password change form."""
 
         super().__init__(*args, **kwargs)

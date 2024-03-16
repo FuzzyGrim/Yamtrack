@@ -12,7 +12,7 @@ from app.models import TV, Anime, Episode, Movie, Season
 class CreateMedia(TestCase):
     """Test the creation of media objects through views."""
 
-    def setUp(self: "CreateMedia") -> None:
+    def setUp(self):
         """Create a user and log in."""
 
         self.credentials = {"username": "test", "password": "12345"}
@@ -21,7 +21,7 @@ class CreateMedia(TestCase):
         Path("create_media").mkdir(exist_ok=True)
 
     @override_settings(MEDIA_ROOT=("create_media"))
-    def test_create_anime(self: "CreateMedia") -> None:
+    def test_create_anime(self):
         """Test the creation of a TV object."""
 
         self.client.post(
@@ -38,7 +38,7 @@ class CreateMedia(TestCase):
         )
 
     @override_settings(MEDIA_ROOT=("create_media"))
-    def test_create_tv(self: "CreateMedia") -> None:
+    def test_create_tv(self):
         """Test the creation of a TV object through views."""
 
         self.client.post(
@@ -55,7 +55,7 @@ class CreateMedia(TestCase):
         )
 
     @override_settings(MEDIA_ROOT=("create_media"))
-    def test_create_season(self: "CreateMedia") -> None:
+    def test_create_season(self):
         """Test the creation of a Season through views."""
 
         self.client.post(
@@ -72,7 +72,7 @@ class CreateMedia(TestCase):
             True,
         )
 
-    def test_create_episodes(self: "CreateMedia") -> None:
+    def test_create_episodes(self):
         """Test the creation of Episode through views."""
 
         self.client.post(
@@ -93,7 +93,7 @@ class CreateMedia(TestCase):
             True,
         )
 
-    def tearDown(self: "CreateMedia") -> None:
+    def tearDown(self):
         """Remove the testing directory."""
         shutil.rmtree("create_media")
 
@@ -101,14 +101,14 @@ class CreateMedia(TestCase):
 class EditMedia(TestCase):
     """Test the editing of media objects through views."""
 
-    def setUp(self: "EditMedia") -> None:
+    def setUp(self):
         """Create a user and log in."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-    def test_edit_movie_score(self: "EditMedia") -> None:
+    def test_edit_movie_score(self):
         """Test the editing of a movie score."""
         Movie.objects.create(
             media_id=10494,
@@ -139,14 +139,14 @@ class EditMedia(TestCase):
 class DeleteMedia(TestCase):
     """Test the deletion of media objects through views."""
 
-    def setUp(self: "DeleteMedia") -> None:
+    def setUp(self):
         """Create a user and log in."""
 
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-    def test_delete_movie(self: "DeleteMedia") -> None:
+    def test_delete_movie(self):
         """Test the deletion of a movie through views."""
 
         Movie.objects.create(
@@ -168,7 +168,7 @@ class DeleteMedia(TestCase):
 
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 0)
 
-    def test_delete_season(self: "DeleteMedia") -> None:
+    def test_delete_season(self):
         """Test the deletion of a season through views."""
 
         related_tv = TV.objects.create(
@@ -206,7 +206,7 @@ class DeleteMedia(TestCase):
             0,
         )
 
-    def test_unwatch_episode(self: "DeleteMedia") -> None:
+    def test_unwatch_episode(self):
         """Test unwatching of an episode through views."""
 
         related_tv = TV.objects.create(
@@ -250,7 +250,7 @@ class DeleteMedia(TestCase):
 class ProgressEditSeason(TestCase):
     """Test for editing a season progress through views."""
 
-    def setUp(self: "ProgressEditSeason") -> None:
+    def setUp(self):
         """Prepare the database with a season and an episode."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -279,7 +279,7 @@ class ProgressEditSeason(TestCase):
             watch_date=datetime.date(2023, 6, 1),
         )
 
-    def test_progress_increase(self: "ProgressEditSeason") -> None:
+    def test_progress_increase(self):
         """Test the increase of progress for a season."""
         self.client.post(
             reverse("progress_edit"),
@@ -304,7 +304,7 @@ class ProgressEditSeason(TestCase):
             ).exists(),
         )
 
-    def test_progress_decrease(self: "ProgressEditSeason") -> None:
+    def test_progress_decrease(self):
         """Test the decrease of progress for a season."""
 
         self.client.post(
@@ -326,7 +326,7 @@ class ProgressEditSeason(TestCase):
 class ProgressEditAnime(TestCase):
     """Test for editing an anime progress through views."""
 
-    def setUp(self: "ProgressEditAnime") -> None:
+    def setUp(self):
         """Prepare the database with an anime."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
@@ -340,7 +340,7 @@ class ProgressEditAnime(TestCase):
             user=self.user,
         )
 
-    def test_progress_increase(self: "ProgressEditAnime") -> None:
+    def test_progress_increase(self):
         """Test the increase of progress for an anime."""
         self.client.post(
             reverse("progress_edit"),
@@ -353,7 +353,7 @@ class ProgressEditAnime(TestCase):
 
         self.assertEqual(Anime.objects.get(media_id=1).progress, 3)
 
-    def test_progress_decrease(self: "ProgressEditAnime") -> None:
+    def test_progress_decrease(self):
         """Test the decrease of progress for an anime."""
         self.client.post(
             reverse("progress_edit"),

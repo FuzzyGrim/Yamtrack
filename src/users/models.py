@@ -53,7 +53,7 @@ class User(AbstractUser):
         choices=layouts,
     )
 
-    def get_layout(self: "User", media_type: str) -> str:
+    def get_layout(self, media_type):
         """Return the layout for the media type."""
         layout = {
             "tv": self.tv_layout,
@@ -64,7 +64,7 @@ class User(AbstractUser):
         }
         return layout[media_type]
 
-    def get_layout_template(self: "User", media_type: str) -> str:
+    def get_layout_template(self, media_type):
         """Return the layout template for the media type."""
         template = {
             "grid": "app/media_grid.html",
@@ -72,7 +72,7 @@ class User(AbstractUser):
         }
         return template[self.get_layout(media_type)]
 
-    def set_layout(self: "User", media_type: str, layout: str) -> None:
+    def set_layout(self, media_type, layout):
         """Set the layout for the media type."""
         if media_type == "tv":
             self.tv_layout = layout

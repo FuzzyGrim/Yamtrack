@@ -5,7 +5,7 @@ from django import forms
 from .models import TV, Anime, Episode, Manga, Movie, Season
 
 
-def get_form_class(media_type: str) -> forms.ModelForm:
+def get_form_class(media_type):
     """Return the form class for the media type."""
 
     form_classes = {
@@ -28,7 +28,7 @@ class MediaForm(forms.ModelForm):
         widget=forms.HiddenInput(),
     )
 
-    def __init__(self: "MediaForm", *args: dict, **kwargs: dict) -> None:
+    def __init__(self, *args, **kwargs):
         """Initialize the form."""
 
         super().__init__(*args, **kwargs)
@@ -102,7 +102,7 @@ class MovieForm(MediaForm):
 class TVForm(MediaForm):
     """Form for TV shows."""
 
-    def __init__(self: "TVForm", *args: dict, **kwargs: dict) -> None:
+    def __init__(self, *args, **kwargs):
         """Initialize the form."""
 
         super().__init__(*args, **kwargs)
@@ -133,7 +133,7 @@ class SeasonForm(MediaForm):
         widget=forms.HiddenInput(),
     )
 
-    def __init__(self: "SeasonForm", *args: dict, **kwargs: dict) -> None:
+    def __init__(self, *args, **kwargs):
         """Initialize the form."""
 
         super().__init__(*args, **kwargs)
@@ -196,7 +196,7 @@ class FilterForm(forms.Form):
         ],
     )
 
-    def __init__(self: "FilterForm", *args: dict, **kwargs: dict) -> None:
+    def __init__(self, *args, **kwargs):
         """Initialize the form."""
 
         layout = kwargs.pop("layout")
