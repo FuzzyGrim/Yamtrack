@@ -22,8 +22,8 @@ def importer(username: str, user: User) -> None:
 
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
-    Anime.objects.bulk_create(bulk_add_anime)
-    Manga.objects.bulk_create(bulk_add_manga)
+    Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
+    Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
 
 
 def get_whole_response(url: str) -> dict:
