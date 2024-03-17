@@ -24,10 +24,9 @@ class ImportMAL(TestCase):
     @patch("requests.get")
     def test_import_animelist(self, mock_request):
         """Basic test importing anime and manga from MyAnimeList."""
-
-        with open(mock_path / "import_mal_anime.json") as file:
+        with Path(mock_path / "import_mal_anime.json").open() as file:
             anime_response = json.load(file)
-        with open(mock_path / "import_mal_manga.json") as file:
+        with Path(mock_path / "import_mal_manga.json").open() as file:
             manga_response = json.load(file)
 
         anime_mock = MagicMock()
@@ -55,7 +54,6 @@ class ImportMAL(TestCase):
 
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
-
         self.assertRaises(
             requests.exceptions.HTTPError,
             mal.importer,
@@ -69,22 +67,19 @@ class ImportTMDB(TestCase):
 
     def setUp(self):
         """Create user for the tests."""
-
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
     def test_tmdb_import_ratings(self):
         """Test importing ratings from TMDB."""
-
-        with open(mock_path / "import_tmdb_ratings.csv", "rb") as file:
+        with Path(mock_path / "import_tmdb_ratings.csv").open("rb") as file:
             tmdb.importer(file, self.user, "Completed")
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
 
     def test_tmdb_import_watchlist(self):
         """Test importing watchlist from TMDB."""
-
-        with open(mock_path / "import_tmdb_watchlist.csv", "rb") as file:
+        with Path(mock_path / "import_tmdb_watchlist.csv").open("rb") as file:
             tmdb.importer(file, self.user, "Planning")
 
         self.assertEqual(TV.objects.filter(user=self.user).count(), 2)
@@ -95,15 +90,13 @@ class ImportAniList(TestCase):
 
     def setUp(self):
         """Create user for the tests."""
-
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
     @patch("requests.post")
     def test_import_anilist(self, mock_request: "patch"):
         """Basic test importing anime and manga from AniList."""
-
-        with open(mock_path / "import_anilist.json") as file:
+        with Path(mock_path / "import_anilist.json").open() as file:
             anilist_response = json.load(file)
         mock_request.return_value.json.return_value = anilist_response
 
@@ -121,7 +114,6 @@ class ImportAniList(TestCase):
 
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
-
         self.assertRaises(
             requests.exceptions.HTTPError,
             anilist.importer,
@@ -135,14 +127,12 @@ class ImportYamtrack(TestCase):
 
     def setUp(self):
         """Create user for the tests."""
-
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
     def test_import_yamtrack(self):
         """Basic test importing media from Yamtrack."""
-
-        with open(mock_path / "import_yamtrack.csv", "rb") as file:
+        with Path(mock_path / "import_yamtrack.csv").open("rb") as file:
             yamtrack.importer(file, self.user)
 
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)

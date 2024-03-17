@@ -10,14 +10,12 @@ class Profile(TestCase):
 
     def setUp(self):
         """Create user for the tests."""
-
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
     def test_change_username(self):
         """Test changing username."""
-
         self.assertEqual(auth.get_user(self.client).username, "test")
         self.client.post(
             reverse("profile"),
@@ -29,7 +27,6 @@ class Profile(TestCase):
 
     def test_change_password(self):
         """Test changing password."""
-
         self.assertEqual(auth.get_user(self.client).check_password("12345"), True)
         self.client.post(
             reverse("profile"),

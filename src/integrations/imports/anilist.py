@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 def importer(username, user):
     """Import anime and manga ratings from Anilist."""
-
     query = """
     query ($userName: String){
         anime: MediaListCollection(userName: $userName, type: ANIME) {
@@ -92,7 +91,6 @@ def importer(username, user):
 
 def add_media_list(query, warning_message, user):
     """Add media to list for bulk creation."""
-
     bulk_media = {"anime": [], "manga": []}
 
     for media_type in query["data"]:
@@ -145,7 +143,6 @@ def add_media_list(query, warning_message, user):
 
 def get_date(date):
     """Return date object from date dict."""
-
     if date["year"]:
         return datetime.date(date["year"], date["month"], date["day"])
 

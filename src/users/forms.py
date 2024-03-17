@@ -81,7 +81,6 @@ class UserUpdateForm(forms.ModelForm):
 
     def clean(self):
         """Check if the user is demo before changing the password."""
-
         cleaned_data = super().clean()
         if self.instance.is_demo:
             msg = "Changing the username is not allowed for the demo account."
@@ -113,7 +112,6 @@ class PasswordChangeForm(PasswordChangeForm):
 
     def clean(self):
         """Check if the user is demo before changing the password."""
-
         cleaned_data = super().clean()
         if self.user.is_demo:
             msg = "Changing the password is not allowed for the demo account."
@@ -122,7 +120,6 @@ class PasswordChangeForm(PasswordChangeForm):
 
     def __init__(self, *args, **kwargs):
         """Remove autofocus from password change form."""
-
         super().__init__(*args, **kwargs)
         self.fields["old_password"].widget.attrs.pop("autofocus", None)
         self.helper = FormHelper()

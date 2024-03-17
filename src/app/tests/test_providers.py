@@ -27,7 +27,6 @@ class Search(TestCase):
 
     def test_anime_not_found(self):
         """Test the search method for anime with no results."""
-
         response = mal.search("anime", "q")
 
         self.assertEqual(response, [])
@@ -58,7 +57,7 @@ class Metadata(TestCase):
     @patch("requests.get")
     def test_anime_unknown(self, mock_data: "patch"):
         """Test the metadata method for anime with mostly unknown data."""
-        with open(mock_path / "metadata_anime_unknown.json") as file:
+        with Path(mock_path / "metadata_anime_unknown.json").open() as file:
             anime_response = json.load(file)
         mock_data.return_value.json.return_value = anime_response
         mock_data.return_value.status_code = 200
@@ -73,7 +72,6 @@ class Metadata(TestCase):
 
     def test_manga(self):
         """Test the metadata method for manga."""
-
         response = mal.manga("1")
         self.assertEqual(response["title"], "Monster")
         self.assertEqual(response["details"]["start_date"], "1994-12-05")
@@ -99,7 +97,7 @@ class Metadata(TestCase):
     @patch("requests.get")
     def test_movie_unknown(self, mock_data: "patch"):
         """Test the metadata method for movies with mostly unknown data."""
-        with open(mock_path / "metadata_movie_unknown.json") as file:
+        with Path(mock_path / "metadata_movie_unknown.json").open() as file:
             movie_response = json.load(file)
         mock_data.return_value.json.return_value = movie_response
         mock_data.return_value.status_code = 200

@@ -13,7 +13,6 @@ class LoginRequiredMiddleware(MiddlewareMixin):
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         """Process the request and view."""
-
         current_route_name = resolve(request.path_info).url_name
 
         if request.user.is_authenticated:

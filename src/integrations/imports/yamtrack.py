@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 def importer(file, user):
     """Import media from CSV file."""
-
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
 
@@ -95,7 +94,6 @@ def importer(file, user):
 
 def add_bulk_media(row, user, bulk_media):
     """Add media to list for bulk creation."""
-
     media_type = row["media_type"]
     model = apps.get_model(app_label="app", model_name=media_type)
     instance = model(user=user, title=row["title"], image=row["image"])

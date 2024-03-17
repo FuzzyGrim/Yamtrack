@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 def register(request):
     """Register a new user."""
-
     form = UserRegisterForm(request.POST or None)
 
     if form.is_valid():
@@ -42,7 +41,6 @@ class CustomLoginView(LoginView):
 
     def form_valid(self, form):
         """Log the user in and set the session expiry."""
-
         logger.info(
             "User logged in as: %s at %s",
             self.request.POST["username"],
@@ -52,7 +50,6 @@ class CustomLoginView(LoginView):
 
     def form_invalid(self, form):
         """Log the failed login attempt."""
-
         logger.error(
             "Failed login attempt for: %s at %s",
             self.request.POST["username"],
@@ -63,7 +60,6 @@ class CustomLoginView(LoginView):
 
 def profile(request):
     """Update the user's profile and import/export data."""
-
     user_form = UserUpdateForm(instance=request.user)
     password_form = PasswordChangeForm(request.user)
 

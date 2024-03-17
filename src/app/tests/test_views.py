@@ -14,7 +14,6 @@ class CreateMedia(TestCase):
 
     def setUp(self):
         """Create a user and log in."""
-
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
@@ -23,7 +22,6 @@ class CreateMedia(TestCase):
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_anime(self):
         """Test the creation of a TV object."""
-
         self.client.post(
             reverse("media_save"),
             {
@@ -40,7 +38,6 @@ class CreateMedia(TestCase):
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_tv(self):
         """Test the creation of a TV object through views."""
-
         self.client.post(
             reverse("media_save"),
             {
@@ -57,7 +54,6 @@ class CreateMedia(TestCase):
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_season(self):
         """Test the creation of a Season through views."""
-
         self.client.post(
             reverse("media_save"),
             {
@@ -74,7 +70,6 @@ class CreateMedia(TestCase):
 
     def test_create_episodes(self):
         """Test the creation of Episode through views."""
-
         self.client.post(
             reverse("episode_handler"),
             {
@@ -103,7 +98,6 @@ class EditMedia(TestCase):
 
     def setUp(self):
         """Create a user and log in."""
-
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
@@ -141,14 +135,12 @@ class DeleteMedia(TestCase):
 
     def setUp(self):
         """Create a user and log in."""
-
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
     def test_delete_movie(self):
         """Test the deletion of a movie through views."""
-
         Movie.objects.create(
             media_id=10494,
             title="Perfect Blue",
@@ -170,7 +162,6 @@ class DeleteMedia(TestCase):
 
     def test_delete_season(self):
         """Test the deletion of a season through views."""
-
         related_tv = TV.objects.create(
             media_id=1668,
             title="Friends",
@@ -208,7 +199,6 @@ class DeleteMedia(TestCase):
 
     def test_unwatch_episode(self):
         """Test unwatching of an episode through views."""
-
         related_tv = TV.objects.create(
             media_id=1668,
             title="Friends",
@@ -306,7 +296,6 @@ class ProgressEditSeason(TestCase):
 
     def test_progress_decrease(self):
         """Test the decrease of progress for a season."""
-
         self.client.post(
             reverse("progress_edit"),
             {

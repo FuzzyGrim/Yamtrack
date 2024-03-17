@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 def db_to_csv(response, user):
     """Export a CSV file of the user's media."""
-
     fields = [
         "media_id",
         "media_type",
@@ -45,7 +44,6 @@ def db_to_csv(response, user):
 
 def write_model_to_csv(writer, fields, queryset, media_type):
     """Export entries from a model to a CSV file."""
-
     logger.info("Adding %ss to CSV", media_type)
 
     for item in queryset:

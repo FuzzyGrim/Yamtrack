@@ -35,7 +35,6 @@ def check_demo(view):
 @check_demo
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
-
     try:
         mal.importer(request.POST["mal"], request.user)
         messages.success(request, "Your MyAnimeList has been imported!")
@@ -51,7 +50,6 @@ def import_mal(request):
 @check_demo
 def import_tmdb_ratings(request):
     """View for importing TMDB movie and TV ratings."""
-
     try:
         tmdb.importer(
             request.FILES["tmdb_ratings"],
@@ -76,7 +74,6 @@ def import_tmdb_ratings(request):
 @check_demo
 def import_tmdb_watchlist(request):
     """View for importing TMDB movie and TV watchlist."""
-
     try:
         tmdb.importer(
             request.FILES["tmdb_watchlist"],
@@ -101,7 +98,6 @@ def import_tmdb_watchlist(request):
 @check_demo
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
-
     try:
         warning_message = anilist.importer(request.POST["anilist"], request.user)
         if warning_message:
@@ -128,7 +124,6 @@ def import_anilist(request):
 @check_demo
 def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""
-
     try:
         yamtrack.importer(request.FILES["yamtrack_csv"], request.user)
         messages.success(request, "Your Yamtrack CSV file has been imported!")
@@ -148,7 +143,6 @@ def import_yamtrack(request):
 
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
-
     # Create the HttpResponse object with the appropriate CSV header.
     response = HttpResponse(
         content_type="text/csv",

@@ -1,26 +1,16 @@
 [tool.ruff]
-# Assume Python 3.11
 target-version = "py311"
 extend-exclude = ["migrations"]
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = [
-    "ANN",
-    "D100",
-    "D104",
-    "D202",
-    "D203",
-    "D213",
-    "PT009",
-    "PT027",
-    "PLR2004",
-    "PTH123",
-    "RUF012",
-]
+ignore = ["ANN", "PT", "D100", "D104", "PLR2004", "RUF012"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 88
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
 
 
 [tool.djlint]

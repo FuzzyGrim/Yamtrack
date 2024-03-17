@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 def api_request(url, method, headers=None, json=None):
     """Make a request to the API and return the response as a dictionary."""
-
     if method == "GET":
         response = requests.get(url, headers=headers, timeout=settings.REQUEST_TIMEOUT)
     elif method == "POST":
@@ -30,7 +29,6 @@ def api_request(url, method, headers=None, json=None):
 
 def get_media_metadata(media_type, media_id):
     """Return the metadata for the selected media."""
-
     if media_type == "anime":
         media_metadata = mal.anime(media_id)
     elif media_type == "manga":

@@ -14,7 +14,6 @@ class ValidForm(TestCase):
 
     def test_valid_media_form(self):
         """Test the standard media form with valid data."""
-
         form_data = {
             "media_id": 1,
             "media_type": "anime",
@@ -33,7 +32,6 @@ class ValidForm(TestCase):
 
     def test_valid_tv_form(self):
         """Test the TV form with valid data."""
-
         form_data = {
             "media_id": 1,
             "media_type": "tv",
@@ -49,7 +47,6 @@ class ValidForm(TestCase):
 
     def test_valid_season_form(self):
         """Test the season form with valid data."""
-
         form_data = {
             "media_id": 1,
             "media_type": "season",
@@ -66,7 +63,6 @@ class ValidForm(TestCase):
 
     def test_valid_episode_form(self):
         """Test the episode form with valid data."""
-
         form_data = {
             "episode_number": 1,
             "watch_date": "2023-06-01",

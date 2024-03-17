@@ -12,5 +12,4 @@ class MediaTypeChecker:
 
     def to_url(self, value):
         """Return the media type if it is valid."""
-
         return value

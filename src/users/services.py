@@ -3,7 +3,6 @@ def get_client_ip(request):
 
     Used when logging for user registration and login.
     """
-
     # get the user's IP address
     ip_address = request.META.get("HTTP_X_FORWARDED_FOR")
 

@@ -7,7 +7,6 @@ from app.providers import services
 
 def search(media_type, query):
     """Search for media on MyAnimeList."""
-
     data = cache.get(f"search_{media_type}_{query}")
 
     if not data:
@@ -43,7 +42,6 @@ def search(media_type, query):
 
 def anime(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
-
     data = cache.get(f"anime_{media_id}")
 
     if not data:
@@ -85,7 +83,6 @@ def anime(media_id):
 
 def manga(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
-
     data = cache.get(f"manga_{media_id}")
 
     if not data:
@@ -123,7 +120,6 @@ def manga(media_id):
 
 def get_format(response):
     """Return the original type of the media."""
-
     # MAL return tv in metadata for anime
     if response["media_type"] == "tv":
         response["media_type"] = "anime"
@@ -138,7 +134,6 @@ def get_format(response):
 
 def get_image_url(response):
     """Return the image URL for the media."""
-
     # when no picture, main_picture is not present in the response
     # e.g anime: 38869
     if "main_picture" in response:
@@ -148,7 +143,6 @@ def get_image_url(response):
 
 def get_readable_status(response):
     """Return the status in human-readable format."""
-
     # Map status to human-readable values
     status_map = {
         "finished_airing": "Finished",
@@ -164,7 +158,6 @@ def get_readable_status(response):
 
 def get_synopsis(response):
     """Add the synopsis to the response."""
-
     # when no synopsis, value from response is empty string
     # e.g manga: 160219
     if response["synopsis"] == "":
@@ -175,7 +168,6 @@ def get_synopsis(response):
 
 def get_number_of_episodes(response):
     """Return the number of episodes for the media."""
-
     # when unknown episodes, value from response is 0
     # e.g manga: 160219
 
@@ -193,7 +185,6 @@ def get_number_of_episodes(response):
 
 def get_runtime(response):
     """Return the average episode duration."""
-
     # when unknown duration, value from response is 0
     # e.g anime: 43333
     duration = response["average_episode_duration"]
@@ -208,13 +199,11 @@ def get_runtime(response):
 
 def get_genres(response):
     """Return the genres for the media."""
-
     return ", ".join(genre["name"] for genre in response["genres"])
 
 
 def get_studios(response):
     """Return the studios for the media."""
-
     # when unknown studio, studios is an empty list
     # e.g anime: 43333
 
@@ -225,7 +214,6 @@ def get_studios(response):
 
 def get_season(response):
     """Return the season for the media."""
-
     # when unknown start season, no start_season key in response
     # e.g anime: 43333
 
@@ -239,13 +227,11 @@ def get_season(response):
 
 def get_source(response):
     """Return the source for the media."""
-
     return response["source"].replace("_", " ").title()
 
 
 def get_related(related_medias):
     """Return list of related media for the selected media."""
-
     if related_medias:
         return [
             {

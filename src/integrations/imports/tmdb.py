@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 def importer(file, user, status):
     """Import movie and TV ratings or watchlist depending on status from TMDB."""
-
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = csv.DictReader(decoded_file)
 
@@ -46,7 +45,6 @@ def importer(file, user, status):
 
 def create_instance(media_metadata, user):
     """Create instance of media."""
-
     media_type = media_metadata["media_type"]
     model = apps.get_model(app_label="app", model_name=media_type)
 
@@ -59,7 +57,6 @@ def create_instance(media_metadata, user):
 
 def create_form(row, instance, media_metadata, status):
     """Create form for media."""
-
     media_type = media_metadata["media_type"]
 
     data = {

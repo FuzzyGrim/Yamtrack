@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 def importer(username, user):
     """Import anime and manga from MyAnimeList."""
-
     anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status{{comments}}&nsfw=true&limit=1000"
     animes = get_whole_response(anime_url)
 
@@ -30,7 +29,6 @@ def get_whole_response(url):
 
     Continues to fetch data from the next URL until there is no more data to fetch.
     """
-
     header = {"X-MAL-CLIENT-ID": settings.MAL_API}
 
     data = services.api_request(url, "GET", header)
@@ -49,7 +47,6 @@ def get_whole_response(url):
 
 def add_media_list(response, media_type, user):
     """Add media to list for bulk creation."""
-
     logger.info("Importing %ss from MyAnimeList", media_type)
 
     bulk_media = []
@@ -89,7 +86,6 @@ def add_media_list(response, media_type, user):
 
 def get_status(status):
     """Convert the status from MyAnimeList to the status used in the app."""
-
     switcher = {
         "completed": "Completed",
         "reading": "In progress",

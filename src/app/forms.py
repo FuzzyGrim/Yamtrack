@@ -7,7 +7,6 @@ from .models import TV, Anime, Episode, Manga, Movie, Season
 
 def get_form_class(media_type):
     """Return the form class for the media type."""
-
     form_classes = {
         "manga": MangaForm,
         "anime": AnimeForm,
@@ -30,7 +29,6 @@ class MediaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
-
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -104,7 +102,6 @@ class TVForm(MediaForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
-
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -135,7 +132,6 @@ class SeasonForm(MediaForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
-
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -198,7 +194,6 @@ class FilterForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
-
         layout = kwargs.pop("layout")
 
         super().__init__(*args, **kwargs)

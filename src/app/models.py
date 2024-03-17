@@ -59,12 +59,10 @@ class Media(models.Model):
 
     def __str__(self):
         """Return the title of the media."""
-
         return f"{self.title}"
 
     def save(self, *args, **kwargs):
         """Save the media instance."""
-
         if "status" in self.tracker.changed():
             self.process_status()
 
@@ -75,7 +73,6 @@ class Media(models.Model):
 
     def process_status(self):
         """Update fields depending on the status of the media."""
-
         if self.status == "Completed":
             if not self.end_date:
                 self.end_date = datetime.datetime.now(tz=settings.TZ).date()
@@ -93,7 +90,6 @@ class Media(models.Model):
 
     def process_progress(self):
         """Update fields depending on the progress of the media."""
-
         media_type = self.__class__.__name__.lower()
 
         total_episodes = services.get_media_metadata(media_type, self.media_id)[
@@ -168,7 +164,6 @@ class TV(Media):
 
     def completed(self):
         """Create remaining seasons and episodes for a TV show."""
-
         seasons_to_update = []
         episodes_to_create = []
 
@@ -236,7 +231,6 @@ class Season(Media):
     @tracker  # postpone field reset until after the save
     def save(self, *args, **kwargs):
         """Save the media instance."""
-
         # if related_tv is not set
         if self.related_tv_id is None:
             self.related_tv = self.get_tv()
@@ -272,7 +266,6 @@ class Season(Media):
 
     def increase_progress(self):
         """Increase the progress of the season by one."""
-
         season_metadata = tmdb.season(self.media_id, self.season_number)
 
         progress = self.progress
@@ -297,7 +290,6 @@ class Season(Media):
 
     def decrease_progress(self):
         """Decrease the progress of the season by one."""
-
         try:
             last_watched = Episode.objects.filter(
                 related_season=self,
@@ -345,7 +337,6 @@ class Season(Media):
 
     def get_remaining_eps(self, season_metadata):
         """Return episodes needed to complete a season."""
-
         max_episode_number = Episode.objects.filter(related_season=self).aggregate(
             max_episode_number=Max("episode_number"),
         )["max_episode_number"]

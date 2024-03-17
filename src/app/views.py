@@ -48,7 +48,6 @@ def home(request):
 
 def progress_edit(request):
     """Increase or decrease the progress of a media item from home page."""
-
     media_type = request.POST["media_type"]
     media_id = request.POST["media_id"]
     operation = request.POST["operation"]
@@ -107,7 +106,6 @@ def progress_edit(request):
 
 def media_list(request, media_type):
     """Return the media list page."""
-
     layout_user = request.user.get_layout(media_type)
     filter_form = FilterForm(layout=layout_user)
 
@@ -173,7 +171,6 @@ def media_list(request, media_type):
 
 def media_search(request):
     """Return the media search page."""
-
     media_type = request.GET["media_type"]
     query = request.GET["q"]
     # update user default search type
@@ -192,7 +189,6 @@ def media_search(request):
 
 def media_details(request, media_type, media_id, title):  # noqa: ARG001 for URL
     """Return the details page for a media item."""
-
     media_metadata = services.get_media_metadata(media_type, media_id)
 
     context = {"media": media_metadata}
@@ -201,7 +197,6 @@ def media_details(request, media_type, media_id, title):  # noqa: ARG001 for URL
 
 def season_details(request, media_id, title, season_number): # noqa: ARG001 for URL
     """Return the details page for a season."""
-
     tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
     season_metadata = tv_metadata[f"season/{season_number}"]
 
@@ -224,7 +219,6 @@ def season_details(request, media_id, title, season_number): # noqa: ARG001 for 
 
 def track_form(request):
     """Return the tracking form for a media item."""
-
     media_type = request.GET["media_type"]
     media_id = request.GET["media_id"]
 
@@ -278,7 +272,6 @@ def track_form(request):
 
 def media_save(request):
     """Save or update media data to the database."""
-
     media_id = request.POST["media_id"]
     media_type = request.POST["media_type"]
     model = apps.get_model(app_label="app", model_name=media_type)
@@ -334,7 +327,6 @@ def media_save(request):
 
 def media_delete(request):
     """Delete media data from the database."""
-
     media_id = request.POST["media_id"]
     media_type = request.POST["media_type"]
 
@@ -361,7 +353,6 @@ def media_delete(request):
 
 def episode_handler(request):
     """Handle the creation, deletion, and updating of episodes for a season."""
-
     media_id = request.POST["media_id"]
     season_number = request.POST["season_number"]
 

@@ -13,7 +13,6 @@ class ExportCSVTest(TestCase):
 
     def setUp(self):
         """Create necessary data for the tests."""
-
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_superuser(**self.credentials)
         self.client.login(**self.credentials)
@@ -76,7 +75,6 @@ class ExportCSVTest(TestCase):
 
     def test_export_csv(self):
         """Basic test exporting media to CSV."""
-
         # Generate the CSV file by accessing the export view
         response = self.client.get(reverse("export_csv"))
 
