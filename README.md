@@ -36,8 +36,8 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 | Name            | Type   | Description                   | Required    | Default  | Notes                                                                                               |
 | --------------- | ------ | ----------------------------- | ----------- | -------- | --------------------------------------------------------------------------------------------------- |
-| TMDB_API        | String | The Movie Database API key    | Yes         | None     | Required for movies and tv shows                                                                    |
-| MAL_API         | String | MyAnimeList API key           | Yes         | None     | Required for anime and manga                                                                        |
+| TMDB_API        | String | The Movie Database API key    | Recommended | 61...f60 | Required for movies and tv shows                                                                    |
+| MAL_API         | String | MyAnimeList API key           | Recommended | 25...691 | Required for anime and manga                                                                        |
 | REDIS_URL       | String | Redis URL                     | Recommended | None     | Redis is recommended for better performance                                                         |
 | SECRET          | String | Django secret key             | Recommended | "secret" | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                     |
 | ALLOWED_HOSTS   | List   | Base IP / Domain              | No          | "\*"     | [ALLOWED_HOSTS](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts)               |
