@@ -216,8 +216,8 @@ IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-b
 
 REQUEST_TIMEOUT = 5  # seconds
 
-TMDB_API = config("TMDB_API", default=None)
-MAL_API = config("MAL_API", default=None)
+TMDB_API = config("TMDB_API", default="61572be02f0a068658828f6396aacf60")
+MAL_API = config("MAL_API", default="25b5581dafd15b3e7d583bb79e9a1691")
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
 # Third party settings
