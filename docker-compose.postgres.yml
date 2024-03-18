@@ -8,8 +8,7 @@ services:
       - db
       - redis
     environment:
-      - TMDB_API=TMDB_API_KEY
-      - MAL_API=MAL_API_KEY
+      - SECRET=longstring
       - REDIS_URL=redis://redis:6379
       - DB_HOST=db
       - DB_NAME=yamtrack
@@ -26,7 +25,6 @@ services:
       - POSTGRES_DB=yamtrack
       - POSTGRES_USER=yamtrack
       - POSTGRES_PASSWORD=yamtrack
-
     volumes:
       - ./db:/var/lib/postgresql/data
     restart: unless-stopped

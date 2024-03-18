@@ -7,8 +7,7 @@ services:
     depends_on:
       - redis
     environment:
-      - TMDB_API=TMDB_API_KEY
-      - MAL_API=MAL_API_KEY
+      - SECRET=longstring
       - REDIS_URL=redis://redis:6379
     volumes:
       - ./db:/yamtrack/db
