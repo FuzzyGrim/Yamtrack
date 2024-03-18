@@ -39,17 +39,16 @@ class ImportMAL(TestCase):
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
-            Anime.objects.get(user=self.user, title="Ama Gli Animali").image
-            == settings.IMG_NONE,
-            True,
+            Anime.objects.get(user=self.user, title="Ama Gli Animali").image,
+            settings.IMG_NONE,
         )
         self.assertEqual(
-            Anime.objects.get(user=self.user, title="FLCL").status == "Paused",
-            True,
+            Anime.objects.get(user=self.user, title="FLCL").status,
+            "Paused",
         )
         self.assertEqual(
-            Manga.objects.get(user=self.user, title="Fire Punch").score == 7,
-            True,
+            Manga.objects.get(user=self.user, title="Fire Punch").score,
+            7,
         )
 
     def test_user_not_found(self):
@@ -104,12 +103,12 @@ class ImportAniList(TestCase):
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
-            Anime.objects.get(user=self.user, title="FLCL").status == "Paused",
-            True,
+            Anime.objects.get(user=self.user, title="FLCL").status,
+            "Paused",
         )
         self.assertEqual(
-            Manga.objects.get(user=self.user, title="One Punch-Man").score == 9,
-            True,
+            Manga.objects.get(user=self.user, title="One Punch-Man").score,
+            9,
         )
 
     def test_user_not_found(self):

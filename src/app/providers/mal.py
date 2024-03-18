@@ -120,16 +120,14 @@ def manga(media_id):
 
 def get_format(response):
     """Return the original type of the media."""
-    # MAL return tv in metadata for anime
-    if response["media_type"] == "tv":
-        response["media_type"] = "anime"
+    media_format = response["media_type"]
 
-    # for light_novel, tv_special, etc
-    formatted = response["media_type"].replace("_", " ")
-    if len(formatted) <= 3:
-        # ona, ova, etc
-        return formatted.upper()
-    return formatted.title()
+    # MAL return tv in metadata for anime
+    if media_format == "tv":
+        return "Anime"
+    if media_format in ("ova", "ona"):
+        return media_format.upper()
+    return media_format.replace("_", " ").title()
 
 
 def get_image_url(response):

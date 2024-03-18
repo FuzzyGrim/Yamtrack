@@ -16,8 +16,8 @@ def api_request(url, method, headers=None, json=None):
     elif method == "POST":
         response = requests.post(url, json=json, timeout=settings.REQUEST_TIMEOUT)
 
-    # rate limit exceeded
-    if response.status_code == 429:
+    rate_limit_code = 429
+    if response.status_code == rate_limit_code:
         seconds_to_wait = int(response.headers["Retry-After"])
         time.sleep(seconds_to_wait)
         return api_request(url, method, json)

@@ -4,7 +4,7 @@ extend-exclude = ["migrations"]
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["ANN", "PT", "D100", "D104", "PLR2004", "RUF012"]
+ignore = ["ANN", "PT", "D100", "D104", "RUF012"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 88
