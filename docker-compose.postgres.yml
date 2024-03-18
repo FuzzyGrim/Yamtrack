@@ -13,7 +13,7 @@ services:
       - DB_HOST=db
       - DB_NAME=yamtrack
       - DB_USER=yamtrack
-      - DB_PASS=yamtrack
+      - DB_PASSWORD=yamtrack
       - DB_PORT=5432
     ports:
       - "8000:8000"
