@@ -156,7 +156,7 @@ def media_list(request, media_type):
             media_list = media_list.order_by(F(sort_filter).asc())
         # desc order
         else:
-            media_list = media_list.order_by(F(sort_filter).desc())
+            media_list = media_list.order_by(F(sort_filter).desc(nulls_last=True))
 
     return render(
         request,
