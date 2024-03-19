@@ -10,7 +10,9 @@ def search(media_type, query):
     data = cache.get(f"search_{media_type}_{query}")
 
     if not data:
-        url = f"https://api.myanimelist.net/v2/{media_type}?q={query}&nsfw=true&fields=media_type"
+        url = f"https://api.myanimelist.net/v2/{media_type}?q={query}&fields=media_type"
+        if settings.MAL_NSFW:
+            url += "&nsfw=true"
 
         try:
             response = services.api_request(

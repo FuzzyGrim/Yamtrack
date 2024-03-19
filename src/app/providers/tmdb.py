@@ -10,6 +10,9 @@ def search(media_type, query):
 
     if not data:
         url = f"https://api.themoviedb.org/3/search/{media_type}?api_key={settings.TMDB_API}&query={query}"
+        if settings.TMDB_NSFW:
+            url += "&include_adult=true"
+
         response = services.api_request(url, "GET")
 
         response = response["results"]
