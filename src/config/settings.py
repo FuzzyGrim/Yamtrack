@@ -152,8 +152,8 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "loggers": {
-        "asyncio": {
-            "level": "WARNING",
+        "psycopg": {
+            "level": "INFO",
         },
     },
     "formatters": {
