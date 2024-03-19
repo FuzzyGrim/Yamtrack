@@ -19,6 +19,7 @@ It uses [The Movie Database](https://www.themoviedb.org/) and [MyAnimeList](http
 - Docker support
 - Multi-users support
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/)
+- Export all your tracked media to a CSV file
 
 ## Installing with Docker
 
