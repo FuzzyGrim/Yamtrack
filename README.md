@@ -18,7 +18,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 - Save score, status, progress, start and end dates, or write a note.
 - Docker support
 - Multi-users support
-- Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/)
+- Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/), [AniList](https://anilist.co/) and CSV.
 - Export all your tracked media to a CSV file
 
 ## Installing with Docker
