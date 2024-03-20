@@ -4,20 +4,28 @@ from django.core.cache import cache
 
 from app.providers import services
 
+base_url = "https://api.myanimelist.net/v2"
+base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status,genres,recommendations"  # noqa: E501
+
 
 def search(media_type, query):
     """Search for media on MyAnimeList."""
     data = cache.get(f"search_{media_type}_{query}")
 
     if not data:
-        url = f"https://api.myanimelist.net/v2/{media_type}?q={query}&fields=media_type"
+        url = f"{base_url}/{media_type}"
+        params = {
+            "q": query,
+            "fields": "media_type",
+        }
         if settings.MAL_NSFW:
-            url += "&nsfw=true"
+            params["nsfw"] = "true"
 
         try:
             response = services.api_request(
-                url,
                 "GET",
+                url,
+                params=params,
                 headers={"X-MAL-CLIENT-ID": settings.MAL_API},
             )
         except requests.exceptions.HTTPError as error:
@@ -47,10 +55,14 @@ def anime(media_id):
     data = cache.get(f"anime_{media_id}")
 
     if not data:
-        url = f"https://api.myanimelist.net/v2/anime/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,num_episodes,average_episode_duration,studios,start_season,source,genres,related_anime,recommendations"
+        url = f"{base_url}/anime/{media_id}"
+        params = {
+            "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,source,related_anime",  # noqa: E501
+        }
         response = services.api_request(
-            url,
             "GET",
+            url,
+            params=params,
             headers={"X-MAL-CLIENT-ID": settings.MAL_API},
         )
 
@@ -88,10 +100,14 @@ def manga(media_id):
     data = cache.get(f"manga_{media_id}")
 
     if not data:
-        url = f"https://api.myanimelist.net/v2/manga/{media_id}?fields=title,main_picture,media_type,start_date,end_date,synopsis,status,genres,num_chapters,related_manga,recommendations"
+        url = f"{base_url}/manga/{media_id}"
+        params = {
+            "fields": f"{base_fields},num_chapters,related_manga,recommendations",
+        }
         response = services.api_request(
-            url,
             "GET",
+            url,
+            params=params,
             headers={"X-MAL-CLIENT-ID": settings.MAL_API},
         )
 

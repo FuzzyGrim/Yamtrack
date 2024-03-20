@@ -187,7 +187,7 @@ def media_search(request):
     return render(request, "app/search.html", context)
 
 
-def media_details(request, media_type, media_id, title):  # noqa: ARG001 for URL
+def media_details(request, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id)
 
@@ -195,7 +195,7 @@ def media_details(request, media_type, media_id, title):  # noqa: ARG001 for URL
     return render(request, "app/media_details.html", context)
 
 
-def season_details(request, media_id, title, season_number): # noqa: ARG001 for URL
+def season_details(request, media_id, title, season_number): # noqa: ARG001 title for URL
     """Return the details page for a season."""
     tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
     season_metadata = tv_metadata[f"season/{season_number}"]

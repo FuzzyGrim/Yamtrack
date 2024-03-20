@@ -7,36 +7,47 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+base_url = "https://api.myanimelist.net/v2/users"
+
 
 def importer(username, user):
     """Import anime and manga from MyAnimeList."""
-    anime_url = f"https://api.myanimelist.net/v2/users/{username}/animelist?fields=list_status{{comments}}&nsfw=true&limit=1000"
-    animes = get_whole_response(anime_url)
+    params = {
+        "fields": "list_status{comments}",
+        "nsfw": "true",
+        "limit": 1000,
+    }
 
+    anime_url = f"{base_url}/{username}/animelist"
+    animes = get_whole_response(anime_url, params)
     bulk_add_anime = add_media_list(animes, "anime", user)
 
-    manga_url = f"https://api.myanimelist.net/v2/users/{username}/mangalist?fields=list_status{{comments}}&nsfw=true&limit=1000"
-    mangas = get_whole_response(manga_url)
-
+    manga_url = f"{base_url}/{username}/mangalist"
+    mangas = get_whole_response(manga_url, params)
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
     Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
     Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
 
 
-def get_whole_response(url):
+def get_whole_response(url, params):
     """Fetch whole data from user.
 
     Continues to fetch data from the next URL until there is no more data to fetch.
     """
-    header = {"X-MAL-CLIENT-ID": settings.MAL_API}
+    headers = {"X-MAL-CLIENT-ID": settings.MAL_API}
 
-    data = services.api_request(url, "GET", header)
+    data = services.api_request("GET", url, params=params, headers=headers)
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
         # Fetch the data from the next URL
-        next_data = services.api_request(next_url, "GET", header)
+        next_data = services.api_request(
+            "GET",
+            next_url,
+            params=params,
+            headers=headers,
+        )
         # Append the new data to the existing data in the data
         data["data"].extend(next_data["data"])
         # Update the "paging" key with the new "next" URL (if any)

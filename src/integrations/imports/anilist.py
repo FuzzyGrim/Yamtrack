@@ -78,10 +78,9 @@ def importer(username, user):
     variables = {"userName": username}
     url = "https://graphql.anilist.co"
 
-    # dont need to disable cache, as POST requests are not cached
     query = services.api_request(
-        url,
         "POST",
+        url,
         json={"query": query, "variables": variables},
     )
 

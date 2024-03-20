@@ -3,17 +3,24 @@ from django.core.cache import cache
 
 from app.providers import services
 
+base_url = "https://api.themoviedb.org/3"
+
 
 def search(media_type, query):
     """Search for media on TMDB."""
     data = cache.get(f"search_{media_type}_{query}")
 
     if not data:
-        url = f"https://api.themoviedb.org/3/search/{media_type}?api_key={settings.TMDB_API}&query={query}"
-        if settings.TMDB_NSFW:
-            url += "&include_adult=true"
+        url = f"{base_url}/search/{media_type}"
+        params = {
+            "api_key": settings.TMDB_API,
+            "query": query,
+        }
 
-        response = services.api_request(url, "GET")
+        if settings.TMDB_NSFW:
+            params["include_adult"] = "true"
+
+        response = services.api_request("GET", url, params=params)
 
         response = response["results"]
         data = [
@@ -37,8 +44,12 @@ def movie(media_id):
     data = cache.get(f"movie_{media_id}")
 
     if not data:
-        url = f"https://api.themoviedb.org/3/movie/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
-        response = services.api_request(url, "GET")
+        url = f"{base_url}/movie/{media_id}"
+        params = {
+            "api_key": settings.TMDB_API,
+            "append_to_response": "recommendations",
+        }
+        response = services.api_request("GET", url, params=params)
         data = {
             "media_id": media_id,
             "media_type": "movie",
@@ -70,13 +81,18 @@ def movie(media_id):
 
 def tv_with_seasons(media_id, season_numbers):
     """Return the metadata for the tv show with a season appended to the response."""
+    url = f"{base_url}/tv/{media_id}"
     append_text = ",".join([f"season/{season}" for season in season_numbers])
-    url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations,{append_text}"
+    params = {
+        "api_key": settings.TMDB_API,
+        "append_to_response": f"recommendations,{append_text}",
+    }
+
     requested = False
 
     data = cache.get(f"tv_{media_id}")
     if not data:
-        response = services.api_request(url, "GET")
+        response = services.api_request("GET", url, params=params)
         requested = True
 
         data = process_tv(response)
@@ -88,7 +104,7 @@ def tv_with_seasons(media_id, season_numbers):
 
         if not season_data:
             if not requested:
-                response = services.api_request(url, "GET")
+                response = services.api_request("GET", url, params=params)
                 requested = True
 
             season_data = process_season(
@@ -106,8 +122,12 @@ def tv(media_id):
     data = cache.get(f"tv_{media_id}")
 
     if not data:
-        url = f"https://api.themoviedb.org/3/tv/{media_id}?api_key={settings.TMDB_API}&append_to_response=recommendations"
-        response = services.api_request(url, "GET")
+        url = f"{base_url}/tv/{media_id}"
+        params = {
+            "api_key": settings.TMDB_API,
+            "append_to_response": "recommendations",
+        }
+        response = services.api_request("GET", url, params=params)
         data = process_tv(response)
         cache.set(f"tv_{media_id}", data)
 
@@ -149,8 +169,11 @@ def season(tv_id, season_number):
     data = cache.get(f"season_{tv_id}_{season_number}")
 
     if not data:
-        url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}?api_key={settings.TMDB_API}"
-        response = services.api_request(url, "GET")
+        url = f"{base_url}/tv/{tv_id}/season/{season_number}"
+        params = {
+            "api_key": settings.TMDB_API,
+        }
+        response = services.api_request("GET", url, params=params)
         data = process_season(response)
         cache.set(f"season_{tv_id}_{season_number}", data)
 

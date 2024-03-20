@@ -9,18 +9,28 @@ from app.providers import mal, tmdb
 logger = logging.getLogger(__name__)
 
 
-def api_request(url, method, headers=None, json=None):
+def api_request(method, url, params=None, json=None, headers=None):
     """Make a request to the API and return the response as a dictionary."""
     if method == "GET":
-        response = requests.get(url, headers=headers, timeout=settings.REQUEST_TIMEOUT)
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=settings.REQUEST_TIMEOUT,
+        )
     elif method == "POST":
-        response = requests.post(url, json=json, timeout=settings.REQUEST_TIMEOUT)
+        response = requests.post(
+            url,
+            json=json,
+            headers=headers,
+            timeout=settings.REQUEST_TIMEOUT,
+        )
 
     rate_limit_code = 429
     if response.status_code == rate_limit_code:
         seconds_to_wait = int(response.headers["Retry-After"])
         time.sleep(seconds_to_wait)
-        return api_request(url, method, json)
+        return api_request(method, url, params=params, json=json, headers=headers)
 
     response.raise_for_status()
 
