@@ -29,7 +29,9 @@ def api_request(method, url, params=None, json=None, headers=None):
     rate_limit_code = 429
     if response.status_code == rate_limit_code:
         seconds_to_wait = int(response.headers["Retry-After"])
+        logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
         time.sleep(seconds_to_wait)
+        logger.info("Retrying request")
         return api_request(method, url, params=params, json=json, headers=headers)
 
     response.raise_for_status()
