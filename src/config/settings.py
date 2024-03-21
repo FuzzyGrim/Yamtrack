@@ -117,6 +117,14 @@ if config("REDIS_URL", default=None):
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": config("REDIS_URL"),
+            "TIMEOUT": 18000, # 5 hours
+        },
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "TIMEOUT": 18000, # 5 hours
         },
     }
 
