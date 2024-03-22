@@ -11,7 +11,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 from app.forms import FilterForm, get_form_class
 from app.models import Anime, Episode, Manga, Movie, Season
-from app.providers import mal, services, tmdb
+from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +181,8 @@ def media_search(request):
         query_list = mal.search(media_type, query)
     elif media_type in ("tv", "movie"):
         query_list = tmdb.search(media_type, query)
+    elif media_type == "game":
+        query_list = igdb.search(query)
 
     context = {"query_list": query_list}
 

@@ -77,6 +77,12 @@
                 <i class="bi bi-book me-2"></i> Mangas
               </a>
             </li>
+            <li>
+              <a href="{% url 'medialist' media_type='game' %}"
+                 class="nav-link {% if media_type == "game" %}active{% endif %}">
+                <i class="bi bi-joystick me-2"></i> Games
+              </a>
+            </li>
             <hr>
             <li>
               <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
@@ -112,6 +118,8 @@
                         {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
                 <option value="manga"
                         {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
+                <option value="game"
+                        {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
               </select>
               <input class="form-control"
                      type="search"

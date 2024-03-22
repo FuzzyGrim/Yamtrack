@@ -226,8 +226,13 @@ REQUEST_TIMEOUT = 5  # seconds
 
 TMDB_API = config("TMDB_API", default="61572be02f0a068658828f6396aacf60")
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
+
 MAL_API = config("MAL_API", default="25b5581dafd15b3e7d583bb79e9a1691")
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
+
+IGDB_ID = config("IGDB_ID", default=None)
+IGDB_SECRET = config("IGDB_SECRET", default=None)
+
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
 # Third party settings
