@@ -4,12 +4,12 @@ import time
 import requests
 from django.conf import settings
 
-from app.providers import mal, tmdb
+from app.providers import igdb, mal, tmdb
 
 logger = logging.getLogger(__name__)
 
 
-def api_request(method, url, params=None, json=None, headers=None):
+def api_request(method, url, params=None, data=None, headers=None):
     """Make a request to the API and return the response as a dictionary."""
     if method == "GET":
         response = requests.get(
@@ -21,7 +21,8 @@ def api_request(method, url, params=None, json=None, headers=None):
     elif method == "POST":
         response = requests.post(
             url,
-            json=json,
+            data=data,
+            json=params,
             headers=headers,
             timeout=settings.REQUEST_TIMEOUT,
         )
@@ -32,7 +33,13 @@ def api_request(method, url, params=None, json=None, headers=None):
         logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
         time.sleep(seconds_to_wait)
         logger.info("Retrying request")
-        return api_request(method, url, params=params, json=json, headers=headers)
+        return api_request(
+            method,
+            url,
+            params=params,
+            data=data,
+            headers=headers,
+        )
 
     response.raise_for_status()
 
@@ -49,5 +56,7 @@ def get_media_metadata(media_type, media_id):
         media_metadata = tmdb.tv(media_id)
     elif media_type == "movie":
         media_metadata = tmdb.movie(media_id)
+    elif media_type == "game":
+        media_metadata = igdb.game(media_id)
 
     return media_metadata

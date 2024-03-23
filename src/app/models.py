@@ -417,3 +417,9 @@ class Movie(Media):
     """Model for movies."""
 
     tracker = FieldTracker()
+
+
+class Game(Media):
+    """Model for games."""
+
+    tracker = FieldTracker()
