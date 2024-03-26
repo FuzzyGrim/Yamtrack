@@ -20,6 +20,7 @@ class User(AbstractUser):
             ("movie", "movie"),
             ("anime", "anime"),
             ("manga", "manga"),
+            ("game", "game")
         ],
     )
 
@@ -53,6 +54,12 @@ class User(AbstractUser):
         choices=layouts,
     )
 
+    game_layout = models.CharField(
+        max_length=20,
+        default="grid",
+        choices=layouts,
+    )
+
     def get_layout(self, media_type):
         """Return the layout for the media type."""
         layout = {
@@ -61,6 +68,7 @@ class User(AbstractUser):
             "movie": self.movie_layout,
             "anime": self.anime_layout,
             "manga": self.manga_layout,
+            "game": self.game_layout,
         }
         return layout[media_type]
 
@@ -84,4 +92,6 @@ class User(AbstractUser):
             self.anime_layout = layout
         elif media_type == "manga":
             self.manga_layout = layout
+        elif media_type == "game":
+            self.game_layout = layout
         self.save(update_fields=[f"{media_type}_layout"])

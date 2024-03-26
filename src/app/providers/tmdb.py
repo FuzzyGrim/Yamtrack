@@ -54,13 +54,13 @@ def movie(media_id):
             "media_id": media_id,
             "media_type": "movie",
             "title": response["title"],
+            "max_progress": 1,
             "image": get_image_url(response["poster_path"]),
             "synopsis": get_synopsis(response["overview"]),
             "details": {
                 "format": "Movie",
                 "start_date": get_start_date(response["release_date"]),
                 "status": response["status"],
-                "number_of_episodes": 1,
                 "runtime": get_readable_duration(response["runtime"]),
                 "genres": get_genres(response["genres"]),
                 "studios": get_companies(response["production_companies"]),
@@ -136,10 +136,12 @@ def tv(media_id):
 
 def process_tv(response):
     """Process the metadata for the selected tv show from The Movie Database."""
+    num_episodes = response["number_of_episodes"]
     return {
         "media_id": response["id"],
         "media_type": "tv",
         "title": response["name"],
+        "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
         "synopsis": get_synopsis(response["overview"]),
         "details": {
@@ -148,7 +150,7 @@ def process_tv(response):
             "end_date": get_end_date(response["last_air_date"]),
             "status": response["status"],
             "number_of_seasons": response["number_of_seasons"],
-            "number_of_episodes": response["number_of_episodes"],
+            "number_of_episodes": num_episodes,
             "runtime": get_runtime_tv(response["episode_run_time"]),
             "genres": get_genres(response["genres"]),
             "studios": get_companies(response["production_companies"]),
@@ -182,14 +184,16 @@ def season(tv_id, season_number):
 
 def process_season(response):
     """Process the metadata for the selected season from The Movie Database."""
+    num_episodes = len(response["episodes"])
     return {
         "title": response["name"],
+        "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
         "season_number": response["season_number"],
         "synopsis": get_synopsis(response["overview"]),
         "details": {
             "start_date": get_start_date(response["air_date"]),
-            "number_of_episodes": len(response["episodes"]),
+            "number_of_episodes": num_episodes,
         },
         "episodes": response["episodes"],
     }

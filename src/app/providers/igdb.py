@@ -95,6 +95,7 @@ def game(media_id):
             "media_id": response["id"],
             "media_type": "game",
             "title": response["name"],
+            "max_progress": "Unknown",
             "image": get_image_url(response),
             "synopsis": response["summary"],
             "details": {

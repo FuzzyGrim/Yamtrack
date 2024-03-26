@@ -73,7 +73,7 @@ def create_form(row, instance, media_metadata, status):
                 .astimezone()
                 .date()
             )
-        data["progress"] = media_metadata["details"]["number_of_episodes"]
+        data["progress"] = media_metadata["max_progress"]
 
     return forms.get_form_class(media_type)(
         data=data,

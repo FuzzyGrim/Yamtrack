@@ -76,7 +76,7 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Monster")
         self.assertEqual(response["details"]["start_date"], "1994-12-05")
         self.assertEqual(response["details"]["status"], "Finished")
-        self.assertEqual(response["details"]["number_of_episodes"], 162)
+        self.assertEqual(response["details"]["number_of_chapters"], 162)
 
     def test_tv(self):
         """Test the metadata method for TV shows."""
@@ -84,7 +84,7 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Breaking Bad")
         self.assertEqual(response["details"]["start_date"], "2008-01-20")
         self.assertEqual(response["details"]["status"], "Ended")
-        self.assertEqual(response["details"]["number_of_episodes"], 62)
+        self.assertEqual(response["details"]["number_of_chapters"], 62)
 
     def test_movie(self):
         """Test the metadata method for movies."""
@@ -92,7 +92,6 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Perfect Blue")
         self.assertEqual(response["details"]["start_date"], "1998-02-28")
         self.assertEqual(response["details"]["status"], "Released")
-        self.assertEqual(response["details"]["number_of_episodes"], 1)
 
     @patch("requests.get")
     def test_movie_unknown(self, mock_data: "patch"):

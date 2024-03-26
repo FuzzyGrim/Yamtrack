@@ -79,8 +79,8 @@ class Media(models.Model):
 
             media_type = self.__class__.__name__.lower()
             total_episodes = services.get_media_metadata(media_type, self.media_id)[
-                "details"
-            ]["number_of_episodes"]
+                "max_progress"
+            ]
 
             if total_episodes != "Unknown":
                 self.progress = total_episodes
@@ -93,8 +93,8 @@ class Media(models.Model):
         media_type = self.__class__.__name__.lower()
 
         total_episodes = services.get_media_metadata(media_type, self.media_id)[
-            "details"
-        ]["number_of_episodes"]
+            "max_progress"
+        ]
 
         if self.progress < 0:
             self.progress = 0
@@ -137,7 +137,7 @@ class TV(Media):
         if (
             "status" in self.tracker.changed()
             and self.status == "Completed"
-            and self.progress < tmdb.tv(self.media_id)["details"]["number_of_episodes"]
+            and self.progress < tmdb.tv(self.media_id)["max_progress"]
         ):
             self.completed()
 
