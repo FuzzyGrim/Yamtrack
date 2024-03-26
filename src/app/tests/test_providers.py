@@ -84,7 +84,7 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Breaking Bad")
         self.assertEqual(response["details"]["start_date"], "2008-01-20")
         self.assertEqual(response["details"]["status"], "Ended")
-        self.assertEqual(response["details"]["number_of_chapters"], 62)
+        self.assertEqual(response["details"]["number_of_episodes"], 62)
 
     def test_movie(self):
         """Test the metadata method for movies."""
