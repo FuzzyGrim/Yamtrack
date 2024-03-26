@@ -2,7 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
 
-from .models import TV, Anime, Episode, Manga, Movie, Season
+from .models import TV, Anime, Episode, Game, Manga, Movie, Season
 
 
 def get_form_class(media_type):
@@ -14,6 +14,7 @@ def get_form_class(media_type):
         "tv": TVForm,
         "season": SeasonForm,
         "episode": EpisodeForm,
+        "game": GameForm,
     }
 
     return form_classes[media_type]
@@ -158,6 +159,15 @@ class EpisodeForm(forms.ModelForm):
 
         model = Episode
         fields = ("episode_number", "watch_date")
+
+
+class GameForm(MediaForm):
+    """Form for manga."""
+
+    class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
+        model = Game
 
 
 class FilterForm(forms.Form):

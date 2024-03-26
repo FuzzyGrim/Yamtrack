@@ -66,10 +66,13 @@ def anime(media_id):
             headers={"X-MAL-CLIENT-ID": settings.MAL_API},
         )
 
+        num_episodes = get_number_of_episodes(response)
+
         data = {
             "media_id": media_id,
             "media_type": "anime",
             "title": response["title"],
+            "max_progress": num_episodes,
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
             "details": {
@@ -77,7 +80,7 @@ def anime(media_id):
                 "start_date": response.get("start_date", "Unknown"),
                 "end_date": response.get("end_date", "Unknown"),
                 "status": get_readable_status(response),
-                "number_of_episodes": get_number_of_episodes(response),
+                "number_of_episodes": num_episodes,
                 "runtime": get_runtime(response),
                 "studios": get_studios(response),
                 "season": get_season(response),
@@ -111,18 +114,21 @@ def manga(media_id):
             headers={"X-MAL-CLIENT-ID": settings.MAL_API},
         )
 
+        num_chapters = get_number_of_episodes(response)
+
         data = {
             "media_id": media_id,
             "media_type": "manga",
             "title": response["title"],
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
+            "max_progress": num_chapters,
             "details": {
                 "format": get_format(response),
                 "start_date": response.get("start_date", "Unknown"),
                 "end_date": response.get("end_date", "Unknown"),
                 "status": get_readable_status(response),
-                "number_of_episodes": get_number_of_episodes(response),
+                "number_of_chapters": num_chapters,
                 "genres": get_genres(response),
             },
             "related": {

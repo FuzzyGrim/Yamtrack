@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test import TestCase
 
-from app.providers import mal, tmdb
+from app.providers import igdb, mal, tmdb
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -20,7 +20,7 @@ class Search(TestCase):
         """
         response = mal.search("anime", "Cowboy Bebop")
 
-        required_keys = {"media_id", "media_type", "format", "title", "image"}
+        required_keys = {"media_id", "media_type", "title", "image"}
 
         for anime in response:
             self.assertTrue(all(key in anime for key in required_keys))
@@ -37,10 +37,21 @@ class Search(TestCase):
         Assert that all required keys are present in each entry.
         """
         response = tmdb.search("tv", "Breaking Bad")
-        required_keys = {"media_id", "media_type", "format", "title", "image"}
+        required_keys = {"media_id", "media_type", "title", "image"}
 
         for tv in response:
             self.assertTrue(all(key in tv for key in required_keys))
+
+    def test_games(self):
+        """Test the search method for games.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = igdb.search("Persona 5")
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        for game in response:
+            self.assertTrue(all(key in game for key in required_keys))
 
 
 class Metadata(TestCase):
@@ -76,7 +87,7 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Monster")
         self.assertEqual(response["details"]["start_date"], "1994-12-05")
         self.assertEqual(response["details"]["status"], "Finished")
-        self.assertEqual(response["details"]["number_of_episodes"], 162)
+        self.assertEqual(response["details"]["number_of_chapters"], 162)
 
     def test_tv(self):
         """Test the metadata method for TV shows."""
@@ -92,7 +103,6 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Perfect Blue")
         self.assertEqual(response["details"]["start_date"], "1998-02-28")
         self.assertEqual(response["details"]["status"], "Released")
-        self.assertEqual(response["details"]["number_of_episodes"], 1)
 
     @patch("requests.get")
     def test_movie_unknown(self, mock_data: "patch"):
@@ -112,3 +122,11 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["studios"], "Unknown")
         self.assertEqual(response["details"]["country"], "Unknown")
         self.assertEqual(response["details"]["languages"], "Unknown")
+
+    def test_games(self):
+        """Test the metadata method for games."""
+        response = igdb.game("1942")
+        self.assertEqual(response["title"], "The Witcher 3: Wild Hunt")
+        self.assertEqual(response["details"]["format"], "Main game")
+        self.assertEqual(response["details"]["start_date"], "2015-05-19")
+        self.assertEqual(response["details"]["themes"], "Action, Fantasy, Open world")

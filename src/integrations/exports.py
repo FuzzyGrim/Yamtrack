@@ -1,7 +1,7 @@
 import csv
 import logging
 
-from app.models import TV, Anime, Episode, Manga, Movie, Season
+from app.models import TV, Anime, Episode, Game, Manga, Movie, Season
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,7 @@ def db_to_csv(response, user):
     )
     write_model_to_csv(writer, fields, Anime.objects.filter(user=user), "anime")
     write_model_to_csv(writer, fields, Manga.objects.filter(user=user), "manga")
+    write_model_to_csv(writer, fields, Game.objects.filter(user=user), "game")
 
     return response
 
@@ -50,7 +51,7 @@ def write_model_to_csv(writer, fields, queryset, media_type):
         # write fields if they exist, otherwise write empty string
         row = [getattr(item, field, "") for field in fields]
 
-        # replace media_type field with the correct value
+        # add media type to media_type field
         row[fields.index("media_type")] = media_type
 
         if media_type == "episode":

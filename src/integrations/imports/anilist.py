@@ -81,7 +81,7 @@ def importer(username, user):
     query = services.api_request(
         "POST",
         url,
-        json={"query": query, "variables": variables},
+        params={"query": query, "variables": variables},
     )
 
     # returns media that couldn't be added

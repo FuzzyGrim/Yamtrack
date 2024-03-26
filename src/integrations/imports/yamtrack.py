@@ -23,6 +23,7 @@ def importer(file, user):
         "tv": [],
         "season": [],
         "episodes": [],
+        "game": [],
     }
 
     for row in reader:
@@ -43,7 +44,7 @@ def importer(file, user):
         else:
             add_bulk_media(row, user, bulk_media)
 
-    for media_type in ["anime", "manga", "movie", "tv"]:
+    for media_type in ["anime", "manga", "movie", "tv", "game"]:
         if bulk_media[media_type]:
             model = apps.get_model(app_label="app", model_name=media_type)
             model.objects.bulk_create(bulk_media[media_type], ignore_conflicts=True)

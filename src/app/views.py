@@ -10,8 +10,8 @@ from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from app.forms import FilterForm, get_form_class
-from app.models import Anime, Episode, Manga, Movie, Season
-from app.providers import mal, services, tmdb
+from app.models import Anime, Episode, Game, Manga, Movie, Season
+from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,10 @@ def home(request):
     if mangas.exists():
         in_progress["manga"] = mangas
 
+    games = Game.objects.filter(user=request.user, status="In progress")
+    if games.exists():
+        in_progress["game"] = games
+
     context = {
         "in_progress": in_progress,
     }
@@ -64,7 +68,7 @@ def progress_edit(request):
 
     else:
         media_metadata = services.get_media_metadata(media_type, media_id)
-        max_progress = media_metadata["details"]["number_of_episodes"]
+        max_progress = media_metadata["max_progress"]
         search_params = {"media_id": media_id, "user": request.user}
 
     model = apps.get_model(app_label="app", model_name=media_type)
@@ -181,6 +185,8 @@ def media_search(request):
         query_list = mal.search(media_type, query)
     elif media_type in ("tv", "movie"):
         query_list = tmdb.search(media_type, query)
+    elif media_type == "game":
+        query_list = igdb.search(query)
 
     context = {"query_list": query_list}
 
@@ -195,7 +201,7 @@ def media_details(request, media_type, media_id, title):  # noqa: ARG001 title f
     return render(request, "app/media_details.html", context)
 
 
-def season_details(request, media_id, title, season_number): # noqa: ARG001 title for URL
+def season_details(request, media_id, title, season_number):  # noqa: ARG001 title for URL
     """Return the details page for a season."""
     tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
     season_metadata = tv_metadata[f"season/{season_number}"]
