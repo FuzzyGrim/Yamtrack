@@ -20,7 +20,7 @@ class User(AbstractUser):
             ("movie", "movie"),
             ("anime", "anime"),
             ("manga", "manga"),
-            ("game", "game")
+            ("game", "game"),
         ],
     )
 
