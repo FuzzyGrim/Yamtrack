@@ -189,6 +189,7 @@ debug, info, success, warning, error */
 
 .table-responsive {
   background-color: hsl(210, 10.8%, 16%);
+  -webkit-overflow-scrolling: auto; /* fixes modal fade on iOS */
 }
 
 .table {
