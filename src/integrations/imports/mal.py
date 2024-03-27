@@ -102,6 +102,7 @@ def get_status(status):
         "reading": "In progress",
         "watching": "In progress",
         "plan_to_watch": "Planning",
+        "plan_to_read": "Planning",
         "on_hold": "Paused",
         "dropped": "Dropped",
     }
