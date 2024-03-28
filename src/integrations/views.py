@@ -2,7 +2,6 @@
 
 import logging
 from functools import wraps
-from typing import ParamSpec, TypeVar
 
 import requests
 from django.contrib import messages
@@ -13,9 +12,6 @@ from integrations import exports
 from integrations.imports import anilist, mal, tmdb, yamtrack
 
 logger = logging.getLogger(__name__)
-
-P = ParamSpec("P")
-T = TypeVar("T")
 
 
 def check_demo(view):

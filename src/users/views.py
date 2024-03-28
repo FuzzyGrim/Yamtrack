@@ -40,7 +40,7 @@ class CustomLoginView(LoginView):
     template_name = "users/login.html"
 
     def form_valid(self, form):
-        """Log the user in and set the session expiry."""
+        """Log the user in."""
         logger.info(
             "User logged in as: %s at %s",
             self.request.POST["username"],
