@@ -30,8 +30,9 @@ def search(media_type, query):
             )
         except requests.exceptions.HTTPError as error:
             # if the query is invalid, return an empty list
-            if error.response.json().get("message") == "invalid q":
+            if error.response.json()["message"] == "invalid q":
                 return []
+            raise
 
         response = response["data"]
         data = [

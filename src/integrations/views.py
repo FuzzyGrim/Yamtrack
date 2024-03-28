@@ -34,11 +34,13 @@ def import_mal(request):
     try:
         mal.importer(request.POST["mal"], request.user)
         messages.success(request, "Your MyAnimeList has been imported!")
-    except requests.exceptions.HTTPError:
-        messages.error(
-            request,
-            "Something went wrong while importing your MyAnimeList.",
-        )
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.not_found:
+            messages.error(
+                request,
+                f"User {request.POST['mal']} not found in MyAnimeList.",
+            )
+        raise  # re-raise for other errors
 
     return redirect("profile")
 
@@ -103,16 +105,12 @@ def import_anilist(request):
             messages.success(request, "Your AniList has been imported!")
 
     except requests.exceptions.HTTPError as error:
-        if error.response.json().get("errors")[0].get("message") == "User not found":
+        if error.response.json()["errors"][0].get("message") == "User not found":
             messages.error(
                 request,
                 f"User {request.POST['anilist']} not found in AniList.",
             )
-        else:
-            messages.error(
-                request,
-                "Something went wrong while importing your AniList.",
-            )
+        raise # re-raise for other errors
 
     return redirect("profile")
 
