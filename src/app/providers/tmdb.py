@@ -27,7 +27,6 @@ def search(media_type, query):
             {
                 "media_id": media["id"],
                 "media_type": media_type,
-                "format": get_format(media_type),
                 "title": get_title(media),
                 "image": get_image_url(media["poster_path"]),
             }

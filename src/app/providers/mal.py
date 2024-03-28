@@ -38,7 +38,6 @@ def search(media_type, query):
             {
                 "media_id": media["node"]["id"],
                 "media_type": media_type,
-                "format": get_format(media["node"]),
                 "title": media["node"]["title"],
                 "image": get_image_url(media["node"]),
             }
