@@ -20,7 +20,7 @@ def search(media_type, query):
         if settings.TMDB_NSFW:
             params["include_adult"] = "true"
 
-        response = services.api_request("GET", url, params=params)
+        response = services.api_request("TMDB", "GET", url, params=params)
 
         response = response["results"]
         data = [
@@ -48,7 +48,7 @@ def movie(media_id):
             "api_key": settings.TMDB_API,
             "append_to_response": "recommendations",
         }
-        response = services.api_request("GET", url, params=params)
+        response = services.api_request("TMDB", "GET", url, params=params)
         data = {
             "media_id": media_id,
             "media_type": "movie",
@@ -91,7 +91,7 @@ def tv_with_seasons(media_id, season_numbers):
 
     data = cache.get(f"tv_{media_id}")
     if not data:
-        response = services.api_request("GET", url, params=params)
+        response = services.api_request("TMDB", "GET", url, params=params)
         requested = True
 
         data = process_tv(response)
@@ -103,7 +103,7 @@ def tv_with_seasons(media_id, season_numbers):
 
         if not season_data:
             if not requested:
-                response = services.api_request("GET", url, params=params)
+                response = services.api_request("TMDB", "GET", url, params=params)
                 requested = True
 
             season_data = process_season(
@@ -126,7 +126,7 @@ def tv(media_id):
             "api_key": settings.TMDB_API,
             "append_to_response": "recommendations",
         }
-        response = services.api_request("GET", url, params=params)
+        response = services.api_request("TMDB", "GET", url, params=params)
         data = process_tv(response)
         cache.set(f"tv_{media_id}", data)
 
@@ -174,7 +174,7 @@ def season(tv_id, season_number):
         params = {
             "api_key": settings.TMDB_API,
         }
-        response = services.api_request("GET", url, params=params)
+        response = services.api_request("TMDB", "GET", url, params=params)
         data = process_season(response)
         cache.set(f"season_{tv_id}_{season_number}", data)
 

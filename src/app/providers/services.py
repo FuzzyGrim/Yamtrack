@@ -9,7 +9,7 @@ from app.providers import igdb, mal, tmdb
 logger = logging.getLogger(__name__)
 
 
-def api_request(method, url, params=None, data=None, headers=None):
+def api_request(provider, method, url, params=None, data=None, headers=None):  # noqa: PLR0913
     """Make a request to the API and return the response as a dictionary."""
     try:
         if method == "GET":
@@ -31,23 +31,50 @@ def api_request(method, url, params=None, data=None, headers=None):
         response.raise_for_status()
 
     except requests.exceptions.HTTPError as error:
-        # handle rate limiting
-        if error.response.status_code == requests.codes.too_many_requests:
-            seconds_to_wait = int(error.response.headers["Retry-After"])
-            logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
-            time.sleep(seconds_to_wait)
-            logger.info("Retrying request")
-            return api_request(
-                method,
-                url,
-                params=params,
-                data=data,
-                headers=headers,
-            )
-
-        raise  # re-raise for caller to handle
+        args = (provider, method, url, params, data, headers)
+        request_error_handling(error, *args)
 
     return response.json()
+
+
+def request_error_handling(error, *args):
+    """Handle errors when making a request to the API."""
+    # unpack the arguments
+    provider, method, url, params, data, headers = args
+
+    # handle rate limiting
+    if error.response.status_code == requests.codes.too_many_requests:
+        seconds_to_wait = int(error.response.headers["Retry-After"])
+        logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
+        time.sleep(seconds_to_wait)
+        logger.info("Retrying request")
+        return api_request(
+            provider,
+            method,
+            url,
+            params=params,
+            data=data,
+            headers=headers,
+        )
+
+    if provider == "IGDB" and error.response.status_code == requests.codes.bad_request:
+        message = error.response.json()["message"]
+        logger.exception("IGDB bad request: %s", message)
+
+    if provider == "TMDB" and error.response.status_code == requests.codes.unauthorized:
+        message = error.response.json()["status_message"]
+        logger.exception("TMDB unauthorized: %s", message)
+
+    if provider == "MAL":
+        if error.response.status_code == requests.codes.forbidden:
+            logger.exception("MAL forbidden: is the API key set?")
+        elif (
+            error.response.status_code == requests.codes.bad_request
+            and error.response.json()["message"] == "Invalid client id"
+        ):
+            logger.exception("MAL bad request: check the API key")
+
+    raise  # re-raise for caller to handle
 
 
 def get_media_metadata(media_type, media_id):

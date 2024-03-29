@@ -79,6 +79,7 @@ def importer(username, user):
     url = "https://graphql.anilist.co"
 
     query = services.api_request(
+        "ANILIST",
         "POST",
         url,
         params={"query": query, "variables": variables},

@@ -20,7 +20,7 @@ def get_acess_token():
             "grant_type": "client_credentials",
         }
 
-        response = services.api_request("POST", url, params=json)
+        response = services.api_request("IGDB", "POST", url, params=json)
 
         access_token = response["access_token"]
 
@@ -52,7 +52,7 @@ def search(query):
             "Authorization": f"Bearer {access_token}",
         }
 
-        response = services.api_request("POST", url, data=data, headers=headers)
+        response = services.api_request("IGDB", "POST", url, data=data, headers=headers)
 
         data = [
             {
@@ -88,7 +88,7 @@ def game(media_id):
             "Authorization": f"Bearer {access_token}",
         }
 
-        response = services.api_request("POST", url, data=data, headers=headers)
+        response = services.api_request("IGDB", "POST", url, data=data, headers=headers)
         response = response[0]  # response is a list with a single element
 
         data = {

@@ -23,6 +23,7 @@ def search(media_type, query):
 
         try:
             response = services.api_request(
+                "MAL",
                 "GET",
                 url,
                 params=params,
@@ -60,6 +61,7 @@ def anime(media_id):
             "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,source,related_anime",  # noqa: E501
         }
         response = services.api_request(
+            "MAL",
             "GET",
             url,
             params=params,
@@ -108,6 +110,7 @@ def manga(media_id):
             "fields": f"{base_fields},num_chapters,related_manga,recommendations",
         }
         response = services.api_request(
+            "MAL",
             "GET",
             url,
             params=params,

@@ -37,12 +37,13 @@ def get_whole_response(url, params):
     """
     headers = {"X-MAL-CLIENT-ID": settings.MAL_API}
 
-    data = services.api_request("GET", url, params=params, headers=headers)
+    data = services.api_request("MAL", "GET", url, params=params, headers=headers)
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
         # Fetch the data from the next URL
         next_data = services.api_request(
+            "MAL",
             "GET",
             next_url,
             params=params,
