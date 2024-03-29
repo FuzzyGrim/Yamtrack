@@ -3,6 +3,7 @@ import time
 
 import requests
 from django.conf import settings
+from django.core.cache import cache
 
 from app.providers import igdb, mal, tmdb
 
@@ -57,11 +58,32 @@ def request_error_handling(error, *args):
             headers=headers,
         )
 
-    if provider == "IGDB" and error.response.status_code == requests.codes.bad_request:
-        message = error.response.json()["message"]
-        logger.exception("IGDB bad request: %s", message)
+    if provider == "IGDB":
+        # invalid access token, expired or revoked
+        if error.response.status_code == requests.codes.unauthorized:
+            logger.warning("Invalid IGDB access token, refreshing")
+            cache.delete("igdb_access_token")
+            igdb.get_acess_token()
 
-    if provider == "TMDB" and error.response.status_code == requests.codes.unauthorized:
+            # retry the request with the new access token
+            return api_request(
+                provider,
+                method,
+                url,
+                params=params,
+                data=data,
+                headers=headers,
+            )
+
+        # invalid keys
+        if error.response.status_code == requests.codes.bad_request:
+            message = error.response.json()["message"]
+            logger.exception("IGDB bad request: %s", message)
+
+    if (
+        provider == "TMDB"
+        and error.response.status_code == requests.codes.unauthorized
+    ):
         message = error.response.json()["status_message"]
         logger.exception("TMDB unauthorized: %s", message)
 
