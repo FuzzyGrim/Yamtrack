@@ -26,18 +26,27 @@ class TimeStrField(forms.CharField):
     def clean(self, value):
         """Validate the time string."""
         cleaned_value = super().clean(value)
-        invalid_msg = "Invalid time format. Please use hh:mm format."
+        msg = "Invalid time format. Please use hh:mm or [n]h [n]min format."
         if not cleaned_value:
             return 0
         try:
-            hours, minutes = map(int, cleaned_value.split(":"))
-            max_min = 59
-            if not (0 <= minutes <= max_min):
-                raise forms.ValidationError(invalid_msg)
-            return hours * 60 + minutes
+            if ":" in cleaned_value:  # hh:mm format
+                hours, minutes = map(int, cleaned_value.split(":"))
+            elif "h " in cleaned_value:  # [n]h [n]min format
+                hours, minutes = cleaned_value.split("h ")
+                hours = int(hours)
+                minutes = int(minutes.strip("min"))
+            else:
+                raise forms.ValidationError(msg)
         # error parsing the time string
         except ValueError as error:
-            raise forms.ValidationError(invalid_msg) from error
+            raise forms.ValidationError(msg) from error
+        else:
+            max_min = 59
+            if not (0 <= minutes <= max_min):
+                msg = f"Minutes must be between 0 and {max_min}."
+                raise forms.ValidationError(msg)
+            return hours * 60 + minutes
 
 
 class MediaForm(forms.ModelForm):
