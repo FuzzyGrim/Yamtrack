@@ -38,9 +38,10 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 | Name            | Type   | Description                    | Required    | Default    | Notes                                                                                               |
 | --------------- | ------ | ------------------------------ | ----------- | ---------- | --------------------------------------------------------------------------------------------------- |
 | TMDB_API        | String | The Movie Database API key     | Recommended | "61...f60" | Required for movies and tv shows                                                                    |
-| MAL_API         | String | MyAnimeList API key            | Recommended | "25...691" | Required for anime and manga                                                                        |
 | TMDB_NSFW       | Bool   | The Movie Database NSFW filter | No          | False      | Set to true to include adult content in tv and movie searches                                       |
-| MAL_NSFW        | Bool   | MyAnimeList NSFW filter        | No          | False      | Set to true to include adult content in anime and manga searches                                     |
+| TMDB_LANG       | String | The Movie Database language    | No          | "en-US"    | Language code in ISO 639-1 and country code in ISO 3166-1                                           |
+| MAL_API         | String | MyAnimeList API key            | Recommended | "25...691" | Required for anime and manga                                                                        |
+| MAL_NSFW        | Bool   | MyAnimeList NSFW filter        | No          | False      | Set to true to include adult content in anime and manga searches                                    |
 | REDIS_URL       | String | Redis URL                      | Recommended | None       | Redis is recommended for better performance                                                         |
 | SECRET          | String | Django secret key              | Recommended | "secret"   | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                     |
 | ALLOWED_HOSTS   | List   | Base IP / Domain               | No          | "\*"       | Set this to your domain name if exposing to the public                                              |

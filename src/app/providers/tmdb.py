@@ -15,6 +15,7 @@ def search(media_type, query):
         params = {
             "api_key": settings.TMDB_API,
             "query": query,
+            "language": settings.TMDB_LANG,
         }
 
         if settings.TMDB_NSFW:
@@ -46,6 +47,7 @@ def movie(media_id):
         url = f"{base_url}/movie/{media_id}"
         params = {
             "api_key": settings.TMDB_API,
+            "language": settings.TMDB_LANG,
             "append_to_response": "recommendations",
         }
         response = services.api_request("TMDB", "GET", url, params=params)
@@ -84,6 +86,7 @@ def tv_with_seasons(media_id, season_numbers):
     append_text = ",".join([f"season/{season}" for season in season_numbers])
     params = {
         "api_key": settings.TMDB_API,
+        "language": settings.TMDB_LANG,
         "append_to_response": f"recommendations,{append_text}",
     }
 
@@ -124,6 +127,7 @@ def tv(media_id):
         url = f"{base_url}/tv/{media_id}"
         params = {
             "api_key": settings.TMDB_API,
+            "language": settings.TMDB_LANG,
             "append_to_response": "recommendations",
         }
         response = services.api_request("TMDB", "GET", url, params=params)
@@ -173,6 +177,7 @@ def season(tv_id, season_number):
         url = f"{base_url}/tv/{tv_id}/season/{season_number}"
         params = {
             "api_key": settings.TMDB_API,
+            "language": settings.TMDB_LANG,
         }
         response = services.api_request("TMDB", "GET", url, params=params)
         data = process_season(response)
