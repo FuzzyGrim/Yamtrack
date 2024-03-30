@@ -1,11 +1,11 @@
 from django.test import TestCase
 from users.models import User
 
-from app.forms import AnimeForm, EpisodeForm, SeasonForm, TVForm
+from app.forms import AnimeForm, EpisodeForm, GameForm, SeasonForm, TVForm
 
 
-class ValidForm(TestCase):
-    """Test the forms with valid data."""
+class BasicMediaForm(TestCase):
+    """Test the standard media form."""
 
     def setUp(self):
         """Create a user."""
@@ -69,3 +69,61 @@ class ValidForm(TestCase):
         }
         form = EpisodeForm(data=form_data)
         self.assertTrue(form.is_valid())
+
+
+class BasicGameForm(TestCase):
+    """Test the game form."""
+
+    def setUp(self):
+        """Create a user."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user: User = User.objects.create_user(**self.credentials)
+
+    def test_default_progress(self):
+        """Test the game form using the default progress format."""
+        form_data = {
+            "media_id": 1,
+            "media_type": "game",
+            "status": "Completed",
+            "progress": "25:00",
+            "user": self.user.id,
+        }
+        form = GameForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_alternate_progress(self):
+        """Test the game form using an alternate progress format."""
+        form_data = {
+            "media_id": 1,
+            "media_type": "game",
+            "status": "Completed",
+            "progress": "25h 00m",
+            "user": self.user.id,
+        }
+        form = GameForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+
+    def test_invalid_progress(self):
+        """Test the game form using an invalid default progress format."""
+        form_data = {
+            "media_id": 1,
+            "media_type": "game",
+            "status": "Completed",
+            "progress": "25:00m",
+            "user": self.user.id,
+        }
+        form = GameForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_invalid_minutes(self):
+        """Test the game form using an invalid default progress format."""
+        form_data = {
+            "media_id": 1,
+            "media_type": "game",
+            "status": "Completed",
+            "progress": "25h61m",
+            "user": self.user.id,
+        }
+        form = GameForm(data=form_data)
+        self.assertFalse(form.is_valid())

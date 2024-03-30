@@ -32,8 +32,8 @@ class TimeStrField(forms.CharField):
         try:
             if ":" in cleaned_value:  # hh:mm format
                 hours, minutes = map(int, cleaned_value.split(":"))
-            elif "h " in cleaned_value:  # [n]h [n]min format
-                hours, minutes = cleaned_value.split("h ")
+            elif "h" in cleaned_value:  # [n]h [n]min format
+                hours, minutes = cleaned_value.split("h")
                 hours = int(hours)
                 minutes = int(minutes.strip("min"))
             else:
