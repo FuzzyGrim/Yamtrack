@@ -56,14 +56,14 @@ class MediaForm(forms.ModelForm):
             "media_id",
             "media_type",
             Row(
-                Column("score", css_class="form-group col-md-6 pe-1"),
-                Column("progress", css_class="form-group col-md-6 ps-1"),
+                Column("score", css_class="form-group col-md-6 pe-md-1"),
+                Column("progress", css_class="form-group col-md-6 ps-md-1"),
                 css_class="form-row",
             ),
             "status",
             Row(
-                Column("start_date", css_class="form-group col-md-6 pe-1"),
-                Column("end_date", css_class="form-group col-md-6 ps-1"),
+                Column("start_date", css_class="form-group col-md-6 pe-md-1"),
+                Column("end_date", css_class="form-group col-md-6 ps-md-1"),
                 css_class="form-row",
             ),
             "notes",
