@@ -99,7 +99,7 @@
           </ul>
         </div>
 
-        <main>
+        <main class="d-flex flex-column">
           <div class="search-bar d-flex container">
             <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
                     type="button"
@@ -133,8 +133,14 @@
               </button>
             </form>
           </div>
-          {% block content %}
-          {% endblock content %}
+ 
+          <div class="container flex-grow-1">
+            {% if messages %}
+              {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
+            {% endif %}
+            {% block container %}
+            {% endblock container %}
+          </div>
         </main>
       </div>
       <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>

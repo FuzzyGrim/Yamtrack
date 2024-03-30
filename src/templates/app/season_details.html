@@ -6,150 +6,148 @@
   {{ tv.title }} S{{ season.season_number }} - Yamtrack
 {% endblock title %}
 
-{% block content %}
-  <div class="container">
-    <div class="details-top d-flex mb-4">
-      <div class="image">
-        <img src="{{ season.image }}"
-             class="{% if season.image != IMG_NONE %}poster{% else %}image-not-found{% endif %}"
-             alt="{{ season.name }}" />
-      </div>
-
-      <div class="details-data d-flex flex-column align-items-start">
-        <h2 class="tv-title fs-5 mb-0">
-          <a href="{% url 'media_details' media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
-            {{ tv.title|capfirst }}
-          </a>
-        </h2>
-        <h1 class="title">{{ season.title }}</h1>
-        <p>{{ season.synopsis }}</p>
-
-        <div class="additional-data">
-          {% for key, value in season.details.items %}
-            <div>
-              <label class="text-body-secondary">{{ key|no_under|upper }}</label>
-              <span>{{ value }}</span>
-            </div>
-          {% endfor %}
-        </div>
-
-        <div class="mt-sm-auto mt-3">
-          {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst only %}
-        </div>
-      </div>
+{% block container %}
+  <div class="details-top d-flex mb-4">
+    <div class="image">
+      <img src="{{ season.image }}"
+           class="{% if season.image != IMG_NONE %}poster{% else %}image-not-found{% endif %}"
+           alt="{{ season.name }}" />
     </div>
 
-    <div class="dropdown mb-3">
-      <button class="btn btn-secondary dropdown-toggle"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false">{{ season.title }}</button>
-      <ul class="dropdown-menu">
-        {% for tv_season in tv.related.seasons %}
-          <li>
-            <a class="dropdown-item"
-               href="{% url 'season_details' media_id=tv.media_id title=tv.title|slug season_number=tv_season.season_number %}">
-              {{ tv_season.title }}
-            </a>
-          </li>
+    <div class="details-data d-flex flex-column align-items-start">
+      <h2 class="tv-title fs-5 mb-0">
+        <a href="{% url 'media_details' media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
+          {{ tv.title|capfirst }}
+        </a>
+      </h2>
+      <h1 class="title">{{ season.title }}</h1>
+      <p>{{ season.synopsis }}</p>
+
+      <div class="additional-data">
+        {% for key, value in season.details.items %}
+          <div>
+            <label class="text-body-secondary">{{ key|no_under|upper }}</label>
+            <span>{{ value }}</span>
+          </div>
         {% endfor %}
-      </ul>
+      </div>
+
+      <div class="mt-sm-auto mt-3">
+        {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst only %}
+      </div>
     </div>
+  </div>
 
-    {% for episode in season.episodes %}
-      <div class="card mb-3">
-        <div class="row g-0">
+  <div class="dropdown mb-3">
+    <button class="btn btn-secondary dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false">{{ season.title }}</button>
+    <ul class="dropdown-menu">
+      {% for tv_season in tv.related.seasons %}
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'season_details' media_id=tv.media_id title=tv.title|slug season_number=tv_season.season_number %}">
+            {{ tv_season.title }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
 
-          {% if episode.image is None %}
-            <div class="col-sm-3 episode-img-none"></div>
-          {% else %}
-            <div class="col-sm-3">
-              <img src="https://image.tmdb.org/t/p/w500{{ episode.image }}"
-                   class="w-100 h-100 object-fit-cover rounded-start"
-                   alt="E{{ episode.episode_number }} image">
-            </div>
-          {% endif %}
+  {% for episode in season.episodes %}
+    <div class="card mb-3">
+      <div class="row g-0">
+
+        {% if episode.image is None %}
+          <div class="col-sm-3 episode-img-none"></div>
+        {% else %}
+          <div class="col-sm-3">
+            <img src="https://image.tmdb.org/t/p/w500{{ episode.image }}"
+                 class="w-100 h-100 object-fit-cover rounded-start"
+                 alt="E{{ episode.episode_number }} image">
+          </div>
+        {% endif %}
  
-          <div class="col-sm-9 card-body d-flex flex-column align-items-start pb-2">
+        <div class="col-sm-9 card-body d-flex flex-column align-items-start pb-2">
 
-            <h3 class="fs-5">
-              S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.title }}
-            </h3>
+          <h3 class="fs-5">
+            S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.title }}
+          </h3>
 
-            <div class="mb-2">
-              <small class="text-body-secondary">{{ episode.start_date }}</small>
-            </div>
+          <div class="mb-2">
+            <small class="text-body-secondary">{{ episode.start_date }}</small>
+          </div>
  
-            <p class="episode-overview mb-2">{{ episode.overview }}</p>
+          <p class="episode-overview mb-2">{{ episode.overview }}</p>
 
-            <div class="mt-auto">
-              {% if episode.watched %}
-                <button type="button"
-                        class="btn btn-secondary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#episode_{{ episode.episode_number }}">
-                  <i class="bi bi-check-circle-fill"></i>
-                </button>
-                <small class="ms-2">On {{ episode.watch_date|date:"Y-m-d" }}</small>
-              {% else %}
-                <button type="button"
-                        class="btn btn-secondary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#episode_{{ episode.episode_number }}">
-                  <i class="bi bi-check-circle"></i>
-                </button>
-              {% endif %}
+          <div class="mt-auto">
+            {% if episode.watched %}
+              <button type="button"
+                      class="btn btn-secondary"
+                      data-bs-toggle="modal"
+                      data-bs-target="#episode_{{ episode.episode_number }}">
+                <i class="bi bi-check-circle-fill"></i>
+              </button>
+              <small class="ms-2">On {{ episode.watch_date|date:"Y-m-d" }}</small>
+            {% else %}
+              <button type="button"
+                      class="btn btn-secondary"
+                      data-bs-toggle="modal"
+                      data-bs-target="#episode_{{ episode.episode_number }}">
+                <i class="bi bi-check-circle"></i>
+              </button>
+            {% endif %}
  
-              <div class="modal fade"
-                   id="episode_{{ episode.episode_number }}"
-                   tabindex="-1"
-                   aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-sm">
-                  <div class="modal-content">
+            <div class="modal fade"
+                 id="episode_{{ episode.episode_number }}"
+                 tabindex="-1"
+                 aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
 
-                    <div class="modal-header">
-                      <h5 class="modal-title">{{ tv.title|capfirst }} S{{ season.season_number }}.E{{ episode.episode_number }}</h5>
-                      <button type="button"
-                              class="btn-close"
-                              data-bs-dismiss="modal"
-                              aria-label="Close"></button>
-                    </div>
- 
-                    <div class="modal-body">
-                      <div class="text-center fs-5">When did you watch it?</div>
-                      <form method="post"
-                            action="{% url 'episode_handler' %}?next={{ request.path }}">
-                        {% csrf_token %}
-                        <input type="hidden" name="media_id" value="{{ tv.media_id }}">
-                        <input type="hidden" name="season_number" value="{{ season.season_number }}">
-                        <input type="hidden"
-                               name="episode_number"
-                               value="{{ episode.episode_number }}">
-                        <button type="submit"
-                                class="btn btn-secondary w-100 mt-3"
-                                name="release"
-                                value="{{ episode.start_date }}">Release</button>
-                        <div class="d-flex date-btn-group mt-2">
-                          <input type="date"
-                                 class="form-control pe-0 border-end-0 rounded-end-0"
-                                 name="date"
-                                 value="{% now "Y-m-d" %}">
-                          <button type="submit" class="btn bg-dark border-start-0 rounded-start-0">
-                            <i class="bi bi-check-circle-fill"></i>
-                          </button>
-                        </div>
-                        <button type="submit" class="btn btn-danger w-100 mt-2" name="unwatch">Unwatch</button>
-                      </form>
-                    </div>
-
+                  <div class="modal-header">
+                    <h5 class="modal-title">{{ tv.title|capfirst }} S{{ season.season_number }}.E{{ episode.episode_number }}</h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                   </div>
+ 
+                  <div class="modal-body">
+                    <div class="text-center fs-5">When did you watch it?</div>
+                    <form method="post"
+                          action="{% url 'episode_handler' %}?next={{ request.path }}">
+                      {% csrf_token %}
+                      <input type="hidden" name="media_id" value="{{ tv.media_id }}">
+                      <input type="hidden" name="season_number" value="{{ season.season_number }}">
+                      <input type="hidden"
+                             name="episode_number"
+                             value="{{ episode.episode_number }}">
+                      <button type="submit"
+                              class="btn btn-secondary w-100 mt-3"
+                              name="release"
+                              value="{{ episode.start_date }}">Release</button>
+                      <div class="d-flex date-btn-group mt-2">
+                        <input type="date"
+                               class="form-control pe-0 border-end-0 rounded-end-0"
+                               name="date"
+                               value="{% now "Y-m-d" %}">
+                        <button type="submit" class="btn bg-dark border-start-0 rounded-start-0">
+                          <i class="bi bi-check-circle-fill"></i>
+                        </button>
+                      </div>
+                      <button type="submit" class="btn btn-danger w-100 mt-2" name="unwatch">Unwatch</button>
+                    </form>
+                  </div>
+
                 </div>
               </div>
-
             </div>
+
           </div>
         </div>
       </div>
-    {% endfor %}
-  </div>
-{% endblock content %}
+    </div>
+  {% endfor %}
+{% endblock container %}
