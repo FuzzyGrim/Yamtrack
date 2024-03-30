@@ -69,7 +69,11 @@ class MediaForm(forms.ModelForm):
                 Column("progress", css_class="form-group col-md-6 ps-md-1"),
                 css_class="form-row",
             ),
-            "status",
+            Row(
+                Column("status", css_class="form-group col-md-6 pe-md-1"),
+                Column("revisits", css_class="form-group col-md-6 ps-md-1"),
+                css_class="form-row",
+            ),
             Row(
                 Column("start_date", css_class="form-group col-md-6 pe-md-1"),
                 Column("end_date", css_class="form-group col-md-6 ps-md-1"),
@@ -87,6 +91,7 @@ class MediaForm(forms.ModelForm):
             "score",
             "progress",
             "status",
+            "revisits",
             "start_date",
             "end_date",
             "notes",
@@ -95,8 +100,12 @@ class MediaForm(forms.ModelForm):
             "media_id": forms.HiddenInput(),
             "score": forms.NumberInput(attrs={"min": 0, "max": 10, "step": 0.1}),
             "progress": forms.NumberInput(attrs={"min": 0}),
+            "revisits": forms.NumberInput(attrs={"min": 0}),
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+        labels = {
+            "revisits": "Rewatches",
         }
 
 
@@ -107,6 +116,9 @@ class MangaForm(MediaForm):
         """Bind form to model."""
 
         model = Manga
+        labels = {
+            "revisits": "Rereads",
+        }
 
 
 class AnimeForm(MediaForm):
@@ -203,6 +215,9 @@ class GameForm(MediaForm):
         """Bind form to model."""
 
         model = Game
+        labels = {
+            "revisits": "Replays",
+        }
 
 
 class FilterForm(forms.Form):
@@ -225,6 +240,7 @@ class FilterForm(forms.Form):
             ("score", "Score"),
             ("title", "Title"),
             ("progress", "Progress"),
+            ("revisits", "Revisits"),
             ("start_date", "Start Date"),
             ("end_date", "End Date"),
         ],

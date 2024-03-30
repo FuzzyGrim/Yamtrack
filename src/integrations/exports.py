@@ -16,6 +16,7 @@ def db_to_csv(response, user):
         "score",
         "progress",
         "status",
+        "revisits",
         "start_date",
         "end_date",
         "notes",

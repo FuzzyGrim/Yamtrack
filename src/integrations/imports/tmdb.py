@@ -64,6 +64,7 @@ def create_form(row, instance, media_metadata, status):
         "media_type": media_type,
         "score": row["Your Rating"],
         "status": status,
+        "revisits": 0,
     }
 
     if status == "Completed":
