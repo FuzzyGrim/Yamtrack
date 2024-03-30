@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from app import helpers
 from app.forms import FilterForm, get_form_class
 from app.models import Anime, Episode, Game, Manga, Movie, Season
 from app.providers import igdb, mal, services, tmdb
@@ -255,7 +256,11 @@ def track_form(request):
     try:
         # try to retrieve the media object using the filters
         media = model.objects.get(**filters)
+        if media_type == "game":
+            initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
+
         form = get_form_class(media_type)(instance=media, initial=initial_data)
+
         form.helper.form_id = form_id
         allow_delete = True
     except model.DoesNotExist:

@@ -1,3 +1,5 @@
+{% load app_extras %}
+
 <button class="btn progress-btn"
         hx-post="/progress_edit"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -8,7 +10,13 @@
   <i class="bi bi-dash"></i> {% comment %} decrease progress button {% endcomment %}
 </button>
 
-<div class="progress_count">{{ media.progress }}</div>
+<div class="progress_count">
+  {% if media_type == "game" %}
+    {{ media.progress|format_time }}
+  {% else %}
+    {{ media.progress }}
+  {% endif %}
+</div>
 
 <button class="btn progress-btn"
         hx-post="/progress_edit"

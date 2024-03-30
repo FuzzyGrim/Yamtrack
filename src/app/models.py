@@ -92,22 +92,22 @@ class Media(models.Model):
         """Update fields depending on the progress of the media."""
         media_type = self.__class__.__name__.lower()
 
-        total_episodes = services.get_media_metadata(media_type, self.media_id)[
-            "max_progress"
-        ]
-
         if self.progress < 0:
             self.progress = 0
+        else:
+            total_episodes = services.get_media_metadata(media_type, self.media_id)[
+                "max_progress"
+            ]
 
-        if total_episodes != "Unknown":
-            if self.progress > total_episodes:
-                self.progress = total_episodes
+            if total_episodes != "Unknown":
+                if self.progress > total_episodes:
+                    self.progress = total_episodes
 
-            if self.progress == total_episodes:
-                self.status = "Completed"
+                if self.progress == total_episodes:
+                    self.status = "Completed"
 
-                if not self.end_date:
-                    self.end_date = datetime.datetime.now(tz=settings.TZ).date()
+                    if not self.end_date:
+                        self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
     def increase_progress(self):
         """Increase the progress of the media by one."""
@@ -423,3 +423,17 @@ class Game(Media):
     """Model for games."""
 
     tracker = FieldTracker()
+
+    def increase_progress(self):
+        """Increase the progress of the media by 30 minutes."""
+        self.progress += 30
+        # need extra fields because if completed,
+        # the save method changes status and end_date
+        self.save(update_fields=["progress", "status", "end_date"])
+        logger.info("Watched %s E%s", self, self.progress)
+
+    def decrease_progress(self):
+        """Decrease the progress of the media by 30 minutes."""
+        self.progress -= 30
+        self.save(update_fields=["progress"])
+        logger.info("Unwatched %s E%s", self, self.progress + 1)

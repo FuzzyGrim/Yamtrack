@@ -1,6 +1,8 @@
 from django import template
 from unidecode import unidecode
 
+from app import helpers
+
 register = template.Library()
 
 
@@ -20,3 +22,9 @@ def no_under(arg1):
 def slug(arg1):
     """Return the slug of the string."""
     return template.defaultfilters.slugify(unidecode(arg1))
+
+
+@register.filter()
+def format_time(total_minutes):
+    """Convert total minutes to HH:MM format."""
+    return helpers.minutes_to_hhmm(total_minutes)

@@ -20,6 +20,26 @@ def get_form_class(media_type):
     return form_classes[media_type]
 
 
+class TimeStrField(forms.CharField):
+    """Custom form field for time string in hh:mm format."""
+
+    def clean(self, value):
+        """Validate the time string."""
+        cleaned_value = super().clean(value)
+        invalid_msg = "Invalid time format. Please use hh:mm format."
+        if not cleaned_value:
+            return 0
+        try:
+            hours, minutes = map(int, cleaned_value.split(":"))
+            max_min = 59
+            if not (0 <= minutes <= max_min):
+                raise forms.ValidationError(invalid_msg)
+            return hours * 60 + minutes
+        # error parsing the time string
+        except ValueError as error:
+            raise forms.ValidationError(invalid_msg) from error
+
+
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
@@ -163,6 +183,12 @@ class EpisodeForm(forms.ModelForm):
 
 class GameForm(MediaForm):
     """Form for manga."""
+
+    progress = TimeStrField(
+        required=False,
+        label="Progress (hh:mm)",
+        widget=forms.TextInput(attrs={"placeholder": "hh:mm"}),
+    )
 
     class Meta(MediaForm.Meta):
         """Bind form to model."""
