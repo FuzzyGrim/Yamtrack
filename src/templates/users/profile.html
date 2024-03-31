@@ -7,10 +7,6 @@
 {% endblock title %}
 
 {% block container %}
-
-  {% if messages %}
-    {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
-  {% endif %}
  
   <form method="post" class="mb-4">
     {% csrf_token %}
