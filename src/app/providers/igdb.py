@@ -45,8 +45,8 @@ def search(query):
         data = (
             "fields name,cover.image_id;"
             f'search "{query}";'
-            "where category = (0,2,4,8,9)"
-        )  # only main, expansion, standalone expansion, remakes and remasters games
+            "where category = (0,2,4,8,9,10)"
+        )  # main, expansion, standalone expansion, remakes, remasters, expanded games
 
         # exclude adult games depending on the settings
         if not settings.IGDB_NSFW:
@@ -92,6 +92,7 @@ def game(media_id):
             "remakes.name,remakes.cover.image_id,"
             "expansions.name,expansions.cover.image_id,"
             "standalone_expansions.name,standalone_expansions.cover.image_id,"
+            "expanded_games.name,expanded_games.cover.image_id,"
             "similar_games.name,similar_games.cover.image_id;"
             f"where id = {media_id};"
         )
@@ -126,6 +127,7 @@ def game(media_id):
                 "standalone_expansions": get_related(
                     response.get("standalone_expansions"),
                 ),
+                "expanded_games": get_related(response.get("expanded_games")),
                 "recommendations": get_related(response.get("similar_games")),
             },
         }
@@ -157,7 +159,7 @@ def get_category(category_id):
         7: "Season",
         8: "Remake",
         9: "Remaster",
-        10: "Expanded_game",
+        10: "Expanded game",
         11: "Port",
         12: "Fork",
         13: "Pack",
