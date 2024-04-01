@@ -38,6 +38,7 @@ def importer(username, user):
                         month
                         day
                     }
+                    repeat
                     notes
                 }
             }
@@ -68,6 +69,7 @@ def importer(username, user):
                         month
                         day
                     }
+                    repeat
                     notes
                 }
             }
@@ -127,6 +129,7 @@ def add_media_list(query, warning_message, user):
                             score=content["score"],
                             progress=content["progress"],
                             status=status,
+                            repeats=content["repeat"],
                             start_date=get_date(content["startedAt"]),
                             end_date=get_date(content["completedAt"]),
                             user=user,

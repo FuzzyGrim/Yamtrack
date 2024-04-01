@@ -12,18 +12,22 @@ base_url = "https://api.myanimelist.net/v2/users"
 
 def importer(username, user):
     """Import anime and manga from MyAnimeList."""
-    params = {
-        "fields": "list_status{comments}",
+    anime_params = {
+        "fields": "list_status{comments,num_times_rewatched}",
         "nsfw": "true",
         "limit": 1000,
     }
-
     anime_url = f"{base_url}/{username}/animelist"
-    animes = get_whole_response(anime_url, params)
+    animes = get_whole_response(anime_url, anime_params)
     bulk_add_anime = add_media_list(animes, "anime", user)
 
+    manga_params = {
+        "fields": "list_status{comments,num_times_reread}",
+        "nsfw": "true",
+        "limit": 1000,
+    }
     manga_url = f"{base_url}/{username}/mangalist"
-    mangas = get_whole_response(manga_url, params)
+    mangas = get_whole_response(manga_url, manga_params)
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
     Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
@@ -68,8 +72,10 @@ def add_media_list(response, media_type, user):
 
         if media_type == "anime":
             progress = content["list_status"]["num_episodes_watched"]
+            repeats = content["list_status"]["num_times_rewatched"]
         else:
             progress = content["list_status"]["num_chapters_read"]
+            repeats = content["list_status"]["num_times_reread"]
 
         try:
             image_url = content["node"]["main_picture"]["large"]
@@ -85,6 +91,7 @@ def add_media_list(response, media_type, user):
             score=content["list_status"]["score"],
             progress=progress,
             status=status,
+            repeats=repeats,
             start_date=content["list_status"].get("start_date", None),
             end_date=content["list_status"].get("finish_date", None),
             user=user,
