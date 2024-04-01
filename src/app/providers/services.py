@@ -43,9 +43,13 @@ def request_error_handling(error, *args):
     # unpack the arguments
     provider, method, url, params, data, headers = args
 
+    error_resp = error.response
+    error_json = error_resp.json()
+    status_code = error_resp.status_code
+
     # handle rate limiting
-    if error.response.status_code == requests.codes.too_many_requests:
-        seconds_to_wait = int(error.response.headers["Retry-After"])
+    if status_code == requests.codes.too_many_requests:
+        seconds_to_wait = int(error_resp.headers["Retry-After"])
         logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
         time.sleep(seconds_to_wait)
         logger.info("Retrying request")
@@ -60,7 +64,7 @@ def request_error_handling(error, *args):
 
     if provider == "IGDB":
         # invalid access token, expired or revoked
-        if error.response.status_code == requests.codes.unauthorized:
+        if status_code == requests.codes.unauthorized:
             logger.warning("Invalid IGDB access token, refreshing")
             cache.delete("igdb_access_token")
             igdb.get_acess_token()
@@ -76,23 +80,20 @@ def request_error_handling(error, *args):
             )
 
         # invalid keys
-        if error.response.status_code == requests.codes.bad_request:
-            message = error.response.json()["message"]
+        if status_code == requests.codes.bad_request:
+            message = error_json["message"]
             logger.exception("IGDB bad request: %s", message)
 
-    if (
-        provider == "TMDB"
-        and error.response.status_code == requests.codes.unauthorized
-    ):
-        message = error.response.json()["status_message"]
+    if provider == "TMDB" and status_code == requests.codes.unauthorized:
+        message = error_json["status_message"]
         logger.exception("TMDB unauthorized: %s", message)
 
     if provider == "MAL":
-        if error.response.status_code == requests.codes.forbidden:
+        if status_code == requests.codes.forbidden:
             logger.exception("MAL forbidden: is the API key set?")
         elif (
-            error.response.status_code == requests.codes.bad_request
-            and error.response.json()["message"] == "Invalid client id"
+            status_code == requests.codes.bad_request
+            and error_json["message"] == "Invalid client id"
         ):
             logger.exception("MAL bad request: check the API key")
 
