@@ -93,7 +93,7 @@ class Metadata(TestCase):
         """Test the metadata method for TV shows."""
         response = tmdb.tv("1396")
         self.assertEqual(response["title"], "Breaking Bad")
-        self.assertEqual(response["details"]["start_date"], "2008-01-20")
+        self.assertEqual(response["details"]["first_air_date"], "2008-01-20")
         self.assertEqual(response["details"]["status"], "Ended")
         self.assertEqual(response["details"]["number_of_episodes"], 62)
 
@@ -101,7 +101,7 @@ class Metadata(TestCase):
         """Test the metadata method for movies."""
         response = tmdb.movie("10494")
         self.assertEqual(response["title"], "Perfect Blue")
-        self.assertEqual(response["details"]["start_date"], "1998-02-28")
+        self.assertEqual(response["details"]["release_date"], "1998-02-28")
         self.assertEqual(response["details"]["status"], "Released")
 
     @patch("requests.get")
@@ -116,7 +116,7 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Unknown Movie")
         self.assertEqual(response["image"], settings.IMG_NONE)
         self.assertEqual(response["synopsis"], "No synopsis available.")
-        self.assertEqual(response["details"]["start_date"], "Unknown")
+        self.assertEqual(response["details"]["release_date"], "Unknown")
         self.assertEqual(response["details"]["runtime"], "Unknown")
         self.assertEqual(response["details"]["genres"], "Unknown")
         self.assertEqual(response["details"]["studios"], "Unknown")
@@ -128,5 +128,5 @@ class Metadata(TestCase):
         response = igdb.game("1942")
         self.assertEqual(response["title"], "The Witcher 3: Wild Hunt")
         self.assertEqual(response["details"]["format"], "Main game")
-        self.assertEqual(response["details"]["start_date"], "2015-05-19")
+        self.assertEqual(response["details"]["release_date"], "2015-05-19")
         self.assertEqual(response["details"]["themes"], "Action, Fantasy, Open world")

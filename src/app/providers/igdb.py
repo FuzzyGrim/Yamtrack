@@ -112,7 +112,7 @@ def game(media_id):
             "synopsis": response["summary"],
             "details": {
                 "format": get_category(response["category"]),
-                "start_date": get_start_date(response),
+                "release_date": get_start_date(response),
                 "genres": get_str_list(response, "genres"),
                 "themes": get_str_list(response, "themes"),
                 "platforms": get_str_list(response, "platforms"),

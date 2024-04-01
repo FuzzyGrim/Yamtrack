@@ -76,7 +76,7 @@
           </h3>
 
           <div class="mb-2">
-            <small class="text-body-secondary">{{ episode.start_date }}</small>
+            <small class="text-body-secondary">{{ episode.air_date }}</small>
           </div>
  
           <p class="episode-overview mb-2">{{ episode.overview }}</p>
@@ -127,7 +127,7 @@
                       <button type="submit"
                               class="btn btn-secondary w-100 mt-3"
                               name="release"
-                              value="{{ episode.start_date }}">Release</button>
+                              value="{{ episode.air_date }}">Release</button>
                       <div class="d-flex date-btn-group mt-2">
                         <input type="date"
                                class="form-control pe-0 border-end-0 rounded-end-0"

@@ -60,7 +60,7 @@ def movie(media_id):
             "synopsis": get_synopsis(response["overview"]),
             "details": {
                 "format": "Movie",
-                "start_date": get_start_date(response["release_date"]),
+                "release_date": get_start_date(response["release_date"]),
                 "status": response["status"],
                 "runtime": get_readable_duration(response["runtime"]),
                 "genres": get_genres(response["genres"]),
@@ -149,8 +149,8 @@ def process_tv(response):
         "synopsis": get_synopsis(response["overview"]),
         "details": {
             "format": "TV",
-            "start_date": get_start_date(response["first_air_date"]),
-            "end_date": get_end_date(response["last_air_date"]),
+            "first_air_date": get_start_date(response["first_air_date"]),
+            "last_air_date": get_end_date(response["last_air_date"]),
             "status": response["status"],
             "number_of_seasons": response["number_of_seasons"],
             "number_of_episodes": num_episodes,
@@ -196,7 +196,7 @@ def process_season(response):
         "season_number": response["season_number"],
         "synopsis": get_synopsis(response["overview"]),
         "details": {
-            "start_date": get_start_date(response["air_date"]),
+            "air_date": get_start_date(response["air_date"]),
             "number_of_episodes": num_episodes,
         },
         "episodes": response["episodes"],
@@ -341,7 +341,7 @@ def process_episodes(season_metadata, watched_episodes):
         episodes_metadata.append(
             {
                 "episode_number": episode_number,
-                "start_date": get_episode_air_date(episode["air_date"]),
+                "air_date": get_episode_air_date(episode["air_date"]),
                 "image": episode["still_path"],
                 "title": episode["name"],
                 "overview": episode["overview"],
