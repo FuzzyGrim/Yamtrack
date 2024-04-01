@@ -40,7 +40,8 @@ def import_mal(request):
                 request,
                 f"User {request.POST['mal']} not found in MyAnimeList.",
             )
-        raise  # re-raise for other errors
+        else:
+            raise  # re-raise for other errors
 
     return redirect("profile")
 
@@ -110,7 +111,8 @@ def import_anilist(request):
                 request,
                 f"User {request.POST['anilist']} not found in AniList.",
             )
-        raise # re-raise for other errors
+        else:
+            raise  # re-raise for other errors
 
     return redirect("profile")
 
