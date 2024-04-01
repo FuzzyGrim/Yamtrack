@@ -45,8 +45,8 @@ def search(query):
         data = (
             "fields name,cover.image_id;"
             f'search "{query}";'
-            "where category = (0,8,9)"
-        )  # only main, remakes and remasters games
+            "where category = (0,2,4,8,9)"
+        )  # only main, expansion, standalone expansion, remakes and remasters games
 
         # exclude adult games depending on the settings
         if not settings.IGDB_NSFW:
@@ -87,6 +87,11 @@ def game(media_id):
         data = (
             "fields name,cover.image_id,summary,category,first_release_date,"
             "genres.name,themes.name,platforms.name,involved_companies.company.name,"
+            "parent_game.name,parent_game.cover.image_id,"
+            "remasters.name,remasters.cover.image_id,"
+            "remakes.name,remakes.cover.image_id,"
+            "expansions.name,expansions.cover.image_id,"
+            "standalone_expansions.name,standalone_expansions.cover.image_id,"
             "similar_games.name,similar_games.cover.image_id;"
             f"where id = {media_id};"
         )
@@ -114,7 +119,14 @@ def game(media_id):
                 "companies": get_companies(response),
             },
             "related": {
-                "recommendations": get_related(response["similar_games"]),
+                "parent_game": get_parent(response.get("parent_game")),
+                "remasters": get_related(response.get("remasters")),
+                "remakes": get_related(response.get("remakes")),
+                "expansions": get_related(response.get("expansions")),
+                "standalone_expansions": get_related(
+                    response.get("standalone_expansions"),
+                ),
+                "recommendations": get_related(response.get("similar_games")),
             },
         }
 
@@ -189,13 +201,30 @@ def get_companies(response):
     return "Unknown"
 
 
+def get_parent(parent_game):
+    """Return the parent game to the selected game."""
+    if parent_game:
+        return [
+            {
+                "media_id": parent_game["id"],
+                "title": parent_game["name"],
+                "image": get_image_url(parent_game),
+            },
+        ]
+
+    return []
+
+
 def get_related(related_medias):
     """Return the related games to the selected game."""
-    return [
-        {
-            "media_id": game["id"],
-            "title": game["name"],
-            "image": get_image_url(game),
-        }
-        for game in related_medias
-    ]
+    if related_medias:
+        return [
+            {
+                "media_id": game["id"],
+                "title": game["name"],
+                "image": get_image_url(game),
+            }
+            for game in related_medias
+        ]
+
+    return []
