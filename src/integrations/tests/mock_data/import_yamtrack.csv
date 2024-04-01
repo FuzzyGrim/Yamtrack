@@ -1,4 +1,4 @@
-"media_id","media_type","title","image","score","progress","status","revisits","start_date","end_date","notes","season_number","episode_number","watch_date"
+"media_id","media_type","title","image","score","progress","status","repeats","start_date","end_date","notes","season_number","episode_number","watch_date"
 "1668","tv","Friends","https://image.tmdb.org/t/p/w500/2koX1xLkpTQM4IZebYvKysFW1Nh.jpg","","24","In progress","0","2024-02-09","2024-02-09","","","",""
 "10494","movie","Perfect Blue","https://image.tmdb.org/t/p/w500/6WTiOCfDPP8XV4jqfloiVWf7KHq.jpg","9.0","1","Completed","0","","2024-02-09","","","",""
 "1668","season","Friends","https://image.tmdb.org/t/p/w500/odCW88Cq5hAF0ZFVOkeJmeQv1nV.jpg","8.0","24","Completed","0","2024-02-09","2024-02-09","","1","",""

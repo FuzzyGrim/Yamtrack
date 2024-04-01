@@ -22,7 +22,7 @@ class BasicMediaForm(TestCase):
             "score": 7.5,
             "progress": 25,
             "status": "Paused",
-            "revisits": 0,
+            "repeats": 0,
             "start_date": "2023-02-01",
             "end_date": "2023-06-30",
             "user": self.user.id,
@@ -40,7 +40,7 @@ class BasicMediaForm(TestCase):
             "image": "sample.jpg",
             "score": 7.5,
             "status": "Completed",
-            "revisits": 0,
+            "repeats": 0,
             "user": self.user.id,
             "notes": "New notes",
         }
@@ -56,7 +56,7 @@ class BasicMediaForm(TestCase):
             "image": "sample.jpg",
             "score": 7.5,
             "status": "Completed",
-            "revisits": 0,
+            "repeats": 0,
             "season_number": 1,
             "user": self.user.id,
             "notes": "New notes",
@@ -89,7 +89,7 @@ class BasicGameForm(TestCase):
             "media_type": "game",
             "status": "Completed",
             "progress": "25:00",
-            "revisits": 0,
+            "repeats": 0,
             "user": self.user.id,
         }
         form = GameForm(data=form_data)
@@ -102,7 +102,7 @@ class BasicGameForm(TestCase):
             "media_type": "game",
             "status": "Completed",
             "progress": "25h 00min",
-            "revisits": 0,
+            "repeats": 0,
             "user": self.user.id,
         }
         form = GameForm(data=form_data)
@@ -115,7 +115,7 @@ class BasicGameForm(TestCase):
             "media_type": "game",
             "status": "Completed",
             "progress": "30min",
-            "revisits": 0,
+            "repeats": 0,
             "user": self.user.id,
         }
         form = GameForm(data=form_data)
@@ -128,7 +128,7 @@ class BasicGameForm(TestCase):
             "media_type": "game",
             "status": "Completed",
             "progress": "25:00m",
-            "revisits": 0,
+            "repeats": 0,
             "user": self.user.id,
         }
         form = GameForm(data=form_data)
@@ -141,7 +141,7 @@ class BasicGameForm(TestCase):
             "media_type": "game",
             "status": "Completed",
             "progress": "25h61m",
-            "revisits": 0,
+            "repeats": 0,
             "user": self.user.id,
         }
         form = GameForm(data=form_data)

@@ -124,7 +124,7 @@ class EditMedia(TestCase):
                 "score": 10,
                 "progress": 1,
                 "status": "Completed",
-                "revisits": 0,
+                "repeats": 0,
                 "notes": "Nice",
             },
         )

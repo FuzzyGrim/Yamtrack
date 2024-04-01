@@ -45,7 +45,7 @@ class Media(models.Model):
             ("Dropped", "Dropped"),
         ],
     )
-    revisits = models.PositiveIntegerField(default=0)
+    repeats = models.PositiveIntegerField(default=0)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
