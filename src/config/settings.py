@@ -233,6 +233,7 @@ MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
 
 IGDB_ID = config("IGDB_ID", default=None)
 IGDB_SECRET = config("IGDB_SECRET", default=None)
+IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 

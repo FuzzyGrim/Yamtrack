@@ -41,11 +41,18 @@ def search(query):
         access_token = get_acess_token()
 
         url = f"{base_url}/games"
+
         data = (
             "fields name,cover.image_id;"
             f'search "{query}";'
-            "where category = (0,8,9) & themes != 42;"
-        )  # exclude adult and select only main video games, remakes and remasters
+            "where category = (0,8,9)"
+        )  # only main, remakes and remasters games
+
+        # exclude adult games depending on the settings
+        if not settings.IGDB_NSFW:
+            data += " & themes != (42);"
+        else:
+            data += ";"
 
         headers = {
             "Client-ID": settings.IGDB_ID,
