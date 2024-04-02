@@ -4,7 +4,7 @@ django-crispy-forms==2.1
 django_debug_toolbar==4.3.0
 django-model-utils==4.4.0
 gunicorn==21.2.0
-Pillow==10.2.0
+Pillow==10.3.0
 psycopg[binary]==3.1.18
 python-decouple==3.8
 redis[hiredis]==5.0.3
