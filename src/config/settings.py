@@ -231,8 +231,8 @@ TMDB_LANG = config("TMDB_LANG", default="en-US")
 MAL_API = config("MAL_API", default="25b5581dafd15b3e7d583bb79e9a1691")
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
 
-IGDB_ID = config("IGDB_ID", default=None)
-IGDB_SECRET = config("IGDB_SECRET", default=None)
+IGDB_ID = config("IGDB_ID", default="8wqmm7x1n2xxtnz94lb8mthadhtgrt")
+IGDB_SECRET = config("IGDB_SECRET", default="ovbq0hwscv58hu46yxn50hovt4j8kj")
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)

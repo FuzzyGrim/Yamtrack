@@ -1,4 +1,3 @@
-from config import settings
 from django.apps import AppConfig
 
 from app.providers import igdb
@@ -12,5 +11,4 @@ class AppConfig(AppConfig):
 
     def ready(self):
         """Run when the app is ready."""
-        if settings.IGDB_ID and settings.IGDB_SECRET:
-            igdb.get_acess_token()
+        igdb.get_acess_token()
