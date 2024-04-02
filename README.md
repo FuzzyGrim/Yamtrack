@@ -13,9 +13,9 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 
 ## Features
 
-- Track movies, tv shows, anime and manga
+- Track movies, tv shows, anime, manga and games
 - Track each season of a tv show individually and episodes watched
-- Save score, status, progress, start and end dates, or write a note.
+- Save score, status, progress, repeats (rewatches, rereads...), start and end dates, or write a note.
 - Docker support
 - Multi-users support
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/), [AniList](https://anilist.co/) and CSV.
@@ -35,22 +35,25 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 ### Environment variables
 
-| Name            | Type   | Description                    | Required    | Default    | Notes                                                                                               |
-| --------------- | ------ | ------------------------------ | ----------- | ---------- | --------------------------------------------------------------------------------------------------- |
-| TMDB_API        | String | The Movie Database API key     | Recommended | "61...f60" | Required for movies and tv shows                                                                    |
-| TMDB_NSFW       | Bool   | The Movie Database NSFW filter | No          | False      | Set to true to include adult content in tv and movie searches                                       |
-| TMDB_LANG       | String | The Movie Database language    | No          | "en-US"    | Language code in ISO 639-1 and country code in ISO 3166-1                                           |
-| MAL_API         | String | MyAnimeList API key            | Recommended | "25...691" | Required for anime and manga                                                                        |
-| MAL_NSFW        | Bool   | MyAnimeList NSFW filter        | No          | False      | Set to true to include adult content in anime and manga searches                                    |
-| REDIS_URL       | String | Redis URL                      | Recommended | None       | Redis is recommended for better performance                                                         |
-| SECRET          | String | Django secret key              | Recommended | "secret"   | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                     |
-| ALLOWED_HOSTS   | List   | Base IP / Domain               | No          | "\*"       | Set this to your domain name if exposing to the public                                              |
-| REGISTRATION    | Bool   | User registration              | No          | True       |                                                                                                     |
-| DEBUG           | Bool   | Django debug mode              | No          | False      |                                                                                                     |
-| PUID            | Int    | User ID                        | No          | 1000       |                                                                                                     |
-| PGID            | Int    | Group ID                       | No          | 1000       |                                                                                                     |
-| TZ              | String | Timezone                       | No          | "UTC"      |                                                                                                     |
-| WEB_CONCURRENCY | Int    | Number of webserver processes  | No          | 1          | [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) recommended |
+| Name            | Type   | Description                    | Required    | Default    | Notes                                                                                                           |
+| --------------- | ------ | ------------------------------ | ----------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
+| TMDB_API        | String | The Movie Database API key     | Recommended | "61...f60" | Required for movies and tv shows                                                                                |
+| TMDB_NSFW       | Bool   | The Movie Database NSFW filter | No          | False      | Set to true to include adult content in tv and movie searches                                                   |
+| TMDB_LANG       | String | The Movie Database language    | No          | "en-US"    | Language code in ISO 639-1 and country code in ISO 3166-1, only setting language code is also accepted e.g "en" |
+| MAL_API         | String | MyAnimeList API key            | Recommended | "25...691" | Required for anime and manga                                                                                    |
+| MAL_NSFW        | Bool   | MyAnimeList NSFW filter        | No          | False      | Set to true to include adult content in anime and manga searches                                                |
+| IGDB_ID         | String | IGDB API key                   | Recommended | "8w...grt  | Required for games                                                                                              |
+| IGDB_SECRET     | String | IGDB API secret                | Recommended | "ov...8kj  | Required for games                                                                                              |
+| IGDB_NSFW       | Bool   | IGDB NSFW filter               | No          | False      | Set to true to include adult content in game searches                                                           |
+| REDIS_URL       | String | Redis URL                      | Recommended | None       | Redis is recommended for better performance                                                                     |
+| SECRET          | String | Django secret key              | Recommended | "secret"   | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                                 |
+| ALLOWED_HOSTS   | List   | Base IP / Domain               | No          | "\*"       | Set this to your domain name if exposing to the public                                                          |
+| REGISTRATION    | Bool   | User registration              | No          | True       |                                                                                                                 |
+| DEBUG           | Bool   | Django debug mode              | No          | False      |                                                                                                                 |
+| PUID            | Int    | User ID                        | No          | 1000       |                                                                                                                 |
+| PGID            | Int    | Group ID                       | No          | 1000       |                                                                                                                 |
+| TZ              | String | Timezone                       | No          | "UTC"      |                                                                                                                 |
+| WEB_CONCURRENCY | Int    | Number of webserver processes  | No          | 1          | [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) recommended             |
 
 ### Environment variables for PostgreSQL
 
@@ -76,6 +79,8 @@ Create a `.env` file in the root directory and add the following variables.
 ```bash
 TMDB_API=API_KEY
 MAL_API=API_KEY
+IGDB_ID=IGDB_ID
+IGDB_SECRET=IGDB_SECRET
 SECRET=SECRET
 DEBUG=True
 ```
