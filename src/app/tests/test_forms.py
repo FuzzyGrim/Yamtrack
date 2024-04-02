@@ -121,6 +121,32 @@ class BasicGameForm(TestCase):
         form = GameForm(data=form_data)
         self.assertTrue(form.is_valid())
 
+    def test_third_alternate_progress(self):
+        """Test the game form using a second alternate progress format."""
+        form_data = {
+            "media_id": 1,
+            "media_type": "game",
+            "status": "Completed",
+            "progress": "9h",
+            "repeats": 0,
+            "user": self.user.id,
+        }
+        form = GameForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_fourth_alternate_progress(self):
+        """Test the game form using a second alternate progress format."""
+        form_data = {
+            "media_id": 1,
+            "media_type": "game",
+            "status": "Completed",
+            "progress": "9h30min",
+            "repeats": 0,
+            "user": self.user.id,
+        }
+        form = GameForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
     def test_invalid_progress(self):
         """Test the game form using an invalid default progress format."""
         form_data = {

@@ -26,7 +26,7 @@ class CustomDurationField(forms.CharField):
     def clean(self, value):
         """Validate the time string."""
         cleaned_value = super().clean(value)
-        msg = "Invalid time format. Please use hh:mm or [n]h [n]min format."
+        msg = "Invalid time format. Please use hh:mm, [n]h [n]min or [n]h[n]min format."
         if not cleaned_value:
             return 0
         try:
@@ -36,9 +36,16 @@ class CustomDurationField(forms.CharField):
                 hours, minutes = cleaned_value.split(" ")
                 hours = int(hours.strip("h"))
                 minutes = int(minutes.strip("min"))
+            elif "h" in cleaned_value and "min" in cleaned_value:  # [n]h[n]min format
+                hours, minutes = cleaned_value.split("h")
+                hours = int(hours)
+                minutes = int(minutes.strip("min"))
             elif "min" in cleaned_value:  # [n]min format
                 hours = 0
                 minutes = int(cleaned_value.strip("min"))
+            elif "h" in cleaned_value:  # [n]h format
+                hours = int(cleaned_value.strip("h"))
+                minutes = 0
             else:
                 raise forms.ValidationError(msg)
         # error parsing the time string
