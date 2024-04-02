@@ -2,7 +2,7 @@ crispy-bootstrap5==2024.2
 Django==5.0.3
 django-crispy-forms==2.1
 django_debug_toolbar==4.3.0
-django-model-utils==4.4.0
+django-model-utils==4.5.0
 gunicorn==21.2.0
 Pillow==10.3.0
 psycopg[binary]==3.1.18
