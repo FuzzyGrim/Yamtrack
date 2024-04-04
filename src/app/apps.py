@@ -11,4 +11,4 @@ class AppConfig(AppConfig):
 
     def ready(self):
         """Run when the app is ready."""
-        igdb.get_acess_token()
+        igdb.get_access_token()

@@ -67,7 +67,7 @@ def request_error_handling(error, *args):
         if status_code == requests.codes.unauthorized:
             logger.warning("Invalid IGDB access token, refreshing")
             cache.delete("igdb_access_token")
-            igdb.get_acess_token()
+            igdb.get_access_token()
 
             # retry the request with the new access token
             return api_request(

@@ -8,7 +8,7 @@ from app.providers import services
 base_url = "https://api.igdb.com/v4"
 
 
-def get_acess_token():
+def get_access_token():
     """Return the access token for the IGDB API."""
     access_token = cache.get("igdb_access_token")
 
@@ -38,7 +38,7 @@ def search(query):
     data = cache.get(f"search_games_{query}")
 
     if not data:
-        access_token = get_acess_token()
+        access_token = get_access_token()
 
         url = f"{base_url}/games"
 
@@ -81,7 +81,7 @@ def game(media_id):
     data = cache.get(f"game_{media_id}")
 
     if not data:
-        access_token = get_acess_token()
+        access_token = get_access_token()
 
         url = f"{base_url}/games"
         data = (
