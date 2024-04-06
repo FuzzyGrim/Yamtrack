@@ -1,6 +1,7 @@
 """Contains views for importing and exporting media data from various sources."""
 
 import logging
+import re
 from functools import wraps
 
 import requests
@@ -31,8 +32,16 @@ def check_demo(view):
 @check_demo
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
+    username = request.POST["mal"]
+
+    # only alphanumeric, hyphen, and underscore characters are allowed
+    if not re.match("^[A-Za-z0-9_-]*$", username):
+        msg = f"Invalid username format: {username}"
+        messages.error(request, msg)
+        return redirect("profile")
+
     try:
-        mal.importer(request.POST["mal"], request.user)
+        mal.importer(username, request.user)
         messages.success(request, "Your MyAnimeList has been imported!")
     except requests.exceptions.HTTPError as error:
         if error.response.status_code == requests.codes.not_found:
@@ -97,8 +106,14 @@ def import_tmdb_watchlist(request):
 @check_demo
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
+    username = request.POST["anilist"]
+    if not username.isalnum():
+        msg = f"Username must be alphanumeric: {username}"
+        messages.error(request, msg)
+        return redirect("profile")
+
     try:
-        warning_message = anilist.importer(request.POST["anilist"], request.user)
+        warning_message = anilist.importer(username, request.user)
         if warning_message:
             title = "Couldn't import the following Anime or Manga: \n"
             messages.warning(request, title + warning_message)
