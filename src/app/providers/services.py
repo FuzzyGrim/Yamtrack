@@ -82,20 +82,20 @@ def request_error_handling(error, *args):
         # invalid keys
         if status_code == requests.codes.bad_request:
             message = error_json["message"]
-            logger.exception("IGDB bad request: %s", message)
+            logger.error("IGDB bad request: %s", message)
 
     if provider == "TMDB" and status_code == requests.codes.unauthorized:
         message = error_json["status_message"]
-        logger.exception("TMDB unauthorized: %s", message)
+        logger.error("TMDB unauthorized: %s", message)
 
     if provider == "MAL":
         if status_code == requests.codes.forbidden:
-            logger.exception("MAL forbidden: is the API key set?")
+            logger.error("MAL forbidden: is the API key set?")
         elif (
             status_code == requests.codes.bad_request
             and error_json["message"] == "Invalid client id"
         ):
-            logger.exception("MAL bad request: check the API key")
+            logger.error("MAL bad request: check the API key")
 
     raise  # re-raise for caller to handle
 

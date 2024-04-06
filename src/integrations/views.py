@@ -70,11 +70,13 @@ def import_tmdb_ratings(request):
             request,
             "Couldn't import your TMDB ratings. Make sure the file is a CSV file.",
         )
+        logger.exception("Error reading TMDB ratings file.")
     except KeyError:  # error parsing csv
         messages.error(
             request,
             "Something went wrong while parsing your TMDB ratings.",
         )
+        logger.exception("Error parsing TMDB ratings CSV file.")
 
     return redirect("profile")
 
@@ -92,13 +94,15 @@ def import_tmdb_watchlist(request):
     except UnicodeDecodeError:  # when the file is not a CSV file
         messages.error(
             request,
-            "Couldn't import your TMDB ratings. Make sure the file is a CSV file.",
+            "Couldn't import your TMDB watchlist. Make sure the file is a CSV file.",
         )
+        logger.exception("Error reading TMDB watchlist file.")
     except KeyError:  # error parsing csv
         messages.error(
             request,
-            "Something went wrong while parsing your TMDB ratings.",
+            "Something went wrong while parsing your TMDB watchlist.",
         )
+        logger.exception("Error parsing TMDB watchlist CSV file.")
 
     return redirect("profile")
 
@@ -143,11 +147,13 @@ def import_yamtrack(request):
             request,
             "Couldn't import your Yamtrack CSV. Make sure the file is a CSV file.",
         )
+        logger.exception("Error reading Yamtrack file.")
     except KeyError:  # error parsing csv
         messages.error(
             request,
             "Something went wrong while parsing your Yamtrack CSV.",
         )
+        logger.exception("Error parsing Yamtrack CSV file.")
 
     return redirect("profile")
 
