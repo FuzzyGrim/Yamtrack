@@ -108,7 +108,7 @@
     <legend class="border-bottom mb-4">Export</legend>
 
     <fieldset class="input-group profile-grid">
-      <form class="p-2 grid-item" method="post" action="{% url 'export_csv' %}">
+      <form class="p-2 grid-item" method="get" action="{% url 'export_csv' %}">
         {% csrf_token %}
         <button class="btn btn-secondary w-100" type="submit">Export as CSV</button>
       </form>
