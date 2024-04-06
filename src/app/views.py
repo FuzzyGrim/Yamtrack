@@ -8,6 +8,10 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import (
+    require_GET,
+    require_POST,
+)
 
 from app import helpers
 from app.forms import FilterForm, get_form_class
@@ -17,6 +21,7 @@ from app.providers import igdb, mal, services, tmdb
 logger = logging.getLogger(__name__)
 
 
+@require_GET
 def home(request):
     """Return the home page."""
     in_progress = {}
@@ -51,6 +56,7 @@ def home(request):
     return render(request, "app/home.html", context)
 
 
+@require_POST
 def progress_edit(request):
     """Increase or decrease the progress of a media item from home page."""
     media_type = request.POST["media_type"]
@@ -109,6 +115,7 @@ def progress_edit(request):
         return response
 
 
+@require_GET
 def media_list(request, media_type):
     """Return the media list page."""
     layout_user = request.user.get_layout(media_type)
@@ -174,10 +181,12 @@ def media_list(request, media_type):
     )
 
 
+@require_GET
 def media_search(request):
     """Return the media search page."""
     media_type = request.GET["media_type"]
     query = request.GET["q"]
+
     # update user default search type
     request.user.last_search_type = media_type
     request.user.save(update_fields=["last_search_type"])
@@ -194,6 +203,7 @@ def media_search(request):
     return render(request, "app/search.html", context)
 
 
+@require_GET
 def media_details(request, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id)
@@ -202,6 +212,7 @@ def media_details(request, media_type, media_id, title):  # noqa: ARG001 title f
     return render(request, "app/media_details.html", context)
 
 
+@require_GET
 def season_details(request, media_id, title, season_number):  # noqa: ARG001 title for URL
     """Return the details page for a season."""
     tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
@@ -224,6 +235,7 @@ def season_details(request, media_id, title, season_number):  # noqa: ARG001 tit
     return render(request, "app/season_details.html", context)
 
 
+@require_GET
 def track_form(request):
     """Return the tracking form for a media item."""
     media_type = request.GET["media_type"]
@@ -281,6 +293,7 @@ def track_form(request):
     )
 
 
+@require_POST
 def media_save(request):
     """Save or update media data to the database."""
     media_id = request.POST["media_id"]
@@ -336,6 +349,7 @@ def media_save(request):
     return redirect("home")
 
 
+@require_POST
 def media_delete(request):
     """Delete media data from the database."""
     media_id = request.POST["media_id"]
@@ -354,7 +368,7 @@ def media_delete(request):
         model.objects.get(**search_params).delete()
         logger.info("%s %s deleted successfully.", media_type, media_id)
     except model.DoesNotExist:
-        logger.exception("The %s was already deleted before.", media_type)
+        logger.warning("The %s was already deleted before.", media_type)
 
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
         url = iri_to_uri(request.GET["next"])
@@ -362,6 +376,7 @@ def media_delete(request):
     return redirect("home")
 
 
+@require_POST
 def episode_handler(request):
     """Handle the creation, deletion, and updating of episodes for a season."""
     media_id = request.POST["media_id"]

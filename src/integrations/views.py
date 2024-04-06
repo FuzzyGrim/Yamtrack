@@ -8,6 +8,7 @@ import requests
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.views.decorators.http import require_GET, require_POST
 
 from integrations import exports
 from integrations.imports import anilist, mal, tmdb, yamtrack
@@ -30,6 +31,7 @@ def check_demo(view):
 
 
 @check_demo
+@require_POST
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
     username = request.POST["mal"]
@@ -56,6 +58,7 @@ def import_mal(request):
 
 
 @check_demo
+@require_POST
 def import_tmdb_ratings(request):
     """View for importing TMDB movie and TV ratings."""
     try:
@@ -82,6 +85,7 @@ def import_tmdb_ratings(request):
 
 
 @check_demo
+@require_POST
 def import_tmdb_watchlist(request):
     """View for importing TMDB movie and TV watchlist."""
     try:
@@ -108,6 +112,7 @@ def import_tmdb_watchlist(request):
 
 
 @check_demo
+@require_POST
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
     username = request.POST["anilist"]
@@ -137,6 +142,7 @@ def import_anilist(request):
 
 
 @check_demo
+@require_POST
 def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""
     try:
@@ -158,6 +164,7 @@ def import_yamtrack(request):
     return redirect("profile")
 
 
+@require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
     # Create the HttpResponse object with the appropriate CSV header.
