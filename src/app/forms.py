@@ -250,7 +250,7 @@ class FilterForm(forms.Form):
             ("score", "Score"),
             ("title", "Title"),
             ("progress", "Progress"),
-            ("repeats", "repeats"),
+            ("repeats", "Repeats"),
             ("start_date", "Start Date"),
             ("end_date", "End Date"),
         ],
