@@ -39,7 +39,7 @@
     <div class="grid">
       {% for media in media_list %}
         <div class="card">
-          <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
+          <a href="{% if media.season_number != None %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
             <img class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                  data-src="{{ media.image }}"
                  data-expand="1000"
@@ -49,7 +49,7 @@
             <div class="card-title">{{ media }}</div>
             <div class="card-text d-flex justify-content-evenly align-items-center">
               <span>{{ media.score }}</span>
-              {% if media.season_number %}
+              {% if media.season_number != None %}
                 {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
               {% else %}
                 {% include "app/components/open_track_form.html" with request=request media_type=media_type media_id=media.media_id title=media.title only %}

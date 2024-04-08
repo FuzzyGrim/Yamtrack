@@ -14,7 +14,7 @@
         <div class="grid">
           {% for media in in_progress_list %}
             <div class="card mx-auto">
-              <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
+              <a href="{% if media.season_number != None %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
                 <img data-src="{{ media.image }}"
                      class="card-img lazyload {% if media.image == IMG_NONE %} image-not-found {% else %} poster {% endif %}"
                      alt="{{ media }}"

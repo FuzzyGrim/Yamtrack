@@ -51,7 +51,7 @@
           {% for media in media_list %}
             <tr>
               <td class="nostretch">
-                <a href="{% if media.season_number %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
+                <a href="{% if media.season_number != None %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
                   <img class="lazyload object-fit-cover"
                        data-src="{{ media.image }}"
                        data-expand="1000"
@@ -61,7 +61,7 @@
                 </a>
               </td>
               <td class="media-title text-truncate">
-                {% if media.season_number %}
+                {% if media.season_number != None %}
                   <a href="{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}">{{ media }}</a>
                 {% else %}
                   <a href="{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}">{{ media.title }}</a>
@@ -77,7 +77,7 @@
                 {% endif %}
               </td>
               <td>
-                {% if media.season_number %}
+                {% if media.season_number != None %}
                   {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
                 {% else %}
                   {% include "app/components/open_track_form.html" with request=request media_type=media_type media_id=media.media_id title=media.title only %}
