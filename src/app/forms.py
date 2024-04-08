@@ -156,13 +156,7 @@ class TVForm(MediaForm):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.helper.layout = Layout(
-            "media_id",
-            "media_type",
-            "score",
-            "status",
-            "notes",
-        )
+
 
     class Meta(MediaForm.Meta):
         """Bind form to model."""
@@ -186,14 +180,7 @@ class SeasonForm(MediaForm):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.helper.layout = Layout(
-            "media_id",
-            "media_type",
-            "season_number",
-            "score",
-            "status",
-            "notes",
-        )
+
 
     class Meta(MediaForm.Meta):
         """Bind form to model."""

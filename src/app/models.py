@@ -428,9 +428,7 @@ class Game(Media):
     def increase_progress(self):
         """Increase the progress of the media by 30 minutes."""
         self.progress += 30
-        # need extra fields because if completed,
-        # the save method changes status and end_date
-        self.save(update_fields=["progress", "status", "end_date"])
+        self.save(update_fields=["progress"])
         logger.info("Watched %s E%s", self, self.progress)
 
     def decrease_progress(self):
