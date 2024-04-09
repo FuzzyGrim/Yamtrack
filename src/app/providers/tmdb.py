@@ -196,7 +196,7 @@ def process_season(response):
         "season_number": response["season_number"],
         "synopsis": get_synopsis(response["overview"]),
         "details": {
-            "air_date": get_start_date(response["air_date"]),
+            "first_air_date": get_start_date(response["air_date"]),
             "number_of_episodes": num_episodes,
         },
         "episodes": response["episodes"],
