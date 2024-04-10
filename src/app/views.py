@@ -15,7 +15,7 @@ from django.views.decorators.http import (
 
 from app import helpers
 from app.forms import FilterForm, get_form_class
-from app.models import Episode, Season
+from app.models import Anime, Episode, Game, Manga, Movie, Season
 from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -24,18 +24,29 @@ logger = logging.getLogger(__name__)
 @require_GET
 def home(request):
     """Home page with media items in progress and repeating."""
-    repeating = helpers.get_media_by_status(request.user, "Repeating")
-    in_progress = helpers.get_media_by_status(request.user, "In progress")
+    list_by_type = {}
 
-    status_dict = {}
+    # Define a list of media types to iterate over
+    media_types = [
+        (Movie, "movie", None),
+        (Season, "season", "episodes"),  # Season needs prefetch_related for episodes
+        (Anime, "anime", None),
+        (Manga, "manga", None),
+        (Game, "game", None),
+    ]
 
-    if repeating:
-        status_dict["repeating"] = repeating
-    if in_progress:
-        status_dict["in progress"] = in_progress
+    for model, media_type, prefetch_related in media_types:
+        media_list = model.objects.filter(
+            user=request.user,
+            status__in=["Repeating", "In progress"],
+        )
+        if prefetch_related:
+            media_list = media_list.prefetch_related(prefetch_related)
+        if media_list:
+            list_by_type[media_type] = media_list
 
     context = {
-        "status_dict": status_dict,
+        "list_by_type": list_by_type,
     }
     return render(request, "app/home.html", context)
 
@@ -92,7 +103,6 @@ def progress_edit(request):
             request,
             "Media item was deleted before trying to change progress",
         )
-        logger.exception("Media item was deleted before trying to change progress")
 
         response = HttpResponse()
         response["HX-Redirect"] = reverse("home")
