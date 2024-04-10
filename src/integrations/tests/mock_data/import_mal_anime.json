@@ -2,7 +2,7 @@
   "data": [
     {
       "list_status": {
-        "is_rewatching": false,
+        "is_rewatching": true,
         "num_episodes_watched": 1,
         "score": 7,
         "status": "completed",

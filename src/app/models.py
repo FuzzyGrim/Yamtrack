@@ -40,6 +40,7 @@ class Media(models.Model):
         choices=[
             ("Completed", "Completed"),
             ("In progress", "In progress"),
+            ("Repeating", "Repeating"),
             ("Planning", "Planning"),
             ("Paused", "Paused"),
             ("Dropped", "Dropped"),
@@ -64,30 +65,13 @@ class Media(models.Model):
 
     def save(self, *args, **kwargs):
         """Save the media instance."""
-        if "status" in self.tracker.changed():
-            self.process_status()
-
         if "progress" in self.tracker.changed():
             self.process_progress()
 
+        if "status" in self.tracker.changed():
+            self.process_status()
+
         super().save(*args, **kwargs)
-
-    def process_status(self):
-        """Update fields depending on the status of the media."""
-        if self.status == "Completed":
-            if not self.end_date:
-                self.end_date = datetime.datetime.now(tz=settings.TZ).date()
-
-            media_type = self.__class__.__name__.lower()
-            total_episodes = services.get_media_metadata(media_type, self.media_id)[
-                "max_progress"
-            ]
-
-            if total_episodes != "Unknown":
-                self.progress = total_episodes
-
-        elif self.status == "In progress" and not self.start_date:
-            self.start_date = datetime.datetime.now(tz=settings.TZ).date()
 
     def process_progress(self):
         """Update fields depending on the progress of the media."""
@@ -107,8 +91,25 @@ class Media(models.Model):
                 if self.progress == total_episodes:
                     self.status = "Completed"
 
-                    if not self.end_date:
-                        self.end_date = datetime.datetime.now(tz=settings.TZ).date()
+    def process_status(self):
+        """Update fields depending on the status of the media."""
+        if self.status == "Completed":
+            if not self.end_date:
+                self.end_date = datetime.datetime.now(tz=settings.TZ).date()
+
+            media_type = self.__class__.__name__.lower()
+            total_episodes = services.get_media_metadata(media_type, self.media_id)[
+                "max_progress"
+            ]
+
+            if total_episodes != "Unknown":
+                self.progress = total_episodes
+
+            if self.tracker.previous("status") == "Repeating":
+                self.repeats += 1
+
+        elif self.status == "In progress" and not self.start_date:
+            self.start_date = datetime.datetime.now(tz=settings.TZ).date()
 
     def increase_progress(self):
         """Increase the progress of the media by one."""

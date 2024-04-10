@@ -15,7 +15,7 @@ from django.views.decorators.http import (
 
 from app import helpers
 from app.forms import FilterForm, get_form_class
-from app.models import Anime, Episode, Game, Manga, Movie, Season
+from app.models import Episode, Season
 from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -23,35 +23,19 @@ logger = logging.getLogger(__name__)
 
 @require_GET
 def home(request):
-    """Return the home page."""
-    in_progress = {}
+    """Home page with media items in progress and repeating."""
+    repeating = helpers.get_media_by_status(request.user, "Repeating")
+    in_progress = helpers.get_media_by_status(request.user, "In progress")
 
-    movies = Movie.objects.filter(user=request.user, status="In progress")
-    if movies.exists():
-        in_progress["movie"] = movies
+    status_dict = {}
 
-    seasons = Season.objects.filter(
-        user=request.user,
-        status="In progress",
-    ).prefetch_related("episodes")
-
-    if seasons.exists():
-        in_progress["season"] = seasons
-
-    animes = Anime.objects.filter(user=request.user, status="In progress")
-    if animes.exists():
-        in_progress["anime"] = animes
-
-    mangas = Manga.objects.filter(user=request.user, status="In progress")
-    if mangas.exists():
-        in_progress["manga"] = mangas
-
-    games = Game.objects.filter(user=request.user, status="In progress")
-    if games.exists():
-        in_progress["game"] = games
+    if repeating:
+        status_dict["repeating"] = repeating
+    if in_progress:
+        status_dict["in progress"] = in_progress
 
     context = {
-        "in_progress": in_progress,
+        "status_dict": status_dict,
     }
     return render(request, "app/home.html", context)
 

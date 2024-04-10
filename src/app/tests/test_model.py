@@ -19,7 +19,7 @@ class MediaModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    def test_movie_completed_no_end(self):
+    def test_completed_no_end(self):
         """When completed, if not specified end_date, it should be the current date."""
         Movie.objects.create(
             media_id=10494,
@@ -33,7 +33,7 @@ class MediaModel(TestCase):
             datetime.datetime.now(tz=settings.TZ).date(),
         )
 
-    def test_movie_completed_end(self):
+    def test_completed_end(self):
         """When completed, if specified end_date, it should be the specified date."""
         Movie.objects.create(
             media_id=10494,
@@ -48,7 +48,7 @@ class MediaModel(TestCase):
             date(2023, 6, 1),
         )
 
-    def test_anime_completed_progress(self):
+    def test_completed_progress(self):
         """When completed, the progress should be the total number of episodes."""
         Anime.objects.create(
             media_id=1,
@@ -59,8 +59,24 @@ class MediaModel(TestCase):
         )
         self.assertEqual(Anime.objects.get(media_id=1, user=self.user).progress, 26)
 
+
+    def test_completed_from_repeating(self):
+        """When completed from repeating, repeats should be incremented."""
+        anime = Anime.objects.create(
+            media_id=1,
+            title="Cowboy Bebop",
+            status="Repeating",
+            user=self.user,
+            notes="",
+        )
+
+        anime.status = "Completed"
+        anime.save()
+
+        self.assertEqual(Anime.objects.get(media_id=1, user=self.user).repeats, 1)
+
     def test_progress_is_max(self):
-        """Test when progress is set to the maximum number of episodes.
+        """When progress is maximum number of episodes.
 
         Status should be completed and end_date the current date if not specified.
         """
@@ -79,6 +95,26 @@ class MediaModel(TestCase):
         self.assertEqual(
             Anime.objects.get(media_id=1, user=self.user).end_date,
             datetime.datetime.now(tz=settings.TZ).date(),
+        )
+
+    def test_progress_is_max_from_repeating(self):
+        """When progress is maximum number of episodes and status is repeating.
+
+        Repeat should be incremented.
+        """
+        anime = Anime.objects.create(
+            media_id=1,
+            title="Cowboy Bebop",
+            status="Repeating",
+            progress=25,
+            user=self.user,
+            notes="",
+        )
+        anime.progress = 26
+        anime.save()
+        self.assertEqual(
+            Anime.objects.get(media_id=1, user=self.user).repeats,
+            1,
         )
 
     def test_progress_bigger_than_max(self):

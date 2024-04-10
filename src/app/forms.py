@@ -114,9 +114,6 @@ class MediaForm(forms.ModelForm):
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
-        labels = {
-            "repeats": "Rewatches",
-        }
 
 
 class MangaForm(MediaForm):
@@ -126,9 +123,6 @@ class MangaForm(MediaForm):
         """Bind form to model."""
 
         model = Manga
-        labels = {
-            "repeats": "Rereads",
-        }
 
 
 class AnimeForm(MediaForm):
@@ -157,7 +151,6 @@ class TVForm(MediaForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
 
-
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
@@ -180,7 +173,6 @@ class SeasonForm(MediaForm):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
-
 
     class Meta(MediaForm.Meta):
         """Bind form to model."""
@@ -212,9 +204,6 @@ class GameForm(MediaForm):
         """Bind form to model."""
 
         model = Game
-        labels = {
-            "repeats": "Replays",
-        }
 
 
 class FilterForm(forms.Form):
@@ -226,6 +215,7 @@ class FilterForm(forms.Form):
             ("all", "All"),
             ("completed", "Completed"),
             ("in progress", "In progress"),
+            ("repeating", "Repeating"),
             ("planning", "Planning"),
             ("paused", "Paused"),
             ("dropped", "Dropped"),

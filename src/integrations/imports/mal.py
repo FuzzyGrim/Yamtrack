@@ -73,9 +73,13 @@ def add_media_list(response, media_type, user):
         if media_type == "anime":
             progress = content["list_status"]["num_episodes_watched"]
             repeats = content["list_status"]["num_times_rewatched"]
+            if content["list_status"]["is_rewatching"]:
+                status = "Repeating"
         else:
             progress = content["list_status"]["num_chapters_read"]
             repeats = content["list_status"]["num_times_reread"]
+            if content["list_status"]["is_rereading"]:
+                status = "Repeating"
 
         try:
             image_url = content["node"]["main_picture"]["large"]
