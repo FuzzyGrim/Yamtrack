@@ -35,35 +35,35 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 ### Environment variables
 
-| Name            | Type   | Description                    | Required    | Default    | Notes                                                                                                           |
-| --------------- | ------ | ------------------------------ | ----------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
-| TMDB_API        | String | The Movie Database API key     | Recommended | "61...f60" | Required for movies and tv shows                                                                                |
-| TMDB_NSFW       | Bool   | The Movie Database NSFW filter | No          | False      | Set to true to include adult content in tv and movie searches                                                   |
-| TMDB_LANG       | String | The Movie Database language    | No          | "en-US"    | Language code in ISO 639-1 and country code in ISO 3166-1, only setting language code is also accepted e.g "en" |
-| MAL_API         | String | MyAnimeList API key            | Recommended | "25...691" | Required for anime and manga                                                                                    |
-| MAL_NSFW        | Bool   | MyAnimeList NSFW filter        | No          | False      | Set to true to include adult content in anime and manga searches                                                |
-| IGDB_ID         | String | IGDB API key                   | Recommended | "8w...grt  | Required for games                                                                                              |
-| IGDB_SECRET     | String | IGDB API secret                | Recommended | "ov...8kj  | Required for games                                                                                              |
-| IGDB_NSFW       | Bool   | IGDB NSFW filter               | No          | False      | Set to true to include adult content in game searches                                                           |
-| REDIS_URL       | String | Redis URL                      | Recommended | None       | Redis is recommended for better performance                                                                     |
-| SECRET          | String | Django secret key              | Recommended | "secret"   | [SECRET_KEY](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key)                                 |
-| ALLOWED_HOSTS   | List   | Base IP / Domain               | No          | "\*"       | Set this to your domain name if exposing to the public                                                          |
-| REGISTRATION    | Bool   | User registration              | No          | True       |                                                                                                                 |
-| DEBUG           | Bool   | Django debug mode              | No          | False      |                                                                                                                 |
-| PUID            | Int    | User ID                        | No          | 1000       |                                                                                                                 |
-| PGID            | Int    | Group ID                       | No          | 1000       |                                                                                                                 |
-| TZ              | String | Timezone                       | No          | "UTC"      |                                                                                                                 |
-| WEB_CONCURRENCY | Int    | Number of webserver processes  | No          | 1          | [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) recommended             |
+| Name            | Type   | Notes                                                                                                                                                                       |
+| --------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TMDB_API        | String | The Movie Database API key for movies and tv shows, a default key is provided                                                                                               |
+| TMDB_NSFW       | Bool   | Default to false, set to true to include adult content in tv and movie searches                                                                                             |
+| TMDB_LANG       | String | TMDB metadata language, uses a Language code in ISO 639-1 e.g "en", for more specific results a country code in ISO 3166-1 can be added e.g "en-US"                         |
+| MAL_API         | String | MyAnimeList API key, for anime and manga, a default key is provided                                                                                                         |
+| MAL_NSFW        | Bool   | Default to false, set to true to include adult content in anime and manga searches                                                                                          |
+| IGDB_ID         | String | IGDB API key for games, a default key is provided but it's recommended to get your own as it has a low rate limit.                                                          |
+| IGDB_SECRET     | String | IGDB API secret for games, a default value is provided but it's recommended to get your own as it has a low rate limit.                                                     |
+| IGDB_NSFW       | Bool   | Default to false, set to true to include adult content in game searches                                                                                                     |
+| REDIS_URL       | String | Redis is recommended for better performance                                                                                                                                 |
+| SECRET          | String | [Secret key](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key) used for cryptographic signing, should be a random string                                   |
+| ALLOWED_HOSTS   | List   | Host/domain names that this Django site can serve, set this to your domain name if exposing to the public                                                                   |
+| REGISTRATION    | Bool   | Default to true, set to false to disable user registration                                                                                                                  |
+| DEBUG           | Bool   | Default to false, set to true for debugging                                                                                                                                 |
+| PUID            | Int    | User ID for the app, default to 1000                                                                                                                                        |
+| PGID            | Int    | Group ID for the app, default to 1000                                                                                                                                       |
+| TZ              | String | Timezone, default to UTC                                                                                                                                                     |
+| WEB_CONCURRENCY | Int    | Number of webserver processes, default to 1 but it's recommended to have a value of [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) |
 
 ### Environment variables for PostgreSQL
 
-| Name        | Type   | Description       | Required | Default    | Notes                        |
-| ----------- | ------ | ----------------- | -------- | ---------- | ---------------------------- |
-| DB_HOST     | String | Database host     | No       | None       | When not set, sqlite is used |
-| DB_PORT     | Int    | Database port     | No       | 5432       |                              |
-| DB_NAME     | String | Database name     | No       | "yamtrack" |                              |
-| DB_USER     | String | Database user     | No       | "yamtrack" |                              |
-| DB_PASSWORD | String | Database password | No       | "yamtrack" |                              |
+| Name        | Type   | Notes                        |
+| ----------- | ------ | ---------------------------- |
+| DB_HOST     | String | When not set, sqlite is used |
+| DB_PORT     | Int    |                              |
+| DB_NAME     | String |                              |
+| DB_USER     | String |                              |
+| DB_PASSWORD | String |                              |
 
 ## Local development
 
