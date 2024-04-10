@@ -93,10 +93,10 @@ if config("DB_HOST", default=None):
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "HOST": config("DB_HOST"),
-            "NAME": config("DB_NAME", default="yamtrack"),
-            "USER": config("DB_USER", default="yamtrack"),
-            "PASSWORD": config("DB_PASSWORD", default="yamtrack"),
-            "PORT": config("DB_PORT", default="5432"),
+            "NAME": config("DB_NAME"),
+            "USER": config("DB_USER"),
+            "PASSWORD": config("DB_PASSWORD"),
+            "PORT": config("DB_PORT"),
         },
     }
 else:
@@ -226,7 +226,7 @@ REQUEST_TIMEOUT = 5  # seconds
 
 TMDB_API = config("TMDB_API", default="61572be02f0a068658828f6396aacf60")
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
-TMDB_LANG = config("TMDB_LANG", default="en-US")
+TMDB_LANG = config("TMDB_LANG", default="en")
 
 MAL_API = config("MAL_API", default="25b5581dafd15b3e7d583bb79e9a1691")
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
