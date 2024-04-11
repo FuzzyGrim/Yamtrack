@@ -339,6 +339,7 @@ class Season(Media):
             max_episode_number = 0
 
         episodes_to_create = []
+        today = datetime.datetime.now(tz=settings.TZ).date()
 
         # Create Episode objects for the remaining episodes
         for episode in reversed(season_metadata["episodes"]):
@@ -348,7 +349,7 @@ class Season(Media):
             episode_db = Episode(
                 related_season=self,
                 episode_number=episode["episode_number"],
-                watch_date=datetime.datetime.now(tz=settings.TZ).date(),
+                watch_date=today,
             )
             episodes_to_create.append(episode_db)
 
