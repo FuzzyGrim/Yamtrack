@@ -268,25 +268,19 @@ class Season(Media):
         """Increase the progress of the season by one."""
         season_metadata = tmdb.season(self.media_id, self.season_number)
 
-        progress = self.progress
+        watched_episodes = self.episodes.all().values_list("episode_number", flat=True)
 
-        if progress == 0:
-            next_episode = season_metadata["episodes"][0]["episode_number"]
-        elif progress < len(season_metadata["episodes"]):
-            next_episode = season_metadata["episodes"][progress]["episode_number"]
-
-        try:
-            Episode.objects.create(
-                related_season=self,
-                episode_number=next_episode,
-                watch_date=datetime.datetime.now(tz=settings.TZ).date(),
-            )
-            logger.info("Watched %sE%s", self, next_episode)
-
-        # next_episode not defined,
-        # happens when another request completes the season
-        except UnboundLocalError:
-            logger.warning("No episodes to watch, %s is already completed", self)
+        # Iterate through all episodes to find the first unwatched one
+        for episode in season_metadata["episodes"]:
+            episode_number = episode["episode_number"]
+            if episode_number not in watched_episodes:
+                Episode.objects.create(
+                    related_season=self,
+                    episode_number=episode_number,
+                    watch_date=datetime.datetime.now(tz=settings.TZ).date(),
+                )
+                logger.info("Watched %sE%s", self, episode_number)
+                break
 
     def decrease_progress(self):
         """Decrease the progress of the season by one."""
@@ -379,6 +373,7 @@ class Episode(models.Model):
         """
 
         unique_together = ["related_season", "episode_number"]
+        ordering = ["related_season", "episode_number"]
 
     def __str__(self):
         """Return the season and episode number."""
