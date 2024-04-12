@@ -136,7 +136,7 @@ def media_list(request, media_type):
 
     model = apps.get_model(app_label="app", model_name=media_type)
     layout_is_table = layout_user == "table"
-    sort_is_property = sort_filter in ("progress", "start_date", "end_date")
+    sort_is_property = sort_filter in ("progress", "start_date", "end_date", "repeats")
 
     if media_type == "tv" and (layout_is_table or sort_is_property):
         media_list = model.objects.filter(**filter_params).prefetch_related(
@@ -212,17 +212,15 @@ def season_details(request, media_id, title, season_number):  # noqa: ARG001 tit
     tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
     season_metadata = tv_metadata[f"season/{season_number}"]
 
-    watched_episodes = dict(
-        Episode.objects.filter(
-            related_season__media_id=media_id,
-            related_season__season_number=season_number,
-            related_season__user=request.user,
-        ).values_list("episode_number", "watch_date"),
-    )
+    episodes_in_db = Episode.objects.filter(
+        related_season__media_id=media_id,
+        related_season__season_number=season_number,
+        related_season__user=request.user,
+    ).values("episode_number", "watch_date", "repeats")
 
     season_metadata["episodes"] = tmdb.process_episodes(
         season_metadata,
-        watched_episodes,
+        episodes_in_db,
     )
 
     context = {"season": season_metadata, "tv": tv_metadata}
@@ -401,16 +399,34 @@ def episode_handler(request):
 
     episode_number = request.POST["episode_number"]
     if "unwatch" in request.POST:
-        Episode.objects.filter(
-            related_season=related_season,
-            episode_number=episode_number,
-        ).delete()
+        try:
+            episode = Episode.objects.get(
+                related_season=related_season,
+                episode_number=episode_number,
+            )
+            if episode.repeats > 0:
+                episode.repeats -= 1
+                episode.save(update_fields=["repeats"])
+                logger.info(
+                    "%sE%s watch count decreased.",
+                    related_season,
+                    episode_number,
+                )
+            else:
+                episode.delete()
+                logger.info(
+                    "%sE%s deleted successfully.",
+                    related_season,
+                    episode_number,
+                )
 
-        logger.info("%sE%s deleted successfully.", related_season, episode_number)
+        except Episode.DoesNotExist:
+            logger.warning(
+                "Episode %sE%s does not exist.",
+                related_season,
+                episode_number,
+            )
 
-        if related_season.status == "Completed":
-            related_season.status = "In progress"
-            related_season.save(update_fields=["status"])
     else:
         if "release" in request.POST:
             watch_date = request.POST["release"]
@@ -418,18 +434,17 @@ def episode_handler(request):
             # set watch date from form
             watch_date = request.POST["date"]
 
-        Episode.objects.update_or_create(
+        episode, created = Episode.objects.update_or_create(
             related_season=related_season,
             episode_number=episode_number,
             defaults={
                 "watch_date": watch_date,
             },
-            create_defaults={
-                "related_season": related_season,
-                "episode_number": episode_number,
-                "watch_date": watch_date,
-            },
         )
+
+        if not created:
+            episode.repeats += 1
+            episode.save(update_fields=["repeats"])
 
         logger.info("%sE%s saved successfully.", related_season, episode_number)
 

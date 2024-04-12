@@ -330,13 +330,16 @@ def get_related(related_medias, media_id=None):
     ]
 
 
-def process_episodes(season_metadata, watched_episodes):
+def process_episodes(season_metadata, episodes_in_db):
     """Process the episodes for the selected season."""
     episodes_metadata = []
 
+    # Convert the queryset to a dictionary for efficient lookups
+    tracked_episodes = {ep["episode_number"]: ep for ep in episodes_in_db}
+
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]
-        watched = episode_number in watched_episodes
+        watched = episode_number in tracked_episodes
 
         episodes_metadata.append(
             {
@@ -347,7 +350,10 @@ def process_episodes(season_metadata, watched_episodes):
                 "overview": episode["overview"],
                 "watched": watched,
                 "watch_date": (
-                    watched_episodes.get(episode_number) if watched else None
+                    tracked_episodes[episode_number]["watch_date"] if watched else None
+                ),
+                "repeats": (
+                    tracked_episodes[episode_number]["repeats"] if watched else 0
                 ),
             },
         )

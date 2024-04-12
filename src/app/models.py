@@ -8,7 +8,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
-from django.db.models import Max
+from django.db.models import Max, Sum
 from model_utils import FieldTracker
 
 from app.providers import services, tmdb
@@ -143,8 +143,13 @@ class TV(Media):
 
     @property
     def progress(self):
-        """Return the user's episodes watched for the TV show."""
+        """Return the total episodes watched for the TV show."""
         return sum(season.progress for season in self.seasons.all())
+
+    @property
+    def repeats(self):
+        """Return the number of max repeated episodes in the TV show."""
+        return max(season.repeats for season in self.seasons.all())
 
     @property
     def start_date(self):
@@ -245,8 +250,13 @@ class Season(Media):
 
     @property
     def progress(self):
-        """Return the user's episodes watched for the season."""
+        """Return the total episodes watched for the season."""
         return self.episodes.count()
+
+    @property
+    def repeats(self):
+        """Return the number of max repeated episodes in the season."""
+        return max(episodes.repeats for episodes in self.episodes.all())
 
     @property
     def start_date(self):
@@ -366,6 +376,7 @@ class Episode(models.Model):
     )
     episode_number = models.PositiveIntegerField()
     watch_date = models.DateField(null=True, blank=True)
+    repeats = models.PositiveIntegerField(default=0)
 
     class Meta:
         """Limit the uniqueness of episodes.
@@ -382,19 +393,36 @@ class Episode(models.Model):
 
     def save(self, *args, **kwargs):
         """Save the episode instance."""
-        if self._state.adding:
-            super().save(*args, **kwargs)
-            season_metadata = tmdb.season(
-                self.related_season.media_id,
-                self.related_season.season_number,
-            )
+        super().save(*args, **kwargs)
 
-            if self.related_season.progress == len(season_metadata["episodes"]):
+        season_metadata = tmdb.season(
+            self.related_season.media_id,
+            self.related_season.season_number,
+        )
+        total_episodes = len(season_metadata["episodes"])
+
+        adding_episode = self._state.adding
+        if adding_episode:
+            if (
+                self.related_season.status == "In progress"
+                and self.related_season.progress == total_episodes
+            ):
                 self.related_season.status = "Completed"
                 # save_base to avoid custom save method
                 self.related_season.save_base(update_fields=["status"])
         else:
-            super().save(*args, **kwargs)
+            total_repeats = self.related_season.episodes.aggregate(
+                total_repeats=Sum("repeats"),
+            )["total_repeats"]
+
+            total_watches = self.related_season.progress + total_repeats
+
+            if (
+                self.related_season.status == "Repeating"
+                and total_watches >= total_episodes * (self.related_season.repeats + 1)
+            ):
+                self.related_season.status = "Completed"
+                self.related_season.save_base(update_fields=["status"])
 
 
 class Manga(Media):
