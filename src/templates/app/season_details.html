@@ -138,7 +138,9 @@
                           <i class="bi bi-check-circle-fill"></i>
                         </button>
                       </div>
-                      <button type="submit" class="btn btn-danger w-100 mt-2" name="unwatch">Unwatch</button>
+                      {% if episode.watched %}
+                        <button type="submit" class="btn btn-danger w-100 mt-2" name="unwatch">Unwatch</button>
+                      {% endif %}
                     </form>
                   </div>
 
