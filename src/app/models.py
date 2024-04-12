@@ -395,32 +395,19 @@ class Episode(models.Model):
         """Save the episode instance."""
         super().save(*args, **kwargs)
 
-        season_metadata = tmdb.season(
-            self.related_season.media_id,
-            self.related_season.season_number,
-        )
-        total_episodes = len(season_metadata["episodes"])
-
-        adding_episode = self._state.adding
-        if adding_episode:
-            if (
-                self.related_season.status == "In progress"
-                and self.related_season.progress == total_episodes
-            ):
-                self.related_season.status = "Completed"
-                # save_base to avoid custom save method
-                self.related_season.save_base(update_fields=["status"])
-        else:
+        if self.related_season.status in ("In progress", "Repeating"):
+            season_metadata = tmdb.season(
+                self.related_season.media_id,
+                self.related_season.season_number,
+            )
+            total_episodes = len(season_metadata["episodes"])
             total_repeats = self.related_season.episodes.aggregate(
                 total_repeats=Sum("repeats"),
             )["total_repeats"]
 
             total_watches = self.related_season.progress + total_repeats
 
-            if (
-                self.related_season.status == "Repeating"
-                and total_watches >= total_episodes * (self.related_season.repeats + 1)
-            ):
+            if total_watches >= total_episodes * (self.related_season.repeats + 1):
                 self.related_season.status = "Completed"
                 self.related_season.save_base(update_fields=["status"])
 
