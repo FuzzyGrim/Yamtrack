@@ -254,12 +254,17 @@ class Season(Media):
         return self.episodes.count()
 
     @property
-    def continue_from(self):
-        """Return the episode number to continue from."""
-        try:
-            return self.episodes.latest("repeats", "episode_number").episode_number
-        except Episode.DoesNotExist:
-            return 0
+    def current_episode_number(self):
+        """Return the current episode number of the season."""
+        sorted_episodes = sorted(
+            self.episodes.all(),
+            key=lambda e: (e.repeats, e.episode_number),
+            reverse=True,
+        )
+
+        if sorted_episodes:
+            return sorted_episodes[0].episode_number
+        return 0
 
     @property
     def repeats(self):
