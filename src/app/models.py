@@ -255,12 +255,22 @@ class Season(Media):
 
     @property
     def current_episode_number(self):
-        """Return the current episode number of the season."""
-        sorted_episodes = sorted(
-            self.episodes.all(),
-            key=lambda e: (e.repeats, e.episode_number),
-            reverse=True,
-        )
+        """Return the current episode number of the season, used on the home page."""
+        # continue initial watch
+        if self.status == "In progress":
+            sorted_episodes = sorted(
+                self.episodes.all(),
+                key=lambda e: e.episode_number,
+                reverse=True,
+            )
+        # continue repeating watch
+        elif self.status == "Repeating":
+            # sort by repeats and then by episode_number
+            sorted_episodes = sorted(
+                self.episodes.all(),
+                key=lambda e: (e.repeats, e.episode_number),
+                reverse=True,
+            )
 
         if sorted_episodes:
             return sorted_episodes[0].episode_number
@@ -308,15 +318,10 @@ class Season(Media):
     def decrease_progress(self):
         """Decrease the progress of the season by one."""
         try:
-            last_watched = Episode.objects.filter(
+            Episode.objects.get(
                 related_season=self,
-            ).latest("episode_number")
-
-            last_watched_number = last_watched.episode_number
-
-            last_watched.delete()
-
-            logger.info("Unwatched %sE%s", self, last_watched_number)
+                episode_number=self.current_episode_number,
+            ).delete()
         except Episode.DoesNotExist:
             logger.warning("No episodes to unwatch in %s", self)
 
@@ -423,6 +428,23 @@ class Episode(models.Model):
             if total_watches >= total_episodes * (self.related_season.repeats + 1):
                 self.related_season.status = "Completed"
                 self.related_season.save_base(update_fields=["status"])
+
+    def delete(self, *args, **kwargs):
+        """Delete the episode instance."""
+        title = self
+        if self.repeats > 0:
+            self.repeats -= 1
+            self.save(update_fields=["repeats"])
+            logger.info(
+                "%s watch count decreased.",
+                title,
+            )
+        else:
+            super().delete(*args, **kwargs)
+            logger.info(
+                "%s deleted successfully.",
+                title,
+            )
 
 
 class Manga(Media):
