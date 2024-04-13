@@ -13,8 +13,12 @@
 <div class="progress_count">
   {% if media_type == "game" %}
     {{ media.progress|format_time }}
+  {% elif media_type == "season" %}
+    Ep. {{ media.continue_from }}
+  {% elif media_type == "manga" %}
+    Ch. {{ media.progress }}
   {% else %}
-    {{ media.progress }}
+    Ep. {{ media.progress }}
   {% endif %}
 </div>
 

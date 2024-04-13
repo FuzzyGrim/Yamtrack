@@ -254,6 +254,14 @@ class Season(Media):
         return self.episodes.count()
 
     @property
+    def continue_from(self):
+        """Return the episode number to continue from."""
+        try:
+            return self.episodes.latest("repeats", "episode_number").episode_number
+        except Episode.DoesNotExist:
+            return 0
+
+    @property
     def repeats(self):
         """Return the number of max repeated episodes in the season."""
         return max(episodes.repeats for episodes in self.episodes.all())
