@@ -368,3 +368,21 @@ def get_episode_air_date(date):
     if not date:
         return "Unknown air date"
     return date
+
+
+def find_next_episode(episode_number, episodes_metadata):
+    """Find the next episode number."""
+    # Find the current episode in the sorted list
+    current_episode_index = None
+    for index, episode in enumerate(episodes_metadata):
+        if episode["episode_number"] == episode_number:
+            current_episode_index = index
+            break
+
+    # If the current episode is not the last episode, return the next episode number
+    if current_episode_index + 1 < len(
+        episodes_metadata,
+    ):
+        return episodes_metadata[current_episode_index + 1]["episode_number"]
+
+    return None

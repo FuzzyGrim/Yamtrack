@@ -254,8 +254,8 @@ class Season(Media):
         return self.episodes.count()
 
     @property
-    def current_episode_number(self):
-        """Return the current episode number of the season, used on the home page."""
+    def current_episode(self):
+        """Return the current episode of the season."""
         # continue initial watch
         if self.status == "In progress":
             sorted_episodes = sorted(
@@ -273,8 +273,8 @@ class Season(Media):
             )
 
         if sorted_episodes:
-            return sorted_episodes[0].episode_number
-        return 0
+            return sorted_episodes[0]
+        return None
 
     @property
     def repeats(self):
@@ -298,32 +298,76 @@ class Season(Media):
         )
 
     def increase_progress(self):
-        """Increase the progress of the season by one."""
+        """Watch the next episode of the season."""
+        current_episode = self.current_episode
         season_metadata = tmdb.season(self.media_id, self.season_number)
+        episodes = season_metadata["episodes"]
 
-        watched_episodes = self.episodes.all().values_list("episode_number", flat=True)
+        if current_episode:
+            next_episode_number = tmdb.find_next_episode(
+                current_episode.episode_number,
+                episodes,
+            )
+        else:
+            # start watching from the first episode
+            next_episode_number = episodes[0]["episode_number"]
 
-        # Iterate through all episodes to find the first unwatched one
-        for episode in season_metadata["episodes"]:
-            episode_number = episode["episode_number"]
-            if episode_number not in watched_episodes:
-                Episode.objects.create(
-                    related_season=self,
-                    episode_number=episode_number,
-                    watch_date=datetime.datetime.now(tz=settings.TZ).date(),
-                )
-                logger.info("Watched %sE%s", self, episode_number)
-                break
+        today = datetime.datetime.now(tz=settings.TZ).date()
+
+        if next_episode_number:
+            self.watch(next_episode_number, today)
+        else:
+            logger.info("No more episodes to watch.")
+
+    def watch(self, episode_number, watch_date):
+        """Create or add a repeat to an episode of the season."""
+        episode, created = Episode.objects.update_or_create(
+            related_season=self,
+            episode_number=episode_number,
+            defaults={
+                "watch_date": watch_date,
+            },
+        )
+        if created:
+            logger.info("%s created successfully.", episode)
+        else:
+            episode.repeats += 1
+            episode.save(update_fields=["repeats"])
+            logger.info("%s watch count increased.", episode)
 
     def decrease_progress(self):
-        """Decrease the progress of the season by one."""
+        """Unwatch the current episode of the season."""
+        episode_number = self.current_episode.episode_number
+        self.unwatch(episode_number)
+
+    def unwatch(self, episode_number):
+        """Unwatch the episode instance."""
         try:
-            Episode.objects.get(
+            episode = Episode.objects.get(
                 related_season=self,
-                episode_number=self.current_episode_number,
-            ).delete()
+                episode_number=episode_number,
+            )
+
+            if episode.repeats > 0:
+                episode.repeats -= 1
+                episode.save(update_fields=["repeats"])
+                logger.info(
+                    "%s watch count decreased.",
+                    episode,
+                )
+            else:
+                episode.delete()
+                logger.info(
+                    "%s deleted successfully.",
+                    episode,
+                )
+
         except Episode.DoesNotExist:
-            logger.warning("No episodes to unwatch in %s", self)
+            logger.warning(
+                "Episode %sE%s does not exist.",
+                self,
+                episode_number,
+            )
 
     def get_tv(self):
         """Get related TV instance for a season and create it if it doesn't exist."""
@@ -428,23 +472,6 @@ class Episode(models.Model):
             if total_watches >= total_episodes * (self.related_season.repeats + 1):
                 self.related_season.status = "Completed"
                 self.related_season.save_base(update_fields=["status"])
-
-    def delete(self, *args, **kwargs):
-        """Delete the episode instance."""
-        title = self
-        if self.repeats > 0:
-            self.repeats -= 1
-            self.save(update_fields=["repeats"])
-            logger.info(
-                "%s watch count decreased.",
-                title,
-            )
-        else:
-            super().delete(*args, **kwargs)
-            logger.info(
-                "%s deleted successfully.",
-                title,
-            )
 
 
 class Manga(Media):

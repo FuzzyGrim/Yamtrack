@@ -399,33 +399,7 @@ def episode_handler(request):
 
     episode_number = request.POST["episode_number"]
     if "unwatch" in request.POST:
-        try:
-            episode = Episode.objects.get(
-                related_season=related_season,
-                episode_number=episode_number,
-            )
-            if episode.repeats > 0:
-                episode.repeats -= 1
-                episode.save(update_fields=["repeats"])
-                logger.info(
-                    "%sE%s watch count decreased.",
-                    related_season,
-                    episode_number,
-                )
-            else:
-                episode.delete()
-                logger.info(
-                    "%sE%s deleted successfully.",
-                    related_season,
-                    episode_number,
-                )
-
-        except Episode.DoesNotExist:
-            logger.warning(
-                "Episode %sE%s does not exist.",
-                related_season,
-                episode_number,
-            )
+        related_season.unwatch(episode_number)
 
     else:
         if "release" in request.POST:
@@ -434,19 +408,7 @@ def episode_handler(request):
             # set watch date from form
             watch_date = request.POST["date"]
 
-        episode, created = Episode.objects.update_or_create(
-            related_season=related_season,
-            episode_number=episode_number,
-            defaults={
-                "watch_date": watch_date,
-            },
-        )
-
-        if not created:
-            episode.repeats += 1
-            episode.save(update_fields=["repeats"])
-
-        logger.info("%sE%s saved successfully.", related_season, episode_number)
+        related_season.watch(episode_number, watch_date)
 
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
         url = iri_to_uri(request.GET["next"])
