@@ -92,6 +92,7 @@ def progress_edit(request):
 
         if media_type == "season":
             response["season_number"] = season_number
+            response["current_episode"] = media.current_episode
 
         return render(
             request,
@@ -266,11 +267,11 @@ def track_form(request):
         form = get_form_class(media_type)(instance=media, initial=initial_data)
 
         form.helper.form_id = form_id
-        allow_delete = True
+        media_exists = True
     except model.DoesNotExist:
         form = get_form_class(media_type)(initial=initial_data)
         form.helper.form_id = form_id
-        allow_delete = False
+        media_exists = False
 
     return render(
         request,
@@ -279,7 +280,7 @@ def track_form(request):
             "title": title,
             "form_id": form_id,
             "form": form,
-            "allow_delete": allow_delete,
+            "media_exists": media_exists,
             "return_url": request.GET["return_url"],
         },
     )
@@ -344,11 +345,10 @@ def media_save(request):
 @require_POST
 def media_delete(request):
     """Delete media data from the database."""
-    media_id = request.POST["media_id"]
     media_type = request.POST["media_type"]
 
     search_params = {
-        "media_id": media_id,
+        "media_id": request.POST["media_id"],
         "user": request.user,
     }
 
@@ -357,8 +357,10 @@ def media_delete(request):
 
     model = apps.get_model(app_label="app", model_name=media_type)
     try:
-        model.objects.get(**search_params).delete()
-        logger.info("%s %s deleted successfully.", media_type, media_id)
+        media = model.objects.get(**search_params)
+        media.delete()
+        logger.info("%s deleted successfully.", media)
+
     except model.DoesNotExist:
         logger.warning("The %s was already deleted before.", media_type)
 
