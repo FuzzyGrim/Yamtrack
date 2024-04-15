@@ -6,15 +6,23 @@
         hx-trigger="click"
         hx-target="closest .card-text"
         hx-vals='{"media_type": "{{ media_type }}", "media_id": "{{ media.media_id }}", "operation": "decrease" {% if media.season_number != None %}, "season_number": "{{ media.season_number }}"{% endif %} }'
-        {% if media.progress == 0 %}disabled{% endif %}>
+        {% if media.min %}disabled{% endif %}>
   <i class="bi bi-dash"></i> {% comment %} decrease progress button {% endcomment %}
 </button>
 
 <div class="progress_count">
   {% if media_type == "game" %}
     {{ media.progress|format_time }}
+  {% elif media_type == "season" %}
+    {% if media.current_episode %}
+      Ep. {{ media.current_episode.episode_number }}
+    {% else %}
+      Ep. 0
+    {% endif %}
+  {% elif media_type == "manga" %}
+    Ch. {{ media.progress }}
   {% else %}
-    {{ media.progress }}
+    Ep. {{ media.progress }}
   {% endif %}
 </div>
 

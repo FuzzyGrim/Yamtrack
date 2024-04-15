@@ -84,14 +84,21 @@ def progress_edit(request):
         elif operation == "decrease":
             media.decrease_progress()
 
-        response = {
-            "media_id": media_id,
-            "progress": media.progress,
-            "max": media.progress == max_progress,
-        }
+        response = {"media_id": media_id}
 
         if media_type == "season":
             response["season_number"] = season_number
+            response["current_episode"] = media.current_episode
+            if media.current_episode:
+                response["max"] = media.current_episode.episode_number == max_progress
+                response["min"] = False
+            else:
+                response["max"] = False
+                response["min"] = True
+        else:
+            response["progress"] = media.progress
+            response["max"] = media.progress == max_progress
+            response["min"] = media.progress == 0
 
         return render(
             request,
@@ -136,7 +143,7 @@ def media_list(request, media_type):
 
     model = apps.get_model(app_label="app", model_name=media_type)
     layout_is_table = layout_user == "table"
-    sort_is_property = sort_filter in ("progress", "start_date", "end_date")
+    sort_is_property = sort_filter in ("progress", "start_date", "end_date", "repeats")
 
     if media_type == "tv" and (layout_is_table or sort_is_property):
         media_list = model.objects.filter(**filter_params).prefetch_related(
@@ -212,17 +219,15 @@ def season_details(request, media_id, title, season_number):  # noqa: ARG001 tit
     tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
     season_metadata = tv_metadata[f"season/{season_number}"]
 
-    watched_episodes = dict(
-        Episode.objects.filter(
-            related_season__media_id=media_id,
-            related_season__season_number=season_number,
-            related_season__user=request.user,
-        ).values_list("episode_number", "watch_date"),
-    )
+    episodes_in_db = Episode.objects.filter(
+        related_season__media_id=media_id,
+        related_season__season_number=season_number,
+        related_season__user=request.user,
+    ).values("episode_number", "watch_date", "repeats")
 
     season_metadata["episodes"] = tmdb.process_episodes(
         season_metadata,
-        watched_episodes,
+        episodes_in_db,
     )
 
     context = {"season": season_metadata, "tv": tv_metadata}
@@ -268,11 +273,11 @@ def track_form(request):
         form = get_form_class(media_type)(instance=media, initial=initial_data)
 
         form.helper.form_id = form_id
-        allow_delete = True
+        media_exists = True
     except model.DoesNotExist:
         form = get_form_class(media_type)(initial=initial_data)
         form.helper.form_id = form_id
-        allow_delete = False
+        media_exists = False
 
     return render(
         request,
@@ -281,7 +286,7 @@ def track_form(request):
             "title": title,
             "form_id": form_id,
             "form": form,
-            "allow_delete": allow_delete,
+            "media_exists": media_exists,
             "return_url": request.GET["return_url"],
         },
     )
@@ -346,11 +351,10 @@ def media_save(request):
 @require_POST
 def media_delete(request):
     """Delete media data from the database."""
-    media_id = request.POST["media_id"]
     media_type = request.POST["media_type"]
 
     search_params = {
-        "media_id": media_id,
+        "media_id": request.POST["media_id"],
         "user": request.user,
     }
 
@@ -359,8 +363,10 @@ def media_delete(request):
 
     model = apps.get_model(app_label="app", model_name=media_type)
     try:
-        model.objects.get(**search_params).delete()
-        logger.info("%s %s deleted successfully.", media_type, media_id)
+        media = model.objects.get(**search_params)
+        media.delete()
+        logger.info("%s deleted successfully.", media)
+
     except model.DoesNotExist:
         logger.warning("The %s was already deleted before.", media_type)
 
@@ -401,16 +407,8 @@ def episode_handler(request):
 
     episode_number = request.POST["episode_number"]
     if "unwatch" in request.POST:
-        Episode.objects.filter(
-            related_season=related_season,
-            episode_number=episode_number,
-        ).delete()
+        related_season.unwatch(episode_number)
 
-        logger.info("%sE%s deleted successfully.", related_season, episode_number)
-
-        if related_season.status == "Completed":
-            related_season.status = "In progress"
-            related_season.save(update_fields=["status"])
     else:
         if "release" in request.POST:
             watch_date = request.POST["release"]
@@ -418,20 +416,7 @@ def episode_handler(request):
             # set watch date from form
             watch_date = request.POST["date"]
 
-        Episode.objects.update_or_create(
-            related_season=related_season,
-            episode_number=episode_number,
-            defaults={
-                "watch_date": watch_date,
-            },
-            create_defaults={
-                "related_season": related_season,
-                "episode_number": episode_number,
-                "watch_date": watch_date,
-            },
-        )
-
-        logger.info("%sE%s saved successfully.", related_season, episode_number)
+        related_season.watch(episode_number, watch_date)
 
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
         url = iri_to_uri(request.GET["next"])

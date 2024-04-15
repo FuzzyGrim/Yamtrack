@@ -8,7 +8,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
-from django.db.models import Max
+from django.db.models import Max, Sum
 from model_utils import FieldTracker
 
 from app.providers import services, tmdb
@@ -143,8 +143,13 @@ class TV(Media):
 
     @property
     def progress(self):
-        """Return the user's episodes watched for the TV show."""
+        """Return the total episodes watched for the TV show."""
         return sum(season.progress for season in self.seasons.all())
+
+    @property
+    def repeats(self):
+        """Return the number of max repeated episodes in the TV show."""
+        return max(season.repeats for season in self.seasons.all())
 
     @property
     def start_date(self):
@@ -245,8 +250,35 @@ class Season(Media):
 
     @property
     def progress(self):
-        """Return the user's episodes watched for the season."""
+        """Return the total episodes watched for the season."""
         return self.episodes.count()
+
+    @property
+    def current_episode(self):
+        """Return the current episode of the season."""
+        # continue initial watch
+        if self.status == "In progress":
+            sorted_episodes = sorted(
+                self.episodes.all(),
+                key=lambda e: e.episode_number,
+                reverse=True,
+            )
+        else:
+            # sort by repeats and then by episode_number
+            sorted_episodes = sorted(
+                self.episodes.all(),
+                key=lambda e: (e.repeats, e.episode_number),
+                reverse=True,
+            )
+
+        if sorted_episodes:
+            return sorted_episodes[0]
+        return None
+
+    @property
+    def repeats(self):
+        """Return the number of max repeated episodes in the season."""
+        return max(episodes.repeats for episodes in self.episodes.all())
 
     @property
     def start_date(self):
@@ -265,37 +297,76 @@ class Season(Media):
         )
 
     def increase_progress(self):
-        """Increase the progress of the season by one."""
+        """Watch the next episode of the season."""
+        current_episode = self.current_episode
         season_metadata = tmdb.season(self.media_id, self.season_number)
+        episodes = season_metadata["episodes"]
 
-        watched_episodes = self.episodes.all().values_list("episode_number", flat=True)
+        if current_episode:
+            next_episode_number = tmdb.find_next_episode(
+                current_episode.episode_number,
+                episodes,
+            )
+        else:
+            # start watching from the first episode
+            next_episode_number = episodes[0]["episode_number"]
 
-        # Iterate through all episodes to find the first unwatched one
-        for episode in season_metadata["episodes"]:
-            episode_number = episode["episode_number"]
-            if episode_number not in watched_episodes:
-                Episode.objects.create(
-                    related_season=self,
-                    episode_number=episode_number,
-                    watch_date=datetime.datetime.now(tz=settings.TZ).date(),
-                )
-                logger.info("Watched %sE%s", self, episode_number)
-                break
+        today = datetime.datetime.now(tz=settings.TZ).date()
+
+        if next_episode_number:
+            self.watch(next_episode_number, today)
+        else:
+            logger.info("No more episodes to watch.")
+
+    def watch(self, episode_number, watch_date):
+        """Create or add a repeat to an episode of the season."""
+        episode, created = Episode.objects.update_or_create(
+            related_season=self,
+            episode_number=episode_number,
+            defaults={
+                "watch_date": watch_date,
+            },
+        )
+        if created:
+            logger.info("%s created successfully.", episode)
+        else:
+            episode.repeats += 1
+            episode.save(update_fields=["repeats"])
+            logger.info("%s watch count increased.", episode)
 
     def decrease_progress(self):
-        """Decrease the progress of the season by one."""
+        """Unwatch the current episode of the season."""
+        episode_number = self.current_episode.episode_number
+        self.unwatch(episode_number)
+
+    def unwatch(self, episode_number):
+        """Unwatch the episode instance."""
         try:
-            last_watched = Episode.objects.filter(
+            episode = Episode.objects.get(
                 related_season=self,
-            ).latest("episode_number")
+                episode_number=episode_number,
+            )
 
-            last_watched_number = last_watched.episode_number
+            if episode.repeats > 0:
+                episode.repeats -= 1
+                episode.save(update_fields=["repeats"])
+                logger.info(
+                    "%s watch count decreased.",
+                    episode,
+                )
+            else:
+                episode.delete()
+                logger.info(
+                    "%s deleted successfully.",
+                    episode,
+                )
 
-            last_watched.delete()
-
-            logger.info("Unwatched %sE%s", self, last_watched_number)
         except Episode.DoesNotExist:
-            logger.warning("No episodes to unwatch in %s", self)
+            logger.warning(
+                "Episode %sE%s does not exist.",
+                self,
+                episode_number,
+            )
 
     def get_tv(self):
         """Get related TV instance for a season and create it if it doesn't exist."""
@@ -366,6 +437,7 @@ class Episode(models.Model):
     )
     episode_number = models.PositiveIntegerField()
     watch_date = models.DateField(null=True, blank=True)
+    repeats = models.PositiveIntegerField(default=0)
 
     class Meta:
         """Limit the uniqueness of episodes.
@@ -382,19 +454,23 @@ class Episode(models.Model):
 
     def save(self, *args, **kwargs):
         """Save the episode instance."""
-        if self._state.adding:
-            super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
+
+        if self.related_season.status in ("In progress", "Repeating"):
             season_metadata = tmdb.season(
                 self.related_season.media_id,
                 self.related_season.season_number,
             )
+            total_episodes = len(season_metadata["episodes"])
+            total_repeats = self.related_season.episodes.aggregate(
+                total_repeats=Sum("repeats"),
+            )["total_repeats"]
 
-            if self.related_season.progress == len(season_metadata["episodes"]):
+            total_watches = self.related_season.progress + total_repeats
+
+            if total_watches >= total_episodes * (self.related_season.repeats + 1):
                 self.related_season.status = "Completed"
-                # save_base to avoid custom save method
                 self.related_season.save_base(update_fields=["status"])
-        else:
-            super().save(*args, **kwargs)
 
 
 class Manga(Media):

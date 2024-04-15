@@ -82,22 +82,21 @@
           <p class="episode-overview mb-2">{{ episode.overview }}</p>
 
           <div class="mt-auto">
-            {% if episode.watched %}
-              <button type="button"
-                      class="btn btn-secondary"
-                      data-bs-toggle="modal"
-                      data-bs-target="#episode_{{ episode.episode_number }}">
+            <button type="button"
+                    class="btn btn-secondary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#episode_{{ episode.episode_number }}"
+                    title="Add additional plays">
+              {% if episode.watched %}
                 <i class="bi bi-check-circle-fill"></i>
-              </button>
-              <small class="ms-2">On {{ episode.watch_date|date:"Y-m-d" }}</small>
-            {% else %}
-              <button type="button"
-                      class="btn btn-secondary"
-                      data-bs-toggle="modal"
-                      data-bs-target="#episode_{{ episode.episode_number }}">
+              {% else %}
                 <i class="bi bi-check-circle"></i>
-              </button>
-            {% endif %}
+              {% endif %}
+            </button>
+
+            {% if episode.watch_date %}<small class="ms-2">On {{ episode.watch_date|date:"Y-m-d" }}</small>{% endif %}
+
+            {% if episode.repeats > 0 %}<small class="ms-2">Watched {{ episode.repeats|add:"1" }} times</small>{% endif %}
  
             <div class="modal fade"
                  id="episode_{{ episode.episode_number }}"
@@ -115,7 +114,7 @@
                   </div>
  
                   <div class="modal-body">
-                    <div class="text-center fs-5">When did you watch it?</div>
+                    <div class="text-center fs-5">When did you watch this?</div>
                     <form method="post"
                           action="{% url 'episode_handler' %}?next={{ request.path }}">
                       {% csrf_token %}
@@ -127,19 +126,19 @@
                       <button type="submit"
                               class="btn btn-secondary w-100 mt-3"
                               name="release"
-                              value="{{ episode.air_date }}">Release</button>
+                              value="{{ episode.air_date }}">Release date</button>
                       <div class="d-flex date-btn-group mt-2">
                         <input type="date"
                                class="form-control pe-2 border-end-0 rounded-end-0"
                                name="date"
-                               value="{% now "Y-m-d" %}">
+                               value="{% if episode.watch_date %}{{ episode.watch_date|date:"Y-m-d" }}{% else %}{% now "Y-m-d" %}{% endif %}">
                         <button type="submit"
                                 class="btn btn-secondary border-start-0 rounded-start-0">
                           <i class="bi bi-check-circle-fill"></i>
                         </button>
                       </div>
                       {% if episode.watched %}
-                        <button type="submit" class="btn btn-danger w-100 mt-2" name="unwatch">Unwatch</button>
+                        <button type="submit" class="btn btn-danger w-100 mt-2" name="unwatch">Remove Last Watch</button>
                       {% endif %}
                     </form>
                   </div>

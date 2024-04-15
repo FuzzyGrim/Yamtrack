@@ -330,13 +330,16 @@ def get_related(related_medias, media_id=None):
     ]
 
 
-def process_episodes(season_metadata, watched_episodes):
+def process_episodes(season_metadata, episodes_in_db):
     """Process the episodes for the selected season."""
     episodes_metadata = []
 
+    # Convert the queryset to a dictionary for efficient lookups
+    tracked_episodes = {ep["episode_number"]: ep for ep in episodes_in_db}
+
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]
-        watched = episode_number in watched_episodes
+        watched = episode_number in tracked_episodes
 
         episodes_metadata.append(
             {
@@ -347,7 +350,10 @@ def process_episodes(season_metadata, watched_episodes):
                 "overview": episode["overview"],
                 "watched": watched,
                 "watch_date": (
-                    watched_episodes.get(episode_number) if watched else None
+                    tracked_episodes[episode_number]["watch_date"] if watched else None
+                ),
+                "repeats": (
+                    tracked_episodes[episode_number]["repeats"] if watched else 0
                 ),
             },
         )
@@ -362,3 +368,21 @@ def get_episode_air_date(date):
     if not date:
         return "Unknown air date"
     return date
+
+
+def find_next_episode(episode_number, episodes_metadata):
+    """Find the next episode number."""
+    # Find the current episode in the sorted list
+    current_episode_index = None
+    for index, episode in enumerate(episodes_metadata):
+        if episode["episode_number"] == episode_number:
+            current_episode_index = index
+            break
+
+    # If the current episode is not the last episode, return the next episode number
+    if current_episode_index + 1 < len(
+        episodes_metadata,
+    ):
+        return episodes_metadata[current_episode_index + 1]["episode_number"]
+
+    return None
