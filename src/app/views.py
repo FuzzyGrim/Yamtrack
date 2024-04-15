@@ -89,10 +89,16 @@ def progress_edit(request):
         if media_type == "season":
             response["season_number"] = season_number
             response["current_episode"] = media.current_episode
-            response["max"] = media.current_episode.episode_number == max_progress
+            if media.current_episode:
+                response["max"] = media.current_episode.episode_number == max_progress
+                response["min"] = False
+            else:
+                response["max"] = False
+                response["min"] = True
         else:
             response["progress"] = media.progress
             response["max"] = media.progress == max_progress
+            response["min"] = media.progress == 0
 
         return render(
             request,
