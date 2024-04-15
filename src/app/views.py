@@ -84,15 +84,15 @@ def progress_edit(request):
         elif operation == "decrease":
             media.decrease_progress()
 
-        response = {
-            "media_id": media_id,
-            "progress": media.progress,
-            "max": media.progress == max_progress,
-        }
+        response = {"media_id": media_id}
 
         if media_type == "season":
             response["season_number"] = season_number
             response["current_episode"] = media.current_episode
+            response["max"] = media.current_episode.episode_number == max_progress
+        else:
+            response["progress"] = media.progress
+            response["max"] = media.progress == max_progress
 
         return render(
             request,

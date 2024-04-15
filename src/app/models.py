@@ -263,8 +263,7 @@ class Season(Media):
                 key=lambda e: e.episode_number,
                 reverse=True,
             )
-        # continue repeating watch
-        elif self.status == "Repeating":
+        else:
             # sort by repeats and then by episode_number
             sorted_episodes = sorted(
                 self.episodes.all(),
