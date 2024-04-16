@@ -69,6 +69,7 @@ class BasicMediaForm(TestCase):
         form_data = {
             "episode_number": 1,
             "watch_date": "2023-06-01",
+            "repeats": 0,
         }
         form = EpisodeForm(data=form_data)
         self.assertTrue(form.is_valid())

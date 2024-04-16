@@ -188,7 +188,7 @@ class EpisodeForm(forms.ModelForm):
         """Bind form to model."""
 
         model = Episode
-        fields = ("episode_number", "watch_date")
+        fields = ("episode_number", "watch_date", "repeats")
 
 
 class GameForm(MediaForm):
