@@ -149,7 +149,7 @@ class TV(Media):
     @property
     def repeats(self):
         """Return the number of max repeated episodes in the TV show."""
-        return max(season.repeats for season in self.seasons.all())
+        return max((season.repeats for season in self.seasons.all()), default=0)
 
     @property
     def start_date(self):
@@ -278,7 +278,7 @@ class Season(Media):
     @property
     def repeats(self):
         """Return the number of max repeated episodes in the season."""
-        return max(episodes.repeats for episodes in self.episodes.all())
+        return max((episodes.repeats for episodes in self.episodes.all()), default=0)
 
     @property
     def start_date(self):
