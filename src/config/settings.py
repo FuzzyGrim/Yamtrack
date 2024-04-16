@@ -29,16 +29,16 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     "app",
     "users",
     "integrations",
     "crispy_forms",
     "crispy_bootstrap5",
     "debug_toolbar",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
 ]
 
 STORAGES = {
