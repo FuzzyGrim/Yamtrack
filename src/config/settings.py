@@ -165,6 +165,9 @@ LOGGING = {
         "psycopg": {
             "level": "INFO",
         },
+        "urllib3": {
+            "level": "INFO",
+        },
     },
     "formatters": {
         "verbose": {
