@@ -142,9 +142,10 @@
                             <i class="bi bi-check-circle-fill"></i>
                           </button>
                         </div>
-                        {% if episode.watched %}
-                          <button type="submit" class="btn btn-danger w-100 mt-2" name="unwatch">Remove Last Watch</button>
-                        {% endif %}
+                        <button type="submit"
+                                class="btn btn-danger w-100 mt-2"
+                                {% if not episode.watched %}disabled{% endif %}
+                                name="unwatch">Remove Last Watch</button>
                       </form>
                     </div>
 

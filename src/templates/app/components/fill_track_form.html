@@ -17,12 +17,11 @@
               form="{{ form_id }}"
               formaction="{% url 'media_save' %}?next={{ return_url }}"
               class="btn btn-primary">Save</button>
-      {% if allow_delete %}
-        <button type="submit"
-                form="{{ form_id }}"
-                formaction="{% url 'media_delete' %}?next={{ return_url }}"
-                class="btn btn-danger">Delete</button>
-      {% endif %}
+      <button type="submit"
+              form="{{ form_id }}"
+              formaction="{% url 'media_delete' %}?next={{ return_url }}"
+              class="btn btn-danger"
+              {% if not media_exists %}disabled{% endif %}>Delete</button>
     </div>
   </div>
 </div>
