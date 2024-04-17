@@ -4,10 +4,8 @@ from django.apps import apps
 from django.contrib import messages
 from django.db.models import F
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.urls import reverse
-from django.utils.encoding import iri_to_uri
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import (
     require_GET,
     require_POST,
@@ -342,10 +340,7 @@ def media_save(request):
             "Could not save the media item, there were errors in the form.",
         )
 
-    if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
-        url = iri_to_uri(request.GET["next"])
-        return redirect(url)
-    return redirect("home")
+    return helpers.redirect_back(request)
 
 
 @require_POST
@@ -370,10 +365,7 @@ def media_delete(request):
     except model.DoesNotExist:
         logger.warning("The %s was already deleted before.", media_type)
 
-    if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
-        url = iri_to_uri(request.GET["next"])
-        return redirect(url)
-    return redirect("home")
+    return helpers.redirect_back(request)
 
 
 @require_POST
@@ -418,7 +410,4 @@ def episode_handler(request):
 
         related_season.watch(episode_number, watch_date)
 
-    if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
-        url = iri_to_uri(request.GET["next"])
-        return redirect(url)
-    return redirect("home")
+    return helpers.redirect_back(request)
