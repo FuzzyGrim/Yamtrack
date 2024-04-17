@@ -1,0 +1,93 @@
+{% load crispy_forms_tags %}
+{% load app_extras %}
+
+<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+  <div class="modal-content text-start">
+    <div class="modal-header">
+      <div class="modal-title fs-5">Changes</div>
+      <button type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+      {% if changes %}
+        <div class="table-responsive rounded border p-2">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Changes Made</th>
+                <th class="text-center">Delete</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for change in changes %}
+                {% if forloop.last %}
+                  <td class="align-middle">{{ change.new_record.history_date|date:"Y-m-d" }}</td>
+                  <td class="align-middle">
+                    {% for field_change in change.changes %}
+                      {{ field_change.field|no_under|title }}:
+                      {% if field_change.new == None or field_change.new == "" %}
+                        None
+                      {% else %}
+                        {{ field_change.new }}
+                      {% endif %}
+                      <br>
+                    {% endfor %}
+                  </td>
+                  <td class="align-middle text-center">
+                    <form method="post"
+                          action="{% url 'history_delete' %}?next={{ return_url }}">
+                      {% csrf_token %}
+                      <input type="hidden" name="media_type" value="{{ media_type }}">
+                      <input type="hidden"
+                             name="history_id"
+                             value="{{ change.new_record.history_id }}">
+                      <button type="submit" class="btn btn-danger" title="Delete Record">
+                        <i class="bi bi-trash3-fill"></i>
+                      </button>
+                    </form>
+                  </td>
+                {% else %}
+                  {% if change.changed_fields|length > 0 %}
+                    <tr>
+                      <td class="align-middle">{{ change.new_record.history_date|date:"Y-m-d" }}</td>
+                      <td class="align-middle">
+                        {% for field_change in change.changes %}
+                          {{ field_change.field|no_under|title }}:
+                          {% if field_change.new == None or field_change.new == "" %}
+                            None
+                          {% else %}
+                            {{ field_change.new }}
+                          {% endif %}
+                          <br>
+                        {% endfor %}
+                      </td>
+                      <td class="align-middle text-center">
+                        <form method="post"
+                              action="{% url 'history_delete' %}?next={{ return_url }}">
+                          {% csrf_token %}
+                          <input type="hidden" name="media_type" value="{{ media_type }}">
+                          <input type="hidden"
+                                 name="history_id"
+                                 value="{{ change.new_record.history_id }}">
+                          <button type="submit" class="btn btn-danger" title="Delete Record">
+                            <i class="bi bi-trash3-fill"></i>
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div>No changes found.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>

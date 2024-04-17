@@ -4,6 +4,7 @@ import logging
 from app.models import Anime, Manga
 from app.providers import services
 from django.apps import apps
+from simple_history.utils import bulk_create_with_history
 
 logger = logging.getLogger(__name__)
 
@@ -138,8 +139,8 @@ def add_media_list(query, warning_message, user):
 
                         bulk_media[media_type].append(instance)
 
-    Anime.objects.bulk_create(bulk_media["anime"], ignore_conflicts=True)
-    Manga.objects.bulk_create(bulk_media["manga"], ignore_conflicts=True)
+    bulk_create_with_history(bulk_media["anime"], Anime, ignore_conflicts=True)
+    bulk_create_with_history(bulk_media["manga"], Manga, ignore_conflicts=True)
 
     return warning_message
 

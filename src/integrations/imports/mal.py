@@ -4,6 +4,7 @@ from app.models import Anime, Manga
 from app.providers import services
 from django.apps import apps
 from django.conf import settings
+from simple_history.utils import bulk_create_with_history
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +31,8 @@ def importer(username, user):
     mangas = get_whole_response(manga_url, manga_params)
     bulk_add_manga = add_media_list(mangas, "manga", user)
 
-    Anime.objects.bulk_create(bulk_add_anime, ignore_conflicts=True)
-    Manga.objects.bulk_create(bulk_add_manga, ignore_conflicts=True)
+    bulk_create_with_history(bulk_add_anime, Anime, ignore_conflicts=True)
+    bulk_create_with_history(bulk_add_manga, Manga, ignore_conflicts=True)
 
 
 def get_whole_response(url, params):

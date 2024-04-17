@@ -10,6 +10,8 @@ from django.core.validators import (
 from django.db import models
 from django.db.models import Max, Sum
 from model_utils import FieldTracker
+from simple_history.models import HistoricalRecords
+from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 from app.providers import services, tmdb
 
@@ -18,6 +20,19 @@ logger = logging.getLogger(__name__)
 
 class Media(models.Model):
     """Abstract model for all media types."""
+
+    history = HistoricalRecords(
+        cascade_delete_history=True,
+        inherit=True,
+        excluded_fields=[
+            "media_id",
+            "image",
+            "title",
+            "user",
+            "related_tv",
+            "season_number",
+        ],
+    )
 
     media_id = models.PositiveIntegerField()
     title = models.CharField(max_length=255)
@@ -204,9 +219,8 @@ class TV(Media):
             episodes_to_create.extend(
                 season_instance.get_remaining_eps(season_metadata),
             )
-
-        Season.objects.bulk_update(seasons_to_update, ["status"])
-        Episode.objects.bulk_create(episodes_to_create)
+        bulk_update_with_history(seasons_to_update, Season, ["status"])
+        bulk_create_with_history(episodes_to_create, Episode)
 
 
 class Season(Media):
@@ -244,8 +258,9 @@ class Season(Media):
 
         if "status" in self.tracker.changed() and self.status == "Completed":
             season_metadata = tmdb.season(self.media_id, self.season_number)
-            Episode.objects.bulk_create(
+            bulk_create_with_history(
                 self.get_remaining_eps(season_metadata),
+                Episode,
             )
 
     @property
@@ -320,19 +335,28 @@ class Season(Media):
 
     def watch(self, episode_number, watch_date):
         """Create or add a repeat to an episode of the season."""
-        episode, created = Episode.objects.update_or_create(
-            related_season=self,
-            episode_number=episode_number,
-            defaults={
-                "watch_date": watch_date,
-            },
-        )
-        if created:
-            logger.info("%s created successfully.", episode)
-        else:
+        try:
+            episode = Episode.objects.get(
+                related_season=self,
+                episode_number=episode_number,
+            )
+            episode.watch_date = watch_date
             episode.repeats += 1
-            episode.save(update_fields=["repeats"])
-            logger.info("%s watch count increased.", episode)
+            episode.save()
+            logger.info(
+                "%s rewatched successfully.",
+                episode,
+            )
+        except Episode.DoesNotExist:
+            episode = Episode.objects.create(
+                related_season=self,
+                episode_number=episode_number,
+                watch_date=watch_date,
+            )
+            logger.info(
+                "%s created successfully.",
+                episode,
+            )
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""
@@ -429,6 +453,11 @@ class Season(Media):
 
 class Episode(models.Model):
     """Model for episodes of a season."""
+
+    history = HistoricalRecords(
+        cascade_delete_history=True,
+        excluded_fields=["related_season", "episode_number"],
+    )
 
     related_season = models.ForeignKey(
         Season,

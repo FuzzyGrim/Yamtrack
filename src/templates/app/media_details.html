@@ -26,8 +26,9 @@
         {% endfor %}
       </div>
 
-      <div class="mt-sm-auto mt-3">
+      <div class="mt-sm-auto mt-3 d-flex gap-2">
         {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=media.media_id title=media.title only %}
+        {% include "app/components/open_history.html" with request=request media_type=media.media_type media_id=media.media_id only %}
       </div>
     </div>
   </div>

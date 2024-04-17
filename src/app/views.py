@@ -411,3 +411,97 @@ def episode_handler(request):
         related_season.watch(episode_number, watch_date)
 
     return helpers.redirect_back(request)
+
+
+@require_GET
+def media_history(request):
+    """Return the history page for a media item."""
+    media_type = request.GET["media_type"]
+    media_id = request.GET["media_id"]
+    season_number = request.GET.get("season_number")
+    episode_number = request.GET.get("episode_number")
+
+    if media_type == "season":
+        model = Season
+        search_params = {
+            "media_id": media_id,
+            "user": request.user,
+            "season_number": season_number,
+        }
+    elif media_type == "episode":
+        model = Episode
+        search_params = {
+            "related_season__media_id": media_id,
+            "related_season__user": request.user,
+            "related_season__season_number": season_number,
+            "episode_number": episode_number,
+        }
+    else:
+        model = apps.get_model(app_label="app", model_name=media_type)
+        search_params = {"media_id": media_id, "user": request.user}
+
+    changes = []
+    try:
+        media = model.objects.get(**search_params)
+        history = media.history.all()
+        if history is not None:
+            last = history.first()
+            for _ in range(history.count()):
+                new_record, old_record = last, last.prev_record
+                if old_record is not None:
+                    delta = new_record.diff_against(old_record)
+                    changes.append(delta)
+                    last = old_record
+                else:
+                    # If there is no previous record, it's a creation entry
+                    history_model = apps.get_model(
+                        app_label="app",
+                        model_name=f"historical{media_type}",
+                    )
+                    creation_changes = [
+                        {
+                            "field": field.verbose_name,
+                            "new": getattr(new_record, field.attname),
+                        }
+                        for field in history_model._meta.get_fields()  # noqa: SLF001
+                        if not field.name.startswith("history") and field.name != "id"
+                    ]
+                    changes.append(
+                        {
+                            "new_record": new_record,
+                            "changes": creation_changes,
+                        },
+                    )
+    except model.DoesNotExist:
+        pass
+
+    return render(
+        request,
+        "app/components/fill_history.html",
+        {
+            "media_type": media_type,
+            "changes": changes,
+            "return_url": request.GET["return_url"],
+        },
+    )
+
+
+@require_POST
+def media_history_delete(request):
+    """Delete a history record for a media item."""
+    history_id = request.POST["history_id"]
+    media_type = request.POST["media_type"]
+
+    model_name = f"historical{media_type}"
+
+    history = apps.get_model(app_label="app", model_name=model_name).objects.get(
+        history_id=history_id,
+    )
+
+    if history.history_user_id == request.user.id:
+        history.delete()
+        logger.info("History record deleted successfully.")
+    else:
+        logger.warning("User does not have permission to delete this history record.")
+
+    return helpers.redirect_back(request)

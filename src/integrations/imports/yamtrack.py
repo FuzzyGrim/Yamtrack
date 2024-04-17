@@ -5,6 +5,7 @@ from app import forms
 from app.forms import EpisodeForm
 from app.models import TV, Episode, Season
 from django.apps import apps
+from simple_history.utils import bulk_create_with_history
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,11 @@ def importer(file, user):
     for media_type in ["anime", "manga", "movie", "tv", "game"]:
         if bulk_media[media_type]:
             model = apps.get_model(app_label="app", model_name=media_type)
-            model.objects.bulk_create(bulk_media[media_type], ignore_conflicts=True)
+            bulk_create_with_history(
+                bulk_media[media_type],
+                model,
+                ignore_conflicts=True,
+            )
 
     if bulk_media["season"]:
         # Extract unique media IDs from the seasons
@@ -63,7 +68,11 @@ def importer(file, user):
         for season in bulk_media["season"]:
             season.related_tv = tv_mapping[season.media_id]
 
-        Season.objects.bulk_create(bulk_media["season"], ignore_conflicts=True)
+        bulk_create_with_history(
+            bulk_media["season"],
+            Season,
+            ignore_conflicts=True,
+        )
 
     if bulk_media["episodes"]:
         # Extract unique media IDs and season numbers from the episodes
@@ -90,7 +99,11 @@ def importer(file, user):
             episode["instance"].related_season = season_mapping[season_key]
 
         episode_instances = [episode["instance"] for episode in bulk_media["episodes"]]
-        Episode.objects.bulk_create(episode_instances, ignore_conflicts=True)
+        bulk_create_with_history(
+            episode_instances,
+            Episode,
+            ignore_conflicts=True,
+        )
 
 
 def add_bulk_media(row, user, bulk_media):
