@@ -6,7 +6,7 @@
         hx-trigger="click"
         hx-target="closest .card-text"
         hx-vals='{"media_type": "{{ media_type }}", "media_id": "{{ media.media_id }}", "operation": "decrease" {% if media.season_number != None %}, "season_number": "{{ media.season_number }}"{% endif %} }'
-        {% if media.min %}disabled{% endif %}>
+        {% if media.min or media.progress == 0 %}disabled{% endif %}>
   <i class="bi bi-dash"></i> {% comment %} decrease progress button {% endcomment %}
 </button>
 
