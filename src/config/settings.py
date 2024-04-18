@@ -227,7 +227,7 @@ TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"
 
-REQUEST_TIMEOUT = 5  # seconds
+REQUEST_TIMEOUT = 10  # seconds
 
 TMDB_API = config("TMDB_API", default="61572be02f0a068658828f6396aacf60")
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
