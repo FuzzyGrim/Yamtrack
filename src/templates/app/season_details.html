@@ -156,7 +156,6 @@
 
             <div>
               {% include "app/components/open_history.html" with request=request media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
-              {% if episode.repeats > 0 %}<small class="ms-2">Watched {{ episode.repeats|add:"1" }} times</small>{% endif %}
             </div>
 
           </div>
