@@ -84,6 +84,10 @@
 
           <div class="mt-auto d-flex flex-wrap gap-2 row-gap-2">
             <div>
+              {% include "app/components/open_history.html" with request=request media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
+            </div>
+
+            <div>
               <button type="button"
                       class="btn btn-secondary"
                       data-bs-toggle="modal"
@@ -96,7 +100,13 @@
                 {% endif %}
               </button>
 
-              {% if episode.watch_date %}<small class="ms-2 me-3">On {{ episode.watch_date|date:"Y-m-d" }}</small>{% endif %}
+              {% if episode.watch_date %}
+                {% if episode.repeats > 0 %}
+                  <small class="ms-2">{{ episode.repeats|add:"1" }} times, last on {{ episode.watch_date|date:"Y-m-d" }}</small>
+                {% else %}
+                  <small class="ms-2 me-3">On {{ episode.watch_date|date:"Y-m-d" }}</small>
+                {% endif %}
+              {% endif %}
 
               <div class="modal fade"
                    id="episode_{{ episode.episode_number }}"
@@ -152,10 +162,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div>
-              {% include "app/components/open_history.html" with request=request media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
             </div>
 
           </div>
