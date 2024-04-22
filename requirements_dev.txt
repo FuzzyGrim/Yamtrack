@@ -1,5 +1,5 @@
 coverage==7.4.4
 djlint==1.34.1
-ruff==0.3.7
+ruff==0.4.1
 
 -r requirements.txt
