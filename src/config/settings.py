@@ -112,23 +112,14 @@ else:
 
 # Cache
 # https://docs.djangoproject.com/en/stable/topics/cache/
-
-# use redis if available, otherwise use django default which is local memory
-if config("REDIS_URL", default=None):
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": config("REDIS_URL"),
-            "TIMEOUT": 18000,  # 5 hours
-        },
-    }
-else:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "TIMEOUT": 18000,  # 5 hours
-        },
-    }
+REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+        "TIMEOUT": 18000,  # 5 hours
+    },
+}
 
 # not using Memcached, ignore CacheKeyWarning
 # https://docs.djangoproject.com/en/stable/topics/cache/#cache-key-warnings
@@ -138,12 +129,8 @@ warnings.simplefilter("ignore", CacheKeyWarning)
 # Session
 # https://docs.djangoproject.com/en/stable/topics/http/sessions/
 
-# save sessions in redis if available
-if config("REDIS_URL", default=None):
-    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-# if not using redis, save sessions to database
-else:
-    INSTALLED_APPS.append("django.contrib.sessions")
+# save sessions in redis
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 
 # Password validation
