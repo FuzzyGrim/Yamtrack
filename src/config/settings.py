@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "app",
@@ -128,13 +129,6 @@ CACHES = {
 # not using Memcached, ignore CacheKeyWarning
 # https://docs.djangoproject.com/en/stable/topics/cache/#cache-key-warnings
 warnings.simplefilter("ignore", CacheKeyWarning)
-
-
-# Session
-# https://docs.djangoproject.com/en/stable/topics/http/sessions/
-
-# save sessions in redis
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 
 # Password validation
