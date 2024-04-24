@@ -2,7 +2,7 @@ import csv
 from datetime import date
 from io import StringIO
 
-from app.models import TV, Anime, Episode, Manga, Movie, Season
+from app.models import TV, Anime, Episode, Game, Manga, Movie, Season
 from django.test import TestCase
 from django.urls import reverse
 from users.models import User
@@ -73,6 +73,15 @@ class ExportCSVTest(TestCase):
             start_date=date(2021, 6, 1),
         )
 
+        Game.objects.create(
+            media_id=1,
+            title="The Witcher 3: Wild Hunt",
+            status="In progress",
+            user=self.user,
+            progress=120,
+            start_date=date(2021, 6, 1),
+        )
+
     def test_export_csv(self):
         """Basic test exporting media to CSV."""
         # Generate the CSV file by accessing the export view
@@ -110,6 +119,9 @@ class ExportCSVTest(TestCase):
         )
         db_media_ids.update(
             Manga.objects.values_list("media_id", flat=True).filter(user=self.user),
+        )
+        db_media_ids.update(
+            Game.objects.values_list("media_id", flat=True).filter(user=self.user),
         )
 
         for row in reader:
