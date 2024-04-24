@@ -188,7 +188,11 @@ class TV(Media):
         episodes_to_create = []
 
         tv_metadata = tmdb.tv(self.media_id)
-        season_numbers = range(1, tv_metadata["details"]["number_of_seasons"] + 1)
+        season_numbers = [
+            season["season_number"]
+            for season in tv_metadata["related"]["seasons"]
+            if season["season_number"] != 0
+        ]
         tv_seasons_metadata = tmdb.tv_with_seasons(self.media_id, season_numbers)
         for season_number in season_numbers:
             season_metadata = tv_seasons_metadata[f"season/{season_number}"]
