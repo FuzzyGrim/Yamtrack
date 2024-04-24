@@ -83,39 +83,38 @@ def movie(media_id):
 def tv_with_seasons(media_id, season_numbers):
     """Return the metadata for the tv show with a season appended to the response."""
     url = f"{base_url}/tv/{media_id}"
-    append_text = ",".join([f"season/{season}" for season in season_numbers])
     params = {
         "api_key": settings.TMDB_API,
         "language": settings.TMDB_LANG,
-        "append_to_response": f"recommendations,{append_text}",
+        "append_to_response": "recommendations",
     }
-
-    requested = False
 
     data = cache.get(f"tv_{media_id}")
     if not data:
         response = services.api_request("TMDB", "GET", url, params=params)
-        requested = True
-
         data = process_tv(response)
         cache.set(f"tv_{media_id}", data)
 
-    # add seasons metadata to the response
-    for season_number in season_numbers:
-        season_data = cache.get(f"season_{media_id}_{season_number}")
+    # tmdb max remote request is 20
+    max_seasons_per_request = 20
+    for i in range(0, len(season_numbers), max_seasons_per_request):
+        season_subset = season_numbers[i : i + max_seasons_per_request]
+        append_text = ",".join([f"season/{season}" for season in season_subset])
+        params["append_to_response"] = f"{append_text}"
 
-        if not season_data:
-            if not requested:
-                response = services.api_request("TMDB", "GET", url, params=params)
-                requested = True
+        response = services.api_request("TMDB", "GET", url, params=params)
 
-            season_data = process_season(
-                response[f"season/{season_number}"],
-            )
-            cache.set(f"season_{media_id}_{season_number}", season_data)
+        # add seasons metadata to the response
+        for season_number in season_subset:
+            season_data = cache.get(f"season_{media_id}_{season_number}")
 
-        data[f"season/{season_number}"] = season_data
+            if not season_data:
+                season_data = process_season(
+                    response[f"season/{season_number}"],
+                )
+                cache.set(f"season_{media_id}_{season_number}", season_data)
 
+            data[f"season/{season_number}"] = season_data
     return data
 
 
