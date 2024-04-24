@@ -1,6 +1,7 @@
 import csv
 import logging
 
+from app import helpers
 from app.models import TV, Anime, Episode, Game, Manga, Movie, Season
 
 logger = logging.getLogger(__name__)
@@ -59,5 +60,7 @@ def write_model_to_csv(writer, fields, queryset, media_type):
             row[fields.index("media_id")] = item.related_season.media_id
             row[fields.index("title")] = item.related_season.title
             row[fields.index("season_number")] = item.related_season.season_number
+        if media_type == "game":
+            row[fields.index("progress")] = helpers.minutes_to_hhmm(item.progress)
 
         writer.writerow(row)
