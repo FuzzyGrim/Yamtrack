@@ -76,7 +76,7 @@ class Media(models.Model):
 
     def __str__(self):
         """Return the title of the media."""
-        return f"{self.title}"
+        return self.title
 
     def save(self, *args, **kwargs):
         """Save the media instance."""
