@@ -12,4 +12,4 @@ usermod -o -u "$PUID" abc
 chown -R abc:abc db
 chown -R abc:abc staticfiles
 
-exec gosu abc:abc gunicorn --bind :8000 --timeout 120 --preload config.wsgi:application
+exec /usr/local/bin/supervisord -c /etc/supervisord.conf

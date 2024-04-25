@@ -46,14 +46,14 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 | IGDB_ID         | String | IGDB API key for games, a default key is provided but it's recommended to get your own as it has a low rate limit.                                                          |
 | IGDB_SECRET     | String | IGDB API secret for games, a default value is provided but it's recommended to get your own as it has a low rate limit.                                                     |
 | IGDB_NSFW       | Bool   | Default to false, set to true to include adult content in game searches                                                                                                     |
-| REDIS_URL       | String | Redis is recommended for better performance                                                                                                                                 |
+| REDIS_URL       | String | Default to redis://localhost:6379, Redis is needed for processing background tasks, set this to your redis server url.                                                      |
 | SECRET          | String | [Secret key](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key) used for cryptographic signing, should be a random string                                   |
 | ALLOWED_HOSTS   | List   | Host/domain names that this Django site can serve, set this to your domain name if exposing to the public                                                                   |
 | REGISTRATION    | Bool   | Default to true, set to false to disable user registration                                                                                                                  |
 | DEBUG           | Bool   | Default to false, set to true for debugging                                                                                                                                 |
 | PUID            | Int    | User ID for the app, default to 1000                                                                                                                                        |
 | PGID            | Int    | Group ID for the app, default to 1000                                                                                                                                       |
-| TZ              | String | Timezone, default to UTC                                                                                                                                                     |
+| TZ              | String | Timezone, default to UTC                                                                                                                                                    |
 | WEB_CONCURRENCY | Int    | Number of webserver processes, default to 1 but it's recommended to have a value of [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) |
 
 ### Environment variables for PostgreSQL
@@ -75,6 +75,12 @@ git clone https://github.com/FuzzyGrim/Yamtrack.git
 cd Yamtrack
 ```
 
+Install Redis or spin up a bare redis container:
+
+```bash
+docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:7-alpine
+```
+
 Create a `.env` file in the root directory and add the following variables.
 
 ```bash
@@ -90,8 +96,9 @@ Then run the following commands.
 
 ```bash
 python -m pip install -U -r requirements_dev.txt
-python src/manage.py migrate
-python src/manage.py runserver
+cd src
+python manage.py migrate
+python manage.py runserver & celery --app config worker -l DEBUG
 ```
 
 Go to: http://localhost:8000

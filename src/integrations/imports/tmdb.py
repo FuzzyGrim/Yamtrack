@@ -1,4 +1,3 @@
-import contextlib
 import csv
 import datetime
 import logging
@@ -6,7 +5,7 @@ import logging
 from app import forms
 from app.providers import services
 from django.apps import apps
-from django.db import IntegrityError
+from django.db.utils import IntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +17,15 @@ def importer(file, user, status):
 
     logger.info("Importing from TMDB")
 
+    num_tv_imported = 0
+    num_movie_imported = 0
+
     for row in reader:
         media_type = row["Type"]
         episode_number = row["Episode Number"]
         media_id = row["TMDb ID"]
 
-        # if movie or tv show (not episode), currently cant import episodes
+        # if movie or tv show (not episode), currently not importing episodes
         if media_type == "movie" or (media_type == "tv" and episode_number == ""):
             media_metadata = services.get_media_metadata(media_type, media_id)
 
@@ -32,15 +34,23 @@ def importer(file, user, status):
 
             if form.is_valid():
                 # ignore if already in database
-                with contextlib.suppress(IntegrityError):
+                try:
                     # not using bulk_create because need of custom save method
                     form.save()
+                except IntegrityError:
+                    pass
+                else:
+                    if media_type == "tv":
+                        num_tv_imported += 1
+                    else:
+                        num_movie_imported += 1
 
             else:
                 error_message = (
                     f"{media_metadata['title']} ({media_type}): Import failed."
                 )
                 logger.error(error_message)
+    return num_tv_imported, num_movie_imported
 
 
 def create_instance(media_metadata, user):

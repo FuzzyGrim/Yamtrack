@@ -4,7 +4,8 @@ import logging
 from app.models import Anime, Manga
 from app.providers import services
 from django.apps import apps
-from simple_history.utils import bulk_create_with_history
+
+from integrations import helpers
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +89,16 @@ def importer(username, user):
         params={"query": query, "variables": variables},
     )
 
-    # returns media that couldn't be added
-    return add_media_list(query, warning_message="", user=user)
+    num_anime_before = Anime.objects.filter(user=user).count()
+    num_manga_before = Manga.objects.filter(user=user).count()
+
+    # media that couldn't be added
+    warning_message = add_media_list(query, warning_message="", user=user)
+
+    num_anime_imported = Anime.objects.filter(user=user).count() - num_anime_before
+    num_manga_imported = Manga.objects.filter(user=user).count() - num_manga_before
+
+    return num_anime_imported, num_manga_imported, warning_message
 
 
 def add_media_list(query, warning_message, user):
@@ -139,8 +148,8 @@ def add_media_list(query, warning_message, user):
 
                         bulk_media[media_type].append(instance)
 
-    bulk_create_with_history(bulk_media["anime"], Anime, ignore_conflicts=True)
-    bulk_create_with_history(bulk_media["manga"], Manga, ignore_conflicts=True)
+    helpers.bulk_chunk_import(bulk_media["anime"], Anime)
+    helpers.bulk_chunk_import(bulk_media["manga"], Manga)
 
     return warning_message
 

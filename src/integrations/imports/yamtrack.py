@@ -5,7 +5,8 @@ from app import forms
 from app.forms import EpisodeForm
 from app.models import TV, Episode, Season
 from django.apps import apps
-from simple_history.utils import bulk_create_with_history
+
+from integrations import helpers
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,8 @@ def importer(file, user):
         "game": [],
     }
 
+    imported_counts = {}
+
     for row in reader:
         media_type = row["media_type"]
         if media_type == "episode":
@@ -45,14 +48,15 @@ def importer(file, user):
         else:
             add_bulk_media(row, user, bulk_media)
 
-    for media_type in ["anime", "manga", "movie", "tv", "game"]:
+    for media_type in ["anime", "manga", "movie", "game", "tv"]:
         if bulk_media[media_type]:
             model = apps.get_model(app_label="app", model_name=media_type)
-            bulk_create_with_history(
-                bulk_media[media_type],
-                model,
-                ignore_conflicts=True,
-            )
+
+            num_objects_before = model.objects.filter(user=user).count()
+            helpers.bulk_chunk_import(bulk_media[media_type], model)
+
+            num_objects_after = model.objects.filter(user=user).count()
+            imported_counts[media_type] = num_objects_after - num_objects_before
 
     if bulk_media["season"]:
         # Extract unique media IDs from the seasons
@@ -68,11 +72,11 @@ def importer(file, user):
         for season in bulk_media["season"]:
             season.related_tv = tv_mapping[season.media_id]
 
-        bulk_create_with_history(
-            bulk_media["season"],
-            Season,
-            ignore_conflicts=True,
-        )
+        num_seasons_before = Season.objects.filter(user=user).count()
+
+        helpers.bulk_chunk_import(bulk_media["season"], Season)
+        num_seasons_after = Season.objects.filter(user=user).count()
+        imported_counts["season"] = num_seasons_after - num_seasons_before
 
     if bulk_media["episodes"]:
         # Extract unique media IDs and season numbers from the episodes
@@ -99,11 +103,14 @@ def importer(file, user):
             episode["instance"].related_season = season_mapping[season_key]
 
         episode_instances = [episode["instance"] for episode in bulk_media["episodes"]]
-        bulk_create_with_history(
-            episode_instances,
-            Episode,
-            ignore_conflicts=True,
-        )
+
+        num_episodes_before = Episode.objects.filter(related_season__user=user).count()
+        helpers.bulk_chunk_import(episode_instances, Episode)
+
+        num_episodes_after = Episode.objects.filter(related_season__user=user).count()
+        imported_counts["episode"] = num_episodes_after - num_episodes_before
+
+    return imported_counts
 
 
 def add_bulk_media(row, user, bulk_media):

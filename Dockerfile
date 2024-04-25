@@ -6,9 +6,8 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /requirements.txt
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends g++ gosu \
 	&& pip install --no-cache-dir -r /requirements.txt \
-	&& apt-get -y autoremove --purge g++ \
+	&& pip install --upgrade --no-cache-dir supervisor==4.2.5 \
 	&& apt-get clean -y \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -18,6 +17,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /yamtrack
 
 COPY ./entrypoint.sh /entrypoint.sh
+COPY ./supervisord.conf /etc/supervisord.conf
 
 RUN chmod +x /entrypoint.sh && \ 
 	# create user abc for later PUID/PGID mapping

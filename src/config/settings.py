@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "debug_toolbar",
+    "django_celery_results",
     "simple_history",
 ]
 
@@ -212,7 +213,7 @@ TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"
 
-REQUEST_TIMEOUT = 10  # seconds
+REQUEST_TIMEOUT = 30  # seconds
 
 TMDB_API = config("TMDB_API", default="61572be02f0a068658828f6396aacf60")
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
@@ -240,3 +241,25 @@ DEBUG_TOOLBAR_CONFIG = {
         "bootstrap5/",
     ),
 }
+
+# Celery settings
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+CELERY_WORKER_CONCURRENCY = 1
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 600  # 10 minutes
+
+CELERY_RESULT_EXTENDED = True
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_CACHE_BACKEND = "default"
+
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-serializer
+CELERY_TASK_SERIALIZER = "pickle"
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-accept_content
+CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
