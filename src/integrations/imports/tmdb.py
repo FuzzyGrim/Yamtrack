@@ -17,40 +17,34 @@ def importer(file, user, status):
 
     logger.info("Importing from TMDB")
 
-    num_tv_imported = 0
-    num_movie_imported = 0
+    num_imported = {"tv": 0, "movie": 0}
 
     for row in reader:
         media_type = row["Type"]
         episode_number = row["Episode Number"]
         media_id = row["TMDb ID"]
 
-        # if movie or tv show (not episode), currently not importing episodes
+        # if movie or tv show (not episode)
         if media_type == "movie" or (media_type == "tv" and episode_number == ""):
             media_metadata = services.get_media_metadata(media_type, media_id)
-
             instance = create_instance(media_metadata, user)
             form = create_form(row, instance, media_metadata, status)
 
             if form.is_valid():
-                # ignore if already in database
-                try:
-                    # not using bulk_create because need of custom save method
-                    form.save()
-                except IntegrityError:
-                    pass
-                else:
-                    if media_type == "tv":
-                        num_tv_imported += 1
-                    else:
-                        num_movie_imported += 1
-
+                save_form(form, num_imported, media_type)
             else:
-                error_message = (
-                    f"{media_metadata['title']} ({media_type}): Import failed."
+                logger.error(
+                    "Error importing %s: %s",
+                    media_metadata["title"],
+                    form.errors.as_json(),
                 )
-                logger.error(error_message)
-    return num_tv_imported, num_movie_imported
+
+    return num_imported["tv"], num_imported["movie"]
+
+
+def is_valid_media(media_type, episode_number):
+    """Check if the media is a valid movie or TV show (not episode)."""
+    return media_type == "movie" or (media_type == "tv" and episode_number == "")
 
 
 def create_instance(media_metadata, user):
@@ -91,3 +85,12 @@ def create_form(row, instance, media_metadata, status):
         data=data,
         instance=instance,
     )
+
+
+def save_form(form, num_imported, media_type):
+    """Save the form and update the count of imported media."""
+    try:
+        form.save()
+        num_imported[media_type] += 1
+    except IntegrityError:
+        pass

@@ -14,8 +14,7 @@ def import_mal(username, user):
             msg = f"User {username} not found."
             raise ValueError(msg) from error
         raise  # re-raise for other errors
-    else:
-        return f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    return f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
 
 
 @shared_task(name="Import from TMDB")
@@ -29,8 +28,7 @@ def import_tmdb(file, user, status):
     except KeyError as error:
         msg = "Error parsing TMDB CSV file."
         raise ValueError(msg) from error
-    else:
-        return f"Imported {num_tv_imported} TV shows and {num_movie_imported} movies."
+    return f"Imported {num_tv_imported} TV shows and {num_movie_imported} movies."
 
 
 @shared_task(name="Import from AniList")
@@ -50,12 +48,12 @@ def import_anilist(username, user):
             msg = f"User {username} is private."
             raise ValueError(msg) from error
         raise  # re-raise for other errors
-    else:
-        message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
-        if warning_message:
-            title = "\n \nCouldn't import the following Anime or Manga: \n"
-            message += title + warning_message
-        return message
+
+    message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    if warning_message:
+        title = "\n \nCouldn't import the following Anime or Manga: \n"
+        message += title + warning_message
+    return message
 
 
 @shared_task(name="Import from Yamtrack")
@@ -69,21 +67,21 @@ def import_yamtrack(file, user):
     except KeyError as error:
         msg = "Error parsing Yamtrack CSV file."
         raise ValueError(msg) from error
-    else:
-        media_type_str = {
-            "anime": "anime",
-            "manga": "manga",
-            "movie": "movies",
-            "game": "games",
-            "tv": "TV shows",
-            "season": "seasons",
-            "episode": "episodes",
-        }
-        imported_summary_list = [
-            f"{count} {media_type_str[media_type]}"
-            for media_type, count in imported_counts.items()
-        ]
-        imported_summary = (
-            ", ".join(imported_summary_list[:-1]) + " and " + imported_summary_list[-1]
-        )
-        return f"Imported {imported_summary}."
+
+    media_type_str = {
+        "anime": "anime",
+        "manga": "manga",
+        "movie": "movies",
+        "game": "games",
+        "tv": "TV shows",
+        "season": "seasons",
+        "episode": "episodes",
+    }
+    imported_summary_list = [
+        f"{count} {media_type_str[media_type]}"
+        for media_type, count in imported_counts.items()
+    ]
+    imported_summary = (
+        ", ".join(imported_summary_list[:-1]) + " and " + imported_summary_list[-1]
+    )
+    return f"Imported {imported_summary}."
