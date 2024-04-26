@@ -73,6 +73,7 @@ def create_form(row, instance, media_metadata, status):
         "media_id": media_metadata["media_id"],
         "media_type": media_type,
         "score": row["Your Rating"],
+        "progress": 0,
         "status": status,
         "repeats": 0,
     }
