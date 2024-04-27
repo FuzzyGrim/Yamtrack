@@ -79,7 +79,7 @@ def profile(request):
                 logger.error(
                     "Failed username change for %s: %s",
                     request.user.username,
-                    user_form.errors.as_data(),
+                    user_form.errors.as_json(),
                 )
 
         elif "new_password1" in request.POST:
@@ -96,7 +96,7 @@ def profile(request):
                 logger.error(
                     "Failed password change for %s: %s",
                     request.user.username,
-                    password_form.errors.as_data(),
+                    password_form.errors.as_json(),
                 )
 
         else:

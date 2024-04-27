@@ -334,7 +334,7 @@ def media_save(request):
         form.save()
         logger.info("%s saved successfully.", form.instance)
     else:
-        logger.error(form.errors.as_data())
+        logger.error(form.errors.as_json())
         messages.error(
             request,
             "Could not save the media item, there were errors in the form.",
