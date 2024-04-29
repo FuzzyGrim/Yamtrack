@@ -12,7 +12,7 @@ def search(media_type, query):
     """Search for media on MyAnimeList."""
     data = cache.get(f"search_{media_type}_{query}")
 
-    if not data:
+    if data is None:
         url = f"{base_url}/{media_type}"
         params = {
             "q": query,
@@ -55,7 +55,7 @@ def anime(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
     data = cache.get(f"anime_{media_id}")
 
-    if not data:
+    if data is None:
         url = f"{base_url}/anime/{media_id}"
         params = {
             "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,source,related_anime",  # noqa: E501
@@ -104,7 +104,7 @@ def manga(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
     data = cache.get(f"manga_{media_id}")
 
-    if not data:
+    if data is None:
         url = f"{base_url}/manga/{media_id}"
         params = {
             "fields": f"{base_fields},num_chapters,related_manga,recommendations",
@@ -161,9 +161,10 @@ def get_image_url(response):
     """Return the image URL for the media."""
     # when no picture, main_picture is not present in the response
     # e.g anime: 38869
-    if "main_picture" in response:
+    try:
         return response["main_picture"]["large"]
-    return settings.IMG_NONE
+    except KeyError:
+        return settings.IMG_NONE
 
 
 def get_readable_status(response):
@@ -195,17 +196,12 @@ def get_number_of_episodes(response):
     """Return the number of episodes for the media."""
     # when unknown episodes, value from response is 0
     # e.g manga: 160219
-
-    # anime
-    if "num_episodes" in response:
+    try:
         episodes = response["num_episodes"]
-    # manga
-    elif "num_chapters" in response:
+    except KeyError:
         episodes = response["num_chapters"]
 
-    if episodes == 0:
-        return "Unknown"
-    return episodes
+    return episodes if episodes != 0 else "Unknown"
 
 
 def get_runtime(response):
@@ -218,7 +214,7 @@ def get_runtime(response):
     if duration:
         # duration are in seconds
         hours, minutes = divmod(int(duration / 60), 60)
-        return f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+        return f"{hours}h {minutes}m" if hours > 0 else f"{minutes} min"
     return "Unknown"
 
 
@@ -241,13 +237,11 @@ def get_season(response):
     """Return the season for the media."""
     # when unknown start season, no start_season key in response
     # e.g anime: 43333
-
-    season = response.get("start_season")
-
-    if season:
+    try:
+        season = response["start_season"]
         return f"{season['season'].title()} {season['year']}"
-
-    return "Unknown"
+    except KeyError:
+        return "Unknown"
 
 
 def get_source(response):

@@ -10,7 +10,7 @@ def search(media_type, query):
     """Search for media on TMDB."""
     data = cache.get(f"search_{media_type}_{query}")
 
-    if not data:
+    if data is None:
         url = f"{base_url}/search/{media_type}"
         params = {
             "api_key": settings.TMDB_API,
@@ -43,7 +43,7 @@ def movie(media_id):
     """Return the metadata for the selected movie from The Movie Database."""
     data = cache.get(f"movie_{media_id}")
 
-    if not data:
+    if data is None:
         url = f"{base_url}/movie/{media_id}"
         params = {
             "api_key": settings.TMDB_API,
@@ -90,7 +90,7 @@ def tv_with_seasons(media_id, season_numbers):
     }
 
     data = cache.get(f"tv_{media_id}")
-    if not data:
+    if data is None:
         response = services.api_request("TMDB", "GET", url, params=params)
         data = process_tv(response)
         cache.set(f"tv_{media_id}", data)
@@ -122,7 +122,7 @@ def tv(media_id):
     """Return the metadata for the selected tv show from The Movie Database."""
     data = cache.get(f"tv_{media_id}")
 
-    if not data:
+    if data is None:
         url = f"{base_url}/tv/{media_id}"
         params = {
             "api_key": settings.TMDB_API,
@@ -172,7 +172,7 @@ def season(tv_id, season_number):
     """Return the metadata for the selected season from The Movie Database."""
     data = cache.get(f"season_{tv_id}_{season_number}")
 
-    if not data:
+    if data is None:
         url = f"{base_url}/tv/{tv_id}/season/{season_number}"
         params = {
             "api_key": settings.TMDB_API,
@@ -221,9 +221,10 @@ def get_image_url(path):
 def get_title(response):
     """Return the title for the media."""
     # tv shows have name instead of title
-    if "title" in response:
+    try:
         return response["title"]
-    return response["name"]
+    except KeyError:
+        return response["name"]
 
 
 def get_start_date(date):
@@ -239,7 +240,6 @@ def get_end_date(date):
     """Return the last date for the media."""
     # when unknown date, value from response is null
     # e.g tv: 87818
-
     if date:
         return date
     return "Unknown"
@@ -279,7 +279,6 @@ def get_genres(genres):
     # e.g tv: 24795
     if genres:
         return ", ".join(genre["name"] for genre in genres)
-
     return "Unknown"
 
 
@@ -287,10 +286,8 @@ def get_country(countries):
     """Return the production country for the media."""
     # when unknown production country, value from response is empty list
     # e.g tv: 24795
-
     if countries:
         return countries[0]["name"]
-
     return "Unknown"
 
 
@@ -298,10 +295,8 @@ def get_languages(languages):
     """Return the languages for the media."""
     # when unknown spoken languages, value from response is empty list
     # e.g tv: 24795
-
     if languages:
         return ", ".join(language["english_name"] for language in languages)
-
     return "Unknown"
 
 
@@ -309,10 +304,8 @@ def get_companies(companies):
     """Return the production companies for the media."""
     # when unknown production companies, value from response is empty list
     # e.g tv: 24795
-
     if companies:
         return ", ".join(company["name"] for company in companies)
-
     return "Unknown"
 
 
@@ -364,9 +357,9 @@ def get_episode_air_date(date):
     """Return the air date for the episode."""
     # when unknown air date, value from response is null
     # e.g tv: 1668, season 0, episode 3
-    if not date:
-        return "Unknown air date"
-    return date
+    if date:
+        return date
+    return "Unknown air date"
 
 
 def find_next_episode(episode_number, episodes_metadata):

@@ -11,37 +11,29 @@ base_url = "https://api.igdb.com/v4"
 def get_access_token():
     """Return the access token for the IGDB API."""
     access_token = cache.get("igdb_access_token")
-
-    if not access_token:
+    if access_token is None:
         url = "https://id.twitch.tv/oauth2/token"
         json = {
             "client_id": settings.IGDB_ID,
             "client_secret": settings.IGDB_SECRET,
             "grant_type": "client_credentials",
         }
-
         response = services.api_request("IGDB", "POST", url, params=json)
-
         access_token = response["access_token"]
-
         cache.set(
             "igdb_access_token",
             access_token,
             response["expires_in"] - 5,
         )  # 5 seconds buffer to avoid using an expired token
-
     return access_token
 
 
 def search(query):
     """Search for games on IGDB."""
     data = cache.get(f"search_games_{query}")
-
-    if not data:
+    if data is None:
         access_token = get_access_token()
-
         url = f"{base_url}/games"
-
         data = (
             "fields name,cover.image_id;"
             f'search "{query}";'
@@ -58,9 +50,7 @@ def search(query):
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
         }
-
         response = services.api_request("IGDB", "POST", url, data=data, headers=headers)
-
         data = [
             {
                 "media_id": media["id"],
@@ -70,19 +60,15 @@ def search(query):
             }
             for media in response
         ]
-
         cache.set(f"search_games_{query}", data)
-
     return data
 
 
 def game(media_id):
     """Return the metadata for the selected game from IGDB."""
     data = cache.get(f"game_{media_id}")
-
-    if not data:
+    if data is None:
         access_token = get_access_token()
-
         url = f"{base_url}/games"
         data = (
             "fields name,cover.image_id,summary,category,first_release_date,"
@@ -100,10 +86,8 @@ def game(media_id):
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
         }
-
         response = services.api_request("IGDB", "POST", url, data=data, headers=headers)
         response = response[0]  # response is a list with a single element
-
         data = {
             "media_id": response["id"],
             "media_type": "game",
@@ -131,9 +115,7 @@ def game(media_id):
                 "recommendations": get_related(response.get("similar_games")),
             },
         }
-
         cache.set(f"game_{media_id}", data)
-
     return data
 
 
@@ -141,9 +123,10 @@ def get_image_url(response):
     """Return the image URL for the media."""
     # when no image, cover is not present in the response
     # e.g game: 287348
-    if response.get("cover"):
+    try:
         return f"https://images.igdb.com/igdb/image/upload/t_original/{response['cover']['image_id']}.jpg"
-    return settings.IMG_NONE
+    except KeyError:
+        return settings.IMG_NONE
 
 
 def get_category(category_id):
@@ -165,42 +148,42 @@ def get_category(category_id):
         13: "Pack",
         14: "Update",
     }
-
-    return category_mapping[category_id]
+    return category_mapping.get(category_id, "Unknown")
 
 
 def get_start_date(response):
     """Return the start date of the game."""
     # when no release date, first_release_date is not present in the response
     # e.g game: 210710
-    if "first_release_date" in response:
+    try:
         return datetime.fromtimestamp(
             response["first_release_date"],
             tz=settings.TZ,
-        ).strftime(
-            "%Y-%m-%d",
-        )
-    return "Unknown"
+        ).strftime("%Y-%m-%d")
+    except KeyError:
+        return "Unknown"
 
 
 def get_str_list(response, field):
     """Return the list of names from a list of dictionaries."""
     # when no data of field, field is not present in the response
     # e.g game: 25222
-    if field in response:
+    try:
         return ", ".join(item["name"] for item in response[field])
-    return "Unknown"
+    except KeyError:
+        return "Unknown"
 
 
 def get_companies(response):
     """Return the companies involved in the game."""
     # when no companies, involved_companies is not present in the response
     # e.g game: 238417
-    if "involved_companies" in response:
+    try:
         return ", ".join(
             company["company"]["name"] for company in response["involved_companies"]
         )
-    return "Unknown"
+    except KeyError:
+        return "Unknown"
 
 
 def get_parent(parent_game):
@@ -213,7 +196,6 @@ def get_parent(parent_game):
                 "image": get_image_url(parent_game),
             },
         ]
-
     return []
 
 
@@ -228,5 +210,4 @@ def get_related(related_medias):
             }
             for game in related_medias
         ]
-
     return []
