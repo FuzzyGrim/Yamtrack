@@ -6,7 +6,6 @@ from pathlib import Path
 
 from decouple import Csv, config
 from django.core.cache import CacheKeyWarning
-from fakeredis import FakeConnection
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -121,9 +120,6 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": 18000,  # 5 hours
-        "OPTIONS": {
-            "connection_class": FakeConnection,
-        },
     },
 }
 
