@@ -1,10 +1,12 @@
+import json
 import logging
 
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
+from django_celery_results.models import TaskResult
 
 from users import services
 from users.forms import (
@@ -108,3 +110,33 @@ def profile(request):
     }
 
     return render(request, "users/profile.html", context)
+
+
+@require_GET
+def tasks(request):
+    """Return the user tasks page."""
+    user_name = request.user.username
+
+    filter_text = f"<SimpleLazyObject: <User: {user_name}>>"
+    tasks = TaskResult.objects.filter(task_args__contains=filter_text)
+
+    for task in tasks:
+        try:
+            result_json = json.loads(task.result)
+        except TypeError:
+            # when pending and no result
+            result_json = "Waiting for task to start"
+        if task.status == "FAILURE":
+            task.result = result_json["exc_message"][0]
+        elif task.status == "STARTED":
+            # by default, it shows pid and hostname
+            task.result = "Task in progress"
+        else:
+            # removes double quotes from the result
+            task.result = result_json
+
+    return render(
+        request,
+        "users/tasks.html",
+        {"tasks": tasks, "value": "Joel\nis a slug"},
+    )

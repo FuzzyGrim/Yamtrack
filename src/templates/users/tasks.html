@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    Tasks - Yamtrack
+{% endblock title %}
+
+{% block container %}
+    {% if tasks %}
+        <h1 class="fs-4 mb-4">User Tasks</h1>
+
+        <div class="accordion">
+            {% for task in tasks %}
+                <div class="accordion-item task-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapse{{ task.id }}"
+                                aria-expanded="false"
+                                aria-controls="collapse{{ task.id }}">
+                            {{ task.task_name }} - {{ task.date_done|date:"Y-m-d P" }}
+
+                            {% if task.status == "SUCCESS" %}
+                                <span class="badge bg-success ms-md-3 mx-2">SUCCESS</span>
+                            {% elif task.status == "FAILURE" %}
+                                <span class="badge bg-danger ms-md-3 mx-2">FAILURE</span>
+                            {% elif task.status == "STARTED" %}
+                                <span class="badge bg-primary ms-md-3 mx-2">STARTED</span>
+                            {% else %}
+                                <span class="badge bg-secondary ms-md-3 mx-2">PENDING</span>
+                            {% endif %}
+                        </button>
+                    </h2>
+                    <div id="collapse{{ task.id }}"
+                         class="accordion-collapse collapse"
+                         aria-labelledby="heading{{ task.id }}">
+                        <div class="accordion-body">{{ task.result|linebreaksbr }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-content">
+            <div>
+                <h1 class="text-center fs-3">No tasks found!</h1>
+                <p class="text-center">You haven't added any tasks yet.</p>
+            </div>
+        </div>
+    {% endif %}
+{% endblock container %}

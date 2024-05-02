@@ -115,9 +115,11 @@ def import_media(media_data, media_type, user, warning_message):
         if not status_list["isCustomList"]:
             for content in status_list["entries"]:
                 if content["media"]["idMal"] is None:
-                    warning_message += "\n {} ({}): No matching MyAnimeList ID".format(
-                        content["media"]["title"]["userPreferred"],
-                        media_type.capitalize(),
+                    warning_message += (
+                        "\n - {} ({}): No matching MyAnimeList ID".format(
+                            content["media"]["title"]["userPreferred"],
+                            media_type.capitalize(),
+                        )
                     )
                 else:
                     if content["status"] == "CURRENT":

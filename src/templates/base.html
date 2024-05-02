@@ -85,6 +85,11 @@
             </li>
             <hr>
             <li>
+              <a href="{% url 'tasks' %}" class="nav-link {% if request.path == "/tasks" %}active{% endif %}">
+                <i class="bi bi-list-task me-2"></i> Tasks
+              </a>
+            </li>
+            <li>
               <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
                 <i class="bi bi-person-circle me-2"></i> Profile
               </a>

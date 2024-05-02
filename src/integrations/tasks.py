@@ -11,7 +11,8 @@ def import_mal(username, user):
         num_anime_imported, num_manga_imported = mal.importer(username, user)
     except requests.exceptions.HTTPError as error:
         if error.response.status_code == requests.codes.not_found:
-            return f"User {username} not found."
+            msg = f"User {username} not found."
+            raise ValueError(msg) from error
         raise  # re-raise for other errors
     return f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
 
@@ -41,14 +42,16 @@ def import_anilist(username, user):
     except requests.exceptions.HTTPError as error:
         error_message = error.response.json()["errors"][0].get("message")
         if error_message == "User not found":
-            return f"User {username} not found."
+            msg = f"User {username} not found."
+            raise ValueError(msg) from error
         if error_message == "Private User":
-            return f"User {username} is private."
+            msg = f"User {username} is private."
+            raise ValueError(msg) from error
         raise  # re-raise for other errors
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     if warning_message:
-        title = "\n \nCouldn't import the following Anime or Manga: \n"
+        title = "\n\n Couldn't import the following Anime or Manga:"
         message += title + warning_message
     return message
 
