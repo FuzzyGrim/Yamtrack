@@ -11,7 +11,7 @@ from django.views.decorators.http import (
     require_POST,
 )
 
-from app import helpers
+from app import database, helpers
 from app.forms import FilterForm, get_form_class
 from app.models import Anime, Episode, Game, Manga, Movie, Season
 from app.providers import igdb, mal, services, tmdb
@@ -22,30 +22,15 @@ logger = logging.getLogger(__name__)
 @require_GET
 def home(request):
     """Home page with media items in progress and repeating."""
-    list_by_type = {}
-
-    # Define a list of media types to iterate over
     media_types = [
         (Movie, "movie", None),
-        (Season, "season", "episodes"),  # Season needs prefetch_related for episodes
+        (Season, "season", "episodes"),
         (Anime, "anime", None),
         (Manga, "manga", None),
         (Game, "game", None),
     ]
-
-    for model, media_type, prefetch_related in media_types:
-        media_list = model.objects.filter(
-            user=request.user,
-            status__in=["Repeating", "In progress"],
-        )
-        if prefetch_related:
-            media_list = media_list.prefetch_related(prefetch_related)
-        if media_list:
-            list_by_type[media_type] = media_list
-
-    context = {
-        "list_by_type": list_by_type,
-    }
+    list_by_type = database.get_media_list_by_type(request.user, media_types)
+    context = {"list_by_type": list_by_type}
     return render(request, "app/home.html", context)
 
 
@@ -55,34 +40,28 @@ def progress_edit(request):
     media_type = request.POST["media_type"]
     media_id = request.POST["media_id"]
     operation = request.POST["operation"]
-
-    if media_type == "season":
-        season_number = request.POST["season_number"]
-        season_metadata = tmdb.season(media_id, season_number)
-        max_progress = len(season_metadata["episodes"])
-        search_params = {
-            "media_id": media_id,
-            "user": request.user,
-            "season_number": season_number,
-        }
-
-    else:
-        media_metadata = services.get_media_metadata(media_type, media_id)
-        max_progress = media_metadata["max_progress"]
-        search_params = {"media_id": media_id, "user": request.user}
+    season_number = request.POST.get("season_number")
 
     model = apps.get_model(app_label="app", model_name=media_type)
+    media_metadata = services.get_media_metadata(media_type, media_id, season_number)
+    search_params = database.get_search_params(
+        media_type,
+        media_id,
+        season_number,
+        None,
+        request.user,
+    )
 
     try:
         media = model.objects.get(**search_params)
 
         if operation == "increase":
             media.increase_progress()
-
         elif operation == "decrease":
             media.decrease_progress()
 
         response = {"media_id": media_id}
+        max_progress = media_metadata["max_progress"]
 
         if media_type == "season":
             response["season_number"] = season_number
@@ -296,23 +275,17 @@ def media_save(request):
     media_id = request.POST["media_id"]
     media_type = request.POST["media_type"]
     model = apps.get_model(app_label="app", model_name=media_type)
+    season_number = request.POST.get("season_number")
 
-    if media_type == "season":
-        season_number = request.POST["season_number"]
-        tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
-        media_metadata = tv_metadata[f"season/{season_number}"]
-        # get title from tv metadata
-        media_metadata["title"] = tv_metadata["title"]
-    else:
-        media_metadata = services.get_media_metadata(media_type, media_id)
+    media_metadata = services.get_media_metadata(media_type, media_id, season_number)
 
-    search_params = {
-        "media_id": media_id,
-        "user": request.user,
-    }
-
-    if media_type == "season":
-        search_params["season_number"] = season_number
+    search_params = database.get_search_params(
+        media_type,
+        media_id,
+        season_number,
+        None,
+        request.user,
+    )
 
     try:
         instance = model.objects.get(**search_params)
@@ -324,6 +297,7 @@ def media_save(request):
         }
         if media_type == "season":
             default_params["season_number"] = season_number
+            default_params["title"] = media_metadata["tv_title"]
 
         instance = model(**default_params)
 
@@ -348,13 +322,13 @@ def media_delete(request):
     """Delete media data from the database."""
     media_type = request.POST["media_type"]
 
-    search_params = {
-        "media_id": request.POST["media_id"],
-        "user": request.user,
-    }
-
-    if media_type == "season":
-        search_params["season_number"] = request.POST["season_number"]
+    search_params = database.get_search_params(
+        media_type,
+        request.POST["media_id"],
+        request.POST.get("season_number"),
+        None,
+        request.user,
+    )
 
     model = apps.get_model(app_label="app", model_name=media_type)
     try:
@@ -417,28 +391,16 @@ def episode_handler(request):
 def media_history(request):
     """Return the history page for a media item."""
     media_type = request.GET["media_type"]
-    media_id = request.GET["media_id"]
-    season_number = request.GET.get("season_number")
-    episode_number = request.GET.get("episode_number")
 
-    if media_type == "season":
-        model = Season
-        search_params = {
-            "media_id": media_id,
-            "user": request.user,
-            "season_number": season_number,
-        }
-    elif media_type == "episode":
-        model = Episode
-        search_params = {
-            "related_season__media_id": media_id,
-            "related_season__user": request.user,
-            "related_season__season_number": season_number,
-            "episode_number": episode_number,
-        }
-    else:
-        model = apps.get_model(app_label="app", model_name=media_type)
-        search_params = {"media_id": media_id, "user": request.user}
+    search_params = database.get_search_params(
+        media_type,
+        request.GET["media_id"],
+        request.GET.get("season_number"),
+        request.GET.get("episode_number"),
+        request.user,
+    )
+
+    model = apps.get_model(app_label="app", model_name=media_type)
 
     changes = []
     try:

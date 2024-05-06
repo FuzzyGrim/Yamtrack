@@ -100,7 +100,7 @@ def request_error_handling(error, *args):
     raise  # re-raise for caller to handle
 
 
-def get_media_metadata(media_type, media_id):
+def get_media_metadata(media_type, media_id, season_number=None):
     """Return the metadata for the selected media."""
     if media_type == "anime":
         media_metadata = mal.anime(media_id)
@@ -108,6 +108,11 @@ def get_media_metadata(media_type, media_id):
         media_metadata = mal.manga(media_id)
     elif media_type == "tv":
         media_metadata = tmdb.tv(media_id)
+    elif media_type == "season":
+        tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
+        media_metadata = tv_metadata[f"season/{season_number}"]
+        media_metadata["tv_title"] = tv_metadata["title"]
+        media_metadata["media_id"] = media_id
     elif media_type == "movie":
         media_metadata = tmdb.movie(media_id)
     elif media_type == "game":
