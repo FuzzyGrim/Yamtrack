@@ -426,7 +426,7 @@ def media_history(request):
                             "new": getattr(new_record, field.attname),
                         }
                         for field in history_model._meta.get_fields()  # noqa: SLF001
-                        if getattr(new_record, field.attname) # not None or empty
+                        if getattr(new_record, field.attname) # not None/0/empty
                         and not field.name.startswith("history")
                         and field.name != "id"
                     ]
