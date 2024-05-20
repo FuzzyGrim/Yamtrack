@@ -82,84 +82,86 @@
  
           <p class="episode-overview mb-2">{{ episode.overview }}</p>
 
-          <div class="mt-auto d-flex flex-wrap gap-2">
-            <div>
-              <button type="button"
-                      class="btn btn-secondary"
-                      data-bs-toggle="modal"
-                      data-bs-target="#episode_{{ episode.episode_number }}"
-                      title="Add additional plays">
-                {% if episode.watched %}
-                  <i class="bi bi-check-circle-fill"></i>
-                {% else %}
-                  <i class="bi bi-check-circle"></i>
-                {% endif %}
-              </button>
+          <div class="mt-auto d-flex flex-wrap gap-3">
+            <div class="d-flex gap-2">
+              <div>
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#episode_{{ episode.episode_number }}"
+                        title="Add additional plays">
+                  {% if episode.watched %}
+                    <i class="bi bi-check-circle-fill"></i>
+                  {% else %}
+                    <i class="bi bi-check-circle"></i>
+                  {% endif %}
+                </button>
 
-              <div class="modal fade"
-                   id="episode_{{ episode.episode_number }}"
-                   tabindex="-1"
-                   aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-sm">
-                  <div class="modal-content">
+                <div class="modal fade"
+                    id="episode_{{ episode.episode_number }}"
+                    tabindex="-1"
+                    aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content">
 
-                    <div class="modal-header">
-                      <h5 class="modal-title">{{ tv.title|capfirst }} S{{ season.season_number }}.E{{ episode.episode_number }}</h5>
-                      <button type="button"
-                              class="btn-close"
-                              data-bs-dismiss="modal"
-                              aria-label="Close"></button>
-                    </div>
+                      <div class="modal-header">
+                        <h5 class="modal-title">{{ tv.title|capfirst }} S{{ season.season_number }}.E{{ episode.episode_number }}</h5>
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                      </div>
 
-                    <div class="modal-body">
-                      {% if not episode.watched %}
-                        <div class="text-center fs-5">Watch date</div>
-                      {% else %}
-                        <div class="text-center fs-5">Rewatch Date</div>
-                      {% endif %}
- 
-                      <form method="post"
-                            action="{% url 'episode_handler' %}?next={{ request.path }}">
-                        {% csrf_token %}
-                        <input type="hidden" name="media_id" value="{{ tv.media_id }}">
-                        <input type="hidden" name="season_number" value="{{ season.season_number }}">
-                        <input type="hidden"
-                               name="episode_number"
-                               value="{{ episode.episode_number }}">
-                        <button type="submit"
-                                class="btn btn-secondary w-100 mt-3"
-                                name="release"
-                                value="{{ episode.air_date }}">Release date</button>
-                        <div class="d-flex date-btn-group mt-2">
-                          <input type="date"
-                                 class="form-control pe-2 border-end-0 rounded-end-0"
-                                 name="date"
-                                 value="{% if episode.watch_date %}{{ episode.watch_date|date:"Y-m-d" }}{% else %}{% now "Y-m-d" %}{% endif %}">
+                      <div class="modal-body">
+                        {% if not episode.watched %}
+                          <div class="text-center fs-5">Watch date</div>
+                        {% else %}
+                          <div class="text-center fs-5">Rewatch Date</div>
+                        {% endif %}
+  
+                        <form method="post"
+                              action="{% url 'episode_handler' %}?next={{ request.path }}">
+                          {% csrf_token %}
+                          <input type="hidden" name="media_id" value="{{ tv.media_id }}">
+                          <input type="hidden" name="season_number" value="{{ season.season_number }}">
+                          <input type="hidden"
+                                name="episode_number"
+                                value="{{ episode.episode_number }}">
                           <button type="submit"
-                                  class="btn btn-secondary border-start-0 rounded-start-0">
-                            <i class="bi bi-check-circle-fill"></i>
-                          </button>
-                        </div>
-                        <button type="submit"
-                                class="btn btn-danger w-100 mt-2"
-                                {% if not episode.watched %}disabled{% endif %}
-                                name="unwatch">Remove Last Watch</button>
-                      </form>
-                    </div>
+                                  class="btn btn-secondary w-100 mt-3"
+                                  name="release"
+                                  value="{{ episode.air_date }}">Release date</button>
+                          <div class="d-flex date-btn-group mt-2">
+                            <input type="date"
+                                  class="form-control pe-2 border-end-0 rounded-end-0"
+                                  name="date"
+                                  value="{% if episode.watch_date %}{{ episode.watch_date|date:"Y-m-d" }}{% else %}{% now "Y-m-d" %}{% endif %}">
+                            <button type="submit"
+                                    class="btn btn-secondary border-start-0 rounded-start-0">
+                              <i class="bi bi-check-circle-fill"></i>
+                            </button>
+                          </div>
+                          <button type="submit"
+                                  class="btn btn-danger w-100 mt-2"
+                                  {% if not episode.watched %}disabled{% endif %}
+                                  name="unwatch">Remove Last Watch</button>
+                        </form>
+                      </div>
 
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div>
-              {% include "app/components/open_history.html" with request=request media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
+              <div>
+                {% include "app/components/open_history.html" with request=request media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
+              </div>
             </div>
 
             <div class="d-flex align-items-center">
               {% if episode.watch_date %}
                 {% if episode.repeats > 0 %}
-                  <small>{{ episode.repeats|add:"1" }} times, last on {{ episode.watch_date|date:"Y-m-d" }}</small>
+                  <small>{{ episode.repeats|add:"1" }} watches, last watched on {{ episode.watch_date|date:"Y-m-d" }}</small>
                 {% else %}
                   <small>On {{ episode.watch_date|date:"Y-m-d" }}</small>
                 {% endif %}
