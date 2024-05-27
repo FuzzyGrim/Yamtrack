@@ -27,6 +27,8 @@ RUN chmod +x /entrypoint.sh && \
 COPY src ./
 RUN python manage.py collectstatic --noinput
 
+EXPOSE 8000
+
 CMD ["/entrypoint.sh"]
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD [ "curl", "-fs", "-S", "--max-time", "2", "http://localhost:8000" ]
