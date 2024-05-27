@@ -6,6 +6,7 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /requirements.txt
 
 RUN apt-get update \
+	&& apt-get install -y --no-install-recommends curl \
 	&& pip install --no-cache-dir -r /requirements.txt \
 	&& pip install --upgrade --no-cache-dir supervisor==4.2.5 \
 	&& apt-get clean -y \
