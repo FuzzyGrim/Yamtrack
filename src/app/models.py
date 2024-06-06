@@ -88,6 +88,11 @@ class Media(models.Model):
 
         super().save(*args, **kwargs)
 
+    @property
+    def media_type(self):
+        """Return the media type of the instance."""
+        return self.__class__.__name__.lower()
+
     def process_progress(self):
         """Update fields depending on the progress of the media."""
         media_type = self.__class__.__name__.lower()
@@ -137,6 +142,18 @@ class Media(models.Model):
         self.progress -= 1
         self.save()
         logger.info("Unwatched %s E%s", self, self.progress + 1)
+
+    def progress_response(self):
+        """Return the data needed to update the progress of the media."""
+        media_metadata = services.get_media_metadata(self.media_type, self.media_id)
+        response = {"media_id": self.media_id}
+        max_progress = media_metadata["max_progress"]
+
+        response["progress"] = self.progress
+        response["max"] = self.progress == max_progress
+        response["min"] = self.progress == 0
+
+        return response
 
 
 class TV(Media):
@@ -395,6 +412,27 @@ class Season(Media):
                 self,
                 episode_number,
             )
+
+    def progress_response(self):
+        """Return the data needed to update the progress of the season."""
+        media_metadata = services.get_media_metadata(
+            self.media_type,
+            self.media_id,
+            self.season_number,
+        )
+        response = {"media_id": self.media_id}
+        max_progress = media_metadata["max_progress"]
+
+        response["season_number"] = self.season_number
+        response["current_episode"] = self.current_episode
+        if self.current_episode:
+            response["max"] = self.current_episode.episode_number == max_progress
+            response["min"] = False
+        else:
+            response["max"] = False
+            response["min"] = True
+
+        return response
 
     def get_tv(self):
         """Get related TV instance for a season and create it if it doesn't exist."""

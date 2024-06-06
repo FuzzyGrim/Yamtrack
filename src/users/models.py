@@ -95,3 +95,8 @@ class User(AbstractUser):
         elif media_type == "game":
             self.game_layout = layout
         self.save(update_fields=[f"{media_type}_layout"])
+
+    def set_last_search_type(self, media_type):
+        """Set the last search type, used for default search type."""
+        self.last_search_type = media_type
+        self.save(update_fields=["last_search_type"])

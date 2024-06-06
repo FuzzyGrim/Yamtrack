@@ -2,7 +2,6 @@ import logging
 
 from django.apps import apps
 from django.contrib import messages
-from django.db.models import F
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -13,7 +12,7 @@ from django.views.decorators.http import (
 
 from app import database, helpers
 from app.forms import FilterForm, get_form_class
-from app.models import Anime, Episode, Game, Manga, Movie, Season
+from app.models import Episode, Season
 from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -22,14 +21,7 @@ logger = logging.getLogger(__name__)
 @require_GET
 def home(request):
     """Home page with media items in progress and repeating."""
-    media_types = [
-        (Movie, "movie", None),
-        (Season, "season", "episodes"),
-        (Anime, "anime", None),
-        (Manga, "manga", None),
-        (Game, "game", None),
-    ]
-    list_by_type = database.get_media_list_by_type(request.user, media_types)
+    list_by_type = database.get_media_list_by_type(request.user)
     context = {"list_by_type": list_by_type}
     return render(request, "app/home.html", context)
 
@@ -43,7 +35,6 @@ def progress_edit(request):
     season_number = request.POST.get("season_number")
 
     model = apps.get_model(app_label="app", model_name=media_type)
-    media_metadata = services.get_media_metadata(media_type, media_id, season_number)
     search_params = database.get_search_params(
         media_type,
         media_id,
@@ -60,22 +51,7 @@ def progress_edit(request):
         elif operation == "decrease":
             media.decrease_progress()
 
-        response = {"media_id": media_id}
-        max_progress = media_metadata["max_progress"]
-
-        if media_type == "season":
-            response["season_number"] = season_number
-            response["current_episode"] = media.current_episode
-            if media.current_episode:
-                response["max"] = media.current_episode.episode_number == max_progress
-                response["min"] = False
-            else:
-                response["max"] = False
-                response["min"] = True
-        else:
-            response["progress"] = media.progress
-            response["max"] = media.progress == max_progress
-            response["min"] = media.progress == 0
+        response = media.progress_response()
 
         return render(
             request,
@@ -99,54 +75,21 @@ def media_list(request, media_type):
     layout_user = request.user.get_layout(media_type)
     filter_form = FilterForm(layout=layout_user)
 
-    # form submitted
     if request.GET:
         layout_request = request.GET.get("layout", layout_user)
         filter_form = FilterForm(request.GET, layout=layout_request)
         if filter_form.is_valid() and layout_request != layout_user:
-            # update user default layout for media type
             request.user.set_layout(media_type, layout_request)
-            layout_user = layout_request
 
-    filter_params = {"user": request.user.id}
-
-    # filter by status if status is not "all"
     status_filter = request.GET.get("status", "all")
-    if status_filter != "all":
-        filter_params["status"] = status_filter.capitalize()
-
-    # default sort by descending score
     sort_filter = request.GET.get("sort", "score")
 
-    model = apps.get_model(app_label="app", model_name=media_type)
-    layout_is_table = layout_user == "table"
-    sort_is_property = sort_filter in ("progress", "start_date", "end_date", "repeats")
-
-    if media_type == "tv" and (layout_is_table or sort_is_property):
-        media_list = model.objects.filter(**filter_params).prefetch_related(
-            "seasons",
-            "seasons__episodes",
-        )
-    elif media_type == "season" and (layout_is_table or sort_is_property):
-        media_list = Season.objects.filter(**filter_params).prefetch_related("episodes")
-    else:
-        media_list = model.objects.filter(**filter_params)
-
-    # python for @property sorting
-    if media_type in ("tv", "season") and sort_is_property:
-        media_list = sorted(
-            media_list,
-            key=lambda x: getattr(x, sort_filter),
-            reverse=True,
-        )
-    else:
-        model = apps.get_model(app_label="app", model_name=media_type)
-        # asc order
-        if sort_filter == "title":
-            media_list = media_list.order_by(F(sort_filter).asc())
-        # desc order
-        else:
-            media_list = media_list.order_by(F(sort_filter).desc(nulls_last=True))
+    media_list = database.get_media_list(
+        user=request.user,
+        media_type=media_type,
+        status_filter=[status_filter.capitalize()],
+        sort_filter=sort_filter,
+    )
 
     return render(
         request,
@@ -165,9 +108,7 @@ def media_search(request):
     media_type = request.GET["media_type"]
     query = request.GET["q"]
 
-    # update user default search type
-    request.user.last_search_type = media_type
-    request.user.save(update_fields=["last_search_type"])
+    request.user.set_last_search_type(media_type)
 
     if media_type in ("anime", "manga"):
         query_list = mal.search(media_type, query)
@@ -216,45 +157,42 @@ def track_form(request):
     """Return the tracking form for a media item."""
     media_type = request.GET["media_type"]
     media_id = request.GET["media_id"]
-
-    if media_type == "season":
-        season_number = request.GET["season_number"]
-        # set up filters to retrieve the appropriate media object
-        filters = {
-            "media_id": media_id,
-            "user": request.user,
-            "season_number": season_number,
-        }
-        initial_data = {
-            "media_id": media_id,
-            "media_type": media_type,
-            "season_number": season_number,
-        }
-        title = f"{request.GET['title']} S{season_number}"
-        form_id = f"form-{media_type}_{media_id}_{season_number}"
-
-    else:
-        filters = {"media_id": media_id, "user": request.user}
-        initial_data = {"media_id": media_id, "media_type": media_type}
-        title = request.GET["title"]
-        form_id = f"form-{media_type}_{media_id}"
+    season_number = request.GET.get("season_number")
 
     model = apps.get_model(app_label="app", model_name=media_type)
+    search_params = database.get_search_params(
+        media_type,
+        media_id,
+        season_number,
+        None,
+        request.user,
+    )
 
     try:
-        # try to retrieve the media object using the filters
-        media = model.objects.get(**filters)
-        if media_type == "game":
-            initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
-
-        form = get_form_class(media_type)(instance=media, initial=initial_data)
-
-        form.helper.form_id = form_id
+        media = model.objects.get(**search_params)
         media_exists = True
     except model.DoesNotExist:
-        form = get_form_class(media_type)(initial=initial_data)
-        form.helper.form_id = form_id
+        media = None
         media_exists = False
+
+    initial_data = {
+        "media_id": media_id,
+        "media_type": media_type,
+        "season_number": season_number,
+    }
+
+    if media_type == "game" and media:
+        initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
+
+    form = get_form_class(media_type)(instance=media, initial=initial_data)
+
+    title, form_id = helpers.get_form_title_and_id(
+        media_type,
+        media_id,
+        season_number,
+        request.GET["title"],
+    )
+    form.helper.form_id = form_id
 
     return render(
         request,
@@ -277,8 +215,6 @@ def media_save(request):
     model = apps.get_model(app_label="app", model_name=media_type)
     season_number = request.POST.get("season_number")
 
-    media_metadata = services.get_media_metadata(media_type, media_id, season_number)
-
     search_params = database.get_search_params(
         media_type,
         media_id,
@@ -290,6 +226,11 @@ def media_save(request):
     try:
         instance = model.objects.get(**search_params)
     except model.DoesNotExist:
+        media_metadata = services.get_media_metadata(
+            media_type,
+            media_id,
+            season_number,
+        )
         default_params = {
             "title": media_metadata["title"],
             "image": media_metadata["image"],
@@ -426,7 +367,7 @@ def media_history(request):
                             "new": getattr(new_record, field.attname),
                         }
                         for field in history_model._meta.get_fields()  # noqa: SLF001
-                        if getattr(new_record, field.attname) # not None/0/empty
+                        if getattr(new_record, field.attname)  # not None/0/empty
                         and not field.name.startswith("history")
                         and field.name != "id"
                     ]

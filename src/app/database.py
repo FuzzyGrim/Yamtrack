@@ -1,15 +1,61 @@
-def get_media_list_by_type(user, media_types):
-    """Get media items by type for a user."""
-    list_by_type = {}
-    for model, media_type, prefetch_related in media_types:
-        media_list = model.objects.filter(
-            user=user,
-            status__in=["Repeating", "In progress"],
+from django.apps import apps
+from django.db.models import F
+
+
+def get_media_list(
+    user,
+    media_type,
+    status_filter,
+    sort_filter,
+):
+    """Get media list based on filters and sorting."""
+    filter_params = {"user": user.id}
+
+    if "All" not in status_filter:
+        filter_params["status__in"] = status_filter
+
+    model = apps.get_model(app_label="app", model_name=media_type)
+
+    if media_type == "tv":
+        media_list = model.objects.filter(**filter_params).prefetch_related(
+            "seasons",
+            "seasons__episodes",
         )
-        if prefetch_related:
-            media_list = media_list.prefetch_related(prefetch_related)
+    elif media_type == "season":
+        media_list = model.objects.filter(**filter_params).prefetch_related("episodes")
+    else:
+        media_list = model.objects.filter(**filter_params)
+
+    sort_is_property = sort_filter in ("progress", "start_date", "end_date", "repeats")
+    if media_type in ("tv", "season") and sort_is_property:
+        media_list = sorted(
+            media_list,
+            key=lambda x: getattr(x, sort_filter),
+            reverse=True,
+        )
+    elif sort_filter == "title":
+        media_list = media_list.order_by(F(sort_filter).asc())
+    else:
+        media_list = media_list.order_by(F(sort_filter).desc(nulls_last=True))
+
+    return media_list
+
+
+def get_media_list_by_type(user):
+    """Get media items by type for a user."""
+    media_types = ["movie", "season", "anime", "manga", "game"]
+    list_by_type = {}
+
+    for media_type in media_types:
+        media_list = get_media_list(
+            user=user,
+            media_type=media_type,
+            status_filter=["In progress", "Repeating"],
+            sort_filter="score",
+        )
         if media_list:
             list_by_type[media_type] = media_list
+
     return list_by_type
 
 
