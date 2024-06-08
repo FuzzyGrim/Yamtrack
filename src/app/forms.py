@@ -71,22 +71,26 @@ class MediaForm(forms.ModelForm):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+
+        left_col = "form-group col-md-6 pe-md-1"
+        right_col = "form-group col-md-6 ps-md-1"
+
         self.helper.layout = Layout(
             "media_id",
             "media_type",
             Row(
-                Column("score", css_class="form-group col-md-6 pe-md-1"),
-                Column("progress", css_class="form-group col-md-6 ps-md-1"),
+                Column("score", css_class=left_col),
+                Column("progress", css_class=right_col),
                 css_class="form-row",
             ),
             Row(
-                Column("status", css_class="form-group col-md-6 pe-md-1"),
-                Column("repeats", css_class="form-group col-md-6 ps-md-1"),
+                Column("status", css_class=left_col),
+                Column("repeats", css_class=right_col),
                 css_class="form-row",
             ),
             Row(
-                Column("start_date", css_class="form-group col-md-6 pe-md-1"),
-                Column("end_date", css_class="form-group col-md-6 ps-md-1"),
+                Column("start_date", css_class=left_col),
+                Column("end_date", css_class=right_col),
                 css_class="form-row",
             ),
             "notes",
