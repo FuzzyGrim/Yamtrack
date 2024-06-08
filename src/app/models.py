@@ -17,6 +17,14 @@ from app.providers import services, tmdb
 
 logger = logging.getLogger(__name__)
 
+STATUS_IN_PROGRESS = "In progress"
+STATUS_COMPLETED = "Completed"
+STATUS_REPEATING = "Repeating"
+STATUS_PLANNING = "Planning"
+STATUS_PAUSED = "Paused"
+STATUS_DROPPED = "Dropped"
+
+
 
 class Media(models.Model):
     """Abstract model for all media types."""
@@ -51,14 +59,14 @@ class Media(models.Model):
     progress = models.PositiveIntegerField(default=0)
     status = models.CharField(
         max_length=12,
-        default="Completed",
+        default=STATUS_COMPLETED,
         choices=[
-            ("Completed", "Completed"),
-            ("In progress", "In progress"),
-            ("Repeating", "Repeating"),
-            ("Planning", "Planning"),
-            ("Paused", "Paused"),
-            ("Dropped", "Dropped"),
+            (STATUS_COMPLETED, STATUS_COMPLETED),
+            (STATUS_IN_PROGRESS, STATUS_IN_PROGRESS),
+            (STATUS_REPEATING, STATUS_REPEATING),
+            (STATUS_PLANNING, STATUS_PLANNING),
+            (STATUS_PAUSED, STATUS_PAUSED),
+            (STATUS_DROPPED, STATUS_DROPPED),
         ],
     )
     repeats = models.PositiveIntegerField(default=0)
@@ -109,11 +117,11 @@ class Media(models.Model):
                     self.progress = total_episodes
 
                 if self.progress == total_episodes:
-                    self.status = "Completed"
+                    self.status = STATUS_COMPLETED
 
     def process_status(self):
         """Update fields depending on the status of the media."""
-        if self.status == "Completed":
+        if self.status == STATUS_COMPLETED:
             if not self.end_date:
                 self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
@@ -125,10 +133,10 @@ class Media(models.Model):
             if total_episodes != "Unknown":
                 self.progress = total_episodes
 
-            if self.tracker.previous("status") == "Repeating":
+            if self.tracker.previous("status") == STATUS_REPEATING:
                 self.repeats += 1
 
-        elif self.status == "In progress" and not self.start_date:
+        elif self.status == STATUS_IN_PROGRESS and not self.start_date:
             self.start_date = datetime.datetime.now(tz=settings.TZ).date()
 
     def increase_progress(self):
@@ -168,7 +176,7 @@ class TV(Media):
 
         if (
             "status" in self.tracker.changed()
-            and self.status == "Completed"
+            and self.status == STATUS_COMPLETED
             and self.progress < tmdb.tv(self.media_id)["max_progress"]
         ):
             self.completed()
@@ -220,8 +228,8 @@ class TV(Media):
                     season_number=season_number,
                 )
 
-                if season_instance.status != "Completed":
-                    season_instance.status = "Completed"
+                if season_instance.status != STATUS_COMPLETED:
+                    season_instance.status = STATUS_COMPLETED
                     seasons_to_update.append(season_instance)
 
             except Season.DoesNotExist:
@@ -230,7 +238,7 @@ class TV(Media):
                     title=tv_metadata["title"],
                     image=season_metadata["image"],
                     score=None,
-                    status="Completed",
+                    status=STATUS_COMPLETED,
                     notes="",
                     season_number=season_number,
                     related_tv=self,
@@ -277,7 +285,7 @@ class Season(Media):
 
         super(Media, self).save(*args, **kwargs)
 
-        if "status" in self.tracker.changed() and self.status == "Completed":
+        if "status" in self.tracker.changed() and self.status == STATUS_COMPLETED:
             season_metadata = tmdb.season(self.media_id, self.season_number)
             bulk_create_with_history(
                 self.get_remaining_eps(season_metadata),
@@ -293,7 +301,7 @@ class Season(Media):
     def current_episode(self):
         """Return the current episode of the season."""
         # continue initial watch
-        if self.status == "In progress":
+        if self.status == STATUS_IN_PROGRESS:
             sorted_episodes = sorted(
                 self.episodes.all(),
                 key=lambda e: e.episode_number,
@@ -443,10 +451,10 @@ class Season(Media):
 
             # creating tv with multiple seasons from a completed season
             if (
-                self.status == "Completed"
+                self.status == STATUS_COMPLETED
                 and tv_metadata["details"]["number_of_seasons"] > 1
             ):
-                status = "In progress"
+                status = STATUS_IN_PROGRESS
             else:
                 status = self.status
 
@@ -527,7 +535,7 @@ class Episode(models.Model):
         """Save the episode instance."""
         super().save(*args, **kwargs)
 
-        if self.related_season.status in ("In progress", "Repeating"):
+        if self.related_season.status in (STATUS_IN_PROGRESS, STATUS_REPEATING):
             season_metadata = tmdb.season(
                 self.related_season.media_id,
                 self.related_season.season_number,
@@ -540,7 +548,7 @@ class Episode(models.Model):
             total_watches = self.related_season.progress + total_repeats
 
             if total_watches >= total_episodes * (self.related_season.repeats + 1):
-                self.related_season.status = "Completed"
+                self.related_season.status = STATUS_COMPLETED
                 self.related_season.save_base(update_fields=["status"])
 
 

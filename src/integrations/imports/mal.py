@@ -1,6 +1,6 @@
 import logging
 
-from app.providers import services
+import app
 from django.apps import apps
 from django.conf import settings
 
@@ -40,11 +40,17 @@ def import_media(username, user, media_type):
 def get_whole_response(url, params):
     """Fetch whole data from user."""
     headers = {"X-MAL-CLIENT-ID": settings.MAL_API}
-    data = services.api_request("MAL", "GET", url, params=params, headers=headers)
+    data = app.providers.services.api_request(
+        "MAL",
+        "GET",
+        url,
+        params=params,
+        headers=headers,
+    )
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
-        next_data = services.api_request(
+        next_data = app.providers.services.api_request(
             "MAL",
             "GET",
             next_url,
@@ -104,12 +110,12 @@ def add_media_list(response, media_type, user):
 def get_status(status):
     """Convert the status from MyAnimeList to the status used in the app."""
     status_mapping = {
-        "completed": "Completed",
-        "reading": "In progress",
-        "watching": "In progress",
-        "plan_to_watch": "Planning",
-        "plan_to_read": "Planning",
-        "on_hold": "Paused",
-        "dropped": "Dropped",
+        "completed": app.models.STATUS_COMPLETED,
+        "reading": app.models.STATUS_IN_PROGRESS,
+        "watching": app.models.STATUS_IN_PROGRESS,
+        "plan_to_watch": app.models.STATUS_PLANNING,
+        "plan_to_read": app.models.STATUS_PLANNING,
+        "on_hold": app.models.STATUS_PAUSED,
+        "dropped": app.models.STATUS_DROPPED,
     }
     return status_mapping[status]

@@ -12,7 +12,7 @@ from django.views.decorators.http import (
 
 from app import database, helpers
 from app.forms import FilterForm, get_form_class
-from app.models import Episode, Season
+from app.models import STATUS_IN_PROGRESS, Episode, Season
 from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -301,7 +301,7 @@ def episode_handler(request):
             media_id=media_id,
             image=season_metadata["image"],
             score=None,
-            status="In progress",
+            status=STATUS_IN_PROGRESS,
             notes="",
             user=request.user,
             season_number=season_number,

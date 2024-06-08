@@ -2,7 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
 
-from .models import TV, Anime, Episode, Game, Manga, Movie, Season
+from app import models
 
 
 def get_form_class(media_type):
@@ -122,7 +122,7 @@ class MangaForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Manga
+        model = models.Manga
 
 
 class AnimeForm(MediaForm):
@@ -131,7 +131,7 @@ class AnimeForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Anime
+        model = models.Anime
 
 
 class MovieForm(MediaForm):
@@ -140,7 +140,7 @@ class MovieForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Movie
+        model = models.Movie
 
 
 class TVForm(MediaForm):
@@ -154,7 +154,7 @@ class TVForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = TV
+        model = models.TV
         fields = ["media_id", "media_type", "score", "status", "notes"]
 
 
@@ -177,7 +177,7 @@ class SeasonForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Season
+        model = models.Season
         fields = ["media_id", "media_type", "season_number", "score", "status", "notes"]
 
 
@@ -187,7 +187,7 @@ class EpisodeForm(forms.ModelForm):
     class Meta:
         """Bind form to model."""
 
-        model = Episode
+        model = models.Episode
         fields = ("episode_number", "watch_date", "repeats")
 
 
@@ -203,7 +203,7 @@ class GameForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Game
+        model = models.Game
 
 
 class FilterForm(forms.Form):
@@ -213,12 +213,12 @@ class FilterForm(forms.Form):
         choices=[
             # left side in lower case for better looking url when filtering
             ("all", "All"),
-            ("completed", "Completed"),
-            ("in progress", "In progress"),
-            ("repeating", "Repeating"),
-            ("planning", "Planning"),
-            ("paused", "Paused"),
-            ("dropped", "Dropped"),
+            ("completed", models.STATUS_COMPLETED),
+            ("in progress", models.STATUS_IN_PROGRESS),
+            ("repeating", models.STATUS_REPEATING),
+            ("planning", models.STATUS_PLANNING),
+            ("paused", models.STATUS_PAUSED),
+            ("dropped", models.STATUS_DROPPED),
         ],
     )
 

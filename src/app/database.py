@@ -1,6 +1,8 @@
 from django.apps import apps
 from django.db.models import F
 
+from app import models
+
 
 def get_media_list(
     user,
@@ -50,7 +52,7 @@ def get_media_list_by_type(user):
         media_list = get_media_list(
             user=user,
             media_type=media_type,
-            status_filter=["In progress", "Repeating"],
+            status_filter=[models.STATUS_IN_PROGRESS, models.STATUS_REPEATING],
             sort_filter="score",
         )
         if media_list:
