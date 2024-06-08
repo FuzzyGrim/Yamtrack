@@ -22,7 +22,7 @@
     <div class="additional-data d-flex flex-wrap">
       {% for key, value in media.details.items %}
         <span>
-          <label class="text-body-secondary" for="{{ key }}">{{ key|no_under|upper }}</label>
+          <label class="text-body-secondary" for="{{ key }}">{{ key|no_underscore|upper }}</label>
           <span id="{{ key }}">{{ value }}</span>
         </span>
       {% endfor %}

@@ -11,7 +11,7 @@
 
   {% for name, related_items in media.related.items %}
     {% if related_items %}
-      <h2 class="fs-5">{{ name|no_under|title }}</h2>
+      <h2 class="fs-5">{{ name|no_underscore|title }}</h2>
       <div class="grid mb-4">
         {% for related in related_items %}
           <div class="card">

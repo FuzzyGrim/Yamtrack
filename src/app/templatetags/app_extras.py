@@ -13,7 +13,7 @@ def addslashes_double(arg1):
 
 
 @register.filter()
-def no_under(arg1):
+def no_underscore(arg1):
     """Return the title case of the string."""
     return arg1.replace("_", " ")
 
