@@ -7,38 +7,8 @@
 {% endblock title %}
 
 {% block container %}
-  <div class="details-top d-flex mb-4">
-    <div class="image">
-      <img src="{{ season.image }}"
-           class="{% if season.image != IMG_NONE %}poster{% else %}image-not-found{% endif %}"
-           alt="{{ season.name }}" />
-    </div>
-
-    <div class="details-data d-flex flex-column align-items-start">
-      <h2 class="tv-title fs-5 mb-0">
-        <a href="{% url 'media_details' media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
-          {{ tv.title|capfirst }}
-        </a>
-      </h2>
-      <h1 class="title">{{ season.title }}</h1>
-      <p>{{ season.synopsis }}</p>
-
-      <div class="additional-data">
-        {% for key, value in season.details.items %}
-          <div>
-            <label class="text-body-secondary">{{ key|no_under|upper }}</label>
-            <span>{{ value }}</span>
-          </div>
-        {% endfor %}
-      </div>
-
-      <div class="mt-sm-auto mt-3 d-flex gap-2">
-        {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst only %}
-        {% include "app/components/open_history.html" with request=request media_type="season" media_id=tv.media_id season_number=season.season_number only %}
-      </div>
-    </div>
-  </div>
-
+  {% include "app/components/media_description.html" with media=season tv=tv request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst only %}
+ 
   <div class="dropdown mb-3">
     <button class="btn btn-secondary dropdown-toggle"
             type="button"
@@ -66,7 +36,7 @@
           <div class="col-md-3">
             <img src="https://image.tmdb.org/t/p/w500{{ episode.image }}"
                  class="w-100 h-100 object-fit-cover rounded-start"
-                 alt="E{{ episode.episode_number }} image">
+                 alt="E{{ episode.episode_number }}">
           </div>
         {% endif %}
  
@@ -98,9 +68,9 @@
                 </button>
 
                 <div class="modal fade"
-                    id="episode_{{ episode.episode_number }}"
-                    tabindex="-1"
-                    aria-hidden="true">
+                     id="episode_{{ episode.episode_number }}"
+                     tabindex="-1"
+                     aria-hidden="true">
                   <div class="modal-dialog modal-dialog-centered modal-sm">
                     <div class="modal-content">
 
@@ -118,24 +88,24 @@
                         {% else %}
                           <div class="text-center fs-5">Rewatch Date</div>
                         {% endif %}
-  
+ 
                         <form method="post"
                               action="{% url 'episode_handler' %}?next={{ request.path }}">
                           {% csrf_token %}
                           <input type="hidden" name="media_id" value="{{ tv.media_id }}">
                           <input type="hidden" name="season_number" value="{{ season.season_number }}">
                           <input type="hidden"
-                                name="episode_number"
-                                value="{{ episode.episode_number }}">
+                                 name="episode_number"
+                                 value="{{ episode.episode_number }}">
                           <button type="submit"
                                   class="btn btn-secondary w-100 mt-3"
                                   name="release"
                                   value="{{ episode.air_date }}">Release date</button>
                           <div class="d-flex date-btn-group mt-2">
                             <input type="date"
-                                  class="form-control pe-2 border-end-0 rounded-end-0"
-                                  name="date"
-                                  value="{% if episode.watch_date %}{{ episode.watch_date|date:"Y-m-d" }}{% else %}{% now "Y-m-d" %}{% endif %}">
+                                   class="form-control pe-2 border-end-0 rounded-end-0"
+                                   name="date"
+                                   value="{% if episode.watch_date %}{{ episode.watch_date|date:"Y-m-d" }}{% else %}{% now "Y-m-d" %}{% endif %}">
                             <button type="submit"
                                     class="btn btn-secondary border-start-0 rounded-start-0">
                               <i class="bi bi-check-circle-fill"></i>
