@@ -153,7 +153,7 @@ def season_details(request, media_id, title, season_number):  # noqa: ARG001 tit
 
 
 @require_GET
-def track_form(request):
+def track(request):
     """Return the tracking form for a media item."""
     media_type = request.GET["media_type"]
     media_id = request.GET["media_id"]
@@ -196,7 +196,7 @@ def track_form(request):
 
     return render(
         request,
-        "app/components/fill_track_form.html",
+        "app/components/fill_track.html",
         {
             "title": title,
             "form_id": form_id,
@@ -329,7 +329,7 @@ def episode_handler(request):
 
 
 @require_GET
-def media_history(request):
+def history(request):
     """Return the history page for a media item."""
     media_type = request.GET["media_type"]
 
@@ -392,7 +392,7 @@ def media_history(request):
 
 
 @require_POST
-def media_history_delete(request):
+def history_delete(request):
     """Delete a history record for a media item."""
     history_id = request.POST["history_id"]
     media_type = request.POST["media_type"]

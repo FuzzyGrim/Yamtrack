@@ -78,9 +78,9 @@
               </td>
               <td>
                 {% if media.season_number != None %}
-                  {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" media_id=media.media_id season_number=media.season_number title=media.title only %}
                 {% else %}
-                  {% include "app/components/open_track_form.html" with request=request media_type=media_type media_id=media.media_id title=media.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media_type media_id=media.media_id title=media.title only %}
                 {% endif %}
               </td>
             </tr>

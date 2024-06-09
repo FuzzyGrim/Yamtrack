@@ -25,9 +25,9 @@
               <div class="card-title">{{ related.title }}</div>
               <div class="card-text d-flex justify-content-center align-items-center">
                 {% if name == "seasons" %}
-                  {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=related.season_number title=media.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" media_id=media.media_id season_number=related.season_number title=media.title only %}
                 {% else %}
-                  {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=related.media_id title=related.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media.media_type media_id=related.media_id title=related.title only %}
                 {% endif %}
               </div>
             </div>
