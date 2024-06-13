@@ -123,7 +123,7 @@ def import_media(media_data, media_type, user, warning_message):
 
     model = apps.get_model(app_label="app", model_name=media_type)
     num_before = model.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_media, model)
+    helpers.bulk_chunk_import(bulk_media, model, user)
     num_after = model.objects.filter(user=user).count()
     num_imported = num_after - num_before
 

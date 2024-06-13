@@ -92,7 +92,7 @@ def import_media(media_type, bulk_data, user):
     model = apps.get_model(app_label="app", model_name=media_type)
 
     num_objects_before = model.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_data, model)
+    helpers.bulk_chunk_import(bulk_data, model, user)
     num_objects_after = model.objects.filter(user=user).count()
     return num_objects_after - num_objects_before
 
@@ -107,7 +107,7 @@ def import_seasons(bulk_data, user):
         season.related_tv = tv_mapping[season.media_id]
 
     num_seasons_before = Season.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_data, Season)
+    helpers.bulk_chunk_import(bulk_data, Season, user)
     num_seasons_after = Season.objects.filter(user=user).count()
     return num_seasons_after - num_seasons_before
 
@@ -135,6 +135,6 @@ def import_episodes(bulk_data, user):
     episode_instances = [episode["instance"] for episode in bulk_data]
 
     num_episodes_before = Episode.objects.filter(related_season__user=user).count()
-    helpers.bulk_chunk_import(episode_instances, Episode)
+    helpers.bulk_chunk_import(episode_instances, Episode, user)
     num_episodes_after = Episode.objects.filter(related_season__user=user).count()
     return num_episodes_after - num_episodes_before
