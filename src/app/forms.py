@@ -251,3 +251,20 @@ class FilterForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.fields["layout"].initial = layout
+
+
+class CustomListForm(forms.ModelForm):
+    """Form for creating new custom lists."""
+
+    class Meta:
+        """Bind form to model."""
+
+        model = models.CustomList
+        fields = ["name", "description"]
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+
+        self.helper.form_id = "new-list-form"

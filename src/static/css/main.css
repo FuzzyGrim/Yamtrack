@@ -355,7 +355,7 @@ debug, info, success, warning, error */
   height: 170px;
 }
 
-.episode-overview {
+.description {
   /* show only 2 lines of text */
   overflow: hidden;
   display: -webkit-box;

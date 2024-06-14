@@ -25,7 +25,6 @@ STATUS_PAUSED = "Paused"
 STATUS_DROPPED = "Dropped"
 
 
-
 class Media(models.Model):
     """Abstract model for all media types."""
 
@@ -586,3 +585,48 @@ class Game(Media):
         self.progress -= 30
         self.save()
         logger.info("Unwatched %s E%s", self, self.progress + 1)
+
+
+class CustomList(models.Model):
+    """Model for custom lists."""
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["name"]
+        unique_together = ["name", "user"]
+
+    def __str__(self):
+        """Return the name of the custom list."""
+        return self.name
+
+
+class ListItem(models.Model):
+    """Model for items in custom lists."""
+
+    custom_lists = models.ManyToManyField(CustomList, related_name="items")
+    media_id = models.PositiveIntegerField()
+    media_type = models.CharField(max_length=12)
+    title = models.CharField(max_length=255)
+    image = models.URLField()
+    season_number = models.PositiveIntegerField(null=True)
+    episode_number = models.PositiveIntegerField(null=True)
+
+    class Meta:
+        """Meta options for the model."""
+
+        unique_together = ["media_id", "media_type", "season_number", "episode_number"]
+        ordering = ["media_id"]
+
+    def __str__(self):
+        """Return the name of the item."""
+        name = self.title
+        if self.season_number:
+            name += f" S{self.season_number}"
+            if self.episode_number:
+                name += f"E{self.episode_number}"
+        return name

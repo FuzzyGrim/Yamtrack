@@ -3,16 +3,17 @@ import logging
 from django.apps import apps
 from django.contrib import messages
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import (
     require_GET,
+    require_http_methods,
     require_POST,
 )
 
 from app import database, helpers
-from app.forms import FilterForm, get_form_class
-from app.models import STATUS_IN_PROGRESS, Episode, Season
+from app.forms import CustomListForm, FilterForm, get_form_class
+from app.models import STATUS_IN_PROGRESS, CustomList, Episode, ListItem, Season
 from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -410,3 +411,72 @@ def history_delete(request):
         logger.warning("User does not have permission to delete this history record.")
 
     return helpers.redirect_back(request)
+
+
+@require_http_methods(["GET", "POST"])
+def lists(request):
+    """Return the custom list page."""
+    custom_lists = CustomList.objects.filter(user=request.user)
+
+    if request.method == "POST":
+        form = CustomListForm(request.POST)
+        if form.is_valid():
+            custom_list = form.save(commit=False)
+            custom_list.user = request.user
+            custom_list.save()
+            return redirect("lists")
+    else:
+        form = CustomListForm()
+
+    return render(
+        request,
+        "app/custom_lists.html",
+        {"custom_lists": custom_lists, "form": form},
+    )
+
+
+@require_GET
+def lists_modal(request):
+    """Add a media item to a custom list."""
+    media_type = request.GET["media_type"]
+    media_id = request.GET["media_id"]
+    season_number = request.GET.get("season_number")
+    episode_number = request.GET.get("episode_number")
+
+    item, _ = ListItem.objects.get_or_create(
+        media_id=media_id,
+        media_type=media_type,
+        season_number=season_number,
+        episode_number=episode_number,
+        defaults={
+            "title": request.GET["title"],
+            "image": request.GET["image"],
+        },
+    )
+
+    custom_lists = CustomList.objects.filter(user=request.user)
+
+    return render(
+        request,
+        "app/components/fill_lists.html",
+        {"item": item, "custom_lists": custom_lists},
+    )
+
+
+@require_POST
+def list_item_toggle(request):
+    """Add a media item to a custom list."""
+    item_id = request.POST["item_id"]
+    custom_list_id = request.POST["custom_list_id"]
+
+    item = get_object_or_404(ListItem, id=item_id)
+    custom_list = get_object_or_404(CustomList, id=custom_list_id, user=request.user)
+
+    if item in custom_list.items.all():
+        custom_list.items.remove(item)
+        icon_class = "bi bi-plus-square me-1"
+    else:
+        custom_list.items.add(item)
+        icon_class = "bi bi-check-square-fill me-1"
+
+    return render(request, "app/components/list_icon.html", {"icon_class": icon_class})

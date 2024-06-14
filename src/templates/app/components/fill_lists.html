@@ -1,0 +1,36 @@
+{% load crispy_forms_tags %}
+
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+  <div class="modal-content text-start">
+    <div class="modal-header">
+      <div class="modal-title fs-5">Add {{ item.title }} to list</div>
+      <button type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="d-flex column-gap-2">
+        {% for custom_list in custom_lists %}
+          <button class="btn btn-secondary"
+                  hx-post="{% url 'list_item_toggle' %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-vals='{"item_id": "{{ item.id }}", "custom_list_id": "{{ custom_list.id }}"}'
+                  hx-target="#custom-list-{{ custom_list.id }}">
+            <span id="custom-list-{{ custom_list.id }}">
+              {% if item in custom_list.items.all %}
+                <i class="bi bi-check-square-fill me-1"></i>
+              {% else %}
+                <i class="bi bi-plus-square me-1"></i>
+              {% endif %}
+            </span>
+            {{ custom_list.name }}
+          </button>
+        {% empty %}
+          <p>No custom lists found.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
