@@ -44,7 +44,7 @@
 
 :root {
   --bs-body-font-family: "Roboto", sans-serif;
-  --bg-img-none: #2c3032;
+  --bg-img-none: hsl(210, 10%, 23%);
 }
 
 main {
