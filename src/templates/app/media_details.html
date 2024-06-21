@@ -7,7 +7,7 @@
 {% endblock title %}
 
 {% block container %}
-{% include "app/components/media_description.html" with media=media request=request media_type=media.media_type media_id=media.media_id title=media.title only %}
+{% include "app/components/media_description.html" with media=media request=request media_type=media.media_type media_id=media.media_id title=media.title IMG_NONE=IMG_NONE only %}
 
   {% for name, related_items in media.related.items %}
     {% if related_items %}
