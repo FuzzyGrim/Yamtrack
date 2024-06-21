@@ -30,11 +30,11 @@
     <div class="card mb-3">
       <div class="row g-0">
 
-        {% if episode.image is None %}
+        {% if episode.image == IMG_NONE %}
           <div class="col-md-3 episode-img-none"></div>
         {% else %}
           <div class="col-md-3">
-            <img src="https://image.tmdb.org/t/p/w500{{ episode.image }}"
+            <img src="{{ episode.image }}"
                  class="w-100 h-100 object-fit-cover rounded-start"
                  alt="E{{ episode.episode_number }}">
           </div>
@@ -121,6 +121,10 @@
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div>
+                {% include "app/components/open_modal.html" with modal_type="lists" request=request title=tv.title media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number image=episode.image only %}
               </div>
 
               <div>

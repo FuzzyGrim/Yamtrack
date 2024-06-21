@@ -17,8 +17,8 @@
                   hx-post="{% url 'list_item_toggle' %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-vals='{"item_id": "{{ item.id }}", "custom_list_id": "{{ custom_list.id }}"}'
-                  hx-target="#custom-list-{{ custom_list.id }}">
-            <span id="custom-list-{{ custom_list.id }}">
+                  hx-target="#custom-list-{{ custom_list.id }}-{{ item.id }}">
+            <span id="custom-list-{{ custom_list.id }}-{{ item.id }}">
               {% if item in custom_list.items.all %}
                 <i class="bi bi-check-square-fill me-1"></i>
               {% else %}

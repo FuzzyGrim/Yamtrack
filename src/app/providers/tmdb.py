@@ -337,7 +337,7 @@ def process_episodes(season_metadata, episodes_in_db):
             {
                 "episode_number": episode_number,
                 "air_date": get_episode_air_date(episode["air_date"]),
-                "image": episode["still_path"],
+                "image": get_image_url(episode["still_path"]),
                 "title": episode["name"],
                 "overview": episode["overview"],
                 "watched": watched,
