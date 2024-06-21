@@ -35,7 +35,7 @@
             {% crispy create_form %}
           </div>
           <div class="modal-footer">
-            <button type="submit" class="btn btn-primary" name="create">Save changes</button>
+            <button type="submit" class="btn btn-primary" name="create">Save</button>
           </div>
         </form>
       </div>
@@ -91,9 +91,9 @@
             <div class="modal-body">
               {{ custom_list.form|crispy }}
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer d-flex flex-row-reverse justify-content-between">
+              <button type="submit" class="btn btn-primary" name="edit">Save</button>
               <button type="submit" class="btn btn-danger" name="delete">Delete</button>
-              <button type="submit" class="btn btn-primary" name="edit">Save changes</button>
             </div>
           </form>
         </div>
