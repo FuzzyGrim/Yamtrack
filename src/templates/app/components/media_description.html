@@ -2,7 +2,7 @@
 
 <div class="details-top d-flex mb-4">
   <div class="image">
-    <img class="{% if media.image != IMG_NONE %}poster{% else %}image-not-found{% endif %}"
+    <img class="{% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
          src="{{ media.image }}"
          alt="{{ media.title }}" />
   </div>
