@@ -29,10 +29,15 @@
                   data-bs-dismiss="modal"
                   aria-label="Close"></button>
         </div>
-        <div class="modal-body">{% crispy form %}</div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary" form="new-list-form">Save changes</button>
-        </div>
+        <form method="post" id="new-list-form">
+          {% csrf_token %}
+          <div class="modal-body">
+            {% crispy create_form %}
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary" name="create">Save changes</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -62,9 +67,35 @@
           </div>
           <p class="description mb-2">{{ custom_list.description }}</p>
 
-          <button type="button" class="btn btn-secondary">
+          <button type="button"
+                  class="btn btn-secondary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#edit-list-{{ custom_list.id }}">
             <i class="bi bi-pencil-square"></i>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Modal for each custom list -->
+    <div class="modal fade" id="edit-list-{{ custom_list.id }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5">Edit List</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="list_id" value="{{ custom_list.id }}">
+            <div class="modal-body">
+              {{ custom_list.form|crispy }}
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-danger" name="delete">Delete</button>
+              <button type="submit" class="btn btn-primary" name="edit">Save changes</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

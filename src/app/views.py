@@ -419,19 +419,39 @@ def lists(request):
     custom_lists = CustomList.objects.filter(user=request.user)
 
     if request.method == "POST":
-        form = CustomListForm(request.POST)
-        if form.is_valid():
-            custom_list = form.save(commit=False)
-            custom_list.user = request.user
-            custom_list.save()
+        if "create" in request.POST:
+            form = CustomListForm(request.POST)
+            if form.is_valid():
+                custom_list = form.save(commit=False)
+                custom_list.user = request.user
+                custom_list.save()
+                logger.info("List: %s created successfully.", custom_list)
+                return redirect("lists")
+        elif "edit" in request.POST:
+            list_id = request.POST.get("list_id")
+            custom_list = get_object_or_404(CustomList, id=list_id, user=request.user)
+            form = CustomListForm(request.POST, instance=custom_list)
+            if form.is_valid():
+                form.save()
+                logger.info("List: %s edited successfully.", custom_list)
+                return redirect("lists")
+        elif "delete" in request.POST:
+            list_id = request.POST.get("list_id")
+            custom_list = get_object_or_404(CustomList, id=list_id, user=request.user)
+            custom_list.delete()
+            logger.info("List: %s deleted successfully.", custom_list)
             return redirect("lists")
-    else:
-        form = CustomListForm()
+
+    create_form = CustomListForm()
+
+    # Create a form for each custom list to edit them
+    for custom_list in custom_lists:
+        custom_list.form = CustomListForm(instance=custom_list)
 
     return render(
         request,
         "app/custom_lists.html",
-        {"custom_lists": custom_lists, "form": form},
+        {"custom_lists": custom_lists, "create_form": create_form},
     )
 
 
@@ -474,9 +494,11 @@ def list_item_toggle(request):
 
     if item in custom_list.items.all():
         custom_list.items.remove(item)
+        logger.info("Item: %s removed from list: %s.", item, custom_list)
         icon_class = "bi bi-plus-square me-1"
     else:
         custom_list.items.add(item)
+        logger.info("Item: %s added to list: %s.", item, custom_list)
         icon_class = "bi bi-check-square-fill me-1"
 
     return render(request, "app/components/list_icon.html", {"icon_class": icon_class})
