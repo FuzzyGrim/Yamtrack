@@ -13,18 +13,17 @@
     <button type="button"
             class="btn btn-secondary h-75"
             data-bs-toggle="modal"
-            data-bs-target="#exampleModal">Create List</button>
+            data-bs-target="#create-list">Create List</button>
   </div>
 
   <div class="modal fade"
-       id="exampleModal"
+       id="create-list"
        tabindex="-1"
-       aria-labelledby="exampleModalLabel"
        aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h1 class="modal-title fs-5" id="exampleModalLabel">Create a new list</h1>
+          <h1 class="modal-title fs-5">Create a new list</h1>
           <button type="button"
                   class="btn-close"
                   data-bs-dismiss="modal"
@@ -57,10 +56,10 @@
         <div class="col-md-9 col-sm-8 card-body pb-2 d-flex flex-column align-items-start">
           <div class="d-flex align-items-center">
             <span class="fs-5 fw-bold">{{ custom_list.name }}</span>
-          {% with item_count=custom_list.items.count %}
-            <span class="ms-2 fw-light text-body-secondary">({{ item_count }} item{{ item_count|pluralize }})</span>
-          {% endwith %}
-        </div>
+            {% with item_count=custom_list.items.count %}
+              <span class="ms-2 fw-light text-body-secondary">({{ item_count }} item{{ item_count|pluralize }})</span>
+            {% endwith %}
+          </div>
           <p class="description mb-2">{{ custom_list.description }}</p>
 
           <button type="button" class="btn btn-secondary">

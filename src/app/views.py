@@ -437,7 +437,7 @@ def lists(request):
 
 @require_GET
 def lists_modal(request):
-    """Add a media item to a custom list."""
+    """Return the modal showing all custom lists and allowing to add to them."""
     media_type = request.GET["media_type"]
     media_id = request.GET["media_id"]
     season_number = request.GET.get("season_number")
@@ -465,7 +465,7 @@ def lists_modal(request):
 
 @require_POST
 def list_item_toggle(request):
-    """Add a media item to a custom list."""
+    """Add or remove an item from a custom list."""
     item_id = request.POST["item_id"]
     custom_list_id = request.POST["custom_list_id"]
 
