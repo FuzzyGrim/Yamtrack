@@ -425,7 +425,7 @@ def lists(request):
                 custom_list = form.save(commit=False)
                 custom_list.user = request.user
                 custom_list.save()
-                logger.info("List: %s created successfully.", custom_list)
+                logger.info("%s list created successfully.", custom_list)
                 return redirect("lists")
         elif "edit" in request.POST:
             list_id = request.POST.get("list_id")
@@ -433,13 +433,13 @@ def lists(request):
             form = CustomListForm(request.POST, instance=custom_list)
             if form.is_valid():
                 form.save()
-                logger.info("List: %s edited successfully.", custom_list)
+                logger.info("%s list edited successfully.", custom_list)
                 return redirect("lists")
         elif "delete" in request.POST:
             list_id = request.POST.get("list_id")
             custom_list = get_object_or_404(CustomList, id=list_id, user=request.user)
             custom_list.delete()
-            logger.info("List: %s deleted successfully.", custom_list)
+            logger.info("%s list deleted successfully.", custom_list)
             return redirect("lists")
 
     create_form = CustomListForm()
@@ -494,11 +494,11 @@ def list_item_toggle(request):
 
     if item in custom_list.items.all():
         custom_list.items.remove(item)
-        logger.info("Item: %s removed from list: %s.", item, custom_list)
+        logger.info("%s removed from %s.", item, custom_list)
         icon_class = "bi bi-plus-square me-1"
     else:
         custom_list.items.add(item)
-        logger.info("Item: %s added to list: %s.", item, custom_list)
+        logger.info("%s added to %s.", item, custom_list)
         icon_class = "bi bi-check-square-fill me-1"
 
     return render(request, "app/components/list_icon.html", {"icon_class": icon_class})
