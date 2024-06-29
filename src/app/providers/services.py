@@ -97,7 +97,7 @@ def request_error_handling(error, *args):
         ):
             logger.error("MAL bad request: check the API key")
 
-    raise  # re-raise for caller to handle
+    raise error # re-raise the error if it's not handled
 
 
 def get_media_metadata(media_type, media_id, season_number=None):
