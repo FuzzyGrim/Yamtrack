@@ -4,6 +4,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/stable/topics/http/urls/
 
 """
+
 from django.conf import settings
 from django.urls import include, path
 
@@ -11,6 +12,7 @@ urlpatterns = [
     path("", include("app.urls")),
     path("", include("integrations.urls")),
     path("", include("users.urls")),
+    path("select2/", include("django_select2.urls")),
 ]
 
 
