@@ -416,20 +416,22 @@ def history_delete(request):
 @require_http_methods(["GET", "POST"])
 def lists(request):
     """Return the custom list page."""
-    custom_lists = CustomList.objects.filter(user=request.user)
+    custom_lists = CustomList.objects.filter(owner=request.user).prefetch_related(
+        "items",
+    )
 
     if request.method == "POST":
         if "create" in request.POST:
             form = CustomListForm(request.POST)
             if form.is_valid():
                 custom_list = form.save(commit=False)
-                custom_list.user = request.user
+                custom_list.owner = request.user
                 custom_list.save()
                 logger.info("%s list created successfully.", custom_list)
                 return redirect("lists")
         elif "edit" in request.POST:
             list_id = request.POST.get("list_id")
-            custom_list = get_object_or_404(CustomList, id=list_id, user=request.user)
+            custom_list = get_object_or_404(CustomList, id=list_id, owner=request.user)
             form = CustomListForm(request.POST, instance=custom_list)
             if form.is_valid():
                 form.save()
@@ -437,7 +439,7 @@ def lists(request):
                 return redirect("lists")
         elif "delete" in request.POST:
             list_id = request.POST.get("list_id")
-            custom_list = get_object_or_404(CustomList, id=list_id, user=request.user)
+            custom_list = get_object_or_404(CustomList, id=list_id, owner=request.user)
             custom_list.delete()
             logger.info("%s list deleted successfully.", custom_list)
             return redirect("lists")
@@ -463,7 +465,7 @@ def lists_modal(request):
     season_number = request.GET.get("season_number")
     episode_number = request.GET.get("episode_number")
 
-    item, _ = ListItem.objects.get_or_create(
+    item, _ = Item.objects.get_or_create(
         media_id=media_id,
         media_type=media_type,
         season_number=season_number,
@@ -474,7 +476,7 @@ def lists_modal(request):
         },
     )
 
-    custom_lists = CustomList.objects.filter(user=request.user)
+    custom_lists = CustomList.objects.filter(owner=request.user)
 
     return render(
         request,
@@ -489,8 +491,8 @@ def list_item_toggle(request):
     item_id = request.POST["item_id"]
     custom_list_id = request.POST["custom_list_id"]
 
-    item = get_object_or_404(ListItem, id=item_id)
-    custom_list = get_object_or_404(CustomList, id=custom_list_id, user=request.user)
+    item = get_object_or_404(Item, id=item_id)
+    custom_list = get_object_or_404(CustomList, id=custom_list_id, owner=request.user)
 
     if item in custom_list.items.all():
         custom_list.items.remove(item)

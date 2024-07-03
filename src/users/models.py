@@ -60,6 +60,11 @@ class User(AbstractUser):
         choices=layouts,
     )
 
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["username"]
+
     def get_layout(self, media_type):
         """Return the layout for the media type."""
         layout = {

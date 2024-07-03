@@ -587,28 +587,9 @@ class Game(Media):
         logger.info("Unwatched %s E%s", self, self.progress + 1)
 
 
-class CustomList(models.Model):
-    """Model for custom lists."""
-
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True, default="")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-
-    class Meta:
-        """Meta options for the model."""
-
-        ordering = ["name"]
-        unique_together = ["name", "user"]
-
-    def __str__(self):
-        """Return the name of the custom list."""
-        return self.name
-
-
-class ListItem(models.Model):
+class Item(models.Model):
     """Model for items in custom lists."""
 
-    custom_lists = models.ManyToManyField(CustomList, related_name="items")
     media_id = models.PositiveIntegerField()
     media_type = models.CharField(max_length=12)
     title = models.CharField(max_length=255)
@@ -630,3 +611,55 @@ class ListItem(models.Model):
             if self.episode_number:
                 name += f"E{self.episode_number}"
         return name
+
+
+class CustomList(models.Model):
+    """Model for custom lists."""
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    collaborators = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="collaborated_lists",
+        blank=True,
+    )
+    items = models.ManyToManyField(
+        Item,
+        related_name="custom_lists",
+        blank=True,
+        through="CustomListItem",
+    )
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["name"]
+        unique_together = ["name", "owner"]
+
+    def __str__(self):
+        """Return the name of the custom list."""
+        return self.name
+
+    @property
+    def ordered_items(self):
+        """Return the items in the list ordered by date added."""
+        return self.items.order_by("-customlistitem__date_added")
+
+
+class CustomListItem(models.Model):
+    """Model for items in custom lists."""
+
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    custom_list = models.ForeignKey(CustomList, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["date_added"]
+        unique_together = ["item", "custom_list"]
+
+    def __str__(self):
+        """Return the name of the list item."""
+        return self.item.title
