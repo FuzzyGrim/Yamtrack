@@ -243,7 +243,8 @@ DEBUG_TOOLBAR_CONFIG = {
 SELECT2_CACHE_BACKEND = "default"
 SELECT2_JS = ["js/jquery.min.js", "js/select2.min.js"]
 SELECT2_I18N_PATH = "js/i18n"
-SELECT2_CSS = ["css/select2.min.css"]
+SELECT2_CSS = ["css/select2.min.css", "css/select2-bootstrap-5.min.css"]
+SELECT2_THEME = "bootstrap-5"
 
 # Celery settings
 

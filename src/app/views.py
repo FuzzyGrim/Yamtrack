@@ -13,7 +13,7 @@ from django.views.decorators.http import (
 
 from app import database, helpers
 from app.forms import CustomListForm, FilterForm, get_form_class
-from app.models import STATUS_IN_PROGRESS, CustomList, Episode, ListItem, Season
+from app.models import STATUS_IN_PROGRESS, CustomList, Episode, Item, Season
 from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -444,16 +444,22 @@ def lists(request):
             logger.info("%s list deleted successfully.", custom_list)
             return redirect("lists")
 
-    create_form = CustomListForm()
+    form = CustomListForm()
 
-    # Create a form for each custom list to edit them
+    # Create a form for each list
+    # needs unique id for django-select2
+    id_prefix = 1
     for custom_list in custom_lists:
-        custom_list.form = CustomListForm(instance=custom_list)
+        custom_list.form = CustomListForm(
+            instance=custom_list,
+            auto_id=f"id_{id_prefix}_%s",
+        )
+        id_prefix += 1
 
     return render(
         request,
         "app/custom_lists.html",
-        {"custom_lists": custom_lists, "create_form": create_form},
+        {"custom_lists": custom_lists, "form": form},
     )
 
 

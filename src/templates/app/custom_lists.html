@@ -3,23 +3,23 @@
 {% load crispy_forms_tags %}
 {% load app_extras %}
 
+{% block css %}
+  {{ form.media.css }}
+{% endblock css %}
+
 {% block title %}
   Lists - Yamtrack
 {% endblock title %}
-
 {% block container %}
-  <div class="d-flex justify-content-between align-items-center">
-    <h1>My Lists</h1>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">My Lists</h1>
     <button type="button"
             class="btn btn-secondary h-75"
             data-bs-toggle="modal"
             data-bs-target="#create-list">Create List</button>
   </div>
 
-  <div class="modal fade"
-       id="create-list"
-       tabindex="-1"
-       aria-hidden="true">
+  <div class="modal fade" id="create-list" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
@@ -29,15 +29,18 @@
                   data-bs-dismiss="modal"
                   aria-label="Close"></button>
         </div>
-        <form method="post" id="new-list-form">
-          {% csrf_token %}
-          <div class="modal-body">
-            {% crispy create_form %}
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary" name="create">Save</button>
-          </div>
-        </form>
+        <div class="modal-body">
+          <form method="post" id="new-list-form">
+            {% csrf_token %}
+            {{ form|crispy }}
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="submit"
+                  class="btn btn-primary"
+                  form="new-list-form"
+                  name="create">Save</button>
+        </div>
       </div>
     </div>
   </div>
@@ -46,7 +49,7 @@
     <div class="card mb-3">
       <div class="row">
         <div class="col-xxl-1 col-md-2 col-sm-3">
-          {% with first=custom_list.items.first %}
+          {% with first=custom_list.ordered_items.first %}
             {% if first %}
               <img src="{{ first.image }}"
                    class="w-100 h-100 object-fit-cover rounded-start bg-body-secondary"
@@ -78,24 +81,31 @@
     </div>
 
     <!-- Edit Modal for each custom list -->
-    <div class="modal fade" id="edit-list-{{ custom_list.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal fade"
+         id="edit-list-{{ custom_list.id }}"
+         tabindex="-1"
+         aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
             <h1 class="modal-title fs-5">Edit List</h1>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
           </div>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="list_id" value="{{ custom_list.id }}">
-            <div class="modal-body">
+
+          <div class="modal-body">
+            <form method="post" id="form-{{ custom_list.id }}">
+              {% csrf_token %}
+              <input type="hidden" name="list_id" value="{{ custom_list.id }}">
               {{ custom_list.form|crispy }}
-            </div>
-            <div class="modal-footer d-flex flex-row-reverse justify-content-between">
-              <button type="submit" class="btn btn-primary" name="edit">Save</button>
-              <button type="submit" class="btn btn-danger" name="delete">Delete</button>
-            </div>
-          </form>
+            </form>
+          </div>
+          <div class="modal-footer d-flex flex-row-reverse justify-content-between">
+            <button type="submit" class="btn btn-primary" form="form-{{ custom_list.id }}" name="edit">Save</button>
+            <button type="submit" class="btn btn-danger" form="form-{{ custom_list.id }}" name="delete">Delete</button>
+          </div>
         </div>
       </div>
     </div>
@@ -103,3 +113,7 @@
     No custom lists found.
   {% endfor %}
 {% endblock container %}
+
+{% block js %}
+  {{ form.media.js }}
+{% endblock js %}

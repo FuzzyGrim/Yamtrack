@@ -273,6 +273,7 @@ class CustomListForm(forms.ModelForm):
                 attrs={
                     "data-minimum-input-length": 1,
                     "data-placeholder": "Add users",
+                    "data-allow-clear": "false",
                 },
             ),
         }

@@ -12,6 +12,8 @@
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-icons.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "css/main.css" %}" />
+    {% block css %}
+    {% endblock css %}
     <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static "favicon/favicon-32x32.png" %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static "favicon/favicon-16x16.png" %}">
@@ -161,8 +163,8 @@
       </div>
       <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
       <script src="{% static 'js/htmx.min.js' %}"></script>
-      {% block extra_scripts %}
-      {% endblock extra_scripts %}
+      {% block js %}
+      {% endblock js %}
     {% endblock body %}
   </body>
 </html>
