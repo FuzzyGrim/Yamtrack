@@ -8,7 +8,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
-from django.db.models import Max, Sum
+from django.db.models import Max, Q, Sum
 from model_utils import FieldTracker
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
@@ -613,6 +613,23 @@ class Item(models.Model):
         return name
 
 
+class CustomListManager(models.Manager):
+    """Manager for custom lists."""
+
+    def get_user_lists(self, user):
+        """Return the custom lists that the user owns or collaborates on."""
+        return (
+            self.filter(
+                Q(owner=user) | Q(collaborators=user),
+            )
+            .prefetch_related(
+                "items",
+                "collaborators",
+            )
+            .distinct()
+        )
+
+
 class CustomList(models.Model):
     """Model for custom lists."""
 
@@ -631,6 +648,8 @@ class CustomList(models.Model):
         through="CustomListItem",
     )
 
+    objects = CustomListManager()
+
     class Meta:
         """Meta options for the model."""
 
@@ -645,6 +664,14 @@ class CustomList(models.Model):
     def ordered_items(self):
         """Return the items in the list ordered by date added."""
         return self.items.order_by("-customlistitem__date_added")
+
+    def user_can_edit(self, user):
+        """Check if the user can edit the list."""
+        return self.owner == user
+
+    def user_can_delete(self, user):
+        """Check if the user can delete the list."""
+        return self.owner == user
 
 
 class CustomListItem(models.Model):

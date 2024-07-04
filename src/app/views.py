@@ -416,51 +416,66 @@ def history_delete(request):
 @require_http_methods(["GET", "POST"])
 def lists(request):
     """Return the custom list page."""
-    custom_lists = CustomList.objects.filter(owner=request.user).prefetch_related(
-        "items",
-    )
-
     if request.method == "POST":
         if "create" in request.POST:
-            form = CustomListForm(request.POST)
-            if form.is_valid():
-                custom_list = form.save(commit=False)
-                custom_list.owner = request.user
-                custom_list.save()
-                logger.info("%s list created successfully.", custom_list)
-                return redirect("lists")
+            handle_create_list(request)
         elif "edit" in request.POST:
-            list_id = request.POST.get("list_id")
-            custom_list = get_object_or_404(CustomList, id=list_id, owner=request.user)
-            form = CustomListForm(request.POST, instance=custom_list)
-            if form.is_valid():
-                form.save()
-                logger.info("%s list edited successfully.", custom_list)
-                return redirect("lists")
+            handle_edit_list(request)
         elif "delete" in request.POST:
-            list_id = request.POST.get("list_id")
-            custom_list = get_object_or_404(CustomList, id=list_id, owner=request.user)
-            custom_list.delete()
-            logger.info("%s list deleted successfully.", custom_list)
-            return redirect("lists")
+            handle_delete_list(request)
+        return redirect("lists")
 
-    form = CustomListForm()
+    custom_lists = CustomList.objects.get_user_lists(request.user)
 
     # Create a form for each list
     # needs unique id for django-select2
-    id_prefix = 1
-    for custom_list in custom_lists:
+    for i, custom_list in enumerate(custom_lists, start=1):
         custom_list.form = CustomListForm(
             instance=custom_list,
-            auto_id=f"id_{id_prefix}_%s",
+            auto_id=f"id_{i}_%s",
         )
-        id_prefix += 1
+
+    create_list_form = CustomListForm()
 
     return render(
         request,
         "app/custom_lists.html",
-        {"custom_lists": custom_lists, "form": form},
+        {"custom_lists": custom_lists, "form": create_list_form},
     )
+
+
+def handle_create_list(request):
+    """Create a new custom list."""
+    form = CustomListForm(request.POST)
+    if form.is_valid():
+        custom_list = form.save(commit=False)
+        custom_list.owner = request.user
+        custom_list.save()
+        logger.info("%s list created successfully.", custom_list)
+
+
+def handle_edit_list(request):
+    """Edit an existing custom list."""
+    list_id = request.POST.get("list_id")
+    custom_list = get_object_or_404(CustomList, id=list_id)
+    if custom_list.user_can_edit(request.user):
+        form = CustomListForm(request.POST, instance=custom_list)
+        if form.is_valid():
+            form.save()
+            logger.info("%s list edited successfully.", custom_list)
+    else:
+        messages.error(request, "You do not have permission to edit this list.")
+
+
+def handle_delete_list(request):
+    """Delete a custom list."""
+    list_id = request.POST.get("list_id")
+    custom_list = get_object_or_404(CustomList, id=list_id)
+    if custom_list.user_can_delete(request.user):
+        custom_list.delete()
+        logger.info("%s list deleted successfully.", custom_list)
+    else:
+        messages.error(request, "You do not have permission to delete this list.")
 
 
 @require_GET
