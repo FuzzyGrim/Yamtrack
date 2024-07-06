@@ -59,7 +59,6 @@ class MediaModel(TestCase):
         )
         self.assertEqual(Anime.objects.get(media_id=1, user=self.user).progress, 26)
 
-
     def test_completed_from_repeating(self):
         """When completed from repeating, repeats should be incremented."""
         anime = Anime.objects.create(
