@@ -25,7 +25,4 @@ urlpatterns = [
     path("episode_handler", views.episode_handler, name="episode_handler"),
     path("history_modal", views.history, name="history"),
     path("history_delete", views.history_delete, name="history_delete"),
-    path("lists", views.lists, name="lists"),
-    path("lists_modal", views.lists_modal, name="lists_modal"),
-    path("list_item_toggle", views.list_item_toggle, name="list_item_toggle"),
 ]

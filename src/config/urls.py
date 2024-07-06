@@ -12,6 +12,7 @@ urlpatterns = [
     path("", include("app.urls")),
     path("", include("integrations.urls")),
     path("", include("users.urls")),
+    path("", include("lists.urls")),
     path("select2/", include("django_select2.urls")),
 ]
 

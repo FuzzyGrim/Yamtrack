@@ -3,17 +3,16 @@ import logging
 from django.apps import apps
 from django.contrib import messages
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import (
     require_GET,
-    require_http_methods,
     require_POST,
 )
 
 from app import database, helpers
-from app.forms import CustomListForm, FilterForm, get_form_class
-from app.models import STATUS_IN_PROGRESS, CustomList, Episode, Item, Season
+from app.forms import FilterForm, get_form_class
+from app.models import STATUS_IN_PROGRESS, Episode, Season
 from app.providers import igdb, mal, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -411,117 +410,3 @@ def history_delete(request):
         logger.warning("User does not have permission to delete this history record.")
 
     return helpers.redirect_back(request)
-
-
-@require_http_methods(["GET", "POST"])
-def lists(request):
-    """Return the custom list page."""
-    if request.method == "POST":
-        if "create" in request.POST:
-            handle_create_list(request)
-        elif "edit" in request.POST:
-            handle_edit_list(request)
-        elif "delete" in request.POST:
-            handle_delete_list(request)
-        return redirect("lists")
-
-    custom_lists = CustomList.objects.get_user_lists(request.user)
-
-    # Create a form for each list
-    # needs unique id for django-select2
-    for i, custom_list in enumerate(custom_lists, start=1):
-        custom_list.form = CustomListForm(
-            instance=custom_list,
-            auto_id=f"id_{i}_%s",
-        )
-
-    create_list_form = CustomListForm()
-
-    return render(
-        request,
-        "app/custom_lists.html",
-        {"custom_lists": custom_lists, "form": create_list_form},
-    )
-
-
-def handle_create_list(request):
-    """Create a new custom list."""
-    form = CustomListForm(request.POST)
-    if form.is_valid():
-        custom_list = form.save(commit=False)
-        custom_list.owner = request.user
-        custom_list.save()
-        logger.info("%s list created successfully.", custom_list)
-
-
-def handle_edit_list(request):
-    """Edit an existing custom list."""
-    list_id = request.POST.get("list_id")
-    custom_list = get_object_or_404(CustomList, id=list_id)
-    if custom_list.user_can_edit(request.user):
-        form = CustomListForm(request.POST, instance=custom_list)
-        if form.is_valid():
-            form.save()
-            logger.info("%s list edited successfully.", custom_list)
-    else:
-        messages.error(request, "You do not have permission to edit this list.")
-
-
-def handle_delete_list(request):
-    """Delete a custom list."""
-    list_id = request.POST.get("list_id")
-    custom_list = get_object_or_404(CustomList, id=list_id)
-    if custom_list.user_can_delete(request.user):
-        custom_list.delete()
-        logger.info("%s list deleted successfully.", custom_list)
-    else:
-        messages.error(request, "You do not have permission to delete this list.")
-
-
-@require_GET
-def lists_modal(request):
-    """Return the modal showing all custom lists and allowing to add to them."""
-    media_type = request.GET["media_type"]
-    media_id = request.GET["media_id"]
-    season_number = request.GET.get("season_number")
-    episode_number = request.GET.get("episode_number")
-
-    item, _ = Item.objects.get_or_create(
-        media_id=media_id,
-        media_type=media_type,
-        season_number=season_number,
-        episode_number=episode_number,
-        defaults={
-            "title": request.GET["title"],
-            "image": request.GET["image"],
-        },
-    )
-
-    custom_lists = CustomList.objects.filter(owner=request.user)
-
-    return render(
-        request,
-        "app/components/fill_lists.html",
-        {"item": item, "custom_lists": custom_lists},
-    )
-
-
-@require_POST
-def list_item_toggle(request):
-    """Add or remove an item from a custom list."""
-    item_id = request.POST["item_id"]
-    custom_list_id = request.POST["custom_list_id"]
-
-    item = get_object_or_404(Item, id=item_id)
-    custom_list = get_object_or_404(CustomList, id=custom_list_id, owner=request.user)
-
-    if item in custom_list.items.all():
-        custom_list.items.remove(item)
-        logger.info("%s removed from %s.", item, custom_list)
-        icon_class = "bi bi-plus-square me-1"
-    else:
-        custom_list.items.add(item)
-        logger.info("%s added to %s.", item, custom_list)
-        icon_class = "bi bi-check-square-fill me-1"
-
-    return render(request, "app/components/list_icon.html", {"icon_class": icon_class})

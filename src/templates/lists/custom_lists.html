@@ -30,16 +30,15 @@
                   aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form method="post" id="new-list-form">
+          <form method="post"
+                id="new-list-form"
+                action="{% url 'create' %}?next={{ request.path }}">
             {% csrf_token %}
             {{ form|crispy }}
           </form>
         </div>
         <div class="modal-footer">
-          <button type="submit"
-                  class="btn btn-primary"
-                  form="new-list-form"
-                  name="create">Save</button>
+          <button type="submit" class="btn btn-primary" form="new-list-form">Save</button>
         </div>
       </div>
     </div>
@@ -103,8 +102,14 @@
             </form>
           </div>
           <div class="modal-footer d-flex flex-row-reverse justify-content-between">
-            <button type="submit" class="btn btn-primary" form="form-{{ custom_list.id }}" name="edit">Save</button>
-            <button type="submit" class="btn btn-danger" form="form-{{ custom_list.id }}" name="delete">Delete</button>
+            <button type="submit"
+                    class="btn btn-primary"
+                    form="form-{{ custom_list.id }}"
+                    formaction="{% url 'edit' %}?next={{ request.path }}">Save</button>
+            <button type="submit"
+                    class="btn btn-danger"
+                    form="form-{{ custom_list.id }}"
+                    formaction="{% url 'delete' %}?next={{ request.path }}">Delete</button>
           </div>
         </div>
       </div>

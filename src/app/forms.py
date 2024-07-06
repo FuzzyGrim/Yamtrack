@@ -1,7 +1,6 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
-from django_select2 import forms as s2forms
 
 from app import models
 
@@ -252,28 +251,3 @@ class FilterForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.fields["layout"].initial = layout
-
-
-class CollaboratorsWidget(s2forms.ModelSelect2MultipleWidget):
-    """Custom widget for selecting multiple users."""
-
-    search_fields = ["username__icontains"]
-
-
-class CustomListForm(forms.ModelForm):
-    """Form for creating new custom lists."""
-
-    class Meta:
-        """Bind form to model."""
-
-        model = models.CustomList
-        fields = ["name", "description", "collaborators"]
-        widgets = {
-            "collaborators": CollaboratorsWidget(
-                attrs={
-                    "data-minimum-input-length": 1,
-                    "data-placeholder": "Add users",
-                    "data-allow-clear": "false",
-                },
-            ),
-        }
