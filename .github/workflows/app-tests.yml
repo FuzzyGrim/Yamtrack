@@ -35,6 +35,7 @@ jobs:
           coverage run --parallel-mode src/manage.py test app
           coverage run --parallel-mode src/manage.py test users
           coverage run --parallel-mode src/manage.py test integrations
+          coverage run --parallel-mode src/manage.py test lists
 
       - name: Build Coverage Report
         run: |
