@@ -89,6 +89,21 @@ class CustomList(models.Model):
         """Check if the user can delete the list."""
         return self.owner == user
 
+    def user_can_view(self, user):
+        """Check if the user can view the list."""
+        return self.owner == user or user in self.collaborators.all()
+
+
+class CustomListItemManager(models.Manager):
+    """Manager for custom list items."""
+
+    def get_last_added_date(self, custom_list):
+        """Return the last time an item was added to a specific list."""
+        try:
+            return self.filter(custom_list=custom_list).latest("date_added").date_added
+        except self.model.DoesNotExist:
+            return None
+
 
 class CustomListItem(models.Model):
     """Model for items in custom lists."""
@@ -96,6 +111,8 @@ class CustomListItem(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     custom_list = models.ForeignKey(CustomList, on_delete=models.CASCADE)
     date_added = models.DateTimeField(auto_now_add=True)
+
+    objects = CustomListItemManager()
 
     class Meta:
         """Meta options for the model."""

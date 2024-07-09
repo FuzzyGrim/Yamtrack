@@ -48,21 +48,27 @@
     <div class="card mb-3">
       <div class="row">
         <div class="col-xxl-1 col-md-2 col-sm-3">
-          {% with first=custom_list.ordered_items.first %}
-            {% if first %}
-              <img src="{{ first.image }}"
-                   class="w-100 h-100 object-fit-cover rounded-start bg-body-secondary"
-                   alt="{{ custom_list.name }}">
-            {% else %}
-              <img src="{{ IMG_NONE }}"
-                   class="w-100 h-100 rounded-start bg-body-secondary"
-                   alt="{{ custom_list.name }}">
-            {% endif %}
-          {% endwith %}
+          <a href="{% url 'list_detail' custom_list.id %}">
+            {% with first=custom_list.ordered_items.first %}
+              {% if first %}
+                <img src="{{ first.image }}"
+                     class="w-100 h-100 object-fit-cover rounded-start bg-body-secondary"
+                     alt="{{ custom_list.name }}">
+              {% else %}
+                <img src="{{ IMG_NONE }}"
+                     class="w-100 h-100 rounded-start bg-body-secondary"
+                     alt="{{ custom_list.name }}">
+              {% endif %}
+            {% endwith %}
+          </a>
         </div>
         <div class="col-md-9 col-sm-8 card-body pb-2 d-flex flex-column align-items-start">
           <div class="d-flex align-items-center">
-            <span class="fs-5 fw-bold">{{ custom_list.name }}</span>
+            <a href="{% url 'list_detail' custom_list.id %}"
+               class="list-title">
+              <span class="fs-5 fw-bold">{{ custom_list.name }}</span>
+            </a>
+
             {% with item_count=custom_list.items.count %}
               <span class="ms-2 fw-light text-body-secondary">({{ item_count }} item{{ item_count|pluralize }})</span>
             {% endwith %}

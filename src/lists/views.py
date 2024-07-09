@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
 from lists.forms import CustomListForm
-from lists.models import CustomList, Item
+from lists.models import CustomList, CustomListItem, Item
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,30 @@ def lists(request):
         request,
         "lists/custom_lists.html",
         {"custom_lists": custom_lists, "form": create_list_form},
+    )
+
+
+@require_GET
+def list_detail(request, list_id):
+    """Return the detail page of a custom list."""
+    custom_list = get_object_or_404(CustomList, id=list_id)
+    if not custom_list.user_can_view(request.user):
+        messages.error(request, "You do not have permission to view this list.")
+        return helpers.redirect_back(request)
+
+    form = CustomListForm(instance=custom_list)
+    items = custom_list.items.all()
+    last_added_date = CustomListItem.objects.get_last_added_date(custom_list)
+
+    return render(
+        request,
+        "lists/list_detail.html",
+        {
+            "custom_list": custom_list,
+            "form": form,
+            "items": items,
+            "last_added_date": last_added_date,
+        },
     )
 
 
