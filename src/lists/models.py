@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 
 
 class Item(models.Model):
@@ -35,12 +35,17 @@ class CustomListManager(models.Manager):
     def get_user_lists(self, user):
         """Return the custom lists that the user owns or collaborates on."""
         return (
-            self.filter(
-                Q(owner=user) | Q(collaborators=user),
-            )
+            self.filter(Q(owner=user) | Q(collaborators=user))
             .prefetch_related(
-                "items",
                 "collaborators",
+                Prefetch(
+                    "items",
+                    queryset=Item.objects.order_by("-customlistitem__date_added"),
+                ),
+                Prefetch(
+                    "customlistitem_set",
+                    queryset=CustomListItem.objects.order_by("-date_added"),
+                ),
             )
             .distinct()
         )
@@ -75,11 +80,6 @@ class CustomList(models.Model):
     def __str__(self):
         """Return the name of the custom list."""
         return self.name
-
-    @property
-    def ordered_items(self):
-        """Return the items in the list ordered by date added."""
-        return self.items.order_by("-customlistitem__date_added")
 
     def user_can_edit(self, user):
         """Check if the user can edit the list."""
