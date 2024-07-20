@@ -2,7 +2,7 @@
 
 ![App Tests](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/app-tests.yml/badge.svg)
 ![Docker Image](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/docker-image.yml/badge.svg)
-![Image Size](https://ghcr-badge.egpl.dev/fuzzygrim/yamtrack/size)
+![Image Size](https://ghcr-badge.egpl.dev/fuzzygrim/yamtrack/size?tag=dev)
 ![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtrack/badge)
 ![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/dev/graph/badge.svg?token=PWUG660120)
 ![GitHub](https://img.shields.io/badge/license-GPL--3.0-blue)
