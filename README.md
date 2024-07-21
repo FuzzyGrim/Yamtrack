@@ -17,9 +17,9 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 - Track each season of a tv show individually and episodes watched
 - Save score, status, progress, repeats (rewatches, rereads...), start and end dates, or write a note.
 - Keep a tracking history with each action with a media, such as when you added it, when you started it, when you started watching it again, etc.
-- Use personal lists to organize your media for any purpose, you can even add other members to collaborate on your lists.
-- Docker support
-- Multi-users support
+- Use personal lists to organize your media for any purpose, add other members to collaborate on your lists.
+- Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
+- Multi-users functionality allowing individual accounts with personalized tracking.
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/).
 - Export all your tracked media to a CSV file and import it back.
 
