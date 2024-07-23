@@ -25,6 +25,32 @@ STATUS_PAUSED = "Paused"
 STATUS_DROPPED = "Dropped"
 
 
+class Item(models.Model):
+    """Model for items in custom lists."""
+
+    media_id = models.PositiveIntegerField()
+    media_type = models.CharField(max_length=12)
+    title = models.CharField(max_length=255)
+    image = models.URLField()
+    season_number = models.PositiveIntegerField(null=True)
+    episode_number = models.PositiveIntegerField(null=True)
+
+    class Meta:
+        """Meta options for the model."""
+
+        unique_together = ["media_id", "media_type", "season_number", "episode_number"]
+        ordering = ["media_id"]
+
+    def __str__(self):
+        """Return the name of the item."""
+        name = self.title
+        if self.season_number:
+            name += f" S{self.season_number}"
+            if self.episode_number:
+                name += f"E{self.episode_number}"
+        return name
+
+
 class Media(models.Model):
     """Abstract model for all media types."""
 

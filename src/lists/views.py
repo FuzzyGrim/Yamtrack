@@ -1,12 +1,13 @@
 import logging
 
 from app import helpers
+from app.models import Item
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
 from lists.forms import CustomListForm
-from lists.models import CustomList, CustomListItem, Item
+from lists.models import CustomList, CustomListItem
 
 logger = logging.getLogger(__name__)
 
