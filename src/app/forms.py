@@ -76,6 +76,7 @@ class MediaForm(forms.ModelForm):
         right_col = "form-group col-md-6 ps-md-1"
 
         self.helper.layout = Layout(
+            "item",
             "media_id",
             "media_type",
             Row(
@@ -100,6 +101,7 @@ class MediaForm(forms.ModelForm):
         """Define fields and input types."""
 
         fields = [
+            "item",
             "media_id",
             "media_type",
             "score",
@@ -111,6 +113,7 @@ class MediaForm(forms.ModelForm):
             "notes",
         ]
         widgets = {
+            "item": forms.HiddenInput(),
             "media_id": forms.HiddenInput(),
             "score": forms.NumberInput(attrs={"min": 0, "max": 10, "step": 0.1}),
             "progress": forms.NumberInput(attrs={"min": 0}),
@@ -159,7 +162,7 @@ class TVForm(MediaForm):
         """Bind form to model."""
 
         model = models.TV
-        fields = ["media_id", "media_type", "score", "status", "notes"]
+        fields = ["item", "media_id", "media_type", "score", "status", "notes"]
 
 
 class SeasonForm(MediaForm):
@@ -182,7 +185,15 @@ class SeasonForm(MediaForm):
         """Bind form to model."""
 
         model = models.Season
-        fields = ["media_id", "media_type", "season_number", "score", "status", "notes"]
+        fields = [
+            "item",
+            "media_id",
+            "media_type",
+            "season_number",
+            "score",
+            "status",
+            "notes",
+        ]
 
 
 class EpisodeForm(forms.ModelForm):

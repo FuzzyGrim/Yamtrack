@@ -54,10 +54,13 @@ class Item(models.Model):
 class Media(models.Model):
     """Abstract model for all media types."""
 
+    media_id = models.PositiveIntegerField()
+
     history = HistoricalRecords(
         cascade_delete_history=True,
         inherit=True,
         excluded_fields=[
+            "item",
             "media_id",
             "image",
             "title",
@@ -67,7 +70,7 @@ class Media(models.Model):
         ],
     )
 
-    media_id = models.PositiveIntegerField()
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=255)
     image = models.URLField()
     score = models.DecimalField(
@@ -531,9 +534,10 @@ class Episode(models.Model):
 
     history = HistoricalRecords(
         cascade_delete_history=True,
-        excluded_fields=["related_season", "episode_number"],
+        excluded_fields=["item", "related_season", "episode_number"],
     )
 
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
     related_season = models.ForeignKey(
         Season,
         on_delete=models.CASCADE,
