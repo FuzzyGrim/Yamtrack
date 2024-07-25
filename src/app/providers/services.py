@@ -8,27 +8,27 @@ from django.core.cache import cache
 from app.providers import igdb, mal, tmdb
 
 logger = logging.getLogger(__name__)
+session = requests.Session()
 
 
 def api_request(provider, method, url, params=None, data=None, headers=None):  # noqa: PLR0913
     """Make a request to the API and return the response as a dictionary."""
     try:
-        if method == "GET":
-            response = requests.get(
-                url,
-                params=params,
-                headers=headers,
-                timeout=settings.REQUEST_TIMEOUT,
-            )
-        elif method == "POST":
-            response = requests.post(
-                url,
-                data=data,
-                json=params,
-                headers=headers,
-                timeout=settings.REQUEST_TIMEOUT,
-            )
+        request_kwargs = {
+            "url": url,
+            "headers": headers,
+            "timeout": settings.REQUEST_TIMEOUT,
+        }
 
+        if method == "GET":
+            request_kwargs["params"] = params
+            request_func = session.get
+        elif method == "POST":
+            request_kwargs["data"] = data
+            request_kwargs["json"] = params
+            request_func = session.post
+
+        response = request_func(**request_kwargs)
         response.raise_for_status()
 
     except requests.exceptions.HTTPError as error:
@@ -97,7 +97,7 @@ def request_error_handling(error, *args):
         ):
             logger.error("MAL bad request: check the API key")
 
-    raise error # re-raise the error if it's not handled
+    raise error  # re-raise the error if it's not handled
 
 
 def get_media_metadata(media_type, media_id, season_number=None):
