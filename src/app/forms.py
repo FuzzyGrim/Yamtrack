@@ -62,11 +62,6 @@ class CustomDurationField(forms.CharField):
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
-    media_type = forms.CharField(
-        max_length=20,
-        widget=forms.HiddenInput(),
-    )
-
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
@@ -77,8 +72,6 @@ class MediaForm(forms.ModelForm):
 
         self.helper.layout = Layout(
             "item",
-            "media_id",
-            "media_type",
             Row(
                 Column("score", css_class=left_col),
                 Column("progress", css_class=right_col),
@@ -102,8 +95,6 @@ class MediaForm(forms.ModelForm):
 
         fields = [
             "item",
-            "media_id",
-            "media_type",
             "score",
             "progress",
             "status",
@@ -114,7 +105,6 @@ class MediaForm(forms.ModelForm):
         ]
         widgets = {
             "item": forms.HiddenInput(),
-            "media_id": forms.HiddenInput(),
             "score": forms.NumberInput(attrs={"min": 0, "max": 10, "step": 0.1}),
             "progress": forms.NumberInput(attrs={"min": 0}),
             "repeats": forms.NumberInput(attrs={"min": 0}),
@@ -162,19 +152,11 @@ class TVForm(MediaForm):
         """Bind form to model."""
 
         model = models.TV
-        fields = ["item", "media_id", "media_type", "score", "status", "notes"]
+        fields = ["item", "score", "status", "notes"]
 
 
 class SeasonForm(MediaForm):
     """Form for seasons."""
-
-    media_id = forms.IntegerField(widget=forms.HiddenInput())
-
-    season_number = forms.IntegerField(
-        min_value=0,
-        step_size=1,
-        widget=forms.HiddenInput(),
-    )
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
@@ -187,9 +169,6 @@ class SeasonForm(MediaForm):
         model = models.Season
         fields = [
             "item",
-            "media_id",
-            "media_type",
-            "season_number",
             "score",
             "status",
             "notes",
@@ -203,7 +182,7 @@ class EpisodeForm(forms.ModelForm):
         """Bind form to model."""
 
         model = models.Episode
-        fields = ("episode_number", "watch_date", "repeats")
+        fields = ("item", "watch_date", "repeats")
 
 
 class GameForm(MediaForm):

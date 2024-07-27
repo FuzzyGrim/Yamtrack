@@ -54,25 +54,18 @@ class Item(models.Model):
 class Media(models.Model):
     """Abstract model for all media types."""
 
-    media_id = models.PositiveIntegerField()
-
     history = HistoricalRecords(
         cascade_delete_history=True,
         inherit=True,
         excluded_fields=[
             "item",
-            "media_id",
-            "image",
-            "title",
             "user",
             "related_tv",
-            "season_number",
         ],
     )
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
-    title = models.CharField(max_length=255)
-    image = models.URLField()
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     score = models.DecimalField(
         null=True,
         blank=True,
@@ -101,18 +94,17 @@ class Media(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     class Meta:
         """Meta options for the model."""
 
         abstract = True
         ordering = ["-score"]
-        unique_together = ["media_id", "user"]
+        unique_together = ["item", "user"]
 
     def __str__(self):
         """Return the title of the media."""
-        return self.title
+        return self.item.__str__()
 
     def save(self, *args, **kwargs):
         """Save the media instance."""
@@ -124,21 +116,15 @@ class Media(models.Model):
 
         super().save(*args, **kwargs)
 
-    @property
-    def media_type(self):
-        """Return the media type of the instance."""
-        return self.__class__.__name__.lower()
-
     def process_progress(self):
         """Update fields depending on the progress of the media."""
-        media_type = self.__class__.__name__.lower()
-
         if self.progress < 0:
             self.progress = 0
         else:
-            total_episodes = services.get_media_metadata(media_type, self.media_id)[
-                "max_progress"
-            ]
+            total_episodes = services.get_media_metadata(
+                self.item.media_type,
+                self.item.media_id,
+            )["max_progress"]
 
             if total_episodes != "Unknown":
                 if self.progress > total_episodes:
@@ -153,10 +139,10 @@ class Media(models.Model):
             if not self.end_date:
                 self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
-            media_type = self.__class__.__name__.lower()
-            total_episodes = services.get_media_metadata(media_type, self.media_id)[
-                "max_progress"
-            ]
+            total_episodes = services.get_media_metadata(
+                self.item.media_type,
+                self.item.media_id,
+            )["max_progress"]
 
             if total_episodes != "Unknown":
                 self.progress = total_episodes
@@ -181,8 +167,11 @@ class Media(models.Model):
 
     def progress_response(self):
         """Return the data needed to update the progress of the media."""
-        media_metadata = services.get_media_metadata(self.media_type, self.media_id)
-        response = {"media_id": self.media_id}
+        media_metadata = services.get_media_metadata(
+            self.item.media_type,
+            self.item.media_id,
+        )
+        response = {"item": self.item}
         max_progress = media_metadata["max_progress"]
 
         response["progress"] = self.progress
@@ -205,7 +194,7 @@ class TV(Media):
         if (
             "status" in self.tracker.changed()
             and self.status == STATUS_COMPLETED
-            and self.progress < tmdb.tv(self.media_id)["max_progress"]
+            and self.progress < tmdb.tv(self.item.media_id)["max_progress"]
         ):
             self.completed()
 
@@ -240,20 +229,29 @@ class TV(Media):
         seasons_to_update = []
         episodes_to_create = []
 
-        tv_metadata = tmdb.tv(self.media_id)
+        tv_metadata = tmdb.tv(self.item.media_id)
         season_numbers = [
             season["season_number"]
             for season in tv_metadata["related"]["seasons"]
             if season["season_number"] != 0
         ]
-        tv_seasons_metadata = tmdb.tv_with_seasons(self.media_id, season_numbers)
+        tv_seasons_metadata = tmdb.tv_with_seasons(self.item.media_id, season_numbers)
         for season_number in season_numbers:
             season_metadata = tv_seasons_metadata[f"season/{season_number}"]
+
+            item, _ = Item.objects.get_or_create(
+                media_id=self.item.media_id,
+                media_type="season",
+                season_number=season_number,
+                defaults={
+                    "title": self.item.title,
+                    "image": season_metadata["image"],
+                },
+            )
             try:
                 season_instance = Season.objects.get(
-                    media_id=self.media_id,
+                    item=item,
                     user=self.user,
-                    season_number=season_number,
                 )
 
                 if season_instance.status != STATUS_COMPLETED:
@@ -262,13 +260,10 @@ class TV(Media):
 
             except Season.DoesNotExist:
                 season_instance = Season(
-                    media_id=self.media_id,
-                    title=tv_metadata["title"],
-                    image=season_metadata["image"],
+                    item=item,
                     score=None,
                     status=STATUS_COMPLETED,
                     notes="",
-                    season_number=season_number,
                     related_tv=self,
                     user=self.user,
                 )
@@ -288,7 +283,6 @@ class Season(Media):
         on_delete=models.CASCADE,
         related_name="seasons",
     )
-    season_number = models.PositiveIntegerField()
 
     tracker = FieldTracker()
 
@@ -298,11 +292,11 @@ class Season(Media):
         Only one season per media can have the same season number.
         """
 
-        unique_together = ["related_tv", "season_number"]
+        unique_together = ["related_tv", "item"]
 
     def __str__(self):
         """Return the title of the media and season number."""
-        return f"{self.title} S{self.season_number}"
+        return f"{self.item.title} S{self.item.season_number}"
 
     @tracker  # postpone field reset until after the save
     def save(self, *args, **kwargs):
@@ -314,7 +308,7 @@ class Season(Media):
         super(Media, self).save(*args, **kwargs)
 
         if "status" in self.tracker.changed() and self.status == STATUS_COMPLETED:
-            season_metadata = tmdb.season(self.media_id, self.season_number)
+            season_metadata = tmdb.season(self.item.media_id, self.item.season_number)
             bulk_create_with_history(
                 self.get_remaining_eps(season_metadata),
                 Episode,
@@ -332,14 +326,14 @@ class Season(Media):
         if self.status == STATUS_IN_PROGRESS:
             sorted_episodes = sorted(
                 self.episodes.all(),
-                key=lambda e: e.episode_number,
+                key=lambda e: e.item.episode_number,
                 reverse=True,
             )
         else:
             # sort by repeats and then by episode_number
             sorted_episodes = sorted(
                 self.episodes.all(),
-                key=lambda e: (e.repeats, e.episode_number),
+                key=lambda e: (e.repeats, e.item.episode_number),
                 reverse=True,
             )
 
@@ -371,12 +365,12 @@ class Season(Media):
     def increase_progress(self):
         """Watch the next episode of the season."""
         current_episode = self.current_episode
-        season_metadata = tmdb.season(self.media_id, self.season_number)
+        season_metadata = tmdb.season(self.item.media_id, self.item.season_number)
         episodes = season_metadata["episodes"]
 
         if current_episode:
             next_episode_number = tmdb.find_next_episode(
-                current_episode.episode_number,
+                current_episode.item.episode_number,
                 episodes,
             )
         else:
@@ -392,10 +386,12 @@ class Season(Media):
 
     def watch(self, episode_number, watch_date):
         """Create or add a repeat to an episode of the season."""
+        item = self.get_episode_item(episode_number)
+
         try:
             episode = Episode.objects.get(
                 related_season=self,
-                episode_number=episode_number,
+                item=item,
             )
             episode.watch_date = watch_date
             episode.repeats += 1
@@ -407,7 +403,7 @@ class Season(Media):
         except Episode.DoesNotExist:
             episode = Episode.objects.create(
                 related_season=self,
-                episode_number=episode_number,
+                item=item,
                 watch_date=watch_date,
             )
             logger.info(
@@ -417,15 +413,17 @@ class Season(Media):
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""
-        episode_number = self.current_episode.episode_number
+        episode_number = self.current_episode.item.episode_number
         self.unwatch(episode_number)
 
     def unwatch(self, episode_number):
         """Unwatch the episode instance."""
         try:
+            item = self.get_episode_item(episode_number)
+
             episode = Episode.objects.get(
                 related_season=self,
-                episode_number=episode_number,
+                item=item,
             )
 
             if episode.repeats > 0:
@@ -452,17 +450,16 @@ class Season(Media):
     def progress_response(self):
         """Return the data needed to update the progress of the season."""
         media_metadata = services.get_media_metadata(
-            self.media_type,
-            self.media_id,
-            self.season_number,
+            self.item.media_type,
+            self.item.media_id,
+            self.item.season_number,
         )
-        response = {"media_id": self.media_id}
+        response = {"item": self.item}
         max_progress = media_metadata["max_progress"]
 
-        response["season_number"] = self.season_number
         response["current_episode"] = self.current_episode
         if self.current_episode:
-            response["max"] = self.current_episode.episode_number == max_progress
+            response["max"] = self.current_episode.item.episode_number == max_progress
             response["min"] = False
         else:
             response["max"] = False
@@ -473,9 +470,13 @@ class Season(Media):
     def get_tv(self):
         """Get related TV instance for a season and create it if it doesn't exist."""
         try:
-            tv = TV.objects.get(media_id=self.media_id, user=self.user)
+            tv = TV.objects.get(
+                item__media_id=self.item.media_id,
+                item__media_type="tv",
+                user=self.user,
+            )
         except TV.DoesNotExist:
-            tv_metadata = tmdb.tv(self.media_id)
+            tv_metadata = tmdb.tv(self.item.media_id)
 
             # creating tv with multiple seasons from a completed season
             if (
@@ -486,10 +487,17 @@ class Season(Media):
             else:
                 status = self.status
 
+            item, _ = Item.objects.get_or_create(
+                media_id=self.item.media_id,
+                media_type="tv",
+                defaults={
+                    "title": tv_metadata["title"],
+                    "image": tv_metadata["image"],
+                },
+            )
+
             tv = TV(
-                media_id=self.media_id,
-                title=tv_metadata["title"],
-                image=tv_metadata["image"],
+                item=item,
                 score=None,
                 status=status,
                 notes="",
@@ -505,7 +513,7 @@ class Season(Media):
     def get_remaining_eps(self, season_metadata):
         """Return episodes needed to complete a season."""
         max_episode_number = Episode.objects.filter(related_season=self).aggregate(
-            max_episode_number=Max("episode_number"),
+            max_episode_number=Max("item__episode_number"),
         )["max_episode_number"]
 
         if max_episode_number is None:
@@ -519,14 +527,39 @@ class Season(Media):
             if episode["episode_number"] <= max_episode_number:
                 break
 
+            item = self.get_episode_item(episode["episode_number"], season_metadata)
+
             episode_db = Episode(
                 related_season=self,
-                episode_number=episode["episode_number"],
+                item=item,
                 watch_date=today,
             )
             episodes_to_create.append(episode_db)
 
         return episodes_to_create
+
+    def get_episode_item(self, episode_number, season_metadata=None):
+        """Get the episode item instance, create it if it doesn't exist."""
+        if not season_metadata:
+            season_metadata = tmdb.season(self.item.media_id, self.item.season_number)
+
+        image = settings.IMG_NONE
+        for episode in season_metadata["episodes"]:
+            if episode["episode_number"] == episode_number and episode["still_path"]:
+                image = f"http://image.tmdb.org/t/p/original{episode['still_path']}"
+
+        item, _ = Item.objects.get_or_create(
+            media_id=self.item.media_id,
+            media_type="episode",
+            season_number=self.item.season_number,
+            episode_number=episode_number,
+            defaults={
+                "title": self.item.title,
+                "image": image,
+            },
+        )
+
+        return item
 
 
 class Episode(models.Model):
@@ -534,7 +567,7 @@ class Episode(models.Model):
 
     history = HistoricalRecords(
         cascade_delete_history=True,
-        excluded_fields=["item", "related_season", "episode_number"],
+        excluded_fields=["item", "related_season"],
     )
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
@@ -543,7 +576,6 @@ class Episode(models.Model):
         on_delete=models.CASCADE,
         related_name="episodes",
     )
-    episode_number = models.PositiveIntegerField()
     watch_date = models.DateField(null=True, blank=True)
     repeats = models.PositiveIntegerField(default=0)
 
@@ -553,12 +585,12 @@ class Episode(models.Model):
         Only one episode per season can have the same episode number.
         """
 
-        unique_together = ["related_season", "episode_number"]
-        ordering = ["related_season", "episode_number"]
+        unique_together = ["related_season", "item"]
+        ordering = ["related_season", "item"]
 
     def __str__(self):
         """Return the season and episode number."""
-        return f"{self.related_season}E{self.episode_number}"
+        return self.item.__str__()
 
     def save(self, *args, **kwargs):
         """Save the episode instance."""
@@ -566,8 +598,8 @@ class Episode(models.Model):
 
         if self.related_season.status in (STATUS_IN_PROGRESS, STATUS_REPEATING):
             season_metadata = tmdb.season(
-                self.related_season.media_id,
-                self.related_season.season_number,
+                self.item.media_id,
+                self.item.season_number,
             )
             total_episodes = len(season_metadata["episodes"])
             total_repeats = self.related_season.episodes.aggregate(

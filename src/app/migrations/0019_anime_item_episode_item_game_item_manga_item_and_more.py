@@ -3,7 +3,7 @@
 import logging
 import django.db.models.deletion
 from django.db import migrations, models
-from app.providers import services
+from app.providers import tmdb
 from django.conf import settings
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,7 @@ def forward_func(apps, _):
     for model_name in ['TV', 'Season', 'Manga', 'Anime', 'Movie', 'Game', 'Episode']:
         logger.info(f"Starting migration for {model_name.lower()}s.")
         model = apps.get_model('app', model_name)
+        instances = []
         for instance in model.objects.all():
 
             season_number = None
@@ -37,7 +38,8 @@ def forward_func(apps, _):
                 }
             )
             instance.item = item
-            instance.save()
+            instances.append(instance)
+        model.objects.bulk_update(instances, ['item'])
 
         logger.info(f"Finished migration for {model_name.lower()}s.")
 
@@ -49,16 +51,13 @@ def reverse_func(apps, _):
 
 
 def episode_img(instance):
-    base_url = "https://api.themoviedb.org/3"
-    url = f"{base_url}/tv/{instance.related_season.media_id}/season/{instance.related_season.season_number}/episode/{instance.episode_number}"
-    params = {
-        "api_key": settings.TMDB_API,
-        "language": settings.TMDB_LANG,
-    }
+    tv_metadata = tmdb.tv_with_seasons(instance.related_season.media_id, [instance.related_season.season_number])
+    season_metadata = tv_metadata[f"season/{instance.related_season.season_number}"]
+    # season_metadata = tmdb.season(instance.related_season.media_id, instance.related_season.season_number)
     
-    response = services.api_request("TMDB", "GET", url, params=params)
-    if response["still_path"]:
-        return f"http://image.tmdb.org/t/p/original{response['still_path']}"
+    for episode in season_metadata["episodes"]:
+        if episode["episode_number"] == instance.episode_number and episode["still_path"]:
+            return f"http://image.tmdb.org/t/p/original{episode['still_path']}"
     return settings.IMG_NONE
 
 

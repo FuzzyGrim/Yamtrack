@@ -32,7 +32,7 @@
               {% else %}
                 {{ media.type|capfirst }}
               {% endif %}
-              {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media.media_type media_id=media.media_id title=media.title only %}
+              {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media.media_type image=media.image media_id=media.media_id title=media.title only %}
             </div>
           </div>
 

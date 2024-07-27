@@ -19,12 +19,3 @@ def redirect_back(request):
         return redirect(url)
     return redirect("home")
 
-
-def get_form_title_and_id(media_type, media_id, season_number, title):
-    """Get form title and id based on media."""
-    if media_type == "season":
-        title = f"{title} S{season_number}"
-        form_id = f"form-{media_type}_{media_id}_{season_number}"
-    else:
-        form_id = f"form-{media_type}_{media_id}"
-    return title, form_id

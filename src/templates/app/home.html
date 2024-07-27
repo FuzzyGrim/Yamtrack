@@ -13,16 +13,16 @@
       <div class="grid">
         {% for media in media_list %}
           <div class="card mx-auto">
-            <a href="{% if media.season_number != None %}{% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.media_id title=media.title|slug %}{% endif %}">
-              <img data-src="{{ media.image }}"
-                   class="card-img lazyload {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+            <a href="{% if media.item.season_number != None %}{% url 'season_details' media_id=media.item.media_id title=media.item.title|slug season_number=media.item.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.item.media_id title=media.item.title|slug %}{% endif %}">
+              <img data-src="{{ media.item.image }}"
+                   class="card-img lazyload {% if media.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
                    alt="{{ media }}"
                    data-expand="1000" />
             </a>
             <div class="card-img-overlay">
               <div class="card-title">{{ media }}</div>
               <div class="card-text d-flex justify-content-center align-items-center"
-                   id="{{ media_type }}_{{ media.media_id }}{% if media.season_number != None %}_{{ media.season_number }}{% endif %}">
+                   id="{{ media_type }}_{{ media.item.media_id }}{% if media.item.season_number != None %}_{{ media.item.season_number }}{% endif %}">
                 {% include "app/components/progress_changer.html" with media_type=media_type media=media csrf_token=csrf_token only %}
               </div>
             </div>
