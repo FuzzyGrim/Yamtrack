@@ -51,9 +51,7 @@ def reverse_func(apps, _):
 
 
 def episode_img(instance):
-    tv_metadata = tmdb.tv_with_seasons(instance.related_season.media_id, [instance.related_season.season_number])
-    season_metadata = tv_metadata[f"season/{instance.related_season.season_number}"]
-    # season_metadata = tmdb.season(instance.related_season.media_id, instance.related_season.season_number)
+    season_metadata = tmdb.season(instance.related_season.media_id, instance.related_season.season_number)
     
     for episode in season_metadata["episodes"]:
         if episode["episode_number"] == instance.episode_number and episode["still_path"]:
