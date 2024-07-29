@@ -144,18 +144,25 @@ def process_status_list(bulk_media, status_list, media_type, user, warning_messa
                 status = content["status"].capitalize()
             notes = content["notes"] or ""
 
+            item, _ = app.models.Item.objects.get_or_create(
+                media_id=content["media"]["idMal"],
+                media_type=media_type,
+                defaults={
+                    "title": content["media"]["title"]["userPreferred"],
+                    "image": content["media"]["coverImage"]["large"],
+                },
+            )
+
             model_type = apps.get_model(app_label="app", model_name=media_type)
             instance = model_type(
-                media_id=content["media"]["idMal"],
-                title=content["media"]["title"]["userPreferred"],
-                image=content["media"]["coverImage"]["large"],
+                item=item,
+                user=user,
                 score=content["score"],
                 progress=content["progress"],
                 status=status,
                 repeats=content["repeat"],
                 start_date=get_date(content["startedAt"]),
                 end_date=get_date(content["completedAt"]),
-                user=user,
                 notes=notes,
             )
             bulk_media.append(instance)

@@ -88,18 +88,25 @@ def add_media_list(response, media_type, user):
         except KeyError:
             image_url = settings.IMG_NONE
 
+        item, _ = app.models.Item.objects.get_or_create(
+            media_id=content["node"]["id"],
+            media_type=media_type,
+            defaults={
+                "title": content["node"]["title"],
+                "image": image_url,
+            },
+        )
+
         model = apps.get_model(app_label="app", model_name=media_type)
         instance = model(
-            media_id=content["node"]["id"],
-            title=content["node"]["title"],
-            image=image_url,
+            item=item,
+            user=user,
             score=list_status["score"],
             progress=progress,
             status=status,
             repeats=repeats,
             start_date=list_status.get("start_date", None),
             end_date=list_status.get("finish_date", None),
-            user=user,
             notes=list_status["comments"],
         )
         bulk_media.append(instance)

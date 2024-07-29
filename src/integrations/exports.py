@@ -2,35 +2,25 @@ import csv
 import logging
 
 from app import helpers
-from app.models import TV, Anime, Episode, Game, Manga, Movie, Season
+from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
+from django.apps import apps
+from django.db.models import Field
 
 logger = logging.getLogger(__name__)
 
 
 def db_to_csv(response, user):
     """Export a CSV file of the user's media."""
-    fields = [
-        "media_id",
-        "media_type",
-        "title",
-        "image",
-        "score",
-        "progress",
-        "status",
-        "repeats",
-        "start_date",
-        "end_date",
-        "notes",
-        "season_number",
-        "episode_number",
-        "watch_date",
-    ]
+    fields = {
+        "item": get_model_fields(Item),
+        "track": get_track_fields(),
+    }
 
     writer = csv.writer(response, quoting=csv.QUOTE_ALL)
-    writer.writerow(fields)
+    writer.writerow(fields["item"] + fields["track"])
 
-    write_model_to_csv(writer, fields, TV.objects.filter(user=user), "tv")
     write_model_to_csv(writer, fields, Movie.objects.filter(user=user), "movie")
+    write_model_to_csv(writer, fields, TV.objects.filter(user=user), "tv")
     write_model_to_csv(writer, fields, Season.objects.filter(user=user), "season")
     write_model_to_csv(
         writer,
@@ -45,22 +35,43 @@ def db_to_csv(response, user):
     return response
 
 
+def get_model_fields(model):
+    """Get a list of fields names from a model."""
+    return [
+        field.name
+        for field in model._meta.get_fields() # noqa: SLF001
+        if isinstance(field, Field) and not field.auto_created and not field.is_relation
+    ]
+
+
+def get_track_fields():
+    """Get a list of all track fields from all media models."""
+    media_models = ["Anime", "Manga", "Movie", "TV", "Season", "Episode", "Game"]
+    all_fields = []
+
+    for model_name in media_models:
+        model = apps.get_model("app", model_name)
+        for field in get_model_fields(model):
+            if field not in all_fields:
+                all_fields.append(field)
+    return list(all_fields)
+
+
 def write_model_to_csv(writer, fields, queryset, media_type):
     """Export entries from a model to a CSV file."""
     logger.info("Adding %ss to CSV", media_type)
 
-    for item in queryset:
-        # write fields if they exist, otherwise write empty string
-        row = [getattr(item, field, "") for field in fields]
+    for media in queryset:
+        # row with item and track fields
+        row = [getattr(media.item, field, "") for field in fields["item"]] + [
+            getattr(media, field, "") for field in fields["track"]
+        ]
 
-        # add media type to media_type field
-        row[fields.index("media_type")] = media_type
-
-        if media_type == "episode":
-            row[fields.index("media_id")] = item.related_season.media_id
-            row[fields.index("title")] = item.related_season.title
-            row[fields.index("season_number")] = item.related_season.season_number
         if media_type == "game":
-            row[fields.index("progress")] = helpers.minutes_to_hhmm(item.progress)
+            # calculate index of progress field
+            progress_index = fields["track"].index("progress")
+            row[progress_index + len(fields["item"])] = helpers.minutes_to_hhmm(
+                media.progress,
+            )
 
         writer.writerow(row)
