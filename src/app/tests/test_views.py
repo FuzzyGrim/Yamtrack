@@ -30,6 +30,8 @@ class CreateMedia(TestCase):
             {
                 "item": item.id,
                 "status": "Planning",
+                "progress": 0,
+                "repeats": 0,
             },
         )
         self.assertEqual(
@@ -81,18 +83,12 @@ class CreateMedia(TestCase):
 
     def test_create_episodes(self):
         """Test the creation of Episode through views."""
-        item = Item.objects.create(
-            media_id=1668,
-            media_type="episode",
-            title="Friends",
-            image="http://example.com/image.jpg",
-            season_number=1,
-            episode_number=1,
-        )
         self.client.post(
             reverse("episode_handler"),
             {
-                "item": item.id,
+                "media_id": 1668,
+                "season_number": 1,
+                "episode_number": 1,
                 "date": "2023-06-01",
             },
         )
@@ -100,7 +96,7 @@ class CreateMedia(TestCase):
             Episode.objects.filter(
                 item__media_id=1668,
                 related_season__user=self.user,
-                episode_number=1,
+                item__episode_number=1,
             ).exists(),
             True,
         )
@@ -218,11 +214,11 @@ class DeleteMedia(TestCase):
     def test_unwatch_episode(self):
         """Test unwatching of an episode through views."""
         self.client.post(
-            reverse(
-                "episode_handler",
-            ),
+            reverse("episode_handler"),
             {
-                "item": self.item_ep.id,
+                "media_id": 1668,
+                "season_number": 1,
+                "episode_number": 1,
                 "unwatch": "",
             },
         )
@@ -242,26 +238,43 @@ class ProgressEditSeason(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
+        item_tv = Item.objects.create(
+            media_id=1668,
+            media_type="tv",
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
         tv = TV.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
+            item=item_tv,
             user=self.user,
-            notes="",
+            status="In progress",
         )
 
-        Season.objects.create(
+        self.item_season = Item.objects.create(
             media_id=1668,
+            media_type="season",
             title="Friends",
-            status="In progress",
+            image="http://example.com/image.jpg",
             season_number=1,
-            user=self.user,
+        )
+        season = Season.objects.create(
+            item=self.item_season,
             related_tv=tv,
+            user=self.user,
+            status="In progress",
         )
 
-        Episode.objects.create(
-            related_season=Season.objects.get(media_id=1668),
+        item_ep = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
             episode_number=1,
+        )
+        Episode.objects.create(
+            item=item_ep,
+            related_season=season,
             watch_date=datetime.date(2023, 6, 1),
         )
 
@@ -270,23 +283,21 @@ class ProgressEditSeason(TestCase):
         self.client.post(
             reverse("progress_edit"),
             {
-                "media_id": 1668,
-                "media_type": "season",
+                "item": self.item_season.id,
                 "operation": "increase",
-                "season_number": 1,
             },
         )
 
         self.assertEqual(
-            Episode.objects.filter(related_season__media_id=1668).count(),
+            Episode.objects.filter(item__media_id=1668).count(),
             2,
         )
 
         # episode with media_id 1668 and episode_number 2 should exist
         self.assertTrue(
             Episode.objects.filter(
-                related_season__media_id=1668,
-                episode_number=2,
+                item__media_id=1668,
+                item__episode_number=2,
             ).exists(),
         )
 
@@ -295,15 +306,13 @@ class ProgressEditSeason(TestCase):
         self.client.post(
             reverse("progress_edit"),
             {
-                "media_id": 1668,
-                "media_type": "season",
+                "item": self.item_season.id,
                 "operation": "decrease",
-                "season_number": 1,
             },
         )
 
         self.assertEqual(
-            Episode.objects.filter(related_season__media_id=1668).count(),
+            Episode.objects.filter(item__media_id=1668).count(),
             0,
         )
 
@@ -317,12 +326,17 @@ class ProgressEditAnime(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-        Anime.objects.create(
+        self.item = Item.objects.create(
             media_id=1,
+            media_type="anime",
             title="Cowboy Bebop",
+            image="http://example.com/image.jpg",
+        )
+        Anime.objects.create(
+            item=self.item,
+            user=self.user,
             status="In progress",
             progress=2,
-            user=self.user,
         )
 
     def test_progress_increase(self):
@@ -330,23 +344,21 @@ class ProgressEditAnime(TestCase):
         self.client.post(
             reverse("progress_edit"),
             {
-                "media_id": 1,
-                "media_type": "anime",
+                "item": self.item.id,
                 "operation": "increase",
             },
         )
 
-        self.assertEqual(Anime.objects.get(media_id=1).progress, 3)
+        self.assertEqual(Anime.objects.get(item__media_id=1).progress, 3)
 
     def test_progress_decrease(self):
         """Test the decrease of progress for an anime."""
         self.client.post(
             reverse("progress_edit"),
             {
-                "media_id": 1,
-                "media_type": "anime",
+                "item": self.item.id,
                 "operation": "decrease",
             },
         )
 
-        self.assertEqual(Anime.objects.get(media_id=1).progress, 1)
+        self.assertEqual(Anime.objects.get(item__media_id=1).progress, 1)

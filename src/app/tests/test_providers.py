@@ -65,8 +65,8 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["status"], "Finished")
         self.assertEqual(response["details"]["number_of_episodes"], 26)
 
-    @patch("requests.get")
-    def test_anime_unknown(self, mock_data: "patch"):
+    @patch("requests.Session.get")
+    def test_anime_unknown(self, mock_data):
         """Test the metadata method for anime with mostly unknown data."""
         with Path(mock_path / "metadata_anime_unknown.json").open() as file:
             anime_response = json.load(file)
@@ -104,8 +104,8 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["release_date"], "1998-02-28")
         self.assertEqual(response["details"]["status"], "Released")
 
-    @patch("requests.get")
-    def test_movie_unknown(self, mock_data: "patch"):
+    @patch("requests.Session.get")
+    def test_movie_unknown(self, mock_data):
         """Test the metadata method for movies with mostly unknown data."""
         with Path(mock_path / "metadata_movie_unknown.json").open() as file:
             movie_response = json.load(file)
