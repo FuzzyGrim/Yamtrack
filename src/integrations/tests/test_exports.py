@@ -2,7 +2,7 @@ import csv
 from datetime import date
 from io import StringIO
 
-from app.models import TV, Anime, Episode, Game, Manga, Movie, Season
+from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
 from django.test import TestCase
 from django.urls import reverse
 from users.models import User
@@ -17,67 +17,107 @@ class ExportCSVTest(TestCase):
         self.user = User.objects.create_superuser(**self.credentials)
         self.client.login(**self.credentials)
 
+        item_tv = Item.objects.create(
+            media_id=1668,
+            media_type="tv",
+            title="Friends",
+            image="https://image.url",
+        )
+
         # Create test data for each model
         tv = TV.objects.create(
-            media_id=1668,
-            title="Friends",
+            item=item_tv,
+            user=self.user,
             score=9,
             status="In progress",
-            user=self.user,
             notes="Nice",
         )
 
-        Movie.objects.create(
+        item_movie = Item.objects.create(
             media_id=10494,
+            media_type="movie",
             title="Perfect Blue",
+            image="https://image.url",
+        )
+        Movie.objects.create(
+            item=item_movie,
+            user=self.user,
             score=9,
             status="Completed",
-            user=self.user,
             notes="Nice",
             start_date=date(2023, 6, 1),
             end_date=date(2023, 6, 1),
         )
 
-        season = Season.objects.create(
+        item_season = Item.objects.create(
             media_id=1668,
+            media_type="season",
             title="Friends",
-            score=9,
-            status="In progress",
+            image="https://image.url",
             season_number=1,
-            user=self.user,
-            notes="Nice",
-            related_tv=tv,
         )
 
-        Episode.objects.create(
-            related_season=season,
+        season = Season.objects.create(
+            item=item_season,
+            related_tv=tv,
+            user=self.user,
+            score=9,
+            status="In progress",
+            notes="Nice",
+        )
+
+        item_episode = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="https://image.url",
+            season_number=1,
             episode_number=1,
+        )
+        Episode.objects.create(
+            item=item_episode,
+            related_season=season,
             watch_date=date(2023, 6, 1),
         )
 
-        Anime.objects.create(
+        item_anime = Item.objects.create(
             media_id=1,
+            media_type="anime",
             title="Cowboy Bebop",
-            status="In progress",
+            image="https://image.url",
+        )
+        Anime.objects.create(
+            item=item_anime,
             user=self.user,
+            status="In progress",
             progress=2,
             start_date=date(2021, 6, 1),
         )
 
-        Manga.objects.create(
+        item_manga = Item.objects.create(
             media_id=1,
+            media_type="manga",
             title="Berserk",
-            status="In progress",
+            image="https://image.url",
+        )
+        Manga.objects.create(
+            item=item_manga,
             user=self.user,
+            status="In progress",
             progress=2,
             start_date=date(2021, 6, 1),
         )
 
-        Game.objects.create(
+        item_game = Item.objects.create(
             media_id=1,
+            media_type="game",
             title="The Witcher 3: Wild Hunt",
-            status="In progress",
+            image="https://image.url",
+        )
+        Game.objects.create(
+            item=item_game,
             user=self.user,
+            status="In progress",
             progress=120,
             start_date=date(2021, 6, 1),
         )
@@ -101,27 +141,37 @@ class ExportCSVTest(TestCase):
 
         # Get all media IDs from the database
         db_media_ids = set(
-            TV.objects.values_list("media_id", flat=True).filter(user=self.user),
+            TV.objects.values_list("item__media_id", flat=True).filter(user=self.user),
         )
         db_media_ids.update(
-            Movie.objects.values_list("media_id", flat=True).filter(user=self.user),
+            Movie.objects.values_list("item__media_id", flat=True).filter(
+                user=self.user,
+            ),
         )
         db_media_ids.update(
-            Season.objects.values_list("media_id", flat=True).filter(user=self.user),
+            Season.objects.values_list("item__media_id", flat=True).filter(
+                user=self.user,
+            ),
         )
         db_media_ids.update(
-            Episode.objects.values_list("related_season__media_id", flat=True).filter(
+            Episode.objects.values_list("item__media_id", flat=True).filter(
                 related_season__user=self.user,
             ),
         )
         db_media_ids.update(
-            Anime.objects.values_list("media_id", flat=True).filter(user=self.user),
+            Anime.objects.values_list("item__media_id", flat=True).filter(
+                user=self.user,
+            ),
         )
         db_media_ids.update(
-            Manga.objects.values_list("media_id", flat=True).filter(user=self.user),
+            Manga.objects.values_list("item__media_id", flat=True).filter(
+                user=self.user,
+            ),
         )
         db_media_ids.update(
-            Game.objects.values_list("media_id", flat=True).filter(user=self.user),
+            Game.objects.values_list("item__media_id", flat=True).filter(
+                user=self.user,
+            ),
         )
 
         for row in reader:
