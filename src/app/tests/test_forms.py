@@ -17,9 +17,8 @@ class BasicMediaForm(TestCase):
             media_id=1,
             media_type="anime",
             title="Test Anime",
-            image="http://example.com/image.jpg"
+            image="http://example.com/image.jpg",
         )
-
 
     def test_valid_media_form(self):
         """Test the standard media form with valid data."""
@@ -86,7 +85,7 @@ class BasicGameForm(TestCase):
             media_id=1,
             media_type="game",
             title="Test Game",
-            image="http://example.com/image.jpg"
+            image="http://example.com/image.jpg",
         )
 
     def test_default_progress(self):
