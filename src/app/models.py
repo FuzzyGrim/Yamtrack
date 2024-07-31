@@ -473,6 +473,7 @@ class Season(Media):
             tv = TV.objects.get(
                 item__media_id=self.item.media_id,
                 item__media_type="tv",
+                item__season_number=None,
                 user=self.user,
             )
         except TV.DoesNotExist:

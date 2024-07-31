@@ -265,37 +265,41 @@ def media_delete(request):
 
     return helpers.redirect_back(request)
 
-
 @require_POST
 def episode_handler(request):
     """Handle the creation, deletion, and updating of episodes for a season."""
     media_id = request.POST["media_id"]
     season_number = request.POST["season_number"]
+    episode_number = request.POST["episode_number"]
 
     try:
         related_season = Season.objects.get(
-            media_id=media_id,
+            item__media_id=media_id,
+            item__season_number=season_number,
+            item__episode_number=None,
             user=request.user,
-            season_number=season_number,
         )
     except Season.DoesNotExist:
         season_metadata = tmdb.season(media_id, season_number)
-        related_season = Season(
+        item = Item.objects.create(
             media_id=media_id,
+            media_type="season",
+            season_number=season_number,
+            title=season_metadata["title"],
             image=season_metadata["image"],
+        )
+        related_season = Season(
+            item=item,
+            user=request.user,
             score=None,
             status=STATUS_IN_PROGRESS,
             notes="",
-            user=request.user,
-            season_number=season_number,
         )
         related_season.related_tv = related_season.get_tv()
-        related_season.title = related_season.related_tv.title
 
-        Season.save(related_season)
+        related_season.save()
         logger.info("%s did not exist, it was created successfully.", related_season)
 
-    episode_number = request.POST["episode_number"]
     if "unwatch" in request.POST:
         related_season.unwatch(episode_number)
 
@@ -305,7 +309,6 @@ def episode_handler(request):
         else:
             # set watch date from form
             watch_date = request.POST["date"]
-
         related_season.watch(episode_number, watch_date)
 
     return helpers.redirect_back(request)
