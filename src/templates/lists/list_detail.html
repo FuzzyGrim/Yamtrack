@@ -64,7 +64,7 @@
   <div class="grid mt-5">
     {% for media in custom_list.items.all %}
       <div class="card">
-        <a href="{% if media.item.media_type == "season" or media.item.media_type == "episode" %} {% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %} {% else %} {% url 'media_details' media_type=media.item.media_type media_id=media.media_id title=media.title|slug %} {% endif %}">
+        <a href="{% if media.media_type == "season" or media.media_type == "episode" %} {% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %} {% else %} {% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slug %} {% endif %}">
           <img src="{{ media.image }}"
                class="card-img {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
                alt="{{ media.title }}" />
