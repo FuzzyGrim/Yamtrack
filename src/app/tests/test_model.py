@@ -6,9 +6,45 @@ from django.conf import settings
 from django.test import TestCase
 from users.models import User
 
-from app.models import TV, Anime, Episode, Movie, Season
+from app.models import TV, Anime, Episode, Item, Season
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
+
+
+class ItemModel(TestCase):
+    """Test case for the Item model."""
+
+    def setUp(self):
+        """Set up test data for Item model."""
+        self.item = Item.objects.create(
+            media_id=1,
+            media_type="movie",
+            title="Test Movie",
+            image="http://example.com/image.jpg",
+        )
+
+    def test_item_creation(self):
+        """Test the creation of an Item instance."""
+        self.assertEqual(self.item.media_id, 1)
+        self.assertEqual(self.item.media_type, "movie")
+        self.assertEqual(self.item.title, "Test Movie")
+        self.assertEqual(self.item.image, "http://example.com/image.jpg")
+
+    def test_item_str_representation(self):
+        """Test the string representation of an Item."""
+        self.assertEqual(str(self.item), "Test Movie")
+
+    def test_item_with_season_and_episode(self):
+        """Test the string representation of an Item with season and episode."""
+        item = Item.objects.create(
+            media_id=2,
+            media_type="tv",
+            title="Test Show",
+            image="http://example.com/image2.jpg",
+            season_number=1,
+            episode_number=2,
+        )
+        self.assertEqual(str(item), "Test Show S1E2")
 
 
 class MediaModel(TestCase):
@@ -19,81 +55,73 @@ class MediaModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
+        item_anime = Item.objects.create(
+            media_id=1,
+            media_type="anime",
+            title="Cowboy Bebop",
+            image="http://example.com/image.jpg",
+        )
+
+        self.anime = Anime.objects.create(
+            item=item_anime,
+            user=self.user,
+            status="Planned",
+        )
+
     def test_completed_no_end(self):
         """When completed, if not specified end_date, it should be the current date."""
-        Movie.objects.create(
-            media_id=10494,
-            title="Perfect Blue",
-            status="Completed",
-            user=self.user,
-            notes="",
-        )
+        self.anime.status = "Completed"
+        self.anime.save()
+
         self.assertEqual(
-            Movie.objects.get(media_id=10494, user=self.user).end_date,
+            Anime.objects.get(item__media_id=1, user=self.user).end_date,
             datetime.datetime.now(tz=settings.TZ).date(),
         )
 
     def test_completed_end(self):
         """When completed, if specified end_date, it should be the specified date."""
-        Movie.objects.create(
-            media_id=10494,
-            title="Perfect Blue",
-            status="Completed",
-            user=self.user,
-            notes="",
-            end_date=date(2023, 6, 1),
-        )
+        self.anime.status = "Completed"
+        self.anime.end_date = "2023-06-01"
+        self.anime.save()
         self.assertEqual(
-            Movie.objects.get(media_id=10494, user=self.user).end_date,
+            Anime.objects.get(item__media_id=1, user=self.user).end_date,
             date(2023, 6, 1),
         )
 
     def test_completed_progress(self):
         """When completed, the progress should be the total number of episodes."""
-        Anime.objects.create(
-            media_id=1,
-            title="Cowboy Bebop",
-            status="Completed",
-            user=self.user,
-            notes="",
+        self.anime.status = "Completed"
+        self.anime.save()
+        self.assertEqual(
+            Anime.objects.get(item__media_id=1, user=self.user).progress,
+            26,
         )
-        self.assertEqual(Anime.objects.get(media_id=1, user=self.user).progress, 26)
-
 
     def test_completed_from_repeating(self):
         """When completed from repeating, repeats should be incremented."""
-        anime = Anime.objects.create(
-            media_id=1,
-            title="Cowboy Bebop",
-            status="Repeating",
-            user=self.user,
-            notes="",
-        )
+        self.anime.status = "Repeating"
+        self.anime.save()
 
-        anime.status = "Completed"
-        anime.save()
+        self.anime.status = "Completed"
+        self.anime.save()
 
-        self.assertEqual(Anime.objects.get(media_id=1, user=self.user).repeats, 1)
+        self.assertEqual(Anime.objects.get(item__media_id=1, user=self.user).repeats, 1)
 
     def test_progress_is_max(self):
         """When progress is maximum number of episodes.
 
         Status should be completed and end_date the current date if not specified.
         """
-        Anime.objects.create(
-            media_id=1,
-            title="Cowboy Bebop",
-            status="In progress",
-            progress=26,
-            user=self.user,
-            notes="",
-        )
+        self.anime.status = "In progress"
+        self.anime.progress = 26
+        self.anime.save()
+
         self.assertEqual(
-            Anime.objects.get(media_id=1, user=self.user).status,
+            Anime.objects.get(item__media_id=1, user=self.user).status,
             "Completed",
         )
         self.assertEqual(
-            Anime.objects.get(media_id=1, user=self.user).end_date,
+            Anime.objects.get(item__media_id=1, user=self.user).end_date,
             datetime.datetime.now(tz=settings.TZ).date(),
         )
 
@@ -102,32 +130,24 @@ class MediaModel(TestCase):
 
         Repeat should be incremented.
         """
-        anime = Anime.objects.create(
-            media_id=1,
-            title="Cowboy Bebop",
-            status="Repeating",
-            progress=25,
-            user=self.user,
-            notes="",
-        )
-        anime.progress = 26
-        anime.save()
+        self.anime.status = "Repeating"
+        self.anime.save()
+        self.anime.progress = 26
+        self.anime.save()
         self.assertEqual(
-            Anime.objects.get(media_id=1, user=self.user).repeats,
+            Anime.objects.get(item__media_id=1, user=self.user).repeats,
             1,
         )
 
     def test_progress_bigger_than_max(self):
         """When progress is bigger than max, it should be set to max."""
-        Anime.objects.create(
-            media_id=1,
-            title="Cowboy Bebop",
-            status="In progress",
-            progress=30,
-            user=self.user,
-            notes="",
+        self.anime.status = "In progress"
+        self.anime.progress = 30
+        self.anime.save()
+        self.assertEqual(
+            Anime.objects.get(item__media_id=1, user=self.user).progress,
+            26,
         )
-        self.assertEqual(Anime.objects.get(media_id=1, user=self.user).progress, 26)
 
 
 class TVModel(TestCase):
@@ -138,77 +158,128 @@ class TVModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-        tv = TV.objects.create(
+        item_tv = Item.objects.create(
             media_id=1668,
+            media_type="tv",
             title="Friends",
-            status="In progress",
+            image="http://example.com/image.jpg",
+        )
+
+        self.tv = TV.objects.create(
+            item=item_tv,
             user=self.user,
+            status="In progress",
             notes="",
         )
 
-        # create first season
-        season = Season.objects.create(
+        item_season1 = Item.objects.create(
             media_id=1668,
+            media_type="season",
             title="Friends",
-            status="In progress",
+            image="http://example.com/image.jpg",
             season_number=1,
+        )
+
+        # create first season
+        season1 = Season.objects.create(
+            item=item_season1,
+            related_tv=self.tv,
             user=self.user,
-            related_tv=tv,
+            status="In progress",
+        )
+
+        item_ep1 = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
         )
         Episode.objects.create(
-            related_season=season,
-            episode_number=1,
+            item=item_ep1,
+            related_season=season1,
             watch_date=date(2023, 6, 1),
         )
-        Episode.objects.create(
-            related_season=season,
+
+        item_ep2 = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
             episode_number=2,
+        )
+        Episode.objects.create(
+            item=item_ep2,
+            related_season=season1,
             watch_date=date(2023, 6, 2),
+        )
+
+
+        item_season2 = Item.objects.create(
+            media_id=1668,
+            media_type="season",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=2,
         )
 
         # create second season
         season2 = Season.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
-            season_number=2,
+            item=item_season2,
+            related_tv=self.tv,
             user=self.user,
-            related_tv=tv,
+            status="In progress",
+        )
+
+        item_ep3 = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=2,
+            episode_number=1,
         )
         Episode.objects.create(
+            item=item_ep3,
             related_season=season2,
-            episode_number=1,
             watch_date=date(2023, 6, 4),
         )
-        Episode.objects.create(
-            related_season=season2,
+
+        item_ep4 = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=2,
             episode_number=2,
+        )
+        Episode.objects.create(
+            item=item_ep4,
+            related_season=season2,
             watch_date=date(2023, 6, 5),
         )
 
     def test_tv_progress(self):
         """Test the progress property of the Season model."""
-        tv = TV.objects.get(media_id=1668, user=self.user)
-        self.assertEqual(tv.progress, 4)
+        self.assertEqual(self.tv.progress, 4)
 
     def test_tv_start_date(self):
         """Test the start_date property of the Season model."""
-        tv = TV.objects.get(media_id=1668, user=self.user)
-        self.assertEqual(tv.start_date, date(2023, 6, 1))
+        self.assertEqual(self.tv.start_date, date(2023, 6, 1))
 
     def test_tv_end_date(self):
         """Test the end_date property of the Season model."""
-        tv = TV.objects.get(media_id=1668, user=self.user)
-        self.assertEqual(tv.end_date, date(2023, 6, 5))
+        self.assertEqual(self.tv.end_date, date(2023, 6, 5))
 
     def test_tv_save(self):
         """Test the custom save method of the TV model."""
-        tv = TV.objects.get(media_id=1668, user=self.user)
-        tv.status = "Completed"
-        tv.save(update_fields=["status"])
+        self.tv.status = "Completed"
+        self.tv.save(update_fields=["status"])
 
         # check if all seasons are created with the status "Completed"
-        self.assertEqual(tv.seasons.filter(status="Completed").count(), 10)
+        self.assertEqual(self.tv.seasons.filter(status="Completed").count(), 10)
 
 
 class SeasonModel(TestCase):
@@ -219,55 +290,81 @@ class SeasonModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-        related_tv = TV.objects.create(
+        item_tv = Item.objects.create(
             media_id=1668,
+            media_type="tv",
             title="Friends",
-            status="In progress",
-            user=self.user,
+            image="http://example.com/image.jpg",
         )
 
-        season = Season.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
-            season_number=1,
+        related_tv = TV.objects.create(
+            item=item_tv,
             user=self.user,
+            status="In progress",
+        )
+
+        item_season = Item.objects.create(
+            media_id=1668,
+            media_type="season",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+
+        self.season = Season.objects.create(
+            item=item_season,
             related_tv=related_tv,
+            user=self.user,
+            status="In progress",
+        )
+
+        item_ep1 = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
         )
         Episode.objects.create(
-            related_season=season,
-            episode_number=1,
+            item=item_ep1,
+            related_season=self.season,
             watch_date=date(2023, 6, 1),
         )
-        Episode.objects.create(
-            related_season=season,
+
+        item_ep2 = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
             episode_number=2,
+        )
+        Episode.objects.create(
+            item=item_ep2,
+            related_season=self.season,
             watch_date=date(2023, 6, 2),
         )
 
     def test_season_progress(self):
         """Test the progress property of the Season model."""
-        season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
-        self.assertEqual(season.progress, 2)
+        self.assertEqual(self.season.progress, 2)
 
     def test_season_start_date(self):
         """Test the start_date property of the Season model."""
-        season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
-        self.assertEqual(season.start_date, date(2023, 6, 1))
+        self.assertEqual(self.season.start_date, date(2023, 6, 1))
 
     def test_season_end_date(self):
         """Test the end_date property of the Season model."""
-        season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
-        self.assertEqual(season.end_date, date(2023, 6, 2))
+        self.assertEqual(self.season.end_date, date(2023, 6, 2))
 
     def test_season_save(self):
         """Test the custom save method of the Season model."""
-        season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
-        season.status = "Completed"
-        season.save(update_fields=["status"])
+        self.season.status = "Completed"
+        self.season.save(update_fields=["status"])
 
         # check if all episodes are created
-        self.assertEqual(season.episodes.count(), 24)
+        self.assertEqual(self.season.episodes.count(), 24)
 
 
 class EpisodeModel(TestCase):
@@ -278,34 +375,52 @@ class EpisodeModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-        related_tv = TV.objects.create(
+        item_tv = Item.objects.create(
             media_id=1668,
+            media_type="tv",
             title="Friends",
-            status="In progress",
-            user=self.user,
-            notes="",
+            image="http://example.com/image.jpg",
         )
 
-        Season.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
-            season_number=1,
+        related_tv = TV.objects.create(
+            item=item_tv,
             user=self.user,
             notes="",
+            status="In progress",
+        )
+
+        item_season = Item.objects.create(
+            media_id=1668,
+            media_type="season",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+
+        self.season = Season.objects.create(
+            item=item_season,
             related_tv=related_tv,
+            user=self.user,
+            status="In progress",
+            notes="",
         )
 
     def test_episode_save(self):
         """Test the custom save method of the Episode model."""
-        season = Season.objects.get(media_id=1668, season_number=1, user=self.user)
-
         for i in range(1, 25):
-            Episode.objects.create(
-                related_season=season,
+            item_episode = Item.objects.create(
+                media_id=1668,
+                media_type="episode",
+                title="Friends",
+                image="http://example.com/image.jpg",
+                season_number=1,
                 episode_number=i,
+            )
+            Episode.objects.create(
+                item=item_episode,
+                related_season=self.season,
                 watch_date=date(2023, 6, i),
             )
 
         # if when all episodes are created, the season status should be "Completed"
-        self.assertEqual(season.status, "Completed")
+        self.assertEqual(self.season.status, "Completed")

@@ -2,7 +2,7 @@
 
 ![App Tests](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/app-tests.yml/badge.svg)
 ![Docker Image](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/docker-image.yml/badge.svg)
-![Image Size](https://ghcr-badge.egpl.dev/fuzzygrim/yamtrack/size)
+![Image Size](https://ghcr-badge.egpl.dev/fuzzygrim/yamtrack/size?tag=dev)
 ![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtrack/badge)
 ![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/dev/graph/badge.svg?token=PWUG660120)
 ![GitHub](https://img.shields.io/badge/license-GPL--3.0-blue)
@@ -17,8 +17,9 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 - Track each season of a tv show individually and episodes watched
 - Save score, status, progress, repeats (rewatches, rereads...), start and end dates, or write a note.
 - Keep a tracking history with each action with a media, such as when you added it, when you started it, when you started watching it again, etc.
-- Docker support
-- Multi-users support
+- Use personal lists to organize your media for any purpose, add other members to collaborate on your lists.
+- Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
+- Multi-users functionality allowing individual accounts with personalized tracking.
 - Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/).
 - Export all your tracked media to a CSV file and import it back.
 
@@ -95,7 +96,7 @@ DEBUG=True
 Then run the following commands.
 
 ```bash
-python -m pip install -U -r requirements_dev.txt
+python -m pip install -U -r requirements-dev.txt
 cd src
 python manage.py migrate
 python manage.py runserver & celery --app config worker -l DEBUG

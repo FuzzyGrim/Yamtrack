@@ -1,7 +1,6 @@
 """Contains views for importing and exporting media data from various sources."""
 
 import logging
-from functools import wraps
 
 from django.contrib import messages
 from django.http import HttpResponse
@@ -13,21 +12,6 @@ from integrations import exports, tasks
 logger = logging.getLogger(__name__)
 
 
-def check_demo(view):
-    """Check if the user is a demo account, used as decorator."""
-
-    @wraps(view)
-    def wrapper(request, *args, **kwargs):
-        if request.user.is_demo:
-            messages.error(request, "Demo accounts are not allowed to import.")
-            return redirect("profile")
-
-        return view(request, *args, **kwargs)
-
-    return wrapper
-
-
-@check_demo
 @require_POST
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
@@ -37,7 +21,6 @@ def import_mal(request):
     return redirect("profile")
 
 
-@check_demo
 @require_POST
 def import_tmdb_ratings(request):
     """View for importing TMDB movie and TV ratings."""
@@ -50,7 +33,6 @@ def import_tmdb_ratings(request):
     return redirect("profile")
 
 
-@check_demo
 @require_POST
 def import_tmdb_watchlist(request):
     """View for importing TMDB movie and TV watchlist."""
@@ -63,7 +45,6 @@ def import_tmdb_watchlist(request):
     return redirect("profile")
 
 
-@check_demo
 @require_POST
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
@@ -73,7 +54,6 @@ def import_anilist(request):
     return redirect("profile")
 
 
-@check_demo
 @require_POST
 def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""

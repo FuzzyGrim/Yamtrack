@@ -21,7 +21,7 @@ class ImportMAL(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    @patch("requests.get")
+    @patch("requests.Session.get")
     def test_import_animelist(self, mock_request):
         """Basic test importing anime and manga from MyAnimeList."""
         with Path(mock_path / "import_mal_anime.json").open() as file:
@@ -39,15 +39,18 @@ class ImportMAL(TestCase):
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
-            Anime.objects.get(user=self.user, title="Ama Gli Animali").image,
+            Anime.objects.get(
+                user=self.user,
+                item__title="Ama Gli Animali",
+            ).item.image,
             settings.IMG_NONE,
         )
         self.assertEqual(
-            Anime.objects.get(user=self.user, title="FLCL").status,
+            Anime.objects.get(user=self.user, item__title="FLCL").status,
             "Paused",
         )
         self.assertEqual(
-            Manga.objects.get(user=self.user, title="Fire Punch").score,
+            Manga.objects.get(user=self.user, item__title="Fire Punch").score,
             7,
         )
 
@@ -92,8 +95,8 @@ class ImportAniList(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
 
-    @patch("requests.post")
-    def test_import_anilist(self, mock_request: "patch"):
+    @patch("requests.Session.post")
+    def test_import_anilist(self, mock_request):
         """Basic test importing anime and manga from AniList."""
         with Path(mock_path / "import_anilist.json").open() as file:
             anilist_response = json.load(file)
@@ -103,11 +106,11 @@ class ImportAniList(TestCase):
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
-            Anime.objects.get(user=self.user, title="FLCL").status,
+            Anime.objects.get(user=self.user, item__title="FLCL").status,
             "Paused",
         )
         self.assertEqual(
-            Manga.objects.get(user=self.user, title="One Punch-Man").score,
+            Manga.objects.get(user=self.user, item__title="One Punch-Man").score,
             9,
         )
 

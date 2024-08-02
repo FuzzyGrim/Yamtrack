@@ -1,7 +1,7 @@
 from simple_history.utils import bulk_create_with_history
 
 
-def bulk_chunk_import(media_list, model):
+def bulk_chunk_import(media_list, model, user):
     """Bulk import media in chunks.
 
     Fixes bulk_create_with_history limit
@@ -13,4 +13,5 @@ def bulk_chunk_import(media_list, model):
             media_list[i : i + chunk_size],
             model,
             ignore_conflicts=True,
+            default_user=user,
         )

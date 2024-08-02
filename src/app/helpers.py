@@ -18,3 +18,4 @@ def redirect_back(request):
         url = iri_to_uri(request.GET["next"])
         return redirect(url)
     return redirect("home")
+

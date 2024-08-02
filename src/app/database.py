@@ -1,34 +1,75 @@
-def get_media_list_by_type(user, media_types):
-    """Get media items by type for a user."""
-    list_by_type = {}
-    for model, media_type, prefetch_related in media_types:
-        media_list = model.objects.filter(
-            user=user,
-            status__in=["Repeating", "In progress"],
+from django.apps import apps
+from django.db.models import F
+
+from app import models
+from app.models import Item
+
+
+def get_media_list(user, media_type, status_filter, sort_filter):
+    """Get media list based on filters and sorting."""
+    model = apps.get_model(app_label="app", model_name=media_type)
+    queryset = model.objects.filter(user=user.id)
+
+    if "All" not in status_filter:
+        queryset = queryset.filter(status__in=status_filter)
+
+    # Apply prefetch related based on media type
+    prefetch_map = {
+        "tv": ["seasons", "seasons__episodes"],
+        "season": ["episodes", "episodes__item"],
+        "default": [None],
+    }
+    prefetch_related_fields = prefetch_map.get(media_type, prefetch_map["default"])
+    queryset = queryset.prefetch_related(*prefetch_related_fields).select_related(
+        "item",
+    )
+
+    sort_is_property = sort_filter in get_properties(model)
+    sort_is_item_field = sort_filter in get_fields(Item)
+    if media_type in ("tv", "season") and sort_is_property:
+        return sorted(queryset, key=lambda x: getattr(x, sort_filter), reverse=True)
+
+    if sort_is_item_field:
+        sort_field = f"item__{sort_filter}"
+        return queryset.order_by(
+            F(sort_field).asc() if sort_filter == "title" else F(sort_field).desc(),
         )
-        if prefetch_related:
-            media_list = media_list.prefetch_related(prefetch_related)
+    return queryset.order_by(F(sort_filter).desc(nulls_last=True))
+
+
+def get_fields(model):
+    """Get fields of a model."""
+    return [f.name for f in model._meta.fields]  # noqa: SLF001
+
+
+def get_properties(model):
+    """Get properties of a model."""
+    return [name for name in dir(model) if isinstance(getattr(model, name), property)]
+
+
+def get_media_list_by_type(user):
+    """Get media items by type for a user."""
+    media_types = ["movie", "season", "anime", "manga", "game"]
+    list_by_type = {}
+
+    for media_type in media_types:
+        media_list = get_media_list(
+            user=user,
+            media_type=media_type,
+            status_filter=[models.STATUS_IN_PROGRESS, models.STATUS_REPEATING],
+            sort_filter="score",
+        )
         if media_list:
             list_by_type[media_type] = media_list
+
     return list_by_type
 
 
-def get_search_params(media_type, media_id, season_number, episode_number, user):
+def get_search_params(media_type, item, user):
     """Get search params for media item."""
-    if media_type == "season":
-        search_params = {
-            "media_id": media_id,
-            "user": user,
-            "season_number": season_number,
-        }
-    elif media_type == "episode":
-        search_params = {
-            "related_season__media_id": media_id,
+    if media_type == "episode":
+        return {
+            "item": item,
             "related_season__user": user,
-            "related_season__season_number": season_number,
-            "episode_number": episode_number,
         }
-    else:
-        search_params = {"media_id": media_id, "user": user}
-
-    return search_params
+    return {"item": item, "user": user}

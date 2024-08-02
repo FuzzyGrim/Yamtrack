@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from app.providers import services
+import app
 from django.apps import apps
 
 from integrations import helpers
@@ -81,7 +81,7 @@ def importer(username, user):
     variables = {"userName": username}
     url = "https://graphql.anilist.co"
 
-    response = services.api_request(
+    response = app.providers.services.api_request(
         "ANILIST",
         "POST",
         url,
@@ -113,44 +113,61 @@ def import_media(media_data, media_type, user, warning_message):
     bulk_media = []
     for status_list in media_data["lists"]:
         if not status_list["isCustomList"]:
-            for content in status_list["entries"]:
-                if content["media"]["idMal"] is None:
-                    warning_message += (
-                        "\n - {} ({}): No matching MyAnimeList ID".format(
-                            content["media"]["title"]["userPreferred"],
-                            media_type.capitalize(),
-                        )
-                    )
-                else:
-                    if content["status"] == "CURRENT":
-                        status = "In progress"
-                    else:
-                        status = content["status"].capitalize()
-                    notes = content["notes"] or ""
-
-                    model_type = apps.get_model(app_label="app", model_name=media_type)
-                    instance = model_type(
-                        media_id=content["media"]["idMal"],
-                        title=content["media"]["title"]["userPreferred"],
-                        image=content["media"]["coverImage"]["large"],
-                        score=content["score"],
-                        progress=content["progress"],
-                        status=status,
-                        repeats=content["repeat"],
-                        start_date=get_date(content["startedAt"]),
-                        end_date=get_date(content["completedAt"]),
-                        user=user,
-                        notes=notes,
-                    )
-                    bulk_media.append(instance)
+            bulk_media, warning_message = process_status_list(
+                bulk_media,
+                status_list,
+                media_type,
+                user,
+                warning_message,
+            )
 
     model = apps.get_model(app_label="app", model_name=media_type)
     num_before = model.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_media, model)
+    helpers.bulk_chunk_import(bulk_media, model, user)
     num_after = model.objects.filter(user=user).count()
     num_imported = num_after - num_before
 
     return num_imported, warning_message
+
+
+def process_status_list(bulk_media, status_list, media_type, user, warning_message):
+    """Process each status list."""
+    for content in status_list["entries"]:
+        if content["media"]["idMal"] is None:
+            warning_message += (
+                f"No matching MAL ID for {content['media']['title']['userPreferred']}\n"
+            )
+        else:
+            if content["status"] == "CURRENT":
+                status = app.models.STATUS_IN_PROGRESS
+            else:
+                status = content["status"].capitalize()
+            notes = content["notes"] or ""
+
+            item, _ = app.models.Item.objects.get_or_create(
+                media_id=content["media"]["idMal"],
+                media_type=media_type,
+                defaults={
+                    "title": content["media"]["title"]["userPreferred"],
+                    "image": content["media"]["coverImage"]["large"],
+                },
+            )
+
+            model_type = apps.get_model(app_label="app", model_name=media_type)
+            instance = model_type(
+                item=item,
+                user=user,
+                score=content["score"],
+                progress=content["progress"],
+                status=status,
+                repeats=content["repeat"],
+                start_date=get_date(content["startedAt"]),
+                end_date=get_date(content["completedAt"]),
+                notes=notes,
+            )
+            bulk_media.append(instance)
+
+    return bulk_media, warning_message
 
 
 def get_date(date):

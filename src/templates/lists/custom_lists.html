@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load app_extras %}
+
+{% block css %}
+  {{ form.media.css }}
+{% endblock css %}
+
+{% block title %}
+  Lists - Yamtrack
+{% endblock title %}
+{% block container %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">My Lists</h1>
+    <button type="button"
+            class="btn btn-secondary h-75"
+            data-bs-toggle="modal"
+            data-bs-target="#create-list">Create List</button>
+  </div>
+
+  <div class="modal fade" id="create-list" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5">Create a new list</h1>
+          <button type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form method="post"
+                id="new-list-form"
+                action="{% url 'create' %}?next={{ request.path }}">
+            {% csrf_token %}
+            {{ form|crispy }}
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary" form="new-list-form">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  {% for custom_list in custom_lists %}
+    <div class="card mb-3">
+      <div class="row">
+        <div class="col-xxl-1 col-md-2 col-sm-3">
+          <a href="{% url 'list_detail' custom_list.id %}">
+            {% with first=custom_list.items.first %}
+              {% if first %}
+                <img src="{{ first.image }}"
+                     class="w-100 h-100 object-fit-cover rounded-start bg-body-secondary"
+                     alt="{{ custom_list.name }}">
+              {% else %}
+                <img src="{{ IMG_NONE }}"
+                     class="w-100 h-100 rounded-start bg-body-secondary"
+                     alt="{{ custom_list.name }}">
+              {% endif %}
+            {% endwith %}
+          </a>
+        </div>
+        <div class="col-md-9 col-sm-8 card-body pb-2 d-flex flex-column align-items-start">
+          <div class="d-flex align-items-center">
+            <a href="{% url 'list_detail' custom_list.id %}"
+               class="list-title">
+              <span class="fs-5 fw-bold">{{ custom_list.name }}</span>
+            </a>
+
+            {% with item_count=custom_list.items.count %}
+              <span class="ms-2 fw-light text-body-secondary">({{ item_count }} item{{ item_count|pluralize }})</span>
+            {% endwith %}
+          </div>
+          <p class="description mb-2">{{ custom_list.description }}</p>
+
+          <button type="button"
+                  class="btn btn-secondary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#edit-list-{{ custom_list.id }}">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Modal for each custom list -->
+    <div class="modal fade"
+         id="edit-list-{{ custom_list.id }}"
+         tabindex="-1"
+         aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5">Edit List</h1>
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+          </div>
+
+          <div class="modal-body">
+            <form method="post" id="form-{{ custom_list.id }}">
+              {% csrf_token %}
+              <input type="hidden" name="list_id" value="{{ custom_list.id }}">
+              {{ custom_list.form|crispy }}
+            </form>
+          </div>
+          <div class="modal-footer d-flex flex-row-reverse justify-content-between">
+            <button type="submit"
+                    class="btn btn-primary"
+                    form="form-{{ custom_list.id }}"
+                    formaction="{% url 'edit' %}?next={{ request.path }}">Save</button>
+            <button type="submit"
+                    class="btn btn-danger"
+                    form="form-{{ custom_list.id }}"
+                    formaction="{% url 'delete' %}?next={{ request.path }}">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    No custom lists created yet.
+  {% endfor %}
+{% endblock container %}
+
+{% block js %}
+  {{ form.media.js }}
+{% endblock js %}

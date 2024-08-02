@@ -7,35 +7,11 @@
 {% endblock title %}
 
 {% block container %}
-  <div class="details-top d-flex mb-4">
-    <div class="image">
-      <img class="{% if media.image != IMG_NONE %}poster{% else %}image-not-found{% endif %}"
-            src="{{ media.image }}"
-            alt="{{ media.title }}" />
-    </div>
-    <div class="details-data d-flex flex-column align-items-start">
-      <h1 class="title">{{ media.title }}</h1>
-      <p>{{ media.synopsis }}</p>
-
-      <div class="additional-data d-flex flex-wrap">
-        {% for key, value in media.details.items %}
-          <span>
-            <label class="text-body-secondary">{{ key|no_under|upper }}</label>
-            <span>{{ value }}</span>
-          </span>
-        {% endfor %}
-      </div>
-
-      <div class="mt-sm-auto mt-3 d-flex gap-2">
-        {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=media.media_id title=media.title only %}
-        {% include "app/components/open_history.html" with request=request media_type=media.media_type media_id=media.media_id only %}
-      </div>
-    </div>
-  </div>
+  {% include "app/components/media_description.html" with media=media request=request media_type=media.media_type media_id=media.media_id title=media.title IMG_NONE=IMG_NONE only %}
 
   {% for name, related_items in media.related.items %}
     {% if related_items %}
-      <h2 class="fs-5">{{ name|no_under|title }}</h2>
+      <h2 class="fs-5">{{ name|no_underscore|title }}</h2>
       <div class="grid mb-4">
         {% for related in related_items %}
           <div class="card">
@@ -49,9 +25,9 @@
               <div class="card-title">{{ related.title }}</div>
               <div class="card-text d-flex justify-content-center align-items-center">
                 {% if name == "seasons" %}
-                  {% include "app/components/open_track_form.html" with request=request media_type="season" media_id=media.media_id season_number=related.season_number title=media.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" image=related.image media_id=media.media_id season_number=related.season_number title=media.title only %}
                 {% else %}
-                  {% include "app/components/open_track_form.html" with request=request media_type=media.media_type media_id=related.media_id title=related.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media.media_type image=media.image media_id=related.media_id title=related.title only %}
                 {% endif %}
               </div>
             </div>

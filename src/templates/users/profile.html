@@ -109,7 +109,6 @@
 
     <fieldset class="input-group profile-grid">
       <form class="p-2 grid-item" method="get" action="{% url 'export_csv' %}">
-        {% csrf_token %}
         <button class="btn btn-secondary w-100" type="submit">Export as CSV</button>
       </form>
     </fieldset>
@@ -117,6 +116,6 @@
 
 {% endblock container %}
 
-{% block extra_scripts %}
+{% block js %}
   <script src="{% static 'js/spinner.js' %}"></script>
-{% endblock extra_scripts %}
+{% endblock js %}

@@ -51,7 +51,7 @@ def import_anilist(username, user):
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     if warning_message:
-        title = "\n\n Couldn't import the following Anime or Manga:"
+        title = "\n\nCouldn't import the following Anime or Manga: \n"
         message += title + warning_message
     return message
 

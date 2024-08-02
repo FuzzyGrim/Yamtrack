@@ -2,7 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
 
-from .models import TV, Anime, Episode, Game, Manga, Movie, Season
+from app import models
 
 
 def get_form_class(media_type):
@@ -62,31 +62,29 @@ class CustomDurationField(forms.CharField):
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
-    media_type = forms.CharField(
-        max_length=20,
-        widget=forms.HiddenInput(),
-    )
-
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+
+        left_col = "form-group col-md-6 pe-md-1"
+        right_col = "form-group col-md-6 ps-md-1"
+
         self.helper.layout = Layout(
-            "media_id",
-            "media_type",
+            "item",
             Row(
-                Column("score", css_class="form-group col-md-6 pe-md-1"),
-                Column("progress", css_class="form-group col-md-6 ps-md-1"),
+                Column("score", css_class=left_col),
+                Column("progress", css_class=right_col),
                 css_class="form-row",
             ),
             Row(
-                Column("status", css_class="form-group col-md-6 pe-md-1"),
-                Column("repeats", css_class="form-group col-md-6 ps-md-1"),
+                Column("status", css_class=left_col),
+                Column("repeats", css_class=right_col),
                 css_class="form-row",
             ),
             Row(
-                Column("start_date", css_class="form-group col-md-6 pe-md-1"),
-                Column("end_date", css_class="form-group col-md-6 ps-md-1"),
+                Column("start_date", css_class=left_col),
+                Column("end_date", css_class=right_col),
                 css_class="form-row",
             ),
             "notes",
@@ -96,8 +94,7 @@ class MediaForm(forms.ModelForm):
         """Define fields and input types."""
 
         fields = [
-            "media_id",
-            "media_type",
+            "item",
             "score",
             "progress",
             "status",
@@ -107,7 +104,7 @@ class MediaForm(forms.ModelForm):
             "notes",
         ]
         widgets = {
-            "media_id": forms.HiddenInput(),
+            "item": forms.HiddenInput(),
             "score": forms.NumberInput(attrs={"min": 0, "max": 10, "step": 0.1}),
             "progress": forms.NumberInput(attrs={"min": 0}),
             "repeats": forms.NumberInput(attrs={"min": 0}),
@@ -122,7 +119,7 @@ class MangaForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Manga
+        model = models.Manga
 
 
 class AnimeForm(MediaForm):
@@ -131,7 +128,7 @@ class AnimeForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Anime
+        model = models.Anime
 
 
 class MovieForm(MediaForm):
@@ -140,7 +137,7 @@ class MovieForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Movie
+        model = models.Movie
 
 
 class TVForm(MediaForm):
@@ -154,20 +151,12 @@ class TVForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = TV
-        fields = ["media_id", "media_type", "score", "status", "notes"]
+        model = models.TV
+        fields = ["item", "score", "status", "notes"]
 
 
 class SeasonForm(MediaForm):
     """Form for seasons."""
-
-    media_id = forms.IntegerField(widget=forms.HiddenInput())
-
-    season_number = forms.IntegerField(
-        min_value=0,
-        step_size=1,
-        widget=forms.HiddenInput(),
-    )
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
@@ -177,8 +166,13 @@ class SeasonForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Season
-        fields = ["media_id", "media_type", "season_number", "score", "status", "notes"]
+        model = models.Season
+        fields = [
+            "item",
+            "score",
+            "status",
+            "notes",
+        ]
 
 
 class EpisodeForm(forms.ModelForm):
@@ -187,8 +181,8 @@ class EpisodeForm(forms.ModelForm):
     class Meta:
         """Bind form to model."""
 
-        model = Episode
-        fields = ("episode_number", "watch_date", "repeats")
+        model = models.Episode
+        fields = ("item", "watch_date", "repeats")
 
 
 class GameForm(MediaForm):
@@ -203,7 +197,7 @@ class GameForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = Game
+        model = models.Game
 
 
 class FilterForm(forms.Form):
@@ -213,12 +207,12 @@ class FilterForm(forms.Form):
         choices=[
             # left side in lower case for better looking url when filtering
             ("all", "All"),
-            ("completed", "Completed"),
-            ("in progress", "In progress"),
-            ("repeating", "Repeating"),
-            ("planning", "Planning"),
-            ("paused", "Paused"),
-            ("dropped", "Dropped"),
+            ("completed", models.STATUS_COMPLETED),
+            ("in progress", models.STATUS_IN_PROGRESS),
+            ("repeating", models.STATUS_REPEATING),
+            ("planning", models.STATUS_PLANNING),
+            ("paused", models.STATUS_PAUSED),
+            ("dropped", models.STATUS_DROPPED),
         ],
     )
 

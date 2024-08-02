@@ -2,10 +2,9 @@ import csv
 import datetime
 import logging
 
-from app import forms
+from app import models
 from app.providers import services
 from django.apps import apps
-from django.db.utils import IntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -27,70 +26,40 @@ def importer(file, user, status):
         # if movie or tv show (not episode)
         if media_type == "movie" or (media_type == "tv" and episode_number == ""):
             media_metadata = services.get_media_metadata(media_type, media_id)
-            instance = create_instance(media_metadata, user)
-            form = create_form(row, instance, media_metadata, status)
 
-            if form.is_valid():
-                save_form(form, num_imported, media_type)
-            else:
-                logger.error(
-                    "Error importing %s: %s",
-                    media_metadata["title"],
-                    form.errors.as_json(),
+            item, _ = models.Item.objects.get_or_create(
+                media_id=media_metadata["media_id"],
+                media_type=media_type,
+                defaults={
+                    "title": media_metadata["title"],
+                    "image": media_metadata["image"],
+                },
+            )
+
+            model = apps.get_model(app_label="app", model_name=media_type)
+
+            # watchlist has no rating
+            score = row["Your Rating"] if row["Your Rating"] else None
+
+            instance = model(
+                item=item,
+                user=user,
+                score=score,
+                status=status,
+            )
+
+            if status == "Completed" and media_type == "movie":
+                instance.end_date = (
+                    datetime.datetime.strptime(
+                        row["Date Rated"],
+                        "%Y-%m-%dT%H:%M:%SZ",
+                    )
+                    .astimezone()
+                    .date()
                 )
+                instance.progress = media_metadata["max_progress"]
+
+            instance.save()
+            num_imported[media_type] += 1
 
     return num_imported["tv"], num_imported["movie"]
-
-
-def is_valid_media(media_type, episode_number):
-    """Check if the media is a valid movie or TV show (not episode)."""
-    return media_type == "movie" or (media_type == "tv" and episode_number == "")
-
-
-def create_instance(media_metadata, user):
-    """Create instance of media."""
-    media_type = media_metadata["media_type"]
-    model = apps.get_model(app_label="app", model_name=media_type)
-
-    return model(
-        user=user,
-        title=media_metadata["title"],
-        image=media_metadata["image"],
-    )
-
-
-def create_form(row, instance, media_metadata, status):
-    """Create form for media."""
-    media_type = media_metadata["media_type"]
-
-    data = {
-        "media_id": media_metadata["media_id"],
-        "media_type": media_type,
-        "score": row["Your Rating"],
-        "progress": 0,
-        "status": status,
-        "repeats": 0,
-    }
-
-    if status == "Completed":
-        if media_type == "movie":  # tv doesn't have end date
-            data["end_date"] = (
-                datetime.datetime.strptime(row["Date Rated"], "%Y-%m-%dT%H:%M:%SZ")
-                .astimezone()
-                .date()
-            )
-        data["progress"] = media_metadata["max_progress"]
-
-    return forms.get_form_class(media_type)(
-        data=data,
-        instance=instance,
-    )
-
-
-def save_form(form, num_imported, media_type):
-    """Save the form and update the count of imported media."""
-    try:
-        form.save()
-        num_imported[media_type] += 1
-    except IntegrityError:
-        pass

@@ -12,6 +12,8 @@
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-icons.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "css/main.css" %}" />
+    {% block css %}
+    {% endblock css %}
     <link rel="apple-touch-icon" sizes="180x180" href="{% static "favicon/apple-touch-icon.png" %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static "favicon/favicon-32x32.png" %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static "favicon/favicon-16x16.png" %}">
@@ -44,54 +46,67 @@
           <ul class="nav nav-pills flex-column mb-auto">
             <li class="nav-item">
               <a href="{% url 'home' %}" class="nav-link {% if request.path == "/" %}active{% endif %}">
-                <i class="bi bi-house-door me-2"></i> Home
+                <i class="bi bi-house-door me-2 align-middle"></i>
+                <span class="align-middle">Home</span>
               </a>
             </li>
             <li>
               <a href="{% url 'medialist' media_type='tv' %}"
                  class="nav-link {% if media_type == "tv" %}active{% endif %}">
-                <i class="bi bi-tv me-2"></i> Shows
+                <i class="bi bi-tv me-2 align-middle"></i>
+                <span class="align-middle">TV Shows</span>
               </a>
             </li>
             <li>
               <a href="{% url 'medialist' media_type='season' %}"
                  class="nav-link {% if media_type == "season" %}active{% endif %}">
-                <i class="bi bi-grid me-2"></i> Seasons
+                <i class="bi bi-grid me-2 align-middle"></i>
+                <span class="align-middle">Seasons</span>
               </a>
             </li>
             <li>
               <a href="{% url 'medialist' media_type='movie' %}"
                  class="nav-link {% if media_type == "movie" %}active{% endif %}">
-                <i class="bi bi-film me-2"></i> Movies
+                <i class="bi bi-film me-2 align-middle"></i>
+                <span class="align-middle">Movies</span>
               </a>
             </li>
             <li>
               <a href="{% url 'medialist' media_type='anime' %}"
                  class="nav-link {% if media_type == "anime" %}active{% endif %}">
-                <i class="bi bi-collection-play me-2"></i> Animes
+                <i class="bi bi-collection-play me-2 align-middle"></i>
+                <span class="align-middle">Animes</span>
               </a>
             </li>
             <li>
               <a href="{% url 'medialist' media_type='manga' %}"
                  class="nav-link {% if media_type == "manga" %}active{% endif %}">
-                <i class="bi bi-book me-2"></i> Mangas
+                <i class="bi bi-book me-2 align-middle"></i>
+                <span class="align-middle">Mangas</span>
               </a>
             </li>
             <li>
               <a href="{% url 'medialist' media_type='game' %}"
                  class="nav-link {% if media_type == "game" %}active{% endif %}">
-                <i class="bi bi-joystick me-2"></i> Games
+                <i class="bi bi-joystick me-2 align-middle"></i>
+                <span class="align-middle">Games</span>
               </a>
             </li>
             <hr>
             <li>
+              <a href="{% url 'lists' %}" class="nav-link {% if request.path == "/lists" %}active{% endif %}">
+                <i class="bi bi-collection me-2 align-middle"></i> Lists
+              </a>
+            </li>
+            <li>
               <a href="{% url 'tasks' %}" class="nav-link {% if request.path == "/tasks" %}active{% endif %}">
-                <i class="bi bi-list-task me-2"></i> Tasks
+                <i class="bi bi-list-task me-2 align-middle"></i> Tasks
               </a>
             </li>
             <li>
               <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
-                <i class="bi bi-person-circle me-2"></i> Profile
+                <i class="bi bi-person-circle me-2 align-middle"></i>
+                <span class="align-middle">Profile</span>
               </a>
             </li>
             <li>
@@ -140,9 +155,7 @@
           </div>
  
           <div class="container flex-grow-1">
-            {% if messages %}
-              {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
-            {% endif %}
+            {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
             {% block container %}
             {% endblock container %}
           </div>
@@ -150,8 +163,8 @@
       </div>
       <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
       <script src="{% static 'js/htmx.min.js' %}"></script>
-      {% block extra_scripts %}
-      {% endblock extra_scripts %}
+      {% block js %}
+      {% endblock js %}
     {% endblock body %}
   </body>
 </html>

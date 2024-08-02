@@ -1,6 +1,6 @@
 import logging
 
-from app.providers import services
+import app
 from django.apps import apps
 from django.conf import settings
 
@@ -31,7 +31,7 @@ def import_media(username, user, media_type):
 
     model = apps.get_model(app_label="app", model_name=media_type)
     num_before = model.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_media, model)
+    helpers.bulk_chunk_import(bulk_media, model, user)
     num_after = model.objects.filter(user=user).count()
 
     return num_after - num_before
@@ -40,11 +40,17 @@ def import_media(username, user, media_type):
 def get_whole_response(url, params):
     """Fetch whole data from user."""
     headers = {"X-MAL-CLIENT-ID": settings.MAL_API}
-    data = services.api_request("MAL", "GET", url, params=params, headers=headers)
+    data = app.providers.services.api_request(
+        "MAL",
+        "GET",
+        url,
+        params=params,
+        headers=headers,
+    )
 
     while "next" in data["paging"]:
         next_url = data["paging"]["next"]
-        next_data = services.api_request(
+        next_data = app.providers.services.api_request(
             "MAL",
             "GET",
             next_url,
@@ -82,18 +88,25 @@ def add_media_list(response, media_type, user):
         except KeyError:
             image_url = settings.IMG_NONE
 
+        item, _ = app.models.Item.objects.get_or_create(
+            media_id=content["node"]["id"],
+            media_type=media_type,
+            defaults={
+                "title": content["node"]["title"],
+                "image": image_url,
+            },
+        )
+
         model = apps.get_model(app_label="app", model_name=media_type)
         instance = model(
-            media_id=content["node"]["id"],
-            title=content["node"]["title"],
-            image=image_url,
+            item=item,
+            user=user,
             score=list_status["score"],
             progress=progress,
             status=status,
             repeats=repeats,
             start_date=list_status.get("start_date", None),
             end_date=list_status.get("finish_date", None),
-            user=user,
             notes=list_status["comments"],
         )
         bulk_media.append(instance)
@@ -104,12 +117,12 @@ def add_media_list(response, media_type, user):
 def get_status(status):
     """Convert the status from MyAnimeList to the status used in the app."""
     status_mapping = {
-        "completed": "Completed",
-        "reading": "In progress",
-        "watching": "In progress",
-        "plan_to_watch": "Planning",
-        "plan_to_read": "Planning",
-        "on_hold": "Paused",
-        "dropped": "Dropped",
+        "completed": app.models.STATUS_COMPLETED,
+        "reading": app.models.STATUS_IN_PROGRESS,
+        "watching": app.models.STATUS_IN_PROGRESS,
+        "plan_to_watch": app.models.STATUS_PLANNING,
+        "plan_to_read": app.models.STATUS_PLANNING,
+        "on_hold": app.models.STATUS_PAUSED,
+        "dropped": app.models.STATUS_DROPPED,
     }
     return status_mapping[status]

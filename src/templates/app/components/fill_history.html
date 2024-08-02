@@ -30,7 +30,7 @@
                     <td class="align-middle">{{ change.new_record.history_date|date:"Y-m-d" }}</td>
                     <td class="align-middle">
                       {% for field_change in change.changes %}
-                        {{ field_change.field|no_under|title }}:
+                        {{ field_change.field|no_underscore|title }}:
                         {% if field_change.new == None or field_change.new == "" %}
                           None
                         {% else %}

@@ -5,7 +5,7 @@
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-trigger="click"
         hx-target="closest .card-text"
-        hx-vals='{"media_type": "{{ media_type }}", "media_id": "{{ media.media_id }}", "operation": "decrease" {% if media.season_number != None %}, "season_number": "{{ media.season_number }}"{% endif %} }'
+        hx-vals='{"item": {{ media.item.id }}, "operation": "decrease"}'
         {% if media.min or media.progress == 0 %}disabled{% endif %}>
   <i class="bi bi-dash"></i> {% comment %} decrease progress button {% endcomment %}
 </button>
@@ -15,7 +15,7 @@
     {{ media.progress|format_time }}
   {% elif media_type == "season" %}
     {% if media.current_episode %}
-      Ep. {{ media.current_episode.episode_number }}
+      Ep. {{ media.current_episode.item.episode_number }}
     {% else %}
       Ep. 0
     {% endif %}
@@ -31,7 +31,7 @@
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-trigger="click"
         hx-target="closest .card-text"
-        hx-vals='{"media_type": "{{ media_type }}", "media_id": "{{ media.media_id }}", "operation": "increase" {% if media.season_number != None %}, "season_number": "{{ media.season_number }}"{% endif %} }'
+        hx-vals='{"item": {{ media.item.id }}, "operation": "increase"}'
         {% if media.max %}disabled{% endif %}>
   <i class="bi bi-plus"></i> {% comment %} increase progress button {% endcomment %}
 </button>

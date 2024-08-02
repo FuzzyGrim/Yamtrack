@@ -35,12 +35,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "app",
-    "users",
     "integrations",
+    "lists",
+    "users",
     "crispy_forms",
     "crispy_bootstrap5",
     "debug_toolbar",
     "django_celery_results",
+    "django_select2",
     "simple_history",
 ]
 
@@ -119,7 +121,8 @@ CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
-        "TIMEOUT": 18000,  # 5 hours
+        "TIMEOUT": 18000,  # 5 hours,
+        "VERSION": 2,
     },
 }
 
@@ -237,6 +240,12 @@ DEBUG_TOOLBAR_CONFIG = {
         "bootstrap5/",
     ),
 }
+
+SELECT2_CACHE_BACKEND = "default"
+SELECT2_JS = ["js/jquery.min.js", "js/select2.min.js"]
+SELECT2_I18N_PATH = "js/i18n"
+SELECT2_CSS = ["css/select2.min.css", "css/select2-bootstrap-5.min.css"]
+SELECT2_THEME = "bootstrap-5"
 
 # Celery settings
 

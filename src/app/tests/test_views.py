@@ -1,12 +1,10 @@
 import datetime
-import shutil
-from pathlib import Path
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from users.models import User
 
-from app.models import TV, Anime, Episode, Movie, Season
+from app.models import TV, Anime, Episode, Item, Movie, Season
 
 
 class CreateMedia(TestCase):
@@ -17,54 +15,69 @@ class CreateMedia(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
-        Path("create_media").mkdir(exist_ok=True)
 
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_anime(self):
         """Test the creation of a TV object."""
+        item = Item.objects.create(
+            media_id=1,
+            media_type="anime",
+            title="Test Anime",
+            image="http://example.com/image.jpg",
+        )
         self.client.post(
             reverse("media_save"),
             {
-                "media_id": 1,
-                "media_type": "tv",
+                "item": item.id,
                 "status": "Planning",
+                "progress": 0,
+                "repeats": 0,
             },
         )
         self.assertEqual(
-            TV.objects.filter(media_id=1, user=self.user).exists(),
+            Anime.objects.filter(item__media_id=1, user=self.user).exists(),
             True,
         )
 
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_tv(self):
         """Test the creation of a TV object through views."""
+        item = Item.objects.create(
+            media_id=5895,
+            media_type="tv",
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
         self.client.post(
             reverse("media_save"),
             {
-                "media_id": 5895,
-                "media_type": "tv",
+                "item": item.id,
                 "status": "Planning",
             },
         )
         self.assertEqual(
-            TV.objects.filter(media_id=5895, user=self.user).exists(),
+            TV.objects.filter(item__media_id=5895, user=self.user).exists(),
             True,
         )
 
-    @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_season(self):
         """Test the creation of a Season through views."""
+        item = Item.objects.create(
+            media_id=1668,
+            media_type="season",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
         self.client.post(
             reverse("media_save"),
             {
-                "media_id": 1668,
-                "media_type": "season",
-                "season_number": 1,
+                "item": item.id,
                 "status": "Planning",
             },
         )
         self.assertEqual(
-            Season.objects.filter(media_id=1668, user=self.user).exists(),
+            Season.objects.filter(item__media_id=1668, user=self.user).exists(),
             True,
         )
 
@@ -81,16 +94,12 @@ class CreateMedia(TestCase):
         )
         self.assertEqual(
             Episode.objects.filter(
-                related_season__media_id=1668,
+                item__media_id=1668,
                 related_season__user=self.user,
-                episode_number=1,
+                item__episode_number=1,
             ).exists(),
             True,
         )
-
-    def tearDown(self):
-        """Remove the testing directory."""
-        shutil.rmtree("create_media")
 
 
 class EditMedia(TestCase):
@@ -104,13 +113,18 @@ class EditMedia(TestCase):
 
     def test_edit_movie_score(self):
         """Test the editing of a movie score."""
-        Movie.objects.create(
+        item = Item.objects.create(
             media_id=10494,
+            media_type="movie",
             title="Perfect Blue",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=item,
+            user=self.user,
             score=9,
             progress=1,
             status="Completed",
-            user=self.user,
             notes="Nice",
             start_date=datetime.date(2023, 6, 1),
             end_date=datetime.date(2023, 6, 1),
@@ -119,8 +133,7 @@ class EditMedia(TestCase):
         self.client.post(
             reverse("media_save"),
             {
-                "media_id": 10494,
-                "media_type": "movie",
+                "item": item.id,
                 "score": 10,
                 "progress": 1,
                 "status": "Completed",
@@ -128,7 +141,7 @@ class EditMedia(TestCase):
                 "notes": "Nice",
             },
         )
-        self.assertEqual(Movie.objects.get(media_id=10494).score, 10)
+        self.assertEqual(Movie.objects.get(item__media_id=10494).score, 10)
 
 
 class DeleteMedia(TestCase):
@@ -140,57 +153,57 @@ class DeleteMedia(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
+        self.item_tv = Item.objects.create(
+            media_id=1668,
+            media_type="tv",
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+        related_tv = TV.objects.create(
+            item=self.item_tv,
+            user=self.user,
+            status="In progress",
+        )
+
+        self.item_season = Item.objects.create(
+            media_id=1668,
+            media_type="season",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        season = Season.objects.create(
+            item=self.item_season,
+            user=self.user,
+            related_tv=related_tv,
+            status="In progress",
+        )
+
+        self.item_ep = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+        Episode.objects.create(
+            item=self.item_ep,
+            related_season=season,
+            watch_date=datetime.date(2023, 6, 1),
+        )
+
     def test_delete_movie(self):
         """Test the deletion of a movie through views."""
-        Movie.objects.create(
-            media_id=10494,
-            title="Perfect Blue",
-            status="Completed",
-            user=self.user,
-        )
+        self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
 
-        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
-
-        self.client.post(
-            reverse("media_delete"),
-            {
-                "media_id": 10494,
-                "media_type": "movie",
-            },
-        )
+        self.client.post(reverse("media_delete"), {"item": self.item_tv.id})
 
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 0)
 
     def test_delete_season(self):
         """Test the deletion of a season through views."""
-        related_tv = TV.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
-            user=self.user,
-        )
-        season = Season.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
-            season_number=1,
-            user=self.user,
-            related_tv=related_tv,
-        )
-        Episode.objects.create(
-            related_season=season,
-            episode_number=1,
-            watch_date=datetime.date(2023, 6, 1),
-        )
-
-        self.client.post(
-            reverse("media_delete"),
-            {
-                "media_id": 1668,
-                "media_type": "season",
-                "season_number": 1,
-            },
-        )
+        self.client.post(reverse("media_delete"), {"item": self.item_season.id})
 
         self.assertEqual(Season.objects.filter(user=self.user).count(), 0)
         self.assertEqual(
@@ -200,30 +213,8 @@ class DeleteMedia(TestCase):
 
     def test_unwatch_episode(self):
         """Test unwatching of an episode through views."""
-        related_tv = TV.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
-            user=self.user,
-        )
-        season = Season.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
-            season_number=1,
-            user=self.user,
-            related_tv=related_tv,
-        )
-        Episode.objects.create(
-            related_season=season,
-            episode_number=1,
-            watch_date=datetime.date(2023, 6, 1),
-        )
-
         self.client.post(
-            reverse(
-                "episode_handler",
-            ),
+            reverse("episode_handler"),
             {
                 "media_id": 1668,
                 "season_number": 1,
@@ -247,26 +238,43 @@ class ProgressEditSeason(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
+        item_tv = Item.objects.create(
+            media_id=1668,
+            media_type="tv",
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
         tv = TV.objects.create(
-            media_id=1668,
-            title="Friends",
-            status="In progress",
+            item=item_tv,
             user=self.user,
-            notes="",
+            status="In progress",
         )
 
-        Season.objects.create(
+        self.item_season = Item.objects.create(
             media_id=1668,
+            media_type="season",
             title="Friends",
-            status="In progress",
+            image="http://example.com/image.jpg",
             season_number=1,
-            user=self.user,
+        )
+        season = Season.objects.create(
+            item=self.item_season,
             related_tv=tv,
+            user=self.user,
+            status="In progress",
         )
 
-        Episode.objects.create(
-            related_season=Season.objects.get(media_id=1668),
+        item_ep = Item.objects.create(
+            media_id=1668,
+            media_type="episode",
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
             episode_number=1,
+        )
+        Episode.objects.create(
+            item=item_ep,
+            related_season=season,
             watch_date=datetime.date(2023, 6, 1),
         )
 
@@ -275,23 +283,21 @@ class ProgressEditSeason(TestCase):
         self.client.post(
             reverse("progress_edit"),
             {
-                "media_id": 1668,
-                "media_type": "season",
+                "item": self.item_season.id,
                 "operation": "increase",
-                "season_number": 1,
             },
         )
 
         self.assertEqual(
-            Episode.objects.filter(related_season__media_id=1668).count(),
+            Episode.objects.filter(item__media_id=1668).count(),
             2,
         )
 
         # episode with media_id 1668 and episode_number 2 should exist
         self.assertTrue(
             Episode.objects.filter(
-                related_season__media_id=1668,
-                episode_number=2,
+                item__media_id=1668,
+                item__episode_number=2,
             ).exists(),
         )
 
@@ -300,15 +306,13 @@ class ProgressEditSeason(TestCase):
         self.client.post(
             reverse("progress_edit"),
             {
-                "media_id": 1668,
-                "media_type": "season",
+                "item": self.item_season.id,
                 "operation": "decrease",
-                "season_number": 1,
             },
         )
 
         self.assertEqual(
-            Episode.objects.filter(related_season__media_id=1668).count(),
+            Episode.objects.filter(item__media_id=1668).count(),
             0,
         )
 
@@ -322,12 +326,17 @@ class ProgressEditAnime(TestCase):
         self.user = User.objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-        Anime.objects.create(
+        self.item = Item.objects.create(
             media_id=1,
+            media_type="anime",
             title="Cowboy Bebop",
+            image="http://example.com/image.jpg",
+        )
+        Anime.objects.create(
+            item=self.item,
+            user=self.user,
             status="In progress",
             progress=2,
-            user=self.user,
         )
 
     def test_progress_increase(self):
@@ -335,23 +344,21 @@ class ProgressEditAnime(TestCase):
         self.client.post(
             reverse("progress_edit"),
             {
-                "media_id": 1,
-                "media_type": "anime",
+                "item": self.item.id,
                 "operation": "increase",
             },
         )
 
-        self.assertEqual(Anime.objects.get(media_id=1).progress, 3)
+        self.assertEqual(Anime.objects.get(item__media_id=1).progress, 3)
 
     def test_progress_decrease(self):
         """Test the decrease of progress for an anime."""
         self.client.post(
             reverse("progress_edit"),
             {
-                "media_id": 1,
-                "media_type": "anime",
+                "item": self.item.id,
                 "operation": "decrease",
             },
         )
 
-        self.assertEqual(Anime.objects.get(media_id=1).progress, 1)
+        self.assertEqual(Anime.objects.get(item__media_id=1).progress, 1)

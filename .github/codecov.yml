@@ -7,4 +7,5 @@ coverage:
         - "src/app"
         - "src/integrations"
         - "src/users"
+        - "src/lists"
         threshold: 5.0

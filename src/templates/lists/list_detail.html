@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load app_extras %}
+
+{% block css %}
+  {{ form.media.css }}
+{% endblock css %}
+
+{% block title %}
+  {{ custom_list }} - Yamtrack
+{% endblock title %}
+{% block container %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1>{{ custom_list }}</h1>
+      <div>
+        <span>by {{ custom_list.owner }}</span>
+        <span class="mx-2">•</span>
+        <span>{{ items.count }} items</span>
+        {% if last_added_date %}
+          <span class="mx-2">•</span>
+          <span>Last added {{ last_added_date|timesince }} ago</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="d-flex column-gap-2">
+      <button type="button"
+                      class="btn btn-secondary filter-btn"
+                      data-bs-toggle="modal"
+                      data-bs-target="#filter-modal">
+                <i class="bi bi-funnel-fill"></i>
+              </button>
+              <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                  <div class="modal-content text-start">
+                    <div class="modal-body">
+                      <form method="get">
+                        {{ filter_form|crispy }}
+                        <div class="text-center">
+                          <button class="btn btn-secondary" type="submit">Filter</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+      <button type="button"
+              class="btn btn-secondary h-75"
+              data-bs-toggle="modal"
+              data-bs-target="#edit-list">Edit List</button>
+    </div>
+  </div>
+
+  <div class="modal fade" id="edit-list" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5">Edit {{ custom_list }}</h1>
+          <button type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form method="post" id="edit-list-form">
+            {% csrf_token %}
+            <input type="hidden" name="list_id" value="{{ custom_list.id }}">
+            {{ form|crispy }}
+          </form>
+        </div>
+        <div class="modal-footer d-flex flex-row-reverse justify-content-between">
+          <button type="submit"
+                  class="btn btn-primary"
+                  form="edit-list-form"
+                  formaction="{% url 'edit' %}?next={{ request.path }}">Save</button>
+          <button type="submit"
+                  class="btn btn-danger"
+                  form="edit-list-form"
+                  formaction="{% url 'delete' %}?next={{ request.path }}">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="mt-2 fs-5">{{ custom_list.description }}</p>
+
+  <div class="grid mt-5">
+    {% for media in items.all %}
+      <div class="card">
+        <a href="{% if media.media_type == "season" or media.media_type == "episode" %} {% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %} {% else %} {% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slug %} {% endif %}">
+          <img src="{{ media.image }}"
+               class="card-img {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+               alt="{{ media.title }}" />
+        </a>
+
+        <div class="card-img-overlay">
+          <div class="card-title">{{ media }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+ 
+{% endblock container %}
+
+{% block js %}
+  {{ form.media.js }}
+{% endblock js %}

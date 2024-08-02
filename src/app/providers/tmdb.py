@@ -327,7 +327,7 @@ def process_episodes(season_metadata, episodes_in_db):
     episodes_metadata = []
 
     # Convert the queryset to a dictionary for efficient lookups
-    tracked_episodes = {ep["episode_number"]: ep for ep in episodes_in_db}
+    tracked_episodes = {ep["item__episode_number"]: ep for ep in episodes_in_db}
 
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]
@@ -337,7 +337,7 @@ def process_episodes(season_metadata, episodes_in_db):
             {
                 "episode_number": episode_number,
                 "air_date": get_episode_air_date(episode["air_date"]),
-                "image": episode["still_path"],
+                "image": get_image_url(episode["still_path"]),
                 "title": episode["name"],
                 "overview": episode["overview"],
                 "watched": watched,
