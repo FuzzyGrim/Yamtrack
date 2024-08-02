@@ -6,7 +6,7 @@ django-crispy-forms==2.1
 django_debug_toolbar==4.4.6
 django-model-utils==4.5.1
 django-select2==8.1.2
-django-simple-history==3.5.0
+django-simple-history==3.7.0
 fakeredis==2.23.2
 gunicorn==22.0.0
 Pillow==10.3.0
