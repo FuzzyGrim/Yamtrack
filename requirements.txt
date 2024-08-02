@@ -3,7 +3,7 @@ crispy-bootstrap5==2024.2
 Django==5.0.6
 django-celery-results==2.5.1
 django-crispy-forms==2.1
-django_debug_toolbar==4.3.0
+django_debug_toolbar==4.4.6
 django-model-utils==4.5.1
 django-select2==8.1.2
 django-simple-history==3.5.0
