@@ -69,13 +69,15 @@ def progress_edit(request):
 def media_list(request, media_type):
     """Return the media list page."""
     layout_user = request.user.get_layout(media_type)
-    filter_form = FilterForm(layout=layout_user)
 
     if request.GET:
         layout_request = request.GET.get("layout", layout_user)
         filter_form = FilterForm(request.GET, layout=layout_request)
         if filter_form.is_valid() and layout_request != layout_user:
             request.user.set_layout(media_type, layout_request)
+    else:
+        filter_form = FilterForm(layout=layout_user)
+
 
     status_filter = request.GET.get("status", "all")
     sort_filter = request.GET.get("sort", "score")

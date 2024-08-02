@@ -376,14 +376,6 @@ debug, info, success, warning, error */
   }
 }
 
-.no-content {
-  display: flex;
-  flex-direction: column;
-  height: 75%;
-  justify-content: center;
-  align-items: center;
-}
-
 .list-title {
   text-decoration: none;
   color: var(--bs-heading-color);
@@ -391,6 +383,14 @@ debug, info, success, warning, error */
   &:hover {
     text-decoration: underline;
   }
+}
+
+.no-content {
+  display: flex;
+  flex-direction: column;
+  height: 75%;
+  justify-content: center;
+  align-items: center;
 }
 
 /* override select2 with bootstrap dark theme */
