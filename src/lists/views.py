@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
-from lists.forms import CustomListForm
+from lists.forms import CustomListForm, FilterListItemsForm
 from lists.models import CustomList, CustomListItem
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,23 @@ def list_detail(request, list_id):
 
     form = CustomListForm(instance=custom_list)
     items = custom_list.items.all()
+
+    if request.GET:
+        filter_form = FilterListItemsForm(request.GET)
+        if filter_form.is_valid():
+            media_type = filter_form.cleaned_data["media_type"]
+            sort = filter_form.cleaned_data["sort"]
+
+            # Apply media type filter
+            if media_type != "all":
+                items = items.filter(media_type=media_type)
+
+            # Apply sorting
+            if sort == "title":
+                items = items.order_by("title")
+    else:
+        filter_form = FilterListItemsForm()
+
     last_added_date = CustomListItem.objects.get_last_added_date(custom_list)
 
     return render(
@@ -52,6 +69,7 @@ def list_detail(request, list_id):
         {
             "custom_list": custom_list,
             "form": form,
+            "filter_form": filter_form,
             "items": items,
             "last_added_date": last_added_date,
         },

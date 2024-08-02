@@ -45,3 +45,30 @@ class CustomListForm(forms.ModelForm):
             msg = "A list with this name already exists."
             raise forms.ValidationError(msg)
         return cleaned_data
+
+
+class FilterListItemsForm(forms.Form):
+    """Form for filtering media on media list view."""
+
+    media_type = forms.ChoiceField(
+        choices=[
+            # left side in lower case for better looking url when filtering
+            ("all", "All"),
+            ("tv", "TV"),
+            ("season", "Season"),
+            ("episode", "Episode"),
+            ("movie", "Movie"),
+            ("anime", "Anime"),
+            ("manga", "Manga"),
+            ("game", "Game"),
+        ],
+        initial="all",
+    )
+
+    sort = forms.ChoiceField(
+        choices=[
+            ("title", "Title"),
+            ("date_added", "Date Added"),
+        ],
+        initial="date_added",
+    )
