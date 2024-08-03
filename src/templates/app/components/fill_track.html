@@ -21,7 +21,7 @@
               form="{{ form_id }}"
               formaction="{% url 'media_delete' %}?next={{ return_url }}"
               class="btn btn-danger"
-              {% if not media_exists %}disabled{% endif %}>Delete</button>
+              {% if not media %}disabled{% endif %}>Delete</button>
     </div>
   </div>
 </div>

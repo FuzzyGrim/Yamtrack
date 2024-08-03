@@ -65,11 +65,17 @@ def get_media_list_by_type(user):
     return list_by_type
 
 
-def get_search_params(media_type, item, user):
-    """Get search params for media item."""
+def get_media(media_type, item, user):
+    """Get user media object given the media type and item."""
+    model = apps.get_model(app_label="app", model_name=media_type)
+    params = {"item": item}
+
     if media_type == "episode":
-        return {
-            "item": item,
-            "related_season__user": user,
-        }
-    return {"item": item, "user": user}
+        params["related_season__user"] = user
+    else:
+        params["user"] = user
+
+    try:
+        return model.objects.get(**params)
+    except model.DoesNotExist:
+        return None

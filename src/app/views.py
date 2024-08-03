@@ -33,16 +33,9 @@ def progress_edit(request):
     media_type = item.media_type
     operation = request.POST["operation"]
 
-    model = apps.get_model(app_label="app", model_name=media_type)
-    search_params = database.get_search_params(
-        media_type,
-        item,
-        request.user,
-    )
+    media = database.get_media(media_type, item, request.user)
 
-    try:
-        media = model.objects.get(**search_params)
-
+    if media:
         if operation == "increase":
             media.increase_progress()
         elif operation == "decrease":
@@ -54,15 +47,15 @@ def progress_edit(request):
             "app/components/progress_changer.html",
             {"media": response, "media_type": media_type},
         )
-    except model.DoesNotExist:
-        messages.error(
-            request,
-            "Media item was deleted before trying to change progress",
-        )
 
-        response = HttpResponse()
-        response["HX-Redirect"] = reverse("home")
-        return response
+    messages.error(
+        request,
+        "Media item was deleted before trying to change progress",
+    )
+
+    response = HttpResponse()
+    response["HX-Redirect"] = reverse("home")
+    return response
 
 
 @require_GET
@@ -167,25 +160,13 @@ def track(request):
         },
     )
 
-    model = apps.get_model(app_label="app", model_name=media_type)
-    search_params = database.get_search_params(
-        media_type,
-        item,
-        request.user,
-    )
-
-    try:
-        media = model.objects.get(**search_params)
-        media_exists = True
-    except model.DoesNotExist:
-        media = None
-        media_exists = False
+    media = database.get_media(media_type, item, request.user)
 
     initial_data = {
         "item": item,
     }
 
-    if media_type == "game" and media_exists:
+    if media_type == "game" and media:
         initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
 
     form = get_form_class(media_type)(instance=media, initial=initial_data)
@@ -204,7 +185,7 @@ def track(request):
             "title": title,
             "form_id": form_id,
             "form": form,
-            "media_exists": media_exists,
+            "media": media,
             "return_url": request.GET["return_url"],
         },
     )
@@ -215,17 +196,11 @@ def media_save(request):
     """Save or update media data to the database."""
     item = Item.objects.get(id=request.POST["item"])
     media_type = item.media_type
-    model = apps.get_model(app_label="app", model_name=media_type)
 
-    search_params = database.get_search_params(
-        media_type,
-        item,
-        request.user,
-    )
+    instance = database.get_media(media_type, item, request.user)
 
-    try:
-        instance = model.objects.get(**search_params)
-    except model.DoesNotExist:
+    if not instance:
+        model = apps.get_model(app_label="app", model_name=media_type)
         instance = model(item=item, user=request.user)
 
     # Validate the form and save the instance if it's valid
@@ -250,19 +225,11 @@ def media_delete(request):
     item = Item.objects.get(id=request.POST["item"])
     media_type = item.media_type
 
-    search_params = database.get_search_params(
-        media_type,
-        item,
-        request.user,
-    )
-
-    model = apps.get_model(app_label="app", model_name=media_type)
-    try:
-        media = model.objects.get(**search_params)
+    media = database.get_media(media_type, item, request.user)
+    if media:
         media.delete()
         logger.info("%s deleted successfully.", media)
-
-    except model.DoesNotExist:
+    else:
         logger.warning("The %s was already deleted before.", media_type)
 
     return helpers.redirect_back(request)
@@ -331,17 +298,9 @@ def history(request):
         episode_number=episode_number,
     )
 
-    search_params = database.get_search_params(
-        media_type,
-        item,
-        request.user,
-    )
-
-    model = apps.get_model(app_label="app", model_name=media_type)
-
+    media = database.get_media(media_type, item, request.user)
     changes = []
-    try:
-        media = model.objects.get(**search_params)
+    if media:
         history = media.history.all()
         if history is not None:
             last = history.first()
@@ -373,8 +332,6 @@ def history(request):
                             "changes": creation_changes,
                         },
                     )
-    except model.DoesNotExist:
-        pass
 
     return render(
         request,
