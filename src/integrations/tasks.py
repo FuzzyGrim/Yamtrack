@@ -68,17 +68,8 @@ def import_yamtrack(file, user):
         msg = "Error parsing Yamtrack CSV file."
         raise ValueError(msg) from error
 
-    media_type_str = {
-        "anime": "anime",
-        "manga": "manga",
-        "movie": "movies",
-        "game": "games",
-        "tv": "TV shows",
-        "season": "seasons",
-        "episode": "episodes",
-    }
     imported_summary_list = [
-        f"{count} {media_type_str[media_type]}"
+        f"{count} TV shows" if media_type == "tv" else f"{count} {media_type}s"
         for media_type, count in imported_counts.items()
     ]
     imported_summary = (

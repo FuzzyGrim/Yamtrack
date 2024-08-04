@@ -1,7 +1,7 @@
 from django.test import TestCase
 from users.models import User
 
-from app.forms import AnimeForm, EpisodeForm, GameForm, SeasonForm, TVForm
+from app.forms import AnimeForm, EpisodeForm, GameForm, SeasonForm, TvForm
 from app.models import Item
 
 
@@ -46,7 +46,7 @@ class BasicMediaForm(TestCase):
             "repeats": 0,
             "notes": "New notes",
         }
-        form = TVForm(data=form_data)
+        form = TvForm(data=form_data)
         self.assertTrue(form.is_valid())
 
     def test_valid_season_form(self):

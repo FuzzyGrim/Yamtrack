@@ -17,32 +17,22 @@ def importer(file, user):
 
     logger.info("Importing from Yamtrack")
 
-    bulk_media = {
-        "anime": [],
-        "manga": [],
-        "movie": [],
-        "tv": [],
-        "season": [],
-        "episode": [],
-        "game": [],
-    }
+    bulk_media = {media_type: [] for media_type in app.models.MEDIA_TYPES}
 
     imported_counts = {}
 
     for row in reader:
         add_bulk_media(row, user, bulk_media)
 
-    for media_type in ["anime", "manga", "movie", "game", "tv"]:
+    for media_type in app.models.MEDIA_TYPES:
         imported_counts[media_type] = import_media(
             media_type,
             bulk_media[media_type],
             user,
         )
 
-    imported_counts["season"] = import_seasons(bulk_media["season"], user)
-    imported_counts["episode"] = import_episodes(bulk_media["episode"], user)
-
     return imported_counts
+
 
 def add_bulk_media(row, user, bulk_media):
     """Add media to list for bulk creation."""
@@ -64,7 +54,7 @@ def add_bulk_media(row, user, bulk_media):
 
     model = apps.get_model(app_label="app", model_name=media_type)
     instance = model(item=item)
-    if media_type != "episode": # episode has no user field
+    if media_type != "episode":  # episode has no user field
         instance.user = user
 
     row["item"] = item
@@ -81,6 +71,11 @@ def add_bulk_media(row, user, bulk_media):
 
 def import_media(media_type, bulk_data, user):
     """Import media and return number of imported objects."""
+    if media_type == "season":
+        return import_seasons(bulk_data, user)
+    if media_type == "episode":
+        return import_episodes(bulk_data, user)
+
     model = apps.get_model(app_label="app", model_name=media_type)
 
     num_objects_before = model.objects.filter(user=user).count()

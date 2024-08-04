@@ -1,6 +1,7 @@
 import csv
 import logging
 
+import app
 from app import helpers
 from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
 from django.apps import apps
@@ -39,18 +40,17 @@ def get_model_fields(model):
     """Get a list of fields names from a model."""
     return [
         field.name
-        for field in model._meta.get_fields() # noqa: SLF001
+        for field in model._meta.get_fields()  # noqa: SLF001
         if isinstance(field, Field) and not field.auto_created and not field.is_relation
     ]
 
 
 def get_track_fields():
     """Get a list of all track fields from all media models."""
-    media_models = ["Anime", "Manga", "Movie", "TV", "Season", "Episode", "Game"]
     all_fields = []
 
-    for model_name in media_models:
-        model = apps.get_model("app", model_name)
+    for media_type in app.models.MEDIA_TYPES:
+        model = apps.get_model("app", media_type)
         for field in get_model_fields(model):
             if field not in all_fields:
                 all_fields.append(field)

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 @require_GET
 def home(request):
     """Home page with media items in progress and repeating."""
-    list_by_type = database.get_media_list_by_type(request.user)
+    list_by_type = database.get_in_progress(request.user)
     context = {"list_by_type": list_by_type}
     return render(request, "app/home.html", context)
 

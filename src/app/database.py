@@ -47,20 +47,21 @@ def get_properties(model):
     return [name for name in dir(model) if isinstance(getattr(model, name), property)]
 
 
-def get_media_list_by_type(user):
-    """Get media items by type for a user."""
-    media_types = ["movie", "season", "anime", "manga", "game"]
+def get_in_progress(user):
+    """Get a media list of in progress media by type."""
     list_by_type = {}
 
-    for media_type in media_types:
-        media_list = get_media_list(
-            user=user,
-            media_type=media_type,
-            status_filter=[models.STATUS_IN_PROGRESS, models.STATUS_REPEATING],
-            sort_filter="score",
-        )
-        if media_list:
-            list_by_type[media_type] = media_list
+    for media_type in models.MEDIA_TYPES:
+        # dont show tv and episodes in home page
+        if media_type not in ("tv", "episode"):
+            media_list = get_media_list(
+                user=user,
+                media_type=media_type,
+                status_filter=[models.STATUS_IN_PROGRESS, models.STATUS_REPEATING],
+                sort_filter="score",
+            )
+            if media_list:
+                list_by_type[media_type] = media_list
 
     return list_by_type
 

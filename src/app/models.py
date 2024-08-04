@@ -17,6 +17,17 @@ from app.providers import services, tmdb
 
 logger = logging.getLogger(__name__)
 
+MEDIA_TYPES = ["movie", "tv", "season", "episode", "anime", "manga", "game"]
+READABLE_MEDIA_TYPES = {
+    "movie": "Movie",
+    "tv": "TV Show",
+    "season": "Season",
+    "episode": "Episode",
+    "anime": "Anime",
+    "manga": "Manga",
+    "game": "Game",
+}
+
 STATUS_IN_PROGRESS = "In progress"
 STATUS_COMPLETED = "Completed"
 STATUS_REPEATING = "Repeating"
@@ -29,7 +40,12 @@ class Item(models.Model):
     """Model for items in custom lists."""
 
     media_id = models.PositiveIntegerField()
-    media_type = models.CharField(max_length=12)
+    media_type = models.CharField(
+        max_length=10,
+        choices=[
+            (media_type, READABLE_MEDIA_TYPES[media_type]) for media_type in MEDIA_TYPES
+        ],
+    )
     title = models.CharField(max_length=255)
     image = models.URLField()
     season_number = models.PositiveIntegerField(null=True)

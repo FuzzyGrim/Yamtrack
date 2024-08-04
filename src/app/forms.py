@@ -7,17 +7,8 @@ from app import models
 
 def get_form_class(media_type):
     """Return the form class for the media type."""
-    form_classes = {
-        "manga": MangaForm,
-        "anime": AnimeForm,
-        "movie": MovieForm,
-        "tv": TVForm,
-        "season": SeasonForm,
-        "episode": EpisodeForm,
-        "game": GameForm,
-    }
-
-    return form_classes[media_type]
+    class_name = media_type.capitalize() + "Form"
+    return globals().get(class_name, None)
 
 
 class CustomDurationField(forms.CharField):
@@ -140,7 +131,7 @@ class MovieForm(MediaForm):
         model = models.Movie
 
 
-class TVForm(MediaForm):
+class TvForm(MediaForm):
     """Form for TV shows."""
 
     def __init__(self, *args, **kwargs):

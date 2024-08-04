@@ -1,3 +1,4 @@
+from app.models import MEDIA_TYPES
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -15,13 +16,7 @@ class User(AbstractUser):
     last_search_type = models.CharField(
         max_length=10,
         default="tv",
-        choices=[
-            ("tv", "tv"),
-            ("movie", "movie"),
-            ("anime", "anime"),
-            ("manga", "manga"),
-            ("game", "game"),
-        ],
+        choices=[(media_type, media_type) for media_type in MEDIA_TYPES],
     )
 
     tv_layout = models.CharField(
@@ -67,15 +62,7 @@ class User(AbstractUser):
 
     def get_layout(self, media_type):
         """Return the layout for the media type."""
-        layout = {
-            "tv": self.tv_layout,
-            "season": self.season_layout,
-            "movie": self.movie_layout,
-            "anime": self.anime_layout,
-            "manga": self.manga_layout,
-            "game": self.game_layout,
-        }
-        return layout[media_type]
+        return getattr(self, f"{media_type}_layout")
 
     def get_layout_template(self, media_type):
         """Return the layout template for the media type."""
@@ -87,18 +74,7 @@ class User(AbstractUser):
 
     def set_layout(self, media_type, layout):
         """Set the layout for the media type."""
-        if media_type == "tv":
-            self.tv_layout = layout
-        elif media_type == "season":
-            self.season_layout = layout
-        elif media_type == "movie":
-            self.movie_layout = layout
-        elif media_type == "anime":
-            self.anime_layout = layout
-        elif media_type == "manga":
-            self.manga_layout = layout
-        elif media_type == "game":
-            self.game_layout = layout
+        setattr(self, f"{media_type}_layout", layout)
         self.save(update_fields=[f"{media_type}_layout"])
 
     def set_last_search_type(self, media_type):

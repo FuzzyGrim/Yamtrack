@@ -1,3 +1,4 @@
+from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES
 from django import forms
 from django_select2 import forms as s2forms
 
@@ -51,16 +52,9 @@ class FilterListItemsForm(forms.Form):
     """Form for filtering media on media list view."""
 
     media_type = forms.ChoiceField(
-        choices=[
-            # left side in lower case for better looking url when filtering
-            ("all", "All"),
-            ("tv", "TV"),
-            ("season", "Season"),
-            ("episode", "Episode"),
-            ("movie", "Movie"),
-            ("anime", "Anime"),
-            ("manga", "Manga"),
-            ("game", "Game"),
+        choices=[("all", "All")]
+        + [
+            (media_type, READABLE_MEDIA_TYPES[media_type]) for media_type in MEDIA_TYPES
         ],
         initial="all",
     )
