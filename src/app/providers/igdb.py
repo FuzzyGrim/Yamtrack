@@ -92,7 +92,7 @@ def game(media_id):
             "media_id": response["id"],
             "media_type": "game",
             "title": response["name"],
-            "max_progress": "Unknown",
+            "max_progress": None,
             "image": get_image_url(response),
             "synopsis": response["summary"],
             "details": {
@@ -148,7 +148,7 @@ def get_category(category_id):
         13: "Pack",
         14: "Update",
     }
-    return category_mapping.get(category_id, "Unknown")
+    return category_mapping.get(category_id)
 
 
 def get_start_date(response):
@@ -161,7 +161,7 @@ def get_start_date(response):
             tz=settings.TZ,
         ).strftime("%Y-%m-%d")
     except KeyError:
-        return "Unknown"
+        return None
 
 
 def get_str_list(response, field):
@@ -171,7 +171,7 @@ def get_str_list(response, field):
     try:
         return ", ".join(item["name"] for item in response[field])
     except KeyError:
-        return "Unknown"
+        return None
 
 
 def get_companies(response):
@@ -183,7 +183,7 @@ def get_companies(response):
             company["company"]["name"] for company in response["involved_companies"]
         )
     except KeyError:
-        return "Unknown"
+        return None
 
 
 def get_parent(parent_game):

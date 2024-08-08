@@ -78,8 +78,8 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Unknown Example")
         self.assertEqual(response["image"], settings.IMG_NONE)
         self.assertEqual(response["synopsis"], "No synopsis available.")
-        self.assertEqual(response["details"]["number_of_episodes"], "Unknown")
-        self.assertEqual(response["details"]["runtime"], "Unknown")
+        self.assertEqual(response["details"]["number_of_episodes"], None)
+        self.assertEqual(response["details"]["runtime"], None)
 
     def test_manga(self):
         """Test the metadata method for manga."""
@@ -116,12 +116,12 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Unknown Movie")
         self.assertEqual(response["image"], settings.IMG_NONE)
         self.assertEqual(response["synopsis"], "No synopsis available.")
-        self.assertEqual(response["details"]["release_date"], "Unknown")
-        self.assertEqual(response["details"]["runtime"], "Unknown")
-        self.assertEqual(response["details"]["genres"], "Unknown")
-        self.assertEqual(response["details"]["studios"], "Unknown")
-        self.assertEqual(response["details"]["country"], "Unknown")
-        self.assertEqual(response["details"]["languages"], "Unknown")
+        self.assertEqual(response["details"]["release_date"], None)
+        self.assertEqual(response["details"]["runtime"], None)
+        self.assertEqual(response["details"]["genres"], None)
+        self.assertEqual(response["details"]["studios"], None)
+        self.assertEqual(response["details"]["country"], None)
+        self.assertEqual(response["details"]["languages"], None)
 
     def test_games(self):
         """Test the metadata method for games."""

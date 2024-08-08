@@ -79,8 +79,8 @@ def anime(media_id):
             "synopsis": get_synopsis(response),
             "details": {
                 "format": get_format(response),
-                "start_date": response.get("start_date", "Unknown"),
-                "end_date": response.get("end_date", "Unknown"),
+                "start_date": response.get("start_date"),
+                "end_date": response.get("end_date"),
                 "status": get_readable_status(response),
                 "number_of_episodes": num_episodes,
                 "runtime": get_runtime(response),
@@ -128,8 +128,8 @@ def manga(media_id):
             "max_progress": num_chapters,
             "details": {
                 "format": get_format(response),
-                "start_date": response.get("start_date", "Unknown"),
-                "end_date": response.get("end_date", "Unknown"),
+                "start_date": response.get("start_date"),
+                "end_date": response.get("end_date"),
                 "status": get_readable_status(response),
                 "number_of_chapters": num_chapters,
                 "genres": get_genres(response),
@@ -201,7 +201,7 @@ def get_number_of_episodes(response):
     except KeyError:
         episodes = response["num_chapters"]
 
-    return episodes if episodes != 0 else "Unknown"
+    return episodes if episodes != 0 else None
 
 
 def get_runtime(response):
@@ -215,7 +215,7 @@ def get_runtime(response):
         # duration are in seconds
         hours, minutes = divmod(int(duration / 60), 60)
         return f"{hours}h {minutes}m" if hours > 0 else f"{minutes} min"
-    return "Unknown"
+    return None
 
 
 def get_genres(response):
@@ -230,8 +230,7 @@ def get_studios(response):
 
     if response["studios"]:
         return ", ".join(studio["name"] for studio in response["studios"])
-    return "Unknown"
-
+    return None
 
 def get_season(response):
     """Return the season for the media."""
@@ -241,7 +240,7 @@ def get_season(response):
         season = response["start_season"]
         return f"{season['season'].title()} {season['year']}"
     except KeyError:
-        return "Unknown"
+        return None
 
 
 def get_source(response):

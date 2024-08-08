@@ -23,7 +23,7 @@
       {% for key, value in media.details.items %}
         <span>
           <label class="text-body-secondary" for="{{ key }}">{{ key|no_underscore|upper }}</label>
-          <span id="{{ key }}">{{ value }}</span>
+          <span id="{{ key }}">{{ value|default_if_none:"Unknown" }}</span>
         </span>
       {% endfor %}
     </div>

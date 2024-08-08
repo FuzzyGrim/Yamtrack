@@ -232,7 +232,7 @@ def get_start_date(date):
     # when unknown date, value from response is empty string
     # e.g movie: 445290
     if date == "":
-        return "Unknown"
+        return None
     return date
 
 
@@ -242,7 +242,7 @@ def get_end_date(date):
     # e.g tv: 87818
     if date:
         return date
-    return "Unknown"
+    return None
 
 
 def get_synopsis(text):
@@ -260,7 +260,7 @@ def get_runtime_tv(runtime):
     # e.g: tv:66672
     if runtime:
         return get_readable_duration(runtime[0])
-    return "Unknown"
+    return None
 
 
 def get_readable_duration(duration):
@@ -270,7 +270,7 @@ def get_readable_duration(duration):
     if duration:
         hours, minutes = divmod(int(duration), 60)
         return f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
-    return "Unknown"
+    return None
 
 
 def get_genres(genres):
@@ -279,7 +279,7 @@ def get_genres(genres):
     # e.g tv: 24795
     if genres:
         return ", ".join(genre["name"] for genre in genres)
-    return "Unknown"
+    return None
 
 
 def get_country(countries):
@@ -288,7 +288,7 @@ def get_country(countries):
     # e.g tv: 24795
     if countries:
         return countries[0]["name"]
-    return "Unknown"
+    return None
 
 
 def get_languages(languages):
@@ -297,7 +297,7 @@ def get_languages(languages):
     # e.g tv: 24795
     if languages:
         return ", ".join(language["english_name"] for language in languages)
-    return "Unknown"
+    return None
 
 
 def get_companies(companies):
@@ -306,7 +306,7 @@ def get_companies(companies):
     # e.g tv: 24795
     if companies:
         return ", ".join(company["name"] for company in companies)
-    return "Unknown"
+    return None
 
 
 def get_related(related_medias, media_id=None):
@@ -359,7 +359,7 @@ def get_episode_air_date(date):
     # e.g tv: 1668, season 0, episode 3
     if date:
         return date
-    return "Unknown air date"
+    return None
 
 
 def find_next_episode(episode_number, episodes_metadata):

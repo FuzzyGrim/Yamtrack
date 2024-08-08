@@ -137,16 +137,16 @@ class Media(models.Model):
         if self.progress < 0:
             self.progress = 0
         else:
-            total_episodes = services.get_media_metadata(
+            max_progress = services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
             )["max_progress"]
 
-            if total_episodes != "Unknown":
-                if self.progress > total_episodes:
-                    self.progress = total_episodes
+            if max_progress:
+                if self.progress > max_progress:
+                    self.progress = max_progress
 
-                if self.progress == total_episodes:
+                if self.progress == max_progress:
                     self.status = STATUS_COMPLETED
 
     def process_status(self):
@@ -155,13 +155,13 @@ class Media(models.Model):
             if not self.end_date:
                 self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
-            total_episodes = services.get_media_metadata(
+            max_progress = services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
             )["max_progress"]
 
-            if total_episodes != "Unknown":
-                self.progress = total_episodes
+            if max_progress:
+                self.progress = max_progress
 
             if self.tracker.previous("status") == STATUS_REPEATING:
                 self.repeats += 1
@@ -618,14 +618,14 @@ class Episode(models.Model):
                 self.item.media_id,
                 self.item.season_number,
             )
-            total_episodes = len(season_metadata["episodes"])
+            max_progress = len(season_metadata["episodes"])
             total_repeats = self.related_season.episodes.aggregate(
                 total_repeats=Sum("repeats"),
             )["total_repeats"]
 
             total_watches = self.related_season.progress + total_repeats
 
-            if total_watches >= total_episodes * (self.related_season.repeats + 1):
+            if total_watches >= max_progress * (self.related_season.repeats + 1):
                 self.related_season.status = STATUS_COMPLETED
                 self.related_season.save_base(update_fields=["status"])
 
