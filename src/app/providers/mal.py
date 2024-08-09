@@ -1,3 +1,6 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import requests
 from django.conf import settings
 from django.core.cache import cache
@@ -58,7 +61,7 @@ def anime(media_id):
     if data is None:
         url = f"{base_url}/anime/{media_id}"
         params = {
-            "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,source,related_anime",  # noqa: E501
+            "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,broadcast,source,related_anime",  # noqa: E501
         }
         response = services.api_request(
             "MAL",
@@ -86,6 +89,7 @@ def anime(media_id):
                 "runtime": get_runtime(response),
                 "studios": get_studios(response),
                 "season": get_season(response),
+                "broadcast": get_broadcast(response),
                 "source": get_source(response),
                 "genres": get_genres(response),
             },
@@ -232,6 +236,7 @@ def get_studios(response):
         return ", ".join(studio["name"] for studio in response["studios"])
     return None
 
+
 def get_season(response):
     """Return the season for the media."""
     # when unknown start season, no start_season key in response
@@ -241,6 +246,27 @@ def get_season(response):
         return f"{season['season'].title()} {season['year']}"
     except KeyError:
         return None
+
+
+def get_broadcast(response):
+    """Return the broadcast day and time for the media."""
+    # when unknown broadcast, value from response is None
+    # e.g anime: 38869
+    broadcast = response.get("broadcast")
+    start_date = response.get("start_date")
+
+    if broadcast and start_date:
+        # convert japan timezone to timezone from settings
+        japan_timezone = ZoneInfo("Asia/Tokyo")
+        start_time = broadcast["start_time"]
+        broadcast_time_japan = datetime.strptime(
+            f"{start_date} {start_time}",
+            "%Y-%m-%d %H:%M",
+        ).replace(tzinfo=japan_timezone)
+
+        broadcast_time_local = broadcast_time_japan.astimezone(settings.TZ)
+        return broadcast_time_local.strftime("%A %H:%M")
+    return None
 
 
 def get_source(response):
