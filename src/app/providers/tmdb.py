@@ -4,6 +4,10 @@ from django.core.cache import cache
 from app.providers import services
 
 base_url = "https://api.themoviedb.org/3"
+base_params = {
+    "api_key": settings.TMDB_API,
+    "language": settings.TMDB_LANG,
+}
 
 
 def search(media_type, query):
@@ -12,10 +16,10 @@ def search(media_type, query):
 
     if data is None:
         url = f"{base_url}/search/{media_type}"
+
         params = {
-            "api_key": settings.TMDB_API,
+            **base_params,
             "query": query,
-            "language": settings.TMDB_LANG,
         }
 
         if settings.TMDB_NSFW:
@@ -46,8 +50,7 @@ def movie(media_id):
     if data is None:
         url = f"{base_url}/movie/{media_id}"
         params = {
-            "api_key": settings.TMDB_API,
-            "language": settings.TMDB_LANG,
+            **base_params,
             "append_to_response": "recommendations",
         }
         response = services.api_request("TMDB", "GET", url, params=params)
@@ -84,8 +87,7 @@ def tv_with_seasons(media_id, season_numbers):
     """Return the metadata for the tv show with a season appended to the response."""
     url = f"{base_url}/tv/{media_id}"
     params = {
-        "api_key": settings.TMDB_API,
-        "language": settings.TMDB_LANG,
+        **base_params,
         "append_to_response": "recommendations",
     }
 
@@ -125,8 +127,7 @@ def tv(media_id):
     if data is None:
         url = f"{base_url}/tv/{media_id}"
         params = {
-            "api_key": settings.TMDB_API,
-            "language": settings.TMDB_LANG,
+            **base_params,
             "append_to_response": "recommendations",
         }
         response = services.api_request("TMDB", "GET", url, params=params)
@@ -174,11 +175,7 @@ def season(tv_id, season_number):
 
     if data is None:
         url = f"{base_url}/tv/{tv_id}/season/{season_number}"
-        params = {
-            "api_key": settings.TMDB_API,
-            "language": settings.TMDB_LANG,
-        }
-        response = services.api_request("TMDB", "GET", url, params=params)
+        response = services.api_request("TMDB", "GET", url, params=base_params)
         data = process_season(response)
         cache.set(f"season_{tv_id}_{season_number}", data)
 
