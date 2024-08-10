@@ -250,7 +250,7 @@ def get_season(response):
 
 def get_broadcast(response):
     """Return the broadcast day and time for the media."""
-    # when unknown broadcast, value from response is None
+    # when unknown broadcast, value is not present in the response
     # e.g anime: 38869
     broadcast = response.get("broadcast")
     start_date = response.get("start_date")

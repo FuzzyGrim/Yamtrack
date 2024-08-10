@@ -9,11 +9,13 @@ from django.core.validators import (
 )
 from django.db import models
 from django.db.models import Max, Sum
+from django.urls import reverse
 from model_utils import FieldTracker
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 from app.providers import services, tmdb
+from app.templatetags.app_extras import slug
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,27 @@ class Item(models.Model):
             if self.episode_number:
                 name += f"E{self.episode_number}"
         return name
+
+    @property
+    def url(self):
+        """Return the URL of the item."""
+        if self.media_type in ["season", "episode"]:
+            return reverse(
+                "season_details",
+                kwargs={
+                    "media_id": self.media_id,
+                    "title": slug(self.title),
+                    "season_number": self.season_number,
+                },
+            )
+        return reverse(
+            "media_details",
+            kwargs={
+                "media_type": self.media_type,
+                "media_id": self.media_id,
+                "title": slug(self.title),
+            },
+        )
 
 
 class Media(models.Model):

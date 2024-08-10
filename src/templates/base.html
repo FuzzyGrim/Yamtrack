@@ -104,9 +104,13 @@
               </a>
             </li>
             <li>
+              <a href="{% url 'calendar' %}" class="nav-link {% if request.path == "/calendar" %}active{% endif %}">
+                <i class="bi bi-calendar me-2"></i> Calendar
+              </a>
+            </li>
+            <li>
               <a href="{% url 'profile' %}" class="nav-link {% if request.path == "/profile" %}active{% endif %}">
-                <i class="bi bi-person-circle me-2 align-middle"></i>
-                <span class="align-middle">Profile</span>
+                <i class="bi bi-person-circle me-2"></i> Profile
               </a>
             </li>
             <li>

@@ -71,7 +71,6 @@ def media_list(request, media_type):
     else:
         filter_form = FilterForm(layout=layout_user)
 
-
     status_filter = request.GET.get("status", "all")
     sort_filter = request.GET.get("sort", "score")
 
@@ -233,6 +232,7 @@ def media_delete(request):
         logger.warning("The %s was already deleted before.", media_type)
 
     return helpers.redirect_back(request)
+
 
 @require_POST
 def episode_handler(request):

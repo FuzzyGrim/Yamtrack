@@ -427,3 +427,28 @@ debug, info, success, warning, error */
     }
   }
 }
+
+/* center title in calendar, for small screens */
+.fc .fc-toolbar-title {
+  text-align: center;
+}
+
+/* disable text wrapping in calendar events */
+.fc-event-main-frame {
+  white-space: normal;
+}
+
+/* override bootstrap calendar buttons to btn-secondary theme */
+.fc-prev-button, .fc-next-button {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: #6c757d;
+  --bs-btn-border-color: #6c757d;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #5c636a;
+  --bs-btn-hover-border-color: #565e64;
+  --bs-btn-focus-shadow-rgb: 130,138,145;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #565e64;
+  --bs-btn-active-border-color: #51585e;
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+}

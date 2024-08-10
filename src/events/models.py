@@ -34,4 +34,8 @@ class Event(models.Model):
 
     def __str__(self):
         """Return event title."""
+        if self.item.media_type == "season":
+            return f"{self.item.__str__()}E{self.episode_number}"
+        if self.episode_number:
+            return f"{self.item.__str__()} - Ep. {self.episode_number}"
         return self.item.__str__()

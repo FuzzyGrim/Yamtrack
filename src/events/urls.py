@@ -3,5 +3,6 @@ from django.urls import path
 from events import views
 
 urlpatterns = [
-    path("refresh_calendar", views.refresh_calendar, name="refresh_calendar"),
+    path("calendar", views.calendar, name="calendar"),
+    path("refresh_events", views.refresh_events, name="refresh_events"),
 ]

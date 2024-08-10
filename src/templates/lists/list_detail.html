@@ -26,25 +26,25 @@
     </div>
     <div class="d-flex column-gap-2">
       <button type="button"
-                      class="btn btn-secondary filter-btn"
-                      data-bs-toggle="modal"
-                      data-bs-target="#filter-modal">
-                <i class="bi bi-funnel-fill"></i>
-              </button>
-              <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-sm modal-dialog-centered">
-                  <div class="modal-content text-start">
-                    <div class="modal-body">
-                      <form method="get">
-                        {{ filter_form|crispy }}
-                        <div class="text-center">
-                          <button class="btn btn-secondary" type="submit">Filter</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
+              class="btn btn-secondary filter-btn"
+              data-bs-toggle="modal"
+              data-bs-target="#filter-modal">
+        <i class="bi bi-funnel-fill"></i>
+      </button>
+      <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+          <div class="modal-content text-start">
+            <div class="modal-body">
+              <form method="get">
+                {{ filter_form|crispy }}
+                <div class="text-center">
+                  <button class="btn btn-secondary" type="submit">Filter</button>
                 </div>
-              </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
       <button type="button"
               class="btn btn-secondary h-75"
               data-bs-toggle="modal"
@@ -86,16 +86,16 @@
   <p class="mt-2 fs-5">{{ custom_list.description }}</p>
 
   <div class="grid mt-5">
-    {% for media in items.all %}
+    {% for item in items.all %}
       <div class="card">
-        <a href="{% if media.media_type == "season" or media.media_type == "episode" %} {% url 'season_details' media_id=media.media_id title=media.title|slug season_number=media.season_number %} {% else %} {% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slug %} {% endif %}">
-          <img src="{{ media.image }}"
-               class="card-img {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-               alt="{{ media.title }}" />
+        <a href="{{ item.url }}">
+          <img src="{{ item.image }}"
+               class="card-img {% if item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+               alt="{{ item.title }}" />
         </a>
 
         <div class="card-img-overlay">
-          <div class="card-title">{{ media }}</div>
+          <div class="card-title">{{ item }}</div>
         </div>
       </div>
     {% endfor %}

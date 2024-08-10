@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_extras %}
+
+{% block title %}
+  Calendar - Yamtrack
+{% endblock title %}
+
+{% block container %}
+  <div id="calendar"></div>
+{% endblock container %}
+
+{% block js %}
+  <script src="{% static "js/fullcalendar.min.js" %}"></script>
+  <script src="{% static "js/fullcalendar-bootstrap5.min.js" %}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var calendarEl = document.getElementById("calendar");
+      var events = {{ events|safe }};
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        themeSystem: 'bootstrap5',
+        events: events,
+        locale: "en",
+        headerToolbar: {
+            left: "prev",
+            center: "title",
+            right: "next"
+        },
+      });
+      calendar.render();
+    });
+  </script>
+{% endblock js %}

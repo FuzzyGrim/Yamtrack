@@ -11,8 +11,8 @@ from django.db.models import Q
 from events.models import Event
 
 
-@shared_task(name="Refresh calendar")
-def refresh_calendar():
+@shared_task(name="Refresh events")
+def refresh_events():
     """Refresh the calendar with latest dates."""
     statuses = ["Planning", "In progress"]
     media_types_with_status = [media for media in MEDIA_TYPES if media != "episode"]

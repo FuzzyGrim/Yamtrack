@@ -150,7 +150,7 @@ def process_tv(response):
         "details": {
             "format": "TV",
             "first_air_date": get_start_date(response["first_air_date"]),
-            "last_air_date": get_end_date(response["last_air_date"]),
+            "last_air_date": response["last_air_date"],
             "status": response["status"],
             "number_of_seasons": response["number_of_seasons"],
             "number_of_episodes": num_episodes,
@@ -231,15 +231,6 @@ def get_start_date(date):
     if date == "":
         return None
     return date
-
-
-def get_end_date(date):
-    """Return the last date for the media."""
-    # when unknown date, value from response is null
-    # e.g tv: 87818
-    if date:
-        return date
-    return None
 
 
 def get_synopsis(text):
@@ -333,7 +324,7 @@ def process_episodes(season_metadata, episodes_in_db):
         episodes_metadata.append(
             {
                 "episode_number": episode_number,
-                "air_date": get_episode_air_date(episode["air_date"]),
+                "air_date": episode["air_date"], # when unknown, response returns null
                 "image": get_image_url(episode["still_path"]),
                 "title": episode["name"],
                 "overview": episode["overview"],
@@ -348,15 +339,6 @@ def process_episodes(season_metadata, episodes_in_db):
         )
 
     return episodes_metadata
-
-
-def get_episode_air_date(date):
-    """Return the air date for the episode."""
-    # when unknown air date, value from response is null
-    # e.g tv: 1668, season 0, episode 3
-    if date:
-        return date
-    return None
 
 
 def find_next_episode(episode_number, episodes_metadata):
