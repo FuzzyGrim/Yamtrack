@@ -36,7 +36,7 @@ def calendar(request):
 
 
 @require_POST
-def refresh_events(request): # noqa: ARG001
+def reload_calendar(request):
     """Refresh the calendar with the latest dates."""
-    tasks.refresh_events()
+    tasks.reload_calendar.delay(request.user)
     return redirect("profile")

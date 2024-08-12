@@ -4,5 +4,5 @@ from events import views
 
 urlpatterns = [
     path("calendar", views.calendar, name="calendar"),
-    path("refresh_events", views.refresh_events, name="refresh_events"),
+    path("reload_calendar", views.reload_calendar, name="reload_calendar"),
 ]

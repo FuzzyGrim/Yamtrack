@@ -11,8 +11,8 @@ from django.db.models import Q
 from events.models import Event
 
 
-@shared_task(name="Refresh events")
-def refresh_events():
+@shared_task(name="Reload calendar")
+def reload_calendar(user): # noqa:ARG001, used for metadata
     """Refresh the calendar with latest dates."""
     statuses = ["Planning", "In progress"]
     media_types_with_status = [media for media in MEDIA_TYPES if media != "episode"]
@@ -31,6 +31,8 @@ def refresh_events():
             process_item(item, date_limit, event_list)
 
         Event.objects.bulk_create(event_list)
+
+    return f"Reloaded {len(event_list)} calendar events."
 
 
 def process_item(item, date_limit, event_list):

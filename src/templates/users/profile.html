@@ -118,9 +118,9 @@
     <legend class="border-bottom mb-4">Other</legend>
 
     <fieldset class="input-group profile-grid">
-      <form class="p-2 grid-item" method="post" action="{% url 'refresh_events' %}">
+      <form class="p-2 grid-item" method="post" action="{% url 'reload_calendar' %}">
         {% csrf_token %}
-        <button class="btn btn-secondary w-100" type="submit">Refresh Calendar</button>
+        <button class="btn btn-secondary w-100" type="submit">Reload Calendar</button>
       </form>
     </fieldset>
   </div>
