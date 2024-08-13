@@ -138,5 +138,5 @@ def tasks(request):
     return render(
         request,
         "users/tasks.html",
-        {"tasks": tasks, "value": "Joel\nis a slug"},
+        {"tasks": tasks},
     )
