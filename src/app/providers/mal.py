@@ -94,7 +94,7 @@ def anime(media_id):
                 "genres": get_genres(response),
             },
             "related": {
-                "related_animes": get_related(response.get("related_anime")),
+                "related_anime": get_related(response.get("related_anime")),
                 "recommendations": get_related(response.get("recommendations")),
             },
         }
@@ -139,7 +139,7 @@ def manga(media_id):
                 "genres": get_genres(response),
             },
             "related": {
-                "related_mangas": get_related(response.get("related_manga")),
+                "related_manga": get_related(response.get("related_manga")),
                 "recommendations": get_related(response.get("recommendations")),
             },
         }
