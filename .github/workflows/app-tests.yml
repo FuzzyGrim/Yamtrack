@@ -36,6 +36,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      - name: Ruff
+        run: |
+          ruff check src
+
       - name: Run Tests
         env:
           SECRET: ${{ secrets.SECRET }}
