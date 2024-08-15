@@ -4,11 +4,20 @@ import time
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from pyrate_limiter import RedisBucket
+from redis import ConnectionPool
+from requests_ratelimiter import LimiterSession
 
 from app.providers import igdb, mal, tmdb
 
 logger = logging.getLogger(__name__)
-session = requests.Session()
+
+redis_pool = ConnectionPool.from_url(settings.REDIS_URL)
+session = LimiterSession(
+    per_second=4,
+    bucket_class=RedisBucket,
+    bucket_kwargs={"redis_pool": redis_pool, "bucket_name": "api"},
+)
 
 
 def api_request(provider, method, url, params=None, data=None, headers=None):  # noqa: PLR0913
