@@ -143,11 +143,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Logging
 # https://docs.djangoproject.com/en/stable/topics/logging/
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "loggers": {
+        "requests_ratelimiter": {
+            "level": "INFO",
+        },
         "psycopg": {
             "level": "INFO",
         },
