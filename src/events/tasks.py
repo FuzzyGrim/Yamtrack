@@ -142,4 +142,15 @@ def process_other(item, metadata, event_list):
 
 def date_parser(date_str):
     """Parse date string to datetime object. Raises ValueError if invalid."""
-    return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=ZoneInfo("UTC"))
+    # Preprocess the date string
+    parts = date_str.split("-")
+    if len(parts) == 1:
+        # Only year is provided, append "-01-01"
+        date_str += "-01-01"
+    elif len(parts) == 2:
+        # Year and month are provided, append "-01"
+        date_str += "-01"
+
+    # Parse the date string
+    parsed_date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=ZoneInfo("UTC"))
+    return parsed_date
