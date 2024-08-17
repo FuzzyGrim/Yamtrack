@@ -5,3 +5,4 @@ __pycache__
 venv
 src/staticfiles
 src/db/db.sqlite3
+celerybeat-schedule

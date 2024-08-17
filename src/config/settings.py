@@ -271,3 +271,10 @@ CELERY_CACHE_BACKEND = "default"
 CELERY_TASK_SERIALIZER = "pickle"
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-accept_content
 CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
+
+CELERY_BEAT_SCHEDULE = {
+    "reload_calendar": {
+        "task": "Reload calendar",
+        "schedule": 60 * 60 * 6,  # every 6 hours
+    },
+}
