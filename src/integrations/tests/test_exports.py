@@ -3,9 +3,9 @@ from datetime import date
 from io import StringIO
 
 from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
-from users.models import User
 
 
 class ExportCSVTest(TestCase):
@@ -14,7 +14,7 @@ class ExportCSVTest(TestCase):
     def setUp(self):
         """Create necessary data for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_superuser(**self.credentials)
+        self.user = get_user_model().objects.create_superuser(**self.credentials)
         self.client.login(**self.credentials)
 
         item_tv = Item.objects.create(

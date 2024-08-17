@@ -3,8 +3,8 @@ from datetime import date
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import TestCase
-from users.models import User
 
 from app.models import TV, Anime, Episode, Item, Season
 
@@ -53,7 +53,7 @@ class MediaModel(TestCase):
     def setUp(self):
         """Create a user."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
         item_anime = Item.objects.create(
             media_id=1,
@@ -156,7 +156,7 @@ class TVModel(TestCase):
     def setUp(self):
         """Create a user and a season with episodes."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
         item_tv = Item.objects.create(
             media_id=1668,
@@ -215,7 +215,6 @@ class TVModel(TestCase):
             related_season=season1,
             watch_date=date(2023, 6, 2),
         )
-
 
         item_season2 = Item.objects.create(
             media_id=1668,
@@ -288,7 +287,7 @@ class SeasonModel(TestCase):
     def setUp(self):
         """Create a user and a season with episodes."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
         item_tv = Item.objects.create(
             media_id=1668,
@@ -373,7 +372,7 @@ class EpisodeModel(TestCase):
     def setUp(self):
         """Create a user and a season."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
         item_tv = Item.objects.create(
             media_id=1668,

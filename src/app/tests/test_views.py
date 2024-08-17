@@ -1,8 +1,8 @@
 import datetime
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from users.models import User
 
 from app.models import TV, Anime, Episode, Item, Movie, Season
 
@@ -13,7 +13,7 @@ class CreateMedia(TestCase):
     def setUp(self):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
     @override_settings(MEDIA_ROOT=("create_media"))
@@ -108,7 +108,7 @@ class EditMedia(TestCase):
     def setUp(self):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
     def test_edit_movie_score(self):
@@ -150,7 +150,7 @@ class DeleteMedia(TestCase):
     def setUp(self):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
         self.item_tv = Item.objects.create(
@@ -235,7 +235,7 @@ class ProgressEditSeason(TestCase):
     def setUp(self):
         """Prepare the database with a season and an episode."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
         item_tv = Item.objects.create(
@@ -323,7 +323,7 @@ class ProgressEditAnime(TestCase):
     def setUp(self):
         """Prepare the database with an anime."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
         self.item = Item.objects.create(

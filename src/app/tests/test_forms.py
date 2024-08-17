@@ -1,5 +1,5 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase
-from users.models import User
 
 from app.forms import AnimeForm, EpisodeForm, GameForm, SeasonForm, TvForm
 from app.models import Item
@@ -11,7 +11,7 @@ class BasicMediaForm(TestCase):
     def setUp(self):
         """Create a user."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user: User = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
         self.item = Item.objects.create(
             media_id=1,
@@ -80,7 +80,7 @@ class BasicGameForm(TestCase):
     def setUp(self):
         """Create a user."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user: User = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.item = Item.objects.create(
             media_id=1,
             media_type="game",

@@ -1,7 +1,7 @@
 from app.models import Item
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from users.models import User
 
 from lists.forms import CustomListForm
 from lists.models import CustomList
@@ -13,7 +13,7 @@ class CustomListModelTest(TestCase):
     def setUp(self):
         """Set up test data for CustomList model."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.custom_list = CustomList.objects.create(
             name="Test List",
             description="Test Description",
@@ -34,14 +34,14 @@ class CustomListModelTest(TestCase):
         """Test the user_can_edit method of CustomList."""
         self.assertTrue(self.custom_list.user_can_edit(self.user))
         self.credentials = {"username": "test2", "password": "12345"}
-        other_user = User.objects.create_user(**self.credentials)
+        other_user = get_user_model().objects.create_user(**self.credentials)
         self.assertFalse(self.custom_list.user_can_edit(other_user))
 
     def test_user_can_delete(self):
         """Test the user_can_delete method of CustomList."""
         self.assertTrue(self.custom_list.user_can_delete(self.user))
         self.credentials = {"username": "test2", "password": "12345"}
-        other_user = User.objects.create_user(**self.credentials)
+        other_user = get_user_model().objects.create_user(**self.credentials)
         self.assertFalse(self.custom_list.user_can_delete(other_user))
 
 
@@ -52,8 +52,8 @@ class CustomListManagerTest(TestCase):
         """Set up test data for CustomListManager tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.other_credentials = {"username": "other", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
-        self.other_user = User.objects.create_user(**self.other_credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.other_user = get_user_model().objects.create_user(**self.other_credentials)
         self.list1 = CustomList.objects.create(name="List 1", owner=self.user)
         self.list2 = CustomList.objects.create(name="List 2", owner=self.other_user)
         self.list2.collaborators.add(self.user)
@@ -73,7 +73,7 @@ class ListsViewTest(TestCase):
         """Set up test data for lists view tests."""
         self.client = Client()
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
         self.list = CustomList.objects.create(name="Test List", owner=self.user)
 
@@ -93,7 +93,7 @@ class CreateListViewTest(TestCase):
         """Set up test data for create list view tests."""
         self.client = Client()
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
     def test_create_list(self):
@@ -116,7 +116,7 @@ class EditListViewTest(TestCase):
         """Set up test data for edit list view tests."""
         self.client = Client()
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
         self.list = CustomList.objects.create(name="Test List", owner=self.user)
 
@@ -142,7 +142,7 @@ class DeleteListViewTest(TestCase):
         """Create a user, log in, and create a list."""
         self.client = Client()
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
         self.list = CustomList.objects.create(name="Test List", owner=self.user)
 
@@ -159,7 +159,7 @@ class ListsModalViewTest(TestCase):
         """Create a user and log in."""
         self.client = Client()
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
     def test_lists_modal_view(self):
@@ -186,7 +186,7 @@ class ListItemToggleViewTest(TestCase):
         """Create a user, a list, and an item."""
         self.client = Client()
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
         self.list = CustomList.objects.create(name="Test List", owner=self.user)
         self.item = Item.objects.create(
@@ -227,7 +227,7 @@ class CustomListFormTest(TestCase):
     def setUp(self):
         """Create a user."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
     def test_custom_list_form_valid(self):
         """Test the form with valid data."""
@@ -251,7 +251,7 @@ class CustomListFormTest(TestCase):
     def test_custom_list_form_with_collaborators(self):
         """Test the form with collaborators."""
         self.credentials = {"username": "test2", "password": "12345"}
-        collaborator = User.objects.create_user(**self.credentials)
+        collaborator = get_user_model().objects.create_user(**self.credentials)
         form_data = {
             "name": "Test List",
             "description": "Test Description",

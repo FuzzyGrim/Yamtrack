@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 import requests
 from app.models import TV, Anime, Episode, Manga, Movie, Season
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import TestCase
-from users.models import User
 
 from integrations.imports import anilist, mal, tmdb, yamtrack
 
@@ -19,7 +19,7 @@ class ImportMAL(TestCase):
     def setUp(self):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
     @patch("requests.Session.get")
     def test_import_animelist(self, mock_request):
@@ -70,7 +70,7 @@ class ImportTMDB(TestCase):
     def setUp(self):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
     def test_tmdb_import_ratings(self):
         """Test importing ratings from TMDB."""
@@ -93,7 +93,7 @@ class ImportAniList(TestCase):
     def setUp(self):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
     @patch("requests.Session.post")
     def test_import_anilist(self, mock_request):
@@ -130,7 +130,7 @@ class ImportYamtrack(TestCase):
     def setUp(self):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
     def test_import_yamtrack(self):
         """Basic test importing media from Yamtrack."""

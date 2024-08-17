@@ -1,11 +1,10 @@
 import json
 
 from django.contrib import auth
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django_celery_results.models import TaskResult
-
-from users.models import User
 
 
 class Profile(TestCase):
@@ -14,7 +13,7 @@ class Profile(TestCase):
     def setUp(self):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
     def test_change_username(self):
@@ -48,7 +47,7 @@ class TaskViewTests(TestCase):
     def setUp(self):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.user = User.objects.create_user(**self.credentials)
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
     def test_task_status_handling(self):
