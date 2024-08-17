@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from app.models import MEDIA_TYPES, Item
+from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES, Item
 from app.providers import services, tmdb
 from celery import shared_task
 from django.conf import settings
@@ -41,24 +41,30 @@ def reload_calendar(user=None):  # noqa:ARG001, used for metadata
         # Delete all events related to items with at least one future event
         Event.objects.filter(item_id__in=future_event_item_ids).delete()
 
+        result_msg = ""
+        count = 0
         for item in items_to_process:
-            process_item(item, event_list)
+            reloaded = process_item(item, event_list)
+            if reloaded:
+                result_msg += f"{item} ({READABLE_MEDIA_TYPES[item.media_type]}).\n"
+                count += 1
 
         Event.objects.bulk_create(event_list)
 
-    return f"Reloaded {len(event_list)} calendar events."
+    return f"Reloaded {count} items with future events: \n\n {result_msg}"
 
 
 def process_item(item, event_list):
     """Process each item and add events to the event list."""
     if item.media_type == "anime":
-        process_anime(item, event_list)
+        reloaded = process_anime(item, event_list)
     elif item.media_type == "season":
         metadata = tmdb.season(item.media_id, item.season_number)
-        process_season(item, metadata, event_list)
+        reloaded = process_season(item, metadata, event_list)
     else:
         metadata = services.get_media_metadata(item.media_type, item.media_id)
-        process_other(item, metadata, event_list)
+        reloaded = process_other(item, metadata, event_list)
+    return reloaded
 
 
 def process_anime(item, event_list):
@@ -75,6 +81,7 @@ def process_anime(item, event_list):
                 date=local_air_date,
             ),
         )
+    return bool(episodes)
 
 
 def get_anime_schedule(item):
@@ -125,6 +132,7 @@ def process_season(item, metadata, event_list):
                 )
             except ValueError:
                 pass
+    return bool(metadata["episodes"])
 
 
 def process_other(item, metadata, event_list):
@@ -137,20 +145,28 @@ def process_other(item, metadata, event_list):
                 air_date = date_parser(metadata["details"][date_key])
                 event_list.append(Event(item=item, date=air_date))
             except ValueError:
-                pass
+                return False
+            else:
+                return True
+
+    return False
 
 
 def date_parser(date_str):
     """Parse date string to datetime object. Raises ValueError if invalid."""
+    year_only_parts = 1
+    year_month_parts = 2
+    default_month_day = "-01-01"
+    default_day = "-01"
     # Preprocess the date string
     parts = date_str.split("-")
-    if len(parts) == 1:
-        # Only year is provided, append "-01-01"
-        date_str += "-01-01"
-    elif len(parts) == 2:
+    if len(parts) == year_only_parts:
+        date_str += default_month_day
+    elif len(parts) == year_month_parts:
         # Year and month are provided, append "-01"
-        date_str += "-01"
+        date_str += default_day
 
     # Parse the date string
-    parsed_date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=ZoneInfo("UTC"))
-    return parsed_date
+    return datetime.strptime(date_str, "%Y-%m-%d").replace(
+        tzinfo=ZoneInfo("UTC"),
+    )
