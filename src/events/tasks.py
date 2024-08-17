@@ -130,7 +130,7 @@ def process_season(item, metadata, event_list):
 def process_other(item, metadata, event_list):
     """Process other types of items and add events to the event list."""
     # it will have either of these keys
-    date_keys = ["start_date", "release_date"]
+    date_keys = ["start_date", "release_date", "first_air_date"]
     for date_key in date_keys:
         if date_key in metadata["details"] and metadata["details"][date_key]:
             try:
