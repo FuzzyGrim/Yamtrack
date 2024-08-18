@@ -92,6 +92,11 @@ def get_anime_schedule(item):
         query = """
         query ($idMal: Int){
             Media (idMal: $idMal, type: ANIME) {
+                startDate {
+                    year
+                    month
+                    day
+                }
                 airingSchedule {
                     nodes {
                         episode
@@ -103,7 +108,6 @@ def get_anime_schedule(item):
         """
         variables = {"idMal": item.media_id}
         url = "https://graphql.anilist.co"
-
         response = services.api_request(
             "ANILIST",
             "POST",
@@ -112,6 +116,20 @@ def get_anime_schedule(item):
         )
 
         data = response["data"]["Media"]["airingSchedule"]["nodes"]
+
+        # if no airing schedule is available, use the start date
+        if not data and "startDate" in response["data"]["Media"]:
+            data = [
+                {
+                    "episode": 1,
+                    "airingAt": datetime(
+                        response["data"]["Media"]["startDate"]["year"],
+                        response["data"]["Media"]["startDate"]["month"],
+                        response["data"]["Media"]["startDate"]["day"],
+                        tzinfo=ZoneInfo("UTC"),
+                    ).timestamp(),
+                },
+            ]
         cache.set(f"schedule_anime_{item.media_id}", data)
 
     return data
