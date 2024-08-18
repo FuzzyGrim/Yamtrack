@@ -7,7 +7,7 @@ class EventManager(models.Manager):
     """Custom manager for the Event model."""
 
     def user_events(self, user):
-        """Get all upcoming media events for the specified user within the next week."""
+        """Get all upcoming media events of the specified user within the next week."""
         media_types_with_user = [media for media in MEDIA_TYPES if media != "episode"]
 
         query = Q()

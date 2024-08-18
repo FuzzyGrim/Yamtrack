@@ -11,10 +11,13 @@ from django.db.models import Q
 
 from events.models import Event
 
+DEFAULT_MONTH_DAY = "-01-01"
+DEFAULT_DAY = "-01"
+
 
 @shared_task(name="Reload calendar")
-def reload_calendar(user=None):  # noqa:ARG001, used for metadata
-    """Refresh the calendar with latest dates."""
+def reload_calendar(user=None):  # , used for metadata
+    """Refresh the calendar with latest dates for all users."""
     statuses = ["Planning", "In progress"]
     media_types_with_status = [media for media in MEDIA_TYPES if media != "episode"]
 
@@ -35,46 +38,54 @@ def reload_calendar(user=None):  # noqa:ARG001, used for metadata
         Q(id__in=future_event_item_ids) | Q(id__in=items_without_events),
     )
 
-    event_list = []
-
+    events_bulk = []
+    user_reloaded_items = []
     with transaction.atomic():
         # Delete all events related to items with at least one future event
         Event.objects.filter(item_id__in=future_event_item_ids).delete()
-
-        result_msg = ""
-        count = 0
         for item in items_to_process:
-            reloaded = process_item(item, event_list)
-            if reloaded:
-                result_msg += f"{item} ({READABLE_MEDIA_TYPES[item.media_type]}).\n"
-                count += 1
+            if process_item(item, events_bulk):
+                # only add to the result message if the user is tracking the item
+                user_query = Q(**{f"{item.media_type}__user": user})
+                if user and Item.objects.filter(user_query, id=item.id).exists():
+                    user_reloaded_items.append(item)
 
-        Event.objects.bulk_create(event_list)
+        Event.objects.bulk_create(events_bulk)
 
-    return f"Reloaded {count} items with future events: \n\n {result_msg}"
+    user_reloaded_count = len(user_reloaded_items)
+    user_reloaded_msg = "\n".join(
+        f"{item} ({READABLE_MEDIA_TYPES[item.media_type]})"
+        for item in user_reloaded_items
+    )
+
+    msg_title = "Reloaded the calendar for all users."
+    if user_reloaded_count > 0:
+        return f"""{msg_title} The following items have been reloaded for you:\n
+                   {user_reloaded_msg}"""
+    return f"{msg_title} There have been no changes in your calendar."
 
 
-def process_item(item, event_list):
+def process_item(item, events_bulk):
     """Process each item and add events to the event list."""
     if item.media_type == "anime":
-        reloaded = process_anime(item, event_list)
+        reloaded = process_anime(item, events_bulk)
     elif item.media_type == "season":
         metadata = tmdb.season(item.media_id, item.season_number)
-        reloaded = process_season(item, metadata, event_list)
+        reloaded = process_season(item, metadata, events_bulk)
     else:
         metadata = services.get_media_metadata(item.media_type, item.media_id)
-        reloaded = process_other(item, metadata, event_list)
+        reloaded = process_other(item, metadata, events_bulk)
     return reloaded
 
 
-def process_anime(item, event_list):
+def process_anime(item, events_bulk):
     """Process anime item and add events to the event list."""
     episodes = get_anime_schedule(item)
 
     for episode in episodes:
         air_date = datetime.fromtimestamp(episode["airingAt"], tz=ZoneInfo("UTC"))
         local_air_date = air_date.astimezone(settings.TZ)
-        event_list.append(
+        events_bulk.append(
             Event(
                 item=item,
                 episode_number=episode["episode"],
@@ -135,13 +146,13 @@ def get_anime_schedule(item):
     return data
 
 
-def process_season(item, metadata, event_list):
+def process_season(item, metadata, events_bulk):
     """Process season item and add events to the event list."""
     for episode in reversed(metadata["episodes"]):
         if episode["air_date"]:
             try:
                 air_date = date_parser(episode["air_date"])
-                event_list.append(
+                events_bulk.append(
                     Event(
                         item=item,
                         episode_number=episode["episode_number"],
@@ -153,7 +164,7 @@ def process_season(item, metadata, event_list):
     return bool(metadata["episodes"])
 
 
-def process_other(item, metadata, event_list):
+def process_other(item, metadata, events_bulk):
     """Process other types of items and add events to the event list."""
     # it will have either of these keys
     date_keys = ["start_date", "release_date", "first_air_date"]
@@ -161,7 +172,7 @@ def process_other(item, metadata, event_list):
         if date_key in metadata["details"] and metadata["details"][date_key]:
             try:
                 air_date = date_parser(metadata["details"][date_key])
-                event_list.append(Event(item=item, date=air_date))
+                events_bulk.append(Event(item=item, date=air_date))
             except ValueError:
                 return False
             else:
@@ -171,18 +182,16 @@ def process_other(item, metadata, event_list):
 
 
 def date_parser(date_str):
-    """Parse date string to datetime object. Raises ValueError if invalid."""
+    """Parse string in %Y-%m-%d to datetime. Raises ValueError if invalid."""
     year_only_parts = 1
     year_month_parts = 2
-    default_month_day = "-01-01"
-    default_day = "-01"
     # Preprocess the date string
     parts = date_str.split("-")
     if len(parts) == year_only_parts:
-        date_str += default_month_day
+        date_str += DEFAULT_MONTH_DAY
     elif len(parts) == year_month_parts:
         # Year and month are provided, append "-01"
-        date_str += default_day
+        date_str += DEFAULT_DAY
 
     # Parse the date string
     return datetime.strptime(date_str, "%Y-%m-%d").replace(
