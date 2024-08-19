@@ -5,6 +5,7 @@ import logging
 from app import models
 from app.providers import services
 from django.apps import apps
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,8 @@ def importer(file, user, status):
                         row["Date Rated"],
                         "%Y-%m-%dT%H:%M:%SZ",
                     )
-                    .astimezone()
+                    .replace(tzinfo=datetime.UTC)
+                    .astimezone(settings.TZ)
                     .date()
                 )
                 instance.progress = media_metadata["max_progress"]
