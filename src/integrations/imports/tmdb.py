@@ -6,6 +6,7 @@ from app import models
 from app.providers import services
 from django.apps import apps
 from django.conf import settings
+from django.db import IntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,11 @@ def importer(file, user, status):
                 )
                 instance.progress = media_metadata["max_progress"]
 
-            instance.save()
-            num_imported[media_type] += 1
+            try:
+                instance.save()
+                num_imported[media_type] += 1
+            except IntegrityError:
+                msg = f"Failed to import {media_type} {media_id}, already exists"
+                logger.exception(msg)
 
     return num_imported["tv"], num_imported["movie"]
