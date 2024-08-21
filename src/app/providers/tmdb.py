@@ -293,7 +293,7 @@ def get_companies(companies):
     # when unknown production companies, value from response is empty list
     # e.g tv: 24795
     if companies:
-        return ", ".join(company["name"] for company in companies)
+        return ", ".join(company["name"] for company in companies[:3])
     return None
 
 
