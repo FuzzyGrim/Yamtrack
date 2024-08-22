@@ -153,6 +153,7 @@ def track(request):
         media_id=media_id,
         media_type=media_type,
         season_number=season_number,
+        episode_number=None,
         defaults={
             "title": request.GET["title"],
             "image": request.GET["image"],
