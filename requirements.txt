@@ -1,6 +1,6 @@
 celery==5.4.0
 crispy-bootstrap5==2024.2
-Django==5.0.7
+Django==5.1
 django-celery-results==2.5.1
 django-crispy-forms==2.1
 django_debug_toolbar==4.4.6
