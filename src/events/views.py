@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
@@ -11,12 +12,12 @@ def calendar(request):
     user_events = Event.objects.user_events(request.user).select_related("item")
 
     colors = {
-        "anime": "#0d6efd", # blue
-        "manga": "#dc3545", # pink
-        "game": "#d63384", # pink
-        "tv": "#198754", # green
-        "season": "#6f42c1", # purple
-        "movie": "#fd7e14", # orange
+        "anime": "#0d6efd",  # blue
+        "manga": "#dc3545",  # pink
+        "game": "#d63384",  # pink
+        "tv": "#198754",  # green
+        "season": "#6f42c1",  # purple
+        "movie": "#fd7e14",  # orange
     }
 
     calendar_events = [
@@ -39,4 +40,5 @@ def calendar(request):
 def reload_calendar(request):
     """Refresh the calendar with the latest dates."""
     tasks.reload_calendar.delay(request.user)
+    messages.success(request, "Calendar refresh task successfully scheduled.")
     return redirect("profile")
