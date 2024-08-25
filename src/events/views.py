@@ -11,20 +11,11 @@ def calendar(request):
     """Display the calendar page."""
     user_events = Event.objects.user_events(request.user).select_related("item")
 
-    colors = {
-        "anime": "#0d6efd",  # blue
-        "manga": "#dc3545",  # pink
-        "game": "#d63384",  # pink
-        "tv": "#198754",  # green
-        "season": "#6f42c1",  # purple
-        "movie": "#fd7e14",  # orange
-    }
-
     calendar_events = [
         {
             "title": event.__str__(),
             "start": event.date.strftime("%Y-%m-%d"),
-            "color": colors[event.item.media_type],
+            "color": event.item.event_color,
             "url": event.item.url,
         }
         for event in user_events

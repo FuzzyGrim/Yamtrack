@@ -89,6 +89,20 @@ class Item(models.Model):
             },
         )
 
+    @property
+    def event_color(self):
+        """Return the color of the item for the calendar."""
+        colors = {
+            "anime": "#0d6efd",  # blue
+            "manga": "#dc3545",  # red
+            "game": "#d63384",  # pink
+            "tv": "#198754",  # green
+            "season": "#6f42c1",  # purple
+            "episode": "#6610f2",  # indigo
+            "movie": "#fd7e14",  # orange
+        }
+        return colors[self.media_type]
+
 
 class Media(models.Model):
     """Abstract model for all media types."""
