@@ -90,6 +90,22 @@
 
       <form class="p-2 grid-item import-form"
             method="post"
+            action="{% url 'import_kitsu' %}">
+        {% csrf_token %}
+        <div class="import-name">Kitsu</div>
+        <div class="input-group">
+          <input type="text"
+                 class="form-control"
+                 name="kitsu"
+                 placeholder="Kitsu Username">
+          <button class="btn btn-secondary" type="submit">
+            <i class="bi bi-check-lg"></i>
+          </button>
+        </div>
+      </form>
+
+      <form class="p-2 grid-item import-form"
+            method="post"
             enctype="multipart/form-data"
             action="{% url 'import_yamtrack' %}">
         {% csrf_token %}
