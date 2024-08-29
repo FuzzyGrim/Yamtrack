@@ -55,6 +55,14 @@ def import_anilist(request):
 
 
 @require_POST
+def import_kitsu(request):
+    """View for importing anime and manga data from Kitsu."""
+    username = request.POST["kitsu"]
+    tasks.import_kitsu.delay(username, request.user)
+    messages.success(request, "Kitsu import task started in the background.")
+    return redirect("profile")
+
+@require_POST
 def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""
     tasks.import_yamtrack.delay(request.FILES["yamtrack_csv"], request.user)

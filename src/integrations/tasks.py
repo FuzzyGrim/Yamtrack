@@ -1,7 +1,7 @@
 import requests
 from celery import shared_task
 
-from integrations.imports import anilist, mal, tmdb, yamtrack
+from integrations.imports import anilist, kitsu, mal, tmdb, yamtrack
 
 
 @shared_task(name="Import from MyAnimeList")
@@ -53,6 +53,21 @@ def import_anilist(username, user):
     if warning_message:
         title = "\n\nCouldn't import the following Anime or Manga: \n"
         message += title + warning_message
+    return message
+
+
+@shared_task(name="Import from Kitsu")
+def import_kitsu(username, user):
+    """Celery task for importing anime and manga data from Kitsu."""
+    try:
+        num_anime_imported, num_manga_imported = kitsu.importer(
+            username,
+            user,
+        )
+    except requests.exceptions.HTTPError as error:
+        raise  # re-raise for other errors
+
+    message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     return message
 
 
