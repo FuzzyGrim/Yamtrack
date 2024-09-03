@@ -117,13 +117,13 @@ def process_entry(entry, media_type, media_lookup, mapping_lookup, user):
     instance = model(
         item=item,
         user=user,
-        score=attributes["rating"],
+        score=get_rating(attributes["ratingTwenty"]),
         progress=attributes["progress"],
         status=get_status(attributes["status"]),
         repeats=attributes["reconsumeCount"],
         start_date=get_date(attributes["startedAt"]),
         end_date=get_date(attributes["finishedAt"]),
-        notes=attributes["notes"] or "", # sometimes returns None instead of ""
+        notes=attributes["notes"] or "",  # sometimes returns None instead of ""
     )
 
     if attributes["reconsuming"]:
@@ -163,6 +163,13 @@ def get_image_url(media):
             return media["attributes"]["posterImage"]["original"]
         except KeyError:
             return settings.IMG_NONE
+
+
+def get_rating(rating):
+    """Convert the rating from Kitsu to a 1-10 scale."""
+    if rating:
+        return round(rating / 2)
+    return None
 
 
 def get_date(date):
