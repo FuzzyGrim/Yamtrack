@@ -84,7 +84,7 @@ def get_anime_response(kitsu_id):
         all_data["included"].extend(data.get("included", []))
 
         # Check for next page
-        url = None
+        url = data["links"].get("next")
         params = {}  # Clear params for subsequent requests
 
     return all_data
@@ -119,7 +119,7 @@ def get_manga_response(kitsu_id):
         all_data["included"].extend(data.get("included", []))
 
         # Check for next page
-        url = None
+        url = data["links"].get("next")
         params = {}  # Clear params for subsequent requests
 
     return all_data
