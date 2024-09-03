@@ -123,7 +123,7 @@ def process_entry(entry, media_type, media_lookup, mapping_lookup, user):
         repeats=attributes["reconsumeCount"],
         start_date=get_date(attributes["startedAt"]),
         end_date=get_date(attributes["finishedAt"]),
-        notes=attributes["notes"],
+        notes=attributes["notes"] or "", # sometimes returns None instead of ""
     )
 
     if attributes["reconsuming"]:
