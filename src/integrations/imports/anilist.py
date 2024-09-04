@@ -81,6 +81,7 @@ def importer(username, user):
     variables = {"userName": username}
     url = "https://graphql.anilist.co"
 
+    logger.info("Fetching anime and manga from AniList account")
     response = app.providers.services.api_request(
         "ANILIST",
         "POST",
@@ -88,29 +89,28 @@ def importer(username, user):
         params={"query": query, "variables": variables},
     )
 
-    warning_message = ""
-    anime_imported, warning_message = import_media(
+    anime_imported, anime_warning = import_media(
         response["data"]["anime"],
         "anime",
         user,
-        warning_message,
     )
 
-    manga_imported, warning_message = import_media(
+    manga_imported, manga_warning = import_media(
         response["data"]["manga"],
         "manga",
         user,
-        warning_message,
     )
 
+    warning_message = anime_warning + manga_warning
     return anime_imported, manga_imported, warning_message
 
 
-def import_media(media_data, media_type, user, warning_message):
+def import_media(media_data, media_type, user):
     """Import media of a specific type from Anilist."""
-    logger.info("Importing %ss from Anilist", media_type)
+    logger.info("Importing %s from Anilist", media_type)
 
     bulk_media = []
+    warning_message = ""
     for status_list in media_data["lists"]:
         if not status_list["isCustomList"]:
             bulk_media, warning_message = process_status_list(

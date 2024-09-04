@@ -36,15 +36,18 @@ def get_kitsu_id(username):
     response = api_request("KITSU", "GET", url, params={"filter[name]": username})
 
     if not response["data"]:
-        raise ValueError(f"User {username} not found.")
+        msg = f"User {username} not found."
+        raise ValueError(msg)
     if len(response["data"]) > 1:
-        raise ValueError(f"Multiple users found for {username}.")
+        msg = f"Multiple users found for {username}."
+        raise ValueError(msg)
 
     return response["data"][0]["id"]
 
 
 def get_media_response(kitsu_id, media_type):
     """Get all media entries for a user from Kitsu."""
+    logger.info("Fetching %s from Kitsu", media_type)
     url = "https://kitsu.io/api/edge/library-entries"
     params = {
         "filter[user_id]": kitsu_id,
@@ -92,7 +95,12 @@ def importer(response, media_type, user):
         if mal_id:
             bulk_data.append(instance)
         else:
-            warning_message += f"No matching MAL ID for {media_lookup[entry['relationships'][media_type]['data']['id']]['attributes']['canonicalTitle']}\n"
+            media_metadata = media_lookup[
+                entry["relationships"][media_type]["data"]["id"]
+            ]["attributes"]
+            warning_message += (
+                f"No matching MAL ID for {media_metadata['canonicalTitle']}\n"
+            )
 
     num_before = model.objects.filter(user=user).count()
     helpers.bulk_chunk_import(bulk_data, model, user)

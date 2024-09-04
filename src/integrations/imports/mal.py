@@ -20,6 +20,7 @@ def importer(username, user):
 
 def import_media(username, user, media_type):
     """Import media of a specific type from MyAnimeList."""
+    logger.info("Fetching %s from MyAnimeList", media_type)
     params = {
         "fields": "list_status{comments,num_times_rewatched,num_times_reread}",
         "nsfw": "true",
@@ -65,7 +66,7 @@ def get_whole_response(url, params):
 
 def add_media_list(response, media_type, user):
     """Add media to list for bulk creation."""
-    logger.info("Importing %ss from MyAnimeList", media_type)
+    logger.info("Importing %s from MyAnimeList", media_type)
     bulk_media = []
 
     for content in response["data"]:

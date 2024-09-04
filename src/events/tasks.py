@@ -58,11 +58,10 @@ def reload_calendar(user=None):  # , used for metadata
         for item in user_reloaded_items
     )
 
-    msg_title = "Reloaded the calendar for all users."
     if user_reloaded_count > 0:
-        return f"""{msg_title} The following items have been reloaded for you:\n
+        return f"""The following items have been reloaded for you:\n
                    {user_reloaded_msg}"""
-    return f"{msg_title} There have been no changes in your calendar."
+    return "There have been no changes in your calendar"
 
 
 def process_item(item, events_bulk):
@@ -125,22 +124,24 @@ def get_anime_schedule(item):
             url,
             params={"query": query, "variables": variables},
         )
-
         data = response["data"]["Media"]["airingSchedule"]["nodes"]
 
         # if no airing schedule is available, use the start date
-        if not data and "startDate" in response["data"]["Media"]:
-            data = [
-                {
-                    "episode": 1,
-                    "airingAt": datetime(
-                        response["data"]["Media"]["startDate"]["year"],
-                        response["data"]["Media"]["startDate"]["month"],
-                        response["data"]["Media"]["startDate"]["day"],
-                        tzinfo=ZoneInfo("UTC"),
-                    ).timestamp(),
-                },
-            ]
+        if not data:
+            timestamp = anilist_date_parser(
+                response["data"]["Media"]["startDate"],
+            )
+            if timestamp:
+                data = [
+                    {
+                        "episode": 1,
+                        "airingAt": anilist_date_parser(
+                            response["data"]["Media"]["startDate"],
+                        ),
+                    },
+                ]
+            else:
+                data = []
         cache.set(f"schedule_anime_{item.media_id}", data)
 
     return data
@@ -197,3 +198,13 @@ def date_parser(date_str):
     return datetime.strptime(date_str, "%Y-%m-%d").replace(
         tzinfo=ZoneInfo("UTC"),
     )
+
+
+def anilist_date_parser(start_date):
+    """Parse the start date from AniList to a timestamp."""
+    if not start_date["year"]:
+        return None
+
+    month = start_date["month"] or 1
+    day = start_date["day"] or 1
+    return datetime(start_date["year"], month, day, tzinfo=ZoneInfo("UTC")).timestamp()

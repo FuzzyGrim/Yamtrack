@@ -51,7 +51,7 @@ def import_anilist(username, user):
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     if warning_message:
-        title = "\n\nCouldn't import the following Anime or Manga: \n"
+        title = "\n\nCouldn't import the following media: \n"
         message += title + warning_message
     return message
 
@@ -59,15 +59,15 @@ def import_anilist(username, user):
 @shared_task(name="Import from Kitsu")
 def import_kitsu(username, user):
     """Celery task for importing anime and manga data from Kitsu."""
-    try:
-        num_anime_imported, num_manga_imported = kitsu.importer(
-            username,
-            user,
-        )
-    except requests.exceptions.HTTPError as error:
-        raise  # re-raise for other errors
+    num_anime_imported, num_manga_imported, warning_message = kitsu.import_by_username(
+        username,
+        user,
+    )
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    if warning_message:
+        title = "\n\nCouldn't import the following media: \n"
+        message += title + warning_message
     return message
 
 
