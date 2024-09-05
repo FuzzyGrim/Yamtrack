@@ -3,6 +3,8 @@ from celery import shared_task
 
 from integrations.imports import anilist, kitsu, mal, tmdb, yamtrack
 
+ERROR_TITLE = "Couldn't import the following media: \n"
+
 
 @shared_task(name="Import from MyAnimeList")
 def import_mal(username, user):
@@ -51,13 +53,12 @@ def import_anilist(username, user):
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     if warning_message:
-        title = "\n\nCouldn't import the following media: \n"
-        message += title + warning_message
+        message += ERROR_TITLE + warning_message
     return message
 
 
-@shared_task(name="Import from Kitsu")
-def import_kitsu(username, user):
+@shared_task(name="Import from Kitsu by username")
+def import_kitsu_name(username, user):
     """Celery task for importing anime and manga data from Kitsu."""
     num_anime_imported, num_manga_imported, warning_message = kitsu.import_by_username(
         username,
@@ -66,8 +67,21 @@ def import_kitsu(username, user):
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     if warning_message:
-        title = "\n\nCouldn't import the following media: \n"
-        message += title + warning_message
+        message += ERROR_TITLE + warning_message
+    return message
+
+
+@shared_task(name="Import from Kitsu by user ID")
+def import_kitsu_id(user_id, user):
+    """Celery task for importing anime and manga data from Kitsu."""
+    num_anime_imported, num_manga_imported, warning_message = kitsu.import_by_user_id(
+        user_id,
+        user,
+    )
+
+    message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    if warning_message:
+        message += ERROR_TITLE + warning_message
     return message
 
 

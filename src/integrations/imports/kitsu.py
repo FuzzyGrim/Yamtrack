@@ -39,7 +39,7 @@ def get_kitsu_id(username):
         msg = f"User {username} not found."
         raise ValueError(msg)
     if len(response["data"]) > 1:
-        msg = f"Multiple users found for {username}."
+        msg = f"Multiple users found for {username}, please use user ID."
         raise ValueError(msg)
 
     return response["data"][0]["id"]

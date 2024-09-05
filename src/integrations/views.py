@@ -17,7 +17,7 @@ def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
     username = request.POST["mal"]
     tasks.import_mal.delay(username, request.user)
-    messages.success(request, "MyAnimeList import task started in the background.")
+    messages.success(request, "MyAnimeList import task queued.")
     return redirect("profile")
 
 
@@ -29,7 +29,7 @@ def import_tmdb_ratings(request):
         request.user,
         "Completed",
     )
-    messages.success(request, "TMDB ratings import task started in the background.")
+    messages.success(request, "TMDB ratings import task queued.")
     return redirect("profile")
 
 
@@ -41,7 +41,7 @@ def import_tmdb_watchlist(request):
         request.user,
         "Planning",
     )
-    messages.success(request, "TMDB watchlist import task started in the background.")
+    messages.success(request, "TMDB watchlist import task queued.")
     return redirect("profile")
 
 
@@ -50,23 +50,31 @@ def import_anilist(request):
     """View for importing anime and manga data from AniList."""
     username = request.POST["anilist"]
     tasks.import_anilist.delay(username, request.user)
-    messages.success(request, "AniList import task started in the background.")
+    messages.success(request, "AniList import task queued.")
     return redirect("profile")
 
 
 @require_POST
-def import_kitsu(request):
-    """View for importing anime and manga data from Kitsu."""
-    username = request.POST["kitsu"]
-    tasks.import_kitsu.delay(username, request.user)
-    messages.success(request, "Kitsu import task started in the background.")
+def import_kitsu_name(request):
+    """View for importing anime and manga data from Kitsu by username."""
+    username = request.POST["kitsu_username"]
+    tasks.import_kitsu_name.delay(username, request.user)
+    messages.success(request, "Kitsu import task queued.")
+    return redirect("profile")
+
+@require_POST
+def import_kitsu_id(request):
+    """View for importing anime and manga data from Kitsu by user ID."""
+    user_id = request.POST["kitsu_id"]
+    tasks.import_kitsu_id.delay(user_id, request.user)
+    messages.success(request, "Kitsu import task queued.")
     return redirect("profile")
 
 @require_POST
 def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""
     tasks.import_yamtrack.delay(request.FILES["yamtrack_csv"], request.user)
-    messages.success(request, "Yamtrack import task started in the background.")
+    messages.success(request, "Yamtrack import task queued.")
     return redirect("profile")
 
 

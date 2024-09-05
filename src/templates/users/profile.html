@@ -90,14 +90,30 @@
 
       <form class="p-2 grid-item import-form"
             method="post"
-            action="{% url 'import_kitsu' %}">
+            action="{% url 'import_kitsu_name' %}">
         {% csrf_token %}
-        <div class="import-name">Kitsu</div>
+        <div class="import-name">Kitsu Username</div>
         <div class="input-group">
           <input type="text"
                  class="form-control"
-                 name="kitsu"
+                 name="kitsu_username"
                  placeholder="Kitsu Username">
+          <button class="btn btn-secondary" type="submit">
+            <i class="bi bi-check-lg"></i>
+          </button>
+        </div>
+      </form>
+
+      <form class="p-2 grid-item import-form"
+            method="post"
+            action="{% url 'import_kitsu_id' %}">
+        {% csrf_token %}
+        <div class="import-name">Kitsu User ID</div>
+        <div class="input-group">
+          <input type="text"
+                 class="form-control"
+                 name="kitsu_id"
+                 placeholder="Kitsu ID">
           <button class="btn btn-secondary" type="submit">
             <i class="bi bi-check-lg"></i>
           </button>
