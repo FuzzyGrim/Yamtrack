@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +9,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from integrations.imports import anilist, mal, tmdb, yamtrack
+from integrations.imports import anilist, kitsu, mal, tmdb, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -146,3 +147,97 @@ class ImportYamtrack(TestCase):
             Episode.objects.filter(related_season__user=self.user).count(),
             24,
         )
+
+
+class ImportKitsu(TestCase):
+    """Test importing media from Kitsu."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+
+        with Path(mock_path / "import_kitsu_anime.json").open() as file:
+            self.sample_anime_response = json.load(file)
+
+        with Path(mock_path / "import_kitsu_manga.json").open() as file:
+            self.sample_manga_response = json.load(file)
+
+    @patch("app.providers.services.api_request")
+    def test_get_kitsu_id(self, mock_api_request):
+        """Test getting Kitsu ID from username."""
+        mock_api_request.return_value = {
+            "data": [{"id": "12345"}],
+        }
+        kitsu_id = kitsu.get_kitsu_id("testuser")
+        self.assertEqual(kitsu_id, "12345")
+
+    @patch("app.providers.services.api_request")
+    def test_get_media_response(self, mock_api_request):
+        """Test getting media response from Kitsu."""
+        mock_api_request.side_effect = [
+            self.sample_anime_response,
+            self.sample_manga_response,
+        ]
+
+        num_anime_imported, num_manga_imported, warning_message = (
+            kitsu.import_by_user_id("123", self.user)
+        )
+
+        self.assertEqual(num_anime_imported, 5)
+        self.assertEqual(num_manga_imported, 5)
+        self.assertEqual(warning_message, "")
+
+        # Check if the media was imported
+        self.assertEqual(Anime.objects.count(), 5)
+
+    def test_get_rating(self):
+        """Test getting rating from Kitsu."""
+        self.assertEqual(kitsu.get_rating(20), 10)
+        self.assertEqual(kitsu.get_rating(10), 5)
+        self.assertEqual(kitsu.get_rating(1), 0.5)
+        self.assertIsNone(kitsu.get_rating(None))
+
+    def test_get_date(self):
+        """Test getting date from Kitsu."""
+        self.assertEqual(kitsu.get_date("2023-01-01T00:00:00.000Z"), date(2023, 1, 1))
+        self.assertIsNone(kitsu.get_date(None))
+
+    def test_get_status(self):
+        """Test getting status from Kitsu."""
+        self.assertEqual(kitsu.get_status("completed"), "Completed")
+        self.assertEqual(kitsu.get_status("current"), "In progress")
+        self.assertEqual(kitsu.get_status("planned"), "Planning")
+        self.assertEqual(kitsu.get_status("on_hold"), "Paused")
+
+    def test_process_entry(self):
+        """Test processing an entry from Kitsu."""
+        entry = self.sample_anime_response["data"][0]
+        media_lookup = {
+            item["id"]: item
+            for item in self.sample_anime_response["included"]
+            if item["type"] == "anime"
+        }
+        mapping_lookup = {
+            item["id"]: item
+            for item in self.sample_anime_response["included"]
+            if item["type"] == "mappings"
+        }
+
+        mal_id, instance = kitsu.process_entry(
+            entry,
+            "anime",
+            media_lookup,
+            mapping_lookup,
+            self.user,
+        )
+
+        self.assertEqual(mal_id, "1")
+        self.assertIsInstance(instance, Anime)
+        self.assertEqual(instance.score, 9)
+        self.assertEqual(instance.progress, 26)
+        self.assertEqual(instance.status, "Completed")
+        self.assertEqual(instance.repeats, 1)
+        self.assertEqual(instance.start_date, date(2023, 8, 1))
+        self.assertEqual(instance.end_date, date(2023, 9, 1))
+        self.assertEqual(instance.notes, "Great series!")

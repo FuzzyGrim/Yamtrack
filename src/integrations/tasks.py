@@ -53,7 +53,7 @@ def import_anilist(username, user):
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     if warning_message:
-        message += ERROR_TITLE + warning_message
+        message += f"{ERROR_TITLE}{warning_message}"
     return message
 
 
@@ -67,7 +67,7 @@ def import_kitsu_name(username, user):
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     if warning_message:
-        message += ERROR_TITLE + warning_message
+        message += f"{ERROR_TITLE}{warning_message}"
     return message
 
 
@@ -81,7 +81,7 @@ def import_kitsu_id(user_id, user):
 
     message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     if warning_message:
-        message += ERROR_TITLE + warning_message
+        message += f"{ERROR_TITLE}{warning_message}"
     return message
 
 

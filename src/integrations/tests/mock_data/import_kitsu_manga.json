@@ -1,0 +1,297 @@
+{
+  "data": [
+    {
+      "id": "1722495",
+      "type": "libraryEntries",
+      "attributes": {
+        "status": "completed",
+        "progress": 26,
+        "reconsuming": false,
+        "reconsumeCount": 1,
+        "notes": "Great series!",
+        "private": false,
+        "reactionSkipped": "unskipped",
+        "progressedAt": "2023-09-01T12:00:00.000Z",
+        "startedAt": "2023-08-01T00:00:00.000Z",
+        "finishedAt": "2023-09-01T12:00:00.000Z",
+        "rating": "4.5",
+        "ratingTwenty": 18
+      },
+      "relationships": {
+        "manga": {
+          "data": {
+            "type": "manga",
+            "id": "1"
+          }
+        }
+      }
+    },
+    {
+      "id": "1722496",
+      "type": "libraryEntries",
+      "attributes": {
+        "status": "current",
+        "progress": 12,
+        "reconsuming": false,
+        "reconsumeCount": 0,
+        "notes": "Interesting so far",
+        "private": false,
+        "reactionSkipped": "unskipped",
+        "progressedAt": "2023-09-05T18:30:00.000Z",
+        "startedAt": "2023-08-15T00:00:00.000Z",
+        "finishedAt": null,
+        "rating": "0.0",
+        "ratingTwenty": null
+      },
+      "relationships": {
+        "manga": {
+          "data": {
+            "type": "manga",
+            "id": "2"
+          }
+        }
+      }
+    },
+    {
+      "id": "1722497",
+      "type": "libraryEntries",
+      "attributes": {
+        "status": "planned",
+        "progress": 0,
+        "reconsuming": false,
+        "reconsumeCount": 0,
+        "notes": null,
+        "private": false,
+        "reactionSkipped": "unskipped",
+        "progressedAt": null,
+        "startedAt": null,
+        "finishedAt": null,
+        "rating": "0.0",
+        "ratingTwenty": null
+      },
+      "relationships": {
+        "manga": {
+          "data": {
+            "type": "manga",
+            "id": "3"
+          }
+        }
+      }
+    },
+    {
+      "id": "1722498",
+      "type": "libraryEntries",
+      "attributes": {
+        "status": "on_hold",
+        "progress": 6,
+        "reconsuming": false,
+        "reconsumeCount": 0,
+        "notes": "Will continue later",
+        "private": false,
+        "reactionSkipped": "unskipped",
+        "progressedAt": "2023-07-10T20:15:00.000Z",
+        "startedAt": "2023-07-01T00:00:00.000Z",
+        "finishedAt": null,
+        "rating": "3.5",
+        "ratingTwenty": 14
+      },
+      "relationships": {
+        "manga": {
+          "data": {
+            "type": "manga",
+            "id": "4"
+          }
+        }
+      }
+    },
+    {
+      "id": "1722499",
+      "type": "libraryEntries",
+      "attributes": {
+        "status": "dropped",
+        "progress": 3,
+        "reconsuming": false,
+        "reconsumeCount": 0,
+        "notes": "Not my cup of tea",
+        "private": false,
+        "reactionSkipped": "unskipped",
+        "progressedAt": "2023-06-15T22:00:00.000Z",
+        "startedAt": "2023-06-10T00:00:00.000Z",
+        "finishedAt": "2023-06-15T22:00:00.000Z",
+        "rating": "2.0",
+        "ratingTwenty": 8
+      },
+      "relationships": {
+        "manga": {
+          "data": {
+            "type": "manga",
+            "id": "5"
+          }
+        }
+      }
+    }
+  ],
+  "included": [
+    {
+      "id": "1",
+      "type": "manga",
+      "attributes": {
+        "canonicalTitle": "Test Manga 1",
+        "posterImage": {
+          "tiny": "https://media.kitsu.app/manga/poster_images/1/tiny.jpg",
+          "large": "https://media.kitsu.app/manga/poster_images/1/large.jpg",
+          "small": "https://media.kitsu.app/manga/poster_images/1/small.jpg",
+          "medium": "https://media.kitsu.app/manga/poster_images/1/medium.jpg",
+          "original": "https://media.kitsu.app/manga/poster_images/1/original.jpg"
+        }
+      },
+      "relationships": {
+        "mappings": {
+          "data": [
+            {
+              "type": "mappings",
+              "id": "100"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2",
+      "type": "manga",
+      "attributes": {
+        "canonicalTitle": "Test Manga 2",
+        "posterImage": {
+          "tiny": "https://media.kitsu.app/manga/poster_images/2/tiny.jpg",
+          "large": "https://media.kitsu.app/manga/poster_images/2/large.jpg",
+          "small": "https://media.kitsu.app/manga/poster_images/2/small.jpg",
+          "medium": "https://media.kitsu.app/manga/poster_images/2/medium.jpg",
+          "original": "https://media.kitsu.app/manga/poster_images/2/original.jpg"
+        }
+      },
+      "relationships": {
+        "mappings": {
+          "data": [
+            {
+              "type": "mappings",
+              "id": "200"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3",
+      "type": "manga",
+      "attributes": {
+        "canonicalTitle": "Test Manga 3",
+        "posterImage": {
+          "tiny": "https://media.kitsu.app/manga/poster_images/3/tiny.jpg",
+          "large": "https://media.kitsu.app/manga/poster_images/3/large.jpg",
+          "small": "https://media.kitsu.app/manga/poster_images/3/small.jpg",
+          "medium": "https://media.kitsu.app/manga/poster_images/3/medium.jpg",
+          "original": "https://media.kitsu.app/manga/poster_images/3/original.jpg"
+        }
+      },
+      "relationships": {
+        "mappings": {
+          "data": [
+            {
+              "type": "mappings",
+              "id": "300"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4",
+      "type": "manga",
+      "attributes": {
+        "canonicalTitle": "Test Manga 4",
+        "posterImage": {
+          "tiny": "https://media.kitsu.app/manga/poster_images/4/tiny.jpg",
+          "large": "https://media.kitsu.app/manga/poster_images/4/large.jpg",
+          "small": "https://media.kitsu.app/manga/poster_images/4/small.jpg",
+          "medium": "https://media.kitsu.app/manga/poster_images/4/medium.jpg",
+          "original": "https://media.kitsu.app/manga/poster_images/4/original.jpg"
+        }
+      },
+      "relationships": {
+        "mappings": {
+          "data": [
+            {
+              "type": "mappings",
+              "id": "400"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5",
+      "type": "manga",
+      "attributes": {
+        "canonicalTitle": "Test Manga 5",
+        "posterImage": {
+          "tiny": "https://media.kitsu.app/manga/poster_images/5/tiny.jpg",
+          "large": "https://media.kitsu.app/manga/poster_images/5/large.jpg",
+          "small": "https://media.kitsu.app/manga/poster_images/5/small.jpg",
+          "medium": "https://media.kitsu.app/manga/poster_images/5/medium.jpg",
+          "original": "https://media.kitsu.app/manga/poster_images/5/original.jpg"
+        }
+      },
+      "relationships": {
+        "mappings": {
+          "data": [
+            {
+              "type": "mappings",
+              "id": "500"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "100",
+      "type": "mappings",
+      "attributes": {
+        "externalSite": "myanimelist/manga",
+        "externalId": "1"
+      }
+    },
+    {
+      "id": "200",
+      "type": "mappings",
+      "attributes": {
+        "externalSite": "myanimelist/manga",
+        "externalId": "2"
+      }
+    },
+    {
+      "id": "300",
+      "type": "mappings",
+      "attributes": {
+        "externalSite": "myanimelist/manga",
+        "externalId": "3"
+      }
+    },
+    {
+      "id": "400",
+      "type": "mappings",
+      "attributes": {
+        "externalSite": "myanimelist/manga",
+        "externalId": "4"
+      }
+    },
+    {
+      "id": "500",
+      "type": "mappings",
+      "attributes": {
+        "externalSite": "myanimelist/manga",
+        "externalId": "5"
+      }
+    }
+  ],
+  "links": {}
+}

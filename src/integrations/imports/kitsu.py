@@ -10,6 +10,8 @@ from django.conf import settings
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
+KITSU_API_BASE_URL = "https://kitsu.io/api/edge"
+KITSU_PAGE_LIMIT = 500
 
 
 def import_by_user_id(kitsu_id, user):
@@ -32,8 +34,13 @@ def import_by_username(kitsu_username, user):
 
 def get_kitsu_id(username):
     """Get the user ID from Kitsu."""
-    url = "https://kitsu.io/api/edge/users"
-    response = api_request("KITSU", "GET", url, params={"filter[name]": username})
+    url = f"{KITSU_API_BASE_URL}/users"
+    response = app.providers.services.api_request(
+        "KITSU",
+        "GET",
+        url,
+        params={"filter[name]": username},
+    )
 
     if not response["data"]:
         msg = f"User {username} not found."
@@ -48,20 +55,20 @@ def get_kitsu_id(username):
 def get_media_response(kitsu_id, media_type):
     """Get all media entries for a user from Kitsu."""
     logger.info("Fetching %s from Kitsu", media_type)
-    url = "https://kitsu.io/api/edge/library-entries"
+    url = f"{KITSU_API_BASE_URL}/library-entries"
     params = {
         "filter[user_id]": kitsu_id,
         "filter[kind]": media_type,
         "include": f"{media_type},{media_type}.mappings",
         f"fields[{media_type}]": "canonicalTitle,posterImage,mappings",
         "fields[mappings]": "externalSite,externalId",
-        "page[limit]": 500,
+        "page[limit]": KITSU_PAGE_LIMIT,
     }
 
     all_data = {"entries": [], "included": []}
 
     while url:
-        data = api_request("KITSU", "GET", url, params=params)
+        data = app.providers.services.api_request("KITSU", "GET", url, params=params)
         all_data["entries"].extend(data["data"])
         all_data["included"].extend(data.get("included", []))
         url = data["links"].get("next")
