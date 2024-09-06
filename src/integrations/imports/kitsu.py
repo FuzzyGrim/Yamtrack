@@ -3,7 +3,6 @@ import logging
 
 import app
 from app.models import Item
-from app.providers.services import api_request
 from django.apps import apps
 from django.conf import settings
 
@@ -181,9 +180,9 @@ def get_image_url(media):
 
 
 def get_rating(rating):
-    """Convert the rating from Kitsu to a 1-10 scale."""
+    """Convert the rating from Kitsu to a 0-10 scale."""
     if rating:
-        return round(rating / 2)
+        return rating / 2
     return None
 
 
