@@ -12,6 +12,7 @@ from app.providers import igdb, mal, tmdb
 
 logger = logging.getLogger(__name__)
 
+
 redis_pool = ConnectionPool.from_url(settings.REDIS_URL)
 session = LimiterSession(
     per_second=4,
@@ -39,12 +40,13 @@ def api_request(provider, method, url, params=None, data=None, headers=None):  #
 
         response = request_func(**request_kwargs)
         response.raise_for_status()
+        json_response = response.json()
 
     except requests.exceptions.HTTPError as error:
         args = (provider, method, url, params, data, headers)
-        request_error_handling(error, *args)
+        json_response = request_error_handling(error, *args)
 
-    return response.json()
+    return json_response
 
 
 def request_error_handling(error, *args):
@@ -60,7 +62,7 @@ def request_error_handling(error, *args):
     if status_code == requests.codes.too_many_requests:
         seconds_to_wait = int(error_resp.headers["Retry-After"])
         logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
-        time.sleep(seconds_to_wait)
+        time.sleep(seconds_to_wait + 3)
         logger.info("Retrying request")
         return api_request(
             provider,
