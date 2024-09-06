@@ -47,6 +47,10 @@
   --bg-img-none: hsl(210, 10%, 23%);
 }
 
+p {
+  text-wrap: pretty;
+}
+
 main {
   height: 100svh;
   overflow-y: auto;
@@ -166,6 +170,7 @@ debug, info, success, warning, error */
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
+  text-wrap: balance;
 }
 
 .card-text {
@@ -439,14 +444,15 @@ debug, info, success, warning, error */
 }
 
 /* override bootstrap calendar buttons to btn-secondary theme */
-.fc-prev-button, .fc-next-button {
+.fc-prev-button,
+.fc-next-button {
   --bs-btn-color: #fff;
   --bs-btn-bg: #6c757d;
   --bs-btn-border-color: #6c757d;
   --bs-btn-hover-color: #fff;
   --bs-btn-hover-bg: #5c636a;
   --bs-btn-hover-border-color: #565e64;
-  --bs-btn-focus-shadow-rgb: 130,138,145;
+  --bs-btn-focus-shadow-rgb: 130, 138, 145;
   --bs-btn-active-color: #fff;
   --bs-btn-active-bg: #565e64;
   --bs-btn-active-border-color: #51585e;
