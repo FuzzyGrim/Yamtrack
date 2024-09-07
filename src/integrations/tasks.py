@@ -51,9 +51,11 @@ def import_anilist(username, user):
             raise ValueError(msg) from error
         raise  # re-raise for other errors
 
-    message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    info_message = (
+        f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    )
     if warning_message:
-        message += f"{ERROR_TITLE}{warning_message}"
+        message = f"{info_message} {ERROR_TITLE}{warning_message}"
     return message
 
 
@@ -65,9 +67,11 @@ def import_kitsu_name(username, user):
         user,
     )
 
-    message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    info_message = (
+        f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    )
     if warning_message:
-        message += f"{ERROR_TITLE}{warning_message}"
+        message = f"{info_message} {ERROR_TITLE}{warning_message}"
     return message
 
 
@@ -79,9 +83,11 @@ def import_kitsu_id(user_id, user):
         user,
     )
 
-    message = f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    info_message = (
+        f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+    )
     if warning_message:
-        message += f"{ERROR_TITLE}{warning_message}"
+        message = f"{info_message} {ERROR_TITLE}{warning_message}"
     return message
 
 
