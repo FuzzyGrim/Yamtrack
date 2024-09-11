@@ -13,6 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 @require_POST
+def import_trakt(request):
+    """View for importing anime and manga data from Trakt."""
+    username = request.POST["trakt"]
+    tasks.import_trakt(username, request.user)
+    messages.success(request, "Trakt import task queued.")
+    return redirect("profile")
+
+
+@require_POST
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
     username = request.POST["mal"]
@@ -62,6 +71,7 @@ def import_kitsu_name(request):
     messages.success(request, "Kitsu import task queued.")
     return redirect("profile")
 
+
 @require_POST
 def import_kitsu_id(request):
     """View for importing anime and manga data from Kitsu by user ID."""
@@ -69,6 +79,7 @@ def import_kitsu_id(request):
     tasks.import_kitsu_id.delay(user_id, request.user)
     messages.success(request, "Kitsu import task queued.")
     return redirect("profile")
+
 
 @require_POST
 def import_yamtrack(request):

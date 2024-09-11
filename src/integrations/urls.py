@@ -3,6 +3,7 @@ from django.urls import path
 from integrations import views
 
 urlpatterns = [
+    path("import/trakt", views.import_trakt, name="import_trakt"),
     path("import/mal", views.import_mal, name="import_mal"),
     path("import/tmdb_ratings", views.import_tmdb_ratings, name="import_tmdb_ratings"),
     path(

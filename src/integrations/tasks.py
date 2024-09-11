@@ -1,9 +1,22 @@
 import requests
 from celery import shared_task
 
-from integrations.imports import anilist, kitsu, mal, tmdb, yamtrack
+from integrations.imports import anilist, kitsu, mal, tmdb, trakt, yamtrack
 
 ERROR_TITLE = "Couldn't import the following media: \n"
+
+
+@shared_task(name="Import from Trakt")
+def import_trakt(username, user):
+    """Celery task for importing anime and manga data from Trakt."""
+    try:
+        msg = trakt.importer(username, user)
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.not_found:
+            msg = f"User {username} not found."
+            raise ValueError(msg) from error
+        raise  # re-raise for other errors
+    return msg
 
 
 @shared_task(name="Import from MyAnimeList")
