@@ -131,23 +131,23 @@ def process_list(entries, mal_shows_map, mal_movies_map, user, list_type):
         trakt_type = entry["type"]
         if trakt_type == "show":
             try:
-                add_show(entry, user, defaults, mal_shows_map)
+                add_show(entry, user, defaults, list_type, mal_shows_map)
             except ValueError as e:
                 warning_messages.append(str(e))
         elif trakt_type == "season":
             try:
-                add_season(entry, user, defaults, mal_shows_map)
+                add_season(entry, user, defaults, list_type, mal_shows_map)
             except ValueError as e:
                 warning_messages.append(str(e))
         elif trakt_type == "movie":
             try:
-                add_movie(entry, user, defaults, mal_movies_map)
+                add_movie(entry, user, defaults, list_type, mal_movies_map)
             except ValueError as e:
                 warning_messages.append(str(e))
     return warning_messages
 
 
-def add_show(entry, user, defaults, mal_shows_map):
+def add_show(entry, user, defaults, list_type, mal_shows_map):
     """Add a show to the user's library."""
     trakt_id = entry["show"]["ids"]["trakt"]
     mal_id = mal_shows_map.get((trakt_id, 1))
@@ -158,7 +158,8 @@ def add_show(entry, user, defaults, mal_shows_map):
         tmdb_id = entry["show"]["ids"]["tmdb"]
 
         if not tmdb_id:
-            msg = f"Could not import history of {entry["show"]['title']}"
+            show_title = entry["show"]["title"]
+            msg = f"Could not import {show_title} from {list_type}"
             raise ValueError(msg)
         add_tmdb_show(tmdb_id, user, defaults)
 
@@ -181,7 +182,7 @@ def add_tmdb_show(tmdb_id, user, defaults):
     )
 
 
-def add_season(entry, user, defaults, mal_shows_map):
+def add_season(entry, user, defaults, list_type, mal_shows_map):
     """Add a season to the user's library."""
     trakt_id = entry["show"]["ids"]["trakt"]
     season_number = entry["season"]["number"]
@@ -193,7 +194,8 @@ def add_season(entry, user, defaults, mal_shows_map):
         tmdb_id = entry["show"]["ids"]["tmdb"]
 
         if not tmdb_id:
-            msg = f"Could not import history of {entry["show"]['title']}"
+            show_title = entry["show"]["title"]
+            msg = f"Could not import {show_title} S{season_number} from {list_type}"
             raise ValueError(msg)
         add_tmdb_season(tmdb_id, season_number, user, defaults)
 
@@ -238,7 +240,7 @@ def add_tmdb_episodes(entry, season, user):
     tmdb_id = entry["show"]["ids"]["tmdb"]
 
     if not tmdb_id:
-        msg = f"Could not import history of {entry["show"]['title']}"
+        msg = f"Could not import history of {entry['show']['title']}"
         raise ValueError(msg)
 
     # collect all seasons metadata at once
@@ -310,7 +312,7 @@ def add_tmdb_episodes(entry, season, user):
         )
 
 
-def add_movie(entry, user, defaults, mal_movies_map):
+def add_movie(entry, user, defaults, list_type, mal_movies_map):
     """Add a movie to the user's library."""
     trakt_id = entry["movie"]["ids"]["trakt"]
     mal_id = mal_movies_map.get((trakt_id, 1))
@@ -321,7 +323,8 @@ def add_movie(entry, user, defaults, mal_movies_map):
         tmdb_id = entry["movie"]["ids"]["tmdb"]
 
         if not tmdb_id:
-            msg = f"Could not import history of {entry["movie"]['title']}"
+            movie_title = entry["movie"]["title"]
+            msg = f"Could not import {movie_title} from {list_type}"
             raise ValueError(msg)
         add_tmdb_movie(tmdb_id, user, defaults)
 
