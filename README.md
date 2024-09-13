@@ -5,7 +5,7 @@
 ![Image Size](https://ghcr-badge.egpl.dev/fuzzygrim/yamtrack/size?tag=dev)
 ![CodeFactor](https://www.codefactor.io/repository/github/fuzzygrim/yamtrack/badge)
 ![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/dev/graph/badge.svg?token=PWUG660120)
-![GitHub](https://img.shields.io/badge/license-GPL--3.0-blue)
+![GitHub](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
 Yamtrack is a self hosted media tracker for movies, tv shows, anime and manga.
 
@@ -21,7 +21,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 - Keep up with your upcoming media with a calendar.
 - Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
 - Multi-users functionality allowing individual accounts with personalized tracking.
-- Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/) and [AniList](https://anilist.co/).
+- Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/).
 - Export all your tracked media to a CSV file and import it back.
 
 ## Installing with Docker
