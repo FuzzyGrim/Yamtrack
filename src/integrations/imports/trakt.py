@@ -112,7 +112,7 @@ def process_watched_movies(watched, mal_mapping, user):
             "end_date": get_date(entry["last_watched_at"]),
         }
         try:
-            add_movie(entry, user, defaults, mal_mapping)
+            add_movie(entry, user, defaults, "history", mal_mapping)
         except ValueError as e:
             warning_messages.append(str(e))
     return warning_messages
