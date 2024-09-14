@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def import_trakt(request):
     """View for importing anime and manga data from Trakt."""
     username = request.POST["trakt"]
-    tasks.import_trakt(username, request.user)
+    tasks.import_trakt.delay(username, request.user)
     messages.success(request, "Trakt import task queued.")
     return redirect("profile")
 
