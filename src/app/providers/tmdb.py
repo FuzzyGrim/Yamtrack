@@ -97,10 +97,19 @@ def tv_with_seasons(media_id, season_numbers):
         data = process_tv(response)
         cache.set(f"tv_{media_id}", data)
 
+    uncached_seasons = []
+    for season_number in season_numbers:
+        season_data = cache.get(f"season_{media_id}_{season_number}")
+
+        if season_data:
+            data[f"season/{season_number}"] = season_data
+        else:
+            uncached_seasons.append(season_number)
+
     # tmdb max remote request is 20
     max_seasons_per_request = 20
-    for i in range(0, len(season_numbers), max_seasons_per_request):
-        season_subset = season_numbers[i : i + max_seasons_per_request]
+    for i in range(0, len(uncached_seasons), max_seasons_per_request):
+        season_subset = uncached_seasons[i : i + max_seasons_per_request]
         append_text = ",".join([f"season/{season}" for season in season_subset])
         params["append_to_response"] = f"{append_text}"
 
@@ -108,14 +117,10 @@ def tv_with_seasons(media_id, season_numbers):
 
         # add seasons metadata to the response
         for season_number in season_subset:
-            season_data = cache.get(f"season_{media_id}_{season_number}")
-
-            if not season_data:
-                season_data = process_season(
-                    response[f"season/{season_number}"],
-                )
-                cache.set(f"season_{media_id}_{season_number}", season_data)
-
+            season_data = process_season(
+                response[f"season/{season_number}"],
+            )
+            cache.set(f"season_{media_id}_{season_number}", season_data)
             data[f"season/{season_number}"] = season_data
     return data
 
