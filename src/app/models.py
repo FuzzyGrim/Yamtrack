@@ -651,11 +651,12 @@ class Episode(models.Model):
         super().save(*args, **kwargs)
 
         if self.related_season.status in (STATUS_IN_PROGRESS, STATUS_REPEATING):
-            season_metadata = tmdb.season(
+            season_number = self.item.season_number
+            tv_metadata = tmdb.tv_with_seasons(
                 self.item.media_id,
-                self.item.season_number,
+                [season_number],
             )
-            max_progress = len(season_metadata["episodes"])
+            max_progress = len(tv_metadata[f"season/{season_number}"]["episodes"])
             total_repeats = self.related_season.episodes.aggregate(
                 total_repeats=Sum("repeats"),
             )["total_repeats"]
@@ -665,6 +666,12 @@ class Episode(models.Model):
             if total_watches >= max_progress * (self.related_season.repeats + 1):
                 self.related_season.status = STATUS_COMPLETED
                 self.related_season.save_base(update_fields=["status"])
+
+                last_season = tv_metadata["related"]["seasons"][-1]["season_number"]
+                # mark the TV show as completed if it's the last season
+                if season_number == last_season:
+                    self.related_season.related_tv.status = STATUS_COMPLETED
+                    self.related_season.related_tv.save_base(update_fields=["status"])
 
 
 class Manga(Media):
