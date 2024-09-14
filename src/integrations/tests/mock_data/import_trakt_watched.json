@@ -1,0 +1,92 @@
+[
+  {
+    "plays": 13,
+    "last_watched_at": "2024-09-10T13:52:56.000Z",
+    "last_updated_at": "2024-09-10T13:52:56.000Z",
+    "reset_at": null,
+    "show": {
+      "title": "South Park",
+      "year": 1997,
+      "ids": {
+        "trakt": 2177,
+        "slug": "south-park",
+        "tvdb": 75897,
+        "imdb": "tt0121955",
+        "tmdb": 2190,
+        "tvrage": null
+      }
+    },
+    "seasons": [
+      {
+        "number": 1,
+        "episodes": [
+          {
+            "number": 1,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 2,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 3,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 4,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 5,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 6,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 7,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 8,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 9,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 10,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 11,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 12,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          },
+          {
+            "number": 13,
+            "plays": 1,
+            "last_watched_at": "2024-09-10T13:52:56.000Z"
+          }
+        ]
+      }
+    ]
+  }
+]

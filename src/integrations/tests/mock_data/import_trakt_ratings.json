@@ -1,0 +1,17 @@
+[
+  {
+    "rated_at": "2024-03-07T19:37:27.000Z",
+    "rating": 8,
+    "type": "movie",
+    "movie": {
+      "title": "Pulp Fiction",
+      "year": 1994,
+      "ids": {
+        "trakt": 554,
+        "slug": "pulp-fiction-1994",
+        "imdb": "tt0110912",
+        "tmdb": 680
+      }
+    }
+  }
+]

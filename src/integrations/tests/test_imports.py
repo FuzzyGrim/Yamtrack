@@ -4,14 +4,17 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import requests
-from app.models import TV, Anime, Episode, Manga, Movie, Season
+from app.models import TV, Anime, Episode, Item, Manga, Movie, Season
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from integrations.imports import anilist, kitsu, mal, tmdb, yamtrack
+from integrations.imports import anilist, kitsu, mal, tmdb, trakt, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
+app_mock_path = (
+    Path(__file__).resolve().parent.parent.parent / "app" / "tests" / "mock_data"
+)
 
 
 class ImportMAL(TestCase):
@@ -241,3 +244,109 @@ class ImportKitsu(TestCase):
         self.assertEqual(instance.start_date, date(2023, 8, 1))
         self.assertEqual(instance.end_date, date(2023, 9, 1))
         self.assertEqual(instance.notes, "Great series!")
+
+
+class ImportTrakt(TestCase):
+    """Test importing media from Trakt."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+
+    @patch("integrations.imports.trakt.get_mal_mappings")
+    @patch("integrations.imports.trakt.get_response")
+    def test_importer_anime(self, mock_api_request, mock_get_mal_mappings):
+        """Test importing media from Trakt."""
+        # Mock the MAL mappings
+        mock_get_mal_mappings.side_effect = [
+            {(30857, 1): 1},  # shows mapping
+            {(554,): 1},  # movies mapping
+        ]
+
+        # Mock API responses
+        mock_api_request.side_effect = [
+            [
+                {
+                    "show": {"ids": {"trakt": 30857}},
+                    "seasons": [
+                        {
+                            "number": 1,
+                            "episodes": [
+                                {
+                                    "number": 1,
+                                    "last_watched_at": "2023-01-01T00:00:00.000Z",
+                                    "plays": 1,
+                                },
+                                {
+                                    "number": 2,
+                                    "last_watched_at": "2023-01-02T00:00:00.000Z",
+                                    "plays": 2,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            [],  # empty movie history
+            [],  # empty watchlist
+            [],  # empty ratings
+        ]
+
+        trakt.importer("testuser", self.user)
+
+        self.assertEqual(Item.objects.count(), 1)
+
+    @patch("integrations.imports.trakt.get_mal_mappings")
+    @patch("integrations.imports.trakt.get_response")
+    def test_importer_movie(self, mock_api_request, mock_get_mal_mappings):
+        """Test importing media from Trakt."""
+        # Mock the MAL mappings
+        mock_get_mal_mappings.side_effect = [
+            {(30857, 1): 1},  # shows mapping
+            {(554,): 1},  # movies mapping
+        ]
+
+        # Mock API responses
+        mock_api_request.side_effect = [
+            [],  # empty show history
+            [
+                {
+                    "movie": {"ids": {"trakt": 554, "tmdb": 680}},
+                    "last_watched_at": "2023-01-01T00:00:00.000Z",
+                    "plays": 2,
+                },
+            ],
+            [],  # empty watchlist
+            [],  # empty ratings
+        ]
+
+        trakt.importer("testuser", self.user)
+
+        self.assertEqual(Item.objects.count(), 1)
+
+    def test_process_watched_shows(self):
+        """Test processing watched shows from Trakt."""
+        with Path(mock_path / "import_trakt_watched.json").open() as file:
+            watched = json.load(file)
+
+        trakt.process_watched_shows(watched, {}, self.user)
+
+        self.assertEqual(Item.objects.count(), 15)
+        self.assertEqual(Episode.objects.count(), 13)
+
+    def test_process_ratings(self):
+        """Test processing watched shows from Trakt."""
+        with Path(mock_path / "import_trakt_ratings.json").open() as file:
+            ratings = json.load(file)
+
+        trakt.process_list(ratings, {}, {}, self.user, "ratings")
+
+        self.assertEqual(Item.objects.count(), 1)
+        movie = Movie.objects.first()
+        self.assertEqual(movie.score, 8)
+
+    def test_get_date(self):
+        """Test getting date from Trakt."""
+        self.assertEqual(trakt.get_date("2023-01-01T00:00:00.000Z"), date(2023, 1, 1))
+        self.assertIsNone(trakt.get_date(None))
