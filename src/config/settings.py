@@ -230,6 +230,8 @@ IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
+TESTING = False
+
 # Third party settings
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

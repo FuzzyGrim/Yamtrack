@@ -13,7 +13,17 @@ from app.providers import igdb, mal, tmdb
 logger = logging.getLogger(__name__)
 
 
-redis_pool = ConnectionPool.from_url(settings.REDIS_URL)
+def get_redis_connection():
+    """Return a Redis connection pool."""
+    if settings.TESTING:
+        import fakeredis
+
+        return fakeredis.FakeStrictRedis().connection_pool
+    return ConnectionPool.from_url(settings.REDIS_URL)
+
+
+redis_pool = get_redis_connection()
+
 session = LimiterSession(
     per_second=4,
     bucket_class=RedisBucket,
