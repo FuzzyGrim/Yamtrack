@@ -57,6 +57,8 @@ class UserRegisterForm(UserCreationForm):
         label="Password confirmation",
     )
 
+    usable_password = None
+
     class Meta:
         """Only include the username and password fields."""
 
