@@ -22,7 +22,7 @@ COPY ./supervisord.conf /etc/supervisord.conf
 
 RUN chmod +x /entrypoint.sh \ 
 	# create user abc for later PUID/PGID mapping
-	&& useradd -U -M -s /bin/bash abc \
+	&& useradd -U -M -s /bin/bash abc
 
 # Django app
 COPY src ./
