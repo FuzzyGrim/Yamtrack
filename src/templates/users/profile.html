@@ -30,22 +30,6 @@
     <fieldset class="input-group profile-grid">
       <form class="p-2 grid-item import-form"
             method="post"
-            action="{% url 'import_trakt' %}">
-        {% csrf_token %}
-        <div class="import-name">Trakt Username</div>
-        <div class="input-group">
-          <input type="text"
-                 class="form-control"
-                 name="trakt"
-                 placeholder="Trakt username slug">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
-        </div>
-      </form>
-
-      <form class="p-2 grid-item import-form"
-            method="post"
             enctype="multipart/form-data"
             action="{% url 'import_tmdb_ratings' %}">
         {% csrf_token %}
@@ -103,7 +87,22 @@
           </button>
         </div>
       </form>
-
+      <form class="p-2 grid-item import-form"
+            method="post"
+            action="{% url 'import_trakt' %}">
+        {% csrf_token %}
+        <div class="import-name">Trakt Username</div>
+        <div class="input-group">
+          <input type="text"
+                 class="form-control"
+                 name="trakt"
+                 placeholder="Trakt username slug">
+          <button class="btn btn-secondary" type="submit">
+            <i class="bi bi-check-lg"></i>
+          </button>
+        </div>
+      </form>
+ 
       <form class="p-2 grid-item import-form"
             method="post"
             action="{% url 'import_kitsu_name' %}">
