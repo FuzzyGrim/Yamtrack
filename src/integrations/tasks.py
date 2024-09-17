@@ -68,8 +68,8 @@ def import_anilist(username, user):
         f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     )
     if warning_message:
-        message = f"{info_message} {ERROR_TITLE}{warning_message}"
-    return message
+        return f"{info_message} {ERROR_TITLE}{warning_message}"
+    return info_message
 
 
 @shared_task(name="Import from Kitsu by username")
@@ -84,8 +84,8 @@ def import_kitsu_name(username, user):
         f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     )
     if warning_message:
-        message = f"{info_message} {ERROR_TITLE}{warning_message}"
-    return message
+        return f"{info_message} {ERROR_TITLE}{warning_message}"
+    return info_message
 
 
 @shared_task(name="Import from Kitsu by user ID")
@@ -100,8 +100,8 @@ def import_kitsu_id(user_id, user):
         f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     )
     if warning_message:
-        message = f"{info_message} {ERROR_TITLE}{warning_message}"
-    return message
+        return f"{info_message} {ERROR_TITLE}{warning_message}"
+    return info_message
 
 
 @shared_task(name="Import from Yamtrack")
