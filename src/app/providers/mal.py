@@ -182,8 +182,11 @@ def get_readable_status(response):
         "currently_publishing": "Publishing",
         "not_yet_published": "Upcoming",
         "on_hiatus": "On Hiatus",
+        "discontinued": "Discontinued",
     }
-    return status_map[(response["status"])]
+    if response["status"] in status_map:
+        return status_map[response["status"]]
+    return response["status"].replace("_", " ").title()
 
 
 def get_synopsis(response):
