@@ -60,6 +60,7 @@ def get_response(url):
 
 def process_watched_shows(watched, mal_mapping, user):
     """Process the watched shows from Trakt."""
+    logger.info("Processing watched shows")
     warning_messages = []
 
     for entry in watched:
@@ -96,11 +97,14 @@ def process_watched_shows(watched, mal_mapping, user):
                     add_tmdb_episodes(entry, season, user)
                 except ValueError as e:
                     warning_messages.append(str(e))
+
+    logger.info("Finished processing watched shows")
     return warning_messages
 
 
 def process_watched_movies(watched, mal_mapping, user):
     """Process the watched movies from Trakt."""
+    logger.info("Processing watched movies")
     warning_messages = []
 
     for entry in watched:
@@ -115,11 +119,13 @@ def process_watched_movies(watched, mal_mapping, user):
             add_movie(entry, user, defaults, "history", mal_mapping)
         except ValueError as e:
             warning_messages.append(str(e))
+    logger.info("Finished processing watched movies")
     return warning_messages
 
 
 def process_list(entries, mal_shows_map, mal_movies_map, user, list_type):
     """Process the default lists from Trakt, either watchlist or ratings."""
+    logger.info("Processing %s", list_type)
     warning_messages = []
 
     for entry in entries:
@@ -144,6 +150,7 @@ def process_list(entries, mal_shows_map, mal_movies_map, user, list_type):
                 add_movie(entry, user, defaults, list_type, mal_movies_map)
             except ValueError as e:
                 warning_messages.append(str(e))
+    logger.info("Finished processing %s", list_type)
     return warning_messages
 
 

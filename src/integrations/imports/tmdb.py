@@ -69,4 +69,9 @@ def importer(file, user, status):
                 msg = f"Failed to import {media_type} {media_id}, already exists"
                 logger.exception(msg)
 
+    logger.info(
+        "Imported %s TV and %s movies",
+        num_imported["tv"],
+        num_imported["movie"],
+    )
     return num_imported["tv"], num_imported["movie"]

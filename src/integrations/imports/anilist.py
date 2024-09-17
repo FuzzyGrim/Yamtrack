@@ -127,6 +127,8 @@ def import_media(media_data, media_type, user):
     num_after = model.objects.filter(user=user).count()
     num_imported = num_after - num_before
 
+    logger.info("Imported %s %s", num_imported, media_type)
+
     return num_imported, warning_message
 
 

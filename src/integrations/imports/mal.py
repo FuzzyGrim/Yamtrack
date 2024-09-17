@@ -35,7 +35,10 @@ def import_media(username, user, media_type):
     helpers.bulk_chunk_import(bulk_media, model, user)
     num_after = model.objects.filter(user=user).count()
 
-    return num_after - num_before
+    num_imported = num_after - num_before
+    logger.info("Imported %s %s", num_imported, media_type)
+
+    return num_imported
 
 
 def get_whole_response(url, params):
