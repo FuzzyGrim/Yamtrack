@@ -42,6 +42,7 @@ class Item(models.Model):
     """Model for items in custom lists."""
 
     media_id = models.PositiveIntegerField()
+    source = models.CharField(max_length=255)
     media_type = models.CharField(
         max_length=10,
         choices=[
@@ -56,7 +57,13 @@ class Item(models.Model):
     class Meta:
         """Meta options for the model."""
 
-        unique_together = ["media_id", "media_type", "season_number", "episode_number"]
+        unique_together = [
+            "media_id",
+            "source",
+            "media_type",
+            "season_number",
+            "episode_number",
+        ]
         ordering = ["media_id"]
 
     def __str__(self):
@@ -294,6 +301,7 @@ class TV(Media):
 
             item, _ = Item.objects.get_or_create(
                 media_id=self.item.media_id,
+                source="tmdb",
                 media_type="season",
                 season_number=season_number,
                 defaults={
@@ -543,6 +551,7 @@ class Season(Media):
 
             item, _ = Item.objects.get_or_create(
                 media_id=self.item.media_id,
+                source="tmdb",
                 media_type="tv",
                 defaults={
                     "title": tv_metadata["title"],
@@ -550,7 +559,7 @@ class Season(Media):
                 },
             )
 
-            tv = TV(
+            tv = TV.objects.create(
                 item=item,
                 score=None,
                 status=status,
@@ -558,8 +567,6 @@ class Season(Media):
                 user=self.user,
             )
 
-            # save_base to avoid custom save method
-            TV.save_base(tv)
             logger.info("%s did not exist, it was created successfully.", tv)
 
         return tv
@@ -604,6 +611,7 @@ class Season(Media):
 
         item, _ = Item.objects.get_or_create(
             media_id=self.item.media_id,
+            source="tmdb",
             media_type="episode",
             season_number=self.item.season_number,
             episode_number=episode_number,
