@@ -124,11 +124,11 @@
               </div>
 
               <div>
-                {% include "app/components/open_modal.html" with modal_type="lists" request=request source=media.source title=tv.title media_type="episode" image=episode.image media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
+                {% include "app/components/open_modal.html" with modal_type="lists" request=request source=episode.source title=tv.title media_type="episode" image=episode.image media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
               </div>
 
               <div>
-                {% include "app/components/open_modal.html" with modal_type="history" request=request source=media.source  media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
+                {% include "app/components/open_modal.html" with modal_type="history" request=request source=episode.source title=tv.title media_type="episode" image=episode.image media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
               </div>
             </div>
 
