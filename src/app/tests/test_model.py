@@ -18,6 +18,7 @@ class ItemModel(TestCase):
         """Set up test data for Item model."""
         self.item = Item.objects.create(
             media_id=1,
+            source="tmdb",
             media_type="movie",
             title="Test Movie",
             image="http://example.com/image.jpg",
@@ -38,6 +39,7 @@ class ItemModel(TestCase):
         """Test the string representation of an Item with season and episode."""
         item = Item.objects.create(
             media_id=2,
+            source="tmdb",
             media_type="tv",
             title="Test Show",
             image="http://example.com/image2.jpg",
@@ -57,6 +59,7 @@ class MediaModel(TestCase):
 
         item_anime = Item.objects.create(
             media_id=1,
+            source="mal",
             media_type="anime",
             title="Cowboy Bebop",
             image="http://example.com/image.jpg",
@@ -160,6 +163,7 @@ class TVModel(TestCase):
 
         item_tv = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="tv",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -174,6 +178,7 @@ class TVModel(TestCase):
 
         item_season1 = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="season",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -190,6 +195,7 @@ class TVModel(TestCase):
 
         item_ep1 = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -204,6 +210,7 @@ class TVModel(TestCase):
 
         item_ep2 = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -218,6 +225,7 @@ class TVModel(TestCase):
 
         item_season2 = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="season",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -234,6 +242,7 @@ class TVModel(TestCase):
 
         item_ep3 = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -248,6 +257,7 @@ class TVModel(TestCase):
 
         item_ep4 = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -291,6 +301,7 @@ class SeasonModel(TestCase):
 
         item_tv = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="tv",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -304,6 +315,7 @@ class SeasonModel(TestCase):
 
         item_season = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="season",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -319,6 +331,7 @@ class SeasonModel(TestCase):
 
         item_ep1 = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -333,6 +346,7 @@ class SeasonModel(TestCase):
 
         item_ep2 = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -376,6 +390,7 @@ class EpisodeModel(TestCase):
 
         item_tv = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="tv",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -390,6 +405,7 @@ class EpisodeModel(TestCase):
 
         item_season = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="season",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -409,6 +425,7 @@ class EpisodeModel(TestCase):
         for i in range(1, 25):
             item_episode = Item.objects.create(
                 media_id=1668,
+                source="tmdb",
                 media_type="episode",
                 title="Friends",
                 image="http://example.com/image.jpg",

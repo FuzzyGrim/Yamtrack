@@ -19,6 +19,7 @@ class ExportCSVTest(TestCase):
 
         item_tv = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="tv",
             title="Friends",
             image="https://image.url",
@@ -35,6 +36,7 @@ class ExportCSVTest(TestCase):
 
         item_movie = Item.objects.create(
             media_id=10494,
+            source="tmdb",
             media_type="movie",
             title="Perfect Blue",
             image="https://image.url",
@@ -51,6 +53,7 @@ class ExportCSVTest(TestCase):
 
         item_season = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="season",
             title="Friends",
             image="https://image.url",
@@ -68,6 +71,7 @@ class ExportCSVTest(TestCase):
 
         item_episode = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="https://image.url",
@@ -82,6 +86,7 @@ class ExportCSVTest(TestCase):
 
         item_anime = Item.objects.create(
             media_id=1,
+            source="mal",
             media_type="anime",
             title="Cowboy Bebop",
             image="https://image.url",
@@ -96,6 +101,7 @@ class ExportCSVTest(TestCase):
 
         item_manga = Item.objects.create(
             media_id=1,
+            source="mal",
             media_type="manga",
             title="Berserk",
             image="https://image.url",
@@ -110,6 +116,7 @@ class ExportCSVTest(TestCase):
 
         item_game = Item.objects.create(
             media_id=1,
+            source="igdb",
             media_type="game",
             title="The Witcher 3: Wild Hunt",
             image="https://image.url",

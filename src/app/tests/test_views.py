@@ -21,6 +21,7 @@ class CreateMedia(TestCase):
         """Test the creation of a TV object."""
         item = Item.objects.create(
             media_id=1,
+            source="mal",
             media_type="anime",
             title="Test Anime",
             image="http://example.com/image.jpg",
@@ -44,6 +45,7 @@ class CreateMedia(TestCase):
         """Test the creation of a TV object through views."""
         item = Item.objects.create(
             media_id=5895,
+            source="tmdb",
             media_type="tv",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -64,6 +66,7 @@ class CreateMedia(TestCase):
         """Test the creation of a Season through views."""
         item = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="season",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -115,6 +118,7 @@ class EditMedia(TestCase):
         """Test the editing of a movie score."""
         item = Item.objects.create(
             media_id=10494,
+            source="tmdb",
             media_type="movie",
             title="Perfect Blue",
             image="http://example.com/image.jpg",
@@ -155,6 +159,7 @@ class DeleteMedia(TestCase):
 
         self.item_tv = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="tv",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -167,6 +172,7 @@ class DeleteMedia(TestCase):
 
         self.item_season = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="season",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -181,6 +187,7 @@ class DeleteMedia(TestCase):
 
         self.item_ep = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -240,6 +247,7 @@ class ProgressEditSeason(TestCase):
 
         item_tv = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="tv",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -252,6 +260,7 @@ class ProgressEditSeason(TestCase):
 
         self.item_season = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="season",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -266,6 +275,7 @@ class ProgressEditSeason(TestCase):
 
         item_ep = Item.objects.create(
             media_id=1668,
+            source="tmdb",
             media_type="episode",
             title="Friends",
             image="http://example.com/image.jpg",
@@ -328,6 +338,7 @@ class ProgressEditAnime(TestCase):
 
         self.item = Item.objects.create(
             media_id=1,
+            source="mal",
             media_type="anime",
             title="Cowboy Bebop",
             image="http://example.com/image.jpg",
