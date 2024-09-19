@@ -5,15 +5,12 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
-from django.views.decorators.http import (
-    require_GET,
-    require_POST,
-)
+from django.views.decorators.http import require_GET, require_POST
 
 from app import database, helpers
 from app.forms import FilterForm, get_form_class
 from app.models import STATUS_IN_PROGRESS, Episode, Item, Season
-from app.providers import igdb, mal, services, tmdb
+from app.providers import igdb, mal, mangaupdates, services, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -100,14 +97,17 @@ def media_search(request):
 
     request.user.set_last_search_type(media_type)
 
-    if media_type in ("anime", "manga"):
+    source = request.GET.get("source")
+    if source == "mangaupdates":
+        query_list = mangaupdates.search(query)
+    elif media_type in ("anime", "manga"):
         query_list = mal.search(media_type, query)
     elif media_type in ("tv", "movie"):
         query_list = tmdb.search(media_type, query)
     elif media_type == "game":
         query_list = igdb.search(query)
 
-    context = {"query_list": query_list}
+    context = {"query_list": query_list, "source": source}
 
     return render(request, "app/search.html", context)
 
@@ -145,12 +145,15 @@ def season_details(request, media_id, title, season_number):  # noqa: ARG001 tit
 @require_GET
 def track(request):
     """Return the tracking form for a media item."""
-    media_type = request.GET["media_type"]
     media_id = request.GET["media_id"]
+    source = request.GET["source"]
+
+    media_type = request.GET["media_type"]
     season_number = request.GET.get("season_number")
 
     item, _ = Item.objects.get_or_create(
         media_id=media_id,
+        source=source,
         media_type=media_type,
         season_number=season_number,
         episode_number=None,
@@ -253,6 +256,7 @@ def episode_handler(request):
         season_metadata = tmdb.season(media_id, season_number)
         item = Item.objects.create(
             media_id=media_id,
+            source="tmdb",
             media_type="season",
             season_number=season_number,
             title=season_metadata["title"],
@@ -265,7 +269,6 @@ def episode_handler(request):
             status=STATUS_IN_PROGRESS,
             notes="",
         )
-        related_season.related_tv = related_season.get_tv()
 
         related_season.save()
         logger.info("%s did not exist, it was created successfully.", related_season)
@@ -288,12 +291,14 @@ def episode_handler(request):
 def history(request):
     """Return the history page for a media item."""
     media_id = request.GET["media_id"]
+    source = request.GET["source"]
     media_type = request.GET["media_type"]
     season_number = request.GET.get("season_number")
     episode_number = request.GET.get("episode_number")
 
     item = Item.objects.get(
         media_id=media_id,
+        source=source,
         media_type=media_type,
         season_number=season_number,
         episode_number=episode_number,

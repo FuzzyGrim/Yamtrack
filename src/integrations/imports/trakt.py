@@ -176,6 +176,7 @@ def add_tmdb_show(tmdb_id, user, defaults):
     metadata = app.providers.tmdb.tv(tmdb_id)
     item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
+        source="tmdb",
         media_type="tv",
         defaults={
             "title": metadata["title"],
@@ -212,6 +213,7 @@ def add_tmdb_season(tmdb_id, season_number, user, defaults):
     metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, [season_number])
     tv_item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
+        source="tmdb",
         media_type="tv",
         defaults={
             "title": metadata["title"],
@@ -227,6 +229,7 @@ def add_tmdb_season(tmdb_id, season_number, user, defaults):
     season_metadata = metadata[f"season/{season_number}"]
     season_item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
+        source="tmdb",
         media_type="season",
         season_number=season_number,
         defaults={
@@ -256,6 +259,7 @@ def add_tmdb_episodes(entry, season, user):
 
     tv_item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
+        source="tmdb",
         media_type="tv",
         defaults={
             "title": metadata["title"],
@@ -273,6 +277,7 @@ def add_tmdb_episodes(entry, season, user):
     season_number = season["number"]
     season_item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
+        source="tmdb",
         media_type="season",
         season_number=season_number,
         defaults={
@@ -301,6 +306,7 @@ def add_tmdb_episodes(entry, season, user):
 
         episode_item, _ = app.models.Item.objects.get_or_create(
             media_id=tmdb_id,
+            source="tmdb",
             media_type="episode",
             season_number=season_number,
             episode_number=episode["number"],
@@ -341,6 +347,7 @@ def add_tmdb_movie(tmdb_id, user, defaults):
     metadata = app.providers.tmdb.movie(tmdb_id)
     item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
+        source="tmdb",
         media_type="movie",
         defaults={
             "title": metadata["title"],
@@ -359,6 +366,7 @@ def add_mal_anime(mal_id, user, defaults):
     metadata = app.providers.mal.anime(mal_id)
     item, _ = app.models.Item.objects.get_or_create(
         media_id=mal_id,
+        source="mal",
         media_type="anime",
         defaults={
             "title": metadata["title"],

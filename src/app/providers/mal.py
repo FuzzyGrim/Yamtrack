@@ -42,6 +42,7 @@ def search(media_type, query):
         data = [
             {
                 "media_id": media["node"]["id"],
+                "source": "mal",
                 "media_type": media_type,
                 "title": media["node"]["title"],
                 "image": get_image_url(media["node"]),
@@ -75,6 +76,7 @@ def anime(media_id):
 
         data = {
             "media_id": media_id,
+            "source": "mal",
             "media_type": "anime",
             "title": response["title"],
             "max_progress": num_episodes,
@@ -125,6 +127,7 @@ def manga(media_id):
 
         data = {
             "media_id": media_id,
+            "source": "mal",
             "media_type": "manga",
             "title": response["title"],
             "image": get_image_url(response),

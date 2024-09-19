@@ -7,7 +7,7 @@
 {% endblock title %}
 
 {% block container %}
-  {% include "app/components/media_description.html" with media=season tv=tv request=request media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst IMG_NONE=IMG_NONE only %}
+  {% include "app/components/media_description.html" with media=season tv=tv request=request source=media.source media_type="season" media_id=tv.media_id season_number=season.season_number title=tv.title|capfirst IMG_NONE=IMG_NONE only %}
  
   <div class="dropdown mb-3">
     <button class="btn btn-secondary dropdown-toggle"
@@ -124,11 +124,11 @@
               </div>
 
               <div>
-                {% include "app/components/open_modal.html" with modal_type="lists" request=request title=tv.title media_type="episode" image=episode.image media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
+                {% include "app/components/open_modal.html" with modal_type="lists" request=request source=media.source title=tv.title media_type="episode" image=episode.image media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
               </div>
 
               <div>
-                {% include "app/components/open_modal.html" with modal_type="history" request=request media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
+                {% include "app/components/open_modal.html" with modal_type="history" request=request source=media.source  media_type="episode" media_id=tv.media_id season_number=season.season_number episode_number=episode.episode_number only %}
               </div>
             </div>
 

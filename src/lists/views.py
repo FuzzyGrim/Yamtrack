@@ -122,12 +122,14 @@ def delete(request):
 def lists_modal(request):
     """Return the modal showing all custom lists and allowing to add to them."""
     media_type = request.GET["media_type"]
+    source = request.GET["source"]
     media_id = request.GET["media_id"]
     season_number = request.GET.get("season_number")
     episode_number = request.GET.get("episode_number")
 
     item, _ = Item.objects.get_or_create(
         media_id=media_id,
+        source=source,
         media_type=media_type,
         season_number=season_number,
         episode_number=episode_number,

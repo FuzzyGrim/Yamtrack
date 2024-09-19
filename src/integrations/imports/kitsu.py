@@ -163,6 +163,7 @@ def create_or_get_item(mal_id, media_type, media):
     image_url = get_image_url(media)
     return Item.objects.get_or_create(
         media_id=mal_id,
+        source="mal",
         media_type=media_type,
         defaults={
             "title": media["attributes"]["canonicalTitle"],

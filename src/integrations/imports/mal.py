@@ -94,6 +94,7 @@ def add_media_list(response, media_type, user):
 
         item, _ = app.models.Item.objects.get_or_create(
             media_id=content["node"]["id"],
+            source="mal",
             media_type=media_type,
             defaults={
                 "title": content["node"]["title"],

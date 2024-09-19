@@ -148,6 +148,7 @@ def process_status_list(bulk_media, status_list, media_type, user, warning_messa
 
             item, _ = app.models.Item.objects.get_or_create(
                 media_id=content["media"]["idMal"],
+                source="mal",
                 media_type=media_type,
                 defaults={
                     "title": content["media"]["title"]["userPreferred"],

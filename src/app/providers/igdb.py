@@ -54,6 +54,7 @@ def search(query):
         data = [
             {
                 "media_id": media["id"],
+                "source": "igdb",
                 "media_type": "game",
                 "title": media["name"],
                 "image": get_image_url(media),
@@ -90,6 +91,7 @@ def game(media_id):
         response = response[0]  # response is a list with a single element
         data = {
             "media_id": response["id"],
+            "source": "igdb",
             "media_type": "game",
             "title": response["name"],
             "max_progress": None,

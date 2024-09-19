@@ -43,6 +43,7 @@ def add_bulk_media(row, user, bulk_media):
 
     item, _ = app.models.Item.objects.get_or_create(
         media_id=row["media_id"],
+        source=row["source"],
         media_type=media_type,
         season_number=season_number,
         episode_number=episode_number,

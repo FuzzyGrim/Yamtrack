@@ -31,6 +31,7 @@ def search(media_type, query):
         data = [
             {
                 "media_id": media["id"],
+                "source": "tmdb",
                 "media_type": media_type,
                 "title": get_title(media),
                 "image": get_image_url(media["poster_path"]),
@@ -56,6 +57,7 @@ def movie(media_id):
         response = services.api_request("TMDB", "GET", url, params=params)
         data = {
             "media_id": media_id,
+            "source": "tmdb",
             "media_type": "movie",
             "title": response["title"],
             "max_progress": 1,
@@ -147,6 +149,7 @@ def process_tv(response):
     num_episodes = response["number_of_episodes"]
     return {
         "media_id": response["id"],
+        "source": "tmdb",
         "media_type": "tv",
         "title": response["name"],
         "max_progress": num_episodes,
@@ -191,6 +194,7 @@ def process_season(response):
     """Process the metadata for the selected season from The Movie Database."""
     num_episodes = len(response["episodes"])
     return {
+        "source": "tmdb",
         "title": response["name"],
         "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
@@ -328,6 +332,7 @@ def process_episodes(season_metadata, episodes_in_db):
 
         episodes_metadata.append(
             {
+                "source": "tmdb",
                 "episode_number": episode_number,
                 "air_date": episode["air_date"], # when unknown, response returns null
                 "image": get_image_url(episode["still_path"]),

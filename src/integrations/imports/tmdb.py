@@ -31,6 +31,7 @@ def importer(file, user, status):
 
             item, _ = models.Item.objects.get_or_create(
                 media_id=media_metadata["media_id"],
+                source="tmdb",
                 media_type=media_type,
                 defaults={
                     "title": media_metadata["title"],

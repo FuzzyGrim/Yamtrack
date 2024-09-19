@@ -7,7 +7,7 @@
 {% endblock title %}
 
 {% block container %}
-  {% include "app/components/media_description.html" with media=media request=request media_type=media.media_type media_id=media.media_id title=media.title IMG_NONE=IMG_NONE only %}
+  {% include "app/components/media_description.html" with media=media request=request source=media.source media_type=media.media_type media_id=media.media_id title=media.title IMG_NONE=IMG_NONE only %}
 
   {% for name, related_items in media.related.items %}
     {% if related_items %}
@@ -25,9 +25,9 @@
               <div class="card-title">{{ related.title }}</div>
               <div class="card-text d-flex justify-content-center align-items-center">
                 {% if name == "seasons" %}
-                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" image=related.image media_id=media.media_id season_number=related.season_number title=media.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type="season" image=related.image media_id=media.media_id season_number=related.season_number title=media.title only %}
                 {% else %}
-                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media.media_type image=media.image media_id=related.media_id title=related.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type=media.media_type image=media.image media_id=related.media_id title=related.title only %}
                 {% endif %}
               </div>
             </div>
