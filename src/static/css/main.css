@@ -126,6 +126,11 @@ debug, info, success, warning, error */
   }
 }
 
+.sources button:not(.active):hover {
+  background-color: transparent;
+  border-color: var(--bs-btn-hover-color);
+}
+
 .grid {
   display: grid;
   gap: 0.75rem;
