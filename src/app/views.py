@@ -94,7 +94,6 @@ def media_search(request):
     """Return the media search page."""
     media_type = request.GET["media_type"]
     query = request.GET["q"]
-
     request.user.set_last_search_type(media_type)
 
     source = request.GET.get("source")

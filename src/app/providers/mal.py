@@ -13,7 +13,7 @@ base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status
 
 def search(media_type, query):
     """Search for media on MyAnimeList."""
-    data = cache.get(f"search_{media_type}_{query}")
+    data = cache.get(f"search_mal_{media_type}_{query}")
 
     if data is None:
         url = f"{base_url}/{media_type}"
@@ -50,14 +50,14 @@ def search(media_type, query):
             for media in response
         ]
 
-        cache.set(f"search_{media_type}_{query}", data)
+        cache.set(f"search_mal_{media_type}_{query}", data)
 
     return data
 
 
 def anime(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
-    data = cache.get(f"anime_{media_id}")
+    data = cache.get(f"mal_anime_{media_id}")
 
     if data is None:
         url = f"{base_url}/anime/{media_id}"
@@ -101,14 +101,14 @@ def anime(media_id):
             },
         }
 
-        cache.set(f"anime_{media_id}", data)
+        cache.set(f"mal_anime_{media_id}", data)
 
     return data
 
 
 def manga(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
-    data = cache.get(f"manga_{media_id}")
+    data = cache.get(f"mal_manga_{media_id}")
 
     if data is None:
         url = f"{base_url}/manga/{media_id}"
@@ -147,7 +147,7 @@ def manga(media_id):
             },
         }
 
-        cache.set(f"manga_{media_id}", data)
+        cache.set(f"mal_manga_{media_id}", data)
 
     return data
 
