@@ -191,6 +191,7 @@ class ListItemToggleViewTest(TestCase):
         self.list = CustomList.objects.create(name="Test List", owner=self.user)
         self.item = Item.objects.create(
             media_id=1,
+            source="tmdb",
             media_type="movie",
             title="Test Movie",
         )
