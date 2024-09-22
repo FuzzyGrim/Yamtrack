@@ -97,9 +97,13 @@ def media_search(request):
     request.user.set_last_search_type(media_type)
 
     source = request.GET.get("source")
-    if source == "mangaupdates":
-        query_list = mangaupdates.search(query)
-    elif media_type in ("anime", "manga"):
+
+    if media_type == "manga":
+        if source == "mangaupdates":
+            query_list = mangaupdates.search(query)
+        else:
+            query_list = mal.search(media_type, query)
+    elif media_type in "anime":
         query_list = mal.search(media_type, query)
     elif media_type in ("tv", "movie"):
         query_list = tmdb.search(media_type, query)

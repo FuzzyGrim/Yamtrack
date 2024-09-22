@@ -49,3 +49,7 @@
     </div>
   {% endif %}
 {% endblock container %}
+
+{% block js %}
+  <script src="{% static 'js/manga-source.js' %}" data-source="{{ request.GET.source }}"></script>
+{% endblock js %}

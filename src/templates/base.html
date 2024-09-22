@@ -133,7 +133,7 @@
               <i class="bi bi-list"></i>
             </button>
 
-            <form class="input-group" method="get" action="{% url 'search' %}">
+            <form id="search-form" class="input-group" method="get" action="{% url 'search' %}">
               <select name="media_type" class="form-select">
                 <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
                 <option value="movie"
@@ -155,7 +155,6 @@
               <button class="btn btn-secondary rounded-end" type="submit">
                 <i class="bi bi-search"></i>
               </button>
-              <input type="hidden" name="source" value="{{ request.GET.source }}">
             </form>
           </div>
  
