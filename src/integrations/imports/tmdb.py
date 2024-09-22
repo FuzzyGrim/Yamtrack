@@ -27,7 +27,7 @@ def importer(file, user, status):
 
         # if movie or tv show (not episode)
         if media_type == "movie" or (media_type == "tv" and episode_number == ""):
-            media_metadata = services.get_media_metadata(media_type, media_id)
+            media_metadata = services.get_media_metadata(media_type, media_id, "tmdb")
 
             item, _ = models.Item.objects.get_or_create(
                 media_id=media_metadata["media_id"],

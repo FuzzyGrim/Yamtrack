@@ -8,7 +8,7 @@ from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
 from requests_ratelimiter import LimiterSession
 
-from app.providers import igdb, mal, tmdb
+from app.providers import igdb, mal, mangaupdates, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -121,13 +121,16 @@ def request_error_handling(error, *args):
     raise error  # re-raise the error if it's not handled
 
 
-def get_media_metadata(media_type, media_id, season_number=None):
+def get_media_metadata(media_type, media_id, source, season_number=None):
     """Return the metadata for the selected media."""
     match media_type:
         case "anime":
             media_metadata = mal.anime(media_id)
         case "manga":
-            media_metadata = mal.manga(media_id)
+            if source == "mangaupdates":
+                media_metadata = mangaupdates.manga(media_id)
+            else:
+                media_metadata = mal.manga(media_id)
         case "tv":
             media_metadata = tmdb.tv(media_id)
         case "season":

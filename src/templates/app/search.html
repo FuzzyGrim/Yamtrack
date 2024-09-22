@@ -31,7 +31,7 @@
     <div class="grid">
       {% for media in query_list %}
         <div class="card">
-          <a href="{% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slug %}">
+          <a href="{% url 'media_details' media_type=media.media_type media_id=media.media_id title=media.title|slug %}?source={{ media.source }}">
             <img src="{{ media.image }}"
                  class="card-img {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
                  alt="{{ media.title }}" />

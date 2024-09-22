@@ -44,7 +44,8 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 | TMDB_NSFW       | Bool   | Default to false, set to true to include adult content in tv and movie searches                                                                                             |
 | TMDB_LANG       | String | TMDB metadata language, uses a Language code in ISO 639-1 e.g "en", for more specific results a country code in ISO 3166-1 can be added e.g "en-US"                         |
 | MAL_API         | String | MyAnimeList API key, for anime and manga, a default key is provided                                                                                                         |
-| MAL_NSFW        | Bool   | Default to false, set to true to include adult content in anime and manga searches                                                                                          |
+| MAL_NSFW        | Bool   | Default to false, set to true to include adult content in anime and manga searches from MyAnimeList                                                                         |
+| MU_NSFW         | Bool   | Default to false, set to true to include adult content in manga searches from MangaUpdates                                                                                  |
 | IGDB_ID         | String | IGDB API key for games, a default key is provided but it's recommended to get your own as it has a low rate limit.                                                          |
 | IGDB_SECRET     | String | IGDB API secret for games, a default value is provided but it's recommended to get your own as it has a low rate limit.                                                     |
 | IGDB_NSFW       | Bool   | Default to false, set to true to include adult content in game searches                                                                                                     |

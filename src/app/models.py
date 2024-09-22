@@ -184,6 +184,7 @@ class Media(models.Model):
             max_progress = services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
+                self.item.source,
             )["max_progress"]
 
             if max_progress:
@@ -202,6 +203,7 @@ class Media(models.Model):
             max_progress = services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
+                self.item.source,
             )["max_progress"]
 
             if max_progress:
@@ -230,6 +232,7 @@ class Media(models.Model):
         media_metadata = services.get_media_metadata(
             self.item.media_type,
             self.item.media_id,
+            self.item.source,
         )
         response = {"item": self.item}
         max_progress = media_metadata["max_progress"]
@@ -513,6 +516,7 @@ class Season(Media):
         media_metadata = services.get_media_metadata(
             self.item.media_type,
             self.item.media_id,
+            self.item.source,
             self.item.season_number,
         )
         response = {"item": self.item}

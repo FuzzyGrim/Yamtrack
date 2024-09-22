@@ -72,7 +72,11 @@ def process_item(item, events_bulk):
         metadata = tmdb.season(item.media_id, item.season_number)
         reloaded = process_season(item, metadata, events_bulk)
     else:
-        metadata = services.get_media_metadata(item.media_type, item.media_id)
+        metadata = services.get_media_metadata(
+            item.media_type,
+            item.media_id,
+            item.source,
+        )
         reloaded = process_other(item, metadata, events_bulk)
     return reloaded
 

@@ -1,7 +1,9 @@
 """Contains views for importing and exporting media data from various sources."""
 
 import logging
+from datetime import datetime
 
+from django.conf import settings
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -92,10 +94,11 @@ def import_yamtrack(request):
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
+    today = datetime.now(tz=settings.TZ).strftime("%Y-%m-%d")
     # Create the HttpResponse object with the appropriate CSV header.
     response = HttpResponse(
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="yamtrack.csv"'},
+        headers={"Content-Disposition": f'attachment; filename="yamtrack_{today}.csv"'},
     )
 
     response = exports.db_to_csv(response, request.user)

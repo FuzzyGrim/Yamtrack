@@ -17,7 +17,7 @@
     {% endif %}
 
     <h1 class="title">{{ media.title }}</h1>
-    <p>{{ media.synopsis }}</p>
+    <p>{{ media.synopsis|safe }}</p>
 
     <div class="additional-data d-flex flex-wrap">
       {% for key, value in media.details.items %}
@@ -31,7 +31,7 @@
     <div class="mt-sm-auto mt-3 d-flex gap-2">
       {% include "app/components/open_modal.html" with modal_type="track" source=media.source image=media.image %}
       {% include "app/components/open_modal.html" with modal_type="lists" source=media.source image=media.image %}
-      {% include "app/components/open_modal.html" with modal_type="history" source=media.source %}
+      {% include "app/components/open_modal.html" with modal_type="history" source=media.source image=media.image %}
     </div>
   </div>
 </div>

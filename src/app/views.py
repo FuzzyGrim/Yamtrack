@@ -114,7 +114,8 @@ def media_search(request):
 @require_GET
 def media_details(request, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
-    media_metadata = services.get_media_metadata(media_type, media_id)
+    source = request.GET.get("source")
+    media_metadata = services.get_media_metadata(media_type, media_id, source)
 
     context = {"media": media_metadata}
     return render(request, "app/media_details.html", context)
@@ -289,18 +290,18 @@ def episode_handler(request):
 @require_GET
 def history(request):
     """Return the history page for a media item."""
-    media_id = request.GET["media_id"]
-    source = request.GET["source"]
     media_type = request.GET["media_type"]
-    season_number = request.GET.get("season_number")
-    episode_number = request.GET.get("episode_number")
 
-    item = Item.objects.get(
-        media_id=media_id,
-        source=source,
+    item, _ = Item.objects.get_or_create(
+        media_id=request.GET["media_id"],
+        source=request.GET["source"],
         media_type=media_type,
-        season_number=season_number,
-        episode_number=episode_number,
+        season_number=request.GET.get("season_number"),
+        episode_number=request.GET.get("episode_number"),
+        defaults={
+            "title": request.GET["title"],
+            "image": request.GET["image"],
+        },
     )
 
     media = database.get_media(media_type, item, request.user)
