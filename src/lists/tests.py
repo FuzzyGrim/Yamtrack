@@ -171,6 +171,7 @@ class ListsModalViewTest(TestCase):
                 "media_id": "1",
                 "title": "Test Movie",
                 "image": "http://example.com/image.jpg",
+                "source": "tmdb",
             },
         )
         self.assertEqual(response.status_code, 200)
