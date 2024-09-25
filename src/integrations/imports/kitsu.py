@@ -1,5 +1,7 @@
 import datetime
+import json
 import logging
+from pathlib import Path
 
 import app
 from app.models import Item
@@ -90,23 +92,24 @@ def importer(response, media_type, user):
     bulk_data = []
     warning_message = ""
 
-    for entry in response["entries"]:
-        mal_id, instance = process_entry(
-            entry,
-            media_type,
-            media_lookup,
-            mapping_lookup,
-            user,
-        )
-        if mal_id:
-            bulk_data.append(instance)
-        else:
-            media_metadata = media_lookup[
-                entry["relationships"][media_type]["data"]["id"]
-            ]["attributes"]
-            warning_message += (
-                f"No matching MAL ID for {media_metadata['canonicalTitle']}\n"
-            )
+    current_file_dir = Path(__file__).resolve().parent
+    json_file_path = current_file_dir / "data" / "kitsu-mu-mapping.json"
+    with json_file_path.open() as f:
+        kitsu_mu_mapping = json.load(f)
+        for entry in response["entries"]:
+            try:
+                instance = process_entry(
+                    entry,
+                    media_type,
+                    media_lookup,
+                    mapping_lookup,
+                    kitsu_mu_mapping,
+                    user,
+                )
+            except ValueError as e:
+                warning_message += f"{e}\n"
+            else:
+                bulk_data.append(instance)
 
     num_before = model.objects.filter(user=user).count()
     helpers.bulk_chunk_import(bulk_data, model, user)
@@ -118,17 +121,25 @@ def importer(response, media_type, user):
     return num_imported, warning_message
 
 
-def process_entry(entry, media_type, media_lookup, mapping_lookup, user):
-    """Process a single entry and return the MAL ID and model instance."""
+def process_entry(
+    entry,
+    media_type,
+    media_lookup,
+    mapping_lookup,
+    kitsu_mu_mapping,
+    user,
+):
+    """Process a single entry and return the model instance."""
     attributes = entry["attributes"]
-    media_id = entry["relationships"][media_type]["data"]["id"]
-    media = media_lookup[media_id]
+    kitsu_id = entry["relationships"][media_type]["data"]["id"]
+    kitsu_metadata = media_lookup[kitsu_id]
 
-    mal_id = get_mal_id(media, mapping_lookup, media_type)
-    if not mal_id:
-        return None, None
-
-    item = create_or_get_item(mal_id, media_type, media)
+    item = create_or_get_item(
+        media_type,
+        kitsu_metadata,
+        mapping_lookup,
+        kitsu_mu_mapping,
+    )
     model = apps.get_model(app_label="app", model_name=media_type)
 
     instance = model(
@@ -146,30 +157,98 @@ def process_entry(entry, media_type, media_lookup, mapping_lookup, user):
     if attributes["reconsuming"]:
         instance.status = app.models.STATUS_REPEATING
 
-    return mal_id, instance
+    return instance
 
 
-def get_mal_id(media, mapping_lookup, media_type):
-    """Get the MAL ID for a given media item."""
-    for mapping_ref in media["relationships"]["mappings"]["data"]:
-        mapping = mapping_lookup[mapping_ref["id"]]
-        if mapping["attributes"]["externalSite"] == f"myanimelist/{media_type}":
-            return mapping["attributes"]["externalId"]
-    return None
-
-
-def create_or_get_item(mal_id, media_type, media):
+def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapping):
     """Create or get an Item instance."""
-    image_url = get_image_url(media)
+    sites = [
+        f"myanimelist/{media_type}",
+        "mangaupdates",
+        "thetvdb/season",
+        "thetvdb",
+        "thetvdb/series",
+    ]
+
+    media_id = None
+    for site in sites:
+        for mapping_ref in kitsu_metadata["relationships"]["mappings"]["data"]:
+            mapping = mapping_lookup[mapping_ref["id"]]
+            if mapping["attributes"]["externalSite"] == site:
+                external_id = mapping["attributes"]["externalId"]
+                if site == f"myanimelist/{media_type}":
+                    media_id = external_id
+                    season_number = None
+                    source = "mal"
+
+                elif site == "mangaupdates":
+                    # if its int, its an old MU ID
+                    if isinstance(external_id, int):
+                        # get the base36 encoded ID
+                        external_id = kitsu_mu_mapping[external_id]
+
+                    # decode the base36 encoded ID
+                    media_id = int(external_id, 36)
+                    media_type = "manga"
+                    season_number = None
+                    source = "mangaupdates"
+
+                elif "thetvdb" in site:
+                    try:
+                        media_id, media_type, season_number = convert_tvdb_to_tmdb(
+                            external_id,
+                            site,
+                        )
+                        source = "tmdb"
+                    except IndexError:  # id cant be found on TMDB
+                        continue
+
+    if not media_id:
+        media_title = kitsu_metadata["attributes"]["canonicalTitle"]
+        msg = f"Couldn't find a matching ID for {media_title}."
+        raise ValueError(msg)
+
+    image_url = get_image_url(kitsu_metadata)
+
     return Item.objects.get_or_create(
-        media_id=mal_id,
-        source="mal",
+        media_id=media_id,
+        source=source,
         media_type=media_type,
+        season_number=season_number,
         defaults={
-            "title": media["attributes"]["canonicalTitle"],
+            "title": kitsu_metadata["attributes"]["canonicalTitle"],
             "image": image_url,
         },
     )[0]
+
+
+def convert_tvdb_to_tmdb(tvdb_id, source):
+    """Convert a TVDB ID to a TMDB ID."""
+    season_number = None
+    if "/" in tvdb_id:
+        tvdb_id, season_number = tvdb_id.split("/")
+        season_number = int(season_number)
+        media_type = "season"
+    else:
+        media_type = "tv"
+
+    url = f"https://api.themoviedb.org/3/find/{tvdb_id}"
+    params = {
+        "api_key": settings.TMDB_API,
+        "language": settings.TMDB_LANG,
+        "external_source": "tvdb_id",
+    }
+
+    data = app.providers.services.api_request("TMDB", "GET", url, params=params)
+
+    if source == "thetvdb/season":
+        tmdb_id = data["tv_season_results"][0]["show_id"]
+        media_type = "season"
+        season_number = data["tv_season_results"][0]["season_number"]
+        return tmdb_id, media_type, season_number
+
+    tmdb_id = data["tv_results"][0]["id"]
+    return tmdb_id, media_type, season_number
 
 
 def get_image_url(media):
