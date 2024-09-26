@@ -7,6 +7,7 @@ import app
 from app.models import Item
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import cache
 
 from integrations import helpers
 
@@ -121,7 +122,7 @@ def importer(response, media_type, user):
     return num_imported, warning_message
 
 
-def process_entry(
+def process_entry(  # noqa: PLR0913
     entry,
     media_type,
     media_lookup,
@@ -170,38 +171,47 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
         "thetvdb/series",
     ]
 
+    mappings = {
+        mapping["attributes"]["externalSite"]: mapping["attributes"]["externalId"]
+        for mapping_ref in kitsu_metadata["relationships"]["mappings"]["data"]
+        for mapping in [mapping_lookup[mapping_ref["id"]]]
+    }
+
     media_id = None
     for site in sites:
-        for mapping_ref in kitsu_metadata["relationships"]["mappings"]["data"]:
-            mapping = mapping_lookup[mapping_ref["id"]]
-            if mapping["attributes"]["externalSite"] == site:
-                external_id = mapping["attributes"]["externalId"]
-                if site == f"myanimelist/{media_type}":
-                    media_id = external_id
-                    season_number = None
-                    source = "mal"
+        if site not in mappings:
+            continue
 
-                elif site == "mangaupdates":
-                    # if its int, its an old MU ID
-                    if isinstance(external_id, int):
-                        # get the base36 encoded ID
-                        external_id = kitsu_mu_mapping[external_id]
+        external_id = mappings[site]
+        if site == f"myanimelist/{media_type}":
+            media_id = external_id
+            season_number = None
+            source = "mal"
+            break
 
-                    # decode the base36 encoded ID
-                    media_id = int(external_id, 36)
-                    media_type = "manga"
-                    season_number = None
-                    source = "mangaupdates"
+        if site == "mangaupdates":
+            # if its int, its an old MU ID
+            if isinstance(external_id, int):
+                # get the base36 encoded ID
+                external_id = kitsu_mu_mapping[external_id]
 
-                elif "thetvdb" in site:
-                    try:
-                        media_id, media_type, season_number = convert_tvdb_to_tmdb(
-                            external_id,
-                            site,
-                        )
-                        source = "tmdb"
-                    except IndexError:  # id cant be found on TMDB
-                        continue
+            # decode the base36 encoded ID
+            media_id = int(external_id, 36)
+            media_type = "manga"
+            season_number = None
+            source = "mangaupdates"
+            break
+
+        if "thetvdb" in site:
+            try:
+                media_id, media_type, season_number = convert_tvdb_to_tmdb(
+                    external_id,
+                    site,
+                )
+                source = "tmdb"
+                break
+            except IndexError:  # id cant be found on TMDB
+                continue
 
     if not media_id:
         media_title = kitsu_metadata["attributes"]["canonicalTitle"]
@@ -224,6 +234,12 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
 
 def convert_tvdb_to_tmdb(tvdb_id, source):
     """Convert a TVDB ID to a TMDB ID."""
+    cache_key = f"tvdb_to_tmdb_{tvdb_id}_{source}"
+    cached_result = cache.get(cache_key)
+
+    if cached_result:
+        return cached_result
+
     season_number = None
     if "/" in tvdb_id:
         tvdb_id, season_number = tvdb_id.split("/")
@@ -245,10 +261,13 @@ def convert_tvdb_to_tmdb(tvdb_id, source):
         tmdb_id = data["tv_season_results"][0]["show_id"]
         media_type = "season"
         season_number = data["tv_season_results"][0]["season_number"]
-        return tmdb_id, media_type, season_number
+        result = (tmdb_id, media_type, season_number)
+    else:
+        tmdb_id = data["tv_results"][0]["id"]
+        result = (tmdb_id, media_type, season_number)
 
-    tmdb_id = data["tv_results"][0]["id"]
-    return tmdb_id, media_type, season_number
+    cache.set(cache_key, result)
+    return result
 
 
 def get_image_url(media):
