@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.cache import cache
 from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
-from requests_ratelimiter import LimiterSession
+from requests_ratelimiter import LimiterAdapter, LimiterSession
 
 from app.providers import igdb, mal, mangaupdates, tmdb
 
@@ -25,9 +25,17 @@ def get_redis_connection():
 redis_pool = get_redis_connection()
 
 session = LimiterSession(
-    per_second=4,
+    per_second=10,
     bucket_class=RedisBucket,
     bucket_kwargs={"redis_pool": redis_pool, "bucket_name": "api"},
+)
+session.mount(
+    "https://graphql.anilist.co",
+    LimiterAdapter(per_minute=85),
+)
+session.mount(
+    "https://api.igdb.com/v4",
+    LimiterAdapter(per_second=3),
 )
 
 
