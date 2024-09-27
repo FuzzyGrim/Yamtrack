@@ -191,9 +191,12 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
 
         if site == "mangaupdates":
             # if its int, its an old MU ID
-            if isinstance(external_id, int):
+            if external_id.isdigit():
                 # get the base36 encoded ID
-                external_id = kitsu_mu_mapping[external_id]
+                try:
+                    external_id = kitsu_mu_mapping[external_id]
+                except KeyError: # ID not found in mapping
+                    continue
 
             # decode the base36 encoded ID
             media_id = int(external_id, 36)
