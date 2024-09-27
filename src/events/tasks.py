@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import requests
 from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES, Item
 from app.providers import services, tmdb
 from celery import shared_task
@@ -10,6 +12,8 @@ from django.db import transaction
 from django.db.models import Q
 
 from events.models import Event
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MONTH_DAY = "-01-01"
 DEFAULT_DAY = "-01"
@@ -66,18 +70,28 @@ def reload_calendar(user=None):  # , used for metadata
 
 def process_item(item, events_bulk):
     """Process each item and add events to the event list."""
-    if item.media_type == "anime":
-        reloaded = process_anime(item, events_bulk)
-    elif item.media_type == "season":
-        metadata = tmdb.season(item.media_id, item.season_number)
-        reloaded = process_season(item, metadata, events_bulk)
-    else:
-        metadata = services.get_media_metadata(
-            item.media_type,
-            item.media_id,
-            item.source,
-        )
-        reloaded = process_other(item, metadata, events_bulk)
+    try:
+        if item.media_type == "anime":
+            reloaded = process_anime(item, events_bulk)
+        elif item.media_type == "season":
+            metadata = tmdb.season(item.media_id, item.season_number)
+            reloaded = process_season(item, metadata, events_bulk)
+        else:
+            metadata = services.get_media_metadata(
+                item.media_type,
+                item.media_id,
+                item.source,
+            )
+            reloaded = process_other(item, metadata, events_bulk)
+    except requests.exceptions.HTTPError as err:
+        # happens for niche media in which the mappings during import are incorrect
+        if err.response.status_code == requests.codes.not_found:
+            msg = f"{item} ({item.media_id}) not found on {item.source}. Deleting it."
+            logger.warning(msg)
+            item.delete()
+            reloaded = False
+        else:
+            raise
     return reloaded
 
 
