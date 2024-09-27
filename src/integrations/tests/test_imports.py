@@ -227,15 +227,16 @@ class ImportKitsu(TestCase):
             if item["type"] == "mappings"
         }
 
-        mal_id, instance = kitsu.process_entry(
+        instance = kitsu.process_entry(
             entry,
             "anime",
             media_lookup,
             mapping_lookup,
+            None,
             self.user,
         )
 
-        self.assertEqual(mal_id, "1")
+        self.assertEqual(instance.item.media_id, "1")
         self.assertIsInstance(instance, Anime)
         self.assertEqual(instance.score, 9)
         self.assertEqual(instance.progress, 26)
