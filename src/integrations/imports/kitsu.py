@@ -92,6 +92,7 @@ def importer(response, media_type, user):
 
     bulk_data = []
     warning_message = ""
+    num_imported = 0
 
     current_file_dir = Path(__file__).resolve().parent
     json_file_path = current_file_dir / "data" / "kitsu-mu-mapping.json"
@@ -111,12 +112,9 @@ def importer(response, media_type, user):
                 warning_message += f"{e}\n"
             else:
                 bulk_data.append(instance)
+                num_imported += 1
 
-    num_before = model.objects.filter(user=user).count()
     helpers.bulk_chunk_import(bulk_data, model, user)
-    num_after = model.objects.filter(user=user).count()
-
-    num_imported = num_after - num_before
     logger.info("Imported %s %s", num_imported, media_type)
 
     return num_imported, warning_message
