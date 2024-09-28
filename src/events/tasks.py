@@ -43,16 +43,20 @@ def reload_calendar(user=None):  # , used for metadata
     )
 
     events_bulk = []
+    anime_to_process = []
     user_reloaded_items = []
     with transaction.atomic():
         # Delete all events related to items with at least one future event
         Event.objects.filter(item_id__in=future_event_item_ids).delete()
         for item in items_to_process:
-            if process_item(item, events_bulk):
-                # only add to the result message if the user is tracking the item
-                user_query = Q(**{f"{item.media_type}__user": user})
-                if user and Item.objects.filter(user_query, id=item.id).exists():
-                    user_reloaded_items.append(item)
+            # anime can later be processed in bulk
+            if item.media_type == "anime":
+                anime_to_process.append(item)
+            elif process_item(item, events_bulk):
+                add_user_reloaded(item, user, user_reloaded_items)
+
+        # process anime items in bulk
+        process_anime_bulk(anime_to_process, events_bulk, user, user_reloaded_items)
 
         Event.objects.bulk_create(events_bulk)
 
@@ -71,9 +75,7 @@ def reload_calendar(user=None):  # , used for metadata
 def process_item(item, events_bulk):
     """Process each item and add events to the event list."""
     try:
-        if item.media_type == "anime":
-            reloaded = process_anime(item, events_bulk)
-        elif item.media_type == "season":
+        if item.media_type == "season":
             metadata = tmdb.season(item.media_id, item.season_number)
             reloaded = process_season(item, metadata, events_bulk)
         else:
@@ -95,46 +97,56 @@ def process_item(item, events_bulk):
     return reloaded
 
 
-def process_anime(item, events_bulk):
-    """Process anime item and add events to the event list."""
-    episodes = get_anime_schedule(item)
+def process_anime_bulk(items, events_bulk, user, user_reloaded_items):
+    """Process multiple anime items and add events to the event list."""
+    anime_data = get_anime_schedule_bulk([item.media_id for item in items])
 
-    for episode in episodes:
-        air_date = datetime.fromtimestamp(episode["airingAt"], tz=ZoneInfo("UTC"))
-        local_air_date = air_date.astimezone(settings.TZ)
-        events_bulk.append(
-            Event(
-                item=item,
-                episode_number=episode["episode"],
-                date=local_air_date,
-            ),
-        )
-    return bool(episodes)
+    for item in items:
+        episodes = anime_data.get(item.media_id, [])
+        for episode in episodes:
+            air_date = datetime.fromtimestamp(episode["airingAt"], tz=ZoneInfo("UTC"))
+            local_air_date = air_date.astimezone(settings.TZ)
+            events_bulk.append(
+                Event(
+                    item=item,
+                    episode_number=episode["episode"],
+                    date=local_air_date,
+                ),
+            )
+        if episodes:
+            add_user_reloaded(item, user, user_reloaded_items)
 
 
-def get_anime_schedule(item):
-    """Get the airing schedule for the anime item from AniList API."""
-    data = cache.get(f"schedule_anime_{item.media_id}")
+def get_anime_schedule_bulk(media_ids):
+    """Get the airing schedule for multiple anime items from AniList API."""
+    all_data = {}
+    page = 1
 
-    if data is None:
+    while True:
         query = """
-        query ($idMal: Int){
-            Media (idMal: $idMal, type: ANIME) {
-                startDate {
-                    year
-                    month
-                    day
-                }
-                airingSchedule {
-                    nodes {
-                        episode
-                        airingAt
-                    }
-                }
+        query ($ids: [Int], $page: Int) {
+          Page(page: $page) {
+            pageInfo {
+              hasNextPage
             }
+            media(idMal_in: $ids, type: ANIME) {
+              idMal
+              startDate {
+                year
+                month
+                day
+              }
+              airingSchedule {
+                nodes {
+                  episode
+                  airingAt
+                }
+              }
+            }
+          }
         }
         """
-        variables = {"idMal": item.media_id}
+        variables = {"ids": media_ids, "page": page}
         url = "https://graphql.anilist.co"
         response = services.api_request(
             "ANILIST",
@@ -142,27 +154,36 @@ def get_anime_schedule(item):
             url,
             params={"query": query, "variables": variables},
         )
-        data = response["data"]["Media"]["airingSchedule"]["nodes"]
 
-        # if no airing schedule is available, use the start date
-        if not data:
-            timestamp = anilist_date_parser(
-                response["data"]["Media"]["startDate"],
-            )
-            if timestamp:
-                data = [
-                    {
-                        "episode": 1,
-                        "airingAt": anilist_date_parser(
-                            response["data"]["Media"]["startDate"],
-                        ),
-                    },
-                ]
-            else:
-                data = []
-        cache.set(f"schedule_anime_{item.media_id}", data)
+        media_list = response["data"]["Page"]["media"]
 
-    return data
+        for media in media_list:
+            airing_schedule = media["airingSchedule"]["nodes"]
+
+            # if no airing schedule is available, use the start date
+            if not airing_schedule:
+                timestamp = anilist_date_parser(media["startDate"])
+                if timestamp:
+                    airing_schedule = [
+                        {
+                            "episode": 1,
+                            "airingAt": timestamp,
+                        },
+                    ]
+                else:
+                    airing_schedule = []
+
+            all_data[media["idMal"]] = airing_schedule
+
+            # Cache the data for each anime
+            cache.set(f"schedule_anime_{media["idMal"]}", airing_schedule)
+
+        if not response["data"]["Page"]["pageInfo"]["hasNextPage"]:
+            break
+
+        page += 1
+
+    return all_data
 
 
 def process_season(item, metadata, events_bulk):
@@ -198,6 +219,13 @@ def process_other(item, metadata, events_bulk):
                 return True
 
     return False
+
+
+def add_user_reloaded(item, user, user_reloaded_items):
+    """Add the item to the user reloaded list if the user is tracking it."""
+    user_query = Q(**{f"{item.media_type}__user": user})
+    if user and Item.objects.filter(user_query, id=item.id).exists():
+        user_reloaded_items.append(item)
 
 
 def date_parser(date_str):
