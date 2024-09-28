@@ -7,7 +7,6 @@ from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES, Item
 from app.providers import services, tmdb
 from celery import shared_task
 from django.conf import settings
-from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Q
 
@@ -174,9 +173,6 @@ def get_anime_schedule_bulk(media_ids):
                     airing_schedule = []
 
             all_data[media["idMal"]] = airing_schedule
-
-            # Cache the data for each anime
-            cache.set(f"schedule_anime_{media["idMal"]}", airing_schedule)
 
         if not response["data"]["Page"]["pageInfo"]["hasNextPage"]:
             break
