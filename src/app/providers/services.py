@@ -73,8 +73,11 @@ def request_error_handling(error, *args):
     provider, method, url, params, data, headers = args
 
     error_resp = error.response
-    error_json = error_resp.json()
     status_code = error_resp.status_code
+
+    if status_code == requests.codes.not_found:
+        logger.error("Resource not found: %s", url)
+        raise error
 
     # handle rate limiting
     if status_code == requests.codes.too_many_requests:
@@ -91,6 +94,7 @@ def request_error_handling(error, *args):
             headers=headers,
         )
 
+    error_json = error_resp.json()
     if provider == "IGDB":
         # invalid access token, expired or revoked
         if status_code == requests.codes.unauthorized:

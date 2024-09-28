@@ -10,13 +10,28 @@ ERROR_TITLE = "Couldn't import the following media: \n"
 def import_trakt(username, user):
     """Celery task for importing anime and manga data from Trakt."""
     try:
-        msg = trakt.importer(username, user)
+        (
+            num_tv_imported,
+            num_movie_imported,
+            num_watchlist_imported,
+            num_ratings_imported,
+            msg,
+        ) = trakt.importer(username, user)
     except requests.exceptions.HTTPError as error:
         if error.response.status_code == requests.codes.not_found:
             msg = f"User {username} not found."
             raise ValueError(msg) from error
         raise  # re-raise for other errors
-    return msg
+    else:
+        info_message = (
+            f"Imported {num_tv_imported} TV shows, "
+            f"{num_movie_imported} movies, "
+            f"{num_watchlist_imported} watchlist items, "
+            f"and {num_ratings_imported} ratings."
+        )
+    if msg:
+        return f"{info_message} {ERROR_TITLE} \n{msg}"
+    return info_message
 
 
 @shared_task(name="Import from MyAnimeList")

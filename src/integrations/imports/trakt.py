@@ -21,13 +21,21 @@ def importer(username, user):
     mal_movies_map = get_mal_mappings(is_show=False)
 
     watched_shows = get_response(f"{user_base_url}/watched/shows")
-    shows_msg = process_watched_shows(watched_shows, mal_shows_map, user)
+    shows_msg, shows_num = process_watched_shows(
+        watched_shows,
+        mal_shows_map,
+        user,
+    )
 
     watched_movies = get_response(f"{user_base_url}/watched/movies")
-    movies_msg = process_watched_movies(watched_movies, mal_movies_map, user)
+    movies_msg, movies_num = process_watched_movies(
+        watched_movies,
+        mal_movies_map,
+        user,
+    )
 
     watchlist = get_response(f"{user_base_url}/watchlist")
-    watchlist_msg = process_list(
+    watchlist_msg, watchlist_num = process_list(
         watchlist,
         mal_shows_map,
         mal_movies_map,
@@ -36,10 +44,22 @@ def importer(username, user):
     )
 
     ratings = get_response(f"{user_base_url}/ratings")
-    ratings_msg = process_list(ratings, mal_shows_map, mal_movies_map, user, "ratings")
+    ratings_msg, ratings_num = process_list(
+        ratings,
+        mal_shows_map,
+        mal_movies_map,
+        user,
+        "ratings",
+    )
 
     msgs = shows_msg + movies_msg + watchlist_msg + ratings_msg
-    return "\n".join(msgs)
+    return (
+        shows_num,
+        movies_num,
+        watchlist_num,
+        ratings_num,
+        "\n".join(msgs),
+    )
 
 
 def get_response(url):
@@ -62,10 +82,14 @@ def process_watched_shows(watched, mal_mapping, user):
     """Process the watched shows from Trakt."""
     logger.info("Processing watched shows")
     warning_messages = []
+    num_imported = 0
 
     for entry in watched:
         mal_id = None
         trakt_id = entry["show"]["ids"]["trakt"]
+
+        # only track number of tv shows imported
+        show_added = False
 
         for season in entry["seasons"]:
             mal_id = mal_mapping.get((trakt_id, season["number"]))
@@ -76,12 +100,9 @@ def process_watched_shows(watched, mal_mapping, user):
                 repeats = 0
                 for episode in season["episodes"]:
                     current_watch = episode["last_watched_at"]
-                    if current_watch < start_date:
-                        start_date = current_watch
-                    if current_watch > end_date:
-                        end_date = current_watch
-                    if episode["plays"] - 1 > repeats:
-                        repeats = episode["plays"] - 1
+                    start_date = min(start_date, current_watch)
+                    end_date = max(end_date, current_watch)
+                    repeats = max(repeats, episode["plays"] - 1)
 
                 defaults = {
                     "progress": season["episodes"][-1]["number"],
@@ -92,20 +113,27 @@ def process_watched_shows(watched, mal_mapping, user):
                 }
 
                 add_mal_anime(mal_id, user, defaults)
+                if not show_added:
+                    num_imported += 1
+                    show_added = True
             else:
                 try:
                     add_tmdb_episodes(entry, season, user)
+                    if not show_added:
+                        num_imported += 1
+                        show_added = True
                 except ValueError as e:
                     warning_messages.append(str(e))
 
     logger.info("Finished processing watched shows")
-    return warning_messages
+    return warning_messages, num_imported
 
 
 def process_watched_movies(watched, mal_mapping, user):
     """Process the watched movies from Trakt."""
     logger.info("Processing watched movies")
     warning_messages = []
+    num_imported = 0
 
     for entry in watched:
         defaults = {
@@ -119,39 +147,46 @@ def process_watched_movies(watched, mal_mapping, user):
             add_movie(entry, user, defaults, "history", mal_mapping)
         except ValueError as e:
             warning_messages.append(str(e))
+        else:
+            num_imported += 1
+
     logger.info("Finished processing watched movies")
-    return warning_messages
+    return warning_messages, num_imported
 
 
 def process_list(entries, mal_shows_map, mal_movies_map, user, list_type):
     """Process the default lists from Trakt, either watchlist or ratings."""
     logger.info("Processing %s", list_type)
     warning_messages = []
+    num_imported = 0
+
+    type_processors = {
+        "show": lambda: add_show(entry, user, defaults, list_type, mal_shows_map),
+        "season": lambda: add_season(entry, user, defaults, list_type, mal_shows_map),
+        "movie": lambda: add_movie(entry, user, defaults, list_type, mal_movies_map),
+    }
 
     for entry in entries:
         if list_type == "watchlist":
             defaults = {"status": app.models.STATUS_PLANNING}
         elif list_type == "ratings":
             defaults = {"score": entry["rating"]}
-
         trakt_type = entry["type"]
-        if trakt_type == "show":
-            try:
-                add_show(entry, user, defaults, list_type, mal_shows_map)
-            except ValueError as e:
-                warning_messages.append(str(e))
-        elif trakt_type == "season":
-            try:
-                add_season(entry, user, defaults, list_type, mal_shows_map)
-            except ValueError as e:
-                warning_messages.append(str(e))
-        elif trakt_type == "movie":
-            try:
-                add_movie(entry, user, defaults, list_type, mal_movies_map)
-            except ValueError as e:
-                warning_messages.append(str(e))
+
+        entry_processor = type_processors.get(trakt_type)
+        # skip if the type is not supported, like episode
+        if not entry_processor:
+            continue
+
+        try:
+            entry_processor()
+        except ValueError as e:
+            warning_messages.append(str(e))
+        else:
+            num_imported += 1
+
     logger.info("Finished processing %s", list_type)
-    return warning_messages
+    return warning_messages, num_imported
 
 
 def add_show(entry, user, defaults, list_type, mal_shows_map):
