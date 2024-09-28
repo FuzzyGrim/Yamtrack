@@ -21,7 +21,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 - Keep up with your upcoming media with a calendar.
 - Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
 - Multi-users functionality allowing individual accounts with personalized tracking.
-- Import from [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/).
+- Import from [Trakt](https://trakt.tv/), [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/).
 - Export all your tracked media to a CSV file and import it back.
 
 ## Installing with Docker
