@@ -1,11 +1,12 @@
 import csv
 import logging
 
+from django.apps import apps
+from django.db.models import Field
+
 import app
 from app import helpers
 from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
-from django.apps import apps
-from django.db.models import Field
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,10 @@
 import logging
 from csv import DictReader
 
-import app
-from app.models import TV, Episode, Season
 from django.apps import apps
 
+import app
+from app.models import TV, Episode, Season
 from integrations import helpers
 
 logger = logging.getLogger(__name__)

@@ -1,9 +1,9 @@
 import logging
 
-import app
 from django.apps import apps
 from django.conf import settings
 
+import app
 from integrations import helpers
 
 logger = logging.getLogger(__name__)

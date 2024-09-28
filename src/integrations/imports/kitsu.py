@@ -3,12 +3,12 @@ import json
 import logging
 from pathlib import Path
 
-import app
-from app.models import Item
 from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
 
+import app
+from app.models import Item
 from integrations import helpers
 
 logger = logging.getLogger(__name__)

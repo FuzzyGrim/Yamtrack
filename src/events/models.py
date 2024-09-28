@@ -1,6 +1,7 @@
-from app.models import MEDIA_TYPES, Item
 from django.db import models
 from django.db.models import Q
+
+from app.models import MEDIA_TYPES, Item
 
 
 class EventManager(models.Manager):

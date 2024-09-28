@@ -2,12 +2,13 @@ import datetime
 import logging
 import re
 
-import app
-import app.models
 import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
+
+import app
+import app.models
 
 logger = logging.getLogger(__name__)
 

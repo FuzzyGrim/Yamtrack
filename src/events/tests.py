@@ -1,11 +1,11 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from app.models import Anime, Item
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from app.models import Anime, Item
 from events.models import Event
 from events.tasks import date_parser, reload_calendar
 

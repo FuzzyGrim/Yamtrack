@@ -2,10 +2,11 @@ import csv
 from datetime import date
 from io import StringIO
 
-from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+
+from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
 
 
 class ExportCSVTest(TestCase):

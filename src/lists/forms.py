@@ -1,7 +1,7 @@
-from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES
 from django import forms
 from django_select2 import forms as s2forms
 
+from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES
 from lists.models import CustomList
 
 

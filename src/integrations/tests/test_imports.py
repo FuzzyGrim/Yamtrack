@@ -4,11 +4,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import requests
-from app.models import TV, Anime, Episode, Item, Manga, Movie, Season
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from app.models import TV, Anime, Episode, Item, Manga, Movie, Season
 from integrations.imports import anilist, kitsu, mal, tmdb, trakt, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"

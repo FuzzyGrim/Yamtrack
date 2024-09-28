@@ -188,8 +188,7 @@ class Media(models.Model):
             )["max_progress"]
 
             if max_progress:
-                if self.progress > max_progress:
-                    self.progress = max_progress
+                self.progress = min(self.progress, max_progress)
 
                 if self.progress == max_progress:
                     self.status = STATUS_COMPLETED

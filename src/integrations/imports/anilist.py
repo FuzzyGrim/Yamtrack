@@ -1,9 +1,9 @@
 import datetime
 import logging
 
-import app
 from django.apps import apps
 
+import app
 from integrations import helpers
 
 logger = logging.getLogger(__name__)

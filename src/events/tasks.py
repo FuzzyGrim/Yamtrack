@@ -3,13 +3,13 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
-from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES, Item
-from app.providers import services, tmdb
 from celery import shared_task
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
+from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES, Item
+from app.providers import services, tmdb
 from events.models import Event
 
 logger = logging.getLogger(__name__)

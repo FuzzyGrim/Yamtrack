@@ -1,8 +1,8 @@
-from app.models import Item
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from app.models import Item
 from lists.forms import CustomListForm
 from lists.models import CustomList
 

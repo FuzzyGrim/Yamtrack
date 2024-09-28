@@ -1,7 +1,8 @@
-from app.models import Item
 from django.conf import settings
 from django.db import models
 from django.db.models import Prefetch, Q
+
+from app.models import Item
 
 
 class CustomListManager(models.Manager):

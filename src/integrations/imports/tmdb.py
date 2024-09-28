@@ -2,11 +2,12 @@ import csv
 import datetime
 import logging
 
-from app import models
-from app.providers import services
 from django.apps import apps
 from django.conf import settings
 from django.db import IntegrityError
+
+from app import models
+from app.providers import services
 
 logger = logging.getLogger(__name__)
 
