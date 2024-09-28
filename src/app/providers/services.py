@@ -76,7 +76,6 @@ def request_error_handling(error, *args):
     status_code = error_resp.status_code
 
     if status_code == requests.codes.not_found:
-        logger.error("Resource not found: %s", url)
         raise error
 
     # handle rate limiting
