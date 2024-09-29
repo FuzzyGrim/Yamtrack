@@ -1,5 +1,6 @@
 import logging
 import time
+from functools import wraps
 
 import requests
 from django.conf import settings
@@ -39,6 +40,31 @@ session.mount(
 )
 
 
+def retry_on_error(delay=1):
+    """Retry a function if it raises a RequestException."""
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except requests.exceptions.RequestException:
+                msg = f"Request failed. Retrying in {delay} seconds."
+                logger.warning(msg)
+                time.sleep(delay)
+                try:
+                    return func(*args, **kwargs)
+                except requests.exceptions.RequestException:
+                    msg = "Request failed after retry. Raising error."
+                    logger.error(msg)  # noqa: TRY400
+                    raise
+
+        return wrapper
+
+    return decorator
+
+
+@retry_on_error(delay=1)
 def api_request(provider, method, url, params=None, data=None, headers=None):  # noqa: PLR0913
     """Make a request to the API and return the response as a dictionary."""
     try:
@@ -75,9 +101,6 @@ def request_error_handling(error, *args):
     error_resp = error.response
     status_code = error_resp.status_code
 
-    if status_code == requests.codes.not_found:
-        raise error
-
     # handle rate limiting
     if status_code == requests.codes.too_many_requests:
         seconds_to_wait = int(error_resp.headers["Retry-After"])
@@ -93,7 +116,6 @@ def request_error_handling(error, *args):
             headers=headers,
         )
 
-    error_json = error_resp.json()
     if provider == "IGDB":
         # invalid access token, expired or revoked
         if status_code == requests.codes.unauthorized:
@@ -113,14 +135,17 @@ def request_error_handling(error, *args):
 
         # invalid keys
         if status_code == requests.codes.bad_request:
+            error_json = error_resp.json()
             message = error_json["message"]
             logger.error("IGDB bad request: %s", message)
 
     if provider == "TMDB" and status_code == requests.codes.unauthorized:
+        error_json = error_resp.json()
         message = error_json["status_message"]
         logger.error("TMDB unauthorized: %s", message)
 
     if provider == "MAL":
+        error_json = error_resp.json()
         if status_code == requests.codes.forbidden:
             logger.error("MAL forbidden: is the API key set?")
         elif (
