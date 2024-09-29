@@ -48,7 +48,10 @@ def get_kitsu_id(username):
         msg = f"User {username} not found."
         raise ValueError(msg)
     if len(response["data"]) > 1:
-        msg = f"Multiple users found for {username}, please use user ID."
+        msg = (
+            f"Multiple users found for {username}, please use your user ID. "
+            "User IDs can be found in the URL when viewing your Kitsu profile."
+        )
         raise ValueError(msg)
 
     return response["data"][0]["id"]
@@ -193,7 +196,7 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
                 # get the base36 encoded ID
                 try:
                     external_id = kitsu_mu_mapping[external_id]
-                except KeyError: # ID not found in mapping
+                except KeyError:  # ID not found in mapping
                     continue
 
             # decode the base36 encoded ID

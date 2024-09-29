@@ -19,7 +19,10 @@ def import_trakt(username, user):
         ) = trakt.importer(username, user)
     except requests.exceptions.HTTPError as error:
         if error.response.status_code == requests.codes.not_found:
-            msg = f"User {username} not found."
+            msg = (
+                f"User slug {username} not found. "
+                "User slug can be found in the URL when viewing your Trakt profile."
+            )
             raise ValueError(msg) from error
         raise  # re-raise for other errors
     else:
