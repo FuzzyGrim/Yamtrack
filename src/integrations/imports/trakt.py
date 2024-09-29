@@ -21,7 +21,17 @@ def importer(username, user):
     mal_shows_map = get_mal_mappings(is_show=True)
     mal_movies_map = get_mal_mappings(is_show=False)
 
-    watched_shows = get_response(f"{user_base_url}/watched/shows")
+    # check if the user exists
+    try:
+        watched_shows = get_response(f"{user_base_url}/watched/shows")
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.not_found:
+            msg = (
+                f"User slug {username} not found. "
+                "User slug can be found in the URL when viewing your Trakt profile."
+            )
+            raise ValueError(msg) from error
+        raise  # re-raise for other errors
     shows_msg, shows_num = process_watched_shows(
         watched_shows,
         mal_shows_map,
@@ -94,40 +104,41 @@ def process_watched_shows(watched, mal_mapping, user):
 
         for season in entry["seasons"]:
             mal_id = mal_mapping.get((trakt_id, season["number"]))
-
-            if mal_id:
-                start_date = season["episodes"][0]["last_watched_at"]
-                end_date = season["episodes"][-1]["last_watched_at"]
-                repeats = 0
-                for episode in season["episodes"]:
-                    current_watch = episode["last_watched_at"]
-                    start_date = min(start_date, current_watch)
-                    end_date = max(end_date, current_watch)
-                    repeats = max(repeats, episode["plays"] - 1)
-
-                defaults = {
-                    "progress": season["episodes"][-1]["number"],
-                    "status": app.models.STATUS_IN_PROGRESS,
-                    "repeats": repeats,
-                    "start_date": get_date(start_date),
-                    "end_date": get_date(end_date),
-                }
-
-                add_mal_anime(mal_id, user, defaults)
-                if not show_added:
-                    num_imported += 1
-                    show_added = True
-            else:
-                try:
+            try:
+                if mal_id:
+                    defaults = get_anime_default_fields(season)
+                    add_mal_anime(entry, mal_id, user, defaults)
+                else:
                     add_tmdb_episodes(entry, season, user)
-                    if not show_added:
-                        num_imported += 1
-                        show_added = True
-                except ValueError as e:
-                    warning_messages.append(str(e))
+            except ValueError as e:
+                warning_messages.append(str(e))
+                break
 
+            if not show_added:
+                num_imported += 1
+                show_added = True
     logger.info("Finished processing watched shows")
     return warning_messages, num_imported
+
+
+def get_anime_default_fields(season):
+    """Get the defaults tracking fields for watched anime."""
+    start_date = season["episodes"][0]["last_watched_at"]
+    end_date = season["episodes"][-1]["last_watched_at"]
+    repeats = 0
+    for episode in season["episodes"]:
+        current_watch = episode["last_watched_at"]
+        start_date = min(start_date, current_watch)
+        end_date = max(end_date, current_watch)
+        repeats = max(repeats, episode["plays"] - 1)
+
+    return {
+        "progress": season["episodes"][-1]["number"],
+        "status": app.models.STATUS_IN_PROGRESS,
+        "repeats": repeats,
+        "start_date": get_date(start_date),
+        "end_date": get_date(end_date),
+    }
 
 
 def process_watched_movies(watched, mal_mapping, user):
@@ -196,20 +207,21 @@ def add_show(entry, user, defaults, list_type, mal_shows_map):
     mal_id = mal_shows_map.get((trakt_id, 1))
 
     if mal_id:
-        add_mal_anime(mal_id, user, defaults)
+        add_mal_anime(entry, mal_id, user, defaults)
     else:
-        tmdb_id = entry["show"]["ids"]["tmdb"]
-
-        if not tmdb_id:
-            show_title = entry["show"]["title"]
-            msg = f"Could not import {show_title} from {list_type}"
-            raise ValueError(msg)
-        add_tmdb_show(tmdb_id, user, defaults)
+        add_tmdb_show(entry, user, defaults, list_type)
 
 
-def add_tmdb_show(tmdb_id, user, defaults):
+def add_tmdb_show(entry, user, defaults, list_type):
     """Add a show from TMDB to the user's library."""
-    metadata = app.providers.tmdb.tv(tmdb_id)
+    tmdb_id = entry["show"]["ids"]["tmdb"]
+    trakt_title = entry["show"]["title"]
+
+    if not tmdb_id:
+        msg = f"No TMDB ID found for {trakt_title} in {list_type}"
+        raise ValueError(msg)
+    metadata = get_metadata(app.providers.tmdb.tv, "TMDB", trakt_title, tmdb_id)
+
     item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
         source="tmdb",
@@ -233,20 +245,28 @@ def add_season(entry, user, defaults, list_type, mal_shows_map):
     mal_id = mal_shows_map.get((trakt_id, season_number))
 
     if mal_id:
-        add_mal_anime(mal_id, user, defaults)
+        add_mal_anime(entry, mal_id, user, defaults)
     else:
-        tmdb_id = entry["show"]["ids"]["tmdb"]
-
-        if not tmdb_id:
-            show_title = entry["show"]["title"]
-            msg = f"Could not import {show_title} S{season_number} from {list_type}"
-            raise ValueError(msg)
-        add_tmdb_season(tmdb_id, season_number, user, defaults)
+        add_tmdb_season(entry, season_number, user, defaults, list_type)
 
 
-def add_tmdb_season(tmdb_id, season_number, user, defaults):
+def add_tmdb_season(entry, season_number, user, defaults, list_type):
     """Add a season from TMDB to the user's library."""
-    metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, [season_number])
+    tmdb_id = entry["show"]["ids"]["tmdb"]
+    trakt_title = entry["show"]["title"]
+
+    if not tmdb_id:
+        msg = f"No TMDB ID found for {trakt_title} S{season_number} in {list_type}"
+        raise ValueError(msg)
+
+    metadata = get_metadata(
+        app.providers.tmdb.tv_with_seasons,
+        "TMDB",
+        trakt_title,
+        tmdb_id,
+        [season_number],
+    )
+
     tv_item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
         source="tmdb",
@@ -284,14 +304,21 @@ def add_tmdb_season(tmdb_id, season_number, user, defaults):
 def add_tmdb_episodes(entry, season, user):
     """Add episodes from TMDB to the user's library."""
     tmdb_id = entry["show"]["ids"]["tmdb"]
+    trakt_title = entry["show"]["title"]
 
     if not tmdb_id:
-        msg = f"Could not import history of {entry['show']['title']}"
+        msg = f"No TMDB ID found for {trakt_title} in watch history"
         raise ValueError(msg)
 
     # collect all seasons metadata at once
     season_numbers = [season["number"] for season in entry["seasons"]]
-    metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
+    metadata = get_metadata(
+        app.providers.tmdb.tv_with_seasons,
+        "TMDB",
+        trakt_title,
+        tmdb_id,
+        season_numbers,
+    )
 
     tv_item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
@@ -367,20 +394,22 @@ def add_movie(entry, user, defaults, list_type, mal_movies_map):
     mal_id = mal_movies_map.get((trakt_id, 1))
 
     if mal_id:
-        add_mal_anime(mal_id, user, defaults)
+        add_mal_anime(entry, mal_id, user, defaults)
     else:
-        tmdb_id = entry["movie"]["ids"]["tmdb"]
-
-        if not tmdb_id:
-            movie_title = entry["movie"]["title"]
-            msg = f"Could not import {movie_title} from {list_type}"
-            raise ValueError(msg)
-        add_tmdb_movie(tmdb_id, user, defaults)
+        add_tmdb_movie(entry, user, defaults, list_type)
 
 
-def add_tmdb_movie(tmdb_id, user, defaults):
+def add_tmdb_movie(entry, user, defaults, list_type):
     """Add a movie from TMDB to the user's library."""
-    metadata = app.providers.tmdb.movie(tmdb_id)
+    tmdb_id = entry["movie"]["ids"]["tmdb"]
+    trakt_title = entry["movie"]["title"]
+
+    if not tmdb_id:
+        msg = f"No TMDB ID found for {trakt_title} in {list_type}"
+        raise ValueError(msg)
+
+    metadata = get_metadata(app.providers.tmdb.movie, "TMDB", trakt_title, tmdb_id)
+
     item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
         source="tmdb",
@@ -397,9 +426,14 @@ def add_tmdb_movie(tmdb_id, user, defaults):
     )
 
 
-def add_mal_anime(mal_id, user, defaults):
+def add_mal_anime(entry, mal_id, user, defaults):
     """Add an anime from MAL to the user's library."""
-    metadata = app.providers.mal.anime(mal_id)
+    try:
+        title = entry["show"]["title"]
+    except KeyError:
+        title = entry["movie"]["title"]
+    metadata = get_metadata(app.providers.mal.anime, "MAL", title, mal_id)
+
     item, _ = app.models.Item.objects.get_or_create(
         media_id=mal_id,
         source="mal",
@@ -414,6 +448,18 @@ def add_mal_anime(mal_id, user, defaults):
         user=user,
         defaults=defaults,
     )
+
+
+def get_metadata(fetch_func, source, title, *args, **kwargs):
+    """Fetch metadata from various sources and handle errors."""
+    try:
+        return fetch_func(*args, **kwargs)
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == requests.codes.not_found:
+            logger.warning("%s ID %s not found for %s", source, args[0], title)
+            msg = f"Couldn't fetch {source} metadata for {title} with ID {args[0]}"
+            raise ValueError(msg) from e
+        raise  # Re-raise other HTTP errors
 
 
 def download_and_parse_anitrakt_db(url):

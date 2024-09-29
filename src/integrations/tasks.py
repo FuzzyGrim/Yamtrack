@@ -3,37 +3,27 @@ from celery import shared_task
 
 from integrations.imports import anilist, kitsu, mal, tmdb, trakt, yamtrack
 
-ERROR_TITLE = "Couldn't import the following media: \n"
+ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 
 
 @shared_task(name="Import from Trakt")
 def import_trakt(username, user):
     """Celery task for importing anime and manga data from Trakt."""
-    try:
-        (
-            num_tv_imported,
-            num_movie_imported,
-            num_watchlist_imported,
-            num_ratings_imported,
-            msg,
-        ) = trakt.importer(username, user)
-    except requests.exceptions.HTTPError as error:
-        if error.response.status_code == requests.codes.not_found:
-            msg = (
-                f"User slug {username} not found. "
-                "User slug can be found in the URL when viewing your Trakt profile."
-            )
-            raise ValueError(msg) from error
-        raise  # re-raise for other errors
-    else:
-        info_message = (
-            f"Imported {num_tv_imported} TV shows, "
-            f"{num_movie_imported} movies, "
-            f"{num_watchlist_imported} watchlist items, "
-            f"and {num_ratings_imported} ratings."
-        )
+    (
+        num_tv_imported,
+        num_movie_imported,
+        num_watchlist_imported,
+        num_ratings_imported,
+        msg,
+    ) = trakt.importer(username, user)
+    info_message = (
+        f"Imported {num_tv_imported} TV shows, "
+        f"{num_movie_imported} movies, "
+        f"{num_watchlist_imported} watchlist items, "
+        f"and {num_ratings_imported} ratings."
+    )
     if msg:
-        return f"{info_message} {ERROR_TITLE} \n{msg}"
+        return f"{info_message} {ERROR_TITLE} {msg}"
     return info_message
 
 
@@ -86,7 +76,7 @@ def import_anilist(username, user):
         f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     )
     if warning_message:
-        return f"{info_message} {ERROR_TITLE} \n{warning_message}"
+        return f"{info_message} {ERROR_TITLE} {warning_message}"
     return info_message
 
 
@@ -102,7 +92,7 @@ def import_kitsu_name(username, user):
         f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     )
     if warning_message:
-        return f"{info_message} {ERROR_TITLE} \n{warning_message}"
+        return f"{info_message} {ERROR_TITLE} {warning_message}"
     return info_message
 
 
@@ -118,7 +108,7 @@ def import_kitsu_id(user_id, user):
         f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
     )
     if warning_message:
-        return f"{info_message} {ERROR_TITLE} \n{warning_message}"
+        return f"{info_message} {ERROR_TITLE} {warning_message}"
     return info_message
 
 
