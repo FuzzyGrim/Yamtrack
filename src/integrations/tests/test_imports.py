@@ -269,7 +269,7 @@ class ImportTrakt(TestCase):
         mock_api_request.side_effect = [
             [
                 {
-                    "show": {"ids": {"trakt": 30857}},
+                    "show": {"title": "Example", "ids": {"trakt": 30857}},
                     "seasons": [
                         {
                             "number": 1,
@@ -313,7 +313,7 @@ class ImportTrakt(TestCase):
             [],  # empty show history
             [
                 {
-                    "movie": {"ids": {"trakt": 554, "tmdb": 680}},
+                    "movie": {"title": "Example", "ids": {"trakt": 554, "tmdb": 680}},
                     "last_watched_at": "2023-01-01T00:00:00.000Z",
                     "plays": 2,
                 },
