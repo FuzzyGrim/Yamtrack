@@ -223,6 +223,12 @@ def add_user_reloaded(item, user, user_reloaded_items):
     if user and Item.objects.filter(user_query, id=item.id).exists():
         user_reloaded_items.append(item)
 
+    logger.info(
+        "Processed events for: %s (%s)",
+        item,
+        READABLE_MEDIA_TYPES[item.media_type],
+    )
+
 
 def date_parser(date_str):
     """Parse string in %Y-%m-%d to datetime. Raises ValueError if invalid."""
