@@ -9,10 +9,10 @@ django_debug_toolbar==4.4.6
 django-model-utils==5.0.0
 django-select2==8.2.1
 django-simple-history==3.7.0
-fakeredis==2.24.1
+fakeredis==2.25.1
 gunicorn==23.0.0
 Pillow==10.4.0
-psycopg[binary]==3.2.1
+psycopg[binary]==3.2.3
 python-decouple==3.8
 redis[hiredis]==5.0.8
 requests==2.32.3
