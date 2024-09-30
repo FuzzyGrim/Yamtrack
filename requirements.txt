@@ -9,7 +9,7 @@ django_debug_toolbar==4.4.6
 django-model-utils==4.5.1
 django-select2==8.2.1
 django-simple-history==3.7.0
-fakeredis==2.24.1
+fakeredis==2.25.0
 gunicorn==23.0.0
 Pillow==10.4.0
 psycopg[binary]==3.2.1
