@@ -6,7 +6,7 @@ Django==5.1
 django-celery-results==2.5.1
 django-crispy-forms==2.3
 django_debug_toolbar==4.4.6
-django-model-utils==4.5.1
+django-model-utils==5.0.0
 django-select2==8.2.1
 django-simple-history==3.7.0
 fakeredis==2.24.1
