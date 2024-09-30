@@ -51,7 +51,7 @@
           {% for media in media_list %}
             <tr>
               <td class="nostretch">
-                <a href="{% if media.item.season_number != None %}{% url 'season_details' media_id=media.item.media_id title=media.item.title|slug season_number=media.item.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.item.media_id title=media.item.title|slug %}{% endif %}">
+                <a href="{% if media.item.season_number != None %}{% url 'season_details' media_id=media.item.media_id title=media.item.title|slug season_number=media.item.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.item.media_id title=media.item.title|slug %}?source={{ media.item.source }}{% endif %}">
                   <img class="lazyload object-fit-cover"
                        data-src="{{ media.item.image }}"
                        data-expand="1000"
@@ -64,7 +64,7 @@
                 {% if media.item.season_number != None %}
                   <a href="{% url 'season_details' media_id=media.item.media_id title=media.item.title|slug season_number=media.item.season_number %}">{{ media }}</a>
                 {% else %}
-                  <a href="{% url 'media_details' media_type=media_type media_id=media.item.media_id title=media.item.title|slug %}">{{ media.item.title }}</a>
+                  <a href="{% url 'media_details' media_type=media_type media_id=media.item.media_id title=media.item.title|slug %}?source={{ media.item.source }}">{{ media.item.title }}</a>
                 {% endif %}
               </td>
               <td>{{ media.score }}</td>
@@ -78,9 +78,9 @@
               </td>
               <td>
                 {% if media.item.season_number != None %}
-                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" image=media.item.image media_id=media.item.media_id season_number=media.item.season_number title=media.item.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" source=media.item.source image=media.item.image media_id=media.item.media_id season_number=media.item.season_number title=media.item.title only %}
                 {% else %}
-                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media_type image=media.item.image media_id=media.item.media_id title=media.item.title only %}
+                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media_type source=media.item.source image=media.item.image media_id=media.item.media_id title=media.item.title only %}
                 {% endif %}
               </td>
             </tr>
