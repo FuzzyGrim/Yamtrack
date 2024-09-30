@@ -12,7 +12,7 @@ django-simple-history==3.7.0
 fakeredis==2.25.1
 gunicorn==23.0.0
 Pillow==10.4.0
-psycopg[binary]==3.2.1
+psycopg[binary]==3.2.3
 python-decouple==3.8
 redis[hiredis]==5.0.8
 requests==2.32.3
