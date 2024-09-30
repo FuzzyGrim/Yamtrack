@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Sum
 
 import app
 import app.models
@@ -378,7 +379,7 @@ def add_tmdb_episodes(entry, season, user):
                 "image": ep_img,
             },
         )
-        app.models.Episode.objects.get_or_create(
+        ep, _ = app.models.Episode.objects.get_or_create(
             item=episode_item,
             related_season=season_obj,
             defaults={
@@ -386,6 +387,31 @@ def add_tmdb_episodes(entry, season, user):
                 "repeats": episode["plays"] - 1,
             },
         )
+
+        consider_repeating(ep, metadata, season_number)
+
+
+def consider_repeating(episode, metadata, season_number):
+    """Set the season and show to repeating if necessary."""
+    max_progress = len(metadata[f"season/{season_number}"]["episodes"])
+    total_repeats = episode.related_season.episodes.aggregate(
+        total_repeats=Sum("repeats"),
+    )["total_repeats"]
+
+    total_watches = episode.related_season.progress + total_repeats
+    if (
+        total_watches > max_progress
+        and episode.related_season.status == app.models.STATUS_IN_PROGRESS
+    ):
+        episode.related_season.status = app.models.STATUS_REPEATING
+        episode.related_season.save_base(update_fields=["status"])
+
+        if (
+            episode.related_season.related_tv.progress
+            >= metadata["details"]["number_of_episodes"]
+        ):
+            episode.related_season.related_tv.status = app.models.STATUS_COMPLETED
+            episode.related_season.related_tv.save_base(update_fields=["status"])
 
 
 def add_movie(entry, user, defaults, list_type, mal_movies_map):
