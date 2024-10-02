@@ -66,8 +66,6 @@ async def async_manga(media_id):
         url = f"{base_url}/series/{media_id}"
         response = services.api_request("MANGAUPDATES", "GET", url)
 
-        num_chapters = response["latest_chapter"]
-
         # Run related_manga and recommendations concurrently
         related_task = asyncio.create_task(
             get_related_series(response["related_series"]),
@@ -83,13 +81,13 @@ async def async_manga(media_id):
             "title": response["title"],
             "image": get_image_url(response),
             "synopsis": response["description"],
-            "max_progress": num_chapters,
+            "max_progress": get_max_progress(response),
             "details": {
                 "format": response["type"],
                 "authors": get_authors(response["authors"]),
                 "year": response["year"],
-                "status": get_status(response["status"]),
-                "number_of_chapters": num_chapters,
+                "status_in_country_of_origin": get_status(response["status"]),
+                "latest_chapter_translated": response["latest_chapter"],
                 "genres": get_genres(response["genres"]),
             },
             "related": {
@@ -108,6 +106,13 @@ def get_image_url(response):
     # when no image, value from response is null
     url = response["image"]["url"]["original"]
     return url if url else settings.IMG_NONE
+
+
+def get_max_progress(response):
+    """Get the maximum progress if the media is completed."""
+    if response["completed"]:
+        return response["latest_chapter"]
+    return None
 
 
 def get_genres(genres):
