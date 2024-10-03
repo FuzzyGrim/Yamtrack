@@ -60,12 +60,9 @@
             method="post"
             action="{% url 'import_mal' %}">
         {% csrf_token %}
-        <div class="import-name">MyAnimeList</div>
+        <div class="import-name">MyAnimeList Username</div>
         <div class="input-group">
-          <input type="text"
-                 class="form-control"
-                 name="mal"
-                 placeholder="MyAnimeList Username">
+          <input type="text" class="form-control" name="mal">
           <button class="btn btn-secondary" type="submit">
             <i class="bi bi-check-lg"></i>
           </button>
@@ -76,12 +73,9 @@
             method="post"
             action="{% url 'import_anilist' %}">
         {% csrf_token %}
-        <div class="import-name">AniList</div>
+        <div class="import-name">AniList Username</div>
         <div class="input-group">
-          <input type="text"
-                 class="form-control"
-                 name="anilist"
-                 placeholder="AniList Username">
+          <input type="text" class="form-control" name="anilist">
           <button class="btn btn-secondary" type="submit">
             <i class="bi bi-check-lg"></i>
           </button>
@@ -91,12 +85,17 @@
             method="post"
             action="{% url 'import_trakt' %}">
         {% csrf_token %}
-        <div class="import-name">Trakt Username</div>
+        <div class="import-name">
+          Trakt Username Slug
+          <span class="badge"
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                title="Found at your Trakt profile URL">
+            <i class="bi bi-question-circle"></i>
+          </span>
+        </div>
         <div class="input-group">
-          <input type="text"
-                 class="form-control"
-                 name="trakt"
-                 placeholder="Trakt username slug">
+          <input type="text" class="form-control" name="trakt">
           <button class="btn btn-secondary" type="submit">
             <i class="bi bi-check-lg"></i>
           </button>
@@ -109,10 +108,7 @@
         {% csrf_token %}
         <div class="import-name">Kitsu by Username</div>
         <div class="input-group">
-          <input type="text"
-                 class="form-control"
-                 name="kitsu_username"
-                 placeholder="Kitsu Username">
+          <input type="text" class="form-control" name="kitsu_username">
           <button class="btn btn-secondary" type="submit">
             <i class="bi bi-check-lg"></i>
           </button>
@@ -123,12 +119,17 @@
             method="post"
             action="{% url 'import_kitsu_id' %}">
         {% csrf_token %}
-        <div class="import-name">Kitsu by ID</div>
+        <div class="import-name">
+          Kitsu by ID
+          <span class="badge"
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                title="Found at your Kitsu profile URL">
+            <i class="bi bi-question-circle"></i>
+          </span>
+        </div>
         <div class="input-group">
-          <input type="text"
-                 class="form-control"
-                 name="kitsu_id"
-                 placeholder="Kitsu User ID">
+          <input type="text" class="form-control" name="kitsu_id">
           <button class="btn btn-secondary" type="submit">
             <i class="bi bi-check-lg"></i>
           </button>
@@ -178,4 +179,10 @@
 
 {% block js %}
   <script src="{% static 'js/spinner.js' %}"></script>
+
+  {% comment %} Enable bootstrap tooltips {% endcomment %}
+  <script>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+  </script>
 {% endblock js %}
