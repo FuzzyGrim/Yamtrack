@@ -257,13 +257,15 @@ def episode_handler(request):
             user=request.user,
         )
     except Season.DoesNotExist:
-        season_metadata = tmdb.season(media_id, season_number)
+        tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
+        season_metadata = tv_metadata[f"season/{season_number}"]
+
         item = Item.objects.create(
             media_id=media_id,
             source="tmdb",
             media_type="season",
             season_number=season_number,
-            title=season_metadata["title"],
+            title=tv_metadata["title"],
             image=season_metadata["image"],
         )
         related_season = Season(
