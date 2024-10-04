@@ -4,7 +4,6 @@ import logging
 
 from django.apps import apps
 from django.conf import settings
-from django.db import IntegrityError
 
 from app import models
 from app.providers import services
@@ -45,15 +44,15 @@ def importer(file, user, status):
             # watchlist has no rating
             score = row["Your Rating"] if row["Your Rating"] else None
 
-            instance = model(
-                item=item,
-                user=user,
-                score=score,
-                status=status,
-            )
+            defaults = {
+                "item": item,
+                "user": user,
+                "score": score,
+                "status": status,
+            }
 
             if status == "Completed" and media_type == "movie":
-                instance.end_date = (
+                defaults["end_date"] = (
                     datetime.datetime.strptime(
                         row["Date Rated"],
                         "%Y-%m-%dT%H:%M:%SZ",
@@ -62,14 +61,19 @@ def importer(file, user, status):
                     .astimezone(settings.TZ)
                     .date()
                 )
-                instance.progress = media_metadata["max_progress"]
+                defaults["progress"] = media_metadata["max_progress"]
 
-            try:
-                instance.save()
+            _, created = model.objects.get_or_create(
+                item=item,
+                user=user,
+                defaults=defaults,
+            )
+
+            if created:
                 num_imported[media_type] += 1
-            except IntegrityError:
-                msg = f"Failed to import {media_type} {media_id}, already exists"
-                logger.exception(msg)
+            else:
+                msg = f"{item.title} ({item.media_id}) already exists, skipping it"
+                logger.info(msg)
 
     logger.info(
         "Imported %s TV and %s movies",
