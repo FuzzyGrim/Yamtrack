@@ -7,7 +7,7 @@
 {% endblock title %}
 
 {% block container %}
- 
+
   <form method="post" class="mb-4">
     {% csrf_token %}
     <fieldset class="form-group">
@@ -15,7 +15,7 @@
       {% crispy user_form %}
     </fieldset>
   </form>
- 
+
   <form method="post" class="mb-4">
     {% csrf_token %}
     <fieldset class="form-group">
@@ -59,7 +59,6 @@
       <form class="p-2 grid-item import-form"
             method="get"
             action="{% url 'import_mal' %}">
-        {% csrf_token %}
         <div class="import-name">MyAnimeList Username</div>
         <div class="input-group">
           <input type="text" class="form-control" name="mal">
@@ -68,11 +67,10 @@
           </button>
         </div>
       </form>
- 
+
       <form class="p-2 grid-item import-form"
             method="get"
             action="{% url 'import_anilist' %}">
-        {% csrf_token %}
         <div class="import-name">AniList Username</div>
         <div class="input-group">
           <input type="text" class="form-control" name="anilist">
@@ -81,10 +79,10 @@
           </button>
         </div>
       </form>
+
       <form class="p-2 grid-item import-form"
             method="get"
             action="{% url 'import_trakt' %}">
-        {% csrf_token %}
         <div class="import-name">
           Trakt Username Slug
           <span class="badge"
@@ -101,11 +99,10 @@
           </button>
         </div>
       </form>
- 
+
       <form class="p-2 grid-item import-form"
             method="get"
             action="{% url 'import_kitsu_name' %}">
-        {% csrf_token %}
         <div class="import-name">Kitsu by Username</div>
         <div class="input-group">
           <input type="text" class="form-control" name="kitsu_username">
@@ -118,7 +115,6 @@
       <form class="p-2 grid-item import-form"
             method="get"
             action="{% url 'import_kitsu_id' %}">
-        {% csrf_token %}
         <div class="import-name">
           Kitsu by ID
           <span class="badge"
@@ -169,7 +165,6 @@
       <form class="p-2 grid-item"
             method="get"
             action="{% url 'reload_calendar' %}">
-        {% csrf_token %}
         <button class="btn btn-secondary w-100" type="submit">Reload Calendar</button>
       </form>
     </fieldset>
