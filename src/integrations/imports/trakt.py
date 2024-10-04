@@ -483,9 +483,13 @@ def get_metadata(fetch_func, source, title, *args, **kwargs):
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == requests.codes.not_found:
             logger.warning("%s ID %s not found for %s", source, args[0], title)
-            msg = f"Couldn't fetch {source} metadata for {title} with ID {args[0]}"
+            msg = f"Couldn't find {source} metadata for {title} with ID {args[0]}"
             raise ValueError(msg) from e
         raise  # Re-raise other HTTP errors
+    except KeyError as e:
+        logger.warning("%s ID %s incomplete metadata for %s", source, args[0], title)
+        msg = f"Incomplete {source} metadata for {title} with ID {args[0]}"
+        raise ValueError(msg) from e
 
 
 def download_and_parse_anitrakt_db(url):
