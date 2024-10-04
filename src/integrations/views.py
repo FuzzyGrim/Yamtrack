@@ -14,19 +14,19 @@ from integrations import exports, tasks
 logger = logging.getLogger(__name__)
 
 
-@require_POST
+@require_GET
 def import_trakt(request):
     """View for importing anime and manga data from Trakt."""
-    username = request.POST["trakt"]
+    username = request.GET["trakt"]
     tasks.import_trakt.delay(username, request.user)
     messages.success(request, "Trakt import task queued.")
     return redirect("profile")
 
 
-@require_POST
+@require_GET
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
-    username = request.POST["mal"]
+    username = request.GET["mal"]
     tasks.import_mal.delay(username, request.user)
     messages.success(request, "MyAnimeList import task queued.")
     return redirect("profile")
@@ -56,28 +56,28 @@ def import_tmdb_watchlist(request):
     return redirect("profile")
 
 
-@require_POST
+@require_GET
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
-    username = request.POST["anilist"]
+    username = request.GET["anilist"]
     tasks.import_anilist.delay(username, request.user)
     messages.success(request, "AniList import task queued.")
     return redirect("profile")
 
 
-@require_POST
+@require_GET
 def import_kitsu_name(request):
     """View for importing anime and manga data from Kitsu by username."""
-    username = request.POST["kitsu_username"]
+    username = request.GET["kitsu_username"]
     tasks.import_kitsu_name.delay(username, request.user)
     messages.success(request, "Kitsu import task queued.")
     return redirect("profile")
 
 
-@require_POST
+@require_GET
 def import_kitsu_id(request):
     """View for importing anime and manga data from Kitsu by user ID."""
-    user_id = request.POST["kitsu_id"]
+    user_id = request.GET["kitsu_id"]
     tasks.import_kitsu_id.delay(user_id, request.user)
     messages.success(request, "Kitsu import task queued.")
     return redirect("profile")

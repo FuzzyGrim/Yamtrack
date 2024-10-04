@@ -57,7 +57,7 @@
       </form>
 
       <form class="p-2 grid-item import-form"
-            method="post"
+            method="get"
             action="{% url 'import_mal' %}">
         {% csrf_token %}
         <div class="import-name">MyAnimeList Username</div>
@@ -70,7 +70,7 @@
       </form>
  
       <form class="p-2 grid-item import-form"
-            method="post"
+            method="get"
             action="{% url 'import_anilist' %}">
         {% csrf_token %}
         <div class="import-name">AniList Username</div>
@@ -82,7 +82,7 @@
         </div>
       </form>
       <form class="p-2 grid-item import-form"
-            method="post"
+            method="get"
             action="{% url 'import_trakt' %}">
         {% csrf_token %}
         <div class="import-name">
@@ -103,7 +103,7 @@
       </form>
  
       <form class="p-2 grid-item import-form"
-            method="post"
+            method="get"
             action="{% url 'import_kitsu_name' %}">
         {% csrf_token %}
         <div class="import-name">Kitsu by Username</div>
@@ -116,7 +116,7 @@
       </form>
 
       <form class="p-2 grid-item import-form"
-            method="post"
+            method="get"
             action="{% url 'import_kitsu_id' %}">
         {% csrf_token %}
         <div class="import-name">
@@ -167,7 +167,7 @@
 
     <fieldset class="input-group profile-grid">
       <form class="p-2 grid-item"
-            method="post"
+            method="get"
             action="{% url 'reload_calendar' %}">
         {% csrf_token %}
         <button class="btn btn-secondary w-100" type="submit">Reload Calendar</button>
