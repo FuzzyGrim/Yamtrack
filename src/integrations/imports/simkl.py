@@ -1,9 +1,12 @@
 import datetime
+import logging
 
 import requests
 from django.conf import settings
 
 import app
+
+logger = logging.getLogger(__name__)
 
 SIMKL_API_BASE_URL = "https://api.simkl.com"
 
@@ -73,6 +76,7 @@ def importer(domain, scheme, code, user):
 
 def process_tv_list(tv_list, user):
     """Process TV list from SIMKL and add to database."""
+    logger.info("Processing tv shows")
     tv_count = 0
     for tv in tv_list:
         tmdb_id = tv["show"]["ids"]["tmdb"]
@@ -162,12 +166,13 @@ def process_tv_list(tv_list, user):
                         "watch_date": get_date(episode["watched_at"]),
                     },
                 )
-
+    logger.info("Finished processing tv shows")
     return tv_count
 
 
 def process_movie_list(movie_list, user):
     """Process movie list from SIMKL and add to database."""
+    logger.info("Processing movies")
     movie_count = 0
     for movie in movie_list:
         tmdb_id = movie["movie"]["ids"]["tmdb"]
@@ -199,11 +204,14 @@ def process_movie_list(movie_list, user):
         if movie_created:
             movie_count += 1
 
+    logger.info("Finished processing movies")
+
     return movie_count
 
 
 def process_anime_list(anime_list, user):
     """Process anime list from SIMKL and add to database."""
+    logger.info("Processing anime")
     warnings = []
     anime_count = 0
 
@@ -247,6 +255,7 @@ def process_anime_list(anime_list, user):
         if anime_created:
             anime_count += 1
 
+    logger.info("Finished processing anime")
     return anime_count, warnings
 
 
