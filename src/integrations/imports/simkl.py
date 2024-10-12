@@ -224,7 +224,7 @@ def process_anime_list(anime_list, user):
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == requests.codes.not_found:
                 warnings.append(
-                    f"Anime: {anime["show"]["title"]} with MAL ID {mal_id} not found.",
+                    f"Anime: {anime['show']['title']} with MAL ID {mal_id} not found.",
                 )
                 continue
 
