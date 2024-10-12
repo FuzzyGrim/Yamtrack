@@ -230,6 +230,9 @@ IGDB_ID = config("IGDB_ID", default="8wqmm7x1n2xxtnz94lb8mthadhtgrt")
 IGDB_SECRET = config("IGDB_SECRET", default="ovbq0hwscv58hu46yxn50hovt4j8kj")
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+SIMKL_ID = config("SIMKL_ID", default="")
+SIMKL_SECRET = config("SIMKL_SECRET", default="")
+
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
 TESTING = False

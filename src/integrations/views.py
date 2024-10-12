@@ -24,6 +24,30 @@ def import_trakt(request):
 
 
 @require_GET
+def simkl_oauth(request):
+    """View for initiating the SIMKL OAuth2 authorization flow."""
+    domain = request.get_host()
+    scheme = request.scheme
+    url = "https://simkl.com/oauth/authorize"
+
+    return redirect(
+        f"{url}?client_id={settings.SIMKL_ID}&redirect_uri={scheme}://{domain}/import/simkl&response_type=code",
+    )
+
+
+@require_GET
+def import_simkl(request):
+    """View for getting the SIMKL OAuth2 token."""
+    domain = request.get_host()
+    scheme = request.scheme
+    code = request.GET["code"]
+    user = request.user
+    tasks.import_simkl.delay(domain, scheme, code, user)
+    messages.success(request, "SIMKL import task queued.")
+    return redirect("profile")
+
+
+@require_GET
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
     username = request.GET["mal"]

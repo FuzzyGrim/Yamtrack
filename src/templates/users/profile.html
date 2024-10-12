@@ -102,6 +102,13 @@
 
       <form class="p-2 grid-item import-form"
             method="get"
+            action="{% url 'simkl_oauth' %}">
+        <div class="import-name">SIMKL</div>
+        <button class="btn btn-secondary w-100" type="submit">Authenticate</button>
+      </form>
+
+      <form class="p-2 grid-item import-form"
+            method="get"
             action="{% url 'import_kitsu_name' %}">
         <div class="import-name">Kitsu by Username</div>
         <div class="input-group">

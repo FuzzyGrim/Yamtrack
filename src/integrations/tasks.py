@@ -1,7 +1,7 @@
 import requests
 from celery import shared_task
 
-from integrations.imports import anilist, kitsu, mal, tmdb, trakt, yamtrack
+from integrations.imports import anilist, kitsu, mal, simkl, tmdb, trakt, yamtrack
 
 ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 
@@ -21,6 +21,23 @@ def import_trakt(username, user):
         f"{num_movie_imported} movies, "
         f"{num_watchlist_imported} watchlist items, "
         f"and {num_ratings_imported} ratings."
+    )
+    if msg:
+        return f"{info_message} {ERROR_TITLE} {msg}"
+    return info_message
+
+
+@shared_task(name="Import from SIMKL")
+def import_simkl(domain, scheme, code, user):
+    """Celery task for importing anime and manga data from SIMKL."""
+    num_tv_imported, num_movie_imported, num_anime_imported, msg = simkl.importer(
+        domain, scheme, code, user,
+    )
+
+    info_message = (
+        f"Imported {num_tv_imported} TV shows, "
+        f"{num_movie_imported} movies, "
+        f"and {num_anime_imported} anime."
     )
     if msg:
         return f"{info_message} {ERROR_TITLE} {msg}"

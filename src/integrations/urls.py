@@ -4,6 +4,8 @@ from integrations import views
 
 urlpatterns = [
     path("import/trakt", views.import_trakt, name="import_trakt"),
+    path("simkl-oauth", views.simkl_oauth, name="simkl_oauth"),
+    path("import/simkl", views.import_simkl, name="import_simkl"),
     path("import/mal", views.import_mal, name="import_mal"),
     path("import/tmdb_ratings", views.import_tmdb_ratings, name="import_tmdb_ratings"),
     path(
