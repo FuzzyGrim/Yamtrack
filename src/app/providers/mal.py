@@ -261,10 +261,12 @@ def get_broadcast(response):
     broadcast = response.get("broadcast")
     start_date = response.get("start_date")
 
-    if broadcast and start_date:
+    # when unknown start time, value is not present in the broadcast dict
+    start_time = broadcast.get("start_time") if broadcast else None
+
+    if broadcast and start_date and start_time:
         # convert japan timezone to timezone from settings
         japan_timezone = ZoneInfo("Asia/Tokyo")
-        start_time = broadcast["start_time"]
         broadcast_time_japan = datetime.strptime(
             f"{start_date} {start_time}",
             "%Y-%m-%d %H:%M",
