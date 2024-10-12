@@ -79,6 +79,8 @@ def process_tv_list(tv_list, user):
     logger.info("Processing tv shows")
     tv_count = 0
     for tv in tv_list:
+        msg = f"Processing {tv['show']['title']}"
+        logger.debug(msg)
         tmdb_id = tv["show"]["ids"]["tmdb"]
         tv_status = get_status(tv["status"])
 
@@ -175,6 +177,8 @@ def process_movie_list(movie_list, user):
     logger.info("Processing movies")
     movie_count = 0
     for movie in movie_list:
+        msg = f"Processing {movie['movie']['title']}"
+        logger.debug(msg)
         tmdb_id = movie["movie"]["ids"]["tmdb"]
         movie_status = get_status(movie["status"])
 
@@ -216,6 +220,8 @@ def process_anime_list(anime_list, user):
     anime_count = 0
 
     for anime in anime_list:
+        msg = f"Processing {anime['show']['title']}"
+        logger.debug(msg)
         mal_id = anime["show"]["ids"]["mal"]
         anime_status = get_status(anime["status"])
 
