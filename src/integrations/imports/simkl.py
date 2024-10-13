@@ -62,16 +62,19 @@ def importer(domain, scheme, code, user):
         params=params,
     )
 
-    tv_count = process_tv_list(data["shows"], user)
+    tv_count, tv_warnings = process_tv_list(data["shows"], user)
     movie_count = process_movie_list(data["movies"], user)
     anime_count, anime_warnings = process_anime_list(data["anime"], user)
 
-    return tv_count, movie_count, anime_count, "\n".join(anime_warnings)
+    msgs = tv_warnings + anime_warnings
+
+    return tv_count, movie_count, anime_count, "\n".join(msgs)
 
 
 def process_tv_list(tv_list, user):
     """Process TV list from SIMKL and add to database."""
     logger.info("Processing tv shows")
+    warnings = []
     tv_count = 0
     for tv in tv_list:
         msg = f"Processing {tv['show']['title']}"
@@ -82,8 +85,10 @@ def process_tv_list(tv_list, user):
         try:
             season_numbers = [season["number"] for season in tv["seasons"]]
         except KeyError:
-            logger.debug(tv)
-            raise
+            warnings.append(
+                f"TV Show: {tv['show']['title']} has no data on watched episodes.",
+            )
+            continue
         metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
 
         tv_item, _ = app.models.Item.objects.get_or_create(
@@ -168,7 +173,7 @@ def process_tv_list(tv_list, user):
                     },
                 )
     logger.info("Finished processing tv shows")
-    return tv_count
+    return tv_count, warnings
 
 
 def process_movie_list(movie_list, user):
