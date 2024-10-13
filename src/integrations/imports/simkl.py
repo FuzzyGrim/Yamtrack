@@ -9,17 +9,12 @@ import app
 logger = logging.getLogger(__name__)
 
 SIMKL_API_BASE_URL = "https://api.simkl.com"
+SIMKL_ID = "f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e"
+SIMKL_SECRET = "9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5"  # noqa: S105
 
 
 def get_token(domain, scheme, code):
     """View for getting the SIMKL OAuth2 token."""
-    simkl_id = settings.SIMKL_ID
-    simkl_secret = settings.SIMKL_SECRET
-
-    if not simkl_id or not simkl_secret:
-        msg = "SIMKL_ID and SIMKL_SECRET not set."
-        raise ValueError(msg)
-
     url = f"{SIMKL_API_BASE_URL}/oauth/token"
 
     headers = {
@@ -27,8 +22,8 @@ def get_token(domain, scheme, code):
     }
 
     params = {
-        "client_id": simkl_id,
-        "client_secret": simkl_secret,
+        "client_id": SIMKL_ID,
+        "client_secret": SIMKL_SECRET,
         "code": code,
         "grant_type": "authorization_code",
         "redirect_uri": f"{scheme}://{domain}",
@@ -52,7 +47,7 @@ def importer(domain, scheme, code, user):
     url = f"{SIMKL_API_BASE_URL}/sync/all-items/"
     headers = {
         "Authorization": f"Bearer: {token}",
-        "simkl-api-key": settings.SIMKL_ID,
+        "simkl-api-key": SIMKL_ID,
     }
     params = {
         "extended": "full",
