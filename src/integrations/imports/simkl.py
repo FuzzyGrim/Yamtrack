@@ -63,10 +63,10 @@ def importer(domain, scheme, code, user):
     )
 
     tv_count, tv_warnings = process_tv_list(data["shows"], user)
-    movie_count = process_movie_list(data["movies"], user)
+    movie_count, movie_warnings = process_movie_list(data["movies"], user)
     anime_count, anime_warnings = process_anime_list(data["anime"], user)
 
-    msgs = tv_warnings + anime_warnings
+    msgs = tv_warnings + movie_warnings + anime_warnings
 
     return tv_count, movie_count, anime_count, "\n".join(msgs)
 
@@ -76,8 +76,10 @@ def process_tv_list(tv_list, user):
     logger.info("Processing tv shows")
     warnings = []
     tv_count = 0
+
     for tv in tv_list:
-        msg = f"Processing {tv['show']['title']}"
+        title = tv["show"]["title"]
+        msg = f"Processing {title}"
         logger.debug(msg)
         tmdb_id = tv["show"]["ids"]["tmdb"]
         tv_status = get_status(tv["status"])
@@ -86,10 +88,19 @@ def process_tv_list(tv_list, user):
             season_numbers = [season["number"] for season in tv["seasons"]]
         except KeyError:
             warnings.append(
-                f"TV Show: {tv['show']['title']} has no data on watched episodes.",
+                f"TV Show: {title} has no data on watched episodes.",
             )
             continue
-        metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
+
+        try:
+            metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
+        except requests.exceptions.HTTPError as error:
+            if error.response.status_code == requests.codes.not_found:
+                warnings.append(
+                    f"Couldn't fetch metadata for the tv show {title} ({tmdb_id})",
+                )
+                continue
+            raise
 
         tv_item, _ = app.models.Item.objects.get_or_create(
             media_id=tmdb_id,
@@ -144,14 +155,7 @@ def process_tv_list(tv_list, user):
             )
 
             for episode in episodes:
-                ep_img = None
-                for episode_metadata in metadata[f"season/{season_number}"]["episodes"]:
-                    if episode_metadata["episode_number"] == episode["number"]:
-                        ep_img = episode_metadata["still_path"]
-                        break
-
-                if not ep_img:
-                    ep_img = settings.IMG_NONE
+                ep_img = get_episode_image(episode, season_number, metadata)
 
                 episode_item, _ = app.models.Item.objects.get_or_create(
                     media_id=tmdb_id,
@@ -176,17 +180,38 @@ def process_tv_list(tv_list, user):
     return tv_count, warnings
 
 
+def get_episode_image(episode, season_number, metadata):
+    """Get the image for the episode."""
+    for episode_metadata in metadata[f"season/{season_number}"]["episodes"]:
+        if episode_metadata["episode_number"] == episode["number"]:
+            return episode_metadata["still_path"]
+    return settings.IMG_NONE
+
+
 def process_movie_list(movie_list, user):
     """Process movie list from SIMKL and add to database."""
     logger.info("Processing movies")
+    warnings = []
     movie_count = 0
+
     for movie in movie_list:
-        msg = f"Processing {movie['movie']['title']}"
+        title = movie["movie"]["title"]
+
+        msg = f"Processing {title}"
         logger.debug(msg)
+
         tmdb_id = movie["movie"]["ids"]["tmdb"]
         movie_status = get_status(movie["status"])
 
-        metadata = app.providers.tmdb.movie(tmdb_id)
+        try:
+            metadata = app.providers.tmdb.movie(tmdb_id)
+        except requests.exceptions.HTTPError as error:
+            if error.response.status_code == requests.codes.not_found:
+                warnings.append(
+                    f"Couldn't fetch metadata for the movie {title} ({tmdb_id})",
+                )
+                continue
+            raise
 
         movie_item, _ = app.models.Item.objects.get_or_create(
             media_id=tmdb_id,
@@ -214,7 +239,7 @@ def process_movie_list(movie_list, user):
 
     logger.info("Finished processing movies")
 
-    return movie_count
+    return movie_count, warnings
 
 
 def process_anime_list(anime_list, user):
@@ -224,8 +249,10 @@ def process_anime_list(anime_list, user):
     anime_count = 0
 
     for anime in anime_list:
-        msg = f"Processing {anime['show']['title']}"
+        title = anime["show"]["title"]
+        msg = f"Processing {title}"
         logger.debug(msg)
+
         mal_id = anime["show"]["ids"]["mal"]
         anime_status = get_status(anime["status"])
 
@@ -234,9 +261,10 @@ def process_anime_list(anime_list, user):
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == requests.codes.not_found:
                 warnings.append(
-                    f"Anime: {anime['show']['title']} with MAL ID {mal_id} not found.",
+                    f"Couldn't fetch metadata for the anime {title} ({mal_id})",
                 )
                 continue
+            raise
 
         anime_item, _ = app.models.Item.objects.get_or_create(
             media_id=mal_id,
