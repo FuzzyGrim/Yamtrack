@@ -11,8 +11,11 @@ logger = logging.getLogger(__name__)
 SIMKL_API_BASE_URL = "https://api.simkl.com"
 
 
-def get_token(domain, scheme, code):
+def get_token(request):
     """View for getting the SIMKL OAuth2 token."""
+    domain = request.get_host()
+    scheme = request.scheme
+    code = request.GET["code"]
     url = f"{SIMKL_API_BASE_URL}/oauth/token"
 
     headers = {
@@ -44,10 +47,21 @@ def get_token(domain, scheme, code):
     return request["access_token"]
 
 
-def importer(domain, scheme, code, user):
+def importer(token, user):
     """Import tv shows, movies and anime from SIMKL."""
-    token = get_token(domain, scheme, code)
+    data = get_user_list(token)
 
+    tv_count, tv_warnings = process_tv_list(data["shows"], user)
+    movie_count, movie_warnings = process_movie_list(data["movies"], user)
+    anime_count, anime_warnings = process_anime_list(data["anime"], user)
+
+    warning_messages = tv_warnings + movie_warnings + anime_warnings
+
+    return tv_count, movie_count, anime_count, "\n".join(warning_messages)
+
+
+def get_user_list(token):
+    """Get the user's list from SIMKL."""
     url = f"{SIMKL_API_BASE_URL}/sync/all-items/"
     headers = {
         "Authorization": f"Bearer: {token}",
@@ -58,21 +72,13 @@ def importer(domain, scheme, code, user):
         "episode_watched_at": "yes",
     }
 
-    data = app.providers.services.api_request(
+    return app.providers.services.api_request(
         "SIMKL",
         "GET",
         url,
         headers=headers,
         params=params,
     )
-
-    tv_count, tv_warnings = process_tv_list(data["shows"], user)
-    movie_count, movie_warnings = process_movie_list(data["movies"], user)
-    anime_count, anime_warnings = process_anime_list(data["anime"], user)
-
-    warning_messages = tv_warnings + movie_warnings + anime_warnings
-
-    return tv_count, movie_count, anime_count, "\n".join(warning_messages)
 
 
 def process_tv_list(tv_list, user):

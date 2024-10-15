@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from app.models import TV, Anime, Episode, Item, Manga, Movie, Season
-from integrations.imports import anilist, kitsu, mal, tmdb, trakt, yamtrack
+from integrations.imports import anilist, kitsu, mal, simkl, tmdb, trakt, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 app_mock_path = (
@@ -351,3 +351,101 @@ class ImportTrakt(TestCase):
         """Test getting date from Trakt."""
         self.assertEqual(trakt.get_date("2023-01-01T00:00:00.000Z"), date(2023, 1, 1))
         self.assertIsNone(trakt.get_date(None))
+
+
+class ImportSimkl(TestCase):
+    """Test importing media from SIMKL."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+
+    @patch("integrations.imports.simkl.get_user_list")
+    def test_importer(
+        self,
+        user_list,
+    ):
+        """Test importing media from SIMKL."""
+        # Mock API response
+        user_list.return_value = {
+            "shows": [
+                {
+                    "show": {"title": "Breaking Bad", "ids": {"tmdb": 1396}},
+                    "status": "watching",
+                    "user_rating": 8,
+                    "seasons": [
+                        {
+                            "number": 1,
+                            "episodes": [
+                                {"number": 1, "watched_at": "2023-01-01T00:00:00Z"},
+                                {"number": 2, "watched_at": "2023-01-02T00:00:00Z"},
+                            ],
+                        },
+                    ],
+                },
+            ],
+            "movies": [
+                {
+                    "movie": {"title": "Perfect Blue", "ids": {"tmdb": 10494}},
+                    "status": "completed",
+                    "user_rating": 9,
+                    "last_watched_at": "2023-02-01T00:00:00Z",
+                },
+            ],
+            "anime": [
+                {
+                    "show": {"title": "Example Anime", "ids": {"mal": 1}},
+                    "status": "plantowatch",
+                    "user_rating": 7,
+                    "watched_episodes_count": 0,
+                    "last_watched_at": None,
+                },
+            ],
+        }
+
+        tv_count, movie_count, anime_count, warnings = simkl.importer(
+            "token",
+            self.user,
+        )
+
+        # Check the results
+        self.assertEqual(tv_count, 1)
+        self.assertEqual(movie_count, 1)
+        self.assertEqual(anime_count, 1)
+        self.assertEqual(warnings, "")
+
+        # Check TV show
+        tv_item = Item.objects.get(media_type="tv")
+        self.assertEqual(tv_item.title, "Breaking Bad")
+        tv_obj = TV.objects.get(item=tv_item)
+        self.assertEqual(tv_obj.status, "In progress")
+        self.assertEqual(tv_obj.score, 8)
+
+        # Check Movie
+        movie_item = Item.objects.get(media_type="movie")
+        self.assertEqual(movie_item.title, "Perfect Blue")
+        movie_obj = Movie.objects.get(item=movie_item)
+        self.assertEqual(movie_obj.status, "Completed")
+        self.assertEqual(movie_obj.score, 9)
+
+        # Check Anime
+        anime_item = Item.objects.get(media_type="anime")
+        self.assertEqual(anime_item.title, "Cowboy Bebop")
+        anime_obj = Anime.objects.get(item=anime_item)
+        self.assertEqual(anime_obj.status, "Planning")
+        self.assertEqual(anime_obj.score, 7)
+
+    def test_get_status(self):
+        """Test mapping SIMKL status to internal status."""
+        self.assertEqual(simkl.get_status("completed"), "Completed")
+        self.assertEqual(simkl.get_status("watching"), "In progress")
+        self.assertEqual(simkl.get_status("plantowatch"), "Planning")
+        self.assertEqual(simkl.get_status("hold"), "Paused")
+        self.assertEqual(simkl.get_status("dropped"), "Dropped")
+        self.assertEqual(simkl.get_status("unknown"), "In progress")  # Default case
+
+    def test_get_date(self):
+        """Test getting date from SIMKL."""
+        self.assertEqual(simkl.get_date("2023-01-01T00:00:00Z"), date(2023, 1, 1))
+        self.assertIsNone(simkl.get_date(None))

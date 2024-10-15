@@ -10,6 +10,7 @@ from django.shortcuts import redirect
 from django.views.decorators.http import require_GET, require_POST
 
 from integrations import exports, tasks
+from integrations.imports import simkl
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,8 @@ def simkl_oauth(request):
 @require_GET
 def import_simkl(request):
     """View for getting the SIMKL OAuth2 token."""
-    domain = request.get_host()
-    scheme = request.scheme
-    code = request.GET["code"]
-    user = request.user
-    tasks.import_simkl.delay(domain, scheme, code, user)
+    token = simkl.get_token(request)
+    tasks.import_simkl.delay(token, request.user)
     messages.success(request, "SIMKL import task queued.")
     return redirect("profile")
 

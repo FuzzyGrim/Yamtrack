@@ -28,13 +28,11 @@ def import_trakt(username, user):
 
 
 @shared_task(name="Import from SIMKL")
-def import_simkl(domain, scheme, code, user):
+def import_simkl(token, user):
     """Celery task for importing anime and manga data from SIMKL."""
     num_tv_imported, num_movie_imported, num_anime_imported, warning_message = (
         simkl.importer(
-            domain,
-            scheme,
-            code,
+            token,
             user,
         )
     )
