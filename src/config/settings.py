@@ -230,6 +230,15 @@ IGDB_ID = config("IGDB_ID", default="8wqmm7x1n2xxtnz94lb8mthadhtgrt")
 IGDB_SECRET = config("IGDB_SECRET", default="ovbq0hwscv58hu46yxn50hovt4j8kj")
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+SIMKL_ID = config(
+    "SIMKL_ID",
+    default="f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e",
+)
+SIMKL_SECRET = config(
+    "SIMKL_SECRET",
+    default="9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5",
+)
+
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
 TESTING = False
@@ -265,7 +274,7 @@ CELERY_WORKER_MAX_TASKS_PER_CHILD = 1
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 60 * 60 * 6 # 6 hours
+CELERY_TASK_TIME_LIMIT = 60 * 60 * 6  # 6 hours
 
 CELERY_RESULT_EXTENDED = True
 CELERY_RESULT_BACKEND = "django-db"

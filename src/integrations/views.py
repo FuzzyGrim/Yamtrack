@@ -10,7 +10,6 @@ from django.shortcuts import redirect
 from django.views.decorators.http import require_GET, require_POST
 
 from integrations import exports, tasks
-from integrations.imports import simkl
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ def simkl_oauth(request):
     url = "https://simkl.com/oauth/authorize"
 
     return redirect(
-        f"{url}?client_id={simkl.SIMKL_ID}&redirect_uri={scheme}://{domain}/import/simkl&response_type=code",
+        f"{url}?client_id={settings.SIMKL_ID}&redirect_uri={scheme}://{domain}/import/simkl&response_type=code",
     )
 
 

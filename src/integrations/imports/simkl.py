@@ -9,8 +9,6 @@ import app
 logger = logging.getLogger(__name__)
 
 SIMKL_API_BASE_URL = "https://api.simkl.com"
-SIMKL_ID = "f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e"
-SIMKL_SECRET = "9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5"  # noqa: S105
 
 
 def get_token(domain, scheme, code):
@@ -22,20 +20,26 @@ def get_token(domain, scheme, code):
     }
 
     params = {
-        "client_id": SIMKL_ID,
-        "client_secret": SIMKL_SECRET,
+        "client_id": settings.SIMKL_ID,
+        "client_secret": settings.SIMKL_SECRET,
         "code": code,
         "grant_type": "authorization_code",
         "redirect_uri": f"{scheme}://{domain}",
     }
 
-    request = app.providers.services.api_request(
-        "SIMKL",
-        "POST",
-        url,
-        headers=headers,
-        params=params,
-    )
+    try:
+        request = app.providers.services.api_request(
+            "SIMKL",
+            "POST",
+            url,
+            headers=headers,
+            params=params,
+        )
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.unauthorized:
+            msg = "Invalid SIMKL secret key."
+            raise ValueError(msg) from error
+        raise
 
     return request["access_token"]
 
@@ -47,7 +51,7 @@ def importer(domain, scheme, code, user):
     url = f"{SIMKL_API_BASE_URL}/sync/all-items/"
     headers = {
         "Authorization": f"Bearer: {token}",
-        "simkl-api-key": SIMKL_ID,
+        "simkl-api-key": settings.SIMKL_ID,
     }
     params = {
         "extended": "full",
