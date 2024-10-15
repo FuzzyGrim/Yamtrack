@@ -49,8 +49,8 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 | IGDB_ID         | String | IGDB API key for games, a default key is provided but it's recommended to get your own as it has a low rate limit.                                                          |
 | IGDB_SECRET     | String | IGDB API secret for games, a default value is provided but it's recommended to get your own as it has a low rate limit.                                                     |
 | IGDB_NSFW       | Bool   | Default to false, set to true to include adult content in game searches                                                                                                     |
-| SIMKL_ID        | String | Simkl API key for importing from Simkl, a default key is provided                                                                                                          |
-| SIMKL_SECRET    | String | Simkl API secret for importing from Simkl, a default secret is provided                                                                                                    |
+| SIMKL_ID        | String | Simkl API key for importing media, a default key is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/)              |
+| SIMKL_SECRET    | String | Simkl API secret for importing media, a default secret is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/)        |
 | REDIS_URL       | String | Default to redis://localhost:6379, Redis is needed for processing background tasks, set this to your redis server url.                                                      |
 | SECRET          | String | [Secret key](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key) used for cryptographic signing, should be a random string                                   |
 | ALLOWED_HOSTS   | List   | Host/domain names that this Django site can serve, set this to your domain name if exposing to the public                                                                   |
