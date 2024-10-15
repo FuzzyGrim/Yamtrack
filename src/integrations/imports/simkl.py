@@ -66,9 +66,9 @@ def importer(domain, scheme, code, user):
     movie_count, movie_warnings = process_movie_list(data["movies"], user)
     anime_count, anime_warnings = process_anime_list(data["anime"], user)
 
-    msgs = tv_warnings + movie_warnings + anime_warnings
+    warning_messages = tv_warnings + movie_warnings + anime_warnings
 
-    return tv_count, movie_count, anime_count, "\n".join(msgs)
+    return tv_count, movie_count, anime_count, "\n".join(warning_messages)
 
 
 def process_tv_list(tv_list, user):
@@ -88,7 +88,7 @@ def process_tv_list(tv_list, user):
             season_numbers = [season["number"] for season in tv["seasons"]]
         except KeyError:
             warnings.append(
-                f"TV Show: {title} has no data on watched episodes.",
+                f"{title}: It doesn't have data on episodes viewed.",
             )
             continue
 
@@ -97,7 +97,7 @@ def process_tv_list(tv_list, user):
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == requests.codes.not_found:
                 warnings.append(
-                    f"Couldn't fetch metadata for the tv show {title} ({tmdb_id})",
+                    f"{title}: Couldn't fetch metadata from TMDB ({tmdb_id})",
                 )
                 continue
             raise
@@ -208,7 +208,7 @@ def process_movie_list(movie_list, user):
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == requests.codes.not_found:
                 warnings.append(
-                    f"Couldn't fetch metadata for the movie {title} ({tmdb_id})",
+                    f"{title}: Couldn't fetch metadata from TMDB ({tmdb_id})",
                 )
                 continue
             raise
@@ -261,7 +261,7 @@ def process_anime_list(anime_list, user):
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == requests.codes.not_found:
                 warnings.append(
-                    f"Couldn't fetch metadata for the anime {title} ({mal_id})",
+                    f"{title}: Couldn't fetch metadata from TMDB ({mal_id})",
                 )
                 continue
             raise

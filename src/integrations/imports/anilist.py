@@ -89,20 +89,20 @@ def importer(username, user):
         params={"query": query, "variables": variables},
     )
 
-    anime_imported, anime_warning = import_media(
+    anime_imported, anime_warnings = import_media(
         response["data"]["anime"],
         "anime",
         user,
     )
 
-    manga_imported, manga_warning = import_media(
+    manga_imported, manga_warnings = import_media(
         response["data"]["manga"],
         "manga",
         user,
     )
 
-    warning_message = anime_warning + manga_warning
-    return anime_imported, manga_imported, warning_message
+    warning_messages = anime_warnings + manga_warnings
+    return anime_imported, manga_imported, "\n".join(warning_messages)
 
 
 def import_media(media_data, media_type, user):
@@ -110,15 +110,15 @@ def import_media(media_data, media_type, user):
     logger.info("Importing %s from Anilist", media_type)
 
     bulk_media = []
-    warning_message = ""
+    warnings = []
     for status_list in media_data["lists"]:
         if not status_list["isCustomList"]:
-            bulk_media, warning_message = process_status_list(
+            bulk_media, warnings = process_status_list(
                 bulk_media,
                 status_list,
                 media_type,
                 user,
-                warning_message,
+                warnings,
             )
 
     model = apps.get_model(app_label="app", model_name=media_type)
@@ -129,15 +129,15 @@ def import_media(media_data, media_type, user):
 
     logger.info("Imported %s %s", num_imported, media_type)
 
-    return num_imported, warning_message
+    return num_imported, warnings
 
 
-def process_status_list(bulk_media, status_list, media_type, user, warning_message):
+def process_status_list(bulk_media, status_list, media_type, user, warnings):
     """Process each status list."""
     for content in status_list["entries"]:
         if content["media"]["idMal"] is None:
-            warning_message += (
-                f"No matching MAL ID for {content['media']['title']['userPreferred']}\n"
+            warnings.append(
+                f"{content['media']['title']['userPreferred']}: No matching MAL ID.",
             )
         else:
             if content["status"] == "CURRENT":
@@ -170,7 +170,7 @@ def process_status_list(bulk_media, status_list, media_type, user, warning_messa
             )
             bulk_media.append(instance)
 
-    return bulk_media, warning_message
+    return bulk_media, warnings
 
 
 def get_date(date):

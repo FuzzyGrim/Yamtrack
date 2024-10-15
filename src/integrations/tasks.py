@@ -14,7 +14,7 @@ def import_trakt(username, user):
         num_movie_imported,
         num_watchlist_imported,
         num_ratings_imported,
-        msg,
+        warning_message,
     ) = trakt.importer(username, user)
     info_message = (
         f"Imported {num_tv_imported} TV shows, "
@@ -22,16 +22,21 @@ def import_trakt(username, user):
         f"{num_watchlist_imported} watchlist items, "
         f"and {num_ratings_imported} ratings."
     )
-    if msg:
-        return f"{info_message} {ERROR_TITLE} {msg}"
+    if warning_message:
+        return f"{info_message} {ERROR_TITLE} {warning_message}"
     return info_message
 
 
 @shared_task(name="Import from SIMKL")
 def import_simkl(domain, scheme, code, user):
     """Celery task for importing anime and manga data from SIMKL."""
-    num_tv_imported, num_movie_imported, num_anime_imported, msg = simkl.importer(
-        domain, scheme, code, user,
+    num_tv_imported, num_movie_imported, num_anime_imported, warning_message = (
+        simkl.importer(
+            domain,
+            scheme,
+            code,
+            user,
+        )
     )
 
     info_message = (
@@ -39,8 +44,8 @@ def import_simkl(domain, scheme, code, user):
         f"{num_movie_imported} movies, "
         f"and {num_anime_imported} anime."
     )
-    if msg:
-        return f"{info_message} {ERROR_TITLE} {msg}"
+    if warning_message:
+        return f"{info_message} {ERROR_TITLE} {warning_message}"
     return info_message
 
 
