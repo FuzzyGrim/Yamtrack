@@ -26,9 +26,13 @@ def get_redis_connection():
 redis_pool = get_redis_connection()
 
 session = LimiterSession(
-    per_second=10,
+    per_second=5,
     bucket_class=RedisBucket,
     bucket_kwargs={"redis_pool": redis_pool, "bucket_name": "api"},
+)
+session.mount(
+    "https://api.myanimelist.net/v2",
+    LimiterAdapter(per_minute=30),
 )
 session.mount(
     "https://graphql.anilist.co",

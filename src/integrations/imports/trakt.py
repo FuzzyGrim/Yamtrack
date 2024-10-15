@@ -64,13 +64,13 @@ def importer(username, user):
         "ratings",
     )
 
-    msgs = shows_msg + movies_msg + watchlist_msg + ratings_msg
+    warning_messages = shows_msg + movies_msg + watchlist_msg + ratings_msg
     return (
         shows_num,
         movies_num,
         watchlist_num,
         ratings_num,
-        "\n".join(msgs),
+        "\n".join(warning_messages),
     )
 
 
@@ -482,13 +482,13 @@ def get_metadata(fetch_func, source, title, *args, **kwargs):
         return fetch_func(*args, **kwargs)
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == requests.codes.not_found:
-            logger.warning("%s ID %s not found for %s", source, args[0], title)
-            msg = f"Couldn't find {source} metadata for {title} with ID {args[0]}"
+            msg = f"{title}: Couldn't fetch metadata from {source} ({args[0]})"
+            logger.warning(msg)
             raise ValueError(msg) from e
         raise  # Re-raise other HTTP errors
     except KeyError as e:
-        logger.warning("%s ID %s incomplete metadata for %s", source, args[0], title)
-        msg = f"Incomplete {source} metadata for {title} with ID {args[0]}"
+        msg = f"{title}: Couldn't parse incomplete metadata from {source} ({args[0]})"
+        logger.warning(msg)
         raise ValueError(msg) from e
 
 

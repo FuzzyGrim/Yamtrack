@@ -19,13 +19,13 @@ KITSU_PAGE_LIMIT = 500
 def import_by_user_id(kitsu_id, user):
     """Import anime and manga ratings from Kitsu by user ID."""
     anime_response = get_media_response(kitsu_id, "anime")
-    num_anime_imported, anime_warning = importer(anime_response, "anime", user)
+    num_anime_imported, anime_warnings = importer(anime_response, "anime", user)
 
     manga_response = get_media_response(kitsu_id, "manga")
     num_manga_imported, manga_warning = importer(manga_response, "manga", user)
 
-    warning_message = anime_warning + manga_warning
-    return num_anime_imported, num_manga_imported, warning_message
+    warning_messages = anime_warnings + manga_warning
+    return num_anime_imported, num_manga_imported, "\n".join(warning_messages)
 
 
 def import_by_username(kitsu_username, user):
@@ -94,8 +94,7 @@ def importer(response, media_type, user):
     }
 
     bulk_data = []
-    warning_message = ""
-    num_imported = 0
+    warnings = []
 
     current_file_dir = Path(__file__).resolve().parent
     json_file_path = current_file_dir / "data" / "kitsu-mu-mapping.json"
@@ -112,15 +111,18 @@ def importer(response, media_type, user):
                     user,
                 )
             except ValueError as e:
-                warning_message += f"{e}\n"
+                warnings.append(str(e))
             else:
                 bulk_data.append(instance)
-                num_imported += 1
 
+    num_before = model.objects.filter(user=user).count()
     helpers.bulk_chunk_import(bulk_data, model, user)
+    num_after = model.objects.filter(user=user).count()
+    num_imported = num_after - num_before
+
     logger.info("Imported %s %s", num_imported, media_type)
 
-    return num_imported, warning_message
+    return num_imported, warnings
 
 
 def process_entry(  # noqa: PLR0913
@@ -219,7 +221,7 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
 
     if not media_id:
         media_title = kitsu_metadata["attributes"]["canonicalTitle"]
-        msg = f"Couldn't find a matching ID for {media_title}."
+        msg = f"{media_title}: No valid external ID found."
         raise ValueError(msg)
 
     image_url = get_image_url(kitsu_metadata)
