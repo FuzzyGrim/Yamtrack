@@ -1,7 +1,7 @@
 {% load app_extras %}
 
 <button class="btn progress-btn"
-        hx-post="/progress_edit"
+        hx-post="{% url 'progress_edit' %}"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-trigger="click"
         hx-target="closest .card-text"

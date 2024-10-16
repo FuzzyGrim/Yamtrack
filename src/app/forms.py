@@ -1,6 +1,7 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
+from django.urls import reverse
 
 from app import models
 
@@ -48,6 +49,34 @@ class CustomDurationField(forms.CharField):
                 msg = f"Minutes must be between 0 and {max_min}."
                 raise forms.ValidationError(msg)
             return hours * 60 + minutes
+
+
+class ItemForm(forms.ModelForm):
+    """Form for adding items to the database."""
+
+    class Meta:
+        """Bind form to model."""
+
+        model = models.Item
+        fields = [
+            "media_type",
+            "title",
+            "image",
+            "season_number",
+            "episode_number",
+        ]
+        widgets = {
+            "season_number": forms.NumberInput(attrs={"class": "hidden-field"}),
+            "episode_number": forms.NumberInput(attrs={"class": "hidden-field"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        super().__init__(*args, **kwargs)
+        self.fields["media_type"].widget.attrs = {
+            "hx-get": reverse("add_manual_media"),
+            "hx-target": "#form-container",
+        }
 
 
 class MediaForm(forms.ModelForm):
@@ -174,6 +203,10 @@ class EpisodeForm(forms.ModelForm):
 
         model = models.Episode
         fields = ("item", "watch_date", "repeats")
+
+        widgets = {
+            "item": forms.HiddenInput(),
+        }
 
 
 class GameForm(MediaForm):

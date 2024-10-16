@@ -3,12 +3,12 @@ import logging
 from django.apps import apps
 from django.contrib import messages
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import database, helpers
-from app.forms import FilterForm, get_form_class
+from app.forms import FilterForm, ItemForm, get_form_class
 from app.models import STATUS_IN_PROGRESS, Episode, Item, Season
 from app.providers import igdb, mal, mangaupdates, services, tmdb
 
@@ -291,6 +291,31 @@ def episode_handler(request):
         related_season.watch(episode_number, watch_date)
 
     return helpers.redirect_back(request)
+
+
+@require_http_methods(["GET", "POST"])
+def add_manual_item(request):
+    """Return the form for manually adding media items."""
+    if request.method == "POST":
+        form = ItemForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("media_list")
+
+    default_media_type = "movie"
+    form = ItemForm(initial={"media_type": default_media_type})
+    context = {"form": form, "media_form": get_form_class(default_media_type)}
+
+    return render(request, "app/add_manual.html", context)
+
+
+@require_GET
+def add_manual_media(request):
+    """Return the form for manually adding media items."""
+    media_type = request.GET.get("media_type")
+    form = ItemForm(initial={"media_type": media_type})
+    context = {"form": form, "media_form": get_form_class(media_type)}
+    return render(request, "app/components/add_manual_form.html", context)
 
 
 @require_GET

@@ -48,6 +48,7 @@ class Item(models.Model):
         choices=[
             (media_type, READABLE_MEDIA_TYPES[media_type]) for media_type in MEDIA_TYPES
         ],
+        default="movie",
     )
     title = models.CharField(max_length=255)
     image = models.URLField()

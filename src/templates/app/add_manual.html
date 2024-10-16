@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_extras %}
+
+{% block title %}
+    Add - Yamtrack
+{% endblock title %}
+
+{% block container %}
+    <h2 class="mb-4">Add Manual Media Entry</h2>
+    {% include "app/components/add_manual_form.html" %}
+    <button class="btn btn-secondary" type="submit">Submit</button>
+{% endblock container %}
+
+{% block js %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mediaTypeSelect = document.getElementById('id_media_type');
+        const seasonNumberField = document.getElementById('id_season_number').parentNode;
+        const episodeNumberField = document.getElementById('id_episode_number').parentNode;
+    
+        function updateFieldVisibility() {
+            const selectedMediaType = mediaTypeSelect.value;
+            
+            seasonNumberField.style.display = 'none';
+            episodeNumberField.style.display = 'none';
+    
+            if (selectedMediaType === 'season') {
+                seasonNumberField.style.display = 'block';
+            } else if (selectedMediaType === 'episode') {
+                seasonNumberField.style.display = 'block';
+                episodeNumberField.style.display = 'block';
+            }
+        }
+    
+        mediaTypeSelect.addEventListener('change', updateFieldVisibility);
+        updateFieldVisibility(); // Call once to set initial state
+    });
+    </script>
+{% endblock js %}

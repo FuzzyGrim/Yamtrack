@@ -23,6 +23,8 @@ urlpatterns = [
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
     path("episode_handler", views.episode_handler, name="episode_handler"),
+    path("add/item", views.add_manual_item, name="add_manual_item"),
+    path("add/media", views.add_manual_media, name="add_manual_media"),
     path("history_modal", views.history, name="history"),
     path("history_delete", views.history_delete, name="history_delete"),
 ]
