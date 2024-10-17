@@ -313,8 +313,7 @@ def add_manual_item(request):
 def add_manual_media(request):
     """Return the form for manually adding media items."""
     media_type = request.GET.get("media_type")
-    form = ItemForm(initial={"media_type": media_type})
-    context = {"form": form, "media_form": get_form_class(media_type)}
+    context = {"form": get_form_class(media_type)}
     return render(request, "app/components/add_manual_form.html", context)
 
 

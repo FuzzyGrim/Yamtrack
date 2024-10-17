@@ -75,7 +75,7 @@ class ItemForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["media_type"].widget.attrs = {
             "hx-get": reverse("add_manual_media"),
-            "hx-target": "#form-container",
+            "hx-target": "#media-form",
         }
 
 

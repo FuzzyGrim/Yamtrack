@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_extras %}
+{% load crispy_forms_tags %}
 
 {% block title %}
     Add - Yamtrack
@@ -8,8 +9,12 @@
 
 {% block container %}
     <h2 class="mb-4">Add Manual Media Entry</h2>
-    {% include "app/components/add_manual_form.html" %}
-    <button class="btn btn-secondary" type="submit">Submit</button>
+    <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        {% include "app/components/add_manual_form.html" %}
+        <button class="btn btn-secondary" type="submit">Submit</button>
+    </form>
 {% endblock container %}
 
 {% block js %}
@@ -20,14 +25,19 @@
         const episodeNumberField = document.getElementById('id_episode_number').parentNode;
     
         function updateFieldVisibility() {
+            console.log('updateFieldVisibility');
             const selectedMediaType = mediaTypeSelect.value;
+
+            console.log(selectedMediaType);
             
             seasonNumberField.style.display = 'none';
             episodeNumberField.style.display = 'none';
     
             if (selectedMediaType === 'season') {
+                console.log("isSeason");
                 seasonNumberField.style.display = 'block';
             } else if (selectedMediaType === 'episode') {
+                console.log("isEpisode");
                 seasonNumberField.style.display = 'block';
                 episodeNumberField.style.display = 'block';
             }
