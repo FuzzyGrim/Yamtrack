@@ -12,7 +12,7 @@
     <form method="post">
         {% csrf_token %}
         {{ form|crispy }}
-        {% include "app/components/add_manual_form.html" %}
+        {% include "app/components/add_manual_form.html" with form=media_form %}
         <button class="btn btn-secondary" type="submit">Submit</button>
     </form>
 {% endblock container %}
