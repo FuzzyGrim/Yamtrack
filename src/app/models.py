@@ -2,6 +2,7 @@ import datetime
 import logging
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     DecimalValidator,
     MaxValueValidator,
@@ -52,8 +53,8 @@ class Item(models.Model):
     )
     title = models.CharField(max_length=255)
     image = models.URLField()
-    season_number = models.PositiveIntegerField(null=True)
-    episode_number = models.PositiveIntegerField(null=True)
+    season_number = models.PositiveIntegerField(null=True, blank=True)
+    episode_number = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         """Meta options for the model."""
@@ -75,6 +76,29 @@ class Item(models.Model):
             if self.episode_number:
                 name += f"E{self.episode_number}"
         return name
+
+    def save(self, *args, **kwargs):
+        """Save the item instance."""
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        """Validate the item instance."""
+        super().clean()
+        if self.media_type == "season":
+            if self.season_number is None:
+                msg = "Season number is required for season."
+                raise ValidationError(msg)
+            if self.episode_number is not None:
+                msg = "Episode number should not be set for season."
+                raise ValidationError(msg)
+        elif self.media_type == "episode":
+            if self.season_number is None or self.episode_number is None:
+                msg = "Both season number and episode number are required for episode."
+                raise ValidationError(msg)
+        elif self.season_number is not None or self.episode_number is not None:
+            msg = "Season number and episode number should not be set for this."
+            raise ValidationError(msg)
 
     @property
     def url(self):
