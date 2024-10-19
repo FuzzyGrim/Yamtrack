@@ -299,8 +299,21 @@ def add_manual_item(request):
     if request.method == "POST":
         form = ItemForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect("media_list")
+            item = form.save(commit=False)
+            item.source = "manual"
+            manual_items_count = Item.objects.filter(source="manual").count()
+            item.media_id = manual_items_count + 1
+            item.save()
+
+            media_form = get_form_class(item.media_type)(request.POST)
+            media_form.fields["item"].required = False
+            if media_form.is_valid():
+                media_form.instance.item = item
+                media_form.save()
+            else:
+                item.delete()
+
+            return redirect("add_manual_item")
 
     default_media_type = "movie"
     form = ItemForm(initial={"media_type": default_media_type})

@@ -208,6 +208,11 @@ class EpisodeForm(forms.ModelForm):
             "item": forms.HiddenInput(),
         }
 
+    def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        super().__init__(*args, **kwargs)
+        self.fields["watch_date"].required = True
+
 
 class GameForm(MediaForm):
     """Form for manga."""
