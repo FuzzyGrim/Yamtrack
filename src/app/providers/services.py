@@ -9,7 +9,7 @@ from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
-from app.providers import igdb, mal, mangaupdates, tmdb
+from app.providers import igdb, mal, mangaupdates, manual, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -163,23 +163,19 @@ def request_error_handling(error, *args):
 
 def get_media_metadata(media_type, media_id, source, season_number=None):
     """Return the metadata for the selected media."""
-    match media_type:
-        case "anime":
-            media_metadata = mal.anime(media_id)
-        case "manga":
-            if source == "mangaupdates":
-                media_metadata = mangaupdates.manga(media_id)
-            else:
-                media_metadata = mal.manga(media_id)
-        case "tv":
-            media_metadata = tmdb.tv(media_id)
-        case "season":
-            tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
-            media_metadata = tv_metadata[f"season/{season_number}"]
-            media_metadata["tv_title"] = tv_metadata["title"]
-        case "movie":
-            media_metadata = tmdb.movie(media_id)
-        case "game":
-            media_metadata = igdb.game(media_id)
+    if source == "manual":
+        return manual.metadata(media_id)
 
-    return media_metadata
+    metadata_retrievers = {
+        "anime": lambda: mal.anime(media_id),
+        "manga": lambda: mangaupdates.manga(media_id)
+        if source == "mangaupdates"
+        else mal.manga(media_id),
+        "tv": lambda: tmdb.tv(media_id),
+        "season": lambda: tmdb.tv_with_seasons(media_id, season_number)[
+            [f"season/{season_number}"]
+        ],
+        "movie": lambda: tmdb.movie(media_id),
+        "game": lambda: igdb.game(media_id),
+    }
+    return metadata_retrievers[media_type]()

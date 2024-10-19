@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import database, helpers
-from app.forms import FilterForm, ItemForm, get_form_class
+from app.forms import FilterForm, ManualItemForm, get_form_class
 from app.models import STATUS_IN_PROGRESS, Episode, Item, Season
 from app.providers import igdb, mal, mangaupdates, services, tmdb
 
@@ -297,7 +297,7 @@ def episode_handler(request):
 def add_manual_item(request):
     """Return the form for manually adding media items."""
     if request.method == "POST":
-        form = ItemForm(request.POST)
+        form = ManualItemForm(request.POST)
         if form.is_valid():
             item = form.save(commit=False)
             item.source = "manual"
@@ -305,27 +305,25 @@ def add_manual_item(request):
             item.media_id = manual_items_count + 1
             item.save()
 
-            media_form = get_form_class(item.media_type)(request.POST)
-            media_form.fields["item"].required = False
+            updated_request = request.POST.copy()
+            updated_request.update({"item": item.id})
+            media_form = get_form_class(item.media_type)(updated_request)
             if media_form.is_valid():
-                media_form.instance.item = item
+                media_form.instance.user = request.user
                 media_form.save()
+                messages.success(request, f"{item} added successfully.")
             else:
+                messages.error(
+                    request,
+                    "Could not save the media item, there were errors in the form.",
+                )
+                logger.error(media_form.errors.as_json())
                 item.delete()
 
             return redirect("add_manual_item")
 
-    default_media_type = "movie"
-    form = ItemForm(initial={"media_type": default_media_type})
-
-    # Remove TV-related media types from the choices
-    choices = form.fields["media_type"].choices
-    filtered_choices = [
-        item for item in choices if item[0] not in ("tv", "season", "episode")
-    ]
-    form.fields["media_type"].choices = filtered_choices
-
-    context = {"form": form, "media_form": get_form_class(default_media_type)}
+    form = ManualItemForm()
+    context = {"form": form, "media_form": get_form_class(form["media_type"].value())}
 
     return render(request, "app/add_manual.html", context)
 

@@ -122,6 +122,7 @@ def tv_with_seasons(media_id, season_numbers):
             season_data = process_season(
                 response[f"season/{season_number}"],
             )
+            season_data["tv_title"] = data["title"]
             cache.set(f"season_{media_id}_{season_number}", season_data)
             data[f"season/{season_number}"] = season_data
     return data

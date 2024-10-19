@@ -135,6 +135,11 @@ class Item(models.Model):
         }
         return colors[self.media_type]
 
+    @property
+    def media_type_readable(self):
+        """Return the readable media type."""
+        return READABLE_MEDIA_TYPES[self.media_type]
+
 
 class Media(models.Model):
     """Abstract model for all media types."""
@@ -149,7 +154,7 @@ class Media(models.Model):
         ],
     )
 
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     score = models.DecimalField(
         null=True,

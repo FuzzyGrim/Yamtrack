@@ -1,6 +1,7 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row
 from django import forms
+from django.conf import settings
 from django.urls import reverse
 
 from app import models
@@ -51,7 +52,7 @@ class CustomDurationField(forms.CharField):
             return hours * 60 + minutes
 
 
-class ItemForm(forms.ModelForm):
+class ManualItemForm(forms.ModelForm):
     """Form for adding items to the database."""
 
     class Meta:
@@ -70,7 +71,26 @@ class ItemForm(forms.ModelForm):
         self.fields["media_type"].widget.attrs = {
             "hx-get": reverse("add_manual_media"),
             "hx-target": "#media-form",
+            "initial": "movie",
         }
+
+        # Remove TV-related media types from the choices
+        filtered_choices = [
+            item
+            for item in self.fields["media_type"].choices
+            if item[0] not in ("tv", "season", "episode")
+        ]
+        self.fields["media_type"].choices = filtered_choices
+
+        self.fields["image"].required = False
+
+    def clean(self):
+        """Validate the form."""
+        cleaned_data = super().clean()
+        image = cleaned_data.get("image")
+        if not image:
+            cleaned_data["image"] = settings.IMG_NONE
+        return cleaned_data
 
 
 class MediaForm(forms.ModelForm):

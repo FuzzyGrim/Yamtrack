@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
-from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES, Item
+from app.models import MEDIA_TYPES, Item
 from app.providers import services, tmdb
 from events.models import Event
 
@@ -61,8 +61,7 @@ def reload_calendar(user=None):  # , used for metadata
 
     user_reloaded_count = len(user_reloaded_items)
     user_reloaded_msg = "\n".join(
-        f"{item} ({READABLE_MEDIA_TYPES[item.media_type]})"
-        for item in user_reloaded_items
+        f"{item} ({item.media_type_readable})" for item in user_reloaded_items
     )
 
     if user_reloaded_count > 0:
@@ -226,7 +225,7 @@ def add_user_reloaded(item, user, user_reloaded_items):
     logger.info(
         "Processed events for: %s (%s)",
         item,
-        READABLE_MEDIA_TYPES[item.media_type],
+        item.media_type_readable,
     )
 
 
