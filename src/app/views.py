@@ -317,6 +317,14 @@ def add_manual_item(request):
 
     default_media_type = "movie"
     form = ItemForm(initial={"media_type": default_media_type})
+
+    # Remove TV-related media types from the choices
+    choices = form.fields["media_type"].choices
+    filtered_choices = [
+        item for item in choices if item[0] not in ("tv", "season", "episode")
+    ]
+    form.fields["media_type"].choices = filtered_choices
+
     context = {"form": form, "media_form": get_form_class(default_media_type)}
 
     return render(request, "app/add_manual.html", context)

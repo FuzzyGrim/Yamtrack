@@ -62,13 +62,7 @@ class ItemForm(forms.ModelForm):
             "media_type",
             "title",
             "image",
-            "season_number",
-            "episode_number",
         ]
-        widgets = {
-            "season_number": forms.NumberInput(attrs={"class": "hidden-field"}),
-            "episode_number": forms.NumberInput(attrs={"class": "hidden-field"}),
-        }
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
