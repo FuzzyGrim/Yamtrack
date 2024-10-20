@@ -13,7 +13,7 @@
       <div class="grid">
         {% for media in media_list %}
           <div class="card mx-auto">
-            <a href="{% if media.item.season_number != None %}{% url 'season_details' media_id=media.item.media_id title=media.item.title|slug season_number=media.item.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.item.media_id title=media.item.title|slug %}{% endif %}">
+            <a href="{% if media.item.season_number != None %}{% url 'season_details' media_id=media.item.media_id title=media.item.title|slug season_number=media.item.season_number %}{% else %}{% url 'media_details' media_type=media_type media_id=media.item.media_id title=media.item.title|slug %}{% endif %}?source={{ media.item.source }}">
               <img data-src="{{ media.item.image }}"
                    class="card-img lazyload {% if media.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
                    alt="{{ media }}"
