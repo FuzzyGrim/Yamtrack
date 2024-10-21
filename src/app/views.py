@@ -96,6 +96,7 @@ def media_search(request):
     query = request.GET["q"]
     request.user.set_last_search_type(media_type)
 
+    # only receives source when searching with secondary source
     source = request.GET.get("source")
 
     if media_type == "manga":
