@@ -23,6 +23,7 @@ class CalendarViewTests(TestCase):
             source="mal",
             media_type="anime",
             title="My Anime",
+            image="http://example.com/image.jpg",
         )
         Anime.objects.create(item=self.item, user=self.user)
         Event.objects.create(item=self.item, date="2024-08-17")
@@ -48,6 +49,7 @@ class ReloadCalendarTaskTests(TestCase):
             source="mal",
             media_type="anime",
             title="Perfect Blue",
+            image="http://example.com/image.jpg",
         )
         Anime.objects.create(item=self.item, user=self.user, status="Planning")
 

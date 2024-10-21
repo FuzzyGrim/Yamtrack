@@ -362,7 +362,9 @@ def add_tmdb_episodes(entry, season, user):
         ep_img = None
         for episode_metadata in metadata[f"season/{season_number}"]["episodes"]:
             if episode_metadata["episode_number"] == episode["number"]:
-                ep_img = episode_metadata["still_path"]
+                ep_img = (
+                    f"https://image.tmdb.org/t/p/w500{episode_metadata['still_path']}"
+                )
                 break
 
         if not ep_img:

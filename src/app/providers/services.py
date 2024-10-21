@@ -172,8 +172,8 @@ def get_media_metadata(media_type, media_id, source, season_number=None):
         if source == "mangaupdates"
         else mal.manga(media_id),
         "tv": lambda: tmdb.tv(media_id),
-        "season": lambda: tmdb.tv_with_seasons(media_id, season_number)[
-            [f"season/{season_number}"]
+        "season": lambda: tmdb.tv_with_seasons(media_id, [season_number])[
+            f"season/{season_number}"
         ],
         "movie": lambda: tmdb.movie(media_id),
         "game": lambda: igdb.game(media_id),

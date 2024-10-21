@@ -195,6 +195,7 @@ class ListItemToggleViewTest(TestCase):
             source="tmdb",
             media_type="movie",
             title="Test Movie",
+            image="http://example.com/image.jpg",
         )
 
     def test_list_item_toggle(self):

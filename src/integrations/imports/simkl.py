@@ -166,7 +166,6 @@ def process_tv_list(tv_list, user):
 
             for episode in episodes:
                 ep_img = get_episode_image(episode, season_number, metadata)
-
                 episode_item, _ = app.models.Item.objects.get_or_create(
                     media_id=tmdb_id,
                     source="tmdb",
@@ -194,7 +193,7 @@ def get_episode_image(episode, season_number, metadata):
     """Get the image for the episode."""
     for episode_metadata in metadata[f"season/{season_number}"]["episodes"]:
         if episode_metadata["episode_number"] == episode["number"]:
-            return episode_metadata["still_path"]
+            return f"https://image.tmdb.org/t/p/w500{episode_metadata['still_path']}"
     return settings.IMG_NONE
 
 

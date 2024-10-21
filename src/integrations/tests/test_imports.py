@@ -236,7 +236,7 @@ class ImportKitsu(TestCase):
             self.user,
         )
 
-        self.assertEqual(instance.item.media_id, "1")
+        self.assertEqual(instance.item.media_id, 1)
         self.assertIsInstance(instance, Anime)
         self.assertEqual(instance.score, 9)
         self.assertEqual(instance.progress, 26)

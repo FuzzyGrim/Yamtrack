@@ -40,7 +40,7 @@ class ItemModel(TestCase):
         item = Item.objects.create(
             media_id=2,
             source="tmdb",
-            media_type="tv",
+            media_type="episode",
             title="Test Show",
             image="http://example.com/image2.jpg",
             season_number=1,
