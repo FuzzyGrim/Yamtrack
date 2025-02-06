@@ -1,5 +1,5 @@
 aiohttp==3.11.11
-beautifulsoup4==4.12.3
+beautifulsoup4==4.13.3
 celery==5.4.0
 crispy-bootstrap5==2024.10
 croniter==6.0.0
