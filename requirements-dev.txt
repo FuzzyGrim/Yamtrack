@@ -1,6 +1,6 @@
 coverage==7.6.10
 djlint==1.36.4
-pytest-playwright==0.6.2
+pytest-playwright==0.7.0
 ruff==0.9.4
 
 -r requirements.txt
