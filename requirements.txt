@@ -1,4 +1,4 @@
-aiohttp==3.11.11
+aiohttp==3.11.12
 beautifulsoup4==4.13.3
 celery==5.4.0
 crispy-bootstrap5==2024.10
