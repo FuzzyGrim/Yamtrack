@@ -9,7 +9,7 @@ django-celery-results==2.5.1
 django-crispy-forms==2.3
 django_debug_toolbar==5.0.1
 django-model-utils==5.0.0
-django-select2==8.2.3
+django-select2==8.3.0
 django-simple-history==3.8.0
 fakeredis==2.26.2
 gunicorn==23.0.0
