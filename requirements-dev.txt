@@ -1,4 +1,4 @@
-coverage==7.6.11
+coverage==7.6.12
 djlint==1.36.4
 pytest-playwright==0.7.0
 ruff==0.9.6
