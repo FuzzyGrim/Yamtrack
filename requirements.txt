@@ -2,7 +2,7 @@ aiohttp==3.11.13
 beautifulsoup4==4.13.3
 celery==5.4.0
 croniter==6.0.0
-Django==5.1.6
+Django==5.1.7
 django-celery-beat==2.7.0
 django-celery-results==2.5.1
 django_debug_toolbar==5.0.1
