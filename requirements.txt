@@ -15,7 +15,7 @@ django-simple-history==3.8.0
 django-widget-tweaks==1.5.0
 gunicorn==23.0.0
 Pillow==11.1.0
-psycopg[binary]==3.2.5
+psycopg[binary]==3.2.6
 python-decouple==3.8
 redis[hiredis]==5.2.1
 requests==2.32.3
