@@ -2,6 +2,6 @@ coverage==7.8.0
 djlint==1.36.4
 fakeredis==2.28.0
 pytest-playwright==0.7.0
-ruff==0.11.2
+ruff==0.11.4
 
 -r requirements.txt
