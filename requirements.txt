@@ -7,7 +7,7 @@ Django==5.2
 django-allauth[socialaccount,mfa]==65.7.0
 django-celery-beat==2.8.0
 django-celery-results==2.6.0
-django_debug_toolbar==5.1.0
+django_debug_toolbar==5.2.0
 django-decorator-include==3.3
 django-health-check==3.18.3
 django-model-utils==5.0.0
