@@ -111,7 +111,7 @@ class EventManager(models.Manager):
             combined_query,
             datetime__gte=start_datetime,
             datetime__lte=end_datetime,
-        ).select_related("item")
+        ).order_by("datetime").select_related("item")
 
 
 class Event(models.Model):
