@@ -20,9 +20,10 @@ from app.models import (
     Movie,
     Season,
     Sources,
+    Game,
 )
 from integrations import helpers
-from integrations.imports import anilist, kitsu, mal, simkl, yamtrack
+from integrations.imports import anilist, kitsu, mal, simkl, yamtrack, hltb
 from integrations.imports.trakt import TraktImporter
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
@@ -143,6 +144,21 @@ class ImportYamtrack(TestCase):
             Episode.objects.filter(related_season__user=self.user).count(),
             24,
         )
+
+class ImportHowLongToBeat(TestCase):
+    """Test importing media from HowLongToBeat CSV."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    def test_import_hltb(self):
+        """Basic test importing media from HowLongToBeat."""
+        with Path(mock_path / "import_hltb_game.csv").open("rb") as file:
+            hltb.importer(file, self.user, "new")
+
+        self.assertEqual(Game.objects.filter(user=self.user).count(), 1)
 
 
 class ImportKitsu(TestCase):
