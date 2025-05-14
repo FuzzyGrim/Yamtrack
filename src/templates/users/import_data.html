@@ -290,6 +290,34 @@
             </label>
           </form>
         </div>
+
+        {# HowLongToBeat #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center mb-3">{% source_display "hltb" %}</div>
+          <p class="text-sm text-gray-400 mb-3"
+             x-text="importFrequency === 'once' ? 'Import from HowLongToBeat backup' : 'File uploads are not available for periodic imports'">
+          </p>
+          <form method="post"
+                action="{% url 'import_hltb' %}"
+                enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :disabled="importFrequency !== 'once'">
+              <input name="hltb_csv"
+                     accept=".csv"
+                     class="hidden"
+                     type="file"
+                     :disabled="importFrequency !== 'once'"
+                     @change="importFrequency === 'once' && $el.form.submit()">
+              Select CSV File
+            </label>
+          </form>
+        </div>
+
       </div>
     </div>
 

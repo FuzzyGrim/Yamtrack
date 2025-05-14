@@ -186,6 +186,28 @@ def import_yamtrack(request):
     return redirect("import_data")
 
 
+@require_POST
+def import_hltb(request):
+    """View for importing game date from HowLongToBeat."""
+    file = request.FILES.get("hltb_csv")
+
+    if not file:
+        messages.error(request, "HowLongToBeat CSV file is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    tasks.import_hltb.delay(
+        file=request.FILES["hltb_csv"],
+        user_id=request.user.id,
+        mode=mode,
+    )
+    messages.info(
+        request,
+        "The task to import media from HowLongToBeat CSV file has been queued.",
+    )
+    return redirect("import_data")
+
+
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""

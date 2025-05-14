@@ -10,6 +10,7 @@ urlpatterns = [
     path("import/anilist", views.import_anilist, name="import_anilist"),
     path("import/kitsu", views.import_kitsu, name="import_kitsu"),
     path("import/yamtrack", views.import_yamtrack, name="import_yamtrack"),
+    path("import/hltb", views.import_hltb, name="import_hltb"),
     path("export/csv", views.export_csv, name="export_csv"),
     path(
         "webhook/jellyfin/<str:token>",

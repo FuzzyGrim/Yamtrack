@@ -6,7 +6,7 @@ import events
 from app.mixins import disable_fetch_releases
 from app.models import MediaTypes
 from app.templatetags import app_tags
-from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack
+from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack, hltb
 
 ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 
@@ -160,6 +160,35 @@ def import_yamtrack(file, user_id, mode):
         raise ValueError(msg) from error
     except KeyError as error:
         msg = "Error parsing Yamtrack CSV file."
+        raise ValueError(msg) from error
+    else:
+        imported_summary_list = [
+            f"{count} {app_tags.media_type_readable_plural(media_type)}"
+            for media_type, count in imported_counts.items()
+        ]
+        if len(imported_summary_list) > 1:
+            imported_summary = (
+                f"{', '.join(imported_summary_list[:-1])} and "
+                f"{imported_summary_list[-1]}"
+            )
+        else:
+            imported_summary = imported_summary_list[0]
+        return f"Imported {imported_summary}."
+
+
+@shared_task(name="Import from HowLongToBeat")
+def import_hltb(file, user_id, mode):
+    """Celery task for importing media data from HowLongToBeat."""
+    try:
+        user = get_user_model().objects.get(id=user_id)
+        with disable_fetch_releases():
+            imported_counts = hltb.importer(file, user, mode)
+        events.tasks.reload_calendar.delay()
+    except UnicodeDecodeError as error:
+        msg = "Invalid file format. Please upload a CSV file."
+        raise ValueError(msg) from error
+    except KeyError as error:
+        msg = "Error parsing HowLongToBeat CSV file."
         raise ValueError(msg) from error
     else:
         imported_summary_list = [

@@ -47,6 +47,10 @@ def source_display(source_name):
             "name": "YamTrack",
             "logo": static("favicon//apple-touch-icon.png"),
         },
+        "hltb": {
+            "name": "HowLongToBeat",
+            "logo": "https://howlongtobeat.com/img/icons/favicon-96x96.png",
+        }
     }
 
     # Get source info or use defaults if source not found
