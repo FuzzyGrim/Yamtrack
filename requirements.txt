@@ -18,7 +18,7 @@ django-widget-tweaks==1.5.0
 gunicorn==23.0.0
 icalendar==6.2.0
 Pillow==11.2.1
-psycopg[binary]==3.2.7
+psycopg[binary]==3.2.9
 python-decouple==3.8
 redis[hiredis]==5.2.1
 requests==2.32.3
