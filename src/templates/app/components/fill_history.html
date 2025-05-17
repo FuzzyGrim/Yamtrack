@@ -1,6 +1,8 @@
+{% load i18n %}
+
 <div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
   <div class="flex items-center justify-between mb-6">
-    <h2 class="text-2xl font-bold text-white">Activity History</h2>
+    <h2 class="text-2xl font-bold text-white">{% trans "Activity History" %}</h2>
     <button class="text-gray-400 hover:text-white cursor-pointer"
             @click="historyOpen = false">
       <svg xmlns="http://www.w3.org/2000/svg"
@@ -51,7 +53,7 @@
         {% for change in entry.changes %}<p class="text-white">{{ change.description }}</p>{% endfor %}
       </li>
     {% empty %}
-      <li class="bg-[#39404b] p-4 rounded-lg text-center text-gray-400">You haven't started tracking it yet.</li>
+      <li class="bg-[#39404b] p-4 rounded-lg text-center text-gray-400">{% trans "You haven't started tracking it yet." %}</li>
     {% endfor %}
   </ul>
 </div>

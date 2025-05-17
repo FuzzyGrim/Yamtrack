@@ -15,6 +15,7 @@ from django.db.models import (
 )
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from app import media_type_config
 from app.models import TV, BasicMedia, Episode, Media, MediaTypes, Season
@@ -206,7 +207,7 @@ def get_status_pie_chart_data(status_distribution):
 
     # Process each status dataset
     for dataset in status_distribution["datasets"]:
-        status_label = dataset["label"]
+        status_label = _(dataset["label"])
         status_count = dataset["total"]
         status_color = dataset["background_color"]
 

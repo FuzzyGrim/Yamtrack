@@ -1,4 +1,5 @@
 {% load app_tags %}
+{% load i18n %}
 
 {% for media in media_list.items %}
   <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg transition-all duration-300"
@@ -27,7 +28,7 @@
             {% if media.next_event.content_number %}
               {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} 
             {% else %}
-              Release
+              {% trans "Release" %}
             {% endif %}
               
             • {{ media.next_event.datetime|natural_day }} {{ media.next_event.display_time }}

@@ -7,6 +7,8 @@ from django.utils import timezone
 from django.utils.html import format_html
 from unidecode import unidecode
 
+from django.utils.translation import ngettext
+
 from app import media_type_config
 from app.models import Media, MediaTypes, Sources
 
@@ -66,17 +68,23 @@ def media_type_readable(media_type):
     return MediaTypes(media_type).label
 
 
+
+
 @register.filter
 def media_type_readable_plural(media_type):
-    """Return the readable media type in plural form."""
-    singular = MediaTypes(media_type).label
-
-    # Special cases that don't change in plural form
-    if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
-        return singular
-
-    return f"{singular}s"
-
+    """Return the readable media type in plural form. Supports multilingual translation (i18n supported)."""
+    labels = {
+        MediaTypes.TV: ngettext("TV Show", "TV Shows", 2),
+        MediaTypes.SEASON: ngettext("TV Season", "TV Seasons", 2),
+        MediaTypes.EPISODE: ngettext("Episode", "Episodes", 2),
+        MediaTypes.MOVIE: ngettext("Movie", "Movies", 2),
+        MediaTypes.ANIME: ngettext("Anime", "Anime", 2),
+        MediaTypes.MANGA: ngettext("Manga", "Manga", 2),
+        MediaTypes.GAME: ngettext("Game", "Games", 2),
+        MediaTypes.BOOK: ngettext("Book", "Books", 2),
+        MediaTypes.COMIC: ngettext("Comic", "Comics", 2),
+    }
+    return labels.get(media_type, media_type)
 
 @register.filter
 def media_status_readable(media_status):

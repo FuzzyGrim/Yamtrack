@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
-  Statistics - Yamtrack
+  {% trans "Statistics" %} - Yamtrack
 {% endblock title %}
 
 {% block content %}
   <div class="mb-8">
-    <h1 class="text-3xl font-bold mb-2">Statistics</h1>
-    <p class="text-gray-400">Track your media consumption habits</p>
+    <h1 class="text-3xl font-bold mb-2">{% trans "Statistics" %}</h1>
+    <p class="text-gray-400">{% trans "Track your media consumption habits" %}</p>
   </div>
   <div x-data="dateRangePicker()" x-init="init()" class="relative mb-8">
     <!-- Trigger Button -->
@@ -57,10 +58,10 @@
       <div class="flex border-b border-gray-700">
         <button @click="activeTab = 'predefined'"
                 :class="{'text-white border-b-2 border-indigo-500': activeTab === 'predefined', 'text-gray-400 hover:text-gray-200': activeTab !== 'predefined'}"
-                class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Predefined Ranges</button>
+                class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">{% trans "Predefined Ranges" %}</button>
         <button @click="activeTab = 'custom'"
                 :class="{'text-white border-b-2 border-indigo-500': activeTab === 'custom', 'text-gray-400 hover:text-gray-200': activeTab !== 'custom'}"
-                class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Custom Range</button>
+                class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">{% trans "Custom Range" %}</button>
       </div>
 
       <!-- Predefined Ranges Tab -->
@@ -95,14 +96,14 @@
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
+              <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Start Date" %}</label>
               <input x-model="startDate"
                      @change="updateDateRange()"
                      class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
                      type="date">
             </div>
             <div>
-              <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
+              <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "End Date" %}</label>
               <input x-model="endDate"
                      @change="updateDateRange()"
                      class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
@@ -131,7 +132,7 @@
           <div class="flex justify-end gap-2 pt-2">
             <button @click="isOpen = false"
                     class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors cursor-pointer">
-              Cancel
+              {% trans "Cancel" %}
             </button>
             <button @click="applyCustomRange()"
                     class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-md transition-colors cursor-pointer flex items-center gap-2">
@@ -147,7 +148,7 @@
                    class="w-4 h-4">
                 <path d="M20 6 9 17l-5-5"></path>
               </svg>
-              Apply Range
+              {% trans "Apply Range" %}
             </button>
           </div>
         </div>
@@ -175,7 +176,7 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-sm font-medium text-gray-400">Completed Items</h3>
+          <h3 class="text-sm font-medium text-gray-400">{% trans "Completed Items" %}</h3>
           {% if media_count.total %}
             <p class="text-2xl font-bold">
               {{ status_distribution.total_completed }} <span class="text-gray-500 text-lg">/ {{ media_count.total }}</span>
@@ -203,7 +204,7 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-sm font-medium text-gray-400">Average Rating</h3>
+          <h3 class="text-sm font-medium text-gray-400">{% trans "Average Rating" %}</h3>
           {% if score_distribution.total_scored %}
             <p class="text-2xl font-bold">
               {{ score_distribution.average_score }} <span class="text-gray-500 text-lg">/ 10</span>
@@ -232,10 +233,10 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-sm font-medium text-gray-400">Most Active Day</h3>
+          <h3 class="text-sm font-medium text-gray-400">{% trans "Most Active Day" %}</h3>
           {% if activity_data.stats.most_active_day %}
             <p class="text-2xl font-bold">{{ activity_data.stats.most_active_day }}</p>
-            <p class="text-sm text-gray-500">{{ activity_data.stats.most_active_day_percentage }}% of activity</p>
+            <p class="text-sm text-gray-500">{{ activity_data.stats.most_active_day_percentage }}% {% trans "of activity" %}</p>
           {% else %}
             <p class="text-2xl font-bold text-gray-500">--</p>
           {% endif %}
@@ -258,12 +259,12 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-sm font-medium text-gray-400">Current Streak</h3>
+          <h3 class="text-sm font-medium text-gray-400">{% trans "Current Streak" %}</h3>
           {% if activity_data.stats.most_active_day %}
             <p class="text-2xl font-bold">
-              {{ activity_data.stats.current_streak }} day{{ activity_data.stats.current_streak|pluralize }}
+              {{ activity_data.stats.current_streak }} {% trans "day" %}{{ activity_data.stats.current_streak|pluralize }}
               <p class="text-sm text-gray-500">
-                Longest: {{ activity_data.stats.longest_streak }} day{{ activity_data.stats.longest_streak|pluralize }}
+                {% trans "Longest:" %} {{ activity_data.stats.longest_streak }} {% trans "day" %}{{ activity_data.stats.longest_streak|pluralize }}
               </p>
             </p>
           {% else %}
@@ -275,7 +276,7 @@
 
     <!-- Activity History Section -->
     <div class="bg-[#2a2f35] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
-      <h2 class="text-xl font-semibold mb-4 text-center">Activity History</h2>
+      <h2 class="text-xl font-semibold mb-4 text-center">{% trans "Activity History" %}</h2>
       <div class="overflow-x-auto flex flex-col justify-center"
            x-data="{ graphTooWide: false }"
            x-init="$nextTick(() => { const graphWidth = $refs.graphContainer.scrollWidth; const parentWidth = $el.clientWidth; graphTooWide = graphWidth > parentWidth; })"
@@ -294,13 +295,13 @@
           <div class="flex">
             <!-- Weekday labels -->
             <div class="flex flex-col justify-between pr-2 text-sm text-gray-400">
-              <div class="h-4 flex items-center">Mon</div>
+              <div class="h-4 flex items-center">{% trans "Mon" %}</div>
               <div class="h-4"></div>
-              <div class="h-4 flex items-center">Wed</div>
+              <div class="h-4 flex items-center">{% trans "Wed" %}</div>
               <div class="h-4"></div>
-              <div class="h-4 flex items-center">Fri</div>
+              <div class="h-4 flex items-center">{% trans "Fri" %}</div>
               <div class="h-4"></div>
-              <div class="h-4 flex items-center">Sun</div>
+              <div class="h-4 flex items-center">{% trans "Sun" %}</div>
             </div>
 
             <!-- Weeks grid -->
@@ -326,7 +327,7 @@
           <div class="w-4 h-4 rounded-sm bg-indigo-600"></div>
           <div class="w-4 h-4 rounded-sm bg-indigo-500"></div>
           <div class="w-4 h-4 rounded-sm bg-indigo-400"></div>
-          <span>More</span>
+          <span>{% trans "More" %}</span>
         </div>
       </div>
     </div>
@@ -334,7 +335,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Media Type Distribution Section -->
       <div class="bg-[#2a2f35] rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Media Type Distribution</h2>
+        <h2 class="text-xl font-semibold mb-4">{% trans "Media Type Distribution" %}</h2>
 
         {% if media_type_distribution.labels %}
           <div class="h-80 flex justify-center items-center">
@@ -357,15 +358,15 @@
                 <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
               </svg>
             </div>
-            <h3 class="text-lg font-medium mb-2">No media types to display</h3>
-            <p class="text-gray-400 text-center max-w-md">Add different types of media to see their distribution.</p>
+            <h3 class="text-lg font-medium mb-2">{% trans "No media types to display" %}</h3>
+            <p class="text-gray-400 text-center max-w-md">{% trans "Add different types of media to see their distribution." %}</p>
           </div>
         {% endif %}
       </div>
 
       <!-- Status Distribution Section -->
       <div class="bg-[#2a2f35] rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Status Distribution</h2>
+        <h2 class="text-xl font-semibold mb-4">{% trans "Status Distribution" %}</h2>
 
         {% if status_pie_chart_data.labels %}
           <div class="h-80 flex justify-center items-center">
@@ -387,15 +388,15 @@
                 <line x1="12" x2="12" y1="20" y2="10"></line><line x1="18" x2="18" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="16"></line>
               </svg>
             </div>
-            <h3 class="text-lg font-medium mb-2">No status data to display</h3>
-            <p class="text-gray-400 text-center max-w-md">Track media items with different statuses to see their distribution.</p>
+            <h3 class="text-lg font-medium mb-2">{% trans "No status data to display" %}</h3>
+            <p class="text-gray-400 text-center max-w-md">{% trans "Track media items with different statuses to see their distribution." %}</p>
           </div>
         {% endif %}
       </div>
 
       <!-- Status Distribution by Media Type Section -->
       <div class="bg-[#2a2f35] rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Status Distribution by Media Type</h2>
+        <h2 class="text-xl font-semibold mb-4">{% trans "Status Distribution by Media Type" %}</h2>
 
         {% if media_type_distribution.labels %}
           <div class="h-80 flex justify-center items-center">
@@ -417,9 +418,9 @@
                 <line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line>
               </svg>
             </div>
-            <h3 class="text-lg font-medium mb-2">No data available</h3>
+            <h3 class="text-lg font-medium mb-2">{% trans "No data available" %}</h3>
             <p class="text-gray-400 text-center max-w-md">
-              Add media items with different statuses to see their distribution by type.
+              {% trans "Add media items with different statuses to see their distribution by type." %}
             </p>
           </div>
         {% endif %}
@@ -427,7 +428,7 @@
 
       <!-- Score Distribution by Media Type Section -->
       <div class="bg-[#2a2f35] rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Score Distribution by Media Type</h2>
+        <h2 class="text-xl font-semibold mb-4">{% trans "Score Distribution by Media Type" %}</h2>
 
         {% if score_distribution.total_scored %}
           <div class="h-80 flex justify-center items-center">
@@ -451,8 +452,8 @@
                 <circle cx="12" cy="8" r="6"></circle>
               </svg>
             </div>
-            <h3 class="text-lg font-medium mb-2">No ratings yet</h3>
-            <p class="text-gray-400 text-center max-w-md">Rate your media items to see score distribution statistics.</p>
+            <h3 class="text-lg font-medium mb-2">{% trans "No ratings yet" %}</h3>
+            <p class="text-gray-400 text-center max-w-md">{% trans "Rate your media items to see score distribution statistics." %}</p>
           </div>
         {% endif %}
       </div>
@@ -460,7 +461,7 @@
 
     <!-- Top Rated Media Section -->
     <div class="bg-[#2a2f35] rounded-lg p-6">
-      <h2 class="text-xl font-semibold mb-4">Top Rated Media</h2>
+      <h2 class="text-xl font-semibold mb-4">{% trans "Top Rated Media" %}</h2>
 
       {% if top_rated %}
         <div class="media-grid">
@@ -514,15 +515,15 @@
               <circle cx="12" cy="8" r="6"></circle>
             </svg>
           </div>
-          <h3 class="text-lg font-medium mb-2">No ratings yet</h3>
-          <p class="text-gray-400 text-center max-w-md">Rate your media items to see score distribution statistics.</p>
+          <h3 class="text-lg font-medium mb-2">{% trans "No ratings yet" %}</h3>
+          <p class="text-gray-400 text-center max-w-md">{% trans "Rate your media items to see score distribution statistics." %}</p>
         </div>
       {% endif %}
     </div>
 
     <!-- Media Timeline Section -->
     <div class="bg-[#2a2f35] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
-      <h2 class="text-xl font-semibold mb-6 md:mb-10">Media Timeline</h2>
+      <h2 class="text-xl font-semibold mb-6 md:mb-10">{% trans "Media Timeline" %}</h2>
 
       {% if timeline %}
         <div class="relative flex justify-center">
@@ -620,14 +621,16 @@
               <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
             </svg>
           </div>
-          <h3 class="text-lg font-medium mb-2">Your timeline is empty</h3>
-          <p class="text-gray-400 text-center max-w-md">Consume media items to see them appear on your timeline.</p>
+          <h3 class="text-lg font-medium mb-2">{% trans "Your timeline is empty" %}</h3>
+          <p class="text-gray-400 text-center max-w-md">{% trans "Consume media items to see them appear on your timeline." %}</p>
         </div>
       {% endif %}
     </div>
 
   </div>
 {% endblock content %}
+
+
 
 {% block js %}
   <script src="{% static 'js/date-range.js' %}{% get_static_file_mtime 'js/date-range.js' %}"></script>

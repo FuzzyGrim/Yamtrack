@@ -110,6 +110,7 @@ TEMPLATES = [
                 "app.context_processors.export_vars",
                 "app.context_processors.media_enums",
                 "django.template.context_processors.request",
+                'django.template.context_processors.i18n',
             ],
         },
     },

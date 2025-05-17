@@ -1,5 +1,7 @@
 from django.urls import reverse
 from django.utils.http import urlencode
+from django.utils.translation import gettext_lazy as _
+
 
 from app.models import MediaTypes, Sources
 
@@ -9,7 +11,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.TMDB.label,
         "sample_query": "Breaking Bad",
         "unicode_icon": "📺",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-emerald-400",
         "stats_color": "#10b981",
         "svg_icon": """
@@ -19,7 +21,7 @@ MEDIA_TYPE_CONFIG = {
     MediaTypes.SEASON.value: {
         "default_source": Sources.TMDB.label,
         "unicode_icon": "📺",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-purple-400",
         "stats_color": "#a855f7",
         "svg_icon": """
@@ -32,7 +34,7 @@ MEDIA_TYPE_CONFIG = {
     MediaTypes.EPISODE.value: {
         "default_source": Sources.TMDB.label,
         "unicode_icon": "📺",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-indigo-400",
         "stats_color": "#6366f1",
         "svg_icon": """<polygon points="6 3 20 12 6 21 6 3"/>""",
@@ -41,7 +43,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.TMDB.label,
         "sample_query": "The Shawshank Redemption",
         "unicode_icon": "🎬",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-orange-400",
         "stats_color": "#f97316",
         "svg_icon": """
@@ -59,7 +61,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.MAL.label,
         "sample_query": "Perfect Blue",
         "unicode_icon": "🎭",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-blue-400",
         "stats_color": "#3b82f6",
         "svg_icon": """
@@ -71,7 +73,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.MAL.label,
         "sample_query": "Berserk",
         "unicode_icon": "📚",
-        "verb": ("read", "read"),
+        "verb": (_("read"), _("read")),
         "text_color": "text-red-400",
         "stats_color": "#ef4444",
         "svg_icon": """
@@ -88,7 +90,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.IGDB.label,
         "sample_query": "Half-Life",
         "unicode_icon": "🎮",
-        "verb": ("play", "played"),
+        "verb": (_("play"), _("played")),
         "text_color": "text-yellow-400",
         "stats_color": "#eab308",
         "svg_icon": """
@@ -103,7 +105,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.HARDCOVER.label,
         "sample_query": "The Great Gatsby",
         "unicode_icon": "📖",
-        "verb": ("read", "read"),
+        "verb": (_("read"), _("read")),
         "text_color": "text-fuchsia-400",
         "stats_color": "#d946ef",
         "svg_icon": """
@@ -116,7 +118,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.COMICVINE.label,
         "sample_query": "Batman",
         "unicode_icon": "📕",
-        "verb": ("read", "read"),
+        "verb": (_("read"), _("read")),
         "text_color": "text-cyan-400",
         "stats_color": "#06b6d4",
         "svg_icon": """

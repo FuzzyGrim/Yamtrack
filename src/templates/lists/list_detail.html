@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block extra_head %}
   {{ form.media.css }}
@@ -49,7 +50,7 @@
         <path d="M14 17H5"></path>
         <circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle>
       </svg>
-      <span>Edit List</span>
+      <span>{% trans "Edit List" %}</span>
     </button>
     {% include "lists/components/list_form.html" %}
   </div>
@@ -69,7 +70,7 @@
       {# Search #}
       <div class="relative flex-1">
         <input id="search-input"
-               placeholder="Search in collection..."
+               placeholder="{% trans 'Search in collection...' %}"
                class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="query"
@@ -248,11 +249,11 @@
               <path d="M21 12h-6"></path>
             </svg>
           </div>
-          <h3 class="text-xl font-semibold mb-2">No items in this list yet</h3>
-          <p class="text-gray-400 mb-6">Start adding your favorite media to build your collection</p>
+          <h3 class="text-xl font-semibold mb-2">{% trans "No items in this list yet" %}</h3>
+          <p class="text-gray-400 mb-6">{% trans "Start adding your favorite media to build your collection" %}</p>
           <div class="pt-4">
             <a href="{{ 'tv'|sample_search }}"
-               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
+               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">{% trans "Browse Media" %}</a>
           </div>
         </div>
       </div>

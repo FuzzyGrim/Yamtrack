@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load static %}
 {% load app_tags %}
 
@@ -72,7 +73,7 @@
                 <a href="{% url 'home' %}"
                    class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                   {% icon 'home' is_active=request.path|str_equals:"/" %}
-                  <span>Home</span>
+                  <span>{% trans "Home" %}</span>
                 </a>
               </li>
 
@@ -95,7 +96,7 @@
                   <a href="{{ create_entry_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% icon 'create' is_active=request.path|str_equals:create_entry_url %}
-                    <span>Create Custom</span>
+                    <span>{% trans "Create Custom" %}</span>
                   </a>
                 </li>
 
@@ -104,7 +105,7 @@
                   <a href="{{ statistics_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% icon 'statistics' is_active=request.path|str_equals:statistics_url %}
-                    <span>Statistics</span>
+                    <span>{% trans "Statistics" %}</span>
                   </a>
                 </li>
 
@@ -113,7 +114,7 @@
                   <a href="{{ lists_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% icon 'lists' is_active=request.path|str_equals:lists_url %}
-                    <span>Lists</span>
+                    <span>{% trans "Lists" %}</span>
                   </a>
                 </li>
 
@@ -122,7 +123,7 @@
                   <a href="{{ calendar_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% icon 'calendar' is_active=request.path|str_equals:calendar_url %}
-                    <span>Calendar</span>
+                    <span>{% trans "Calendar" %}</span>
                   </a>
                 </li>
               </ul>
@@ -144,7 +145,7 @@
                 {% else %}
                   {% icon 'settings' is_active=False %}
                 {% endif %}
-                <span>Settings</span>
+                <span>{% trans "Settings" %}</span>
               </a>
 
               <form method="post" action="{% url 'account_logout' %}" class="w-full">
@@ -152,7 +153,7 @@
                 <button type="submit"
                         class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
                   {% icon 'logout' is_active=False %}
-                  <span>Logout</span>
+                  <span>{% trans "Logout" %}</span>
                 </button>
               </form>
             </div>
@@ -195,7 +196,7 @@
                 <div class="relative w-full max-w-2xl">
                   <form method="get"
                         action="{% url 'search' %}"
-                        x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
+                        x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `{% trans 'Search' %} ${this.selectedType.display.toLowerCase()}...` } }">
                     <div class="flex">
                       <div class="relative flex-grow">
                         {# Search input #}

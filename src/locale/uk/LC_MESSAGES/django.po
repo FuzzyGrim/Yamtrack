@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-17 23:18+0300\n"
-"PO-Revision-Date: 2025-05-17 23:21+0300\n"
+"POT-Creation-Date: 2025-05-20 23:30+0300\n"
+"PO-Revision-Date: 2025-05-20 23:33+0300\n"
 "Last-Translator: Dreykp <>\n"
 "Language-Team: Ukrainian\n"
 "Language: uk\n"
@@ -18,7 +18,133 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=n==1 ? 3 : n%10==1 && n%100!=11 ? 0 : "
 "n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Gtranslator 48.0\n"
+"X-Generator: Poedit 3.4.4\n"
+
+#: app/media_type_config.py:14 app/media_type_config.py:24
+#: app/media_type_config.py:37 app/media_type_config.py:46
+#: app/media_type_config.py:64
+msgid "watch"
+msgstr "дивитися"
+
+#: app/media_type_config.py:14 app/media_type_config.py:24
+#: app/media_type_config.py:37 app/media_type_config.py:46
+#: app/media_type_config.py:64
+msgid "watched"
+msgstr "дивилися"
+
+#: app/media_type_config.py:76 app/media_type_config.py:108
+#: app/media_type_config.py:121
+msgid "read"
+msgstr "читаєте"
+
+#: app/media_type_config.py:93
+msgid "play"
+msgstr "граєте"
+
+#: app/media_type_config.py:93
+msgid "played"
+msgstr "грали"
+
+# MadiaType — sets
+#: app/models.py:53 app/templatetags/app_tags.py:77
+msgid "TV Show"
+msgid_plural "TV Shows"
+msgstr[0] "Серіал"
+msgstr[1] "Серіали"
+msgstr[2] ""
+msgstr[3] ""
+
+#: app/models.py:54 app/templatetags/app_tags.py:78
+msgid "TV Season"
+msgid_plural "TV Seasons"
+msgstr[0] "Сезон"
+msgstr[1] "Сезони"
+msgstr[2] ""
+msgstr[3] ""
+
+#: app/models.py:55 app/templatetags/app_tags.py:79
+#: templates/app/components/fill_track_episode.html:36
+#: templates/app/media_details.html:503
+msgid "Episode"
+msgid_plural "Episodes"
+msgstr[0] "Епізод"
+msgstr[1] "Епізоди"
+msgstr[2] ""
+msgstr[3] ""
+
+#: app/models.py:56 app/templatetags/app_tags.py:80
+msgid "Movie"
+msgid_plural "Movies"
+msgstr[0] "Фільм"
+msgstr[1] "Фільми"
+msgstr[2] ""
+msgstr[3] ""
+
+#: app/models.py:57 app/templatetags/app_tags.py:81
+msgid "Anime"
+msgid_plural "Anime"
+msgstr[0] "Аніме"
+msgstr[1] "Аніме"
+msgstr[2] ""
+msgstr[3] ""
+
+#: app/models.py:58 app/templatetags/app_tags.py:82
+msgid "Manga"
+msgid_plural "Manga"
+msgstr[0] "Манґа"
+msgstr[1] "Манґа"
+msgstr[2] ""
+msgstr[3] ""
+
+#: app/models.py:59 app/templatetags/app_tags.py:83
+msgid "Game"
+msgid_plural "Games"
+msgstr[0] "Гра"
+msgstr[1] "Ігри"
+msgstr[2] ""
+msgstr[3] ""
+
+#: app/models.py:60 app/templatetags/app_tags.py:84
+msgid "Book"
+msgid_plural "Books"
+msgstr[0] "Книга"
+msgstr[1] "Книги"
+msgstr[2] ""
+msgstr[3] ""
+
+#: app/models.py:61 app/templatetags/app_tags.py:85
+msgid "Comic"
+msgid_plural "Comics"
+msgstr[0] "Комікс"
+msgstr[1] "Комікси"
+msgstr[2] ""
+msgstr[3] ""
+
+# Statuses
+#: app/models.py:665 templates/app/create_entry.html:457
+msgid "Completed"
+msgstr "Завершено"
+
+#: app/models.py:666 templates/app/create_entry.html:459
+#: templates/app/home.html:11
+msgid "In Progress"
+msgstr "У процесі"
+
+#: app/models.py:667 templates/app/create_entry.html:461
+msgid "Repeating"
+msgstr "Переглядається повторно"
+
+#: app/models.py:668 templates/app/create_entry.html:463
+msgid "Planning"
+msgstr "Заплановано"
+
+#: app/models.py:669 templates/app/create_entry.html:465
+msgid "Paused"
+msgstr "Призупинено"
+
+#: app/models.py:670 templates/app/create_entry.html:467
+msgid "Dropped"
+msgstr "Кинуто"
 
 #: templates/400.html:6 templates/403.html:6 templates/403_csrf.html:6
 msgid "Forbidden"
@@ -49,7 +175,7 @@ msgstr "повідомте про проблему."
 #: templates/400.html:39 templates/403.html:57 templates/403_csrf.html:66
 #: templates/404.html:37 templates/500.html:62
 msgid "Back to Home"
-msgstr "Повернутися на головну"
+msgstr "На головну"
 
 #: templates/403.html:14 templates/403_csrf.html:14
 msgid "Access Forbidden"
@@ -112,7 +238,7 @@ msgstr "Вибачте, але при обробці вашого запиту �
 
 #: templates/500.html:45
 msgid "Try Again"
-msgstr "Спробувати ще раз"
+msgstr "Ще раз"
 
 #: templates/account/login.html:7
 msgid "Login"
@@ -167,6 +293,7 @@ msgid "Sign in"
 msgstr "Увійти"
 
 #: templates/app/components/fill_history.html:5
+#: templates/app/statistics.html:279
 msgid "Activity History"
 msgstr "Історія активності"
 
@@ -176,23 +303,21 @@ msgstr "Ви ще не почали його відстежувати."
 
 #: templates/app/components/fill_track_episode.html:10
 msgid "Track Episode"
-msgstr ""
-
-#: templates/app/components/fill_track_episode.html:36
-msgid "Episode"
-msgstr "Епізод"
+msgstr "Перегляд епізоду"
 
 #: templates/app/components/fill_track_episode.html:39
 msgid "Watched once"
-msgstr "Якось дивився"
+msgstr "Переглянув"
 
 #: templates/app/components/fill_track_episode.html:41
+#: templates/app/media_details.html:619
 msgid "Watched"
 msgstr "Дивився"
 
 #: templates/app/components/fill_track_episode.html:41
+#: templates/app/media_details.html:619
 msgid "times"
-msgstr ""
+msgstr "часу"
 
 #: templates/app/components/fill_track_episode.html:44
 msgid "Not watched yet"
@@ -204,33 +329,426 @@ msgstr "Дата та час перегляду"
 
 #: templates/app/components/fill_track_episode.html:91
 msgid "Air date"
-msgstr "Дата виходу в ефір"
+msgstr "В день релізу"
 
 #: templates/app/components/fill_track_episode.html:103
 msgid "Remove watch"
-msgstr "Видалити перегляд"
+msgstr "Прибрати"
 
 #: templates/app/components/fill_track_episode.html:108
 msgid "Add watch"
-msgstr "Додати перегляд"
+msgstr "Додати"
 
-#: templates/base.html:76
+#: templates/app/components/home_grid.html:31
+msgid "Release"
+msgstr "Реліз"
+
+#: templates/app/components/search_parent_season.html:8
+msgid "Season"
+msgstr "Сезон"
+
+#: templates/app/components/search_parent_season.html:14
+msgid "No seasons found matching"
+msgstr "Не знайдено відповідних сезонів"
+
+#: templates/app/components/search_parent_season.html:14
+#: templates/app/components/search_parent_tv.html:16
+msgid "Please try a different search term."
+msgstr "Будь ласка, спробуйте інший пошуковий запит."
+
+#: templates/app/components/search_parent_tv.html:16
+msgid "No TV shows found matching"
+msgstr "Не знайдено серіалів, які б відповідали запиту"
+
+#: templates/app/create_entry.html:6 templates/app/search.html:176
+msgid "Create"
+msgstr "Створення"
+
+#: templates/app/create_entry.html:12
+msgid "Create Custom Entry"
+msgstr "Створення користувацького запису"
+
+#: templates/app/create_entry.html:13
+msgid ""
+"Add a custom media entry to your collection if it's not available in the "
+"database."
+msgstr ""
+"Додайте до своєї колекції власний медіазапис, якщо він відсутній у базі "
+"даних."
+
+#: templates/app/create_entry.html:134 users/models.py:83
+msgid "Media Type"
+msgstr "Типи медіа"
+
+#: templates/app/create_entry.html:150 templates/app/media_list.html:264
+#: users/models.py:30 users/models.py:37 users/models.py:82
+msgid "Title"
+msgstr "Назва"
+
+#: templates/app/create_entry.html:152
+msgid "Enter title"
+msgstr "Ввести назву"
+
+# MadiaType — sets
+#: templates/app/create_entry.html:160
+msgid "Parent TV Show"
+msgstr "Батьківський серіал"
+
+#: templates/app/create_entry.html:165
+msgid "Search for a TV show..."
+msgstr "Пошук серіалу..."
+
+#: templates/app/create_entry.html:194
+msgid "Season Number"
+msgstr "Номер сезону"
+
+#: templates/app/create_entry.html:241
+msgid "Parent Season"
+msgstr "Батьківський сезон"
+
+#: templates/app/create_entry.html:246
+msgid "Search for a season..."
+msgstr "Пошук сезону..."
+
+#: templates/app/create_entry.html:275
+msgid "Episode Number"
+msgstr "Номер епізод"
+
+#: templates/app/create_entry.html:322
+msgid "Image URL"
+msgstr "URL зображення"
+
+#: templates/app/create_entry.html:327
+msgid "Enter image URL"
+msgstr "Ввести URL-адресу зображення"
+
+#: templates/app/create_entry.html:353 templates/app/media_list.html:265
+msgid "Score"
+msgstr "Оцінка"
+
+#: templates/app/create_entry.html:401 templates/app/media_list.html:266
+#: users/models.py:38
+msgid "Progress"
+msgstr "У процесі"
+
+#: templates/app/create_entry.html:453 templates/app/media_list.html:268
+msgid "Status"
+msgstr "Статус"
+
+#: templates/app/create_entry.html:488
+msgid "Number of Repeats"
+msgstr "Кількість повторів"
+
+#: templates/app/create_entry.html:535 templates/app/media_list.html:269
+#: templates/app/statistics.html:99 users/models.py:39
+msgid "Start Date"
+msgstr "Розпочато"
+
+#: templates/app/create_entry.html:544 templates/app/media_list.html:270
+#: templates/app/statistics.html:106 users/models.py:40
+msgid "End Date"
+msgstr "Закінчено"
+
+#: templates/app/create_entry.html:553
+msgid "Notes"
+msgstr "Замітки"
+
+#: templates/app/create_entry.html:557
+msgid "Add any notes or comments..."
+msgstr "Додайте будь-які примітки або коментарі..."
+
+#: templates/app/create_entry.html:577
+msgid "Create Entry"
+msgstr "Створити запис"
+
+#: templates/app/home.html:6 templates/base.html:76
 msgid "Home"
 msgstr "Головна"
+
+#: templates/app/home.html:79
+msgid "Load All"
+msgstr "Завантажити все"
+
+#: templates/app/home.html:105
+msgid "No media in progress"
+msgstr "Медіа \"У процесі\" відсутні"
+
+#: templates/app/home.html:106
+msgid "Start tracking your progress by marking items as \"In Progress\"."
+msgstr "Почніть відстежувати свій прогрес, позначаючи пункти як \"У процесі\"."
+
+#: templates/app/home.html:109 templates/lists/list_detail.html:256
+msgid "Browse Media"
+msgstr "Переглянути медіа"
+
+#: templates/app/media_details.html:31
+msgid "Add to tracker"
+msgstr "Додати на трекер"
+
+#: templates/app/media_details.html:159
+msgid "YOUR NOTES"
+msgstr "ВАШІ ПРИМІТКИ"
+
+#: templates/app/media_details.html:170
+msgid "SCORE"
+msgstr "ОЦІНКА"
+
+#: templates/app/media_details.html:203
+msgid "YOUR SCORE"
+msgstr "ВАША ОЦІНКА"
+
+#: templates/app/media_details.html:227
+msgid "Click to edit"
+msgstr "Змінити"
+
+#: templates/app/media_details.html:283
+msgid "Started:"
+msgstr "Розпочато:"
+
+#: templates/app/media_details.html:290
+msgid "Ended:"
+msgstr "Завершено:"
+
+#: templates/app/media_details.html:297
+msgid "Progress:"
+msgstr "Прогрес:"
+
+#: templates/app/media_details.html:307
+msgid "Repeats:"
+msgstr "Повторів:"
+
+#: templates/app/media_details.html:333
+msgid "Actions"
+msgstr "Дії"
+
+#: templates/app/media_details.html:440
+msgid "Details"
+msgstr "Деталі"
+
+#: templates/app/media_details.html:455
+msgid "Source"
+msgstr "Джерело"
+
+#: templates/app/media_details.html:462
+msgid "No details available"
+msgstr "Деталі відсутні"
+
+#: templates/app/media_details.html:488
+msgid "Episodes"
+msgstr "Епізоди"
+
+#: templates/app/media_details.html:618
+msgid "Last watched:"
+msgstr "Останній перегляд:"
+
+#: templates/app/media_list.html:38 templates/app/search.html:6
+#: templates/base.html:199 templates/events/components/calendar_list.html:11
+#: templates/lists/components/list_item_button.html:8
+#: templates/lists/components/list_item_button.html:16
+msgid "Search"
+msgstr "Знайти"
+
+#: templates/app/media_list.html:38
+msgid "in your list..."
+msgstr "у вашому списку..."
+
+#: templates/app/media_list.html:246
+msgid "No"
+msgstr ""
+
+#: templates/app/media_list.html:246
+msgid "Tracked Yet"
+msgstr "ще не відстежуються"
+
+#: templates/app/media_list.html:248
+msgid "Start tracking your"
+msgstr "Почніть відстежувати свої"
+
+#: templates/app/media_list.html:248
+msgid "to keep a record of what you've"
+msgstr "щоб вести облік того, що ви"
+
+#: templates/app/media_list.html:252
+msgid "Browse"
+msgstr "Переглянути"
+
+#: templates/app/media_list.html:267
+msgid "Last Watched"
+msgstr "Останній перегляд"
+
+#: templates/app/search.html:11
+msgid "Search Results"
+msgstr "Результати пошуку"
+
+#: templates/app/search.html:154
+msgid "Page"
+msgstr "Сторінка"
+
+#: templates/app/search.html:154
+msgid "of"
+msgstr "з"
+
+#: templates/app/search.html:154
+msgid "results"
+msgstr "результати"
+
+#: templates/app/statistics.html:7 templates/app/statistics.html:12
+#: templates/base.html:108
+msgid "Statistics"
+msgstr "Статистика"
+
+#: templates/app/statistics.html:13
+msgid "Track your media consumption habits"
+msgstr "Відстежуйте свої звички споживання медіа"
+
+#: templates/app/statistics.html:61
+msgid "Predefined Ranges"
+msgstr "Стандартні"
+
+#: templates/app/statistics.html:64
+msgid "Custom Range"
+msgstr "Власні"
+
+#: templates/app/statistics.html:135
+msgid "Cancel"
+msgstr "Відміна"
+
+#: templates/app/statistics.html:151
+msgid "Apply Range"
+msgstr "Застосувати"
+
+# Statuses
+#: templates/app/statistics.html:179
+msgid "Completed Items"
+msgstr "Завершені елементи"
+
+#: templates/app/statistics.html:207
+msgid "Average Rating"
+msgstr "Середній рейтинг"
+
+#: templates/app/statistics.html:236
+msgid "Most Active Day"
+msgstr "Найактивніший день"
+
+#: templates/app/statistics.html:239
+msgid "of activity"
+msgstr "діяльності"
+
+#: templates/app/statistics.html:262
+msgid "Current Streak"
+msgstr "Поточна смуга"
+
+#: templates/app/statistics.html:265 templates/app/statistics.html:267
+msgid "day"
+msgstr "день"
+
+#: templates/app/statistics.html:267
+msgid "Longest:"
+msgstr "Найдовший:"
+
+#: templates/app/statistics.html:298
+#: templates/events/components/calendar_grid.html:6
+msgid "Mon"
+msgstr "Пн"
+
+#: templates/app/statistics.html:300
+#: templates/events/components/calendar_grid.html:8
+msgid "Wed"
+msgstr "Ср"
+
+#: templates/app/statistics.html:302
+#: templates/events/components/calendar_grid.html:10
+msgid "Fri"
+msgstr "Пт"
+
+#: templates/app/statistics.html:304
+#: templates/events/components/calendar_grid.html:12
+msgid "Sun"
+msgstr "Нд"
+
+#: templates/app/statistics.html:330
+msgid "More"
+msgstr "Більше"
+
+#: templates/app/statistics.html:338
+msgid "Media Type Distribution"
+msgstr "Розподіл за типом медіа"
+
+#: templates/app/statistics.html:361
+msgid "No media types to display"
+msgstr "Немає типів медіа для відображення"
+
+#: templates/app/statistics.html:362
+msgid "Add different types of media to see their distribution."
+msgstr "Додайте різні типи медіа, щоб побачити їх розподіл"
+
+#: templates/app/statistics.html:369
+msgid "Status Distribution"
+msgstr "Розподіл статусів"
+
+#: templates/app/statistics.html:391
+msgid "No status data to display"
+msgstr "Статус не вказано"
+
+#: templates/app/statistics.html:392
+msgid "Track media items with different statuses to see their distribution."
+msgstr "Відстежуйте медіа з різними статусами, щоб побачити їх розподіл."
+
+#: templates/app/statistics.html:399
+msgid "Status Distribution by Media Type"
+msgstr "Розподіл статусів за типами медіа"
+
+#: templates/app/statistics.html:421
+msgid "No data available"
+msgstr "Дані відсутні"
+
+#: templates/app/statistics.html:423
+msgid ""
+"Add media items with different statuses to see their distribution by type."
+msgstr ""
+"Додайте медіа з різними статусами, щоб побачити їхній розподіл за типами."
+
+#: templates/app/statistics.html:431
+msgid "Score Distribution by Media Type"
+msgstr "Розподіл оцінок за типами медіа"
+
+#: templates/app/statistics.html:455 templates/app/statistics.html:518
+msgid "No ratings yet"
+msgstr "Ще немає оцінок"
+
+#: templates/app/statistics.html:456 templates/app/statistics.html:519
+msgid "Rate your media items to see score distribution statistics."
+msgstr "Оцініть свої медіа, щоб побачити статистику розподілу балів."
+
+#: templates/app/statistics.html:464
+msgid "Top Rated Media"
+msgstr "Найрейтинговіші медіа"
+
+#: templates/app/statistics.html:526
+msgid "Media Timeline"
+msgstr "Хронологія"
+
+#: templates/app/statistics.html:624
+msgid "Your timeline is empty"
+msgstr "Ваша хронологія порожня"
+
+#: templates/app/statistics.html:625
+msgid "Consume media items to see them appear on your timeline."
+msgstr ""
+"Споживайте медіаелементи, щоб побачити, як вони з'являються на вашій часовій "
+"шкалі."
 
 #: templates/base.html:99
 msgid "Create Custom"
 msgstr "Створити власний"
 
-#: templates/base.html:108
-msgid "Statistics"
-msgstr "Статистика"
-
-#: templates/base.html:117
+#: templates/base.html:117 templates/lists/components/fill_lists.html:5
+#: templates/lists/custom_lists.html:10 templates/lists/custom_lists.html:17
 msgid "Lists"
 msgstr "Списки"
 
-#: templates/base.html:126
+#: templates/base.html:126 templates/events/calendar.html:6
+#: templates/events/calendar.html:11
 msgid "Calendar"
 msgstr "Календар"
 
@@ -242,9 +760,105 @@ msgstr "Налаштування"
 msgid "Logout"
 msgstr "Вийти"
 
-#: templates/base.html:199
-msgid "Search"
-msgstr "Знайти"
+#: templates/events/calendar.html:12
+msgid "Track upcoming releases from your list."
+msgstr "Відстежуйте майбутні релізи зі свого списку."
+
+#: templates/events/calendar.html:55
+msgid "Today"
+msgstr "Сьогодні"
+
+#: templates/events/calendar.html:75
+msgid "Fetch New Releases"
+msgstr "Оновити"
+
+#: templates/events/calendar.html:158
+msgid "Export link"
+msgstr "Посилання на експорт"
+
+#: templates/events/calendar.html:161
+msgid ""
+"This link can be used to integrate your calendar into any of your calendar "
+"applications."
+msgstr ""
+"За цим посиланням ви можете інтегрувати свій календар у будь-який "
+"календарний додаток."
+
+#: templates/events/components/calendar_grid.html:7
+msgid "Tue"
+msgstr "Вт"
+
+#: templates/events/components/calendar_grid.html:9
+msgid "Thu"
+msgstr "Чт"
+
+#: templates/events/components/calendar_grid.html:11
+msgid "Sat"
+msgstr "Сб"
+
+#: templates/lists/components/fill_lists.html:29
+msgid "You haven't created any lists yet."
+msgstr "Ви ще не створили жодного списку."
+
+#: templates/lists/components/list_form.html:12
+#: templates/lists/list_detail.html:53
+msgid "Edit List"
+msgstr "Редагувати список"
+
+#: templates/lists/components/list_form.html:14
+msgid "Create New List"
+msgstr "Створити список"
+
+#: templates/lists/components/list_form.html:52
+msgid "Save"
+msgstr "Зберегти"
+
+#: templates/lists/components/list_form.html:57
+msgid "Delete"
+msgstr "Видалити"
+
+#: templates/lists/components/list_form.html:64
+msgid "Create List"
+msgstr "Створити список"
+
+#: templates/lists/custom_lists.html:18
+msgid "Organize and share your media lists"
+msgstr "Упорядковуйте та діліться своїми списками медіа"
+
+#: templates/lists/custom_lists.html:35
+msgid "New List"
+msgstr "Новий список"
+
+#: templates/lists/custom_lists.html:49
+msgid "Search lists..."
+msgstr "Пошук списків..."
+
+#: templates/lists/custom_lists.html:163
+msgid "No Lists Created Yet"
+msgstr "Списки ще не створені"
+
+#: templates/lists/custom_lists.html:164
+msgid ""
+"Create custom lists to organize your media collection and share with friends."
+msgstr ""
+"Створюйте власні списки, щоб упорядкувати свою медіа-колекцію та діліться "
+"ними з друзями."
+
+#: templates/lists/custom_lists.html:167
+msgid "Create Your First List"
+msgstr "Створіть свій перший список"
+
+#: templates/lists/list_detail.html:73
+msgid "Search in collection..."
+msgstr "Пошук у колекції..."
+
+#: templates/lists/list_detail.html:252
+msgid "No items in this list yet"
+msgstr "У цьому списку ще немає елементів"
+
+#: templates/lists/list_detail.html:253
+msgid "Start adding your favorite media to build your collection"
+msgstr "Почніть додавати улюблені медіа, щоб створити свою колекцію"
 
 #: templates/users/about.html:8 templates/users/about.html:13
 #: templates/users/base.html:173
@@ -761,3 +1375,85 @@ msgstr "Налаштування мови"
 #: templates/users/system_settings.html:41
 msgid "Select Language"
 msgstr "Вибрати мову"
+
+#: users/models.py:27
+msgid "Upcoming"
+msgstr "Найближчі"
+
+# Statuses
+#: users/models.py:28
+msgid "Completion"
+msgstr "Завершення"
+
+#: users/models.py:29
+msgid "Episodes Left"
+msgstr "Епізоди, що залишилися"
+
+#: users/models.py:36
+msgid "Rating"
+msgstr "Рейтинг"
+
+#: users/models.py:58 users/models.py:65
+msgid "Grid"
+msgstr "Сітка"
+
+#: users/models.py:59
+msgid "Table"
+msgstr "Таблиця"
+
+#: users/models.py:66
+msgid "List"
+msgstr "Список"
+
+#: users/models.py:72
+msgid "Last Item Added"
+msgstr "Останнє додавання"
+
+#: users/models.py:73
+msgid "Name"
+msgstr "Ім'я"
+
+#: users/models.py:74
+msgid "Items Count"
+msgstr "Кількість елементів"
+
+#: users/models.py:75
+msgid "Newest First"
+msgstr "Найновіше Перше"
+
+#: users/models.py:81
+msgid "Date Added"
+msgstr "Дата додавання"
+
+#~ msgid "Yesterday"
+#~ msgstr "Вчора"
+
+#~ msgid "This Week"
+#~ msgstr "Цей тиждень"
+
+#~ msgid "Last 7 Days"
+#~ msgstr "Останні 7 днів"
+
+#~ msgid "This Month"
+#~ msgstr "Цей місяць"
+
+#~ msgid "Last 30 Days"
+#~ msgstr "Останні 30 днів"
+
+#~ msgid "Last 90 Days"
+#~ msgstr "Останні 90 днів"
+
+#~ msgid "This Year"
+#~ msgstr "Цей рік"
+
+#~ msgid "Last 6 Months"
+#~ msgstr "Останні 6 місяців"
+
+#~ msgid "Last 12 Months"
+#~ msgstr "Останні 12 місяців"
+
+#~ msgid "All Time"
+#~ msgstr "Весь час"
+
+#~ msgid "In progress"
+#~ msgstr "У процесі"

@@ -2,9 +2,10 @@
 
 {% load socialaccount %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}
-  Account - Yamtrack
+  {% trans "Account" %} - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
@@ -24,7 +25,7 @@
           <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
-        <h2 class="text-xl font-semibold">Profile Information</h2>
+        <h2 class="text-xl font-semibold">{% trans "Profile Information" %}</h2>
       </div>
 
       {% if user_form.non_field_errors %}
@@ -37,7 +38,7 @@
         {% csrf_token %}
         <div>
           <label for="{{ user_form.username.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Username</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Username" %}</label>
           <input id="{{ user_form.username.id_for_label }}"
                  name="{{ user_form.username.html_name }}"
                  class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.username.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
@@ -64,7 +65,7 @@
               <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path>
               <path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
             </svg>
-            Save Changes
+            {% trans "Save Changes" %}
           </button>
         </div>
       </form>
@@ -85,7 +86,7 @@
           <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
-        <h2 class="text-xl font-semibold">Change Password</h2>
+        <h2 class="text-xl font-semibold">{% trans "Change Password" %}</h2>
       </div>
 
       {% if password_form.non_field_errors %}
@@ -100,7 +101,7 @@
         {% csrf_token %}
         <div class="relative">
           <label for="{{ password_form.old_password.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Current Password</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Current Password" %}</label>
           <div class="relative">
             <input id="{{ password_form.old_password.id_for_label }}"
                    name="{{ password_form.old_password.html_name }}"
@@ -151,7 +152,7 @@
 
         <div class="relative">
           <label for="{{ password_form.new_password1.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">New Password</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "New Password" %}</label>
           <div class="relative">
             <input id="{{ password_form.new_password1.id_for_label }}"
                    name="{{ password_form.new_password1.html_name }}"
@@ -202,7 +203,7 @@
 
         <div class="relative">
           <label for="{{ password_form.new_password2.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Confirm New Password</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Confirm New Password" %}</label>
           <div class="relative">
             <input id="{{ password_form.new_password2.id_for_label }}"
                    name="{{ password_form.new_password2.html_name }}"
@@ -268,7 +269,7 @@
               <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path>
               <path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
             </svg>
-            Update Password
+            {% trans "Update Password" %}
           </button>
         </div>
       </form>

@@ -1,3 +1,4 @@
+{% load i18n %}
 {# Track Episode Modal #}
 <div x-show="trackOpen"
      @keydown.escape.window="trackOpen = false"
@@ -6,7 +7,7 @@
        @click.outside="trackOpen = false">
     <div class="bg-[#2a2f35] p-6 rounded-lg">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-white">Track Episode</h2>
+        <h2 class="text-xl font-bold text-white">{% trans "Track Episode" %}</h2>
         <button class="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 @click="trackOpen = false">
           <svg xmlns="http://www.w3.org/2000/svg"
@@ -32,15 +33,15 @@
                src="{{ episode.image }}">
           <div>
             <h3 class="text-lg font-semibold mb-1 line-clamp-1">{{ episode_title }}</h3>
-            <p class="text-sm text-gray-400">Episode {{ episode.episode_number }}</p>
+            <p class="text-sm text-gray-400">{% trans "Episode" %} {{ episode.episode_number }}</p>
             {% if episode.watched %}
               {% if episode.repeats == 0 %}
-                <p class="text-sm text-gray-400 mt-1">Watched once</p>
+                <p class="text-sm text-gray-400 mt-1">{% trans "Watched once" %}</p>
               {% else %}
-                <p class="text-sm text-gray-400 mt-1">Watched {{ episode.repeats|add:"1" }} times</p>
+                <p class="text-sm text-gray-400 mt-1">{% trans "Watched" %} {{ episode.repeats|add:"1" }} {% trans "times" %}</p>
               {% endif %}
             {% else %}
-              <p class="text-sm text-gray-400 mt-1">Not watched yet</p>
+              <p class="text-sm text-gray-400 mt-1">{% trans "Not watched yet" %}</p>
             {% endif %}
           </div>
         </div>
@@ -58,7 +59,7 @@
                value="{{ episode.episode_number }}">
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Watch Date & Time</label>
+            <label class="block text-sm font-medium text-gray-300 mb-2">{% trans "Watch Date & Time" %}</label>
             {# need because it breaks inputDate value when formatting #}
             {# djlint:off #}
             <div class="relative" x-data="{ 
@@ -87,7 +88,7 @@
                     <rect width="18" height="18" x="3" y="4" rx="2"></rect>
                     <path d="M3 10h18"></path>
                   </svg>
-                  Air date
+                  {% trans "Air date" %}
                 </button>
               {% endif %}
             </div>
@@ -99,12 +100,12 @@
                     name="unwatch"
                     {% if not episode.watched %}disabled{% endif %}
                     class="px-4 py-2 rounded-md transition-colors {% if episode.watched %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}">
-              Remove watch
+              {% trans "Remove watch" %}
             </button>
             <button type="submit"
                     name="watch"
                     class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
-              Add watch
+              {% trans "Add watch" %}
             </button>
           </div>
         </div>

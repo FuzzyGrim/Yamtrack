@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
-  Create - Yamtrack
+  {% trans "Create" %} - Yamtrack
 {% endblock title %}
 
 {% block content %}
   <div class="mx-auto max-w-4xl">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold mb-2">Create Custom Entry</h1>
-      <p class="text-gray-400">Add a custom media entry to your collection if it's not available in the database.</p>
+      <h1 class="text-3xl font-bold mb-2">{% trans "Create Custom Entry" %}</h1>
+      <p class="text-gray-400">{% trans "Add a custom media entry to your collection if it's not available in the database." %}</p>
     </div>
     {# djlint:off #}
     <form method="post" class="space-y-6" x-data="{
@@ -130,7 +131,7 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="grid gap-6">
         <div x-cloak>
-          <label class="block text-sm font-medium mb-2 text-gray-300">Media Type</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Media Type" %}</label>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {% for media_type in media_types %}
               <button type="button"
@@ -146,9 +147,9 @@
 
         <!-- Title field (TV, Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('title')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Title</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Title" %}</label>
           <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
-                 placeholder="Enter title"
+                 placeholder="{% trans 'Enter title' %}"
                  name="title"
                  type="text"
                  value="">
@@ -156,12 +157,12 @@
 
         <!-- Parent TV Show field (Season) -->
         <div x-show="showField('parentShow')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Parent TV Show</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Parent TV Show" %}</label>
           <div class="relative">
             <div class="relative">
               <input id="parent-tv-input"
                      class="w-full p-2 pl-9 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
-                     placeholder="Search for a TV show..."
+                     placeholder="{% trans 'Search for a TV show...' %}"
                      name="q"
                      type="text"
                      autocomplete="off"
@@ -190,7 +191,7 @@
 
         <!-- Season Number field (Season) -->
         <div x-show="showField('seasonNumber')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Season Number</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Season Number" %}</label>
           <div class="relative">
             <input min="1"
                    max="999"
@@ -237,12 +238,12 @@
 
         <!-- Parent Season field (Episode) -->
         <div x-show="showField('parentSeason')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Parent Season</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Parent Season" %}</label>
           <div class="relative">
             <div class="relative">
               <input id="parent-season-input"
                      class="w-full p-2 pl-9 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
-                     placeholder="Search for a season..."
+                     placeholder="{% trans 'Search for a season...' %}"
                      name="q"
                      type="text"
                      autocomplete="off"
@@ -271,7 +272,7 @@
 
         <!-- Episode Number field (Episode) -->
         <div x-show="showField('episodeNumber')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Episode Number</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Episode Number" %}</label>
           <div class="relative">
             <input min="1"
                    max="999"
@@ -318,12 +319,12 @@
 
         <!-- Image URL field (All types) -->
         <div x-show="showField('image')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Image URL</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Image URL" %}</label>
           <div class="flex gap-4">
             <div class="flex-1">
               <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                      name="image"
-                     placeholder="Enter image URL"
+                     placeholder="{% trans 'Enter image URL' %}"
                      type="url"
                      value=""
                      x-on:input="updateImagePreview($event.target)">
@@ -349,7 +350,7 @@
 
         <!-- Score field (TV, Movie, Anime, Manga, Game, Book, Season) -->
         <div x-show="showField('score')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Score</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Score" %}</label>
           <div class="relative">
             <input min="0"
                    max="10"
@@ -397,7 +398,7 @@
         <!-- Progress field (Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('progress')">
           <label class="block text-sm font-medium mb-2 text-gray-300"
-                 x-text="getProgressLabel()">Progress</label>
+                 x-text="getProgressLabel()">{% trans "Progress" %}</label>
 
           <div class="relative">
             <input class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
@@ -449,21 +450,21 @@
 
         <!-- Status field (TV, Movie, Anime, Manga, Game, Book, Season) -->
         <div x-show="showField('status')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Status</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Status" %}</label>
           <div class="relative">
             <select class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                     name="status">
-              <option value="{{ Status.COMPLETED.value }}">Completed
+              <option value="{{ Status.COMPLETED.value }}">{% trans "Completed" %}
               </option>
-              <option value="{{ Status.IN_PROGRESS.value }}">In Progress
+              <option value="{{ Status.IN_PROGRESS.value }}">{% trans "In Progress" %}
               </option>
-              <option value="{{ Status.REPEATING.value }}">Repeating
+              <option value="{{ Status.REPEATING.value }}">{% trans "Repeating" %}
               </option>
-              <option value="{{ Status.PLANNING.value }}">Planning
+              <option value="{{ Status.PLANNING.value }}">{% trans "Planning" %}
               </option>
-              <option value="{{ Status.COMPLETED.value }}">Paused
+              <option value="{{ Status.COMPLETED.value }}">{% trans "Paused" %}
               </option>
-              <option value="{{ Status.DROPPED.value }}">Dropped
+              <option value="{{ Status.DROPPED.value }}">{% trans "Dropped" %}
               </option>
             </select>
             <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -484,7 +485,7 @@
 
         <!-- Number of Repeats field (Episode, Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('repeats')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Number of Repeats</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Number of Repeats" %}</label>
           <div class="relative">
             <input min="0"
                    max="999"
@@ -531,7 +532,7 @@
 
         <!-- Start Date field (Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('startDate')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Start Date" %}</label>
           <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                  name="start_date"
                  type="date"
@@ -540,7 +541,7 @@
 
         <!-- End Date field (Episode, Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('endDate')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "End Date" %}</label>
           <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                  name="end_date"
                  type="date"
@@ -549,11 +550,11 @@
 
         <!-- Notes field (TV, Movie, Anime, Manga, Game, Book, Season) -->
         <div x-show="showField('notes')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Notes</label>
+          <label class="block text-sm font-medium mb-2 text-gray-300">{% trans "Notes" %}</label>
           <textarea class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                     rows="4"
                     name="notes"
-                    placeholder="Add any notes or comments..."></textarea>
+                    placeholder="{% trans 'Add any notes or comments...' %}"></textarea>
         </div>
       </div>
 
@@ -573,7 +574,7 @@
           <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path>
           <path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
         </svg>
-        Create Entry
+        {% trans "Create Entry" %}
       </button>
     </div>
   </form>
