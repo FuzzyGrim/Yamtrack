@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 
 from users import views
 
@@ -21,6 +21,7 @@ urlpatterns = [
     path("settings/integrations", views.integrations, name="integrations"),
     path("settings/import", views.import_data, name="import_data"),
     path("settings/export", views.export_data, name="export_data"),
+    path('settings/system', views.system_settings, name='system'),
     path("settings/about", views.about, name="about"),
     path(
         "delete_import_schedule",
@@ -33,4 +34,5 @@ urlpatterns = [
         views.update_plex_usernames,
         name="update_plex_usernames",
     ),
+    path('i18n/', include('django.conf.urls.i18n')),
 ]

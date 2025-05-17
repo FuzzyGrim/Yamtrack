@@ -1,5 +1,6 @@
 from django import forms
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 from app import media_type_config
 from app.models import (
@@ -111,6 +112,13 @@ class ManualItemForm(forms.ModelForm):
             "season_number",
             "episode_number",
         ]
+        labels = {
+            "media_type": _("Media Type"),
+            "title": _("Title"),
+            "image": _("Image"),
+            "season_number": _("Season Number"),
+            "episode_number": _("Episode Number"),
+        }
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
@@ -218,11 +226,17 @@ class MediaForm(forms.ModelForm):
             "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "end_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "notes": forms.Textarea(
-                attrs={"placeholder": "Add any notes or comments..."},
+                attrs={"placeholder": _("Add any notes or comments...")},
             ),
         }
         labels = {
+            "score": _("Score"),
+            "progress": _("Progress"),
+            "status": _("Status"),
             "repeats": "Number of Repeats",
+            "start_date": _("Start Date"),
+            "end_date": _("End Date"),
+            "notes": _("Notes"),
         }
 
 
@@ -234,11 +248,8 @@ class MangaForm(MediaForm):
 
         model = Manga
         labels = {
-            "progress": (
-                f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.MANGA.value, short=False)}s)"
-            ),
-            "repeats": "Number of Rereads",
+            "progress": _("Progress") + " " + _(f"({media_type_config.get_unit(MediaTypes.MANGA.value, short=False)}s)"),
+            "repeats": _("Number of Rereads"),
         }
 
 
@@ -266,6 +277,14 @@ class MovieForm(MediaForm):
             "end_date",
             "notes",
         ]
+        labels = {
+            "score": _("Score"),
+            "repeats": _("Number of Repeats"),
+            "status": _("Status"),
+            "start_date": _("Start Date"),
+            "end_date": _("End Date"),
+            "notes": _("Notes"),
+        }
 
 
 class GameForm(MediaForm):
@@ -282,7 +301,7 @@ class GameForm(MediaForm):
 
         model = Game
         labels = {
-            "repeats": "Number of Replays",
+            "repeats": _("Number of Replays"),
         }
 
 
@@ -294,11 +313,8 @@ class BookForm(MediaForm):
 
         model = Book
         labels = {
-            "progress": (
-                f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.BOOK.value, short=False)}s)"
-            ),
-            "repeats": "Number of Rereads",
+            "progress": _("Progress") + " " + _(f"({media_type_config.get_unit(MediaTypes.BOOK.value, short=False)}s)"),
+            "repeats": _("Number of Rereads"),
         }
 
 
@@ -314,7 +330,7 @@ class ComicForm(MediaForm):
                 f"Progress "
                 f"({media_type_config.get_unit(MediaTypes.COMIC.value, short=False)}s)"
             ),
-            "repeats": "Number of Rereads",
+            "repeats": _("Number of Rereads"),
         }
 
 

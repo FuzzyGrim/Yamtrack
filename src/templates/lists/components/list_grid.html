@@ -1,3 +1,4 @@
+{% load app_tags i18n %}
 {% for custom_list in custom_lists %}
   <div class="bg-[#2a2f35] rounded-lg overflow-hidden hover:shadow-lg group"
        x-data="{ showModal: false }"
@@ -13,7 +14,7 @@
 
       <button class="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/75 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 text-white hover:text-indigo-400 cursor-pointer"
               @click="showModal = true"
-              title="Edit list">
+              title="{% trans 'Edit list' %}">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
@@ -62,7 +63,10 @@
           </div>
         </div>
         <div class="flex items-center text-gray-400 text-sm">
-          {% with item_count=custom_list.items.count %}<span>{{ item_count }} item{{ item_count|pluralize }}</span>{% endwith %}
+          {% with item_count=custom_list.items.count %}<span>
+            {% trans "item,items,item" as item_forms %}
+            {{ item_count }} {{ item_count|smart_pluralize:item_forms }}
+        </span>{% endwith %}
         </div>
       </div>
     </div>

@@ -1,0 +1,57 @@
+{% extends "users/base.html" %}
+
+{% load socialaccount %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}
+  {% trans "System" %} - Yamtrack
+{% endblock title %}
+
+{% block settings_content %}
+  <div class="space-y-6">
+     <!-- Language Settings Block -->
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-5">
+        <!-- Globe icon -->
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-6 h-6 text-indigo-400 mr-3">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <h2 class="text-xl font-semibold">{% trans "Language Settings" %}</h2>
+      </div>
+
+      <form method="post" action="{% url 'set_language' %}" class="space-y-4">
+        {% csrf_token %}
+        {% get_current_language as LANGUAGE_CODE %}
+        {% get_available_languages as LANGUAGES %}
+
+        <div>
+          <label for="language"
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Select Language" %}</label>
+          <select name="language"
+                  id="language"
+                  onchange="this.form.submit()"
+                  class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+            {% for lang in LANGUAGES %}
+              <option value="{{ lang.0 }}" {% if lang.0 == LANGUAGE_CODE %}selected{% endif %}>
+                {{ lang.1 }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+    </div>
+  </div>
+
+{% endblock settings_content %}

@@ -1,9 +1,10 @@
 {% extends "users/base.html" %}
 {% load user_tags %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
-  Sidebar - Yamtrack
+  {% trans 'Sidebar' %} - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
@@ -25,9 +26,9 @@
         <path d="M9 3v2" />
         <path d="M9 9v1" />
       </svg>
-      <h2 class="text-xl font-semibold">Sidebar Media Types</h2>
+      <h2 class="text-xl font-semibold">{% trans "Sidebar Media Types" %}</h2>
     </div>
-    <p class="text-gray-400 mb-5 text-sm">Toggle which media types appear in your sidebar navigation.</p>
+    <p class="text-gray-400 mb-5 text-sm">{% trans "Toggle which media types appear in your sidebar navigation." %}</p>
     <form method="post">
       {% csrf_token %}
       <div class="mb-5">
@@ -46,7 +47,7 @@
               <circle cx="11" cy="11" r="8"></circle>
               <path d="m21 21-4.3-4.3"></path>
             </svg>
-            <span class="text-gray-200 text-sm ml-2">Hide disabled media types from search selection</span>
+            <span class="text-gray-200 text-sm ml-2">{% trans "Hide disabled media types from search selection" %}</span>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input class="sr-only peer"
@@ -100,7 +101,7 @@
             <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path>
             <path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
           </svg>
-          Save Preferences
+          {% trans "Save Preferences" %}
         </button>
       </div>
     </form>

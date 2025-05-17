@@ -7,6 +7,9 @@ from django.utils import timezone
 from django.utils.html import format_html
 from unidecode import unidecode
 
+from django.utils.translation import ngettext
+from django.utils.translation import get_language
+
 from app import media_type_config
 from app.models import Media, MediaTypes, Sources
 
@@ -66,17 +69,23 @@ def media_type_readable(media_type):
     return MediaTypes(media_type).label
 
 
+
+
 @register.filter
 def media_type_readable_plural(media_type):
-    """Return the readable media type in plural form."""
-    singular = MediaTypes(media_type).label
-
-    # Special cases that don't change in plural form
-    if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
-        return singular
-
-    return f"{singular}s"
-
+    """Return the readable media type in plural form. Supports multilingual translation (i18n supported)."""
+    labels = {
+        MediaTypes.TV: ngettext("TV Show", "TV Shows", 2),
+        MediaTypes.SEASON: ngettext("TV Season", "TV Seasons", 2),
+        MediaTypes.EPISODE: ngettext("Episode", "Episodes", 2),
+        MediaTypes.MOVIE: ngettext("Movie", "Movies", 2),
+        MediaTypes.ANIME: ngettext("Anime", "Anime", 2),
+        MediaTypes.MANGA: ngettext("Manga", "Manga", 2),
+        MediaTypes.GAME: ngettext("Game", "Games", 2),
+        MediaTypes.BOOK: ngettext("Book", "Books", 2),
+        MediaTypes.COMIC: ngettext("Comic", "Comics", 2),
+    }
+    return labels.get(media_type, media_type)
 
 @register.filter
 def media_status_readable(media_status):
@@ -403,3 +412,39 @@ def get_pagination_range(current_page, total_pages, window):
         result.append(total_pages)
 
     return result
+
+
+@register.filter
+def smart_pluralize(value, endings):
+    """
+    endings для uk: "фільм,фільми,фільмів"
+    endings для en: "comment,comments"
+    """
+    lang = get_language() or "en"
+    parts = endings.split(",")
+
+    try:
+        count = abs(int(value))
+    except (ValueError, TypeError):
+        return ""
+
+    if lang.startswith("uk"):
+        if len(parts) < 3:
+            # Якщо дали лише 2 форми — використовуй другу для множини
+            parts = [parts[0], parts[1], parts[1] if len(parts) > 1 else parts[0]]
+        if 11 <= count % 100 <= 14:
+            return parts[2]
+        elif count % 10 == 1:
+            return parts[0]
+        elif 2 <= count % 10 <= 4:
+            return parts[1]
+        else:
+            return parts[2]
+
+    elif lang.startswith("en"):
+        if len(parts) < 2:
+            return parts[0] if parts else ""
+        return parts[0] if count == 1 else parts[1]
+
+    # fallback
+    return parts[-1] if parts else ""

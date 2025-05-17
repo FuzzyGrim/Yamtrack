@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
-  Search - Yamtrack
+  {% trans "Search" %} - Yamtrack
 {% endblock title %}
 
 {% block content %}
   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-y-4">
-    <h2 class="text-2xl font-bold">Search Results</h2>
+    <h2 class="text-2xl font-bold">{% trans "Search Results" %}</h2>
     <div class="flex items-center flex-wrap gap-x-4 gap-y-2">
-      <span class="text-sm text-gray-400">Source:</span>
+      <span class="text-sm text-gray-400">{% trans "Source:" %}</span>
       <div class="flex gap-x-2">
         {% if media_type == MediaTypes.MANGA.value %}
           <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ MediaTypes.MANGA.value }}"
@@ -150,7 +151,7 @@
 
       {# Page info text #}
       <div class="text-center text-sm text-gray-400 mt-3">
-        Page {{ data.page }} of {{ data.total_pages }} ({{ data.total_results }} results)
+        {% trans "Page" %} {{ data.page }} {% trans "of" %} {{ data.total_pages }} ({{ data.total_results }} {% trans "results" %})
       </div>
     {% endif %}
   {% else %}
@@ -170,9 +171,9 @@
           <path d="m21 21-4.3-4.3"></path>
         </svg>
       </div>
-      <h3 class="text-xl font-semibold mb-2">No results found</h3>
+      <h3 class="text-xl font-semibold mb-2">{% trans "No results found" %}</h3>
       <p class="text-gray-400 text-center max-w-md mb-8">
-        We couldn't find any matches for "{{ request.GET.q }}". Try checking your spelling or using different keywords.
+        {% trans "We couldn't find any matches for" %} "{{ request.GET.q }}". {% trans "Try checking your spelling or using different keywords." %}
       </p>
     </div>
   {% endif %}

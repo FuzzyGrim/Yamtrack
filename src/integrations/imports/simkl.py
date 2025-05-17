@@ -149,7 +149,7 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
                 season_numbers = []
 
             try:
-                metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
+                metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers, language="en")
             except services.ProviderAPIError as error:
                 if error.status_code == requests.codes.not_found:
                     warnings.append(
@@ -295,7 +295,7 @@ def process_movie_list(movie_list, user, bulk_media, warnings):
             movie_status = get_status(movie["status"])
 
             try:
-                metadata = app.providers.tmdb.movie(tmdb_id)
+                metadata = app.providers.tmdb.movie(tmdb_id, language="en")
             except services.ProviderAPIError as error:
                 if error.status_code == requests.codes.not_found:
                     warnings.append(

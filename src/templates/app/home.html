@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
-  Home - Yamtrack
+  {% trans "Home" %} - Yamtrack
 {% endblock title %}
 
 {% block content %}
   <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-    <h1 class="text-3xl font-bold text-center w-full sm:w-auto">In Progress</h1>
+    <h1 class="text-3xl font-bold text-center w-full sm:w-auto">{% trans "In progress" %}</h1>
     <div class="relative" x-data="{ open: false }">
       <button @click="open = !open"
               @click.outside="open = false"
@@ -75,7 +76,7 @@
                     hx-indicator="#loading-indicator-{{ media_type }}"
                     hx-trigger="click"
                     class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors cursor-pointer"
-                    hx-on:click="this.remove()">Load All ({{ media_list.total }})</button>
+                    hx-on:click="this.remove()">{% trans "Load All" %} ({{ media_list.total }})</button>
             <div id="loading-indicator-{{ media_type }}"
                  class="htmx-indicator text-center hidden">
               <div class="inline-flex justify-center items-center">
@@ -101,11 +102,11 @@
             <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
           </svg>
         </div>
-        <h3 class="text-xl font-semibold mb-2">No media in progress</h3>
-        <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>
+        <h3 class="text-xl font-semibold mb-2">{% trans "No media in progress" %}</h3>
+        <p class="text-gray-400 text-center max-w-md mb-4">{% trans 'Start tracking your progress by marking items as "In Progress".' %}</p>
         <div class="pt-4">
           <a href="{{ 'tv'|sample_search }}"
-             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
+             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">{% trans "Browse Media" %}</a>
         </div>
       </div>
     {% endfor %}

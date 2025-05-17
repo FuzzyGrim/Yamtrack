@@ -1,6 +1,7 @@
 {% load app_tags %}
+{% load i18n %}
 
-<h4 class="text-sm font-medium text-gray-300 mb-2">Currently Excluded:</h4>
+<h4 class="text-sm font-medium text-gray-300 mb-2">{% trans "Currently Excluded:" %}</h4>
 <div class="space-y-2">
   {% if excluded_items %}
     {% for item in excluded_items %}
@@ -40,7 +41,7 @@
     {% endfor %}
   {% else %}
     <div class="space-y-2">
-      <p class="text-xs text-gray-400 text-center py-2 bg-[#39404b] rounded-md">No media items excluded yet</p>
+      <p class="text-xs text-gray-400 text-center py-2 bg-[#39404b] rounded-md">{% trans "No media items excluded yet" %}</p>
     </div>
   {% endif %}
 </div>

@@ -1,5 +1,7 @@
 from django.urls import reverse
 from django.utils.http import urlencode
+from django.utils.translation import gettext_lazy as _
+
 
 from app.models import MediaTypes, Sources
 
@@ -9,7 +11,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.TMDB.label,
         "sample_query": "Breaking Bad",
         "unicode_icon": "📺",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-emerald-400",
         "stats_color": "#10b981",
         "svg_icon": """
@@ -19,7 +21,7 @@ MEDIA_TYPE_CONFIG = {
     MediaTypes.SEASON.value: {
         "default_source": Sources.TMDB.label,
         "unicode_icon": "📺",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-purple-400",
         "stats_color": "#a855f7",
         "svg_icon": """
@@ -27,12 +29,12 @@ MEDIA_TYPE_CONFIG = {
             1.83l8.58 3.91 a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
             <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>
             <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>""",
-        "unit": ("E", "Episode"),
+        "unit": (_("E"), _("Episode")),
     },
     MediaTypes.EPISODE.value: {
         "default_source": Sources.TMDB.label,
         "unicode_icon": "📺",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-indigo-400",
         "stats_color": "#6366f1",
         "svg_icon": """<polygon points="6 3 20 12 6 21 6 3"/>""",
@@ -41,7 +43,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.TMDB.label,
         "sample_query": "The Shawshank Redemption",
         "unicode_icon": "🎬",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-orange-400",
         "stats_color": "#f97316",
         "svg_icon": """
@@ -59,19 +61,19 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.MAL.label,
         "sample_query": "Perfect Blue",
         "unicode_icon": "🎭",
-        "verb": ("watch", "watched"),
+        "verb": (_("watch"), _("watched")),
         "text_color": "text-blue-400",
         "stats_color": "#3b82f6",
         "svg_icon": """
             <circle cx="12" cy="12" r="10"/>
             <polygon points="10 8 16 12 10 16 10 8"/>""",
-        "unit": ("E", "Episode"),
+        "unit": (_("E"), _("Episode")),
     },
     MediaTypes.MANGA.value: {
         "default_source": Sources.MAL.label,
         "sample_query": "Berserk",
         "unicode_icon": "📚",
-        "verb": ("read", "read"),
+        "verb": (_("read"), _("read")),
         "text_color": "text-red-400",
         "stats_color": "#ef4444",
         "svg_icon": """
@@ -82,13 +84,13 @@ MEDIA_TYPE_CONFIG = {
             <path d="M16 13H8"/>
             <path d="M16 17H8"/>""",
         "date_key": "end_date",
-        "unit": ("#", "Chapter"),
+        "unit": ("#", _("Chapter")),
     },
     MediaTypes.GAME.value: {
         "default_source": Sources.IGDB.label,
         "sample_query": "Half-Life",
         "unicode_icon": "🎮",
-        "verb": ("play", "played"),
+        "verb": (_("play"), _("played")),
         "text_color": "text-yellow-400",
         "stats_color": "#eab308",
         "svg_icon": """
@@ -103,20 +105,20 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.HARDCOVER.label,
         "sample_query": "The Great Gatsby",
         "unicode_icon": "📖",
-        "verb": ("read", "read"),
+        "verb": (_("read"), _("read")),
         "text_color": "text-fuchsia-400",
         "stats_color": "#d946ef",
         "svg_icon": """
             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5
             2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>""",
         "date_key": "publish_date",
-        "unit": ("P", "Page"),
+        "unit": (_("P"), _("Page")),
     },
     MediaTypes.COMIC.value: {
         "default_source": Sources.COMICVINE.label,
         "sample_query": "Batman",
         "unicode_icon": "📕",
-        "verb": ("read", "read"),
+        "verb": (_("read"), _("read")),
         "text_color": "text-cyan-400",
         "stats_color": "#06b6d4",
         "svg_icon": """
@@ -124,7 +126,7 @@ MEDIA_TYPE_CONFIG = {
             <path d="M7 3v18"/>
             <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1
             5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>""",
-        "unit": ("#", "Issue"),
+        "unit": ("#", _("Issue")),
     },
 }
 

@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block content %}
   <div class="mx-auto max-w-6xl">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold">Settings</h1>
-      <p class="text-gray-400 mt-2 text-sm">Configure your account and preferences</p>
+      <h1 class="text-3xl font-bold">{% trans "Settings" %}</h1>
+      <p class="text-gray-400 mt-2 text-sm">{% trans "Configure your account and preferences" %}</p>
     </div>
     <div class="flex flex-col md:flex-row gap-8">
       <div class="md:w-64 shrink-0">
@@ -27,7 +28,7 @@
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
-              <span>Account</span>
+              <span>{% trans "Account" %}</span>
             </a>
 
             {% url 'notifications' as notifications_url %}
@@ -46,7 +47,7 @@
                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
               </svg>
-              <span>Notifications</span>
+              <span>{% trans "Notifications" %}</span>
             </a>
 
             {% url 'sidebar' as sidebar_url %}
@@ -68,7 +69,7 @@
                 <path d="M9 3v2" />
                 <path d="M9 9v1" />
               </svg>
-              <span>Sidebar</span>
+              <span>{% trans "Sidebar" %}</span>
             </a>
 
             {% url 'integrations' as integrations_url %}
@@ -88,7 +89,7 @@
                 <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
                 <path d="M3 12A9 3 0 0 0 21 12"></path>
               </svg>
-              <span>Integrations</span>
+              <span>{% trans "Integrations" %}</span>
             </a>
 
             {% url 'import_data' as import_url %}
@@ -109,7 +110,7 @@
                 <path d="M12 12v6" />
                 <path d="m15 15-3-3-3 3" />
               </svg>
-              <span>Import Data</span>
+              <span>{% trans "Import Data" %}</span>
             </a>
 
             {% url 'export_data' as export_url %}
@@ -130,7 +131,26 @@
                 <path d="M12 18v-6"></path>
                 <path d="m9 15 3 3 3-3"></path>
               </svg>
-              <span>Export Data</span>
+              <span>{% trans "Export Data" %}</span>
+            </a>
+
+            {% url 'system' as system_url %}
+            <a href="{{ system_url }}"
+               class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == system_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-5 h-5">
+                <path d="M4 4h16v16H4z" />
+                <path d="M9 9h6v6H9z" />
+              </svg>
+              <span>{% trans "System" %}</span>
             </a>
 
             {% url 'about' as about_url %}
@@ -150,7 +170,7 @@
                 <path d="M12 16v-4"></path>
                 <path d="M12 8h.01"></path>
               </svg>
-              <span>About</span>
+              <span>{% trans "About" %}</span>
             </a>
           </nav>
         </div>

@@ -1,7 +1,8 @@
 {% extends "users/base.html" %}
+{% load i18n %}
 
 {% block title %}
-  Export - Yamtrack
+  {% trans "Export" %} - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
@@ -22,14 +23,14 @@
         <path d="M12 18v-6"></path>
         <path d="m9 15 3 3 3-3"></path>
       </svg>
-      <h2 class="text-xl font-semibold">Export Data</h2>
+      <h2 class="text-xl font-semibold">{% trans "Export Data" %}</h2>
     </div>
-    <p class="text-gray-400 mb-5 text-sm">Back up your data or export it for use with other services.</p>
-    <p class="text-sm text-gray-400 mb-4">Your export will include all your media items.</p>
+    <p class="text-gray-400 mb-5 text-sm">{% trans "Back up your data or export it for use with other services." %}</p>
+    <p class="text-sm text-gray-400 mb-4">{% trans "Your export will include all your media items." %}</p>
     <form method="get" action="{% url 'export_csv' %}">
       {% csrf_token %}
       <button class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
-        Export as CSV
+        {% trans "Export as CSV" %}
       </button>
     </form>
   </div>

@@ -7,6 +7,8 @@ from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
+from django.utils.translation import gettext as _
+from django.utils.html import json_script
 
 from app import helpers
 from app.models import Item, MediaTypes
@@ -76,6 +78,15 @@ def lists(request):
 
     create_list_form = CustomListForm()
 
+    sort_labels = {
+        "last_item_added": _("Last Item Added"),
+        "name": _("Name"),
+        "newest_first": _("Newest First"),
+        "items_count": _("Items Count"),
+    }
+
+    sort_labels_json = json_script(sort_labels, "sort-labels")
+
     return render(
         request,
         "lists/custom_lists.html",
@@ -84,6 +95,7 @@ def lists(request):
             "form": create_list_form,
             "current_sort": sort_by,
             "sort_choices": ListSortChoices.choices,
+            "sort_labels_json": sort_labels_json,
         },
     )
 

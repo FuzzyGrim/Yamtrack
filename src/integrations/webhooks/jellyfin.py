@@ -2,6 +2,7 @@ import json
 import logging
 
 from django.core.cache import cache
+from django.templatetags.i18n import language
 from django.utils import timezone
 
 import app
@@ -118,7 +119,7 @@ def handle_anime(media_id, episode_number, payload, user):
 
 def handle_movie(media_id, payload, user):
     """Handle movie object from payload."""
-    movie_metadata = app.providers.tmdb.movie(media_id)
+    movie_metadata = app.providers.tmdb.movie(media_id, language="en")
     movie_played = payload["Item"]["UserData"]["Played"]
     progress = 1 if movie_played else 0
     now = timezone.now().replace(second=0, microsecond=0)
@@ -184,6 +185,7 @@ def handle_tv_episode(media_id, payload, user):
     tv_metadata = app.providers.tmdb.tv_with_seasons(
         media_id,
         [season_number],
+        language="en"
     )
     season_metadata = tv_metadata[f"season/{season_number}"]
 

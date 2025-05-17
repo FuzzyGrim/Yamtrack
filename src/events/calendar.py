@@ -6,6 +6,7 @@ import requests
 from django.core.cache import cache
 from django.db.models import Exists, OuterRef, Q, Subquery
 from django.utils import timezone
+from django.utils.translation import get_language
 
 from app import media_type_config
 from app.models import Item, MediaTypes, Sources
@@ -379,7 +380,7 @@ def process_tv(tv_item, events_bulk, skipped_items):
 
 def get_seasons_to_process(tv_item):
     """Identify which seasons of a TV show need to be processed."""
-    tv_metadata = tmdb.tv(tv_item.media_id)
+    tv_metadata = tmdb.tv(tv_item.media_id, language=get_language())
 
     if not tv_metadata.get("related", {}).get("seasons"):
         logger.warning("No seasons found for TV show: %s", tv_item)
@@ -436,6 +437,7 @@ def process_tv_seasons(tv_item, seasons_to_process, events_bulk):
     process_seasons_data = tmdb.tv_with_seasons(
         tv_item.media_id,
         seasons_to_process,
+        language = get_language()
     )
 
     # Process each season that needs processing

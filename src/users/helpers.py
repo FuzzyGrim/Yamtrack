@@ -4,6 +4,7 @@ from datetime import datetime
 
 import croniter
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 import integrations
 
@@ -34,7 +35,7 @@ def process_task_result(task):
     except (TypeError, json.JSONDecodeError, AttributeError):
         mode = "new"
 
-    mode = "Only New Items" if mode == "new" else "Overwrite Existing"
+    mode = _("Only New Items") if mode == "new" else _("Overwrite Existing")
 
     if task.status == "FAILURE":
         result_json = json.loads(task.result)

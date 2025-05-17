@@ -1,4 +1,5 @@
 {% load widget_tweaks %}
+{% load i18n %}
 
 <div x-show="showModal"
      x-cloak
@@ -8,9 +9,9 @@
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-2xl font-bold">
         {% if form.instance.pk %}
-          Edit List
+          {% trans "Edit List" %}
         {% else %}
-          Create New List
+          {% trans "Create New List" %}
         {% endif %}
       </h2>
       <button @click="showModal = false"
@@ -48,19 +49,19 @@
           <button type="submit"
                   formaction="{% url 'list_edit' %}?next={{ request.path }}"
                   class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">
-            Save
+            {% trans "Save" %}
           </button>
           <button type="submit"
                   formaction="{% url 'list_delete' %}?next={{ request.path }}"
                   class="px-4 py-2 rounded-md transition duration-300 {% if request.user == custom_list.owner %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}"
-                  {% if not request.user == custom_list.owner %}disabled{% endif %}>Delete</button>
+                  {% if not request.user == custom_list.owner %}disabled{% endif %}>{% trans "Delete" %}</button>
         </div>
       {% else %}
         <div class="flex justify-end pt-4">
           <button type="submit"
                   formaction="{% url 'list_create' %}?next={{ request.path }}"
                   class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
-            Create List
+            {% trans "Create List" %}
           </button>
         </div>
       {% endif %}

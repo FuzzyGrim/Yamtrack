@@ -261,6 +261,11 @@ def export_data(request):
     return render(request, "users/export_data.html")
 
 
+def system_settings(request):
+    """Render the system settings page."""
+    return render(request, 'users/system_settings.html')
+
+
 @require_GET
 def about(request):
     """Render the about page."""

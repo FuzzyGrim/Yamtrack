@@ -9,6 +9,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.formats import date_format
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -63,7 +64,7 @@ def calendar(request):
 
     # Get calendar data
     calendar_format = cal.monthcalendar(year, month)
-    month_name = cal.month_name[month]
+    month_name = date_format(date(year, month, 1), "F", use_l10n=True)
 
     # Get events and organize by day
     releases = Event.objects.get_user_events(request.user, first_day, last_day)
