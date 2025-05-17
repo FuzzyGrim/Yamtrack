@@ -1,4 +1,6 @@
 from django.urls import path
+from django.conf.urls.i18n import i18n_patterns
+from django.urls import path, include
 
 from users import views
 
@@ -21,6 +23,7 @@ urlpatterns = [
     path("settings/integrations", views.integrations, name="integrations"),
     path("settings/import", views.import_data, name="import_data"),
     path("settings/export", views.export_data, name="export_data"),
+    path('settings/system', views.system_settings, name='system'),
     path("settings/about", views.about, name="about"),
     path(
         "delete_import_schedule",
@@ -28,4 +31,5 @@ urlpatterns = [
         name="delete_import_schedule",
     ),
     path("regenerate_token", views.regenerate_token, name="regenerate_token"),
+    path('i18n/', include('django.conf.urls.i18n')),
 ]

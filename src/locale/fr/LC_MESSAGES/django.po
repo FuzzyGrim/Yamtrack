@@ -1,0 +1,738 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-17 23:29+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+#: templates/400.html:6 templates/403.html:6 templates/403_csrf.html:6
+msgid "Forbidden"
+msgstr ""
+
+#: templates/400.html:14
+msgid "Bad Request"
+msgstr ""
+
+#: templates/400.html:16
+msgid ""
+"The server could not understand the request due to invalid syntax or missing "
+"parameters."
+msgstr ""
+
+#: templates/400.html:19 templates/403.html:20 templates/403_csrf.html:29
+#: templates/404.html:17 templates/500.html:23
+msgid "If you believe this was a bug, please"
+msgstr ""
+
+#: templates/400.html:20 templates/403.html:21 templates/403_csrf.html:30
+#: templates/404.html:18 templates/500.html:24
+msgid "report the issue."
+msgstr ""
+
+#: templates/400.html:39 templates/403.html:57 templates/403_csrf.html:66
+#: templates/404.html:37 templates/500.html:62
+msgid "Back to Home"
+msgstr ""
+
+#: templates/403.html:14 templates/403_csrf.html:14
+msgid "Access Forbidden"
+msgstr ""
+
+#: templates/403.html:16 templates/403_csrf.html:16
+msgid ""
+"You don't have permission to access this resource. Please log in or contact "
+"an administrator."
+msgstr ""
+
+#: templates/403.html:40 templates/403_csrf.html:49
+msgid "Log In"
+msgstr ""
+
+#: templates/403_csrf.html:19
+msgid "Using a Reverse Proxy?"
+msgstr ""
+
+#: templates/403_csrf.html:21
+msgid ""
+"If you're accessing YamTrack through a reverse proxy, you need to set the"
+msgstr ""
+
+#: templates/403_csrf.html:21
+msgid "environment variable to your application URL."
+msgstr ""
+
+#: templates/403_csrf.html:25
+msgid "For example,"
+msgstr ""
+
+#: templates/404.html:6
+msgid "Page not found"
+msgstr ""
+
+#: templates/404.html:14
+msgid "Page Not Found"
+msgstr ""
+
+#: templates/404.html:15
+msgid "The page you are looking for doesn't exist or has been moved."
+msgstr ""
+
+#: templates/500.html:6
+msgid "Server Error"
+msgstr ""
+
+#: templates/500.html:14
+msgid "Something Went Wrong"
+msgstr ""
+
+#: templates/500.html:19
+msgid "We're sorry, but there was an error processing your request."
+msgstr ""
+
+#: templates/500.html:45
+msgid "Try Again"
+msgstr ""
+
+#: templates/account/login.html:7
+msgid "Login"
+msgstr ""
+
+#: templates/account/login.html:11
+msgid "Sign in to your account"
+msgstr ""
+
+#: templates/account/login.html:28
+msgid "Sign In"
+msgstr ""
+
+#: templates/account/login.html:40
+msgid "Sign in with a passkey"
+msgstr ""
+
+#: templates/account/login.html:45
+msgid "Send me a sign-in code"
+msgstr ""
+
+#: templates/account/login.html:58
+msgid "Need an account?"
+msgstr ""
+
+#: templates/account/login.html:60
+msgid "Register now"
+msgstr ""
+
+#: templates/account/signup.html:6
+msgid "Register"
+msgstr ""
+
+#: templates/account/signup.html:10
+msgid "Create your account"
+msgstr ""
+
+#: templates/account/signup.html:26
+msgid "Create Account"
+msgstr ""
+
+#: templates/account/signup.html:36
+msgid "Sign up using a passkey"
+msgstr ""
+
+#: templates/account/signup.html:46
+msgid "Already have an account?"
+msgstr ""
+
+#: templates/account/signup.html:48
+msgid "Sign in"
+msgstr ""
+
+#: templates/app/components/fill_history.html:5
+msgid "Activity History"
+msgstr ""
+
+#: templates/app/components/fill_history.html:56
+msgid "You haven't started tracking it yet."
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:10
+msgid "Track Episode"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:36
+msgid "Episode"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:39
+msgid "Watched once"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:41
+msgid "Watched"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:41
+msgid "times"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:44
+msgid "Not watched yet"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:62
+msgid "Watch Date & Time"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:91
+msgid "Air date"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:103
+msgid "Remove watch"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:108
+msgid "Add watch"
+msgstr ""
+
+#: templates/base.html:76
+msgid "Home"
+msgstr ""
+
+#: templates/base.html:99
+msgid "Create Custom"
+msgstr ""
+
+#: templates/base.html:108
+msgid "Statistics"
+msgstr ""
+
+#: templates/base.html:117
+msgid "Lists"
+msgstr ""
+
+#: templates/base.html:126
+msgid "Calendar"
+msgstr ""
+
+#: templates/base.html:148 templates/users/base.html:8
+msgid "Settings"
+msgstr ""
+
+#: templates/base.html:156
+msgid "Logout"
+msgstr ""
+
+#: templates/base.html:199
+msgid "Search"
+msgstr ""
+
+#: templates/users/about.html:8 templates/users/about.html:13
+#: templates/users/base.html:173
+msgid "About"
+msgstr ""
+
+#: templates/users/about.html:32
+msgid "Description"
+msgstr ""
+
+#: templates/users/about.html:35
+msgid ""
+"Yamtrack is an open-source media tracker that helps you organize and track "
+"your media."
+msgstr ""
+
+#: templates/users/about.html:55
+msgid "Links"
+msgstr ""
+
+#: templates/users/about.html:190
+msgid "License"
+msgstr ""
+
+#: templates/users/about.html:204
+msgid "Version"
+msgstr ""
+
+#: templates/users/account.html:8 templates/users/base.html:31
+msgid "Account"
+msgstr ""
+
+#: templates/users/account.html:28
+msgid "Profile Information"
+msgstr ""
+
+#: templates/users/account.html:41
+msgid "Username"
+msgstr ""
+
+#: templates/users/account.html:68
+msgid "Save Changes"
+msgstr ""
+
+#: templates/users/account.html:89
+msgid "Change Password"
+msgstr ""
+
+#: templates/users/account.html:104
+msgid "Current Password"
+msgstr ""
+
+#: templates/users/account.html:155
+msgid "New Password"
+msgstr ""
+
+#: templates/users/account.html:206
+msgid "Confirm New Password"
+msgstr ""
+
+#: templates/users/account.html:272
+msgid "Update Password"
+msgstr ""
+
+#: templates/users/base.html:9
+msgid "Configure your account and preferences"
+msgstr ""
+
+#: templates/users/base.html:50 templates/users/notifications.html:7
+#: templates/users/notifications.html:28
+msgid "Notifications"
+msgstr ""
+
+#: templates/users/base.html:72 templates/users/sidebar.html:7
+msgid "Sidebar"
+msgstr ""
+
+#: templates/users/base.html:92 templates/users/integrations.html:7
+#: templates/users/integrations.html:27
+msgid "Integrations"
+msgstr ""
+
+#: templates/users/base.html:113
+msgid "Import Data"
+msgstr ""
+
+#: templates/users/base.html:134 templates/users/export_data.html:26
+msgid "Export Data"
+msgstr ""
+
+#: templates/users/base.html:153 templates/users/system_settings.html:8
+msgid "System"
+msgstr ""
+
+#: templates/users/components/excluded_items.html:4
+msgid "Currently Excluded:"
+msgstr ""
+
+#: templates/users/components/excluded_items.html:44
+msgid "No media items excluded yet"
+msgstr ""
+
+#: templates/users/components/search_results.html:22
+msgid "Exclude"
+msgstr ""
+
+#: templates/users/components/search_results.html:28
+msgid "No matching items found"
+msgstr ""
+
+#: templates/users/export_data.html:5
+msgid "Export"
+msgstr ""
+
+#: templates/users/export_data.html:28
+msgid "Back up your data or export it for use with other services."
+msgstr ""
+
+#: templates/users/export_data.html:29
+msgid "Your export will include all your media items."
+msgstr ""
+
+#: templates/users/export_data.html:33
+msgid "Export as CSV"
+msgstr ""
+
+#: templates/users/import_data.html:6 templates/users/import_data.html:152
+#: templates/users/import_data.html:193 templates/users/import_data.html:217
+#: templates/users/import_data.html:263
+msgid "Import"
+msgstr ""
+
+#: templates/users/import_data.html:30
+msgid "Import Settings"
+msgstr ""
+
+#: templates/users/import_data.html:32
+msgid "Configure your import preferences."
+msgstr ""
+
+#: templates/users/import_data.html:36
+msgid "Import Frequency"
+msgstr ""
+
+#: templates/users/import_data.html:40
+msgid "One Time Import"
+msgstr ""
+
+#: templates/users/import_data.html:41
+msgid "Every Day"
+msgstr ""
+
+#: templates/users/import_data.html:42
+msgid "Every 2 Days"
+msgstr ""
+
+#: templates/users/import_data.html:58
+msgid "Import Time"
+msgstr ""
+
+#: templates/users/import_data.html:65
+msgid "Import Mode"
+msgstr ""
+
+#: templates/users/import_data.html:69
+msgid "Only Sync New Items"
+msgstr ""
+
+#: templates/users/import_data.html:70
+msgid "Sync New Items and Overwrite Existing"
+msgstr ""
+
+#: templates/users/import_data.html:107
+msgid "Import Sources"
+msgstr ""
+
+#: templates/users/import_data.html:109
+msgid "Import your media data from external services."
+msgstr ""
+
+#: templates/users/import_data.html:115 templates/users/import_data.html:161
+msgid "Import TV shows, movies and anime"
+msgstr ""
+
+#: templates/users/import_data.html:124
+msgid "Trakt username slug"
+msgstr ""
+
+#: templates/users/import_data.html:144
+msgid "Found in your Trakt profile URL:"
+msgstr ""
+
+#: templates/users/import_data.html:161
+msgid "OAuth-based imports are not available for periodic imports"
+msgstr ""
+
+#: templates/users/import_data.html:171
+msgid "Connect with Simkl"
+msgstr ""
+
+#: templates/users/import_data.html:178 templates/users/import_data.html:202
+#: templates/users/import_data.html:226
+msgid "Import anime and manga"
+msgstr ""
+
+#: templates/users/import_data.html:187
+msgid "MAL username"
+msgstr ""
+
+#: templates/users/import_data.html:211
+msgid "AniList username"
+msgstr ""
+
+#: templates/users/import_data.html:235
+msgid "Kitsu user ID"
+msgstr ""
+
+#: templates/users/import_data.html:255
+msgid "Found in your Kitsu profile URL:"
+msgstr ""
+
+#: templates/users/import_data.html:272
+msgid "Import from YamTrack backup"
+msgstr ""
+
+#: templates/users/import_data.html:272
+msgid "File uploads are not available for periodic imports"
+msgstr ""
+
+#: templates/users/import_data.html:290 templates/users/import_data.html:317
+msgid "Select CSV File"
+msgstr ""
+
+#: templates/users/import_data.html:340
+msgid "Active Periodic Imports"
+msgstr ""
+
+#: templates/users/import_data.html:343
+msgid ""
+"Automated imports that run on a schedule. These will continue to sync your "
+"media until disabled."
+msgstr ""
+
+#: templates/users/import_data.html:378
+msgid "Username:"
+msgstr ""
+
+#: templates/users/import_data.html:379 templates/users/import_data.html:439
+msgid "Mode:"
+msgstr ""
+
+#: templates/users/import_data.html:380
+msgid "Last Import:"
+msgstr ""
+
+#: templates/users/import_data.html:381
+msgid "Next Import:"
+msgstr ""
+
+#: templates/users/import_data.html:386
+msgid "No periodic imports configured"
+msgstr ""
+
+#: templates/users/import_data.html:387
+msgid "Set up an import with a daily or 2-day frequency to see it here"
+msgstr ""
+
+#: templates/users/import_data.html:409
+msgid "Import History"
+msgstr ""
+
+#: templates/users/import_data.html:412
+msgid "Showing import activity from the last 7 days."
+msgstr ""
+
+#: templates/users/import_data.html:421
+msgid "Finished"
+msgstr ""
+
+#: templates/users/import_data.html:423
+msgid "Success"
+msgstr ""
+
+#: templates/users/import_data.html:427
+msgid "Started"
+msgstr ""
+
+#: templates/users/import_data.html:429
+msgid "Failed"
+msgstr ""
+
+#: templates/users/import_data.html:431
+msgid "Pending"
+msgstr ""
+
+#: templates/users/import_data.html:448
+msgid "Show failed items"
+msgstr ""
+
+#: templates/users/import_data.html:453
+msgid "Couldn't import the following media:"
+msgstr ""
+
+#: templates/users/import_data.html:458
+msgid "Unexpected error occurred:"
+msgstr ""
+
+#: templates/users/import_data.html:468
+msgid "No imports in the last 7 days"
+msgstr ""
+
+#: templates/users/import_data.html:469
+msgid "Import your media from any source to see the history here"
+msgstr ""
+
+#: templates/users/integrations.html:29
+msgid ""
+"Connect your media servers to automatically track your watching progress."
+msgstr ""
+
+#: templates/users/integrations.html:45
+msgid "API Token"
+msgstr ""
+
+#: templates/users/integrations.html:47
+msgid ""
+"This token is used to authenticate webhook requests from your media servers."
+msgstr ""
+
+#: templates/users/integrations.html:68
+msgid "Regenerating will invalidate the previous token"
+msgstr ""
+
+#: templates/users/integrations.html:85
+msgid "Copy"
+msgstr ""
+
+#: templates/users/integrations.html:106
+msgid "Regenerate"
+msgstr ""
+
+#: templates/users/integrations.html:126
+msgid "Jellyfin Integration"
+msgstr ""
+
+#: templates/users/integrations.html:128
+msgid "Connect Jellyfin to automatically track your watching progress."
+msgstr ""
+
+#: templates/users/integrations.html:130
+msgid "Setup Instructions"
+msgstr ""
+
+#: templates/users/integrations.html:132
+msgid "You will need to have TMDB and TVDB as metadata providers in Jellyfin."
+msgstr ""
+
+#: templates/users/integrations.html:133
+msgid "Generate a token above if you don't have one yet."
+msgstr ""
+
+#: templates/users/integrations.html:135
+msgid "Add this repository"
+msgstr ""
+
+#: templates/users/integrations.html:139
+msgid "link"
+msgstr ""
+
+#: templates/users/integrations.html:140
+msgid " to your \"Plugins Catalog\" in Jellyfin settings."
+msgstr ""
+
+#: templates/users/integrations.html:143
+msgid "In Jellyfin settings, go to \"My Plugins\" and install the"
+msgstr ""
+
+#: templates/users/integrations.html:147
+msgid "Unofficial Webhooks plugin"
+msgstr ""
+
+#: templates/users/integrations.html:150
+msgid "In the Webhooks plugin settings:"
+msgstr ""
+
+#: templates/users/integrations.html:155
+msgid "Payload format: Default"
+msgstr ""
+
+#: templates/users/integrations.html:156
+msgid "Listen to events only for: Your Jellyfin User"
+msgstr ""
+
+#: templates/users/integrations.html:157
+msgid "Events: Stop, MarkPlayed and MarkUnplayed"
+msgstr ""
+
+#: templates/users/notifications.html:31
+msgid "Configure how you want to receive notifications about your media."
+msgstr ""
+
+#: templates/users/notifications.html:39
+msgid "Apprise URLs"
+msgstr ""
+
+#: templates/users/notifications.html:66
+msgid "Apprise"
+msgstr ""
+
+#: templates/users/notifications.html:66
+msgid "is a notification service that supports"
+msgstr ""
+
+#: templates/users/notifications.html:70
+msgid "many platforms"
+msgstr ""
+
+#: templates/users/notifications.html:70
+msgid "including:"
+msgstr ""
+
+#: templates/users/notifications.html:79
+msgid "And many more..."
+msgstr ""
+
+#: templates/users/notifications.html:82
+msgid "Enter one URL per line. Example:"
+msgstr ""
+
+#: templates/users/notifications.html:88
+msgid ""
+"Enter each Apprise URL on a separate line to send notifications to multiple "
+"services."
+msgstr ""
+
+#: templates/users/notifications.html:93
+msgid "Notification Settings"
+msgstr ""
+
+#: templates/users/notifications.html:118
+msgid "Enable Daily Digest"
+msgstr ""
+
+#: templates/users/notifications.html:121
+msgid ""
+"Receive a single notification each day with all media scheduled to release "
+"that day"
+msgstr ""
+
+#: templates/users/notifications.html:154
+msgid "Receive notifications for recently released media"
+msgstr ""
+
+#: templates/users/notifications.html:156
+msgid "Get notified when new episodes, chapters, or other media are released"
+msgstr ""
+
+#: templates/users/notifications.html:188
+msgid "Test Notifications"
+msgstr ""
+
+#: templates/users/notifications.html:206
+msgid "Save Settings"
+msgstr ""
+
+#: templates/users/notifications.html:227
+msgid "Excluded Media Items"
+msgstr ""
+
+#: templates/users/notifications.html:230
+msgid "Exclude specific media items from notifications:"
+msgstr ""
+
+#: templates/users/notifications.html:233
+msgid "Search for media to exclude..."
+msgstr ""
+
+#: templates/users/sidebar.html:29
+msgid "Sidebar Media Types"
+msgstr ""
+
+#: templates/users/sidebar.html:31
+msgid "Toggle which media types appear in your sidebar navigation."
+msgstr ""
+
+#: templates/users/sidebar.html:50
+msgid "Hide disabled media types from search selection"
+msgstr ""
+
+#: templates/users/sidebar.html:104
+msgid "Save Preferences"
+msgstr ""
+
+#: templates/users/system_settings.html:31
+msgid "Language Settings"
+msgstr ""
+
+#: templates/users/system_settings.html:41
+msgid "Select Language"
+msgstr ""

@@ -1,0 +1,763 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Dreykp <>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-17 23:18+0300\n"
+"PO-Revision-Date: 2025-05-17 23:21+0300\n"
+"Last-Translator: Dreykp <>\n"
+"Language-Team: Ukrainian\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=n==1 ? 3 : n%10==1 && n%100!=11 ? 0 : "
+"n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Gtranslator 48.0\n"
+
+#: templates/400.html:6 templates/403.html:6 templates/403_csrf.html:6
+msgid "Forbidden"
+msgstr "Заборонено"
+
+#: templates/400.html:14
+msgid "Bad Request"
+msgstr "Помилковий запит"
+
+#: templates/400.html:16
+msgid ""
+"The server could not understand the request due to invalid syntax or missing "
+"parameters."
+msgstr ""
+"Сервер не зміг зрозуміти запит через неправильний синтаксис або відсутність "
+"параметрів."
+
+#: templates/400.html:19 templates/403.html:20 templates/403_csrf.html:29
+#: templates/404.html:17 templates/500.html:23
+msgid "If you believe this was a bug, please"
+msgstr "Якщо ви вважаєте, що це була помилка, будь ласка"
+
+#: templates/400.html:20 templates/403.html:21 templates/403_csrf.html:30
+#: templates/404.html:18 templates/500.html:24
+msgid "report the issue."
+msgstr "повідомте про проблему."
+
+#: templates/400.html:39 templates/403.html:57 templates/403_csrf.html:66
+#: templates/404.html:37 templates/500.html:62
+msgid "Back to Home"
+msgstr "Повернутися на головну"
+
+#: templates/403.html:14 templates/403_csrf.html:14
+msgid "Access Forbidden"
+msgstr "Доступ заборонено"
+
+#: templates/403.html:16 templates/403_csrf.html:16
+msgid ""
+"You don't have permission to access this resource. Please log in or contact "
+"an administrator."
+msgstr ""
+"Ви не маєте доступу до цього ресурсу. Будь ласка, увійдіть або зверніться до "
+"адміністратора."
+
+#: templates/403.html:40 templates/403_csrf.html:49
+msgid "Log In"
+msgstr "Увійти"
+
+#: templates/403_csrf.html:19
+msgid "Using a Reverse Proxy?"
+msgstr "Використання зворотного проксі?"
+
+#: templates/403_csrf.html:21
+msgid ""
+"If you're accessing YamTrack through a reverse proxy, you need to set the"
+msgstr ""
+"Якщо ви отримуєте доступ до YamTrack через зворотний проксі, вам потрібно "
+"встановити значення"
+
+#: templates/403_csrf.html:21
+msgid "environment variable to your application URL."
+msgstr "змінної оточення до URL-адреси вашої програми."
+
+#: templates/403_csrf.html:25
+msgid "For example,"
+msgstr "Наприклад,"
+
+#: templates/404.html:6
+msgid "Page not found"
+msgstr "Сторінку не знайдено"
+
+#: templates/404.html:14
+msgid "Page Not Found"
+msgstr "Сторінку не знайдено"
+
+#: templates/404.html:15
+msgid "The page you are looking for doesn't exist or has been moved."
+msgstr "Сторінка, яку ви шукаєте, не існує або була переміщена."
+
+#: templates/500.html:6
+msgid "Server Error"
+msgstr "Помилка сервера"
+
+#: templates/500.html:14
+msgid "Something Went Wrong"
+msgstr "Щось пішло не так"
+
+#: templates/500.html:19
+msgid "We're sorry, but there was an error processing your request."
+msgstr "Вибачте, але при обробці вашого запиту сталася помилка."
+
+#: templates/500.html:45
+msgid "Try Again"
+msgstr "Спробувати ще раз"
+
+#: templates/account/login.html:7
+msgid "Login"
+msgstr "Логін"
+
+#: templates/account/login.html:11
+msgid "Sign in to your account"
+msgstr "Увійти до свого облікового запису"
+
+#: templates/account/login.html:28
+msgid "Sign In"
+msgstr "Увійти"
+
+#: templates/account/login.html:40
+msgid "Sign in with a passkey"
+msgstr "Увійти за допомогою пароля"
+
+#: templates/account/login.html:45
+msgid "Send me a sign-in code"
+msgstr "Надішліть мені код для входу"
+
+#: templates/account/login.html:58
+msgid "Need an account?"
+msgstr "Потрібен акаунт?"
+
+#: templates/account/login.html:60
+msgid "Register now"
+msgstr "Зареєструватися зараз"
+
+#: templates/account/signup.html:6
+msgid "Register"
+msgstr "Реєстрація"
+
+#: templates/account/signup.html:10
+msgid "Create your account"
+msgstr "Створити свій обліковий запис"
+
+#: templates/account/signup.html:26
+msgid "Create Account"
+msgstr "Створити обліковий запис"
+
+#: templates/account/signup.html:36
+msgid "Sign up using a passkey"
+msgstr "Зареєструйтеся за допомогою пароля"
+
+#: templates/account/signup.html:46
+msgid "Already have an account?"
+msgstr "Вже маєте обліковий запис?"
+
+#: templates/account/signup.html:48
+msgid "Sign in"
+msgstr "Увійти"
+
+#: templates/app/components/fill_history.html:5
+msgid "Activity History"
+msgstr "Історія активності"
+
+#: templates/app/components/fill_history.html:56
+msgid "You haven't started tracking it yet."
+msgstr "Ви ще не почали його відстежувати."
+
+#: templates/app/components/fill_track_episode.html:10
+msgid "Track Episode"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:36
+msgid "Episode"
+msgstr "Епізод"
+
+#: templates/app/components/fill_track_episode.html:39
+msgid "Watched once"
+msgstr "Якось дивився"
+
+#: templates/app/components/fill_track_episode.html:41
+msgid "Watched"
+msgstr "Дивився"
+
+#: templates/app/components/fill_track_episode.html:41
+msgid "times"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:44
+msgid "Not watched yet"
+msgstr "Ще не дивився"
+
+#: templates/app/components/fill_track_episode.html:62
+msgid "Watch Date & Time"
+msgstr "Дата та час перегляду"
+
+#: templates/app/components/fill_track_episode.html:91
+msgid "Air date"
+msgstr "Дата виходу в ефір"
+
+#: templates/app/components/fill_track_episode.html:103
+msgid "Remove watch"
+msgstr "Видалити перегляд"
+
+#: templates/app/components/fill_track_episode.html:108
+msgid "Add watch"
+msgstr "Додати перегляд"
+
+#: templates/base.html:76
+msgid "Home"
+msgstr "Головна"
+
+#: templates/base.html:99
+msgid "Create Custom"
+msgstr "Створити власний"
+
+#: templates/base.html:108
+msgid "Statistics"
+msgstr "Статистика"
+
+#: templates/base.html:117
+msgid "Lists"
+msgstr "Списки"
+
+#: templates/base.html:126
+msgid "Calendar"
+msgstr "Календар"
+
+#: templates/base.html:148 templates/users/base.html:8
+msgid "Settings"
+msgstr "Налаштування"
+
+#: templates/base.html:156
+msgid "Logout"
+msgstr "Вийти"
+
+#: templates/base.html:199
+msgid "Search"
+msgstr "Знайти"
+
+#: templates/users/about.html:8 templates/users/about.html:13
+#: templates/users/base.html:173
+msgid "About"
+msgstr "Деталі"
+
+#: templates/users/about.html:32
+msgid "Description"
+msgstr "Опис"
+
+#: templates/users/about.html:35
+msgid ""
+"Yamtrack is an open-source media tracker that helps you organize and track "
+"your media."
+msgstr ""
+"Yamtrack це медіа-трекер з відкритим вихідним кодом, який допомагає "
+"впорядковувати та відстежувати ваші медіа."
+
+#: templates/users/about.html:55
+msgid "Links"
+msgstr "Посилання"
+
+#: templates/users/about.html:190
+msgid "License"
+msgstr "Ліцензія"
+
+#: templates/users/about.html:204
+msgid "Version"
+msgstr "Версія"
+
+#: templates/users/account.html:8 templates/users/base.html:31
+msgid "Account"
+msgstr "Профіль"
+
+#: templates/users/account.html:28
+msgid "Profile Information"
+msgstr "Інформація про профіль"
+
+#: templates/users/account.html:41
+msgid "Username"
+msgstr "Ім'я користувача"
+
+#: templates/users/account.html:68
+msgid "Save Changes"
+msgstr "Зберегти зміни"
+
+#: templates/users/account.html:89
+msgid "Change Password"
+msgstr "Зміна паролю"
+
+#: templates/users/account.html:104
+msgid "Current Password"
+msgstr "Поточний пароль"
+
+#: templates/users/account.html:155
+msgid "New Password"
+msgstr "Новий пароль"
+
+#: templates/users/account.html:206
+msgid "Confirm New Password"
+msgstr "Підтвердити новий пароль"
+
+#: templates/users/account.html:272
+msgid "Update Password"
+msgstr "Оновити пароль"
+
+#: templates/users/base.html:9
+msgid "Configure your account and preferences"
+msgstr "Налаштуйте свій обліковий запис та систему"
+
+#: templates/users/base.html:50 templates/users/notifications.html:7
+#: templates/users/notifications.html:28
+msgid "Notifications"
+msgstr "Сповіщення"
+
+#: templates/users/base.html:72 templates/users/sidebar.html:7
+msgid "Sidebar"
+msgstr "Бічна панель"
+
+#: templates/users/base.html:92 templates/users/integrations.html:7
+#: templates/users/integrations.html:27
+msgid "Integrations"
+msgstr "Інтеграції"
+
+#: templates/users/base.html:113
+msgid "Import Data"
+msgstr "Імпорт даних"
+
+#: templates/users/base.html:134 templates/users/export_data.html:26
+msgid "Export Data"
+msgstr "Експорт даних"
+
+#: templates/users/base.html:153 templates/users/system_settings.html:8
+msgid "System"
+msgstr "Система"
+
+#: templates/users/components/excluded_items.html:4
+msgid "Currently Excluded:"
+msgstr "Наразі виключено:"
+
+#: templates/users/components/excluded_items.html:44
+msgid "No media items excluded yet"
+msgstr "Поки що немає виключених матеріалів"
+
+#: templates/users/components/search_results.html:22
+msgid "Exclude"
+msgstr "Виключити"
+
+#: templates/users/components/search_results.html:28
+msgid "No matching items found"
+msgstr "Не знайдено жодного відповідника"
+
+#: templates/users/export_data.html:5
+msgid "Export"
+msgstr "Експорт"
+
+#: templates/users/export_data.html:28
+msgid "Back up your data or export it for use with other services."
+msgstr ""
+"Створюйте резервні копії даних або експортуйте їх для використання в інших "
+"сервісах."
+
+#: templates/users/export_data.html:29
+msgid "Your export will include all your media items."
+msgstr "Експорт включатиме всі ваші медіафайли."
+
+#: templates/users/export_data.html:33
+msgid "Export as CSV"
+msgstr "Експорт у CSV"
+
+#: templates/users/import_data.html:6 templates/users/import_data.html:152
+#: templates/users/import_data.html:193 templates/users/import_data.html:217
+#: templates/users/import_data.html:263
+msgid "Import"
+msgstr "Імпорт"
+
+#: templates/users/import_data.html:30
+msgid "Import Settings"
+msgstr "Налаштування імпорту"
+
+#: templates/users/import_data.html:32
+msgid "Configure your import preferences."
+msgstr "Налаштуйте параметри імпорту."
+
+#: templates/users/import_data.html:36
+msgid "Import Frequency"
+msgstr "Частота імпорту"
+
+#: templates/users/import_data.html:40
+msgid "One Time Import"
+msgstr "Одноразовий імпорт"
+
+#: templates/users/import_data.html:41
+msgid "Every Day"
+msgstr "Щодня"
+
+#: templates/users/import_data.html:42
+msgid "Every 2 Days"
+msgstr "Кожні 2 дні"
+
+#: templates/users/import_data.html:58
+msgid "Import Time"
+msgstr "Час імпорту"
+
+#: templates/users/import_data.html:65
+msgid "Import Mode"
+msgstr "Режим імпорту"
+
+#: templates/users/import_data.html:69
+msgid "Only Sync New Items"
+msgstr "Лише нові елементи"
+
+#: templates/users/import_data.html:70
+msgid "Sync New Items and Overwrite Existing"
+msgstr "Нові елементи та перезапис наявних"
+
+#: templates/users/import_data.html:107
+msgid "Import Sources"
+msgstr "Джерела імпорту"
+
+#: templates/users/import_data.html:109
+msgid "Import your media data from external services."
+msgstr "Імпортування медіаданих із зовнішніх сервісів."
+
+#: templates/users/import_data.html:115 templates/users/import_data.html:161
+msgid "Import TV shows, movies and anime"
+msgstr "Імпорт серіалів, фільмів та аніме"
+
+#: templates/users/import_data.html:124
+msgid "Trakt username slug"
+msgstr "Ім'я користувача в Trakt"
+
+#: templates/users/import_data.html:144
+msgid "Found in your Trakt profile URL:"
+msgstr "Знаходиться в URL-адресі вашого профілю Trakt:"
+
+#: templates/users/import_data.html:161
+msgid "OAuth-based imports are not available for periodic imports"
+msgstr "Імпорт на основі OAuth недоступний для періодичного імпорту"
+
+#: templates/users/import_data.html:171
+msgid "Connect with Simkl"
+msgstr "Зв'язатися з Simkl"
+
+#: templates/users/import_data.html:178 templates/users/import_data.html:202
+#: templates/users/import_data.html:226
+msgid "Import anime and manga"
+msgstr "Імпорт аніме та манги"
+
+#: templates/users/import_data.html:187
+msgid "MAL username"
+msgstr "Ім'я користувача MAL"
+
+#: templates/users/import_data.html:211
+msgid "AniList username"
+msgstr "Ім'я користувача AniList"
+
+#: templates/users/import_data.html:235
+msgid "Kitsu user ID"
+msgstr "ID користувача Kitsu"
+
+#: templates/users/import_data.html:255
+msgid "Found in your Kitsu profile URL:"
+msgstr "Знаходиться в URL-адресі вашого профілю Kitsu:"
+
+#: templates/users/import_data.html:272
+msgid "Import from YamTrack backup"
+msgstr "Імпорт з резервної копії YamTrack"
+
+#: templates/users/import_data.html:272
+msgid "File uploads are not available for periodic imports"
+msgstr "Завантаження файлів недоступне для періодичного імпорту"
+
+#: templates/users/import_data.html:290 templates/users/import_data.html:317
+msgid "Select CSV File"
+msgstr "Вибрати CSV файл"
+
+#: templates/users/import_data.html:340
+msgid "Active Periodic Imports"
+msgstr "Активний періодичний імпорт"
+
+#: templates/users/import_data.html:343
+msgid ""
+"Automated imports that run on a schedule. These will continue to sync your "
+"media until disabled."
+msgstr ""
+"Автоматичний імпорт за розкладом. Він продовжує синхронізувати ваші медіа, "
+"доки не буде вимкнений."
+
+#: templates/users/import_data.html:378
+msgid "Username:"
+msgstr "Ім'я користувача:"
+
+#: templates/users/import_data.html:379 templates/users/import_data.html:439
+msgid "Mode:"
+msgstr "Режим:"
+
+#: templates/users/import_data.html:380
+msgid "Last Import:"
+msgstr "Останній імпорт:"
+
+#: templates/users/import_data.html:381
+msgid "Next Import:"
+msgstr "Наступний імпорт:"
+
+#: templates/users/import_data.html:386
+msgid "No periodic imports configured"
+msgstr "Періодичний імпорт не налаштовано"
+
+#: templates/users/import_data.html:387
+msgid "Set up an import with a daily or 2-day frequency to see it here"
+msgstr ""
+"Налаштуйте імпорт з щоденною або 2-денною періодичністю, щоб побачити його "
+"тут"
+
+#: templates/users/import_data.html:409
+msgid "Import History"
+msgstr "Історія імпорту"
+
+#: templates/users/import_data.html:412
+msgid "Showing import activity from the last 7 days."
+msgstr "Показує імпортну активність за останні 7 днів."
+
+#: templates/users/import_data.html:421
+msgid "Finished"
+msgstr "Завершено"
+
+#: templates/users/import_data.html:423
+msgid "Success"
+msgstr "Успіх"
+
+#: templates/users/import_data.html:427
+msgid "Started"
+msgstr "Розпочато"
+
+#: templates/users/import_data.html:429
+msgid "Failed"
+msgstr "Не вдалося"
+
+#: templates/users/import_data.html:431
+msgid "Pending"
+msgstr "В черзі"
+
+#: templates/users/import_data.html:448
+msgid "Show failed items"
+msgstr "Показати невдалі елементи"
+
+#: templates/users/import_data.html:453
+msgid "Couldn't import the following media:"
+msgstr "Не вдалося імпортувати такі медіафайли:"
+
+#: templates/users/import_data.html:458
+msgid "Unexpected error occurred:"
+msgstr "Виникла непередбачувана помилка:"
+
+#: templates/users/import_data.html:468
+msgid "No imports in the last 7 days"
+msgstr "За останні 7 днів імпорт не здійснювався"
+
+#: templates/users/import_data.html:469
+msgid "Import your media from any source to see the history here"
+msgstr "Імпортуйте медіа з будь-якого джерела, щоб переглянути історію тут"
+
+#: templates/users/integrations.html:29
+msgid ""
+"Connect your media servers to automatically track your watching progress."
+msgstr ""
+"Підключіть медіа-сервери, щоб автоматично відстежувати прогрес перегляду."
+
+#: templates/users/integrations.html:45
+msgid "API Token"
+msgstr "Токен API"
+
+#: templates/users/integrations.html:47
+msgid ""
+"This token is used to authenticate webhook requests from your media servers."
+msgstr ""
+"Цей токен використовується для автентифікації запитів webhook від ваших "
+"медіа-серверів."
+
+#: templates/users/integrations.html:68
+msgid "Regenerating will invalidate the previous token"
+msgstr "Регенерація зробить попередній токен недійсним"
+
+#: templates/users/integrations.html:85
+msgid "Copy"
+msgstr "Копіювати"
+
+#: templates/users/integrations.html:106
+msgid "Regenerate"
+msgstr "Регенерувати"
+
+#: templates/users/integrations.html:126
+msgid "Jellyfin Integration"
+msgstr "Інтеграція з Jellyfin"
+
+#: templates/users/integrations.html:128
+msgid "Connect Jellyfin to automatically track your watching progress."
+msgstr "Підключіть Jellyfin, щоб автоматично відстежувати прогрес перегляду."
+
+#: templates/users/integrations.html:130
+msgid "Setup Instructions"
+msgstr "Інструкції з налаштування"
+
+#: templates/users/integrations.html:132
+msgid "You will need to have TMDB and TVDB as metadata providers in Jellyfin."
+msgstr "Вам потрібно мати TMDB та TVDB як постачальників метаданих у Jellyfin."
+
+#: templates/users/integrations.html:133
+msgid "Generate a token above if you don't have one yet."
+msgstr "Згенеруйте токен вище, якщо у вас його ще немає."
+
+#: templates/users/integrations.html:135
+msgid "Add this repository"
+msgstr "Додати цей репозиторій"
+
+#: templates/users/integrations.html:139
+msgid "link"
+msgstr "за посиланням"
+
+#: templates/users/integrations.html:140
+msgid " to your \"Plugins Catalog\" in Jellyfin settings."
+msgstr " до вашого «Каталогу плагінів» у налаштуваннях Jellyfin."
+
+#: templates/users/integrations.html:143
+msgid "In Jellyfin settings, go to \"My Plugins\" and install the"
+msgstr ""
+"У налаштуваннях Jellyfin перейдіть до розділу «Мої плагіни» та встановіть"
+
+#: templates/users/integrations.html:147
+msgid "Unofficial Webhooks plugin"
+msgstr "Неофіційний плагін Webhooks"
+
+#: templates/users/integrations.html:150
+msgid "In the Webhooks plugin settings:"
+msgstr "У налаштуваннях плагіна Webhooks:"
+
+#: templates/users/integrations.html:155
+msgid "Payload format: Default"
+msgstr "Payload format: Default"
+
+#: templates/users/integrations.html:156
+msgid "Listen to events only for: Your Jellyfin User"
+msgstr "Слухати події тільки для: Вашого користувача Jellyfin"
+
+#: templates/users/integrations.html:157
+msgid "Events: Stop, MarkPlayed and MarkUnplayed"
+msgstr "Події: Зупинити, позначити відтворені та не відтворені"
+
+#: templates/users/notifications.html:31
+msgid "Configure how you want to receive notifications about your media."
+msgstr "Налаштуйте, як ви хочете отримувати сповіщення про ваші медіа."
+
+#: templates/users/notifications.html:39
+msgid "Apprise URLs"
+msgstr "Apprise URLs"
+
+#: templates/users/notifications.html:66
+msgid "Apprise"
+msgstr "Apprise"
+
+#: templates/users/notifications.html:66
+msgid "is a notification service that supports"
+msgstr "це сервіс сповіщень, який підтримує"
+
+#: templates/users/notifications.html:70
+msgid "many platforms"
+msgstr "багато платформ"
+
+#: templates/users/notifications.html:70
+msgid "including:"
+msgstr "в тому числі:"
+
+#: templates/users/notifications.html:79
+msgid "And many more..."
+msgstr "І багато інших..."
+
+#: templates/users/notifications.html:82
+msgid "Enter one URL per line. Example:"
+msgstr "Вводьте по одній URL-адресі в рядку. Приклад:"
+
+#: templates/users/notifications.html:88
+msgid ""
+"Enter each Apprise URL on a separate line to send notifications to multiple "
+"services."
+msgstr ""
+"Введіть кожну Apprise URL з нового рядка, щоб надсилати сповіщення до "
+"кількох сервісів."
+
+#: templates/users/notifications.html:93
+msgid "Notification Settings"
+msgstr "Налаштування сповіщень"
+
+#: templates/users/notifications.html:118
+msgid "Enable Daily Digest"
+msgstr "Включити щоденний дайджест"
+
+#: templates/users/notifications.html:121
+msgid ""
+"Receive a single notification each day with all media scheduled to release "
+"that day"
+msgstr ""
+"Щодня отримувати єдине сповіщення з усіма запланованими на цей день Релізами"
+
+#: templates/users/notifications.html:154
+msgid "Receive notifications for recently released media"
+msgstr "Отримувати сповіщення про нещодавні публікації"
+
+#: templates/users/notifications.html:156
+msgid "Get notified when new episodes, chapters, or other media are released"
+msgstr ""
+"Отримувати сповіщення про вихід нових епізодів, глав та інших матеріалів"
+
+#: templates/users/notifications.html:188
+msgid "Test Notifications"
+msgstr "Тестові сповіщення"
+
+#: templates/users/notifications.html:206
+msgid "Save Settings"
+msgstr "Зберегти налаштування"
+
+#: templates/users/notifications.html:227
+msgid "Excluded Media Items"
+msgstr "Виключені медіафайли"
+
+#: templates/users/notifications.html:230
+msgid "Exclude specific media items from notifications:"
+msgstr "Виключити певні медіа зі сповіщень:"
+
+#: templates/users/notifications.html:233
+msgid "Search for media to exclude..."
+msgstr "Пошук медіа для виключення..."
+
+#: templates/users/sidebar.html:29
+msgid "Sidebar Media Types"
+msgstr "Типи медіа на бічній панелі"
+
+#: templates/users/sidebar.html:31
+msgid "Toggle which media types appear in your sidebar navigation."
+msgstr "Перемикайте типи медіа, які відображатимуться на бічній панелі."
+
+#: templates/users/sidebar.html:50
+msgid "Hide disabled media types from search selection"
+msgstr "Приховати вимкнені типи медіа з вибірки пошуку"
+
+#: templates/users/sidebar.html:104
+msgid "Save Preferences"
+msgstr "Зберегти налаштування"
+
+#: templates/users/system_settings.html:31
+msgid "Language Settings"
+msgstr "Налаштування мови"
+
+#: templates/users/system_settings.html:41
+msgid "Select Language"
+msgstr "Вибрати мову"

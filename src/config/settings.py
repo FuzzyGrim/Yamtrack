@@ -90,6 +90,7 @@ MIDDLEWARE = [
     "simple_history.middleware.HistoryRequestMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "app.middleware.ProviderAPIErrorMiddleware",
+    'django.middleware.locale.LocaleMiddleware',
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -219,9 +220,19 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = config("TZ", default="UTC")
 
 USE_I18N = True
+USE_L10N = True
 
 USE_TZ = True
 
+LANGUAGES = [
+    ('en', 'English'),
+    ('uk', 'Ukrainian'),
+    ('de', 'German'),
+    ('fr', 'French'),
+    ('it', 'Italian'),
+    ('pl', 'Polish')
+]
+LOCALE_PATHS = [BASE_DIR / 'locale']
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
 
