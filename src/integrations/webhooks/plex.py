@@ -53,10 +53,10 @@ def process_payload(payload, user):
     elif media_type == MediaTypes.MOVIE.value:
         title = payload["Metadata"]["title"]
         logger.info("Detected movie: %s", title)
-        add_movie(tmdb_id, payload, user)
+        add_movie(tmdb_id, user)
 
 
-def add_movie(media_id, payload, user):
+def add_movie(media_id, user):
     """Add a movie as watched."""
     movie_metadata = app.providers.tmdb.movie(media_id)
 
