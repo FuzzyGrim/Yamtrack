@@ -44,11 +44,15 @@ class PlexWebhookTests(TestCase):
                 ],
             }
         }
+        
+        data = {
+            "payload": json.dumps(payload),
+        }
 
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -94,10 +98,14 @@ class PlexWebhookTests(TestCase):
             }
         }
 
+        data = {
+            "payload": json.dumps(payload),
+        }
+
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -105,32 +113,6 @@ class PlexWebhookTests(TestCase):
         # Verify movie was created and marked as completed
         movie = Movie.objects.get(
             item__media_id="603",
-            user=self.user,
-        )
-        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
-        self.assertEqual(movie.progress, 1)
-        """Test webhook handles movie mark played event."""
-        payload = {
-            "Event": "MarkPlayed",
-            "Item": {
-                "Name": "Perfect Blue",
-                "Type": "Movie",
-                "ProviderIds": {"Tmdb": "10494"},
-                "UserData": {"Played": True},
-            },
-        }
-
-        response = self.client.post(
-            self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 200)
-
-        # Verify movie was created and marked as completed
-        movie = Anime.objects.get(
-            item__media_id="437",
             user=self.user,
         )
         self.assertEqual(movie.status, Media.Status.COMPLETED.value)
@@ -157,10 +139,14 @@ class PlexWebhookTests(TestCase):
             }
         }
 
+        data = {
+            "payload": json.dumps(payload),
+        }
+
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -176,11 +162,14 @@ class PlexWebhookTests(TestCase):
                 "Guid": [],
             }
         }
+        data = {
+            "payload": json.dumps(payload),
+        }
 
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -207,18 +196,22 @@ class PlexWebhookTests(TestCase):
             }
         }
 
+        data = {
+            "payload": json.dumps(payload),
+        }
+        
         # First watch
-        self.client.post(
+        response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         # Second watch
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
