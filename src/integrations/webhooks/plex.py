@@ -14,12 +14,7 @@ def process_payload(payload, user):
     """Process a Plex webhook payload."""
     event_type = payload["event"]
 
-
-    logger.info("User: %s", user.username)
-    logger.info(event_type)
-    logger.info(json.dumps(payload, indent=2))  
-
-    if event_type not in ("media.resume", "media.pause", "media.scrobble"):
+    if event_type not in ("media.scrobble"):
         logger.info("Ignoring Plex webhook event: %s", event_type)
         return
 
