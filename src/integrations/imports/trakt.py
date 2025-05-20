@@ -38,7 +38,7 @@ class TraktImporter:
         self.user = user
         self.mode = mode
         self.user_base_url = f"{TRAKT_API_BASE_URL}/users/{username}"
-        self.warnings = []
+        self.warnings = set()
 
         # Track existing media to handle "new" mode correctly
         self.existing_media = self._get_existing_media()
@@ -240,7 +240,7 @@ class TraktImporter:
                 msg = f"Error processing history entry: {entry}"
                 raise MediaImportError(msg) from e
 
-    def _get_tmdb_id(self, entry_data, media_type):
+    def _get_tmdb_id(self, entry_data):
         """Extract TMDB ID from entry data."""
         if (
             "ids" in entry_data
@@ -249,10 +249,7 @@ class TraktImporter:
         ):
             return str(entry_data["ids"]["tmdb"])
 
-        self.warnings.append(
-            f"No {Sources.TMDB.label} ID found for "
-            f"{media_type} {entry_data.get('title', 'Unknown')}",
-        )
+        self.warnings.add(f"{entry_data['title']}: No {Sources.TMDB.label} ID found.")
         return None
 
     def _get_metadata(self, media_type, tmdb_id, title, season_number=None):
@@ -270,8 +267,10 @@ class TraktImporter:
             )
         except services.ProviderAPIError as error:
             if error.status_code == requests.codes.not_found:
-                self.warnings.append(
-                    f"{title} ({tmdb_id}): not found in {Sources.TMDB.label}",
+                if media_type == MediaTypes.SEASON.value:
+                    title = f"{title} S{season_number}"
+                self.warnings.add(
+                    f"{title}: not found in {Sources.TMDB.label} with ID {tmdb_id}.",
                 )
                 return None
             raise
@@ -348,7 +347,7 @@ class TraktImporter:
     def process_watched_movie(self, entry):
         """Process a single movie watch event."""
         movie = entry["movie"]
-        tmdb_id = self._get_tmdb_id(movie, MediaTypes.MOVIE.value)
+        tmdb_id = self._get_tmdb_id(movie)
         if not tmdb_id:
             return
 
@@ -371,7 +370,7 @@ class TraktImporter:
                 movie["title"],
             )
 
-            movie_obj, n_watches = self.media_instances[MediaTypes.MOVIE.value][key]
+            n_watches = len(self.media_instances[MediaTypes.MOVIE.value][key])
 
             extra_obj = app.models.Movie(
                 item=item,
@@ -384,10 +383,7 @@ class TraktImporter:
             self._add_to_bulk_media(MediaTypes.MOVIE.value, extra_obj, n_watches)
 
             # Update the watch count
-            self.media_instances[MediaTypes.MOVIE.value][key] = (
-                movie_obj,
-                n_watches + 1,
-            )
+            self.media_instances[MediaTypes.MOVIE.value][key].append(extra_obj)
         else:
             original_obj = app.models.Movie(
                 item=item,
@@ -397,7 +393,7 @@ class TraktImporter:
             )
 
             self._add_to_bulk_media(MediaTypes.MOVIE.value, original_obj, n_watches=0)
-            self.media_instances[MediaTypes.MOVIE.value][key] = (original_obj, 1)
+            self.media_instances[MediaTypes.MOVIE.value][key] = [original_obj]
 
     def _get_episode_image(self, episode_number, season_metadata):
         """Extract episode image URL from season metadata."""
@@ -411,7 +407,7 @@ class TraktImporter:
     def process_watched_episode(self, entry):
         """Process a single episode watch event."""
         show = entry["show"]
-        tmdb_id = self._get_tmdb_id(show, MediaTypes.TV.value)
+        tmdb_id = self._get_tmdb_id(show)
         if not tmdb_id:
             return
 
@@ -432,7 +428,7 @@ class TraktImporter:
         season_metadata = self._get_metadata(
             MediaTypes.SEASON.value,
             tmdb_id,
-            f"{show['title']} Season {season_number}",
+            show["title"],
             season_number,
         )
         if not season_metadata:
@@ -445,8 +441,8 @@ class TraktImporter:
 
         if not episode_exists:
             item_identifier = f"{show['title']} S{season_number}E{episode_number}"
-            self.warnings.append(
-                f"{item_identifier}: not found in TMDB {tmdb_id}.",
+            self.warnings.add(
+                f"{item_identifier}: not found in TMDB with ID {tmdb_id}.",
             )
             return
 
@@ -464,7 +460,7 @@ class TraktImporter:
                 status=Media.Status.IN_PROGRESS.value,
             )
             self._add_to_bulk_media(MediaTypes.TV.value, tv_obj, n_watches=0)
-            self.media_instances[MediaTypes.TV.value][tv_key] = (tv_obj, 1)
+            self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         else:
             tv_obj = self.media_instances[MediaTypes.TV.value][tv_key][0]
 
@@ -485,7 +481,7 @@ class TraktImporter:
                 status=Media.Status.IN_PROGRESS.value,
             )
             self._add_to_bulk_media(MediaTypes.SEASON.value, season_obj, n_watches=0)
-            self.media_instances[MediaTypes.SEASON.value][season_key] = (season_obj, 1)
+            self.media_instances[MediaTypes.SEASON.value][season_key] = [season_obj]
         else:
             season_obj = self.media_instances[MediaTypes.SEASON.value][season_key][0]
 
@@ -511,8 +507,7 @@ class TraktImporter:
                 episode_number,
             )
 
-            ep_obj, n_watches = self.media_instances[MediaTypes.EPISODE.value][ep_key]
-
+            n_watches = len(self.media_instances[MediaTypes.EPISODE.value][ep_key])
             extra_obj = app.models.Episode(
                 item=episode_item,
                 related_season=season_obj,
@@ -527,10 +522,7 @@ class TraktImporter:
             )
 
             # Update the watch count
-            self.media_instances[MediaTypes.EPISODE.value][ep_key] = (
-                ep_obj,
-                n_watches + 1,
-            )
+            self.media_instances[MediaTypes.EPISODE.value][ep_key].append(extra_obj)
         else:
             original_obj = app.models.Episode(
                 item=episode_item,
@@ -539,7 +531,7 @@ class TraktImporter:
             )
 
             self._add_to_bulk_media(MediaTypes.EPISODE.value, original_obj, n_watches=0)
-            self.media_instances[MediaTypes.EPISODE.value][ep_key] = (original_obj, 1)
+            self.media_instances[MediaTypes.EPISODE.value][ep_key] = [original_obj]
 
         # Update status if this is the last episode
         self._update_completion_status(
@@ -671,11 +663,10 @@ class TraktImporter:
         season_number=None,
     ):
         """Process media items for watchlist, ratings, and comments."""
-        tmdb_id = self._get_tmdb_id(media_data, media_type)
+        tmdb_id = self._get_tmdb_id(media_data)
         if not tmdb_id:
             return
 
-        # Check if we should process this media based on mode
         parent_type = (
             MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
         )
@@ -691,39 +682,12 @@ class TraktImporter:
         if not metadata:
             return
 
-        # If we're processing a season, we need to create the TV show first
         if media_type == MediaTypes.SEASON.value:
-            tv_metadata = self._get_metadata(
-                MediaTypes.TV.value,
-                tmdb_id,
-                media_data["title"],
-            )
-            if not tv_metadata:
+            tv_obj = self._get_tv_obj(tmdb_id, media_data)
+            if not tv_obj:
                 return
-
-            tv_item = self._get_or_create_item(
-                MediaTypes.TV.value,
-                tmdb_id,
-                tv_metadata,
-            )
-
-            tv_key = f"{tmdb_id}"
-
-            # Create or get the TV object
-            if tv_key in self.media_instances[MediaTypes.TV.value]:
-                tv_obj = self.media_instances[MediaTypes.TV.value][tv_key][0]
-            else:
-                tv_obj = app.models.TV(
-                    item=tv_item,
-                    user=self.user,
-                    status=Media.Status.IN_PROGRESS.value,
-                )
-                self._add_to_bulk_media(MediaTypes.TV.value, tv_obj, n_watches=0)
-                self.media_instances[MediaTypes.TV.value][tv_key] = (tv_obj, 1)
-
             defaults["related_tv"] = tv_obj
 
-        # Create or update the media item
         key = f"{tmdb_id}"
         if media_type == MediaTypes.SEASON.value:
             key = f"{key}:{season_number}"
@@ -731,16 +695,50 @@ class TraktImporter:
         item = self._get_or_create_item(media_type, tmdb_id, metadata, season_number)
 
         if key in self.media_instances[media_type]:
-            # Update existing media object with new attributes
-            media_obj = self.media_instances[media_type][key][0]
-            for attr, value in defaults.items():
-                setattr(media_obj, attr, value)
+            self._update_instance(media_type, key, defaults)
         else:
-            # Create new media object
             media_obj = model_class(
                 item=item,
                 user=self.user,
                 **defaults,
             )
+
             self._add_to_bulk_media(media_type, media_obj, n_watches=0)
-            self.media_instances[media_type][key] = (media_obj, 1)
+            self.media_instances[media_type][key] = [media_obj]
+
+    def _get_tv_obj(self, tmdb_id, media_data):
+        """Get or create a TV object for the given season."""
+        tv_metadata = self._get_metadata(
+            MediaTypes.TV.value,
+            tmdb_id,
+            media_data["title"],
+        )
+        if not tv_metadata:
+            return None
+
+        tv_item = self._get_or_create_item(
+            MediaTypes.TV.value,
+            tmdb_id,
+            tv_metadata,
+        )
+
+        tv_key = f"{tmdb_id}"
+
+        # Create or get the TV object
+        if tv_key in self.media_instances[MediaTypes.TV.value]:
+            tv_obj = self.media_instances[MediaTypes.TV.value][tv_key][0]
+        else:
+            tv_obj = app.models.TV(
+                item=tv_item,
+                user=self.user,
+                status=Media.Status.IN_PROGRESS.value,
+            )
+            self._add_to_bulk_media(MediaTypes.TV.value, tv_obj, n_watches=0)
+            self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
+        return tv_obj
+
+    def _update_instance(self, media_type, key, defaults):
+        """Update the instance with new attributes."""
+        for media_obj in self.media_instances[media_type][key]:
+            for attr, value in defaults.items():
+                setattr(media_obj, attr, value)

@@ -342,7 +342,6 @@ def process_season(response):
     """Process the metadata for the selected season from The Movie Database."""
     episodes = response["episodes"]
     num_episodes = len(episodes)
-    last_episode_number = episodes[-1]["episode_number"] if episodes else None
 
     runtimes = []
     total_runtime = 0
@@ -363,7 +362,7 @@ def process_season(response):
         "source": Sources.TMDB.value,
         "media_type": MediaTypes.SEASON.value,
         "season_title": response["name"],
-        "max_progress": last_episode_number,
+        "max_progress": episodes[-1]["episode_number"] if episodes else 0,
         "image": get_image_url(response["poster_path"]),
         "season_number": response["season_number"],
         "synopsis": get_synopsis(response["overview"]),

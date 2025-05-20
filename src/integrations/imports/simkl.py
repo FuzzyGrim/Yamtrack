@@ -81,6 +81,11 @@ def importer(token, user, mode):
     imported_counts = {}
     for media_type, bulk_list in bulk_media.items():
         if bulk_list:
+            if media_type == MediaTypes.SEASON.value:
+                helpers.update_season_references(bulk_list, user)
+            elif media_type == MediaTypes.EPISODE.value:
+                helpers.update_episode_references(bulk_list, user)
+
             imported_counts[media_type] = helpers.bulk_chunk_import(
                 bulk_list,
                 apps.get_model(app_label="app", model_name=media_type),
@@ -191,9 +196,6 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
             )
 
     logger.info("Processed %d tv shows", len(tv_list))
-
-    helpers.update_season_references(bulk_media[MediaTypes.SEASON.value], user)
-    helpers.update_episode_references(bulk_media[MediaTypes.EPISODE.value], user)
 
 
 def process_seasons_and_episodes(
