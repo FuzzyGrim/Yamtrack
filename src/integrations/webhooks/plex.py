@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 def process_payload(payload, user):
     """Process a Plex webhook payload."""
+    logger.debug("Received Plex webhook payload: %s", json.dumps(payload, indent=2))
+    
     event_type = payload["event"]
 
     if event_type not in ("media.scrobble"):
