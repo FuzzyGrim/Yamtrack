@@ -172,7 +172,7 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="w-5 h-5 text-[#ebaf00] mr-2">
+             class="w-5 h-5 text-indigo-400 mr-2">
           <rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect><rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect><line x1="6" x2="6.01" y1="6" y2="6"></line><line x1="6" x2="6.01" y1="18" y2="18"></line>
         </svg>
         <h3 class="text-base font-medium">Plex Integration</h3>
@@ -190,7 +190,7 @@
                class="text-indigo-400 hover:underline">Webhooks </a>.
           </li>
           <li>
-            In the Webhooks section, click on "Add Webhook" and fill in the following:
+            In the Webhooks section, click on "Add Webhook" and enter the following URL:
             <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
               {# djlint:off #}
               <li>{{ request.scheme }}://{{ request.get_host }}/webhook/plex/{{ request.user.token|default_if_none:"&lttoken&gt" }}</li>
