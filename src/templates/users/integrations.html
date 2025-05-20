@@ -108,7 +108,7 @@
         </div>
       </div>
     </div>
-    <div class="bg-[#39404b] p-5 rounded-lg">
+    <div class="bg-[#39404b] p-5 rounded-lg mb-6">
       <div class="flex items-center mb-3">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
@@ -159,6 +159,50 @@
         </ol>
       </div>
     </div>
+
+
+    <div class="bg-[#39404b] p-5 rounded-lg">
+      <div class="flex items-center mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-5 h-5 text-[#ebaf00] mr-2">
+          <rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect><rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect><line x1="6" x2="6.01" y1="6" y2="6"></line><line x1="6" x2="6.01" y1="18" y2="18"></line>
+        </svg>
+        <h3 class="text-base font-medium">Plex Integration</h3>
+      </div>
+      <p class="text-gray-400 mb-4 text-sm">Connect Plex to automatically track your watching progress.</p>
+      <div class="bg-[#262a2f] p-4 rounded-md">
+        <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>
+        <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+          <li>You will need to have a PlexPass in order to have hooks enabled</li>
+          <li>Generate a token above if you don't have one yet.</li>
+          <li>
+            In Plex settings, go to <a href="https://app.plex.tv/desktop/#!/settings/webhooks"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="text-indigo-400 hover:underline">Webhooks </a>.
+          </li>
+          <li>
+            In the Webhooks section, click on "Add Webhook" and fill in the following:
+            <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
+              {# djlint:off #}
+              <li>{{ request.scheme }}://{{ request.get_host }}/webhook/plex/{{ request.user.token|default_if_none:"&lttoken&gt" }}</li>
+              {# djlint:on #}
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>
+    
+    
+
   </div>
 {% endblock settings_content %}
 

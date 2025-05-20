@@ -17,7 +17,7 @@ from django.views.decorators.http import require_GET, require_POST
 import users
 from integrations import exports, helpers, tasks
 from integrations.imports import simkl
-from integrations.webhooks import jellyfin
+from integrations.webhooks import jellyfin, plex
 
 logger = logging.getLogger(__name__)
 
@@ -237,4 +237,33 @@ def jellyfin_webhook(request, token):
 
     payload = json.loads(request.body)
     jellyfin.process_payload(payload, user)
+    return HttpResponse(status=200)
+
+
+@login_not_required
+@csrf_exempt
+@require_POST
+def plex_webhook(request, token):
+    """Handle Plex webhook notifications for media playback."""
+    try:
+        user = users.models.User.objects.get(token=token)
+    except ObjectDoesNotExist:
+        logger.warning(
+            "Could not process Plex webhook: Invalid token: %s",
+            token,
+        )
+        return HttpResponse(status=401)
+
+    # https://support.plex.tv/hc/en-us/articles/115002267687-Webhooks
+    # As stated above, the payload is sent in JSON format inside a multipart
+    # HTTP POST request. For the media.play and media.rate events, a second part of
+    # the POST request contains a JPEG thumbnail for the media.
+
+    # Access payload data
+    data = request.POST.get('payload')
+    if not data:
+        return HttpResponse("Missing payload", status=400)
+    
+    payload = json.loads(data)
+    plex.process_payload(payload, user)
     return HttpResponse(status=200)

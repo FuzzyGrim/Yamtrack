@@ -17,4 +17,9 @@ urlpatterns = [
         views.jellyfin_webhook,
         name="jellyfin_webhook",
     ),
+    path(
+        "webhook/plex/<str:token>",
+        views.plex_webhook,
+        name="plex_webhook",
+    ),
 ]
