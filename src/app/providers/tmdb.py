@@ -93,6 +93,35 @@ def search(media_type, query, page):
     return data
 
 
+def find(external_id, external_source):
+    """Search for media on TMDB."""
+    cache_key = f"find_{Sources.TMDB.value}_{external_id}_{external_source}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/find/{external_id}"
+
+        params = {
+            **base_params,
+            "external_source": external_source,
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+
+        cache.set(cache_key, data)
+
+    return response["tv_episode_results"][0] if response["tv_episode_results"] else None
+
+
 def movie(media_id):
     """Return the metadata for the selected movie from The Movie Database."""
     cache_key = f"{Sources.TMDB.value}_{MediaTypes.MOVIE.value}_{media_id}"
