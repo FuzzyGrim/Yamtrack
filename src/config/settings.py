@@ -7,40 +7,18 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from celery.schedules import crontab
-from decouple import Csv, Config, config, RepositorySecret, undefined, UndefinedValueError
+from decouple import Csv, config
 from django.core.cache import CacheKeyWarning
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def secret(key, default=undefined, **kwargs):
-    file = config(key, default, **kwargs)
-
-    if file == undefined:
-        return undefined
-    if file == default:
-        return default
-
-    path = Path(file)
-    try:
-        if path.is_absolute():
-            return Config(RepositorySecret(path.parent))(path.stem, default, **kwargs)
-        # Uses default /run/secrets directory
-        return Config(RepositorySecret())(file, default, **kwargs)
-    except (
-            FileNotFoundError,
-            IsADirectoryError,
-            UndefinedValueError,
-    ) as err:
-        raise UndefinedValueError(f"File from {key} not found. Please check the path and filename.") from err
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET", default=secret("SECRET_FILE"))
+SECRET_KEY = config("SECRET", default="secret")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
@@ -154,9 +132,9 @@ if config("DB_HOST", default=None):
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "HOST": config("DB_HOST"),
-            "NAME": config("DB_NAME", default=secret("DB_NAME_FILE")),
-            "USER": config("DB_USER", default=secret("DB_USER_FILE")),
-            "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
+            "NAME": config("DB_NAME"),
+            "USER": config("DB_USER"),
+            "PASSWORD": config("DB_PASSWORD"),
             "PORT": config("DB_PORT"),
         },
     }
@@ -429,7 +407,7 @@ INSTALLED_APPS += SOCIAL_PROVIDERS
 
 SOCIALACCOUNT_PROVIDERS = config(
     "SOCIALACCOUNT_PROVIDERS",
-    default=secret("SOCIALACCOUNT_PROVIDERS_FILE", default="{}"),
+    default="{}",
     cast=json.loads,
 )
 
