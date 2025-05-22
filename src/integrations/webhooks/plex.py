@@ -16,12 +16,12 @@ def process_payload(payload, user):
     logger.debug("User: %s", user)
     event_type = payload["event"]
 
-    if event_type not in ("media.scrobble"):
+    if event_type not in ("media.scrobble", "media.play"):
         logger.info("Ignoring Plex webhook event: %s", event_type)
         return
 
-    # Case-insensitive, trimmed user check
-    if user.strip().lower() not in payload["Account"]["title"].strip().lower():
+    # Case-insensitive, trimmed user check (handle User object or string)
+    if str(user).strip().lower() not in payload["Account"]["title"].strip().lower():
         logger.info("Ignoring Plex webhook event for user: %s", user)
         return
 
@@ -60,14 +60,17 @@ def process_payload(payload, user):
     elif media_type == MediaTypes.MOVIE.value:
         title = payload["Metadata"]["title"]
         logger.info("Detected movie: %s", title)
-        handle_movie(tmdb_id, user)
+        handle_movie(tmdb_id, payload, user)
 
 
-def handle_movie(media_id, user):
+def handle_movie(media_id, payload, user):
     """Add a movie as watched."""
     movie_metadata = app.providers.tmdb.movie(media_id)
+    movie_played = payload["event"] == "media.scrobble"
+    movie_started = payload["event"] == "media.play"
+    progress = 1 if movie_played else 0
 
-    item, _ = app.models.Item.objects.get_or_create(
+    movie_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
         source=Sources.TMDB.value,
         media_type=MediaTypes.MOVIE.value,
@@ -77,30 +80,45 @@ def handle_movie(media_id, user):
         },
     )
 
-    try:
-        movie_instance = app.models.Movie.objects.get(
-            item=item,
-            user=user,
-        )
-        movie_instance.progress = 1
-
-        if (
-            movie_instance.status == Media.Status.COMPLETED.value
-        ) or movie_instance.status == Media.Status.REPEATING.value:
-            movie_instance.repeats += 1
-            movie_instance.status = Media.Status.REPEATING.value
-        else:
-            movie_instance.status = Media.Status.IN_PROGRESS.value
-        movie_instance.save()
-
-    except app.models.Movie.DoesNotExist:
-        app.models.Movie.objects.create(
-            item=item,
-            user=user,
-            progress=1 ,
-            status=Media.Status.IN_PROGRESS.value,
-        )
-
+    # Check if the movie is already in the database  
+    movie, created = app.models.Movie.objects.get_or_create(
+        item=movie_item,
+        user=user,
+        defaults={
+            "start_date": timezone.now().replace(second=0, microsecond=0),
+            "status": Media.Status.IN_PROGRESS.value,
+        },
+    )
+    
+    if created:
+        logger.debug("Movie created: %s", movie)
+        # Movie DOES NOT exists in the database
+        movie.progress = progress
+        movie.status = Media.Status.IN_PROGRESS.value
+        if movie_played:
+            # Movie has been scrobbled / played
+            # Set end date and status to completed
+            movie.end_date = timezone.now().replace(second=0, microsecond=0)
+            movie.status = Media.Status.COMPLETED.value
+        movie.save()
+    else:
+        # Movie already exists in the database
+        if movie_started:
+            # Movie has started playing AND in the database
+            # Set start date and status to in progress
+            movie.start_date = timezone.now().replace(second=0, microsecond=0)
+            movie.status = Media.Status.IN_PROGRESS.value
+        elif movie_played:
+            # Movie has been scrobbled / played AND in the database
+            # Set end date and status to completed the first time
+            # and status to repeating next time
+            movie.end_date = timezone.now().replace(second=0, microsecond=0)
+            if movie.repeats > 0:
+                movie.status = Media.Status.REPEATING.value
+            else:
+                movie.status = Media.Status.COMPLETED.value
+            movie.repeats += 1
+        movie.save()
 
 def handle_tv_episode(media_id, payload, user):
     """Add a TV show episode as watched."""
@@ -137,8 +155,7 @@ def handle_tv_episode(media_id, payload, user):
         Media.Status.IN_PROGRESS.value,
     ):
         tv_instance.status = Media.Status.IN_PROGRESS.value
-        tv_instance.save(
-    )
+        tv_instance.save()
 
     season_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
