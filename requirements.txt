@@ -4,7 +4,7 @@ beautifulsoup4==4.13.4
 celery==5.5.2
 croniter==6.0.0
 Django==5.2
-django-allauth[socialaccount]==65.7.0
+django-allauth[socialaccount]==65.8.1
 django-celery-beat==2.8.1
 django-celery-results==2.6.0
 django_debug_toolbar==5.2.0
