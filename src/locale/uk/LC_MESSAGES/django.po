@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-20 23:30+0300\n"
-"PO-Revision-Date: 2025-05-20 23:33+0300\n"
+"POT-Creation-Date: 2025-05-21 01:01+0300\n"
+"PO-Revision-Date: 2025-05-21 01:02+0300\n"
 "Last-Translator: Dreykp <>\n"
 "Language-Team: Ukrainian\n"
 "Language: uk\n"
@@ -1376,6 +1376,14 @@ msgstr "Налаштування мови"
 msgid "Select Language"
 msgstr "Вибрати мову"
 
+#: templates/users/system_settings.html:64
+msgid "TMDB Language"
+msgstr "TMDB Мова"
+
+#: templates/users/system_settings.html:69
+msgid "Select TMDB Language"
+msgstr "Вибрати мову для TMDB"
+
 #: users/models.py:27
 msgid "Upcoming"
 msgstr "Найближчі"
@@ -1424,6 +1432,24 @@ msgstr "Найновіше Перше"
 #: users/models.py:81
 msgid "Date Added"
 msgstr "Дата додавання"
+
+msgid "English (United States)"
+msgstr "Англійська (США)"
+
+msgid "Українська"
+msgstr "Українська"
+
+msgid "Polski"
+msgstr "Польська"
+
+msgid "Deutsch"
+msgstr "Німецька"
+
+msgid "Français"
+msgstr "Французька"
+
+msgid "日本語"
+msgstr "Японська"
 
 #~ msgid "Yesterday"
 #~ msgstr "Вчора"
