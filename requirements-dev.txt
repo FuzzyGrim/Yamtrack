@@ -1,4 +1,4 @@
-coverage==7.8.0
+coverage==7.8.1
 djlint==1.36.4
 fakeredis==2.29.0
 pytest-playwright==0.7.0
