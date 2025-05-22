@@ -16,7 +16,7 @@ django-select2==8.4.0
 django-simple-history==3.8.0
 django-widget-tweaks==1.5.0
 gunicorn==23.0.0
-icalendar==6.2.0
+icalendar==6.3.1
 Pillow==11.2.1
 psycopg[binary]==3.2.9
 python-decouple==3.8
