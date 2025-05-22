@@ -301,7 +301,7 @@
               </div>
             {% endif %}
 
-            {% if user_media.repeats and media.media_type != MediaTypes.TV.value and media.media_type != MediaTypes.SEASON.value %}
+            {% if user_media.repeats > 1 and media.media_type != MediaTypes.TV.value and media.media_type != MediaTypes.SEASON.value %}
               <div class="flex @max-[210px]:flex-col justify-between text-sm">
                 <span class="text-gray-400">Repeats:</span>
                 <div class="flex items-center text-gray-200">
@@ -320,7 +320,7 @@
                     <path d="m7 22-4-4 4-4"></path>
                     <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
                   </svg>
-                  <span>{{ user_media.repeats }}x</span>
+                  <span>{{ user_media.repeats|add:"-1" }}x</span>
                 </div>
               </div>
             {% endif %}
