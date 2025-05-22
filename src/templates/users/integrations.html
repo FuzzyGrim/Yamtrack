@@ -45,10 +45,19 @@
       </div>
       <p class="text-gray-400 mb-4 text-sm">This token is used to authenticate webhook requests from your media servers.</p>
       <div class="bg-[#262a2f] p-3 rounded-md mb-4">
-        <input readonly=""
-               class="w-full py-2 px-3 bg-[#262a2f] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono"
-               type="text"
-               value="{{ user.token|default_if_none:"" }}">
+        <div class="flex items-center gap-2">
+          <input readonly=""
+                 id="token"
+                 class="flex-1 py-2 pr-2 pl-3 bg-[#262a2f] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono"
+                 type="text"
+                 value="{{ user.token|default_if_none:"" }}">
+          <span class="flex items-center cursor-pointer group" title="Copy" data-copy-target="#token">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+            </svg>
+          </span>
+        </div>
       </div>
       <div class="flex justify-between items-center">
         <div class="flex items-center text-amber-400 text-sm">
@@ -67,22 +76,6 @@
           <p>Regenerating will invalidate the previous token</p>
         </div>
         <div class="flex space-x-3">
-          <button class="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition-colors text-sm cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-4 h-4 mr-2">
-              <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
-              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
-            </svg>
-            Copy
-          </button>
           <form method="post" action="{% url 'regenerate_token' %}">
             {% csrf_token %}
             <button type="submit"
@@ -178,8 +171,24 @@
         <h3 class="text-base font-medium">Plex Integration</h3>
       </div>
       <p class="text-gray-400 mb-4 text-sm">Connect Plex to automatically track your watching progress.</p>
-      <div class="bg-[#262a2f] p-4 rounded-md">
-        <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>
+        <p class="text-gray-400 mb-4 text-sm">This username will be used to filter which events are sent to your webhook.</p>
+        <div class="bg-[#262a2f] p-3 rounded-md mb-4">
+            <div class="flex items-center gap-2">
+              <input readonly=""
+                    id="username"
+                    class="flex-1 py-2 pr-2 pl-3 bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                    type="text"
+                    value="{{ user.username|default_if_none:"" }}">
+              <span class="flex items-center cursor-pointer group" title="Copy" data-copy-target="#username">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+                </svg>
+              </span>
+            </div>
+        </div>      
+      <div class="bg-[#262a2f] p-4 rounded-md">        
+        <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>          
         <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
           <li>You will need to have a PlexPass in order to have hooks enabled</li>
           <li>Generate a token above if you don't have one yet.</li>
@@ -191,11 +200,19 @@
           </li>
           <li>
             In the Webhooks section, click on "Add Webhook" and enter the following URL:
-            <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
-              {# djlint:off #}
-              <li>{{ request.scheme }}://{{ request.get_host }}/webhook/plex/{{ request.user.token|default_if_none:"&lttoken&gt" }}</li>
-              {# djlint:on #}
-            </ul>
+            <div class="flex items-center gap-2">
+              <input readonly=""
+                    id="plex-webhook-url"
+                    class="flex-1 py-2 pr-2 pl-3 bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                    type="text"
+                    value="{{ request.scheme }}://{{ request.get_host }}/webhook/plex/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
+              <span class="flex items-center cursor-pointer group" title="Copy" data-copy-target="#plex-webhook-url">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+                </svg>
+              </span>
+            </div>
           </li>
         </ol>
       </div>
@@ -207,5 +224,5 @@
 {% endblock settings_content %}
 
 {% block js %}
-  <script src="{% static 'js/copy-token.js' %}{% get_static_file_mtime 'js/copy-token.js' %}"></script>
+  <script src="{% static 'js/copy-item.js' %}{% get_static_file_mtime 'js/copy-item.js' %}"></script>
 {% endblock js %}
