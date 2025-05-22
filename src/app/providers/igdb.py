@@ -210,7 +210,7 @@ def game(media_id):
             "title": response["name"],
             "max_progress": None,
             "image": get_image_url(response),
-            "synopsis": response["summary"],
+            "synopsis": response.get("summary", "No synopsis available."),
             "genres": get_list(response, "genres"),
             "score": get_score(response),
             "score_count": response.get("total_rating_count"),

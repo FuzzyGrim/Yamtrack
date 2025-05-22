@@ -673,6 +673,7 @@ class Media(models.Model):
         inherit=True,
         excluded_fields=[
             "item",
+            "progress_changed",
             "user",
             "related_tv",
         ],

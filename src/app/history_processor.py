@@ -74,9 +74,7 @@ def organize_changes(changes, media_type):
     end_date_change = None
 
     for change in changes:
-        if change.field == "progress_changed" or (
-            change.field == "progress" and media_type == MediaTypes.MOVIE.value
-        ):
+        if change.field == "progress" and media_type == MediaTypes.MOVIE.value:
             continue
 
         change_data = {
@@ -135,7 +133,7 @@ def collect_creation_changes(new_record, history_model, media_type):
     for field in history_model._meta.get_fields():  # noqa: SLF001
         if (
             field.name.startswith("history_")
-            or field.name in ["id", "progress_changed"]
+            or field.name in ["id"]
             or not hasattr(new_record, field.attname)
             or (field.name == "progress" and media_type == MediaTypes.MOVIE.value)
         ):

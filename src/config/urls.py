@@ -67,18 +67,6 @@ account_patterns = [
     *build_provider_urlpatterns(),
 ]
 
-# Only import and add MFA views if not using social account only
-if not settings.SOCIALACCOUNT_ONLY:
-    from allauth.mfa.base import views as allauth_mfa_views
-
-    account_patterns.append(
-        path(
-            "2fa/authenticate/",
-            allauth_mfa_views.authenticate,
-            name="mfa_authenticate",
-        ),
-    )
-
 # Add the accounts URLs to the main urlpatterns
 urlpatterns.append(path("accounts/", include(account_patterns)))
 

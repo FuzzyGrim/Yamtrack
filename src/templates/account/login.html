@@ -30,23 +30,6 @@
     {% endelement %}
   {% endif %}
 
-  {% if LOGIN_BY_CODE_ENABLED or PASSKEY_LOGIN_ENABLED %}
-    {% element hr %}
-    {% endelement %}
-    {% element button_group vertical=True %}
-      {% if PASSKEY_LOGIN_ENABLED %}
-        {% element button type="submit" form="mfa_login" id="passkey_login" tags="prominent,login,outline,primary" %}
-          Sign in with a passkey
-        {% endelement %}
-      {% endif %}
-      {% if LOGIN_BY_CODE_ENABLED %}
-        {% element button href=request_login_code_url tags="prominent,login,outline,primary" %}
-          Send me a sign-in code
-        {% endelement %}
-      {% endif %}
-    {% endelement %}
-  {% endif %}
-
   {% if SOCIALACCOUNT_ENABLED %}
     {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
   {% endif %}
@@ -64,9 +47,6 @@
 
 {% block extra_body %}
   {{ block.super }}
-  {% if PASSKEY_LOGIN_ENABLED %}
-    {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}
-  {% endif %}
 
   {% get_providers as socialaccount_providers %}
   {% if socialaccount_providers and REDIRECT_LOGIN_TO_SSO and request.GET.loggedout != '1' %}

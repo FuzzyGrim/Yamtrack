@@ -17,6 +17,10 @@ class MediaImportError(Exception):
     """Custom exception for import errors."""
 
 
+class MediaImportUnexpectedError(Exception):
+    """Custom exception for unexpected import errors."""
+
+
 def update_season_references(seasons, user):
     """Update season references with actual TV instances.
 
@@ -225,7 +229,7 @@ def create_import_schedule(username, request, mode, frequency, import_time, sour
         )
         return
 
-    crontab = CrontabSchedule.objects.create(
+    crontab, _ = CrontabSchedule.objects.get_or_create(
         hour=import_time.hour,
         minute=import_time.minute,
         day_of_week="*" if frequency == "daily" else "*/2",

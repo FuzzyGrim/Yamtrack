@@ -439,25 +439,26 @@
             <div class="text-xs text-gray-400 mb-2">Mode: {{ result.mode }}</div>
 
             {% if result.status %}
-              {% if result.status == "SUCCESS" %}<div class="text-sm text-gray-200">{{ result.summary }}</div>{% endif %}
+              {% if result.summary %}<div class="text-sm text-gray-200">{{ result.summary }}</div>{% endif %}
 
               <div class="mt-2" x-data="{ showDetails: false }" x-cloak>
-                {% if result.errors or result.status == "FAILURE" %}
-                  <button @click="showDetails = !showDetails"
-                          class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                          x-text="showDetails ? 'Hide failed items' : 'Show failed items'">Show failed items</button>
+                {% if result.errors %}
+                  {% if result.status == "SUCCESS" %}
+                    <button @click="showDetails = !showDetails"
+                            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                            x-text="showDetails ? 'Hide failed items' : 'Show failed items'">Show failed items</button>
+
+                  {% elif result.status == "FAILURE" %}
+                    <button @click="showDetails = !showDetails"
+                            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                            x-text="showDetails ? 'Hide traceback' : 'Show traceback'">Show traceback</button>
+                  {% endif %}
 
                   <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded"
                        x-show="showDetails">
-                    {% if result.errors %}
-                      <div class="text-xs text-gray-400 mb-2">Couldn't import the following media:</div>
-                      <div class="text-xs space-y-1 text-red-400">
-                        {% for error in result.errors.splitlines %}<div>{{ error }}</div>{% endfor %}
-                      </div>
-                    {% else %}
-                      <div class="text-xs text-gray-400 mb-2">Unexpected error occurred:</div>
-                      <div class="text-xs space-y-1 text-red-400">{{ result.summary }}</div>
-                    {% endif %}
+                    <div class="text-xs space-y-1 text-red-400">
+                      {% for error in result.errors.splitlines %}<div>{{ error }}</div>{% endfor %}
+                    </div>
                   </div>
                 {% endif %}
               </div>

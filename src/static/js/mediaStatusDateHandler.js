@@ -10,7 +10,11 @@ document.addEventListener("alpine:init", () => {
       const statusField = this.$el.querySelector('[name="status"]');
       const endDateField = this.$el.querySelector('[name="end_date"]');
       const startDateField = this.$el.querySelector('[name="start_date"]');
-      const now = new Date().toISOString().slice(0, 16);
+      const now = new Date(
+        new Date().getTime() - new Date().getTimezoneOffset() * 60000
+      )
+        .toISOString()
+        .slice(0, 16);
 
       // Initial load handling
       if (

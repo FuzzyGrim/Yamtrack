@@ -10,6 +10,7 @@ import app
 import app.providers
 from app.models import Media, MediaTypes, Sources
 from integrations import helpers
+from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,12 @@ def importer(file, user, mode):
     """Import media from CSV file."""
     logger.info("Starting HowLongToBeat import with mode %s", mode)
 
-    decoded_file = file.read().decode("utf-8").splitlines()
+    try:
+        decoded_file = file.read().decode("utf-8").splitlines()
+    except UnicodeDecodeError as e:
+        msg = "Invalid file format. Please upload a CSV file."
+        raise MediaImportError(msg) from e
+
     reader = DictReader(decoded_file)
 
     bulk_media = {MediaTypes.GAME.value: []}
@@ -31,37 +37,43 @@ def importer(file, user, mode):
 
     # First pass: identify duplicates
     rows = list(reader)
-    for row in rows:
-        game = search_game(row)
-        if not game:
-            warnings.append(
-                f"{row['Title']}: Couldn't find a game with this title in "
-                f"{Sources.IGDB.value}",
-            )
-            continue
 
-        media_id = game["media_id"]
+    try:
+        for row in rows:
+            game = search_game(row)
+            if not game:
+                warnings.append(
+                    f"{row['Title']}: Couldn't find a game with this title in "
+                    f"{Sources.IGDB.label}",
+                )
+                continue
 
-        # Count occurrences of each media_id
-        media_id_counts[media_id] += 1
-        media_id_titles[media_id].append(row["Title"])
+            media_id = game["media_id"]
 
-    # Second pass: add non-duplicates to bulk_media
-    for row in rows:
-        game = search_game(row)
-        if not game:
-            continue  # Already added warning in first pass
+            # Count occurrences of each media_id
+            media_id_counts[media_id] += 1
+            media_id_titles[media_id].append(row["Title"])
 
-        media_id = game["media_id"]
+        # Second pass: add non-duplicates to bulk_media
+        for row in rows:
+            game = search_game(row)
+            if not game:
+                continue  # Already added warning in first pass
 
-        # Skip if this media_id appears more than once
-        if media_id_counts[media_id] > 1:
-            continue
+            media_id = game["media_id"]
 
-        item, _ = create_or_update_item(game)
-        notes = format_notes(row)
-        instance = create_media_instance(item, user, row, notes)
-        bulk_media[MediaTypes.GAME.value].append(instance)
+            # Skip if this media_id appears more than once
+            if media_id_counts[media_id] > 1:
+                continue
+
+            item, _ = create_or_update_item(game)
+            notes = format_notes(row)
+            instance = create_media_instance(item, user, row, notes)
+            bulk_media[MediaTypes.GAME.value].append(instance)
+
+    except Exception as error:
+        error_msg = f"Error processing entry: {row}"
+        raise MediaImportUnexpectedError(error_msg) from error
 
     # Add consolidated warnings for duplicates
     for media_id, count in media_id_counts.items():

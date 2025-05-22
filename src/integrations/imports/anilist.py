@@ -1,11 +1,13 @@
 import logging
 
+import requests
 from django.apps import apps
 from django.utils import timezone
 
 import app
 from app.models import Media, MediaTypes, Sources
 from integrations import helpers
+from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
 logger = logging.getLogger(__name__)
 
@@ -85,12 +87,23 @@ def importer(username, user, mode):
     url = "https://graphql.anilist.co"
 
     logger.info("Fetching anime and manga from AniList account")
-    response = app.providers.services.api_request(
-        "ANILIST",
-        "POST",
-        url,
-        params={"query": query, "variables": variables},
-    )
+
+    try:
+        response = app.providers.services.api_request(
+            "ANILIST",
+            "POST",
+            url,
+            params={"query": query, "variables": variables},
+        )
+    except requests.exceptions.HTTPError as error:
+        error_message = error.response.json()["errors"][0].get("message")
+        if error_message == "User not found":
+            msg = f"User {username} not found."
+            raise MediaImportError(msg) from error
+        if error_message == "Private User":
+            msg = f"User {username} is private."
+            raise MediaImportError(msg) from error
+        raise
 
     anime_imported, anime_warnings = import_media(
         response["data"]["anime"],
@@ -106,8 +119,12 @@ def importer(username, user, mode):
         mode,
     )
 
+    imported_counts = {
+        MediaTypes.ANIME.value: anime_imported,
+        MediaTypes.MANGA.value: manga_imported,
+    }
     warning_messages = anime_warnings + manga_warnings
-    return anime_imported, manga_imported, "\n".join(warning_messages)
+    return imported_counts, "\n".join(warning_messages)
 
 
 def import_media(media_data, media_type, user, mode):
@@ -137,40 +154,45 @@ def import_media(media_data, media_type, user, mode):
 def process_status_list(bulk_media, status_list, media_type, user, warnings):
     """Process each status list."""
     for content in status_list["entries"]:
-        if content["media"]["idMal"] is None:
-            warnings.append(
-                f"{content['media']['title']['userPreferred']}: No matching MAL ID.",
-            )
-        else:
-            if content["status"] == "CURRENT":
-                status = Media.Status.IN_PROGRESS.value
+        try:
+            if content["media"]["idMal"] is None:
+                title = content["media"]["title"]["userPreferred"]
+                warnings.append(
+                    f"{title}: No matching MAL ID.",
+                )
             else:
-                status = content["status"].capitalize()
-            notes = content["notes"] or ""
+                if content["status"] == "CURRENT":
+                    status = Media.Status.IN_PROGRESS.value
+                else:
+                    status = content["status"].capitalize()
+                notes = content["notes"] or ""
 
-            item, _ = app.models.Item.objects.get_or_create(
-                media_id=str(content["media"]["idMal"]),
-                source=Sources.MAL.value,
-                media_type=media_type,
-                defaults={
-                    "title": content["media"]["title"]["userPreferred"],
-                    "image": content["media"]["coverImage"]["large"],
-                },
-            )
+                item, _ = app.models.Item.objects.get_or_create(
+                    media_id=str(content["media"]["idMal"]),
+                    source=Sources.MAL.value,
+                    media_type=media_type,
+                    defaults={
+                        "title": content["media"]["title"]["userPreferred"],
+                        "image": content["media"]["coverImage"]["large"],
+                    },
+                )
 
-            model_type = apps.get_model(app_label="app", model_name=media_type)
-            instance = model_type(
-                item=item,
-                user=user,
-                score=content["score"],
-                progress=content["progress"],
-                status=status,
-                repeats=content["repeat"],
-                start_date=get_date(content["startedAt"]),
-                end_date=get_date(content["completedAt"]),
-                notes=notes,
-            )
-            bulk_media.append(instance)
+                model_type = apps.get_model(app_label="app", model_name=media_type)
+                instance = model_type(
+                    item=item,
+                    user=user,
+                    score=content["score"],
+                    progress=content["progress"],
+                    status=status,
+                    repeats=content["repeat"],
+                    start_date=get_date(content["startedAt"]),
+                    end_date=get_date(content["completedAt"]),
+                    notes=notes,
+                )
+                bulk_media.append(instance)
+        except Exception as e:
+            msg = f"Error processing history entry: {content}"
+            raise MediaImportUnexpectedError(msg) from e
 
     return bulk_media, warnings
 

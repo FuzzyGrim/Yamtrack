@@ -8,7 +8,7 @@ from django.conf import settings
 import app
 from app.models import Item, Media, MediaTypes, Sources
 from integrations import helpers
-from integrations.helpers import MediaImportError
+from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
 logger = logging.getLogger(__name__)
 KITSU_API_BASE_URL = "https://kitsu.io/api/edge"
@@ -62,8 +62,12 @@ def importer(kitsu_id, user, mode):
         mode,
     )
 
+    imported_counts = {
+        MediaTypes.ANIME.value: num_anime_imported,
+        MediaTypes.MANGA.value: num_manga_imported,
+    }
     warning_messages = anime_warnings + manga_warning
-    return num_anime_imported, num_manga_imported, "\n".join(warning_messages)
+    return imported_counts, "\n".join(warning_messages)
 
 
 def get_media_response(kitsu_id, media_type):
@@ -125,10 +129,8 @@ def import_media(response, media_type, user, mode):
                 kitsu_id = entry["relationships"][media_type]["data"]["id"]
                 kitsu_metadata = media_lookup[kitsu_id]
                 title = kitsu_metadata["attributes"]["canonicalTitle"]
-                logger.exception("Error processing %s", title)
-                warnings.append(
-                    f"{title}: Unexpected error: {{{error}}}, check logs for more data",
-                )
+                msg = f"Error processing entry: {title} ({kitsu_id}) - {entry}"
+                raise MediaImportUnexpectedError(msg) from error
             else:
                 bulk_data.append(instance)
 
@@ -192,7 +194,10 @@ def fetch_media_from_related_url(relationship, media_type):
     """Fetch media data from Kitsu related URL when relationship data is null."""
     related_url = relationship["links"]["related"]
     if not related_url:
-        msg = "Could not import unknown item - missing media data from Kitsu"
+        msg = (
+            f"Could not import unknown item - missing media data from Kitsu. "
+            f"Relationship: {relationship}"
+        )
         raise MediaImportError(msg)
 
     params = {

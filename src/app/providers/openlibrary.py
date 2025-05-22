@@ -363,4 +363,4 @@ async def get_ratings(response_work):
                 score_count = summary["count"]
                 return score, score_count
 
-    return None, None
+    return None, 0

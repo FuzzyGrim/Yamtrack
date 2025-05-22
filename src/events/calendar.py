@@ -545,6 +545,34 @@ def get_tvmaze_episode_map(tvdb_id):
         logger.info("%s - Using cached TVMaze episode map", tvdb_id)
         return cached_map
 
+    show_response = get_tvmaze_response(tvdb_id)
+
+    # Process episodes into the map format we need
+    tvmaze_map = {}
+
+    if show_response:
+        episodes = show_response["_embedded"]["episodes"]
+
+        for ep in episodes:
+            season_num = ep.get("season")
+            episode_num = ep.get("number")
+            if season_num is not None and episode_num is not None:
+                key = f"{season_num}_{episode_num}"
+                tvmaze_map[key] = ep.get("airstamp")
+
+    # Cache the processed map for 24 hours
+    cache.set(cache_key, tvmaze_map, timeout=86400)
+    logger.info(
+        "%s - Cached TVMaze episode map with %d entries",
+        tvdb_id,
+        len(tvmaze_map),
+    )
+
+    return tvmaze_map
+
+
+def get_tvmaze_response(tvdb_id):
+    """Fetch episode data from TVMaze using TVDB ID."""
     # First, lookup the TVMaze ID using the TVDB ID
     lookup_url = f"https://api.tvmaze.com/lookup/shows?thetvdb={tvdb_id}"
     try:
@@ -578,30 +606,9 @@ def get_tvmaze_episode_map(tvdb_id):
     show_url = f"https://api.tvmaze.com/shows/{tvmaze_id}?embed=episodes"
 
     try:
-        show_response = services.api_request("TVMaze", "GET", show_url)
+        return services.api_request("TVMaze", "GET", show_url)
     except requests.exceptions.HTTPError:
         return {}
-
-    # Process episodes into the map format we need
-    tvmaze_map = {}
-    episodes = show_response["_embedded"]["episodes"]
-
-    for ep in episodes:
-        season_num = ep.get("season")
-        episode_num = ep.get("number")
-        if season_num is not None and episode_num is not None:
-            key = f"{season_num}_{episode_num}"
-            tvmaze_map[key] = ep.get("airstamp")
-
-    # Cache the processed map for 24 hours
-    cache.set(cache_key, tvmaze_map, timeout=86400)
-    logger.info(
-        "%s - Cached TVMaze episode map with %d entries",
-        tvdb_id,
-        len(tvmaze_map),
-    )
-
-    return tvmaze_map
 
 
 def process_comic(item, events_bulk, skipped_items):

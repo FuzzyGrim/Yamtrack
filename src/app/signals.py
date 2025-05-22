@@ -1,7 +1,7 @@
 import logging
 
 from celery import states
-from celery.signals import before_task_publish, worker_init
+from celery.signals import before_task_publish
 from django.db.backends.signals import connection_created
 from django.dispatch import receiver
 from django_celery_results.models import TaskResult
@@ -38,19 +38,3 @@ def create_task_result_on_publish(sender=None, headers=None, body=None, **kwargs
         task_args=headers.get("argsrepr", ""),
         task_kwargs=headers.get("kwargsrepr", ""),
     )
-
-
-@worker_init.connect(weak=False)
-def cleanup_periodic_tasks(*_, **__):
-    """Clean up periodic tasks by disabling those not registered."""
-    from celery import current_app as app
-    from django_celery_beat.models import PeriodicTask
-
-    registered_tasks = [item.get("task") for item in app.conf.beat_schedule.values()]
-    for periodic_task in PeriodicTask.objects.exclude(
-        task="celery.backend_cleanup",
-    ).filter(enabled=True):
-        if periodic_task.task not in registered_tasks:
-            periodic_task.enabled = False
-            periodic_task.save()
-            logger.info("Disabled periodic task: %s", periodic_task.task)

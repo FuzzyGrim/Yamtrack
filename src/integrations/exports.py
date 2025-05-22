@@ -2,10 +2,10 @@ import csv
 import logging
 
 from django.apps import apps
-from django.db.models import Field
+from django.db.models import Field, Prefetch
 
 from app import helpers
-from app.models import Item, MediaTypes
+from app.models import Episode, Item, MediaTypes, Season
 
 logger = logging.getLogger(__name__)
 
@@ -32,20 +32,40 @@ def generate_rows(user):
     # Yield header row
     yield writer.writerow(fields["item"] + fields["track"])
 
+    prefetch_config = {
+        MediaTypes.TV.value: Prefetch(
+            "seasons",
+            queryset=Season.objects.select_related("item").prefetch_related(
+                Prefetch(
+                    "episodes",
+                    queryset=Episode.objects.select_related("item"),
+                ),
+            ),
+        ),
+        MediaTypes.SEASON.value: Prefetch(
+            "episodes",
+            queryset=Episode.objects.select_related("item"),
+        ),
+    }
+
     # Yield data rows
     for media_type in MediaTypes.values:
         model = apps.get_model("app", media_type)
 
-        if media_type == MediaTypes.EPISODE.value:
-            queryset = model.objects.filter(related_season__user=user)
-        else:
-            queryset = model.objects.filter(user=user)
+        filter_kwargs = (
+            {"related_season__user": user}
+            if media_type == MediaTypes.EPISODE.value
+            else {"user": user}
+        )
+
+        queryset = model.objects.filter(**filter_kwargs).select_related("item")
+
+        if media_type in prefetch_config:
+            queryset = queryset.prefetch_related(prefetch_config[media_type])
 
         logger.debug("Streaming %ss to CSV", media_type)
 
-        # Stream each row
-        for media in queryset.iterator():  # Using iterator() for memory efficiency
-            # Build row data
+        for media in queryset.iterator(chunk_size=500):
             row = [getattr(media.item, field, "") for field in fields["item"]] + [
                 getattr(media, field, "") for field in fields["track"]
             ]

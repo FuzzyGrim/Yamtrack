@@ -376,7 +376,7 @@ def get_score_count(response):
     """Return the score count for the media."""
     if get_score(response):
         return response["num_scoring_users"]
-    return None
+    return 0
 
 
 def get_related(related_medias, media_type):

@@ -32,7 +32,7 @@ def handle_error(error):
         details = error_json["error"]
         raise services.ProviderAPIError(Sources.COMICVINE.value, error, details)
 
-    raise services.ProviderAPIError(Sources.MAL.value, error)
+    raise services.ProviderAPIError(Sources.COMICVINE.value, error)
 
 
 def search(query, page):

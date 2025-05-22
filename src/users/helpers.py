@@ -5,6 +5,8 @@ from datetime import datetime
 import croniter
 from django.utils import timezone
 
+import integrations
+
 
 def get_client_ip(request):
     """Return the client's IP address.
@@ -24,11 +26,6 @@ def get_client_ip(request):
 def process_task_result(task):
     """Process task result based on status and format appropriately."""
     try:
-        result_json = json.loads(task.result)
-    except TypeError:
-        result_json = "Waiting for task to start"
-
-    try:
         if isinstance(task.task_kwargs, str):
             kwargs = json.loads(task.task_kwargs)
         else:
@@ -40,17 +37,20 @@ def process_task_result(task):
     mode = "Only New Items" if mode == "new" else "Overwrite Existing"
 
     if task.status == "FAILURE":
-        task.result = result_json["exc_message"][0]
-        task.summary = task.result
-        task.errors = ""
+        result_json = json.loads(task.result)
+        if result_json["exc_type"] == "MediaImportError":
+            task.summary = result_json["exc_message"][0]
+            task.errors = task.traceback
+        else:
+            task.summary = "Unexpected error occurred while processing the task."
+            task.errors = task.traceback
     elif task.status == "STARTED":
-        task.result = "Task in progress"
-        task.summary = task.result
-        task.errors = ""
+        task.summary = "This task is currently running."
+        task.errors = None
     elif task.status == "SUCCESS":
+        result_json = json.loads(task.result)
         # Split by the error indicator
-        parts = result_json.split("Couldn't import the following media:")
-
+        parts = result_json.split(integrations.tasks.ERROR_TITLE.strip())
         if len(parts) > 1:
             # We have both summary and errors
             task.summary = parts[0].strip()
@@ -60,11 +60,10 @@ def process_task_result(task):
         else:
             # Only summary, no errors
             task.summary = result_json.strip()
-            task.errors = ""
-    else:
-        task.result = result_json
-        task.summary = str(result_json)
-        task.errors = ""
+            task.errors = None
+    elif task.status == "PENDING":
+        task.summary = "This task has been queued and is waiting to run."
+        task.errors = None
 
     task.mode = mode  # Add mode to task object
     return task

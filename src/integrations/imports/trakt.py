@@ -9,7 +9,7 @@ import app
 from app.models import Media, MediaTypes, Sources
 from app.providers import services
 from integrations import helpers
-from integrations.helpers import MediaImportError
+from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class TraktImporter:
         self.user = user
         self.mode = mode
         self.user_base_url = f"{TRAKT_API_BASE_URL}/users/{username}"
-        self.warnings = set()
+        self.warnings = []
 
         # Track existing media to handle "new" mode correctly
         self.existing_media = self._get_existing_media()
@@ -95,13 +95,17 @@ class TraktImporter:
         # Bulk create all media
         self._bulk_create_media()
 
-        return (
-            len(self.media_instances[MediaTypes.TV.value]),
-            len(self.media_instances[MediaTypes.SEASON.value]),
-            len(self.media_instances[MediaTypes.EPISODE.value]),
-            len(self.media_instances[MediaTypes.MOVIE.value]),
-            "\n".join(self.warnings),
-        )
+        imported_counts = {
+            MediaTypes.TV.value: len(self.media_instances[MediaTypes.TV.value]),
+            MediaTypes.SEASON.value: len(self.media_instances[MediaTypes.SEASON.value]),
+            MediaTypes.EPISODE.value: len(
+                self.media_instances[MediaTypes.EPISODE.value],
+            ),
+            MediaTypes.MOVIE.value: len(self.media_instances[MediaTypes.MOVIE.value]),
+        }
+        deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
+
+        return imported_counts, deduplicated_messages
 
     def _bulk_create_media(self):
         """Bulk create all media objects."""
@@ -238,7 +242,7 @@ class TraktImporter:
                     self.process_watched_episode(entry)
             except Exception as e:
                 msg = f"Error processing history entry: {entry}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
     def _get_tmdb_id(self, entry_data):
         """Extract TMDB ID from entry data."""
@@ -249,7 +253,9 @@ class TraktImporter:
         ):
             return str(entry_data["ids"]["tmdb"])
 
-        self.warnings.add(f"{entry_data['title']}: No {Sources.TMDB.label} ID found.")
+        self.warnings.append(
+            f"{entry_data['title']}: No {Sources.TMDB.label} ID found.",
+        )
         return None
 
     def _get_metadata(self, media_type, tmdb_id, title, season_number=None):
@@ -269,7 +275,7 @@ class TraktImporter:
             if error.status_code == requests.codes.not_found:
                 if media_type == MediaTypes.SEASON.value:
                     title = f"{title} S{season_number}"
-                self.warnings.add(
+                self.warnings.append(
                     f"{title}: not found in {Sources.TMDB.label} with ID {tmdb_id}.",
                 )
                 return None
@@ -315,7 +321,7 @@ class TraktImporter:
 
         if self.mode == "new" and exists:
             # In "new" mode, skip if media already exists
-            logger.info(
+            logger.debug(
                 "Skipping existing %s: %s (mode: new)",
                 media_type,
                 key,
@@ -324,7 +330,7 @@ class TraktImporter:
 
         if self.mode == "overwrite" and exists:
             # In "overwrite" mode, add to the deletion list
-            logger.info(
+            logger.debug(
                 "Adding existing %s to deletion list: %s (mode: overwrite)",
                 media_type,
                 key,
@@ -441,7 +447,7 @@ class TraktImporter:
 
         if not episode_exists:
             item_identifier = f"{show['title']} S{season_number}E{episode_number}"
-            self.warnings.add(
+            self.warnings.append(
                 f"{item_identifier}: not found in TMDB with ID {tmdb_id}.",
             )
             return
@@ -554,10 +560,8 @@ class TraktImporter:
     ):
         """Update completion status for season and TV show if applicable."""
         if episode_number == season_metadata["max_progress"]:
-            # If this is the last episode of the season, mark the season as completed
             season_obj.status = Media.Status.COMPLETED.value
 
-            # If this is the last episode of the show, mark the show as completed
             last_season = tv_metadata.get("last_episode_season")
             if last_season and last_season == season_number:
                 tv_obj.status = Media.Status.COMPLETED.value
@@ -577,7 +581,7 @@ class TraktImporter:
                 )
             except Exception as e:
                 msg = f"Error processing watchlist entry: {entry}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
     def process_ratings(self):
         """Process ratings from Trakt."""
@@ -594,7 +598,7 @@ class TraktImporter:
                 )
             except Exception as e:
                 msg = f"Error processing rating entry: {entry}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
     def process_comments(self):
         """Process comments from Trakt."""
@@ -611,7 +615,7 @@ class TraktImporter:
                 )
             except Exception as e:
                 msg = f"Error processing comment entry: {entry}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
     def _process_generic_entry(self, entry, entry_type, attribute_updates=None):
         """Process a generic entry (watchlist, rating, or comment)."""

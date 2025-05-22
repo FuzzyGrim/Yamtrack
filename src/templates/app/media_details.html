@@ -273,26 +273,26 @@
 
     <div class="w-full md:w-1/4 md:max-w-[250px] mx-auto lg:mx-0">
       {# Your History #}
-      {% if user_media %}
+      {% if user_media.start_date or user_media.end_date or user_media.repeats or user_media.formatted_progress and media.media_type != MediaTypes.MOVIE.value %}
         <h2 class="text-xl font-bold mb-4">Your History</h2>
         <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start mb-6">
-          <div class="flex flex-col gap-y-1">
+          <div class="@container flex flex-col gap-y-1">
             {% if user_media.start_date %}
-              <div class="flex justify-between text-sm">
+              <div class="flex @max-[210px]:flex-col justify-between text-sm">
                 <span class="text-gray-400">Started:</span>
                 <span class="text-gray-200">{{ user_media.start_date|date:"DATETIME_FORMAT" }}</span>
               </div>
             {% endif %}
 
             {% if user_media.end_date %}
-              <div class="flex justify-between text-sm">
+              <div class="flex @max-[210px]:flex-col justify-between text-sm">
                 <span class="text-gray-400">Ended:</span>
                 <span class="text-gray-200">{{ user_media.end_date|date:"DATETIME_FORMAT" }}</span>
               </div>
             {% endif %}
 
             {% if media.media_type != MediaTypes.MOVIE.value %}
-              <div class="flex justify-between text-sm">
+              <div class="flex @max-[210px]:flex-col justify-between text-sm">
                 <span class="text-gray-400">Progress:</span>
                 <span class="text-gray-200">
                   {{ user_media.formatted_progress }}
@@ -302,7 +302,7 @@
             {% endif %}
 
             {% if user_media.repeats and media.media_type != MediaTypes.TV.value and media.media_type != MediaTypes.SEASON.value %}
-              <div class="flex justify-between text-sm">
+              <div class="flex @max-[210px]:flex-col justify-between text-sm">
                 <span class="text-gray-400">Repeats:</span>
                 <div class="flex items-center text-gray-200">
                   <svg xmlns="http://www.w3.org/2000/svg"

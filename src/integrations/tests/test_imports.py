@@ -3,12 +3,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
-import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
+import integrations
 from app.models import (
     TV,
     Anime,
@@ -76,7 +76,7 @@ class ImportMAL(TestCase):
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
         self.assertRaises(
-            requests.exceptions.HTTPError,
+            integrations.helpers.MediaImportError,
             mal.importer,
             "fhdsufdsu",
             self.user,
@@ -114,7 +114,7 @@ class ImportAniList(TestCase):
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
         self.assertRaises(
-            requests.exceptions.HTTPError,
+            integrations.helpers.MediaImportError,
             anilist.importer,
             "fhdsufdsu",
             self.user,
@@ -193,14 +193,14 @@ class ImportKitsu(TestCase):
             self.sample_manga_response,
         ]
 
-        num_anime_imported, num_manga_imported, warning_message = kitsu.importer(
+        imported_counts, warning_message = kitsu.importer(
             "123",
             self.user,
             "new",
         )
 
-        self.assertEqual(num_anime_imported, 5)
-        self.assertEqual(num_manga_imported, 5)
+        self.assertEqual(imported_counts[MediaTypes.ANIME.value], 5)
+        self.assertEqual(imported_counts[MediaTypes.MANGA.value], 5)
         self.assertEqual(warning_message, "")
 
         # Check if the media was imported
@@ -453,6 +453,7 @@ class ImportSimkl(TestCase):
                             ],
                         },
                     ],
+                    "memo": {},
                 },
             ],
             "movies": [
@@ -461,6 +462,7 @@ class ImportSimkl(TestCase):
                     "status": "completed",
                     "user_rating": 9,
                     "last_watched_at": "2023-02-01T00:00:00Z",
+                    "memo": {},
                 },
             ],
             "anime": [
@@ -470,20 +472,21 @@ class ImportSimkl(TestCase):
                     "user_rating": 7,
                     "watched_episodes_count": 0,
                     "last_watched_at": None,
+                    "memo": {"text": "Great series!"},
                 },
             ],
         }
 
-        tv_count, movie_count, anime_count, warnings = simkl.importer(
+        imported_counts, warnings = simkl.importer(
             "token",
             self.user,
             "new",
         )
 
         # Check the results
-        self.assertEqual(tv_count, 1)
-        self.assertEqual(movie_count, 1)
-        self.assertEqual(anime_count, 1)
+        self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.ANIME.value], 1)
         self.assertEqual(warnings, "")
 
         # Check TV show
@@ -506,6 +509,7 @@ class ImportSimkl(TestCase):
         anime_obj = Anime.objects.get(item=anime_item)
         self.assertEqual(anime_obj.status, Media.Status.PLANNING.value)
         self.assertEqual(anime_obj.score, 7)
+        self.assertEqual(anime_obj.notes, "Great series!")
 
     def test_get_status(self):
         """Test mapping SIMKL status to internal status."""

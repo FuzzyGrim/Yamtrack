@@ -245,6 +245,9 @@ AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
 
+# For CSV imports
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 # 10 MB
+
 VERSION = config("VERSION", default="dev")
 
 ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
@@ -330,7 +333,6 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_CONCURRENCY = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BEAT_SYNC_EVERY = 1
 
 CELERY_TASK_TRACK_STARTED = True
@@ -340,6 +342,7 @@ CELERY_RESULT_EXTENDED = True
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "default"
 CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7  # 7 days
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-serializer
 CELERY_TASK_SERIALIZER = "pickle"
@@ -366,7 +369,6 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
     },
 }
-
 # Allauth settings
 if CSRF_TRUSTED_ORIGINS:
     # Check if all origins start with http:// or https://
@@ -412,9 +414,6 @@ SOCIALACCOUNT_PROVIDERS = config(
 SOCIALACCOUNT_ONLY = config("SOCIALACCOUNT_ONLY", default=False, cast=bool)
 if SOCIALACCOUNT_ONLY:
     ACCOUNT_EMAIL_VERIFICATION = "none"
-else:
-    # only works if SOCIALACCOUNT_ONLY is False
-    INSTALLED_APPS += ["allauth.mfa"]
 
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 if not REGISTRATION:

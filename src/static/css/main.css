@@ -238,6 +238,9 @@
   }
 }
 @layer utilities {
+  .\@container {
+    container-type: inline-size;
+  }
   .pointer-events-auto {
     pointer-events: auto;
   }
@@ -2570,6 +2573,11 @@
   .lg\:pb-40 {
     @media (width >= 64rem) {
       padding-bottom: calc(var(--spacing) * 40);
+    }
+  }
+  .\@max-\[210px\]\:flex-col {
+    @container (width < 210px) {
+      flex-direction: column;
     }
   }
   .hover-tap\:opacity-100 {
