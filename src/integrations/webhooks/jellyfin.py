@@ -1,4 +1,5 @@
 import logging
+import json
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def process_payload(payload, user):
     """Process a Jellyfin webhook payload."""
-    logger.debug("Processing Jellyfin webhook payload: %s", payload)
+    logger.debug("Processing Jellyfin webhook payload: %s", json.dumps(payload, indent=2))
 
     event_type = payload["Event"]
 
