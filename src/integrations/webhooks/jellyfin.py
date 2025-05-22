@@ -1,6 +1,7 @@
 import logging
 
 from django.core.cache import cache
+from django.templatetags.i18n import language
 from django.utils import timezone
 
 import app
@@ -112,7 +113,7 @@ def add_anime(media_id, episode_number, payload, user):
 
 def add_movie(media_id, payload, user):
     """Add a movie as watched."""
-    movie_metadata = app.providers.tmdb.movie(media_id)
+    movie_metadata = app.providers.tmdb.movie(media_id, language="en")
     movie_played = payload["Item"]["UserData"]["Played"]
     progress = 1 if movie_played else 0
 
@@ -162,6 +163,7 @@ def add_tv(media_id, payload, user):
     tv_metadata = app.providers.tmdb.tv_with_seasons(
         media_id,
         [season_number],
+        language="en"
     )
     season_metadata = tv_metadata[f"season/{season_number}"]
 

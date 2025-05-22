@@ -3,6 +3,7 @@ import time
 
 import requests
 from django.conf import settings
+from django.utils.translation import get_language
 from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
 from requests_ratelimiter import LimiterAdapter, LimiterSession
@@ -154,17 +155,17 @@ def get_media_metadata(
         MediaTypes.MANGA.value: lambda: mangaupdates.manga(media_id)
         if source == Sources.MANGAUPDATES.value
         else mal.manga(media_id),
-        MediaTypes.TV.value: lambda: tmdb.tv(media_id),
-        "tv_with_seasons": lambda: tmdb.tv_with_seasons(media_id, season_numbers),
-        MediaTypes.SEASON.value: lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
+        MediaTypes.TV.value: lambda: tmdb.tv(media_id, language=get_language()),
+        "tv_with_seasons": lambda: tmdb.tv_with_seasons(media_id, season_numbers, language=get_language()),
+        MediaTypes.SEASON.value: lambda: tmdb.tv_with_seasons(media_id, season_numbers, language=get_language())[
             f"season/{season_numbers[0]}"
         ],
         MediaTypes.EPISODE.value: lambda: tmdb.episode(
             media_id,
             season_numbers[0],
-            episode_number,
+            episode_number
         ),
-        MediaTypes.MOVIE.value: lambda: tmdb.movie(media_id),
+        MediaTypes.MOVIE.value: lambda: tmdb.movie(media_id, language=get_language()),
         MediaTypes.GAME.value: lambda: igdb.game(media_id),
         MediaTypes.BOOK.value: lambda: hardcover.book(media_id)
         if source == Sources.HARDCOVER.value
@@ -184,7 +185,7 @@ def search(media_type, query, page, source=None):
     elif media_type == MediaTypes.ANIME.value:
         response = mal.search(media_type, query, page)
     elif media_type in (MediaTypes.TV.value, MediaTypes.MOVIE.value):
-        response = tmdb.search(media_type, query, page)
+        response = tmdb.search(media_type, query, page, language=get_language())
     elif media_type == MediaTypes.GAME.value:
         response = igdb.search(query, page)
     elif media_type == MediaTypes.BOOK.value:
