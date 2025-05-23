@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 def process_payload(payload, user):
     """Process a Plex webhook payload."""
     logger.debug("Received Plex webhook payload: %s", json.dumps(payload, indent=2))
-    logger.debug("User: %s", user)
     event_type = payload["event"]
 
     if event_type not in ("media.scrobble", "media.play", "media.stop"):
@@ -21,7 +20,7 @@ def process_payload(payload, user):
         return
 
     # Case-insensitive, trimmed user check (handle User object or string)
-    if str(user).strip().lower() not in payload["Account"]["title"].strip().lower():
+    if str(user.plex_usernames).strip().lower() not in payload["Account"]["title"].strip().lower():
         logger.info("Ignoring Plex webhook event for user: %s", user)
         return
 
