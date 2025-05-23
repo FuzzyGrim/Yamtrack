@@ -171,21 +171,41 @@
         <h3 class="text-base font-medium">Plex Integration</h3>
       </div>
       <p class="text-gray-400 mb-4 text-sm">Connect Plex to automatically track your watching progress.</p>
-        <p class="text-gray-400 mb-4 text-sm">This username will be used to filter which events are sent to your webhook.</p>
         <div class="bg-[#262a2f] p-3 rounded-md mb-4">
-            <div class="flex items-center gap-2">
-              <input readonly=""
-                    id="username"
-                    class="flex-1 py-2 pr-2 pl-3 bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+          <form method="POST" action="{% url 'update_plex_usernames' %}" class="space-y-2">
+            {% csrf_token %}
+
+            <div>
+              <p class="text-gray-400 mb-4 text-sm">This username will be used to filter which events are sent to your webhook.</p>
+              <input name="plex_usernames"
+                    class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user.plex_usernames.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                     type="text"
-                    value="{{ user.username|default_if_none:"" }}">
-              <span class="flex items-center cursor-pointer group" title="Copy" data-copy-target="#username">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
-                </svg>
-              </span>
+                    value="{{ request.user.plex_usernames }}">
+              {% if user.plex_usernames.errors %}
+                <p class="mt-1 text-sm text-red-400">{{ user.plex_usernames.errors.0 }}</p>
+              {% endif %}
             </div>
+            <div class="pt-2">
+              <button type="submit"
+                      class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="w-4 h-4 mr-2">
+                  <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path>
+                  <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path>
+                  <path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
+                </svg>
+                Save Changes
+              </button>
+            </div>
+          </form>
         </div>      
       <div class="bg-[#262a2f] p-4 rounded-md">        
         <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>          

@@ -28,4 +28,9 @@ urlpatterns = [
         name="delete_import_schedule",
     ),
     path("regenerate_token", views.regenerate_token, name="regenerate_token"),
+    path(
+        "update_plex_usernames",
+        views.update_plex_usernames,
+        name="update_plex_usernames",
+    ),
 ]

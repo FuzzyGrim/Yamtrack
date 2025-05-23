@@ -294,3 +294,18 @@ def regenerate_token(request):
         except IntegrityError:
             continue
     return redirect("integrations")
+
+@require_POST
+def update_plex_usernames(request):
+    """Update the Plex usernames for the user."""
+    usernames = request.POST.get("plex_usernames", "")
+
+    # input validation
+    # if there is any error in input: messages.error(request, "Message")
+
+    if usernames != request.user.plex_usernames:
+        request.user.plex_usernames = usernames
+        request.user.save(update_fields=["plex_usernames"])
+        messages.success(request, "Plex usernames updated successfully")
+
+    return redirect("integrations")
