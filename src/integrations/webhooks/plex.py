@@ -15,7 +15,7 @@ def process_payload(payload, user):
     logger.debug("Received Plex webhook payload: %s", json.dumps(payload, indent=2))
     event_type = payload["event"]
 
-    if event_type not in ("media.scrobble", "media.play", "media.stop"):
+    if event_type not in ("media.scrobble", "media.play"):
         logger.info("Ignoring Plex webhook event: %s", event_type)
         return
 
@@ -65,7 +65,7 @@ def process_payload(payload, user):
 def handle_movie(media_id, payload, user):
     """Handle movie object from payload."""
     movie_metadata = app.providers.tmdb.movie(media_id)
-    movie_played = payload["event"] == "media.scrobble" or payload["event"] == "media.stop"
+    movie_played = payload["event"] == "media.scrobble"
     progress = 1 if movie_played else 0
     now = timezone.now().replace(second=0, microsecond=0)
 
