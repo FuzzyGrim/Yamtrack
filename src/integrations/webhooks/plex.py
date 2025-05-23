@@ -16,7 +16,7 @@ def process_payload(payload, user):
     logger.debug("User: %s", user)
     event_type = payload["event"]
 
-    if event_type not in ("media.scrobble", "media.play"):
+    if event_type not in ("media.scrobble", "media.play", "media.stop"):
         logger.info("Ignoring Plex webhook event: %s", event_type)
         return
 
@@ -64,12 +64,13 @@ def process_payload(payload, user):
 
 
 def handle_movie(media_id, payload, user):
-    """Add a movie as watched."""
+    """Handle movie object from payload."""
     movie_metadata = app.providers.tmdb.movie(media_id)
-    movie_played = payload["event"] == "media.scrobble"
-    movie_started = payload["event"] == "media.play"
+    movie_played = payload["event"] == "media.scrobble" or payload["event"] == "media.stop"
     progress = 1 if movie_played else 0
+    now = timezone.now().replace(second=0, microsecond=0)
 
+    # Get or create the movie item
     movie_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
         source=Sources.TMDB.value,
@@ -80,45 +81,48 @@ def handle_movie(media_id, payload, user):
         },
     )
 
-    # Check if the movie is already in the database  
-    movie, created = app.models.Movie.objects.get_or_create(
+    # Get or create the movie instance
+    movie_instance, created = app.models.Movie.objects.get_or_create(
         item=movie_item,
         user=user,
         defaults={
-            "start_date": timezone.now().replace(second=0, microsecond=0),
-            "status": Media.Status.IN_PROGRESS.value,
-        },
+            'progress': progress,
+            'status': Media.Status.COMPLETED.value if movie_played else Media.Status.IN_PROGRESS.value,
+            'start_date': now if not movie_played else None,
+            'end_date': now if movie_played else None
+        }
     )
-    
-    if created:
-        logger.debug("Movie created: %s", movie)
-        # Movie DOES NOT exists in the database
-        movie.progress = progress
-        movie.status = Media.Status.IN_PROGRESS.value
+
+    if not created:
+        movie_instance.progress = progress
+
         if movie_played:
-            # Movie has been scrobbled / played
-            # Set end date and status to completed
-            movie.end_date = timezone.now().replace(second=0, microsecond=0)
-            movie.status = Media.Status.COMPLETED.value
-        movie.save()
-    else:
-        # Movie already exists in the database
-        if movie_started:
-            # Movie has started playing AND in the database
-            # Set start date and status to in progress
-            movie.start_date = timezone.now().replace(second=0, microsecond=0)
-            movie.status = Media.Status.IN_PROGRESS.value
-        elif movie_played:
-            # Movie has been scrobbled / played AND in the database
-            # Set end date and status to completed the first time
-            # and status to repeating next time
-            movie.end_date = timezone.now().replace(second=0, microsecond=0)
-            if movie.repeats > 0:
-                movie.status = Media.Status.REPEATING.value
-            else:
-                movie.status = Media.Status.COMPLETED.value
-            movie.repeats += 1
-        movie.save()
+            # Always update end_date when movie is played
+            movie_instance.end_date = now
+
+            if movie_instance.status == Media.Status.COMPLETED.value:
+                movie_instance.repeats += 1
+            elif movie_instance.status == Media.Status.REPEATING.value:
+                movie_instance.repeats += 1
+                movie_instance.status = Media.Status.COMPLETED.value
+            else:  # From IN_PROGRESS/PLANNING/PAUSED/DROPPED to COMPLETED
+                movie_instance.status = Media.Status.COMPLETED.value
+        else:
+            if movie_instance.status == Media.Status.COMPLETED.value:
+                # Transition from COMPLETED to REPEATING
+                movie_instance.status = Media.Status.REPEATING.value
+                movie_instance.start_date = now  # Reset start date
+                movie_instance.end_date = None   # Clear completion date
+            elif movie_instance.status not in (
+                Media.Status.REPEATING.value,
+                Media.Status.IN_PROGRESS.value,
+            ):
+                # For other statuses (except REPEATING and IN_PROGRESS) set to IN_PROGRESS
+                movie_instance.status = Media.Status.IN_PROGRESS.value
+                if not movie_instance.start_date:
+                    movie_instance.start_date = now
+
+        movie_instance.save()
 
 def handle_tv_episode(media_id, payload, user):
     """Add a TV show episode as watched."""
