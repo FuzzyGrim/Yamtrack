@@ -7,6 +7,7 @@ from django.utils.dateparse import parse_datetime
 
 import app
 from app.models import Media, MediaTypes, Sources
+from app.providers import services
 from integrations import helpers
 from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -42,8 +43,8 @@ def get_token(request):
             headers=headers,
             params=params,
         )
-    except requests.exceptions.HTTPError as error:
-        if error.response.status_code == requests.codes.unauthorized:
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
             msg = "Invalid SIMKL secret key."
             raise MediaImportError(msg) from error
         raise
@@ -149,8 +150,8 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
 
             try:
                 metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
-            except requests.exceptions.HTTPError as error:
-                if error.response.status_code == requests.codes.not_found:
+            except services.ProviderAPIError as error:
+                if error.status_code == requests.codes.not_found:
                     warnings.append(
                         f"{title}: not found in {Sources.TMDB.label} "
                         f"with ID {tmdb_id}.",
@@ -295,8 +296,8 @@ def process_movie_list(movie_list, user, bulk_media, warnings):
 
             try:
                 metadata = app.providers.tmdb.movie(tmdb_id)
-            except requests.exceptions.HTTPError as error:
-                if error.response.status_code == requests.codes.not_found:
+            except services.ProviderAPIError as error:
+                if error.status_code == requests.codes.not_found:
                     warnings.append(
                         f"{title}: not found in {Sources.TMDB.label} "
                         f"with ID {tmdb_id}.",
@@ -359,8 +360,8 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
 
             try:
                 metadata = app.providers.mal.anime(mal_id)
-            except requests.exceptions.HTTPError as error:
-                if error.response.status_code == requests.codes.not_found:
+            except services.ProviderAPIError as error:
+                if error.status_code == requests.codes.not_found:
                     warnings.append(
                         f"{title}: not found in {Sources.MAL.label} with ID {mal_id}.",
                     )

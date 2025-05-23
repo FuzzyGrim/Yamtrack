@@ -241,7 +241,9 @@ def tv_with_seasons(media_id, season_numbers):
                 # Create a new response object with 404 status
                 not_found_response = requests.Response()
                 not_found_response.status_code = 404
-                raise requests.exceptions.HTTPError(msg, response=not_found_response)
+                # Set the error attribute to match what ProviderAPIError expects
+                not_found_error = type("Error", (), {"response": not_found_response})
+                raise services.ProviderAPIError(msg, error=not_found_error, details=msg)
 
             season_data = process_season(response[season_key])
 

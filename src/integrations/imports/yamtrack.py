@@ -1,13 +1,12 @@
 import logging
 from csv import DictReader
 
-import requests
 from django.apps import apps
 from django.conf import settings
 
 import app
-import app.providers
 from app.models import TV, Episode, MediaTypes, Season, Sources
+from app.providers import services
 from integrations import helpers
 from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -65,7 +64,7 @@ def add_bulk_media(row, user, bulk_media, warnings):
             row["image"] = settings.IMG_NONE
         else:
             try:
-                metadata = app.providers.services.get_media_metadata(
+                metadata = services.get_media_metadata(
                     media_type,
                     row["media_id"],
                     row["source"],
@@ -74,7 +73,7 @@ def add_bulk_media(row, user, bulk_media, warnings):
                 )
                 row["title"] = metadata["title"]
                 row["image"] = metadata["image"]
-            except requests.exceptions.HTTPError as e:
+            except services.ProviderAPIError as e:
                 warnings.append(
                     f"Failed to fetch metadata for {row['media_id']}: {e!s}",
                 )

@@ -258,5 +258,5 @@ class JellyfinWebhookTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         movie = Movie.objects.get(item__media_id="603")
-        self.assertEqual(movie.status, Media.Status.REPEATING.value)
+        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
         self.assertEqual(movie.repeats, 1)

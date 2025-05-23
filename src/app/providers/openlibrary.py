@@ -37,7 +37,7 @@ def search(query, page):
     if data is None:
         params = {
             "q": query,
-            "fields": "title,key,cover_edition_key,cover_i,editions",
+            "fields": "title,key,editions,editions.key,editions.cover_i,editions.title",
             "limit": settings.PER_PAGE,
             "page": page,
         }
@@ -52,17 +52,27 @@ def search(query, page):
         except requests.RequestException as e:
             handle_error(e)
 
-        results = [
-            {
-                "media_id": media_id,
-                "source": Sources.OPENLIBRARY.value,
-                "media_type": MediaTypes.BOOK.value,
-                "title": doc["title"],
-                "image": get_image_url(doc),
-            }
-            for doc in response.get("docs", [])
-            if (media_id := get_media_id(doc)) and "title" in doc
-        ]
+        results = []
+        for doc in response.get("docs", []):
+            top_edition = doc["editions"]["docs"][0]
+            media_id = extract_openlibrary_id(top_edition["key"])
+            title = doc["title"]
+            edition_title = top_edition["title"]
+
+            if edition_title != title:
+                result_title = f"{edition_title}: {title}"
+            else:
+                result_title = title
+
+            results.append(
+                {
+                    "media_id": media_id,
+                    "source": Sources.OPENLIBRARY.value,
+                    "media_type": MediaTypes.BOOK.value,
+                    "title": result_title,
+                    "image": get_image_url(top_edition),
+                },
+            )
 
         total_results = response["numFound"]
         data = helpers.format_search_response(
@@ -81,7 +91,7 @@ def extract_openlibrary_id(path):
     Extract the ID from an OpenLibrary path.
 
     Args:
-        path (str): A path like '/works/OL123W' or a full URL
+        path (str): A path like '/works/OL123W'
 
     Returns:
         str: The extracted ID (e.g., 'OL123W')
@@ -93,17 +103,15 @@ def extract_openlibrary_id(path):
     return path.rstrip("/").split("/")[-1]
 
 
-def get_media_id(doc):
-    """Get media ID from document with fallback logic."""
-    if "cover_edition_key" in doc:
-        return doc["cover_edition_key"]
-
+def get_image_url(doc):
+    """Get the cover image URL for a book."""
     try:
-        # Fallback to top ranked edition key
-        extract_openlibrary_id(doc["editions"]["docs"][0]["key"])
-    except IndexError:
-        # editions docs is empty
-        return None
+        cover_id = doc["cover_i"]
+        if cover_id:
+            return f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
+
+    except KeyError:
+        return settings.IMG_NONE
 
 
 def book(media_id):
@@ -185,16 +193,6 @@ async def async_book(media_id):
         cache.set(cache_key, data)
 
     return data
-
-
-def get_image_url(doc):
-    """Get the cover image URL for a book."""
-    # when no picture, cover_i is not present in the response
-    # e.g book: OL31949778W
-    cover_id = doc.get("cover_i")
-    if cover_id:
-        return f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
-    return settings.IMG_NONE
 
 
 def get_cover_image_url(response):
