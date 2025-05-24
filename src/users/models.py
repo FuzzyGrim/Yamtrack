@@ -284,6 +284,11 @@ class User(AbstractUser):
         help_text="Token for external integrations",
     )
 
+    plex_usernames = models.TextField(
+        blank=True,
+        help_text="Comma-separated list of Plex usernames for webhook matching",
+    )
+
     class Meta:
         """Meta options for the model."""
 
@@ -542,8 +547,3 @@ class User(AbstractUser):
         """Regenerate the user's token."""
         self.token = generate_token()
         self.save(update_fields=["token"])
-
-    plex_usernames = models.TextField(
-        blank=True,
-        help_text="Comma-separated list of Plex usernames for webhook matching",
-    )

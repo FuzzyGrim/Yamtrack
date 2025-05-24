@@ -20,7 +20,7 @@ def process_payload(payload, user):
         return
 
     # Case-insensitive, trimmed user check (handle User object or string)
-    if str(user.plex_usernames).strip().lower() not in payload["Account"]["title"].strip().lower():
+    if payload["Account"]["title"].strip().lower() not in str(user.plex_usernames).strip().lower():
         logger.info("Ignoring Plex webhook event for user: %s", user)
         return
 
