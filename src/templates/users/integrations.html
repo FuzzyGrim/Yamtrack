@@ -181,9 +181,6 @@
                     class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user.plex_usernames.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                     type="text"
                     value="{{ request.user.plex_usernames }}">
-              {% if user.plex_usernames.errors %}
-                <p class="mt-1 text-sm text-red-400">{{ user.plex_usernames.errors.0 }}</p>
-              {% endif %}
             </div>
             <div class="pt-2">
               <button type="submit"
