@@ -172,6 +172,7 @@
       </div>
       <p class="text-gray-400 mb-4 text-sm">Connect Plex to automatically track your watching progress.</p>
         <div class="bg-[#262a2f] p-3 rounded-md mb-4">
+          <h4 class="text-sm font-medium mb-3">Settings</h4>          
           <form method="POST" action="{% url 'update_plex_usernames' %}" class="space-y-2">
             {% csrf_token %}
 
