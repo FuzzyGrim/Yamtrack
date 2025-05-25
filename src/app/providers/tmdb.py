@@ -116,10 +116,9 @@ def find(external_id, external_source):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-
         cache.set(cache_key, data)
 
-    return response["tv_episode_results"][0] if response["tv_episode_results"] else None
+    return response
 
 
 def movie(media_id):
