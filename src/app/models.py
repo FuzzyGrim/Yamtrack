@@ -768,7 +768,11 @@ class Media(models.Model):
             if max_progress:
                 self.progress = max_progress
 
-            if self.tracker.previous("status") == self.Status.REPEATING.value:
+            previous_repeating = (
+                self.tracker.previous("status") == self.Status.REPEATING.value
+            )
+            repeat_count_not_updated = self.repeats == self.tracker.previous("repeats")
+            if previous_repeating and repeat_count_not_updated:
                 self.repeats += 1
 
         self.item.fetch_releases(delay=True)

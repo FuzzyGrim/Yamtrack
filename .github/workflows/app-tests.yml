@@ -11,7 +11,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  # Restrict permissions to minimum required
   contents: read
   pull-requests: read
 
@@ -35,6 +34,7 @@ jobs:
 
   test:
     needs: check-workflow-changes
+    if: always()
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
@@ -65,13 +65,17 @@ jobs:
         run: |
           ruff check src
 
+      - name: Set environment variables from secrets
+        run: |
+          if [ -n "${{ secrets.SECRET }}" ]; then echo "SECRET=${{ secrets.SECRET }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.TMDB_API }}" ]; then echo "TMDB_API=${{ secrets.TMDB_API }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.MAL_API }}" ]; then echo "MAL_API=${{ secrets.MAL_API }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.IGDB_ID }}" ]; then echo "IGDB_ID=${{ secrets.IGDB_ID }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.IGDB_SECRET }}" ]; then echo "IGDB_SECRET=${{ secrets.IGDB_SECRET }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.HARDCOVER_API }}" ]; then echo "HARDCOVER_API=${{ secrets.HARDCOVER_API }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.COMICVINE_API }}" ]; then echo "COMICVINE_API=${{ secrets.COMICVINE_API }}" >> $GITHUB_ENV; fi
+
       - name: Run Tests
-        env:
-          SECRET: ${{ secrets.SECRET }}
-          TMDB_API: ${{ secrets.TMDB_API }}
-          MAL_API: ${{ secrets.MAL_API }}
-          IGDB_ID: ${{ secrets.IGDB_ID }}
-          IGDB_SECRET: ${{ secrets.IGDB_SECRET }}
         run: |
           coverage run src/manage.py test app users integrations lists events --parallel
 

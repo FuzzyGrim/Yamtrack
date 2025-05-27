@@ -7,18 +7,60 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from celery.schedules import crontab
-from decouple import Csv, config
+from decouple import (
+    Config,
+    Csv,
+    RepositorySecret,
+    Undefined,
+    UndefinedValueError,
+    config,
+    undefined,
+)
 from django.core.cache import CacheKeyWarning
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def secret(key, default=undefined, **kwargs):
+    """Try to read a config value from a secret file.
+
+    If only the filename is given, try to read from /run/secrets/<key>.
+    If an absolute path is specified, try to read from this path.
+    """
+    if isinstance(default, Undefined):
+        default = None
+
+    file = config(key, default, **kwargs)
+
+    if file is None:
+        return undefined
+    if file == default:
+        return default
+
+    path = Path(file)
+    try:
+        if path.is_absolute():
+            return Config(RepositorySecret(path.parent))(path.stem, default, **kwargs)
+        return Config(RepositorySecret())(file, default, **kwargs)
+    except (
+        FileNotFoundError,
+        IsADirectoryError,
+        UndefinedValueError,
+    ) as err:
+        msg = f"File from {key} not found. Please check the path and filename."
+        raise UndefinedValueError(msg) from err
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET", default="secret")
+SECRET_KEY = config(
+    "SECRET",
+    default=secret("SECRET_FILE", default="ifx7bdUWo5EwC2NQNihjRjOrW00Cdv5Y"),
+)
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
@@ -132,9 +174,9 @@ if config("DB_HOST", default=None):
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "HOST": config("DB_HOST"),
-            "NAME": config("DB_NAME"),
-            "USER": config("DB_USER"),
-            "PASSWORD": config("DB_PASSWORD"),
+            "NAME": config("DB_NAME", default=secret("DB_NAME_FILE")),
+            "USER": config("DB_USER", default=secret("DB_USER_FILE")),
+            "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
             "PORT": config("DB_PORT"),
         },
     }
@@ -246,7 +288,7 @@ AUTH_USER_MODEL = "users.User"
 # Yamtrack settings
 
 # For CSV imports
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 
 VERSION = config("VERSION", default="dev")
 
@@ -259,41 +301,86 @@ IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-b
 REQUEST_TIMEOUT = 120  # seconds
 PER_PAGE = 24
 
-TMDB_API = config("TMDB_API", default="61572be02f0a068658828f6396aacf60")
+TMDB_API = config(
+    "TMDB_API",
+    default=secret(
+        "TMDB_API_FILE",
+        "61572be02f0a068658828f6396aacf60",
+    ),
+)
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
 
-MAL_API = config("MAL_API", default="25b5581dafd15b3e7d583bb79e9a1691")
+MAL_API = config(
+    "MAL_API",
+    default=secret(
+        "MAL_API_FILE",
+        "25b5581dafd15b3e7d583bb79e9a1691",
+    ),
+)
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
 
 MU_NSFW = config("MU_NSFW", default=False, cast=bool)
 
-IGDB_ID = config("IGDB_ID", default="8wqmm7x1n2xxtnz94lb8mthadhtgrt")
-IGDB_SECRET = config("IGDB_SECRET", default="ovbq0hwscv58hu46yxn50hovt4j8kj")
+IGDB_ID = config(
+    "IGDB_ID",
+    default=secret(
+        "IGDB_ID_FILE",
+        "8wqmm7x1n2xxtnz94lb8mthadhtgrt",
+    ),
+)
+IGDB_SECRET = config(
+    "IGDB_SECRET",
+    default=secret(
+        "IGDB_SECRET_FILE",
+        "ovbq0hwscv58hu46yxn50hovt4j8kj",
+    ),
+)
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
 HARDCOVER_API = config(
     "HARDCOVER_API",
-    default="Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0aSI6ImJhNGNjZmUwLTgwZmQtNGI3NC1hZDdhLTlkNDM5ZTA5YWMzOSIsImFwcGxpY2F0aW9uSWQiOjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJbiI6dHJ1ZSwiaWF0IjoxNzQ2OTc3ODc3LCJleHAiOjE3Nzg1MTM4NzcsImh0dHBzOi8vaGFzdXJhLmlvL2p3dC9jbGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6InVzZXIiLCJ4LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQiOiIzNDk1MSJ9LCJ1c2VyIjp7ImlkIjozNDk1MX19.edcEqLAeO3uH5xxBTFDKtyWwi-B-WfXX_yiLFdOAJ3c",  # noqa: E501
+    default=secret(
+        "HARDCOVER_API_FILE",
+        "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0"
+        "aSI6ImJhNGNjZmUwLTgwZmQtNGI3NC1hZDdhLTlkNDM5ZTA5YWMzOSIsImFwcGxpY2F0aW9uSWQi"
+        "OjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJbiI6dHJ1ZSwi"
+        "aWF0IjoxNzQ2OTc3ODc3LCJleHAiOjE3Nzg1MTM4NzcsImh0dHBzOi8vaGFzdXJhLmlvL2p3dC9j"
+        "bGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1"
+        "bHQtcm9sZSI6InVzZXIiLCJ4LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQi"
+        "OiIzNDk1MSJ9LCJ1c2VyIjp7ImlkIjozNDk1MX19.edcEqLAeO3uH5xxBTFDKtyWwi-B-WfXX_yi"
+        "LFdOAJ3c",
+    ),
 )
 
 COMICVINE_API = config(
     "COMICVINE_API",
-    default="cdab0706269e4bca03a096fbc39920dadf7e4992",
+    default=secret(
+        "COMICVINE_API_FILE",
+        "cdab0706269e4bca03a096fbc39920dadf7e4992",
+    ),
 )
-
 
 TRAKT_API = config(
     "TRAKT_API",
-    default="b4d9702b11cfaddf5e863001f68ce9d4394b678926e8a3f64d47bf69a55dd0fe",
+    default=secret(
+        "TRAKT_API_FILE",
+        "b4d9702b11cfaddf5e863001f68ce9d4394b678926e8a3f64d47bf69a55dd0fe",
+    ),
 )
 SIMKL_ID = config(
     "SIMKL_ID",
-    default="f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e",
+    default=secret(
+        "SIMKL_ID_FILE",
+        "f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e",
+    ),
 )
 SIMKL_SECRET = config(
     "SIMKL_SECRET",
-    default="9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5",
+    default=secret(
+        "SIMKL_SECRET_FILE",
+        "9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5",
+    ),
 )
 
 TESTING = False
@@ -407,7 +494,10 @@ INSTALLED_APPS += SOCIAL_PROVIDERS
 
 SOCIALACCOUNT_PROVIDERS = config(
     "SOCIALACCOUNT_PROVIDERS",
-    default="{}",
+    default=secret(
+        "SOCIALACCOUNT_PROVIDERS_FILE",
+        default="{}",
+    ),
     cast=json.loads,
 )
 

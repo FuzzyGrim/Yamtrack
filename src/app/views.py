@@ -520,8 +520,8 @@ def media_delete(request):
 def episode_handler(request):
     """Handle the creation, deletion, and updating of episodes for a season."""
     media_id = request.POST["media_id"]
-    season_number = request.POST["season_number"]
-    episode_number = request.POST["episode_number"]
+    season_number = int(request.POST["season_number"])
+    episode_number = int(request.POST["episode_number"])
     source = request.POST["source"]
 
     try:

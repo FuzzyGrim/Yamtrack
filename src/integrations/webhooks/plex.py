@@ -47,10 +47,13 @@ def _is_supported_event(event_type):
 
 
 def _is_valid_user(payload, user):
-    return (
-        payload["Account"]["title"].strip().lower()
-        in str(user.plex_usernames).strip().lower()
-    )
+    incoming_username = payload["Account"]["title"].strip().lower()
+    
+    stored_usernames = [
+        u.strip().lower() for u in (user.plex_usernames or "").split(",") if u.strip()
+    ]
+
+    return incoming_username in stored_usernames
 
 
 def _extract_external_ids(payload):

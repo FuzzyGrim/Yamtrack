@@ -51,7 +51,7 @@
                  class="flex-1 py-2 pr-2 pl-3 bg-[#262a2f] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono"
                  type="text"
                  value="{{ user.token|default_if_none:"" }}">
-          <span class="flex items-center cursor-pointer group"
+          <span class="flex items-center cursor-pointer group pr-3"
                 title="Copy"
                 data-copy-target="#token">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -133,7 +133,6 @@
         <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>
         <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
           <li>You will need to have TMDB and TVDB as metadata providers in Jellyfin.</li>
-          <li>Generate a token above if you don't have one yet.</li>
           <li>
             Add this repository
             <a href="https://raw.githubusercontent.com/shemanaev/jellyfin-plugin-repo/master/manifest.json"
@@ -182,7 +181,7 @@
       </div>
       <p class="text-gray-400 mb-4 text-sm">Connect Plex to automatically track your watching progress.</p>
       <div class="bg-[#262a2f] p-3 rounded-md mb-4">
-        <h4 class="text-sm font-medium mb-3">Settings</h4>
+        <h4 class="text-sm font-medium mb-3">Plex Usernames</h4>
         <form method="post"
               action="{% url 'update_plex_usernames' %}"
               class="space-y-2">
@@ -223,7 +222,6 @@
         <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>
         <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
           <li>You will need to have a PlexPass in order to have hooks enabled</li>
-          <li>Generate a token above if you don't have one yet.</li>
           <li>
             In Plex settings, go to <a href="https://app.plex.tv/desktop/#!/settings/webhooks"
     target="_blank"
@@ -232,30 +230,34 @@
           </li>
           <li>
             In the Webhooks section, click on "Add Webhook" and enter the following URL:
-            <div class="flex items-center gap-2">
-              <input readonly=""
-                     id="plex-webhook-url"
-                     class="flex-1 py-2 pr-2 pl-3 bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
-                     type="text"
-                     value="{{ request.scheme }}://{{ request.get_host }}/webhook/plex/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
-              <span class="flex items-center cursor-pointer group"
-                    title="Copy"
-                    data-copy-target="#plex-webhook-url">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="20"
-                     height="20"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
-                </svg>
-              </span>
-            </div>
+            <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
+              <li>
+                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">
+                  <input readonly
+                         id="plex-webhook-url"
+                         class="w-full py-2 bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                         type="text"
+                         value="{{ request.scheme }}://{{ request.get_host }}/webhook/plex/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
+                  <span class="flex items-center cursor-pointer group"
+                        title="Copy"
+                        data-copy-target="#plex-webhook-url">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="20"
+                         height="20"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+                    </svg>
+                  </span>
+                </div>
+              </li>
+            </ul>
           </li>
         </ol>
       </div>

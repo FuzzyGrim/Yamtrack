@@ -238,3 +238,49 @@ class PlexWebhookTests(TestCase):
         movie = Movie.objects.get(item__media_id="603")
         self.assertEqual(movie.status, Media.Status.COMPLETED.value)
         self.assertEqual(movie.repeats, 1)
+
+    def test_username_matching(self):
+        """Test Plex username matching functionality."""
+        test_cases = [
+            # stored, incoming, should_match
+            ("testuser", "testuser", True),  # Exact match
+            ("testuser", "TestUser", True),  # Case insensitive
+            ("testuser", " testuser ", True),  # Whitespace handling
+            ("testuser", "testuser2", False),  # Different username
+            ("testuser1,testuser2", "testuser1", True),  # First in list
+            ("testuser1,testuser2", "testuser3", False),  # Not in list
+        ]
+
+        base_payload = {
+            "event": "media.scrobble",
+            "Metadata": {
+                "type": "movie",
+                "title": "Test Movie",
+                "Guid": [{"id": "tmdb://123"}],
+            },
+        }
+
+        for i, (stored_usernames, incoming_username, should_match) in enumerate(
+            test_cases,
+        ):
+            with self.subTest(
+                f"Case {i + 1}: {stored_usernames} vs {incoming_username}",
+            ):
+                self.user.plex_usernames = stored_usernames
+                self.user.save()
+                payload = base_payload.copy()
+                payload["Account"] = {"title": incoming_username}
+
+                response = self.client.post(
+                    self.url,
+                    data={"payload": json.dumps(payload)},
+                    format="multipart",
+                )
+
+                if should_match:
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(Movie.objects.count(), 1)
+                    Movie.objects.all().delete()  # Clean up for next test
+                else:
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(Movie.objects.count(), 0)
