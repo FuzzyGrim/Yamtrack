@@ -18,6 +18,10 @@ from decouple import (
 )
 from django.core.cache import CacheKeyWarning
 
+BASE_URL = config("BASE_URL", default=None)
+if BASE_URL:
+    FORCE_SCRIPT_NAME = BASE_URL
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -272,6 +276,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+if BASE_URL:
+    STATIC_URL = f"{BASE_URL}/static/"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
 
@@ -487,6 +494,10 @@ ACCOUNT_FORMS = {
     "login": "users.forms.CustomLoginForm",
     "signup": "users.forms.CustomSignupForm",
 }
+
+if BASE_URL:
+    ACCOUNT_LOGOUT_REDIRECT_URL = f"{BASE_URL}/accounts/login/?loggedout=1"
+
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 SOCIAL_PROVIDERS = config("SOCIAL_PROVIDERS", default="", cast=Csv())
