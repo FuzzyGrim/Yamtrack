@@ -152,7 +152,32 @@
             In the Webhooks plugin settings:
             <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
               {# djlint:off #}
-              <li>URL: {{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}</li>
+              <li>
+                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL: 
+                  <input readonly
+                         id="jellyfin-webhook-url"
+                         class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                         type="text"
+                         value="{{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
+                  <span class="flex items-center cursor-pointer group"
+                        title="Copy"
+                        data-copy-target="#jellyfin-webhook-url">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="20"
+                         height="20"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+                    </svg>
+                  </span>
+                </div>
+              </li>
               {# djlint:on #}
               <li>Payload format: Default</li>
               <li>Listen to events only for: Your Jellyfin User</li>
@@ -163,7 +188,7 @@
       </div>
     </div>
 
-    <div class="bg-[#39404b] p-5 rounded-lg">
+    <div class="bg-[#39404b] p-5 rounded-lg mb-6">
       <div class="flex items-center mb-3">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
@@ -235,7 +260,7 @@
                 <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">
                   <input readonly
                          id="plex-webhook-url"
-                         class="w-full py-2 bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                         class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
                          type="text"
                          value="{{ request.scheme }}://{{ request.get_host }}/webhook/plex/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
                   <span class="flex items-center cursor-pointer group"
@@ -262,6 +287,69 @@
         </ol>
       </div>
     </div>
+
+    <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+      <div class="flex items-center mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-5 h-5 text-indigo-400 mr-2">
+          <rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect><rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect><line x1="6" x2="6.01" y1="6" y2="6"></line><line x1="6" x2="6.01" y1="18" y2="18"></line>
+        </svg>
+        <h3 class="text-base font-medium">Emby Integration</h3>
+      </div>
+      <p class="text-gray-400 mb-4 text-sm">Connect Emby to automatically track your watching progress.</p>
+      <div class="bg-[#262a2f] p-4 rounded-md">
+        <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>
+        <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+          <li>In Emby, go to Settings / Notifications</li>
+          <li>In the Notifications section, click on "Add Notification"
+          <li>
+            In the Notification settings:
+            <ul class="list-disc list-inside ml-6 mt-2 space-y-2 text-gray-400">
+              {# djlint:off #}
+              <li>
+                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL: 
+                  <input readonly
+                         id="emby-webhook-url"
+                         class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                         type="text"
+                         value="{{ request.scheme }}://{{ request.get_host }}/webhook/emby/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
+                  <span class="flex items-center cursor-pointer group"
+                        title="Copy"
+                        data-copy-target="#emby-webhook-url">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="20"
+                         height="20"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+                    </svg>
+                  </span>
+                </div>
+              </li>
+              {# djlint:on #}
+              <li>Request content type: multipart/form-data</li>
+              <li>Events: Play, Stop</li>
+              <li>Limit user events to: Your Emby User</li>
+              <li>"Limit library events to" and "Limit devices events to" are optional</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>    
   </div>
 {% endblock settings_content %}
 
