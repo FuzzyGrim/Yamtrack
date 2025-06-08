@@ -5,7 +5,7 @@ from django.db import models
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
-from app.models import Item, Media, MediaTypes
+from app.models import Item, MediaTypes, Status
 from users import helpers
 
 EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
@@ -43,12 +43,11 @@ class MediaStatusChoices(models.TextChoices):
     """Choices for media list status options."""
 
     ALL = "All", "All"
-    COMPLETED = Media.Status.COMPLETED.value, Media.Status.COMPLETED.label
-    IN_PROGRESS = Media.Status.IN_PROGRESS.value, Media.Status.IN_PROGRESS.label
-    REPEATING = Media.Status.REPEATING.value, Media.Status.REPEATING.label
-    PLANNING = Media.Status.PLANNING.value, Media.Status.PLANNING.label
-    PAUSED = Media.Status.PAUSED.value, Media.Status.PAUSED.label
-    DROPPED = Media.Status.DROPPED.value, Media.Status.DROPPED.label
+    COMPLETED = Status.COMPLETED.value, Status.COMPLETED.label
+    IN_PROGRESS = Status.IN_PROGRESS.value, Status.IN_PROGRESS.label
+    PLANNING = Status.PLANNING.value, Status.PLANNING.label
+    PAUSED = Status.PAUSED.value, Status.PAUSED.label
+    DROPPED = Status.DROPPED.value, Status.DROPPED.label
 
 
 class LayoutChoices(models.TextChoices):

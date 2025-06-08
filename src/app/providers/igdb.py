@@ -35,13 +35,18 @@ def handle_error(error):
 
     # Invalid keys
     if status_code in (requests.codes.bad_request, requests.codes.forbidden):
-        details = error_json.get("message").capitalize()
-        if details:
-            raise services.ProviderAPIError(
-                Sources.IGDB.value,
-                error,
-                details,
-            )
+        try:
+            details = error_json.get("message").capitalize()
+            if details:
+                raise services.ProviderAPIError(
+                    Sources.IGDB.value,
+                    error,
+                    details,
+                )
+        # it can be other error format
+        except (KeyError, AttributeError):
+            logger.exception("Unexpected error format from IGDB API")
+            raise services.ProviderAPIError(Sources.IGDB.value, error) from None
 
     raise services.ProviderAPIError(Sources.IGDB.value, error)
 

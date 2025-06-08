@@ -15,11 +15,11 @@ from app.models import (
     Game,
     Item,
     Manga,
-    Media,
     MediaTypes,
     Movie,
     Season,
     Sources,
+    Status,
 )
 
 
@@ -45,7 +45,7 @@ class ExportCSVTest(TestCase):
             item=item_tv,
             user=self.user,
             score=9,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             notes="Nice",
         )
 
@@ -60,7 +60,7 @@ class ExportCSVTest(TestCase):
             item=item_movie,
             user=self.user,
             score=9,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             notes="Nice",
             start_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
             end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
@@ -80,7 +80,7 @@ class ExportCSVTest(TestCase):
             related_tv=tv,
             user=self.user,
             score=9,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             notes="Nice",
         )
 
@@ -109,7 +109,7 @@ class ExportCSVTest(TestCase):
         Anime.objects.create(
             item=item_anime,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=2,
             start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
@@ -124,7 +124,7 @@ class ExportCSVTest(TestCase):
         Manga.objects.create(
             item=item_manga,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=2,
             start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
@@ -139,7 +139,7 @@ class ExportCSVTest(TestCase):
         Game.objects.create(
             item=item_game,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=120,
             start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
@@ -154,7 +154,7 @@ class ExportCSVTest(TestCase):
         Book.objects.create(
             item=item_book,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=120,
             start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )

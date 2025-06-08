@@ -21,12 +21,7 @@ urlpatterns = [
         name="season_details",
     ),
     path(
-        "update-score/<source:source>/<media_type:media_type>/<str:media_id>",
-        views.update_media_score,
-        name="update_media_score",
-    ),
-    path(
-        "update-score/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>",
+        "update-score/<media_type:media_type>/<int:instance_id>",
         views.update_media_score,
         name="update_media_score",
     ),
@@ -50,10 +45,14 @@ urlpatterns = [
         views.track_modal,
         name="track_modal",
     ),
-    path("progress_edit", views.progress_edit, name="progress_edit"),
+    path(
+        "progress_edit/<media_type:media_type>/<int:instance_id>",
+        views.progress_edit,
+        name="progress_edit",
+    ),
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
-    path("episode_handler", views.episode_handler, name="episode_handler"),
+    path("episode_save", views.episode_save, name="episode_save"),
     path(
         "history_modal/<source:source>/<media_type:media_type>/<str:media_id>",
         views.history_modal,

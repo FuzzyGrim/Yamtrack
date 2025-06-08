@@ -4,16 +4,13 @@ extend-exclude = ["migrations"]
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["ANN", "PT", "PD", "D100", "D104", "RUF012", "PLR0913"]
+ignore = ["ANN", "PT", "PD", "D100", "D104", "RUF012", "PLR0913", "SLF001"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 88
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
-
-[tool.ruff.lint.per-file-ignores]
-"**/tests/*" = ["SLF001"]
 
 [tool.djlint]
 custom_blocks = "element,slot,setvar"

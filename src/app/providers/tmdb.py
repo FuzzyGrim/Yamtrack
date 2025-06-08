@@ -526,33 +526,30 @@ def process_episodes(season_metadata, episodes_in_db):
     episodes_metadata = []
 
     # Convert the queryset to a dictionary for efficient lookups
-    tracked_episodes = {ep["item__episode_number"]: ep for ep in episodes_in_db}
+    tracked_episodes = {}
+    for ep in episodes_in_db:
+        episode_number = ep.item.episode_number
+        if episode_number not in tracked_episodes:
+            tracked_episodes[episode_number] = []
+        tracked_episodes[episode_number].append(ep)
 
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]
-        watched = episode_number in tracked_episodes
 
         episodes_metadata.append(
             {
                 "media_id": season_metadata["media_id"],
-                "season_number": season_metadata["season_number"],
                 "media_type": MediaTypes.EPISODE.value,
                 "source": Sources.TMDB.value,
+                "season_number": season_metadata["season_number"],
                 "episode_number": episode_number,
                 "air_date": episode["air_date"],  # when unknown, response returns null
                 "image": get_image_url(episode["still_path"]),
                 "title": episode["name"],
                 "overview": episode["overview"],
-                "watched": watched,
-                "end_date": (
-                    tracked_episodes[episode_number]["end_date"] if watched else None
-                ),
-                "repeats": (
-                    tracked_episodes[episode_number]["repeats"] if watched else None
-                ),
+                "history": tracked_episodes.get(episode_number, []),
             },
         )
-
     return episodes_metadata
 
 

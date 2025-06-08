@@ -41,7 +41,7 @@ class CustomUserAdmin(UserAdmin):
         ]
 
         field_groups = {}
-        for field in User._meta.get_fields():  # noqa: SLF001
+        for field in User._meta.get_fields():
             if not isinstance(field, Field):
                 continue
 

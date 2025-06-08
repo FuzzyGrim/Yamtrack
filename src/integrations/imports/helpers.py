@@ -1,14 +1,16 @@
 import datetime
 import json
 import logging
+from collections import defaultdict
 
+from django.apps import apps
 from django.contrib import messages
-from django.db import models
 from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
-from simple_history.utils import bulk_create_with_history, bulk_update_with_history
+from simple_history.utils import bulk_create_with_history
 
 import app
+from app.models import MediaTypes
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,80 @@ class MediaImportError(Exception):
 
 class MediaImportUnexpectedError(Exception):
     """Custom exception for unexpected import errors."""
+
+
+def get_existing_media(user):
+    """Get all existing media for the user to check against during import."""
+    excluded_types = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
+    valid_types = [value for value in MediaTypes.values if value not in excluded_types]
+    existing = defaultdict(lambda: defaultdict(dict))
+
+    for media_type in valid_types:
+        media_model = apps.get_model(app_label="app", model_name=media_type)
+
+        for media in media_model.objects.filter(user=user).select_related("item"):
+            existing[media_type][media.item.source][media.item.media_id] = media
+
+    counts = [
+        f"{media_type}: {sum(len(source_dict) for source_dict in media_dict.values())}"
+        for media_type, media_dict in existing.items()
+    ]
+    logger.debug("Existing media for user %s: %s", user.username, ", ".join(counts))
+    return existing
+
+
+def should_process_media(existing_media, to_delete, media_type, source, media_id, mode):
+    """Determine if a media item should be processed based on mode."""
+    exists = media_id in existing_media[media_type][source]
+
+    if mode == "new" and exists:
+        # In "new" mode, skip if media already exists
+        logger.debug(
+            "Skipping existing %s: %s (mode: new)",
+            media_type,
+            media_id,
+        )
+        return False
+
+    if mode == "overwrite" and exists:
+        # In "overwrite" mode, add to the deletion list
+        logger.debug(
+            "Adding existing %s to deletion list: %s (mode: overwrite)",
+            media_type,
+            media_id,
+        )
+        to_delete[media_type][source].add(media_id)
+
+    return True
+
+
+def cleanup_existing_media(to_delete, user):
+    """Delete existing media if in overwrite mode."""
+    for media_type, sources in to_delete.items():
+        if not sources:
+            continue
+
+        model = apps.get_model(app_label="app", model_name=media_type)
+        total_deleted = 0
+
+        for source, media_ids in sources.items():
+            if not media_ids:
+                continue
+
+            deleted_count, _ = model.objects.filter(
+                item__media_id__in=media_ids,
+                item__source=source,
+                user=user,
+            ).delete()
+            total_deleted += deleted_count
+
+        if total_deleted > 0:
+            logger.info(
+                "Deleted %s %s objects for user %s in overwrite mode",
+                total_deleted,
+                media_type,
+                user,
+            )
 
 
 def update_season_references(seasons, user):
@@ -82,129 +158,32 @@ def update_episode_references(episodes, user):
             )
 
 
-def bulk_chunk_import(bulk_media, model, user, mode):
-    """Bulk import media in chunks."""
-    if mode == "new":
-        num_imported = bulk_create_new_with_history(bulk_media, model, user)
+def bulk_create_media(bulk_media_list, user):
+    """Bulk create all media objects."""
+    for media_type, bulk_media in bulk_media_list.items():
+        if not bulk_media:
+            continue
 
-    elif mode == "overwrite":
-        num_imported = bulk_create_update_with_history(
+        model = apps.get_model(app_label="app", model_name=media_type)
+
+        logger.info("Bulk importing %s", media_type)
+
+        # Update references for seasons and episodes
+        if media_type == MediaTypes.SEASON.value:
+            logger.info("Updating references for season to existing TV shows")
+            update_season_references(bulk_media, user)
+        elif media_type == MediaTypes.EPISODE.value:
+            logger.info(
+                "Updating references for episodes to existing TV seasons",
+            )
+            update_episode_references(bulk_media, user)
+
+        bulk_create_with_history(
             bulk_media,
             model,
-            user,
-        )
-
-    return num_imported
-
-
-def bulk_create_new_with_history(bulk_media, model, user):
-    """Filter out existing records and bulk create only new ones."""
-    logger.info(
-        "Bulk creating new records %s %s with user %s",
-        len(bulk_media),
-        model.__name__,
-        user,
-    )
-
-    # Get existing records' unique IDs since bulk_create_with_history
-    # returns all objects even if they weren't created due to conflicts
-    unique_fields = get_unique_constraint_fields(model)
-    existing_combos = set(
-        model.objects.values_list(*unique_fields),
-    )
-    new_records = []
-    for record in bulk_media:
-        combo = tuple(getattr(record, field + "_id") for field in unique_fields)
-        if combo in existing_combos:
-            msg = f"{record} already exists in the database. Skipping."
-            logger.debug(msg)
-        else:
-            msg = f"{record} is new. Adding to the list."
-            logger.debug(msg)
-            new_records.append(record)
-
-    bulk_create_with_history(
-        new_records,
-        model,
-        batch_size=500,
-        default_user=user,
-    )
-
-    return len(new_records)
-
-
-def bulk_create_update_with_history(
-    bulk_media,
-    model,
-    user,
-):
-    """Bulk create new records and update existing ones with history tracking."""
-    logger.info(
-        "Bulk creating and updating records %s %s with user %s",
-        len(bulk_media),
-        model.__name__,
-        user,
-    )
-
-    unique_fields = get_unique_constraint_fields(model)
-    model_fields = [f.name for f in model._meta.fields]  # noqa: SLF001
-    update_fields = [
-        field for field in model_fields if field not in unique_fields and field != "id"
-    ]
-
-    # Get existing objects with their unique fields and id
-    existing_objs = model.objects.filter(
-        **{
-            f"{field}__in": [getattr(obj, field + "_id") for obj in bulk_media]
-            for field in unique_fields
-        },
-    ).values(*unique_fields, "id")
-
-    # Create lookup dictionary using unique field combinations
-    existing_lookup = {
-        tuple(obj[field] for field in unique_fields): obj["id"] for obj in existing_objs
-    }
-
-    # Split records into new and existing based on unique constraints
-    create_objs = []
-    update_objs = []
-
-    for record in bulk_media:
-        record_key = tuple(getattr(record, field + "_id") for field in unique_fields)
-        if record_key in existing_lookup:
-            msg = f"{record} already exists. Updating."
-            logger.debug(msg)
-            # Set the primary key for update
-            record.id = existing_lookup[record_key]
-            update_objs.append(record)
-        else:
-            msg = f"{record} is new. Adding to the list."
-            logger.debug(msg)
-            create_objs.append(record)
-
-    # Bulk create new records
-    num_created = 0
-    if create_objs:
-        created_objs = bulk_create_with_history(
-            create_objs,
-            model,
             batch_size=500,
             default_user=user,
         )
-        num_created = len(created_objs)
-
-    # Bulk update existing records
-    num_updated = 0
-    if update_objs and update_fields:
-        num_updated = bulk_update_with_history(
-            update_objs,
-            model,
-            fields=update_fields,
-            batch_size=500,
-            default_user=user,
-        )
-
-    return num_created + num_updated
 
 
 def create_import_schedule(username, request, mode, frequency, import_time, source):
@@ -250,14 +229,6 @@ def create_import_schedule(username, request, mode, frequency, import_time, sour
         start_time=timezone.now(),
     )
     messages.success(request, f"{source} import task scheduled.")
-
-
-def get_unique_constraint_fields(model):
-    """Get fields that make up the unique constraint for the model."""
-    for constraint in model._meta.constraints:  # noqa: SLF001
-        if isinstance(constraint, models.UniqueConstraint):
-            return constraint.fields
-    return None
 
 
 def join_with_commas_and(items):

@@ -19,12 +19,12 @@ class _DisableCalendarTriggers:
         """Disable calendar triggers for Item model."""
         from app.models import Item
 
-        self.original_value = Item._disable_calendar_triggers  # noqa: SLF001
-        Item._disable_calendar_triggers = True  # noqa: SLF001
+        self.original_value = Item._disable_calendar_triggers
+        Item._disable_calendar_triggers = True
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Restore calendar triggers."""
         from app.models import Item
 
-        Item._disable_calendar_triggers = self.original_value  # noqa: SLF001
+        Item._disable_calendar_triggers = self.original_value

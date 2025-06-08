@@ -4,7 +4,7 @@
      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
   <div class="w-[400px] max-h-[90vh] px-4 md:px-0 relative z-60"
        @click.outside="trackOpen = false">
-    <div class="bg-[#2a2f35] p-6 rounded-lg">
+    <div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-white">Track Episode</h2>
         <button class="text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -33,11 +33,11 @@
           <div>
             <h3 class="text-lg font-semibold mb-1 line-clamp-1">{{ episode_title }}</h3>
             <p class="text-sm text-gray-400">Episode {{ episode.episode_number }}</p>
-            {% if episode.watched %}
-              {% if episode.repeats == 0 %}
+            {% if episode.history %}
+              {% if episode.history|length == 1 %}
                 <p class="text-sm text-gray-400 mt-1">Watched once</p>
               {% else %}
-                <p class="text-sm text-gray-400 mt-1">Watched {{ episode.repeats|add:"1" }} times</p>
+                <p class="text-sm text-gray-400 mt-1">Watched {{ episode.history|length }} times</p>
               {% endif %}
             {% else %}
               <p class="text-sm text-gray-400 mt-1">Not watched yet</p>
@@ -47,68 +47,84 @@
       </div>
 
       {# Episode form #}
-      <form method="post"
-            action="{% url 'episode_handler' %}?next={{ request.path }}">
-        {% csrf_token %}
-        <input type="hidden" name="media_id" value="{{ media.media_id }}">
-        <input type="hidden" name="season_number" value="{{ media.season_number }}">
-        <input type="hidden" name="source" value="{{ media.source }}">
-        <input type="hidden"
-               name="episode_number"
-               value="{{ episode.episode_number }}">
-        <div class="space-y-4">
+      <div class="space-y-4">
+
+        {% if episode.history %}
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Watch Date & Time</label>
-            {# need because it breaks inputDate value when formatting #}
-            {# djlint:off #}
-            <div class="relative" x-data="{ 
-              inputDateTime: '{% now 'Y-m-d\TH:i' %}' 
-            }">
-              <input class="w-full p-3 bg-[#343a40] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
-                      type="datetime-local"
-                      name="date"
-                      onfocus="this.showPicker?.()"
-                      x-model="inputDateTime">
-              {% if episode.air_date %}
-                <button type="button" @click="inputDateTime = '{{ episode.air_date }}T{% now 'H:i' %}'"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors bg-[#2a2f35] px-2 py-1 rounded cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="w-4 h-4 mr-1">
-                    <path d="M8 2v4"></path>
-                    <path d="M16 2v4"></path>
-                    <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-                    <path d="M3 10h18"></path>
-                  </svg>
-                  Air date
-                </button>
-              {% endif %}
+            <label class="block text-sm font-medium text-gray-300 mb-3">Previous Watches</label>
+            <div class="max-h-[200px] overflow-y-auto space-y-2">
+
+              {% for entry in episode.history %}
+                <div class="flex items-center justify-between bg-[#343a40] rounded-md p-3 border border-gray-600">
+                  <div class="text-sm text-white">{{ entry.end_date|date:"DATETIME_FORMAT" }}</div>
+                  <form method="post"
+                        action="{% url 'media_delete' %}?next={{ request.path }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="instance_id" value="{{ entry.id }}">
+                    <input type="hidden" name="media_type" value="episode">
+                    <button class="text-red-400 hover:text-red-300 transition-colors text-sm px-2 py-1 hover:bg-red-600/20 rounded-md cursor-pointer">
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              {% endfor %}
             </div>
-            {# djlint:on #}
           </div>
 
-          <div class="flex justify-between gap-3 pt-2">
+          <div class="border-t border-gray-600 my-6"></div>
+
+        {% endif %}
+
+        <form method="post"
+              action="{% url 'episode_save' %}?next={{ request.path }}">
+          {% csrf_token %}
+          <input type="hidden" name="media_id" value="{{ media.media_id }}">
+          <input type="hidden" name="season_number" value="{{ media.season_number }}">
+          <input type="hidden" name="source" value="{{ media.source }}">
+          <input type="hidden"
+                 name="episode_number"
+                 value="{{ episode.episode_number }}">
+
+          <label class="block text-sm font-medium text-gray-300 mb-2">Watch Date & Time</label>
+
+          <div class="relative" x-data="{ inputDateTime: '{% now "Y-m-d\TH:i" %}' }">
+            <input class="w-full p-3 bg-[#343a40] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+                   type="datetime-local"
+                   name="date"
+                   onfocus="this.showPicker?.()"
+                   x-model="inputDateTime">
+            {% if episode.air_date %}
+              <button type="button"
+                      @click="inputDateTime = '{{ episode.air_date }}T{% now "H:i" %}'"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors bg-[#2a2f35] px-2 py-1 rounded cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-4 h-4 mr-1">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                </svg>
+                Air date
+              </button>
+            {% endif %}
+          </div>
+
+          <div class="flex justify-end-safe gap-3 mt-6">
             <button type="submit"
-                    name="unwatch"
-                    {% if not episode.watched %}disabled{% endif %}
-                    class="px-4 py-2 rounded-md transition-colors {% if episode.watched %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}">
-              Remove watch
-            </button>
-            <button type="submit"
-                    name="watch"
                     class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
               Add watch
             </button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   </div>
 </div>

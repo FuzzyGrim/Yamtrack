@@ -42,8 +42,8 @@
           {# Track Button #}
           <button class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
                   hx-get="{% media_view_url 'track_modal' media.item %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                  hx-target="#{% component_id 'track' media.item %}"
+                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
+                  hx-target="#{% component_id 'track' media.item media.id %}"
                   hx-trigger="click once"
                   @click="trackOpen = true">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -116,7 +116,7 @@
       <a href="{{ media.item|media_url }}"
          class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
          title="{{ media }}">{{ media }}</a>
-      <div id="progress-changer-{{ media.item.id }}">
+      <div id="progress-changer-{{ media.id }}">
         {% include "app/components/progress_changer.html" with media=media csrf_token=csrf_token MediaTypes=MediaTypes only %}
       </div>
     </div>
@@ -127,7 +127,7 @@
          class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="w-[38rem] max-h-[90vh] px-4 md:px-0 relative z-60"
            @click.outside="trackOpen = false">
-        <div id="{% component_id 'track' media.item %}"></div>
+        <div id="{% component_id 'track' media.item media.id %}"></div>
       </div>
     </div>
 

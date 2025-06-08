@@ -4,7 +4,17 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from app.models import TV, Anime, Item, Manga, Media, MediaTypes, Movie, Season, Sources
+from app.models import (
+    TV,
+    Anime,
+    Item,
+    Manga,
+    MediaTypes,
+    Movie,
+    Season,
+    Sources,
+    Status,
+)
 from events.models import Event
 
 
@@ -57,32 +67,32 @@ class EventModelTests(TestCase):
         self.tv = TV.objects.create(
             user=self.user,
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.season = Season.objects.create(
             user=self.user,
             item=self.season_item,
             related_tv=self.tv,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.movie = Movie.objects.create(
             user=self.user,
             item=self.movie_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
         )
 
         self.anime = Anime.objects.create(
             user=self.user,
             item=self.anime_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.manga = Manga.objects.create(
             user=self.user,
             item=self.manga_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         # Create events
@@ -190,44 +200,44 @@ class EventManagerTests(TestCase):
         self.tv = TV.objects.create(
             user=self.user,
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.other_tv = TV.objects.create(
             user=self.other_user,
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.season = Season.objects.create(
             user=self.user,
             item=self.season_item,
             related_tv=self.tv,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.movie = Movie.objects.create(
             user=self.user,
             item=self.movie_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
         )
 
         self.paused_movie = Movie.objects.create(
             user=self.user,
             item=self.paused_movie_item,
-            status=Media.Status.PAUSED.value,
+            status=Status.PAUSED.value,
         )
 
         self.dropped_movie = Movie.objects.create(
             user=self.user,
             item=self.dropped_movie_item,
-            status=Media.Status.DROPPED.value,
+            status=Status.DROPPED.value,
         )
 
         self.manga = Manga.objects.create(
             user=self.user,
             item=self.manga_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         # Use fixed dates instead of timezone.now()

@@ -5,7 +5,7 @@ from django.utils import timezone
 
 import app
 import app.providers
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 
 logger = logging.getLogger(__name__)
 
@@ -155,9 +155,6 @@ def _process_movie(payload, user, ids):
 def handle_movie(media_id, payload, user):
     """Handle movie object from payload."""
     movie_metadata = app.providers.tmdb.movie(media_id)
-    movie_played = payload["event"] == "media.scrobble"
-    progress = 1 if movie_played else 0
-    now = timezone.now().replace(second=0, microsecond=0)
 
     # Get or create the movie item
     movie_item, _ = app.models.Item.objects.get_or_create(
@@ -170,62 +167,43 @@ def handle_movie(media_id, payload, user):
         },
     )
 
-    # Get or create the movie instance
-    movie_instance, created = app.models.Movie.objects.get_or_create(
+    movie_instances = app.models.Movie.objects.filter(
         item=movie_item,
         user=user,
-        defaults={
-            "progress": progress,
-            "status": Media.Status.COMPLETED.value
-            if movie_played
-            else Media.Status.IN_PROGRESS.value,
-            "start_date": now if not movie_played else None,
-            "end_date": now if movie_played else None,
-        },
     )
 
-    if created:
-        logger.info(
-            "Created new movie instance for user %s: %s",
-            user.username,
-            movie_metadata["title"],
-        )
-    else:
-        movie_instance.progress = progress
+    current_instance = movie_instances.first()
+
+    movie_played = payload["event"] == "media.scrobble"
+    progress = 1 if movie_played else 0
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    if current_instance and current_instance.status != Status.COMPLETED.value:
+        current_instance.progress = progress
 
         if movie_played:
-            # Always update end_date when movie is played
-            movie_instance.end_date = now
-
-            if movie_instance.status == Media.Status.COMPLETED.value:
-                movie_instance.repeats += 1
-            elif movie_instance.status == Media.Status.REPEATING.value:
-                movie_instance.repeats += 1
-                movie_instance.status = Media.Status.COMPLETED.value
-            else:  # From IN_PROGRESS/PLANNING/PAUSED/DROPPED to COMPLETED
-                movie_instance.status = Media.Status.COMPLETED.value
-        elif movie_instance.status == Media.Status.COMPLETED.value:
-            # Transition from COMPLETED to REPEATING
-            movie_instance.status = Media.Status.REPEATING.value
-            movie_instance.start_date = now  # Reset start date
-            movie_instance.end_date = None  # Clear completion date
-        elif movie_instance.status not in (
-            Media.Status.REPEATING.value,
-            Media.Status.IN_PROGRESS.value,
-        ):
-            # For other statuses (except REPEATING and IN_PROGRESS) set to IN_PROGRESS
-            movie_instance.status = Media.Status.IN_PROGRESS.value
-            if not movie_instance.start_date:
-                movie_instance.start_date = now
-
-        movie_instance.save()
-
-        logger.info(
-            "Updated movie instance for user %s: %s (status: %s)",
-            user.username,
-            movie_metadata["title"],
-            movie_instance.status,
+            current_instance.end_date = now
+            current_instance.status = Status.COMPLETED.value
+        elif current_instance.status != Status.IN_PROGRESS.value:
+            current_instance.start_date = now
+            current_instance.status = Status.IN_PROGRESS.value
+        current_instance.save()
+    else:
+        app.models.Movie.objects.create(
+            item=movie_item,
+            user=user,
+            progress=progress,
+            status=Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value,
+            start_date=now if not movie_played else None,
+            end_date=now if movie_played else None,
         )
+
+    logger.info(
+        "Marked movie as %s for user %s: %s",
+        "played" if movie_played else "in progress",
+        user.username,
+        movie_metadata["title"],
+    )
 
 
 def handle_tv_episode(media_id, season_number, episode_number, payload, user):
@@ -250,7 +228,7 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
         item=tv_item,
         user=user,
         defaults={
-            "status": Media.Status.IN_PROGRESS.value,
+            "status": Status.IN_PROGRESS.value,
         },
     )
 
@@ -261,11 +239,10 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
             tv_metadata["title"],
         )
     elif not created and tv_instance.status not in (
-        Media.Status.COMPLETED.value,
-        Media.Status.REPEATING.value,
-        Media.Status.IN_PROGRESS.value,
+        Status.COMPLETED.value,
+        Status.IN_PROGRESS.value,
     ):
-        tv_instance.status = Media.Status.IN_PROGRESS.value
+        tv_instance.status = Status.IN_PROGRESS.value
         tv_instance.save()
         logger.info(
             "Updated TV instance for user %s: %s (status: %s)",
@@ -290,7 +267,7 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
         user=user,
         related_tv=tv_instance,
         defaults={
-            "status": Media.Status.IN_PROGRESS.value,
+            "status": Status.IN_PROGRESS.value,
         },
     )
 
@@ -302,11 +279,10 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
             season_number,
         )
     elif not created and season_instance.status not in (
-        Media.Status.COMPLETED.value,
-        Media.Status.REPEATING.value,
-        Media.Status.IN_PROGRESS.value,
+        Status.COMPLETED.value,
+        Status.IN_PROGRESS.value,
     ):
-        season_instance.status = Media.Status.IN_PROGRESS.value
+        season_instance.status = Status.IN_PROGRESS.value
         season_instance.save()
         logger.info(
             "Updated season instance for user %s: %s %d (status: %s)",
@@ -332,18 +308,11 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
 
     if episode_played:
         now = timezone.now().replace(second=0, microsecond=0)
-        episode, created = app.models.Episode.objects.get_or_create(
+        app.models.Episode.objects.create(
             item=episode_item,
             related_season=season_instance,
-            defaults={
-                "end_date": now,
-            },
+            end_date=now,
         )
-
-        if not created:
-            episode.end_date = now
-            episode.repeats += 1
-            episode.save()
 
         logger.info(
             "Marked episode as played for user %s: %s S%d E%d",

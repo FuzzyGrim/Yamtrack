@@ -30,7 +30,7 @@ class EpisodeAdmin(admin.ModelAdmin):
     """Custom admin for Episode model with search and filter options."""
 
     search_fields = ["item__title", "related_season__item__title"]
-    list_display = ["__str__", "end_date", "repeats"]
+    list_display = ["__str__", "end_date"]
 
 
 class MediaAdmin(admin.ModelAdmin):

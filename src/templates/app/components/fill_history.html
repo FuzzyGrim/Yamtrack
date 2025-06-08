@@ -22,31 +22,32 @@
       <li id="history-{{ entry.id }}"
           class="bg-[#39404b] p-4 pt-3 rounded-lg group relative space-y-1">
         <div class="flex justify-between items-center mb-2">
+          {% if total_medias > 1 %}
+            <span class="text-xs px-2 py-1 rounded bg-gray-600 text-gray-300">Instance #{{ entry.media_entry_number }}</span>
+          {% endif %}
           <span class="text-sm text-gray-400">{{ entry.date|date:"DATETIME_FORMAT" }}</span>
 
-          {% if media_type != MediaTypes.EPISODE.value %}
-            <button class="inline-flex items-center justify-center rounded-md h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 cursor-pointer"
-                    hx-delete="{% url 'delete_history_record' media_type entry.id %}"
-                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-target="#history-{{ entry.id }}"
-                    hx-swap="outerHTML">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="20"
-                   height="20"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round">
-                <path d="M3 6h18"></path>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                <line x1="10" x2="10" y1="11" y2="17"></line>
-                <line x1="14" x2="14" y1="11" y2="17"></line>
-              </svg>
-            </button>
-          {% endif %}
+          <button class="inline-flex items-center justify-center rounded-md h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 cursor-pointer"
+                  hx-delete="{% url 'delete_history_record' media_type entry.id %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-target="#history-{{ entry.id }}"
+                  hx-swap="outerHTML">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="20"
+                 height="20"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+              <line x1="10" x2="10" y1="11" y2="17"></line>
+              <line x1="14" x2="14" y1="11" y2="17"></line>
+            </svg>
+          </button>
         </div>
         {% for change in entry.changes %}<p class="text-white">{{ change.description }}</p>{% endfor %}
       </li>

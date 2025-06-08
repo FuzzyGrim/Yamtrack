@@ -2,7 +2,7 @@ from django.test import TestCase
 
 from app import media_type_config
 from app.history_processor import format_description
-from app.models import Media, MediaTypes
+from app.models import MediaTypes, Status
 
 
 class HistoryProcessorTests(TestCase):
@@ -26,7 +26,7 @@ class HistoryProcessorTests(TestCase):
             format_description(
                 "status",
                 None,
-                Media.Status.IN_PROGRESS.value,
+                Status.IN_PROGRESS.value,
                 MediaTypes.TV.value,
             ),
             "Marked as currently watching",
@@ -35,7 +35,7 @@ class HistoryProcessorTests(TestCase):
             format_description(
                 "status",
                 None,
-                Media.Status.COMPLETED.value,
+                Status.COMPLETED.value,
                 MediaTypes.MANGA.value,
             ),
             "Marked as finished reading",
@@ -44,7 +44,7 @@ class HistoryProcessorTests(TestCase):
             format_description(
                 "status",
                 None,
-                Media.Status.PLANNING.value,
+                Status.PLANNING.value,
                 MediaTypes.GAME.value,
             ),
             "Added to playing list",
@@ -53,7 +53,7 @@ class HistoryProcessorTests(TestCase):
             format_description(
                 "status",
                 None,
-                Media.Status.DROPPED.value,
+                Status.DROPPED.value,
                 MediaTypes.BOOK.value,
             ),
             "Marked as dropped",
@@ -62,7 +62,7 @@ class HistoryProcessorTests(TestCase):
             format_description(
                 "status",
                 None,
-                Media.Status.PAUSED.value,
+                Status.PAUSED.value,
                 MediaTypes.ANIME.value,
             ),
             "Marked as paused watching",
@@ -74,8 +74,8 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description(
                 "status",
-                Media.Status.PLANNING.value,
-                Media.Status.IN_PROGRESS.value,
+                Status.PLANNING.value,
+                Status.IN_PROGRESS.value,
                 MediaTypes.TV.value,
             ),
             "Currently watching",
@@ -83,8 +83,8 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description(
                 "status",
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.COMPLETED.value,
+                Status.IN_PROGRESS.value,
+                Status.COMPLETED.value,
                 MediaTypes.MANGA.value,
             ),
             "Finished reading",
@@ -92,8 +92,8 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description(
                 "status",
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.PAUSED.value,
+                Status.IN_PROGRESS.value,
+                Status.PAUSED.value,
                 MediaTypes.GAME.value,
             ),
             "Paused playing",
@@ -101,8 +101,8 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description(
                 "status",
-                Media.Status.PAUSED.value,
-                Media.Status.IN_PROGRESS.value,
+                Status.PAUSED.value,
+                Status.IN_PROGRESS.value,
                 MediaTypes.BOOK.value,
             ),
             "Resumed reading",
@@ -110,29 +110,11 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description(
                 "status",
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.DROPPED.value,
+                Status.IN_PROGRESS.value,
+                Status.DROPPED.value,
                 MediaTypes.ANIME.value,
             ),
             "Stopped watching",
-        )
-        self.assertEqual(
-            format_description(
-                "status",
-                Media.Status.COMPLETED.value,
-                Media.Status.REPEATING.value,
-                MediaTypes.MOVIE.value,
-            ),
-            "Started rewatching",
-        )
-        self.assertEqual(
-            format_description(
-                "status",
-                Media.Status.REPEATING.value,
-                Media.Status.COMPLETED.value,
-                MediaTypes.MANGA.value,
-            ),
-            "Finished rereading",
         )
         self.assertEqual(
             format_description("status", "Custom1", "Custom2", MediaTypes.TV.value),
@@ -188,24 +170,6 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description("progress", 5, 10, MediaTypes.MANGA.value),
             "Progress set to 10 chapters",
-        )
-
-    def test_format_description_repeats(self):
-        """Test format_description for repeat count changes."""
-        # Repeat increment
-        self.assertEqual(
-            format_description("repeats", 0, 1, MediaTypes.TV.value),
-            "Finished watching again for the 2nd time",
-        )
-        self.assertEqual(
-            format_description("repeats", 1, 2, MediaTypes.BOOK.value),
-            "Finished reading again for the 3rd time",
-        )
-
-        # Repeat adjustment
-        self.assertEqual(
-            format_description("repeats", 2, 1, MediaTypes.GAME.value),
-            "Adjusted repeat count from 2 to 1",
         )
 
     def test_format_description_notes(self):

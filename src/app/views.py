@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import helpers, history_processor
 from app import statistics as stats
 from app.forms import ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Item, Media, MediaTypes, Season, Sources
+from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 @require_GET
 def home(request):
-    """Home page with media items in progress and repeating."""
+    """Home page with media items in progress."""
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
     items_limit = 14
@@ -57,48 +57,34 @@ def home(request):
 
 
 @require_POST
-def progress_edit(request):
+def progress_edit(request, media_type, instance_id):
     """Increase or decrease the progress of a media item from home page."""
-    item = Item.objects.get(id=request.POST["item"])
-    media_type = item.media_type
     operation = request.POST["operation"]
 
     media = BasicMedia.objects.get_media_prefetch(
         request.user,
-        item.media_id,
-        item.media_type,
-        item.source,
-        season_number=item.season_number,
+        media_type,
+        instance_id,
     )
 
-    if media:
-        if operation == "increase":
-            media.increase_progress()
-        elif operation == "decrease":
-            media.decrease_progress()
+    if operation == "increase":
+        media.increase_progress()
+    elif operation == "decrease":
+        media.decrease_progress()
 
-        if media_type == MediaTypes.SEASON.value:
-            # clear prefetch cache to get the updated episodes
-            media.refresh_from_db()
-            prefetch_related_objects([media], "episodes")
+    if media_type == MediaTypes.SEASON.value:
+        # clear prefetch cache to get the updated episodes
+        media.refresh_from_db()
+        prefetch_related_objects([media], "episodes")
 
-        context = {
-            "media": media,
-        }
-        return render(
-            request,
-            "app/components/progress_changer.html",
-            context,
-        )
-
-    messages.error(
+    context = {
+        "media": media,
+    }
+    return render(
         request,
-        "Media item was deleted before trying to change progress",
+        "app/components/progress_changer.html",
+        context,
     )
-
-    response = HttpResponse()
-    response["HX-Redirect"] = reverse("home")
-    return response
 
 
 @require_GET
@@ -120,13 +106,14 @@ def media_list(request, media_type):
     page = request.GET.get("page", 1)
 
     # Prepare status filter for database query
-    status_filters = [MediaStatusChoices.ALL] if not status_filter else [status_filter]
+    if not status_filter:
+        status_filter = MediaStatusChoices.ALL
 
     # Get media list with filters applied
     media_queryset = BasicMedia.objects.get_media_list(
         user=request.user,
         media_type=media_type,
-        status_filter=status_filters,
+        status_filter=status_filter,
         sort_filter=sort_filter,
         search=search_query,
     )
@@ -194,17 +181,19 @@ def media_search(request):
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
-    user_media = BasicMedia.objects.get_media_prefetch(
+    user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
         media_type,
         source,
     )
+    current_instance = user_medias[0] if user_medias else None
 
     context = {
         "media": media_metadata,
         "media_type": media_type,
-        "user_media": user_media,
+        "user_medias": user_medias,
+        "current_instance": current_instance,
     }
     return render(request, "app/media_details.html", context)
 
@@ -220,7 +209,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     )
     season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
-    user_media = BasicMedia.objects.get_media_prefetch(
+    user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
         MediaTypes.SEASON.value,
@@ -228,11 +217,8 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         season_number=season_number,
     )
 
-    episodes_in_db = (
-        user_media.episodes.all().values("item__episode_number", "end_date", "repeats")
-        if user_media
-        else []
-    )
+    current_instance = user_medias[0] if user_medias else None
+    episodes_in_db = current_instance.episodes.all() if current_instance else []
 
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(
@@ -249,29 +235,22 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
         "media_type": MediaTypes.SEASON.value,
-        "user_media": user_media,
+        "user_medias": user_medias,
+        "current_instance": current_instance,
     }
     return render(request, "app/media_details.html", context)
 
 
 @require_POST
-def update_media_score(request, source, media_type, media_id, season_number=None):
+def update_media_score(request, media_type, instance_id):
     """Update the user's score for a media item."""
     media = BasicMedia.objects.get_media(
         request.user,
-        media_id,
         media_type,
-        source,
-        season_number=season_number,
+        instance_id,
     )
 
-    if not media:
-        msg = "Media not found for user"
-        raise ValueError(msg)
-
-    # Update the score
     score = float(request.POST.get("score"))
-
     media.score = score
     media.save()
     logger.info(
@@ -406,19 +385,32 @@ def track_modal(
     season_number=None,
 ):
     """Return the tracking form for a media item."""
-    media = BasicMedia.objects.get_media(
-        request.user,
-        media_id,
-        media_type,
-        source,
-        season_number=season_number,
-    )
+    instance_id = request.GET.get("instance_id")
+    if instance_id:
+        media = BasicMedia.objects.get_media(
+            request.user,
+            media_type,
+            instance_id,
+        )
+    elif request.GET.get("is_create"):
+        media = None
+    else:
+        # no specific instance, try to find the first one
+        user_medias = BasicMedia.objects.filter_media(
+            request.user,
+            media_id,
+            media_type,
+            source,
+            season_number=season_number,
+        )
+        media = user_medias.first()
 
     initial_data = {
         "media_id": media_id,
         "source": source,
         "media_type": media_type,
         "season_number": season_number,
+        "instance_id": instance_id,
     }
 
     if media_type == MediaTypes.GAME.value and media:
@@ -445,16 +437,15 @@ def media_save(request):
     source = request.POST["source"]
     media_type = request.POST["media_type"]
     season_number = request.POST.get("season_number")
+    instance_id = request.POST.get("instance_id")
 
-    instance = BasicMedia.objects.get_media(
-        request.user,
-        media_id,
-        media_type,
-        source,
-        season_number=season_number,
-    )
-
-    if not instance:
+    if instance_id:
+        instance = BasicMedia.objects.get_media(
+            request.user,
+            media_type,
+            instance_id,
+        )
+    else:
         metadata = services.get_media_metadata(
             media_type,
             media_id,
@@ -495,17 +486,13 @@ def media_save(request):
 @require_POST
 def media_delete(request):
     """Delete media data from the database."""
-    media_id = request.POST["media_id"]
-    source = request.POST["source"]
+    instance_id = request.POST["instance_id"]
     media_type = request.POST["media_type"]
-    season_number = request.POST.get("season_number")
 
     media = BasicMedia.objects.get_media(
         request.user,
-        media_id,
         media_type,
-        source,
-        season_number=season_number,
+        instance_id,
     )
     if media:
         media.delete()
@@ -517,7 +504,7 @@ def media_delete(request):
 
 
 @require_POST
-def episode_handler(request):
+def episode_save(request):
     """Handle the creation, deletion, and updating of episodes for a season."""
     media_id = request.POST["media_id"]
     season_number = int(request.POST["season_number"])
@@ -555,20 +542,17 @@ def episode_handler(request):
             item=item,
             user=request.user,
             score=None,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             notes="",
         )
 
         logger.info("%s did not exist, it was created successfully.", related_season)
 
-    if "unwatch" in request.POST:
-        related_season.unwatch(episode_number)
-    elif "watch" in request.POST:
-        end_date = timezone.make_aware(
-            timezone.datetime.strptime(request.POST["date"], "%Y-%m-%dT%H:%M"),
-            timezone=timezone.get_current_timezone(),
-        )
-        related_season.watch(episode_number, end_date)
+    end_date = timezone.make_aware(
+        timezone.datetime.strptime(request.POST["date"], "%Y-%m-%dT%H:%M"),
+        timezone=timezone.get_current_timezone(),
+    )
+    related_season.watch(episode_number, end_date)
 
     return helpers.redirect_back(request)
 
@@ -704,7 +688,7 @@ def history_modal(
     episode_number=None,
 ):
     """Return the history page for a media item."""
-    media = BasicMedia.objects.get_media(
+    user_medias = BasicMedia.objects.filter_media(
         request.user,
         media_id,
         media_type,
@@ -713,19 +697,25 @@ def history_modal(
         episode_number=episode_number,
     )
 
+    total_medias = user_medias.count()
     timeline_entries = []
-    if media and (history := media.history.all()):
-        timeline_entries = history_processor.process_history_entries(
-            history,
-            media_type,
-        )
-
+    for index, media in enumerate(user_medias, start=1):
+        if history := media.history.all():
+            media_entry_number = total_medias - index + 1
+            timeline_entries.extend(
+                history_processor.process_history_entries(
+                    history,
+                    media_type,
+                    media_entry_number,
+                ),
+            )
     return render(
         request,
         "app/components/fill_history.html",
         {
             "media_type": media_type,
             "timeline": timeline_entries,
+            "total_medias": total_medias,
             "return_url": request.GET["return_url"],
         },
     )
@@ -734,10 +724,6 @@ def history_modal(
 @require_http_methods(["DELETE"])
 def delete_history_record(request, media_type, history_id):
     """Delete a specific history record."""
-    # Episode history can be deleted only by removing watched count
-    if media_type == MediaTypes.EPISODE.value:
-        return HttpResponse("Invalid media type", status=400)
-
     try:
         historical_model = apps.get_model(
             app_label="app",

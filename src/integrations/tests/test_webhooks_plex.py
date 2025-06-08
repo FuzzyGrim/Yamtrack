@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from app.models import TV, Episode, Item, Media, MediaTypes, Movie, Season
+from app.models import TV, Episode, Item, MediaTypes, Movie, Season, Status
 
 
 class PlexWebhookTests(TestCase):
@@ -68,13 +68,13 @@ class PlexWebhookTests(TestCase):
         self.assertEqual(tv_item.title, "Friends")
 
         tv = TV.objects.get(item=tv_item, user=self.user)
-        self.assertEqual(tv.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
 
         season = Season.objects.get(
             item__media_id="1668",
             item__season_number=1,
         )
-        self.assertEqual(season.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(season.status, Status.IN_PROGRESS.value)
 
         episode = Episode.objects.get(
             item__media_id="1668",
@@ -124,7 +124,7 @@ class PlexWebhookTests(TestCase):
             item__media_id="603",
             user=self.user,
         )
-        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
+        self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
     def test_ignored_event_types(self):
@@ -233,9 +233,10 @@ class PlexWebhookTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        movie = Movie.objects.get(item__media_id="603")
-        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
-        self.assertEqual(movie.repeats, 1)
+        movie = Movie.objects.filter(item__media_id="603")
+        self.assertEqual(movie.count(), 2)
+        self.assertEqual(movie[0].status, Status.COMPLETED.value)
+        self.assertEqual(movie[1].status, Status.COMPLETED.value)
 
     def test_username_matching(self):
         """Test Plex username matching functionality."""

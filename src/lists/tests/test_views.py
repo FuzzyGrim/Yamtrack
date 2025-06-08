@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
 
-from app.models import TV, Anime, Item, Media, MediaTypes, Movie, Sources
+from app.models import TV, Anime, Item, MediaTypes, Movie, Sources, Status
 from lists.models import CustomList, CustomListItem
 
 
@@ -242,21 +242,21 @@ class ListDetailViewTests(TestCase):
         # Create Movie instance
         Movie.objects.create(
             item=self.movie_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             user=self.user,
         )
 
         # Create TV instance
         TV.objects.create(
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         # Create Anime instance
         Anime.objects.create(
             item=self.anime_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             user=self.user,
         )
 
@@ -299,19 +299,19 @@ class ListDetailViewTests(TestCase):
         # Create model instances
         Movie.objects.create(
             item=self.movie_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             user=self.user,
         )
 
         TV.objects.create(
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         Anime.objects.create(
             item=self.anime_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             user=self.user,
         )
 
@@ -343,19 +343,19 @@ class ListDetailViewTests(TestCase):
         # Create model instances
         Movie.objects.create(
             item=self.movie_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             user=self.user,
         )
 
         TV.objects.create(
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         Anime.objects.create(
             item=self.anime_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             user=self.user,
         )
 
@@ -382,19 +382,19 @@ class ListDetailViewTests(TestCase):
         # Create model instances
         Movie.objects.create(
             item=self.movie_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             user=self.user,
         )
 
         TV.objects.create(
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         Anime.objects.create(
             item=self.anime_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             user=self.user,
         )
 
@@ -428,19 +428,19 @@ class ListDetailViewTests(TestCase):
         # Create model instances
         Movie.objects.create(
             item=self.movie_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             user=self.user,
         )
 
         TV.objects.create(
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         Anime.objects.create(
             item=self.anime_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             user=self.user,
         )
 

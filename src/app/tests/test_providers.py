@@ -1,5 +1,4 @@
 import json
-from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -7,7 +6,7 @@ import requests
 from django.conf import settings
 from django.test import TestCase
 
-from app.models import Item, MediaTypes, Sources
+from app.models import Episode, Item, MediaTypes, Sources
 from app.providers import (
     comicvine,
     hardcover,
@@ -178,6 +177,36 @@ class Metadata(TestCase):
 
     def test_tmdb_process_episodes(self):
         """Test the process_episodes function for TMDB episodes."""
+        # Create test data
+        Item.objects.create(
+            media_id="5",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Process Episodes Test",
+            image="http://example.com/process.jpg",
+        )
+
+        Item.objects.create(
+            media_id="5",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Process Episodes Test",
+            image="http://example.com/process_s1.jpg",
+            season_number=1,
+        )
+
+        # Create episodes
+        for i in range(1, 4):
+            Item.objects.create(
+                media_id="5",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.EPISODE.value,
+                title=f"Process Episode {i}",
+                image=f"http://example.com/process_s1e{i}.jpg",
+                season_number=1,
+                episode_number=i,
+            )
+
         # Create a sample season metadata structure
         season_metadata = {
             "media_id": "1396",  # Breaking Bad
@@ -206,19 +235,25 @@ class Metadata(TestCase):
                 },
             ],
         }
+        episode_item_1 = Item.objects.get(
+            media_id="5",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            season_number=1,
+            episode_number=1,
+        )
+        episode_1 = Episode(item=episode_item_1)
 
-        episodes_in_db = [
-            {
-                "item__episode_number": 1,
-                "end_date": date(2025, 1, 1),
-                "repeats": 2,
-            },
-            {
-                "item__episode_number": 2,
-                "end_date": date(2025, 1, 2),
-                "repeats": 0,
-            },
-        ]
+        episode_item_2 = Item.objects.get(
+            media_id="5",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            season_number=1,
+            episode_number=2,
+        )
+        episode_2 = Episode(item=episode_item_2)
+
+        episodes_in_db = [episode_1, episode_2]
 
         # Call process_episodes
         result = tmdb.process_episodes(season_metadata, episodes_in_db)
@@ -226,29 +261,23 @@ class Metadata(TestCase):
         # Verify results
         self.assertEqual(len(result), 3)
 
-        # Check first episode (watched with repeats)
+        # Check first episode
         self.assertEqual(result[0]["episode_number"], 1)
         self.assertEqual(result[0]["title"], "Pilot")
         self.assertEqual(result[0]["air_date"], "2008-01-20")
-        self.assertTrue(result[0]["watched"])
-        self.assertEqual(result[0]["end_date"], date(2025, 1, 1))
-        self.assertEqual(result[0]["repeats"], 2)
+        self.assertTrue(result[0]["history"], [episode_1])
 
-        # Check second episode (watched without repeats)
+        # Check second episode
         self.assertEqual(result[1]["episode_number"], 2)
         self.assertEqual(result[1]["title"], "Cat's in the Bag...")
         self.assertEqual(result[1]["air_date"], "2008-01-27")
-        self.assertTrue(result[1]["watched"])
-        self.assertEqual(result[1]["end_date"], date(2025, 1, 2))
-        self.assertEqual(result[1]["repeats"], 0)
+        self.assertTrue(result[1]["history"], [episode_2])
 
         # Check third episode (not watched)
         self.assertEqual(result[2]["episode_number"], 3)
         self.assertEqual(result[2]["title"], "...And the Bag's in the River")
         self.assertEqual(result[2]["air_date"], "2008-02-10")
-        self.assertFalse(result[2]["watched"])
-        self.assertIsNone(result[2]["end_date"])
-        self.assertIsNone(result[2]["repeats"])
+        self.assertFalse(result[2]["history"], [])
 
     @patch("app.providers.tmdb.tv_with_seasons")
     def test_tmdb_episode(self, mock_tv_with_seasons):
@@ -605,18 +634,25 @@ class Metadata(TestCase):
             ],
         }
 
-        episodes_in_db = [
-            {
-                "item__episode_number": 1,
-                "end_date": date(2025, 1, 2),
-                "repeats": 0,
-            },
-            {
-                "item__episode_number": 2,
-                "end_date": date(2025, 1, 9),
-                "repeats": 2,
-            },
-        ]
+        ep_item1 = Item.objects.get(
+            media_id="5",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.EPISODE.value,
+            season_number=1,
+            episode_number=1,
+        )
+        ep_item2 = Item.objects.get(
+            media_id="5",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.EPISODE.value,
+            season_number=1,
+            episode_number=2,
+        )
+
+        episode_1 = Episode(item=ep_item1)
+        episode_2 = Episode(item=ep_item2)
+
+        episodes_in_db = [episode_1, episode_2]
 
         # Call process_episodes
         result = manual.process_episodes(season_metadata, episodes_in_db)
@@ -628,25 +664,19 @@ class Metadata(TestCase):
         self.assertEqual(result[0]["episode_number"], 1)
         self.assertEqual(result[0]["title"], "Process Episode 1")
         self.assertEqual(result[0]["air_date"], "2025-01-01")
-        self.assertTrue(result[0]["watched"])
-        self.assertEqual(result[0]["end_date"], date(2025, 1, 2))
-        self.assertEqual(result[0]["repeats"], 0)
+        self.assertTrue(result[0]["history"], [episode_1])
 
         # Check second episode (watched with repeats)
         self.assertEqual(result[1]["episode_number"], 2)
         self.assertEqual(result[1]["title"], "Process Episode 2")
         self.assertEqual(result[1]["air_date"], "2025-01-08")
-        self.assertTrue(result[1]["watched"])
-        self.assertEqual(result[1]["end_date"], date(2025, 1, 9))
-        self.assertEqual(result[1]["repeats"], 2)
+        self.assertTrue(result[0]["history"], [episode_2])
 
         # Check third episode (not watched)
         self.assertEqual(result[2]["episode_number"], 3)
         self.assertEqual(result[2]["title"], "Process Episode 3")
         self.assertEqual(result[2]["air_date"], "2025-01-15")
-        self.assertFalse(result[2]["watched"])
-        self.assertIsNone(result[2]["end_date"])
-        self.assertEqual(result[2]["repeats"], 0)
+        self.assertFalse(result[2]["history"], [])
 
     def test_hardcover_get_tags(self):
         """Test the get_tags function from Hardcover provider."""

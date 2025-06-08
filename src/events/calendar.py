@@ -394,7 +394,7 @@ def get_seasons_to_process(tv_item):
         logger.warning("No valid seasons found for TV show: %s", tv_item)
         return []
 
-    current_season = tv_metadata.get("next_episode_season")
+    next_episode_season = tv_metadata.get("next_episode_season")
 
     # Get existing events for this TV show's seasons
     existing_season_events = Event.objects.filter(
@@ -412,7 +412,7 @@ def get_seasons_to_process(tv_item):
         if season_num not in seasons_with_events:
             # No events for this season, process it
             seasons_to_process.append(season_num)
-        elif current_season and season_num >= current_season:
+        elif next_episode_season and season_num >= next_episode_season:
             # Current or future season, process it
             seasons_to_process.append(season_num)
 
@@ -421,10 +421,10 @@ def get_seasons_to_process(tv_item):
         return []
 
     logger.info(
-        "%s - Processing %d seasons (current season: %s)",
+        "%s - Processing %d seasons (Next episode season: %s)",
         tv_item,
         len(seasons_to_process),
-        current_season,
+        next_episode_season,
     )
 
     return seasons_to_process

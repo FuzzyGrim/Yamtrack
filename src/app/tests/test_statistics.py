@@ -11,11 +11,11 @@ from app.models import (
     Anime,
     Episode,
     Item,
-    Media,
     MediaTypes,
     Movie,
     Season,
     Sources,
+    Status,
 )
 
 User = get_user_model()
@@ -126,7 +126,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.tv = TV.objects.create(
             user=self.user,
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=8.5,
         )
 
@@ -134,7 +134,7 @@ class StatisticsDateFilteringTests(TestCase):
             user=self.user,
             item=self.season_item,
             related_tv=self.tv,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=8.0,
         )
 
@@ -156,7 +156,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie1 = Movie.objects.create(
             user=self.user,
             item=self.movie1_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             score=7.5,
             start_date=datetime.datetime(2025, 2, 10, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 2, 10, 0, 0, tzinfo=datetime.UTC),
@@ -166,7 +166,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie2 = Movie.objects.create(
             user=self.user,
             item=self.movie2_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=8.0,
             start_date=datetime.datetime(2025, 2, 15, 0, 0, tzinfo=datetime.UTC),
             end_date=None,
@@ -176,7 +176,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie3 = Movie.objects.create(
             user=self.user,
             item=self.movie3_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             score=6.5,
             start_date=None,
             end_date=datetime.datetime(2025, 2, 20, 0, 0, tzinfo=datetime.UTC),
@@ -186,7 +186,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie4 = Movie.objects.create(
             user=self.user,
             item=self.movie4_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             score=None,
             start_date=None,
             end_date=None,
@@ -196,7 +196,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie5 = Movie.objects.create(
             user=self.user,
             item=self.movie5_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             score=9.0,
             start_date=datetime.datetime(2025, 1, 10, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
@@ -206,7 +206,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie6 = Movie.objects.create(
             user=self.user,
             item=self.movie6_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             score=None,
             start_date=datetime.datetime(2025, 3, 10, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 3, 15, 0, 0, tzinfo=datetime.UTC),
@@ -216,7 +216,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie7 = Movie.objects.create(
             user=self.user,
             item=self.movie7_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             score=7.0,
             start_date=datetime.datetime(2025, 1, 25, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 2, 5, 0, 0, tzinfo=datetime.UTC),
@@ -226,7 +226,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie8 = Movie.objects.create(
             user=self.user,
             item=self.movie8_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             score=8.5,
             start_date=datetime.datetime(2025, 2, 25, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 3, 5, 0, 0, tzinfo=datetime.UTC),
@@ -336,7 +336,7 @@ class StatisticsDateFilteringTests(TestCase):
         Movie.objects.create(
             user=self.user,
             item=outside_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             start_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
             end_date=None,
         )
@@ -380,7 +380,7 @@ class StatisticsDateFilteringTests(TestCase):
         Movie.objects.create(
             user=self.user,
             item=outside_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             start_date=None,
             end_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
         )
@@ -453,7 +453,7 @@ class StatisticsDateFilteringTests(TestCase):
         Movie.objects.create(
             user=self.user,
             item=spanning_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             start_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 3, 15, 0, 0, tzinfo=datetime.UTC),
         )
@@ -533,7 +533,7 @@ class StatisticsTests(TestCase):
         self.tv = TV.objects.create(
             user=self.user,
             item=self.tv_item,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=8.5,
         )
 
@@ -541,7 +541,7 @@ class StatisticsTests(TestCase):
             user=self.user,
             item=self.season_item,
             related_tv=self.tv,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=8.0,
         )
 
@@ -562,7 +562,7 @@ class StatisticsTests(TestCase):
         self.movie = Movie.objects.create(
             user=self.user,
             item=self.movie_item,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             score=7.5,
             start_date=datetime.datetime(2025, 2, 1, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 2, 1, 0, 0, tzinfo=datetime.UTC),
@@ -572,7 +572,7 @@ class StatisticsTests(TestCase):
         self.anime = Anime.objects.create(
             user=self.user,
             item=self.anime_item,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             score=None,
             start_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 3, 31, 0, 0, tzinfo=datetime.UTC),
@@ -625,7 +625,7 @@ class StatisticsTests(TestCase):
         self.assertEqual(len(status_distribution["labels"]), 3)  # 3 media types
         self.assertEqual(
             len(status_distribution["datasets"]),
-            len(Media.Status.values),
+            len(Status.values),
         )  # All statuses
 
         # Check total completed count
@@ -638,17 +638,17 @@ class StatisticsTests(TestCase):
         completed_dataset = next(
             d
             for d in status_distribution["datasets"]
-            if d["label"] == Media.Status.COMPLETED.value
+            if d["label"] == Status.COMPLETED.value
         )
         in_progress_dataset = next(
             d
             for d in status_distribution["datasets"]
-            if d["label"] == Media.Status.IN_PROGRESS.value
+            if d["label"] == Status.IN_PROGRESS.value
         )
         planning_dataset = next(
             d
             for d in status_distribution["datasets"]
-            if d["label"] == Media.Status.PLANNING.value
+            if d["label"] == Status.PLANNING.value
         )
 
         self.assertEqual(completed_dataset["total"], 1)  # Anime
@@ -662,25 +662,25 @@ class StatisticsTests(TestCase):
             "labels": ["TV", "Movie", "Anime"],
             "datasets": [
                 {
-                    "label": Media.Status.COMPLETED.value,
+                    "label": Status.COMPLETED.value,
                     "data": [1, 0, 0],
                     "background_color": "#10b981",
                     "total": 1,
                 },
                 {
-                    "label": Media.Status.IN_PROGRESS.value,
+                    "label": Status.IN_PROGRESS.value,
                     "data": [0, 1, 0],
                     "background_color": "#6366f1",
                     "total": 1,
                 },
                 {
-                    "label": Media.Status.PLANNING.value,
+                    "label": Status.PLANNING.value,
                     "data": [0, 0, 1],
                     "background_color": "#3b82f6",
                     "total": 1,
                 },
                 {
-                    "label": Media.Status.PAUSED.value,
+                    "label": Status.PAUSED.value,
                     "data": [0, 0, 0],
                     "background_color": "#f97316",
                     "total": 0,
@@ -704,7 +704,7 @@ class StatisticsTests(TestCase):
         self.assertEqual(len(chart_data["datasets"][0]["backgroundColor"]), 3)
 
         # PAUSED status should be excluded (total = 0)
-        self.assertNotIn(Media.Status.PAUSED.value, chart_data["labels"])
+        self.assertNotIn(Status.PAUSED.value, chart_data["labels"])
 
     def test_get_score_distribution(self):
         """Test the get_score_distribution function."""
@@ -751,7 +751,7 @@ class StatisticsTests(TestCase):
     def test_get_status_color(self):
         """Test the get_status_color function."""
         # Test all status colors
-        for status in Media.Status.values:
+        for status in Status.values:
             color = statistics.get_status_color(status)
             self.assertIsNotNone(color)
             self.assertTrue(color.startswith("#"))
@@ -869,8 +869,10 @@ class StatisticsTests(TestCase):
 
         # Create mock historical data for first model
         mock_historical_model1 = MagicMock()
-        filter_chain1 = mock_historical_model1.objects.filter.return_value
-        annotate_chain1 = filter_chain1.annotate.return_value
+        user_chain1 = mock_historical_model1.objects.filter.return_value
+        start_date_chain1 = user_chain1.filter.return_value
+        end_date_chain1 = start_date_chain1.filter.return_value
+        annotate_chain1 = end_date_chain1.annotate.return_value
         values_chain1 = annotate_chain1.values.return_value
         values_chain1.annotate.return_value = [
             {"date": datetime.date(2025, 1, 5), "count": 3},
@@ -879,8 +881,10 @@ class StatisticsTests(TestCase):
 
         # Create mock historical data for second model
         mock_historical_model2 = MagicMock()
-        filter_chain2 = mock_historical_model2.objects.filter.return_value
-        annotate_chain2 = filter_chain2.annotate.return_value
+        user_chain2 = mock_historical_model2.objects.filter.return_value
+        start_date_chain2 = user_chain2.filter.return_value
+        end_date_chain2 = start_date_chain2.filter.return_value
+        annotate_chain2 = end_date_chain2.annotate.return_value
         values_chain2 = annotate_chain2.values.return_value
         values_chain2.annotate.return_value = [
             {"date": datetime.date(2025, 2, 15), "count": 1},
@@ -921,17 +925,35 @@ class StatisticsTests(TestCase):
 
         # Verify the filter calls were made correctly
         for model_mock in [mock_historical_model1, mock_historical_model2]:
-            filter_kwargs = model_mock.objects.filter.call_args[1]
-            self.assertEqual(filter_kwargs["history_user_id"], self.user)
-            self.assertEqual(filter_kwargs["history_date__date__gte"], start_date)
-            self.assertEqual(filter_kwargs["history_date__date__lte"], end_date)
+            # Check first filter call (history_user_id)
+            first_filter_kwargs = model_mock.objects.filter.call_args[1]
+            self.assertEqual(first_filter_kwargs["history_user_id"], self.user)
+
+            # Check second filter call (start_date)
+            user_chain = model_mock.objects.filter.return_value
+            start_date_filter_kwargs = user_chain.filter.call_args[1]
+            self.assertEqual(
+                start_date_filter_kwargs["history_date__date__gte"],
+                start_date,
+            )
+
+            # Check third filter call (end_date)
+            start_date_chain = user_chain.filter.return_value
+            end_date_filter_kwargs = start_date_chain.filter.call_args[1]
+            self.assertEqual(
+                end_date_filter_kwargs["history_date__date__lte"],
+                end_date,
+            )
 
             # Verify the annotation and values calls
-            model_mock.objects.filter.return_value.annotate.assert_called_once()
-            filter_annotate = model_mock.objects.filter.return_value.annotate
-            filter_annotate.return_value.values.assert_called_once_with("date")
-            values_return = filter_annotate.return_value.values.return_value
-            values_return.annotate.assert_called_once_with(count=Count("id"))
+            end_date_chain = start_date_chain.filter.return_value
+            end_date_chain.annotate.assert_called_once()
+
+            annotate_chain = end_date_chain.annotate.return_value
+            annotate_chain.values.assert_called_once_with("date")
+
+            values_chain = annotate_chain.values.return_value
+            values_chain.annotate.assert_called_once_with(count=Count("id"))
 
     def test_calculate_day_of_week_stats(self):
         """Test the calculate_day_of_week_stats function."""

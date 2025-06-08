@@ -15,8 +15,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 import users
-from integrations import exports, helpers, tasks
-from integrations.imports import simkl
+from integrations import exports, tasks
+from integrations.imports import helpers, simkl
 from integrations.webhooks import emby, jellyfin, plex
 
 logger = logging.getLogger(__name__)

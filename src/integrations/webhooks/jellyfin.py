@@ -5,7 +5,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 import app
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +78,6 @@ def process_payload(payload, user):
 def handle_anime(media_id, episode_number, payload, user):
     """Add an anime episode as watched."""
     anime_metadata = app.providers.mal.anime(media_id)
-    episode_played = payload["Item"]["UserData"]["Played"]
-
     anime_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
         source=Sources.MAL.value,
@@ -90,39 +88,33 @@ def handle_anime(media_id, episode_number, payload, user):
         },
     )
 
+    anime_instances = app.models.Anime.objects.filter(
+        item=anime_item,
+        user=user,
+    )
+
+    current_instance = anime_instances.first()
+
+    episode_played = payload["Item"]["UserData"]["Played"]
     if not episode_played:
         episode_number = max(0, episode_number - 1)
 
-    try:
-        anime_instance = app.models.Anime.objects.get(
-            item=anime_item,
-            user=user,
-        )
-        anime_instance.progress = episode_number
-
-        if (
-            anime_instance.status == Media.Status.COMPLETED.value and episode_played
-        ) or anime_instance.status == Media.Status.REPEATING.value:
-            anime_instance.status = Media.Status.REPEATING.value
-        else:
-            anime_instance.status = Media.Status.IN_PROGRESS.value
-        anime_instance.save()
-    except app.models.Anime.DoesNotExist:
+    if current_instance and current_instance.status != Status.COMPLETED.value:
+        current_instance.progress = episode_number
+        current_instance.status = Status.IN_PROGRESS.value
+        current_instance.save()
+    else:
         app.models.Anime.objects.create(
             item=anime_item,
             user=user,
             progress=episode_number,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
 
 def handle_movie(media_id, payload, user):
     """Handle movie object from payload."""
     movie_metadata = app.providers.tmdb.movie(media_id)
-    movie_played = payload["Item"]["UserData"]["Played"]
-    progress = 1 if movie_played else 0
-    now = timezone.now().replace(second=0, microsecond=0)
-
     movie_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
         source=Sources.TMDB.value,
@@ -133,47 +125,36 @@ def handle_movie(media_id, payload, user):
         },
     )
 
-    movie_instance, created = app.models.Movie.objects.get_or_create(
+    movie_instances = app.models.Movie.objects.filter(
         item=movie_item,
         user=user,
-        defaults={
-            "progress": progress,
-            "status": Media.Status.COMPLETED.value
-            if movie_played
-            else Media.Status.IN_PROGRESS.value,
-            "start_date": now if not movie_played else None,
-            "end_date": now if movie_played else None,
-        },
     )
 
-    if not created:
-        movie_instance.progress = progress
+    current_instance = movie_instances.first()
+
+    movie_played = payload["Item"]["UserData"]["Played"]
+    progress = 1 if movie_played else 0
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    if current_instance and current_instance.status != Status.COMPLETED.value:
+        current_instance.progress = progress
 
         if movie_played:
-            movie_instance.end_date = now
-
-            if movie_instance.status == Media.Status.COMPLETED.value:
-                movie_instance.repeats += 1
-            elif movie_instance.status == Media.Status.REPEATING.value:
-                movie_instance.repeats += 1
-                movie_instance.status = Media.Status.COMPLETED.value
-            else:
-                movie_instance.status = Media.Status.COMPLETED.value
-
-        elif movie_instance.status == Media.Status.COMPLETED.value:
-            movie_instance.status = Media.Status.REPEATING.value
-            movie_instance.start_date = now
-            movie_instance.end_date = None
-
-        elif movie_instance.status not in (
-            Media.Status.REPEATING.value,
-            Media.Status.IN_PROGRESS.value,
-        ):
-            movie_instance.status = Media.Status.IN_PROGRESS.value
-            if not movie_instance.start_date:
-                movie_instance.start_date = now
-
-        movie_instance.save()
+            current_instance.end_date = now
+            current_instance.status = Status.COMPLETED.value
+        elif current_instance.status != Status.IN_PROGRESS.value:
+            current_instance.start_date = now
+            current_instance.status = Status.IN_PROGRESS.value
+        current_instance.save()
+    else:
+        app.models.Movie.objects.create(
+            item=movie_item,
+            user=user,
+            progress=progress,
+            status=Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value,
+            start_date=now if not movie_played else None,
+            end_date=now if movie_played else None,
+        )
 
 
 def handle_tv_episode(media_id, payload, user):
@@ -201,16 +182,15 @@ def handle_tv_episode(media_id, payload, user):
         item=tv_item,
         user=user,
         defaults={
-            "status": Media.Status.IN_PROGRESS.value,
+            "status": Status.IN_PROGRESS.value,
         },
     )
 
     if not created and tv_instance.status not in (
-        Media.Status.COMPLETED.value,
-        Media.Status.REPEATING.value,
-        Media.Status.IN_PROGRESS.value,
+        Status.COMPLETED.value,
+        Status.IN_PROGRESS.value,
     ):
-        tv_instance.status = Media.Status.IN_PROGRESS.value
+        tv_instance.status = Status.IN_PROGRESS.value
         tv_instance.save()
 
     season_item, _ = app.models.Item.objects.get_or_create(
@@ -229,16 +209,15 @@ def handle_tv_episode(media_id, payload, user):
         user=user,
         related_tv=tv_instance,
         defaults={
-            "status": Media.Status.IN_PROGRESS.value,
+            "status": Status.IN_PROGRESS.value,
         },
     )
 
     if not created and season_instance.status not in (
-        Media.Status.COMPLETED.value,
-        Media.Status.REPEATING.value,
-        Media.Status.IN_PROGRESS.value,
+        Status.COMPLETED.value,
+        Status.IN_PROGRESS.value,
     ):
-        season_instance.status = Media.Status.IN_PROGRESS.value
+        season_instance.status = Status.IN_PROGRESS.value
         season_instance.save()
 
     episode_item, _ = app.models.Item.objects.get_or_create(
@@ -255,18 +234,11 @@ def handle_tv_episode(media_id, payload, user):
 
     if payload["Item"]["UserData"]["Played"]:
         now = timezone.now().replace(second=0, microsecond=0)
-        episode, created = app.models.Episode.objects.get_or_create(
+        app.models.Episode.objects.create(
             item=episode_item,
             related_season=season_instance,
-            defaults={
-                "end_date": now,
-            },
+            end_date=now,
         )
-
-        if not created:
-            episode.end_date = now
-            episode.repeats += 1
-            episode.save()
 
     elif payload["Event"] == "MarkUnplayed":
         app.models.Episode.objects.filter(

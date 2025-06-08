@@ -84,12 +84,12 @@
     
         // Episode fields
         else if (this.mediaType === 'episode') {
-          return ['parentSeason', 'image', 'episodeNumber', 'endDate', 'repeats'].includes(field);
+          return ['parentSeason', 'image', 'episodeNumber', 'endDate'].includes(field);
         }
     
         // Movie, Anime, Manga, Game, Book fields
         else {
-          return ['title', 'image', 'score', 'progress', 'status', 'repeats', 'startDate', 'endDate', 'notes'].includes(field);
+          return ['title', 'image', 'score', 'progress', 'status', 'startDate', 'endDate', 'notes'].includes(field);
         }
       },
     
@@ -453,18 +453,7 @@
           <div class="relative">
             <select class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                     name="status">
-              <option value="{{ Status.COMPLETED.value }}">Completed
-              </option>
-              <option value="{{ Status.IN_PROGRESS.value }}">In Progress
-              </option>
-              <option value="{{ Status.REPEATING.value }}">Repeating
-              </option>
-              <option value="{{ Status.PLANNING.value }}">Planning
-              </option>
-              <option value="{{ Status.COMPLETED.value }}">Paused
-              </option>
-              <option value="{{ Status.DROPPED.value }}">Dropped
-              </option>
+              {% for status in Status.values %}<option value="{{ status }}">{{ status }}</option>{% endfor %}
             </select>
             <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               <svg xmlns="http://www.w3.org/2000/svg"
@@ -478,53 +467,6 @@
                    stroke-linejoin="round">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- Number of Repeats field (Episode, Movie, Anime, Manga, Game, Book) -->
-        <div x-show="showField('repeats')">
-          <label class="block text-sm font-medium mb-2 text-gray-300">Number of Repeats</label>
-          <div class="relative">
-            <input min="0"
-                   max="999"
-                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
-                   name="repeats"
-                   type="number"
-                   value="0">
-            <div class="absolute inset-y-0 right-0 flex flex-col border-l border-gray-600">
-              <button type="button"
-                      onclick="this.parentElement.previousElementSibling.stepUp()"
-                      class="flex-1 px-2 hover:bg-gray-700 transition-colors rounded-tr-md border-t border-r border-gray-600 group">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="14"
-                     height="14"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="group-hover:text-white">
-                  <path d="m18 15-6-6-6 6"></path>
-                </svg>
-              </button>
-              <button type="button"
-                      onclick="this.parentElement.previousElementSibling.stepDown()"
-                      class="flex-1 px-2 hover:bg-gray-700 transition-colors rounded-br-md border-b border-r border-gray-600 group">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="14"
-                     height="14"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="group-hover:text-white">
-                  <path d="m6 9 6 6 6-6"></path>
-                </svg>
-              </button>
             </div>
           </div>
         </div>
