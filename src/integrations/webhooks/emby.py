@@ -235,7 +235,6 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
         )
     elif not created and tv_instance.status not in (
         Status.COMPLETED.value,
-        Status.REPEATING.value,
         Status.IN_PROGRESS.value,
     ):
         tv_instance.status = Status.IN_PROGRESS.value
@@ -276,7 +275,6 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
         )
     elif not created and season_instance.status not in (
         Status.COMPLETED.value,
-        Status.REPEATING.value,
         Status.IN_PROGRESS.value,
     ):
         season_instance.status = Status.IN_PROGRESS.value
