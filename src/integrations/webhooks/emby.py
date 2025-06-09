@@ -31,7 +31,7 @@ def process_payload(payload, user):
 
     media_type = _get_media_type(payload)
     if not media_type:
-        logger.info("Ignoring Emby webhook type: %s", payload["Item"].get("Type"))
+        logger.info("Ignoring Emby media type: %s", payload["Item"].get("Type"))
         return
 
     if media_type == MediaTypes.TV.value:

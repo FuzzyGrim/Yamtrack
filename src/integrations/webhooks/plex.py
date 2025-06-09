@@ -28,7 +28,7 @@ def process_payload(payload, user):
 
     media_type = _get_media_type(payload)
     if not media_type:
-        logger.info("Ignoring Plex webhook type: %s", payload["Metadata"].get("type"))
+        logger.info("Ignoring Plex media type: %s", payload["Metadata"].get("type"))
         return
 
     if not any(ids.values()):

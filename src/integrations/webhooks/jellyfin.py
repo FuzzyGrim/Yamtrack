@@ -30,7 +30,7 @@ def process_payload(payload, user):
         media_type = MediaTypes.MOVIE.value
         tmdb_id = payload["Item"]["ProviderIds"].get("Tmdb")
     else:
-        logger.info("Ignoring Jellyfin webhook event: %s", payload["Item"]["Type"])
+        logger.info("Ignoring Jellyfin media event: %s", payload["Item"]["Type"])
         return
 
     if tmdb_id is None:

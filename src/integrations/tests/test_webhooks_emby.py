@@ -152,6 +152,41 @@ class EmbyWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Movie.objects.count(), 0)
 
+    def test_ignored_media_types(self):
+        """Test webhook ignores irrelevant event types."""
+        payload = {
+            "Event": "playback.stop",
+            "Item": {
+                "Type": "SomethingElse",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "ProviderIds": {
+                    "Imdb": "tt0133093",
+                    "Tmdb": "603",
+                    "Tvdb": "169",
+                    "Official Website": "http://www.warnerbros.com/matrix",
+                    "Wikidata": "Q83495",
+                    "Wikipedia": "The_Matrix",
+                },
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        data = {
+            "data": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Movie.objects.count(), 0)
+
     def test_missing_tmdb_id(self):
         """Test webhook handles missing TMDB ID gracefully."""
         payload = {
