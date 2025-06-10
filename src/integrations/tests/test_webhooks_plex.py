@@ -5,6 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from app.models import TV, Episode, Item, MediaTypes, Movie, Season, Status
+from integrations.webhooks.plex import _extract_external_ids
 
 
 class PlexWebhookTests(TestCase):
@@ -247,7 +248,7 @@ class PlexWebhookTests(TestCase):
             ("testuser", " testuser ", True),  # Whitespace handling
             ("testuser", "testuser2", False),  # Different username
             ("testuser1,testuser2", "testuser1", True),  # First in list
-            ("testuser1, testuser2", "testuser1", True), # comma and space
+            ("testuser1, testuser2", "testuser1", True),  # comma and space
             ("testuser1,testuser2", "testuser3", False),  # Not in list
         ]
 
@@ -284,3 +285,45 @@ class PlexWebhookTests(TestCase):
                 else:
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(Movie.objects.count(), 0)
+
+    def test_extract_external_ids(self):
+        """Test extraction of external IDs from Plex webhook payload."""
+        # Setup test payload
+        payload = {
+            "Metadata": {
+                "Guid": [
+                    {"id": "tmdb://12345"},
+                    {"id": "imdb://tt67890"},
+                    {"id": "tvdb://98765"},
+                ],
+            },
+        }
+
+        # Execute
+        result = _extract_external_ids(payload)
+
+        # Assert
+        expected = {
+            "tmdb_id": "12345",
+            "imdb_id": "tt67890",
+            "tvdb_id": "98765",
+        }
+
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)
+
+    def test_extract_external_ids_missing_data(self):
+        """Test handling of missing or empty data."""
+        payload = {"Metadata": {"Guid": []}}
+
+        result = _extract_external_ids(payload)
+
+        expected = {
+            "tmdb_id": None,
+            "imdb_id": None,
+            "tvdb_id": None,
+        }
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)

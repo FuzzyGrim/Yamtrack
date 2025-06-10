@@ -5,6 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from app.models import TV, Episode, Item, MediaTypes, Movie, Season, Status
+from integrations.webhooks.emby import _extract_external_ids
 
 
 class EmbyWebhookTests(TestCase):
@@ -129,9 +130,6 @@ class EmbyWebhookTests(TestCase):
                     "Imdb": "tt0133093",
                     "Tmdb": "603",
                     "Tvdb": "169",
-                    "Official Website": "http://www.warnerbros.com/matrix",
-                    "Wikidata": "Q83495",
-                    "Wikipedia": "The_Matrix",
                 },
             },
             "PlaybackInfo": {
@@ -259,3 +257,82 @@ class EmbyWebhookTests(TestCase):
         self.assertEqual(movie.count(), 2)
         self.assertEqual(movie[0].status, Status.COMPLETED.value)
         self.assertEqual(movie[1].status, Status.COMPLETED.value)
+
+    def test_extract_external_ids(self):
+        """Test extracting external IDs from provider payload."""
+        payload = {
+            "Event": "playback.something_else",
+            "Item": {
+                "Type": "Movie",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "ProviderIds": {
+                    "Tmdb": "603",
+                    "Tvdb": "169",
+                },
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        expected = {
+            "tmdb_id": "603",
+            "imdb_id": None,
+            "tvdb_id": "169",
+        }
+
+        result = _extract_external_ids(payload)
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)
+
+    def test_extract_external_ids_empty(self):
+        """Test handling empty provider payload."""
+        payload = {
+            "Event": "playback.something_else",
+            "Item": {
+                "Type": "Movie",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "ProviderIds": {},
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        expected = {
+            "tmdb_id": None,
+            "imdb_id": None,
+            "tvdb_id": None,
+        }
+
+        result = _extract_external_ids(payload)
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)
+
+    def test_extract_external_ids_missing(self):
+        """Test handling missing ProviderIds."""
+        payload = {
+            "Event": "playback.something_else",
+            "Item": {
+                "Type": "Movie",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+        expected = {
+            "tmdb_id": None,
+            "imdb_id": None,
+            "tvdb_id": None,
+        }
+
+        result = _extract_external_ids(payload)
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)
