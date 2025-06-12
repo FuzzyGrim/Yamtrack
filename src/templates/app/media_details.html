@@ -637,12 +637,27 @@
         {% for name, related_items in media.related.items %}
           {% if related_items %}
             <section class="{% if not forloop.last %}mb-8{% endif %}">
-              <h2 class="text-xl font-bold mb-4">{{ name|no_underscore|title }}</h2>
-              <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
-                {% for item in related_items %}
-                  {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
-                {% endfor %}
-              </div>
+              {# Conditionally apply <details> for 'Recommendations' #}
+              {% if name == "recommendations" %}
+                <details> {# NO 'open' attribute, so it's collapsed by default #}
+                  <summary class="text-xl font-bold mb-4 cursor-pointer py-2 px-2 rounded hover:bg-gray-100 active:bg-gray-200 transition">
+                      {{ name|no_underscore|title }}
+                  </summary>
+                  <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 mt-4"> {# Added mt-4 for spacing #}
+                    {% for item in related_items %}
+                      {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
+                    {% endfor %}
+                  </div>
+                </details>
+              {% else %}
+                {# Other related sections (e.g., Seasons) remain open by default #}
+                <h2 class="text-xl font-bold mb-4">{{ name|no_underscore|title }}</h2>
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+                  {% for item in related_items %}
+                    {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
+                  {% endfor %}
+                </div>
+              {% endif %}
             </section>
           {% endif %}
         {% endfor %}
