@@ -136,6 +136,9 @@ if config("DB_HOST", default=None):
             "USER": config("DB_USER"),
             "PASSWORD": config("DB_PASSWORD"),
             "PORT": config("DB_PORT"),
+            "OPTIONS": {
+                "sslmode": "disable",
+            },
         },
     }
 else:
@@ -246,7 +249,7 @@ AUTH_USER_MODEL = "users.User"
 # Yamtrack settings
 
 # For CSV imports
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 
 VERSION = config("VERSION", default="dev")
 
