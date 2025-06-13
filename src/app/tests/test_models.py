@@ -15,12 +15,12 @@ from app.models import (
     Game,
     Item,
     Manga,
-    Media,
     MediaManager,
     MediaTypes,
     Movie,
     Season,
     Sources,
+    Status,
 )
 from events.models import Event
 from users.models import MediaStatusChoices
@@ -132,21 +132,21 @@ class MediaManagerTests(TestCase):
         self.tv = TV.objects.create(
             item=self.tv_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=8,
         )
 
         self.movie = Movie.objects.create(
             item=self.movie_item,
             user=self.user,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             score=9,
         )
 
         self.anime = Anime.objects.create(
             item=self.anime_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=10,
             progress=13,
         )
@@ -154,7 +154,7 @@ class MediaManagerTests(TestCase):
         self.game = Game.objects.create(
             item=self.game_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=7,
             progress=120,
         )
@@ -162,14 +162,14 @@ class MediaManagerTests(TestCase):
         self.book = Book.objects.create(
             item=self.book_item,
             user=self.user,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             score=0,
         )
 
         self.manga = Manga.objects.create(
             item=self.manga_item,
             user=self.user,
-            status=Media.Status.REPEATING.value,
+            status=Status.IN_PROGRESS.value,
             score=10,
             progress=100,
         )
@@ -188,7 +188,7 @@ class MediaManagerTests(TestCase):
             item=self.season1_item,
             related_tv=self.tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=8,
         )
 
@@ -239,7 +239,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[Media.Status.IN_PROGRESS.value],
+            status_filter=Status.IN_PROGRESS.value,
             sort_filter="score",
         )
 
@@ -250,7 +250,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
         )
 
@@ -264,7 +264,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
             search="Cowboy",
         )
@@ -275,7 +275,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
             search="Naruto",
         )
@@ -330,7 +330,7 @@ class MediaManagerTests(TestCase):
         tv_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.TV.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
         )
 
@@ -354,7 +354,7 @@ class MediaManagerTests(TestCase):
         season_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.SEASON.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
         )
 
@@ -388,7 +388,7 @@ class MediaManagerTests(TestCase):
             item=season2_item,
             related_tv=self.tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=7,
         )
 
@@ -424,7 +424,7 @@ class MediaManagerTests(TestCase):
             item=season3_item,
             related_tv=self.tv,
             user=self.user,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
             score=0,
         )
 
@@ -518,7 +518,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.MOVIE.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="title",
         )
 
@@ -541,7 +541,7 @@ class MediaManagerTests(TestCase):
         anime2 = Anime.objects.create(
             item=anime_item2,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=6,
         )
 
@@ -549,7 +549,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
         )
 
@@ -621,7 +621,7 @@ class MediaManagerTests(TestCase):
         Anime.objects.create(
             item=anime_item2,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=6,
         )
 
@@ -676,7 +676,7 @@ class MediaManagerTests(TestCase):
         anime2 = Anime.objects.create(
             item=anime_item2,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=6,
             progress=5,
         )
@@ -696,7 +696,7 @@ class MediaManagerTests(TestCase):
         anime3 = Anime.objects.create(
             item=anime_item3,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             score=9,
             progress=30,
         )
@@ -812,7 +812,7 @@ class MediaManagerTests(TestCase):
             items_limit=5,
         )
 
-        # Should include anime, game, and manga (in progress or repeating)
+        # Should include anime, game, and manga (in progress)
         self.assertIn(MediaTypes.ANIME.value, in_progress)
         self.assertIn(MediaTypes.GAME.value, in_progress)
         self.assertIn(MediaTypes.MANGA.value, in_progress)
@@ -833,7 +833,7 @@ class MediaManagerTests(TestCase):
             Anime.objects.create(
                 item=anime_item,
                 user=self.user,
-                status=Media.Status.IN_PROGRESS.value,
+                status=Status.IN_PROGRESS.value,
             )
 
         # Test with limit
@@ -872,9 +872,8 @@ class MediaManagerTests(TestCase):
         # Test getting a TV show
         tv = manager.get_media(
             user=self.user,
-            media_id="1668",
             media_type=MediaTypes.TV.value,
-            source=Sources.TMDB.value,
+            instance_id=self.tv.id,
         )
 
         self.assertEqual(tv, self.tv)
@@ -882,10 +881,8 @@ class MediaManagerTests(TestCase):
         # Test getting a season
         season = manager.get_media(
             user=self.user,
-            media_id="1668",
             media_type=MediaTypes.SEASON.value,
-            source=Sources.TMDB.value,
-            season_number=1,
+            instance_id=self.season1.id,
         )
 
         self.assertEqual(season, self.season1)
@@ -893,11 +890,8 @@ class MediaManagerTests(TestCase):
         # Test getting an episode
         episode = manager.get_media(
             user=self.user,
-            media_id="1668",
             media_type=MediaTypes.EPISODE.value,
-            source=Sources.TMDB.value,
-            season_number=1,
-            episode_number=1,
+            instance_id=self.season1.episodes.first().id,
         )
 
         self.assertIsNotNone(episode)
@@ -906,10 +900,57 @@ class MediaManagerTests(TestCase):
         # Test getting a non-existent media
         non_existent = manager.get_media(
             user=self.user,
+            media_type=MediaTypes.MOVIE.value,
+            instance_id=9999,  # Non-existent ID
+        )
+
+        self.assertIsNone(non_existent)
+
+    def test_filter_media(self):
+        """Test the filter_media method."""
+        manager = MediaManager()
+
+        # Test getting a TV show
+        tv = manager.filter_media(
+            user=self.user,
+            media_id="1668",
+            media_type=MediaTypes.TV.value,
+            source=Sources.TMDB.value,
+        ).first()
+
+        self.assertEqual(tv, self.tv)
+
+        # Test getting a season
+        season = manager.filter_media(
+            user=self.user,
+            media_id="1668",
+            media_type=MediaTypes.SEASON.value,
+            source=Sources.TMDB.value,
+            season_number=1,
+        ).first()
+
+        self.assertEqual(season, self.season1)
+
+        # Test getting an episode
+        episode = manager.filter_media(
+            user=self.user,
+            media_id="1668",
+            media_type=MediaTypes.EPISODE.value,
+            source=Sources.TMDB.value,
+            season_number=1,
+            episode_number=1,
+        ).first()
+
+        self.assertIsNotNone(episode)
+        self.assertEqual(episode.item.episode_number, 1)
+
+        # Test getting a non-existent media
+        non_existent = manager.filter_media(
+            user=self.user,
             media_id="9999",
             media_type=MediaTypes.MOVIE.value,
             source=Sources.TMDB.value,
-        )
+        ).first()
 
         self.assertIsNone(non_existent)
 
@@ -933,12 +974,12 @@ class MediaModel(TestCase):
         self.anime = Anime.objects.create(
             item=item_anime,
             user=self.user,
-            status=Media.Status.PLANNING.value,
+            status=Status.PLANNING.value,
         )
 
     def test_completed_no_end(self):
         """When completed, if not specified end_date, it should be the current date."""
-        self.anime.status = Media.Status.COMPLETED.value
+        self.anime.status = Status.COMPLETED.value
         self.anime.save()
 
         self.assertEqual(
@@ -948,7 +989,7 @@ class MediaModel(TestCase):
 
     def test_completed_end(self):
         """When completed, if specified end_date, it should be the specified date."""
-        self.anime.status = Media.Status.COMPLETED.value
+        self.anime.status = Status.COMPLETED.value
         self.anime.end_date = datetime(2023, 6, 1, 0, 0, tzinfo=UTC)
         self.anime.save()
         self.assertEqual(
@@ -958,24 +999,11 @@ class MediaModel(TestCase):
 
     def test_completed_progress(self):
         """When completed, the progress should be the total number of episodes."""
-        self.anime.status = Media.Status.COMPLETED.value
+        self.anime.status = Status.COMPLETED.value
         self.anime.save()
         self.assertEqual(
             Anime.objects.get(item__media_id="1", user=self.user).progress,
             26,
-        )
-
-    def test_completed_from_repeating(self):
-        """When completed from repeating, repeats should be incremented."""
-        self.anime.status = Media.Status.REPEATING.value
-        self.anime.save()
-
-        self.anime.status = Media.Status.COMPLETED.value
-        self.anime.save()
-
-        self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).repeats,
-            1,
         )
 
     def test_progress_is_max(self):
@@ -983,35 +1011,21 @@ class MediaModel(TestCase):
 
         Status should be completed and end_date the current date if not specified.
         """
-        self.anime.status = Media.Status.IN_PROGRESS.value
+        self.anime.status = Status.IN_PROGRESS.value
         self.anime.progress = 26
         self.anime.save()
 
         self.assertEqual(
             Anime.objects.get(item__media_id="1", user=self.user).status,
-            Media.Status.COMPLETED.value,
+            Status.COMPLETED.value,
         )
         self.assertIsNotNone(
             Anime.objects.get(item__media_id="1", user=self.user).end_date,
         )
 
-    def test_progress_is_max_from_repeating(self):
-        """When progress is maximum number of episodes and status is repeating.
-
-        Repeat should be incremented.
-        """
-        self.anime.status = Media.Status.REPEATING.value
-        self.anime.save()
-        self.anime.progress = 26
-        self.anime.save()
-        self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).repeats,
-            1,
-        )
-
     def test_progress_bigger_than_max(self):
         """When progress is bigger than max, it should be set to max."""
-        self.anime.status = Media.Status.IN_PROGRESS.value
+        self.anime.status = Status.IN_PROGRESS.value
         self.anime.progress = 30
         self.anime.save()
         self.assertEqual(
@@ -1039,7 +1053,7 @@ class TVModel(TestCase):
         self.tv = TV.objects.create(
             item=item_tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             notes="",
         )
 
@@ -1057,7 +1071,7 @@ class TVModel(TestCase):
             item=item_season1,
             related_tv=self.tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         item_ep1 = Item.objects.create(
@@ -1104,7 +1118,7 @@ class TVModel(TestCase):
             item=item_season2,
             related_tv=self.tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         item_ep3 = Item.objects.create(
@@ -1157,12 +1171,12 @@ class TVModel(TestCase):
 
     def test_tv_save(self):
         """Test the custom save method of the TV model."""
-        self.tv.status = Media.Status.COMPLETED.value
+        self.tv.status = Status.COMPLETED.value
         self.tv.save(update_fields=["status"])
 
-        # check if all seasons are created with the status Media.Status.COMPLETED.value
+        # check if all seasons are created with the status Status.COMPLETED.value
         self.assertEqual(
-            self.tv.seasons.filter(status=Media.Status.COMPLETED.value).count(),
+            self.tv.seasons.filter(status=Status.COMPLETED.value).count(),
             10,
         )
 
@@ -1186,7 +1200,7 @@ class SeasonModel(TestCase):
         related_tv = TV.objects.create(
             item=item_tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         item_season = Item.objects.create(
@@ -1202,7 +1216,7 @@ class SeasonModel(TestCase):
             item=item_season,
             related_tv=related_tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         item_ep1 = Item.objects.create(
@@ -1255,7 +1269,7 @@ class SeasonModel(TestCase):
 
     def test_season_save(self):
         """Test the custom save method of the Season model."""
-        self.season.status = Media.Status.COMPLETED.value
+        self.season.status = Status.COMPLETED.value
         self.season.save(update_fields=["status"])
 
         # check if all episodes are created
@@ -1285,18 +1299,20 @@ class SeasonModel(TestCase):
             item=episode_item,
         )
         self.assertEqual(episode.end_date, datetime(2023, 6, 3, 0, 0, tzinfo=UTC))
-        self.assertEqual(episode.repeats, 0)
 
         # Test rewatching the same episode
         self.season.watch(3, datetime(2023, 6, 4, 0, 0, tzinfo=UTC))
 
         # Check if the episode was updated
-        episode = Episode.objects.get(
+        episodes = Episode.objects.filter(
             related_season=self.season,
             item=episode_item,
         )
-        self.assertEqual(episode.end_date, datetime(2023, 6, 4, 0, 0, tzinfo=UTC))
-        self.assertEqual(episode.repeats, 1)
+        self.assertEqual(
+            episodes.first().end_date,
+            datetime(2023, 6, 4, 0, 0, tzinfo=UTC),
+        )
+        self.assertEqual(episodes.count(), 2)
 
     @patch("app.models.Season.get_episode_item")
     def test_watch_with_none_date(self, mock_get_episode_item):
@@ -1375,18 +1391,22 @@ class SeasonModel(TestCase):
             related_season=self.season,
             item=episode_item,
             end_date=datetime(2023, 6, 3, 0, 0, tzinfo=UTC),
-            repeats=2,
+        )
+        Episode.objects.create(
+            related_season=self.season,
+            item=episode_item,
+            end_date=datetime(2024, 6, 3, 0, 0, tzinfo=UTC),
         )
 
         # Test unwatching the episode
         self.season.unwatch(3)
 
         # Check if the episode's repeats were decreased
-        episode = Episode.objects.get(
+        episodes = Episode.objects.filter(
             related_season=self.season,
             item=episode_item,
         )
-        self.assertEqual(episode.repeats, 1)
+        self.assertEqual(episodes.count(), 1)
 
     @patch("app.models.Season.get_episode_item")
     def test_unwatch_nonexistent_episode(self, mock_get_episode_item):
@@ -1434,7 +1454,7 @@ class EpisodeModel(TestCase):
             item=item_tv,
             user=self.user,
             notes="",
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         item_season = Item.objects.create(
@@ -1450,7 +1470,7 @@ class EpisodeModel(TestCase):
             item=item_season,
             related_tv=related_tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             notes="",
         )
 
@@ -1473,7 +1493,7 @@ class EpisodeModel(TestCase):
             )
 
         # when all episodes are created, the season status should be COMPLETED
-        self.assertEqual(self.season.status, Media.Status.COMPLETED.value)
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
 
     @patch("app.providers.services.get_media_metadata")
     def test_episode_save_updates_season_status(self, mock_get_media_metadata):
@@ -1506,7 +1526,7 @@ class EpisodeModel(TestCase):
             )
 
         # Season should still be in progress
-        self.assertEqual(self.season.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(self.season.status, Status.IN_PROGRESS.value)
 
         # Add the remaining episodes
         for i in range(3, 5):
@@ -1526,7 +1546,7 @@ class EpisodeModel(TestCase):
             )
 
         # Season should now be completed
-        self.assertEqual(self.season.status, Media.Status.COMPLETED.value)
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
 
     @patch("app.providers.services.get_media_metadata")
     def test_episode_save_with_repeats(self, mock_get_media_metadata):
@@ -1563,7 +1583,7 @@ class EpisodeModel(TestCase):
                 episode.repeats = 1
                 episode.save()
 
-        self.assertEqual(self.season.status, Media.Status.COMPLETED.value)
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
 
         episode_2 = Episode.objects.get(
             item__media_id="1668",
@@ -1576,7 +1596,7 @@ class EpisodeModel(TestCase):
         episode_2.save()
 
         self.season.refresh_from_db()
-        self.assertEqual(self.season.status, Media.Status.COMPLETED.value)
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
 
     @patch("app.providers.services.get_media_metadata")
     def test_episode_save_updates_tv_status(self, mock_get_media_metadata):
@@ -1609,10 +1629,10 @@ class EpisodeModel(TestCase):
             )
 
         # Season should be completed
-        self.assertEqual(self.season.status, Media.Status.COMPLETED.value)
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
 
         # TV show should also be completed since this was the last season
-        self.assertEqual(self.season.related_tv.status, Media.Status.COMPLETED.value)
+        self.assertEqual(self.season.related_tv.status, Status.COMPLETED.value)
 
     @patch("app.providers.services.get_media_metadata")
     def test_episode_save_not_last_season(self, mock_get_media_metadata):
@@ -1648,10 +1668,10 @@ class EpisodeModel(TestCase):
             )
 
         # Season should be completed
-        self.assertEqual(self.season.status, Media.Status.COMPLETED.value)
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
 
         # TV show should still be in progress since this was not the last season
-        self.assertEqual(self.season.related_tv.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(self.season.related_tv.status, Status.IN_PROGRESS.value)
 
 
 class GameModel(TestCase):
@@ -1673,7 +1693,7 @@ class GameModel(TestCase):
         self.game = Game.objects.create(
             item=self.game_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=60,  # 60 minutes
         )
 

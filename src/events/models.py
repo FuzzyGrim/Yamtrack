@@ -15,13 +15,13 @@ from django.db.models import (
 from django.utils import timezone
 
 from app import media_type_config
-from app.models import TV, Item, Media, MediaTypes, Season
+from app.models import TV, Item, MediaTypes, Season, Status
 
 # Statuses that represent inactive tracking
 # will be ignored when creating events
 INACTIVE_TRACKING_STATUSES = [
-    Media.Status.PAUSED.value,
-    Media.Status.DROPPED.value,
+    Status.PAUSED.value,
+    Status.DROPPED.value,
 ]
 
 

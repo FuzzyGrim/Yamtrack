@@ -22,17 +22,18 @@
 
   <form method="post" x-data="mediaForm" x-init="init">
     {% csrf_token %}
+    {{ form.instance_id }}
     {{ form.media_type }}
     {{ form.source }}
     {{ form.media_id }}
     {{ form.season_number }}
 
     {% with total_fields=form.fields|length %}
-      {% if total_fields > 7 %}<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">{% endif %}
+      {% if total_fields > 8 %}<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">{% endif %}
 
         {% for field in form %}
-          {% if field.name != 'notes' and field.name != 'media_type' and field.name != 'source' and field.name != 'media_id' and field.name != 'season_number' %}
-            <div class="mb-5 {% if field.name == 'status' and not total_fields|divisibleby:2 %}sm:col-span-2{% endif %}">
+          {% if field.name != 'notes' and field.name != 'instance_id' and field.name != 'media_type' and field.name != 'source' and field.name != 'media_id' and field.name != 'season_number' %}
+            <div class="mb-5 {% if field.name == 'status' and total_fields|divisibleby:2 %}sm:col-span-2{% endif %}">
               <label class="block text-sm font-medium mb-1 text-gray-300"
                      for="{{ field.id_for_label }}">{{ field.label }}</label>
               <div class="relative">
@@ -93,7 +94,7 @@
           {% endif %}
         {% endfor %}
 
-        {% if total_fields > 7 %}</div>{% endif %}
+        {% if total_fields > 8 %}</div>{% endif %}
     {% endwith %}
 
     {% if form.notes %}
@@ -107,7 +108,13 @@
     <div class="flex flex-row-reverse justify-between mt-6">
       <button type="submit"
               formaction="{% url 'media_save' %}?next={{ return_url }}"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">Save</button>
+              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">
+        {% if media %}
+          Update
+        {% else %}
+          Add
+        {% endif %}
+      </button>
       <button type="submit"
               formaction="{% url 'media_delete' %}?next={{ return_url }}"
               class="px-4 py-2 rounded-md transition duration-300 {% if media %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}"

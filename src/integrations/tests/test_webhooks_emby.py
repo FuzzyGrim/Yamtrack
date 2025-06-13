@@ -5,32 +5,33 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
-from integrations.webhooks.jellyfin import JellyfinWebhookProcessor
+from integrations.webhooks.emby import EmbyWebhookProcessor
 
 
-class JellyfinWebhookTests(TestCase):
-    """Tests for Jellyfin webhook."""
+class EmbyWebhookTests(TestCase):
+    """Tests for Emby webhook."""
 
     def setUp(self):
         """Set up test data."""
         self.client = Client()
         self.credentials = {"username": "testuser", "token": "test-token"}
         self.user = get_user_model().objects.create_superuser(**self.credentials)
-        self.url = reverse("jellyfin_webhook", kwargs={"token": "test-token"})
+        self.url = reverse("emby_webhook", kwargs={"token": "test-token"})
 
     def test_invalid_token(self):
         """Test webhook with invalid token returns 401."""
-        url = reverse("jellyfin_webhook", kwargs={"token": "invalid-token"})
+        url = reverse("emby_webhook", kwargs={"token": "invalid-token"})
         response = self.client.post(url, data={}, content_type="application/json")
         self.assertEqual(response.status_code, 401)
 
     def test_tv_episode_mark_played(self):
         """Test webhook handles TV episode mark played event."""
         payload = {
-            "Event": "Stop",
+            "Event": "playback.stop",
             "Item": {
                 "Type": "Episode",
                 "Name": "The One Where Monica Gets a Roommate",
+                "ProductionYear": 1994,
                 "ProviderIds": {
                     "Tvdb": "303821",
                     "Imdb": "tt0583459",
@@ -38,14 +39,20 @@ class JellyfinWebhookTests(TestCase):
                 "SeriesName": "Friends",
                 "ParentIndexNumber": 1,
                 "IndexNumber": 1,
-                "UserData": {"Played": True},
             },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        data = {
+            "data": json.dumps(payload),
         }
 
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -70,23 +77,76 @@ class JellyfinWebhookTests(TestCase):
         )
         self.assertIsNotNone(episode.end_date)
 
-    def test_movie_mark_played(self):
-        """Test webhook handles movie mark played event."""
+    def test_anime_episode_mark_played(self):
+        """Test webhook handles anime episode mark played event."""
         payload = {
-            "Event": "Stop",
+            "Event": "playback.stop",
             "Item": {
-                "Name": "The Matrix",
-                "ProductionYear": 1999,
-                "Type": "Movie",
-                "ProviderIds": {"Tmdb": "603"},
-                "UserData": {"Played": True},
+                "Type": "Episode",
+                "Name": "The Journey's End",
+                "ProductionYear": 2003,
+                "ProviderIds": {
+                    "Tvdb": "9350138",
+                    "Imdb": "tt23861604",
+                },
+                "SeriesName": "Frieren: Beyond Journey's End",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 1,
             },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        data = {
+            "data": json.dumps(payload),
         }
 
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify anime was created and marked as in progress
+        anime = Anime.objects.get(
+            item__media_id="52991",
+            user=self.user,
+        )
+        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
+        self.assertEqual(anime.progress, 1)
+
+    def test_movie_mark_played(self):
+        """Test webhook handles movie mark played event."""
+        payload = {
+            "Event": "playback.stop",
+            "Item": {
+                "Type": "Movie",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "ProviderIds": {
+                    "Imdb": "tt0133093",
+                    "Tmdb": "603",
+                    "Tvdb": "169",
+                    "Official Website": "http://www.warnerbros.com/matrix",
+                    "Wikidata": "Q83495",
+                    "Wikipedia": "The_Matrix",
+                },
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+        data = {
+            "data": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -102,20 +162,30 @@ class JellyfinWebhookTests(TestCase):
     def test_anime_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
-            "Event": "Stop",
+            "Event": "playback.stop",
             "Item": {
+                "Type": "Movie",
                 "Name": "Perfect Blue",
                 "ProductionYear": 1997,
-                "Type": "Movie",
-                "ProviderIds": {"Tmdb": "10494"},
-                "UserData": {"Played": True},
+                "ProviderIds": {
+                    "Imdb": "tt0156887",
+                    "Tmdb": "10494",
+                    "Tvdb": "3807",
+                },
             },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        data = {
+            "data": json.dumps(payload),
         }
 
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -128,55 +198,68 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
-    def test_anime_episode_mark_played(self):
-        """Test webhook handles anime episode mark played event."""
-        payload = {
-            "Event": "Stop",
-            "Item": {
-                "Type": "Episode",
-                "Name": "The Journey's End",
-                "ProviderIds": {
-                    "Tvdb": "9350138",
-                    "Imdb": "tt23861604",
-                },
-                "UserData": {"Played": True},
-                "SeriesName": "Frieren: Beyond Journey's End",
-                "ParentIndexNumber": 1,
-                "IndexNumber": 1,
-            },
-        }
-
-        response = self.client.post(
-            self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 200)
-
-        # Verify anime was created and marked as in progress
-        anime = Anime.objects.get(
-            item__media_id="52991",
-            user=self.user,
-        )
-        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
-        self.assertEqual(anime.progress, 1)
-
     def test_ignored_event_types(self):
         """Test webhook ignores irrelevant event types."""
         payload = {
-            "Event": "SomeOtherEvent",
+            "Event": "playback.something_else",
             "Item": {
                 "Type": "Movie",
-                "ProviderIds": {"Tmdb": "12345"},
-                "UserData": {"Played": True},
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "ProviderIds": {
+                    "Imdb": "tt0133093",
+                    "Tmdb": "603",
+                    "Tvdb": "169",
+                },
             },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        data = {
+            "data": json.dumps(payload),
         }
 
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Movie.objects.count(), 0)
+
+    def test_ignored_media_types(self):
+        """Test webhook ignores irrelevant event types."""
+        payload = {
+            "Event": "playback.stop",
+            "Item": {
+                "Type": "SomethingElse",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "ProviderIds": {
+                    "Imdb": "tt0133093",
+                    "Tmdb": "603",
+                    "Tvdb": "169",
+                    "Official Website": "http://www.warnerbros.com/matrix",
+                    "Wikidata": "Q83495",
+                    "Wikipedia": "The_Matrix",
+                },
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        data = {
+            "data": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -185,77 +268,68 @@ class JellyfinWebhookTests(TestCase):
     def test_missing_tmdb_id(self):
         """Test webhook handles missing TMDB ID gracefully."""
         payload = {
-            "Event": "Stop",
+            "Event": "playback.stop",
             "Item": {
                 "Type": "Movie",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
                 "ProviderIds": {},
-                "UserData": {"Played": True},
             },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+        data = {
+            "data": json.dumps(payload),
         }
 
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Movie.objects.count(), 0)
 
-    def test_mark_unplayed(self):
-        """Test webhook handles not finished events."""
-        payload = {
-            "Event": "Stop",
-            "Item": {
-                "Name": "The Matrix",
-                "ProductionYear": 1999,
-                "Type": "Movie",
-                "ProviderIds": {"Tmdb": "603"},
-                "UserData": {"Played": False},
-            },
-        }
-        self.client.post(
-            self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
-        )
-
-        response = self.client.post(
-            self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 200)
-        movie = Movie.objects.get(item__media_id="603")
-        self.assertEqual(movie.progress, 0)
-        self.assertEqual(movie.status, Status.IN_PROGRESS.value)
-
     def test_repeated_watch(self):
         """Test webhook handles repeated watches."""
         payload = {
-            "Event": "Stop",
+            "Event": "playback.stop",
             "Item": {
                 "Type": "Movie",
-                "ProductionYear": 1999,
                 "Name": "The Matrix",
-                "ProviderIds": {"Tmdb": "603"},
-                "UserData": {"Played": True},
+                "ProductionYear": 1999,
+                "ProviderIds": {
+                    "Imdb": "tt0133093",
+                    "Tmdb": "603",
+                    "Tvdb": "169",
+                    "Official Website": "http://www.warnerbros.com/matrix",
+                    "Wikidata": "Q83495",
+                    "Wikipedia": "The_Matrix",
+                },
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
             },
         }
 
+        data = {
+            "data": json.dumps(payload),
+        }
+
         # First watch
-        self.client.post(
+        response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         # Second watch
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
+            data=data,
+            format="multipart",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -267,7 +341,7 @@ class JellyfinWebhookTests(TestCase):
     def test_extract_external_ids(self):
         """Test extracting external IDs from provider payload."""
         payload = {
-            "Event": "Stop",
+            "Event": "playback.something_else",
             "Item": {
                 "Type": "Movie",
                 "Name": "The Matrix",
@@ -277,6 +351,9 @@ class JellyfinWebhookTests(TestCase):
                     "Tvdb": "169",
                 },
             },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
         }
 
         expected = {
@@ -285,7 +362,7 @@ class JellyfinWebhookTests(TestCase):
             "tvdb_id": "169",
         }
 
-        result = JellyfinWebhookProcessor()._extract_external_ids(payload)
+        result = EmbyWebhookProcessor()._extract_external_ids(payload)
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)
@@ -293,12 +370,15 @@ class JellyfinWebhookTests(TestCase):
     def test_extract_external_ids_empty(self):
         """Test handling empty provider payload."""
         payload = {
-            "Event": "Stop",
+            "Event": "playback.something_else",
             "Item": {
                 "Type": "Movie",
                 "Name": "The Matrix",
                 "ProductionYear": 1999,
                 "ProviderIds": {},
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
             },
         }
 
@@ -308,7 +388,7 @@ class JellyfinWebhookTests(TestCase):
             "tvdb_id": None,
         }
 
-        result = JellyfinWebhookProcessor()._extract_external_ids(payload)
+        result = EmbyWebhookProcessor()._extract_external_ids(payload)
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)
@@ -316,11 +396,14 @@ class JellyfinWebhookTests(TestCase):
     def test_extract_external_ids_missing(self):
         """Test handling missing ProviderIds."""
         payload = {
-            "Event": "Stop",
+            "Event": "playback.something_else",
             "Item": {
                 "Type": "Movie",
                 "Name": "The Matrix",
                 "ProductionYear": 1999,
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
             },
         }
         expected = {
@@ -329,7 +412,7 @@ class JellyfinWebhookTests(TestCase):
             "tvdb_id": None,
         }
 
-        result = JellyfinWebhookProcessor()._extract_external_ids(payload)
+        result = EmbyWebhookProcessor()._extract_external_ids(payload)
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)

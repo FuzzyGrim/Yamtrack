@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.test import TestCase, override_settings
-from django.utils import timezone
+from django.utils import formats, timezone
 
-from app.models import Anime, Item, Manga, Media, MediaTypes, Sources
+from app.models import Anime, Item, Manga, MediaTypes, Sources, Status
 from events.models import Event
 from events.notifications import (
     format_notification,
@@ -64,31 +64,31 @@ class NotificationTests(TestCase):
         Anime.objects.create(
             item=self.anime_item,
             user=self.user1,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         Anime.objects.create(
             item=self.anime_item,
             user=self.user2,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         Anime.objects.create(
             item=self.anime_item,
             user=self.user3,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         Manga.objects.create(
             item=self.manga_item,
             user=self.user1,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         Manga.objects.create(
             item=self.manga_item,
             user=self.user2,
-            status=Media.Status.PAUSED.value,
+            status=Status.PAUSED.value,
         )
 
         # Create events
@@ -149,7 +149,7 @@ class NotificationTests(TestCase):
         Anime.objects.create(
             item=item2,
             user=self.user1,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         # Create event for the second item
@@ -577,7 +577,10 @@ class NotificationTests(TestCase):
 
         # Check the title contains today's date
         title = mock_send_notifications.call_args[1]["title"]
-        today_str = today.strftime("%b %d, %Y")
+        today_str = formats.date_format(
+            today.date(),
+            "DATE_FORMAT",
+        )
         self.assertIn(today_str, title)
 
         # Verify the result message

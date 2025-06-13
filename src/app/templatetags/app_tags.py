@@ -11,7 +11,7 @@ from django.utils.translation import ngettext
 from django.utils.translation import get_language
 
 from app import media_type_config
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 
 register = template.Library()
 
@@ -90,7 +90,7 @@ def media_type_readable_plural(media_type):
 @register.filter
 def media_status_readable(media_status):
     """Return the readable media status."""
-    return Media.Status(media_status).label
+    return Status(media_status).label
 
 
 @register.filter
@@ -249,7 +249,7 @@ def media_view_url(view_name, media):
 
 
 @register.simple_tag
-def component_id(component_type, media):
+def component_id(component_type, media, instance_id=None):
     """Return the component ID for both metadata and model object cases."""
     is_dict = isinstance(media, dict)
 
@@ -270,6 +270,10 @@ def component_id(component_type, media):
             component_id += f"-{media.season_number}"
         if media.episode_number is not None:
             component_id += f"-{media.episode_number}"
+
+    # Add instance id if provided
+    if instance_id:
+        component_id += f"-{instance_id}"
 
     return component_id
 

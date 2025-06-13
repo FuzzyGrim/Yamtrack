@@ -7,8 +7,16 @@ import events
 from app.mixins import disable_fetch_releases
 from app.models import MediaTypes
 from app.templatetags import app_tags
-from integrations import helpers
-from integrations.imports import anilist, hltb, kitsu, mal, simkl, trakt, yamtrack
+from integrations.imports import (
+    anilist,
+    helpers,
+    hltb,
+    kitsu,
+    mal,
+    simkl,
+    trakt,
+    yamtrack,
+)
 
 logger = logging.getLogger(__name__)
 ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"

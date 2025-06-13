@@ -18,6 +18,7 @@
               "startedAt": { "day": null, "month": null, "year": null },
               "status": "PLANNING",
               "repeat": 0,
+              "updatedAt": 1749031877,
               "notes": ""
             }
           ],
@@ -39,6 +40,7 @@
               "startedAt": { "day": null, "month": null, "year": null },
               "status": "PAUSED",
               "repeat": 0,
+              "updatedAt": 1749031877,
               "notes": ""
             }
           ],
@@ -60,6 +62,7 @@
               "startedAt": { "day": null, "month": null, "year": null },
               "status": "CURRENT",
               "repeat": 0,
+              "updatedAt": 1749031877,
               "notes": ""
             }
           ],
@@ -81,6 +84,7 @@
               "startedAt": { "day": 28, "month": 12, "year": 2022 },
               "status": "COMPLETED",
               "repeat": 0,
+              "updatedAt": 1749031877,
               "notes": ""
             }
           ],
@@ -106,6 +110,7 @@
               "startedAt": { "day": null, "month": null, "year": null },
               "status": "CURRENT",
               "repeat": 0,
+              "updatedAt": 1749031877,
               "notes": ""
             }
           ],
@@ -127,6 +132,7 @@
               "startedAt": { "day": null, "month": null, "year": null },
               "status": "COMPLETED",
               "repeat": 1,
+              "updatedAt": 1749031877,
               "notes": ""
             }
           ],

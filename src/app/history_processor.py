@@ -1,13 +1,12 @@
 from django.apps import apps
-from django.contrib.humanize.templatetags.humanize import ordinal
 from django.template.defaultfilters import pluralize
 from django.utils import formats, timezone
 
 from app import helpers, media_type_config
-from app.models import Media, MediaTypes
+from app.models import MediaTypes, Status
 
 
-def process_history_entries(history_records, media_type):
+def process_history_entries(history_records, media_type, media_entry_number):
     """Process all history records into timeline entries."""
     timeline_entries = []
     last = history_records.first()
@@ -15,6 +14,7 @@ def process_history_entries(history_records, media_type):
     for _ in range(history_records.count()):
         entry = process_history_entry((last, last.prev_record), media_type)
         if entry["changes"]:
+            entry["media_entry_number"] = media_entry_number
             timeline_entries.append(entry)
         last = last.prev_record
 
@@ -70,7 +70,6 @@ def organize_changes(changes, media_type):
         "other_changes": [],
     }
 
-    repeats_change = None
     end_date_change = None
 
     for change in changes:
@@ -91,8 +90,6 @@ def organize_changes(changes, media_type):
 
         if change.field == "status":
             organized["status_change"] = change_data
-        elif change.field == "repeats":
-            repeats_change = change_data
         elif change.field == "end_date":
             end_date_change = change_data
         elif change.field in organized["date_changes"]:
@@ -100,24 +97,8 @@ def organize_changes(changes, media_type):
         else:
             organized["other_changes"].append(change_data)
 
-    # Handle combined repeats and end_date case
-    if repeats_change and end_date_change:
-        combined_description = (
-            f"{repeats_change['description']} on "
-            f"{format_datetime(end_date_change['new'])}"
-        )
-        combined_change = {
-            "description": combined_description,
-            "field": "combined_repeats_end_date",
-            "old": None,
-            "new": None,
-        }
-        organized["other_changes"].append(combined_change)
-    else:
-        if repeats_change:
-            organized["other_changes"].append(repeats_change)
-        if end_date_change:
-            organized["date_changes"]["end_date"] = end_date_change
+    if end_date_change:
+        organized["date_changes"]["end_date"] = end_date_change
 
     return organized
 
@@ -130,7 +111,7 @@ def collect_creation_changes(new_record, history_model, media_type):
         "other_changes": [],
     }
 
-    for field in history_model._meta.get_fields():  # noqa: SLF001
+    for field in history_model._meta.get_fields():
         if (
             field.name.startswith("history_")
             or field.name in ["id"]
@@ -173,7 +154,7 @@ def apply_date_status_integration(changes):
     if (
         date_changes["start_date"]
         and status_change
-        and status_change["new"] == Media.Status.IN_PROGRESS.value
+        and status_change["new"] == Status.IN_PROGRESS.value
     ):
         date_changes["start_date"]["description"] = (
             f"Started on {format_datetime(date_changes['start_date']['new'])}"
@@ -184,7 +165,7 @@ def apply_date_status_integration(changes):
     if (
         date_changes["end_date"]
         and status_change
-        and status_change["new"] == Media.Status.COMPLETED.value
+        and status_change["new"] == Status.COMPLETED.value
     ):
         date_changes["end_date"]["description"] = (
             f"Finished on {format_datetime(date_changes['end_date']['new'])}"
@@ -223,15 +204,15 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         if field_name == "status":
             verb = media_type_config.get_verb(media_type, past_tense=False)
             action = "Marked as"
-            if new_value == Media.Status.IN_PROGRESS.value:
+            if new_value == Status.IN_PROGRESS.value:
                 return f"{action} currently {verb}ing"
-            if new_value == Media.Status.COMPLETED.value:
+            if new_value == Status.COMPLETED.value:
                 return f"{action} finished {verb}ing"
-            if new_value == Media.Status.PLANNING.value:
+            if new_value == Status.PLANNING.value:
                 return f"Added to {verb}ing list"
-            if new_value == Media.Status.DROPPED.value:
+            if new_value == Status.DROPPED.value:
                 return f"{action} dropped"
-            if new_value == Media.Status.PAUSED.value:
+            if new_value == Status.PAUSED.value:
                 return f"{action} paused {verb}ing"
 
         if field_name == "score":
@@ -243,10 +224,6 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
                 return f"{verb} for {helpers.minutes_to_hhmm(new_value)}"
             unit = media_type_config.get_unit(media_type, short=False).lower()
             return f"{verb} up to {unit} {new_value}"
-
-        if field_name == "repeats":
-            verb = media_type_config.get_verb(media_type, past_tense=True)
-            return f"{verb.title()} for the {ordinal(new_value + 1)} time"
 
         if field_name in ["start_date", "end_date"]:
             field_display = "Started" if field_name == "start_date" else "Finished"
@@ -263,33 +240,25 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         # Status transitions
         transitions = {
             (
-                Media.Status.PLANNING.value,
-                Media.Status.IN_PROGRESS.value,
+                Status.PLANNING.value,
+                Status.IN_PROGRESS.value,
             ): f"Currently {verb}ing",
             (
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.COMPLETED.value,
+                Status.IN_PROGRESS.value,
+                Status.COMPLETED.value,
             ): f"Finished {verb}ing",
             (
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.PAUSED.value,
+                Status.IN_PROGRESS.value,
+                Status.PAUSED.value,
             ): f"Paused {verb}ing",
             (
-                Media.Status.PAUSED.value,
-                Media.Status.IN_PROGRESS.value,
+                Status.PAUSED.value,
+                Status.IN_PROGRESS.value,
             ): f"Resumed {verb}ing",
             (
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.DROPPED.value,
+                Status.IN_PROGRESS.value,
+                Status.DROPPED.value,
             ): f"Stopped {verb}ing",
-            (
-                Media.Status.COMPLETED.value,
-                Media.Status.REPEATING.value,
-            ): f"Started re{verb}ing",
-            (
-                Media.Status.REPEATING.value,
-                Media.Status.COMPLETED.value,
-            ): f"Finished re{verb}ing",
         }
         return transitions.get(
             (old_value, new_value),
@@ -312,20 +281,10 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
         unit = (
             f"{media_type_config.get_unit(media_type, short=False).lower()}"
-            f"{pluralize(diff_abs)}"
+            f"{pluralize(new_value)}"
         )
 
         return f"Progress set to {new_value} {unit}"
-
-    if field_name == "repeats":
-        # Handle combined case in organize_changes function
-        verb = media_type_config.get_verb(media_type, past_tense=False).title()
-        if new_value > old_value:
-            return (
-                f"Finished {verb.lower()}ing again for the "
-                f"{ordinal(new_value + 1)} time"
-            )
-        return f"Adjusted repeat count from {old_value} to {new_value}"
 
     if field_name in ["start_date", "end_date"]:
         field_display = "Start" if field_name == "start_date" else "End"
@@ -333,7 +292,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Removed {field_display.lower()} date"
         if not old_value:
             return f"{field_display}ed on {new_value}"
-        return f"{field_display}ed again on {new_value}"
+        return f"{field_display} date changed to {new_value}"
 
     if field_name == "notes":
         if not old_value:

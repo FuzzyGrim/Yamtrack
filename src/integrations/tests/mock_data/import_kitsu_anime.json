@@ -4,6 +4,7 @@
       "id": "1722495",
       "type": "libraryEntries",
       "attributes": {
+        "updatedAt": "2024-04-08T16:16:59.018Z",
         "status": "completed",
         "progress": 26,
         "reconsuming": false,
@@ -30,6 +31,7 @@
       "id": "1722496",
       "type": "libraryEntries",
       "attributes": {
+        "updatedAt": "2024-04-08T16:16:59.018Z",
         "status": "current",
         "progress": 12,
         "reconsuming": false,
@@ -56,6 +58,7 @@
       "id": "1722497",
       "type": "libraryEntries",
       "attributes": {
+        "updatedAt": "2024-04-08T16:16:59.018Z",
         "status": "planned",
         "progress": 0,
         "reconsuming": false,
@@ -82,6 +85,7 @@
       "id": "1722498",
       "type": "libraryEntries",
       "attributes": {
+        "updatedAt": "2024-04-08T16:16:59.018Z",
         "status": "on_hold",
         "progress": 6,
         "reconsuming": false,
@@ -108,6 +112,7 @@
       "id": "1722499",
       "type": "libraryEntries",
       "attributes": {
+        "updatedAt": "2024-04-08T16:16:59.018Z",
         "status": "dropped",
         "progress": 3,
         "reconsuming": false,

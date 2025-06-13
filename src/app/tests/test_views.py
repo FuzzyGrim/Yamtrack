@@ -12,11 +12,11 @@ from app.models import (
     Anime,
     Episode,
     Item,
-    Media,
     MediaTypes,
     Movie,
     Season,
     Sources,
+    Status,
 )
 from app.templatetags import app_tags
 from users.models import HomeSortChoices
@@ -42,7 +42,7 @@ class HomeViewTests(TestCase):
         tv = TV.objects.create(
             item=tv_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         # Create a season for the TV show
@@ -58,7 +58,7 @@ class HomeViewTests(TestCase):
             item=season_item,
             user=self.user,
             related_tv=tv,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         # Create episodes for the season
@@ -89,7 +89,7 @@ class HomeViewTests(TestCase):
         Anime.objects.create(
             item=anime_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=10,
         )
 
@@ -150,7 +150,7 @@ class HomeViewTests(TestCase):
             tv = TV.objects.create(
                 item=tv_item,
                 user=self.user,
-                status=Media.Status.IN_PROGRESS.value,
+                status=Status.IN_PROGRESS.value,
             )
 
             # Create a season for each TV show
@@ -166,7 +166,7 @@ class HomeViewTests(TestCase):
                 item=season_item,
                 user=self.user,
                 related_tv=tv,
-                status=Media.Status.IN_PROGRESS.value,
+                status=Status.IN_PROGRESS.value,
             )
 
             # Create an episode for each season
@@ -232,9 +232,9 @@ class MediaListViewTests(TestCase):
                 image="http://example.com/image.jpg",
             )
             status = (
-                Media.Status.COMPLETED.value
+                Status.COMPLETED.value
                 if i < num_completed
-                else Media.Status.IN_PROGRESS.value
+                else Status.IN_PROGRESS.value
             )
             Movie.objects.create(
                 item=item,
@@ -276,7 +276,7 @@ class MediaListViewTests(TestCase):
         # Check that filters are applied
         self.assertEqual(
             response.context["current_status"],
-            Media.Status.COMPLETED.value,
+            Status.COMPLETED.value,
         )
         self.assertEqual(response.context["current_sort"], "score")
         self.assertEqual(response.context["current_layout"], "table")
@@ -286,7 +286,7 @@ class MediaListViewTests(TestCase):
 
         # Check that user preferences were updated
         self.user.refresh_from_db()
-        self.assertEqual(self.user.movie_status, Media.Status.COMPLETED.value)
+        self.assertEqual(self.user.movie_status, Status.COMPLETED.value)
         self.assertEqual(self.user.movie_sort, "score")
         self.assertEqual(self.user.movie_layout, "table")
 
@@ -488,7 +488,7 @@ class TrackModalViewTests(TestCase):
         self.movie = Movie.objects.create(
             item=self.item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=0,
         )
 
@@ -572,12 +572,12 @@ class HistoryModalViewTests(TestCase):
         self.movie = Movie.objects.create(
             item=self.item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=0,
         )
 
         # Update the movie to create history
-        self.movie.status = Media.Status.COMPLETED.value
+        self.movie.status = Status.COMPLETED.value
         self.movie.progress = 1
         self.movie.score = 8
         self.movie.save()
@@ -629,12 +629,12 @@ class DeleteHistoryRecordViewTests(TestCase):
         self.movie = Movie.objects.create(
             item=self.item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=0,
         )
 
         # Update the movie to create history
-        self.movie.status = Media.Status.COMPLETED.value
+        self.movie.status = Status.COMPLETED.value
         self.movie.progress = 1
         self.movie.score = 8
         self.movie.save()
@@ -779,7 +779,7 @@ class CreateMedia(TestCase):
                 "media_id": "1",
                 "source": Sources.MAL.value,
                 "media_type": MediaTypes.ANIME.value,
-                "status": Media.Status.PLANNING.value,
+                "status": Status.PLANNING.value,
                 "progress": 0,
                 "repeats": 0,
             },
@@ -805,7 +805,7 @@ class CreateMedia(TestCase):
                 "media_id": "5895",
                 "source": Sources.TMDB.value,
                 "media_type": MediaTypes.TV.value,
-                "status": Media.Status.PLANNING.value,
+                "status": Status.PLANNING.value,
             },
         )
         self.assertEqual(
@@ -830,7 +830,7 @@ class CreateMedia(TestCase):
                 "source": Sources.TMDB.value,
                 "media_type": MediaTypes.SEASON.value,
                 "season_number": 1,
-                "status": Media.Status.PLANNING.value,
+                "status": Status.PLANNING.value,
             },
         )
         self.assertEqual(
@@ -841,14 +841,13 @@ class CreateMedia(TestCase):
     def test_create_episodes(self):
         """Test the creation of Episode through views."""
         self.client.post(
-            reverse("episode_handler"),
+            reverse("episode_save"),
             {
                 "media_id": "1668",
                 "season_number": 1,
                 "episode_number": 1,
                 "source": Sources.TMDB.value,
                 "date": "2023-06-01T00:00",
-                "watch": "",
             },
         )
         self.assertEqual(
@@ -879,12 +878,12 @@ class EditMedia(TestCase):
             title="Perfect Blue",
             image="http://example.com/image.jpg",
         )
-        Movie.objects.create(
+        movie = Movie.objects.create(
             item=item,
             user=self.user,
             score=9,
             progress=1,
-            status=Media.Status.COMPLETED.value,
+            status=Status.COMPLETED.value,
             notes="Nice",
             start_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
@@ -893,13 +892,13 @@ class EditMedia(TestCase):
         self.client.post(
             reverse("media_save"),
             {
+                "instance_id": movie.id,
                 "media_id": "10494",
                 "source": Sources.TMDB.value,
                 "media_type": MediaTypes.MOVIE.value,
                 "score": 10,
                 "progress": 1,
-                "status": Media.Status.COMPLETED.value,
-                "repeats": 0,
+                "status": Status.COMPLETED.value,
                 "notes": "Nice",
             },
         )
@@ -922,10 +921,10 @@ class DeleteMedia(TestCase):
             title="Friends",
             image="http://example.com/image.jpg",
         )
-        related_tv = TV.objects.create(
+        self.tv = TV.objects.create(
             item=self.item_tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.item_season = Item.objects.create(
@@ -936,11 +935,11 @@ class DeleteMedia(TestCase):
             image="http://example.com/image.jpg",
             season_number=1,
         )
-        season = Season.objects.create(
+        self.season = Season.objects.create(
             item=self.item_season,
             user=self.user,
-            related_tv=related_tv,
-            status=Media.Status.IN_PROGRESS.value,
+            related_tv=self.tv,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.item_ep = Item.objects.create(
@@ -952,9 +951,9 @@ class DeleteMedia(TestCase):
             season_number=1,
             episode_number=1,
         )
-        Episode.objects.create(
+        self.episode = Episode.objects.create(
             item=self.item_ep,
-            related_season=season,
+            related_season=self.season,
             end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
@@ -964,9 +963,8 @@ class DeleteMedia(TestCase):
 
         self.client.post(
             reverse("media_delete"),
-            {
-                "media_id": "1668",
-                "source": Sources.TMDB.value,
+            data={
+                "instance_id": self.tv.id,
                 "media_type": MediaTypes.TV.value,
             },
         )
@@ -976,13 +974,10 @@ class DeleteMedia(TestCase):
     def test_delete_season(self):
         """Test the deletion of a season through views."""
         self.client.post(
-            reverse("media_delete"),
-            {
-                "media_id": "1668",
-                "source": Sources.TMDB.value,
-                "media_type": MediaTypes.TV.value,
-                "season_number": 1,
-            },
+            reverse(
+                "media_delete",
+            ),
+            data={"instance_id": self.season.id, "media_type": MediaTypes.SEASON.value},
         )
 
         self.assertEqual(Season.objects.filter(user=self.user).count(), 0)
@@ -994,13 +989,10 @@ class DeleteMedia(TestCase):
     def test_unwatch_episode(self):
         """Test unwatching of an episode through views."""
         self.client.post(
-            reverse("episode_handler"),
-            {
-                "media_id": "1668",
-                "season_number": 1,
-                "episode_number": 1,
-                "unwatch": "",
-                "source": Sources.TMDB.value,
+            reverse("media_delete"),
+            data={
+                "instance_id": self.episode.id,
+                "media_type": MediaTypes.EPISODE.value,
             },
         )
 
@@ -1029,7 +1021,7 @@ class ProgressEditSeason(TestCase):
         tv = TV.objects.create(
             item=item_tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         self.item_season = Item.objects.create(
@@ -1040,11 +1032,11 @@ class ProgressEditSeason(TestCase):
             image="http://example.com/image.jpg",
             season_number=1,
         )
-        season = Season.objects.create(
+        self.season = Season.objects.create(
             item=self.item_season,
             related_tv=tv,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         item_ep = Item.objects.create(
@@ -1058,16 +1050,21 @@ class ProgressEditSeason(TestCase):
         )
         Episode.objects.create(
             item=item_ep,
-            related_season=season,
+            related_season=self.season,
             end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
     def test_progress_increase(self):
         """Test the increase of progress for a season."""
         self.client.post(
-            reverse("progress_edit"),
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": self.season.id,
+                },
+            ),
             {
-                "item": self.item_season.id,
                 "operation": "increase",
             },
         )
@@ -1088,9 +1085,14 @@ class ProgressEditSeason(TestCase):
     def test_progress_decrease(self):
         """Test the decrease of progress for a season."""
         self.client.post(
-            reverse("progress_edit"),
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": self.season.id,
+                },
+            ),
             {
-                "item": self.item_season.id,
                 "operation": "decrease",
             },
         )
@@ -1117,19 +1119,24 @@ class ProgressEditAnime(TestCase):
             title="Cowboy Bebop",
             image="http://example.com/image.jpg",
         )
-        Anime.objects.create(
+        self.anime = Anime.objects.create(
             item=self.item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             progress=2,
         )
 
     def test_progress_increase(self):
         """Test the increase of progress for an anime."""
         self.client.post(
-            reverse("progress_edit"),
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": self.anime.id,
+                },
+            ),
             {
-                "item": self.item.id,
                 "operation": "increase",
             },
         )
@@ -1139,9 +1146,14 @@ class ProgressEditAnime(TestCase):
     def test_progress_decrease(self):
         """Test the decrease of progress for an anime."""
         self.client.post(
-            reverse("progress_edit"),
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": self.anime.id,
+                },
+            ),
             {
-                "item": self.item.id,
                 "operation": "decrease",
             },
         )
@@ -1174,10 +1186,9 @@ class CreateEntryViewTests(TestCase):
         form_data = {
             "title": "Test Movie",
             "media_type": MediaTypes.MOVIE.value,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "score": 8,
             "progress": 1,
-            "repeats": 0,
             "start_date": "2023-01-01T00:00",
             "end_date": "2023-01-02T00:00",
         }
@@ -1197,10 +1208,9 @@ class CreateEntryViewTests(TestCase):
 
         # Verify media was created
         movie = Movie.objects.get(item__title="Test Movie")
-        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
+        self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.score, 8)
         self.assertEqual(movie.progress, 1)
-        self.assertEqual(movie.repeats, 0)
         self.assertEqual(movie.user, self.user)
 
     def test_create_entry_post_tv(self):
@@ -1208,9 +1218,8 @@ class CreateEntryViewTests(TestCase):
         form_data = {
             "title": "Test TV Show",
             "media_type": MediaTypes.TV.value,
-            "status": Media.Status.IN_PROGRESS.value,
+            "status": Status.IN_PROGRESS.value,
             "score": 7,
-            "repeats": 0,
         }
 
         response = self.client.post(reverse("create_entry"), form_data, follow=True)
@@ -1228,9 +1237,8 @@ class CreateEntryViewTests(TestCase):
 
         # Verify media was created
         tv = TV.objects.get(item__title="Test TV Show")
-        self.assertEqual(tv.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
         self.assertEqual(tv.score, 7)
-        self.assertEqual(tv.repeats, 0)
         self.assertEqual(tv.user, self.user)
 
     def test_create_entry_post_season(self):
@@ -1245,7 +1253,7 @@ class CreateEntryViewTests(TestCase):
         parent_tv = TV.objects.create(
             item=tv_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         form_data = {
@@ -1253,9 +1261,8 @@ class CreateEntryViewTests(TestCase):
             "media_type": MediaTypes.SEASON.value,
             "season_number": 1,
             "parent_tv": parent_tv.id,
-            "status": Media.Status.IN_PROGRESS.value,
+            "status": Status.IN_PROGRESS.value,
             "score": 7,
-            "repeats": 0,
         }
 
         response = self.client.post(reverse("create_entry"), form_data, follow=True)
@@ -1274,9 +1281,8 @@ class CreateEntryViewTests(TestCase):
 
         # Verify media was created with correct relationship
         season = Season.objects.get(item__title="TV Show")
-        self.assertEqual(season.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(season.status, Status.IN_PROGRESS.value)
         self.assertEqual(season.score, 7)
-        self.assertEqual(season.repeats, 0)
         self.assertEqual(season.user, self.user)
         self.assertEqual(season.related_tv, parent_tv)
 
@@ -1292,7 +1298,7 @@ class CreateEntryViewTests(TestCase):
         parent_tv = TV.objects.create(
             item=tv_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         season_item = Item.objects.create(
@@ -1306,7 +1312,7 @@ class CreateEntryViewTests(TestCase):
             item=season_item,
             user=self.user,
             related_tv=parent_tv,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         form_data = {
@@ -1316,7 +1322,6 @@ class CreateEntryViewTests(TestCase):
             "episode_number": 1,
             "parent_season": parent_season.id,
             "end_date": "2023-01-02T00:00",
-            "repeats": 0,
         }
 
         response = self.client.post(reverse("create_entry"), form_data, follow=True)
@@ -1336,7 +1341,6 @@ class CreateEntryViewTests(TestCase):
 
         # Verify media was created with correct relationship
         episode = Episode.objects.get(item__title="TV Show")
-        self.assertEqual(episode.repeats, 0)
         self.assertEqual(episode.related_season, parent_season)
         end_date_local = timezone.localtime(episode.end_date)
         self.assertEqual(end_date_local.strftime("%Y-%m-%d %H:%M"), "2023-01-02 00:00")
@@ -1353,7 +1357,7 @@ class CreateEntryViewTests(TestCase):
         parent_tv = TV.objects.create(
             item=tv_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         season_item = Item.objects.create(
@@ -1367,7 +1371,7 @@ class CreateEntryViewTests(TestCase):
             item=season_item,
             user=self.user,
             related_tv=parent_tv,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         # Count items before the test
@@ -1379,7 +1383,7 @@ class CreateEntryViewTests(TestCase):
             "media_type": MediaTypes.SEASON.value,
             "season_number": 1,
             "parent_tv": parent_tv.id,
-            "status": Media.Status.IN_PROGRESS.value,
+            "status": Status.IN_PROGRESS.value,
             "score": 7,
             "repeats": 0,
         }
@@ -1410,7 +1414,7 @@ class SearchParentViewTests(TestCase):
         self.tv1 = TV.objects.create(
             item=tv_item1,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         tv_item2 = Item.objects.create(
@@ -1422,7 +1426,7 @@ class SearchParentViewTests(TestCase):
         self.tv2 = TV.objects.create(
             item=tv_item2,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         season_item1 = Item.objects.create(
@@ -1436,7 +1440,7 @@ class SearchParentViewTests(TestCase):
             item=season_item1,
             user=self.user,
             related_tv=self.tv1,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         season_item2 = Item.objects.create(
@@ -1450,7 +1454,7 @@ class SearchParentViewTests(TestCase):
             item=season_item2,
             user=self.user,
             related_tv=self.tv2,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
     def test_search_parent_tv_short_query(self):

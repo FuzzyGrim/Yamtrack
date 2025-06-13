@@ -8,35 +8,35 @@ from .base import BaseWebhookProcessor
 logger = logging.getLogger(__name__)
 
 
-class JellyfinWebhookProcessor(BaseWebhookProcessor):
-    """Processor for Jellyfin webhook events."""
+class EmbyWebhookProcessor(BaseWebhookProcessor):
+    """Processor for Emby webhook events."""
 
     def process_payload(self, payload, user):
-        """Process the incoming Jellyfin webhook payload."""
+        """Process the incoming Emby webhook payload."""
         logger.debug(
-            "Processing Jellyfin webhook payload: %s",
+            "Processing Emby webhook payload: %s",
             json.dumps(payload, indent=2),
         )
 
         event_type = payload.get("Event")
         if not self._is_supported_event(event_type):
-            logger.info("Ignoring Jellyfin webhook event type: %s", event_type)
+            logger.info("Ignoring Emby webhook event type: %s", event_type)
             return
 
         ids = self._extract_external_ids(payload)
         logger.debug("Extracted IDs from payload: %s", ids)
 
         if not any(ids.values()):
-            logger.info("Ignoring Jellyfin webhook call because no ID was found.")
+            logger.info("Ignoring Emby webhook call because no ID was found.")
             return
 
         self._process_media(payload, user, ids)
 
     def _is_supported_event(self, event_type):
-        return event_type in ("Play", "Stop")
+        return event_type in ("playback.start", "playback.stop")
 
     def _is_played(self, payload):
-        return payload["Item"]["UserData"]["Played"]
+        return payload.get("PlaybackInfo", {}).get("PlayedToCompletion", False) is True
 
     def _get_media_type(self, payload):
         return self.MEDIA_TYPE_MAPPING.get(payload["Item"].get("Type"))

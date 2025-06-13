@@ -10,7 +10,7 @@ from app.forms import (
     SeasonForm,
     TvForm,
 )
-from app.models import TV, Item, Media, MediaTypes, Season, Sources
+from app.models import TV, Item, MediaTypes, Season, Sources, Status
 
 
 class BasicMediaForm(TestCase):
@@ -46,7 +46,7 @@ class BasicMediaForm(TestCase):
             "user": self.user.id,
             "score": 7.5,
             "progress": 25,
-            "status": Media.Status.PAUSED.value,
+            "status": Status.PAUSED.value,
             "repeats": 0,
             "start_date": "2023-02-01",
             "end_date": "2023-06-30",
@@ -63,7 +63,7 @@ class BasicMediaForm(TestCase):
             "media_type": MediaTypes.TV.value,
             "user": self.user.id,
             "score": 7.5,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "repeats": 0,
             "notes": "New notes",
         }
@@ -78,7 +78,7 @@ class BasicMediaForm(TestCase):
             "media_type": MediaTypes.SEASON.value,
             "user": self.user.id,
             "score": 7.5,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "repeats": 0,
             "season_number": 1,
             "notes": "New notes",
@@ -122,7 +122,7 @@ class BasicGameForm(TestCase):
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "progress": "25:00",
             "repeats": 0,
         }
@@ -136,7 +136,7 @@ class BasicGameForm(TestCase):
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "progress": "25h 00min",
             "repeats": 0,
         }
@@ -150,7 +150,7 @@ class BasicGameForm(TestCase):
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "progress": "30min",
             "repeats": 0,
         }
@@ -164,7 +164,7 @@ class BasicGameForm(TestCase):
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "progress": "9h",
             "repeats": 0,
         }
@@ -178,7 +178,7 @@ class BasicGameForm(TestCase):
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "progress": "9h30min",
             "repeats": 0,
         }
@@ -192,7 +192,7 @@ class BasicGameForm(TestCase):
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "progress": "25:00m",
             "repeats": 0,
         }
@@ -206,7 +206,7 @@ class BasicGameForm(TestCase):
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": Media.Status.COMPLETED.value,
+            "status": Status.COMPLETED.value,
             "progress": "25h61m",
             "repeats": 0,
         }
@@ -233,7 +233,7 @@ class ManualItemFormTest(TestCase):
         self.tv = TV.objects.create(
             item=self.tv_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         # Create a manual Season
@@ -248,7 +248,7 @@ class ManualItemFormTest(TestCase):
         self.season = Season.objects.create(
             item=self.season_item,
             user=self.user,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
     def test_init_with_user(self):
@@ -317,7 +317,7 @@ class ManualItemFormTest(TestCase):
         self.assertEqual(item.episode_number, 5)
 
     def test_missing_title_for_standalone(self):
-        """Test that title is required for standalone media."""
+        """Test that title is required for standalone."""
         form_data = {
             "media_type": MediaTypes.MOVIE.value,
         }

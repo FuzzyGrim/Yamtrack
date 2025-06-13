@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from app.models import TV, Episode, Item, Media, MediaTypes, Movie, Season
+from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
+from integrations.webhooks.plex import PlexWebhookProcessor
 
 
 class PlexWebhookTests(TestCase):
@@ -70,13 +71,13 @@ class PlexWebhookTests(TestCase):
         self.assertEqual(tv_item.title, "Friends")
 
         tv = TV.objects.get(item=tv_item, user=self.user)
-        self.assertEqual(tv.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
 
         season = Season.objects.get(
             item__media_id="1668",
             item__season_number=1,
         )
-        self.assertEqual(season.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(season.status, Status.IN_PROGRESS.value)
 
         episode = Episode.objects.get(
             item__media_id="1668",
@@ -126,8 +127,98 @@ class PlexWebhookTests(TestCase):
             item__media_id="603",
             user=self.user,
         )
-        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
+        self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
+
+    def test_anime_movie_mark_played(self):
+        """Test webhook handles movie mark played event."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
+            "Metadata": {
+                "type": "movie",
+                "title": "Perfect Blue",
+                "Guid": [
+                    {
+                        "id": "imdb://tt0156887",
+                    },
+                    {
+                        "id": "tmdb://10494",
+                    },
+                    {
+                        "id": "tvdb://3807",
+                    },
+                ],
+            },
+        }
+
+        data = {
+            "payload": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify movie was created and marked as completed
+        movie = Anime.objects.get(
+            item__media_id="437",
+            user=self.user,
+        )
+        self.assertEqual(movie.status, Status.COMPLETED.value)
+        self.assertEqual(movie.progress, 1)
+
+    def test_anime_episode_mark_played(self):
+        """Test webhook handles anime episode mark played event."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
+            "Metadata": {
+                "type": "episode",
+                "grandparentTitle": "Frieren: Beyond Journey's End",
+                "index": 1,
+                "parentIndex": 1,
+                "Guid": [
+                    {
+                        "id": "imdb://tt23861604",
+                    },
+                    {
+                        "id": "tmdb://3946240",
+                    },
+                    {
+                        "id": "tvdb://9350138",
+                    },
+                ],
+            },
+        }
+
+        data = {
+            "payload": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify anime was created and marked as in progress
+        anime = Anime.objects.get(
+            item__media_id="52991",
+            user=self.user,
+        )
+        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
+        self.assertEqual(anime.progress, 1)
 
     def test_ignored_event_types(self):
         """Test webhook ignores irrelevant event types."""
@@ -235,9 +326,10 @@ class PlexWebhookTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        movie = Movie.objects.get(item__media_id="603")
-        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
-        self.assertEqual(movie.repeats, 1)
+        movie = Movie.objects.filter(item__media_id="603")
+        self.assertEqual(movie.count(), 2)
+        self.assertEqual(movie[0].status, Status.COMPLETED.value)
+        self.assertEqual(movie[1].status, Status.COMPLETED.value)
 
     def test_username_matching(self):
         """Test Plex username matching functionality."""
@@ -248,6 +340,7 @@ class PlexWebhookTests(TestCase):
             ("testuser", " testuser ", True),  # Whitespace handling
             ("testuser", "testuser2", False),  # Different username
             ("testuser1,testuser2", "testuser1", True),  # First in list
+            ("testuser1, testuser2", "testuser1", True),  # comma and space
             ("testuser1,testuser2", "testuser3", False),  # Not in list
         ]
 
@@ -284,3 +377,45 @@ class PlexWebhookTests(TestCase):
                 else:
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(Movie.objects.count(), 0)
+
+    def test_extract_external_ids(self):
+        """Test extraction of external IDs from Plex webhook payload."""
+        # Setup test payload
+        payload = {
+            "Metadata": {
+                "Guid": [
+                    {"id": "tmdb://12345"},
+                    {"id": "imdb://tt67890"},
+                    {"id": "tvdb://98765"},
+                ],
+            },
+        }
+
+        # Execute
+        result = PlexWebhookProcessor()._extract_external_ids(payload)
+
+        # Assert
+        expected = {
+            "tmdb_id": "12345",
+            "imdb_id": "tt67890",
+            "tvdb_id": "98765",
+        }
+
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)
+
+    def test_extract_external_ids_missing_data(self):
+        """Test handling of missing or empty data."""
+        payload = {"Metadata": {"Guid": []}}
+
+        result = PlexWebhookProcessor()._extract_external_ids(payload)
+
+        expected = {
+            "tmdb_id": None,
+            "imdb_id": None,
+            "tvdb_id": None,
+        }
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)

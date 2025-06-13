@@ -2,7 +2,7 @@ import os
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.utils import timezone
+from django.utils import formats, timezone
 from playwright.sync_api import expect, sync_playwright
 
 
@@ -62,7 +62,10 @@ class IntegrationTest(StaticLiveServerTestCase):
         ).click()
         self.page.get_by_role("link", name="Breaking Bad S1").click()
 
-        today = timezone.localtime().strftime("%b %d, %Y")
+        today = formats.date_format(
+            timezone.localdate(),
+            "DATE_FORMAT",
+        )
         expect(self.page.get_by_role("main")).to_contain_text(f"Last watched: {today}")
 
     def test_tv_completed(self):
@@ -78,7 +81,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="Track").click()
         expect(self.page.locator("#track-tv-1396")).to_contain_text("Score")
         self.page.get_by_label("Status").select_option("Completed")
-        self.page.get_by_role("button", name="Save").click()
+        self.page.get_by_role("button", name="Add", exact=True).click()
         self.page.get_by_role("link", name="TV Shows").click()
         self.page.get_by_role("link", name="Table View").click()
         expect(self.page.locator("tbody")).to_contain_text("62")
@@ -94,7 +97,8 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_role("main")).to_contain_text("Season 1")
         self.page.get_by_role("button", name="Track").click()
         expect(self.page.locator("#track-season-1396-1")).to_contain_text("Score")
-        self.page.get_by_role("button", name="Save").click()
+        self.page.pause()
+        self.page.get_by_role("button", name="Add", exact=True).click()
         self.page.get_by_role("link", name="TV Seasons").click()
         self.page.get_by_role("link", name="Table View").click()
         expect(self.page.locator("tbody")).to_contain_text("Completed")

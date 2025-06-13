@@ -14,10 +14,10 @@ def export_vars(request):  # noqa: ARG001
 
 def media_enums(request): # noqa: ARG001
     """Export media enums to templates."""
-    from app.models import Media, MediaTypes, Sources
+    from app.models import MediaTypes, Sources, Status
 
     return {
         "MediaTypes": MediaTypes,
         "Sources": Sources,
-        "Status": Media.Status,
+        "Status": Status,
     }

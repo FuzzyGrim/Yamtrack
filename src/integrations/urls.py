@@ -22,4 +22,9 @@ urlpatterns = [
         views.plex_webhook,
         name="plex_webhook",
     ),
+    path(
+        "webhook/emby/<str:token>",
+        views.emby_webhook,
+        name="emby_webhook",
+    ),
 ]

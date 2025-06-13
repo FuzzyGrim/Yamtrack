@@ -6,6 +6,7 @@ from django.conf import settings
 from django.utils.translation import get_language
 from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
+from requests.adapters import HTTPAdapter
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
 from app.models import MediaTypes, Sources
@@ -39,6 +40,10 @@ session = LimiterSession(
     bucket_class=RedisBucket,
     bucket_kwargs={"redis_pool": redis_pool, "bucket_name": "api"},
 )
+
+session.mount("http://", HTTPAdapter(max_retries=3))
+session.mount("https://", HTTPAdapter(max_retries=3))
+
 session.mount(
     "https://api.myanimelist.net/v2",
     LimiterAdapter(per_minute=30),

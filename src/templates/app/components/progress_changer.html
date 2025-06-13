@@ -3,11 +3,11 @@
 <div class="flex items-center justify-center space-x-4">
   <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
           {% if media.progress == 0 %}disabled{% endif %}
-          hx-post="{% url 'progress_edit' %}"
+          hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-          hx-vals='{"item": "{{ media.item_id }}", "operation": "decrease"}'
+          hx-vals='{"operation": "decrease"}'
           hx-swap="innerHTML"
-          hx-target="#progress-changer-{{ media.item_id }}">
+          hx-target="#progress-changer-{{ media.id }}">
     <svg xmlns="http://www.w3.org/2000/svg"
          width="24"
          height="24"
@@ -36,11 +36,11 @@
 
   <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
           {% if media.progress == media.max_progress %}disabled{% endif %}
-          hx-post="{% url 'progress_edit' %}"
+          hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-          hx-vals='{"item": "{{ media.item_id }}", "operation": "increase"}'
+          hx-vals='{"operation": "increase"}'
           hx-swap="innerHTML"
-          hx-target="#progress-changer-{{ media.item_id }}">
+          hx-target="#progress-changer-{{ media.id }}">
     <svg xmlns="http://www.w3.org/2000/svg"
          width="24"
          height="24"
