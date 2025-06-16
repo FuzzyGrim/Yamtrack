@@ -137,10 +137,13 @@ if config("DB_HOST", default=None):
             "PASSWORD": config("DB_PASSWORD"),
             "PORT": config("DB_PORT"),
             "OPTIONS": {
-                "sslmode": "disable",
+                "pool": True,
             },
         },
     }
+
+    if config("DB_SSL_CERT_MODE", default=None):
+        DATABASES["default"]["OPTIONS"]["sslcertmode"] = config("DB_SSL_CERT_MODE")
 else:
     DATABASES = {
         "default": {
@@ -148,7 +151,6 @@ else:
             "NAME": BASE_DIR / "db" / "db.sqlite3",
         },
     }
-
 
 # Cache
 # https://docs.djangoproject.com/en/stable/topics/cache/
