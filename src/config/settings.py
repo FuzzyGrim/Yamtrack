@@ -188,14 +188,14 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "loggers": {
-        "requests_ratelimiter": {
-            "level": "DEBUG" if DEBUG else "INFO",
+        "requests_ratelimiter.requests_ratelimiter": {
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
         "psycopg": {
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
         "urllib3": {
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
     },
     "formatters": {
