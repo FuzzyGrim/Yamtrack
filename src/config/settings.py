@@ -136,6 +136,9 @@ if config("DB_HOST", default=None):
             "USER": config("DB_USER"),
             "PASSWORD": config("DB_PASSWORD"),
             "PORT": config("DB_PORT"),
+            "OPTIONS": {
+                "sslmode": "disable",
+            },
         },
     }
 else:
