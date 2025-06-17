@@ -21,6 +21,6 @@ Pillow==11.2.1
 psycopg[binary,pool]==3.2.9
 python-decouple==3.8
 redis[hiredis]==6.2.0
-requests==2.32.3
+requests==2.32.4
 requests-ratelimiter==0.7.0
 unidecode==1.4.0
