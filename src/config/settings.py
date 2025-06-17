@@ -142,8 +142,14 @@ if config("DB_HOST", default=None):
         },
     }
 
-    if config("DB_SSL_CERT_MODE", default=None):
-        DATABASES["default"]["OPTIONS"]["sslcertmode"] = config("DB_SSL_CERT_MODE")
+    sslmode = config("DB_SSL_MODE", default=None)
+    if sslmode:
+        DATABASES["default"]["OPTIONS"]["sslmode"] = sslmode
+
+    sslcertmode = config("DB_SSL_CERT_MODE", default=None)
+    if sslcertmode:
+        DATABASES["default"]["OPTIONS"]["sslcertmode"] = sslcertmode
+
 else:
     DATABASES = {
         "default": {
