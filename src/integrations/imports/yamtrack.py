@@ -66,8 +66,10 @@ class YamtrackImporter:
             try:
                 self._process_row(row)
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
-                raise MediaImportUnexpectedError(error_msg) from error
+                error_msg = f"Error processing entry: {row.get('title', 'Unknown')} ({row.get('media_type', 'Unknown')}): {error}"
+                self.warnings.append(error_msg)
+                logger.error(error_msg, exc_info=True)
+                continue
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
