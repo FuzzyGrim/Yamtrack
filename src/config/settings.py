@@ -185,6 +185,9 @@ if config("DB_HOST", default=None):
             "USER": config("DB_USER", default=secret("DB_USER_FILE")),
             "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
             "PORT": config("DB_PORT"),
+            "OPTIONS": {
+                "pool": True,
+            },
         },
     }
 
