@@ -7,7 +7,7 @@
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
           hx-vals='{"operation": "decrease"}'
           hx-swap="innerHTML"
-          hx-target="#progress-changer-{{ media.id }}">
+          hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
     <svg xmlns="http://www.w3.org/2000/svg"
          width="24"
          height="24"
@@ -40,7 +40,7 @@
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
           hx-vals='{"operation": "increase"}'
           hx-swap="innerHTML"
-          hx-target="#progress-changer-{{ media.id }}">
+          hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
     <svg xmlns="http://www.w3.org/2000/svg"
          width="24"
          height="24"

@@ -88,6 +88,9 @@ for url in URLS:
     CSRF_TRUSTED_ORIGINS.append(url)
     ALLOWED_HOSTS.append(urlparse(url).hostname)
 
+if BASE_URL:
+    CSRF_COOKIE_PATH = BASE_URL + "/"
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
@@ -111,12 +114,12 @@ INSTALLED_APPS = [
     "simple_history",
     "widget_tweaks",
     "health_check",
-    "health_check.db",
     "health_check.cache",
     "health_check.storage",
     "health_check.contrib.migrations",
     "health_check.contrib.celery_ping",
     "health_check.contrib.redis",
+    "health_check.contrib.db_heartbeat",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -184,8 +187,20 @@ if config("DB_HOST", default=None):
             "USER": config("DB_USER", default=secret("DB_USER_FILE")),
             "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
             "PORT": config("DB_PORT"),
+            "OPTIONS": {
+                "pool": True,
+            },
         },
     }
+
+    sslmode = config("DB_SSL_MODE", default=None)
+    if sslmode:
+        DATABASES["default"]["OPTIONS"]["sslmode"] = sslmode
+
+    sslcertmode = config("DB_SSL_CERT_MODE", default=None)
+    if sslcertmode:
+        DATABASES["default"]["OPTIONS"]["sslcertmode"] = sslcertmode
+
 else:
     DATABASES = {
         "default": {
@@ -193,7 +208,6 @@ else:
             "NAME": BASE_DIR / "db" / "db.sqlite3",
         },
     }
-
 
 # Cache
 # https://docs.djangoproject.com/en/stable/topics/cache/
@@ -231,14 +245,14 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "loggers": {
-        "requests_ratelimiter": {
-            "level": "DEBUG" if DEBUG else "INFO",
+        "requests_ratelimiter.requests_ratelimiter": {
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
         "psycopg": {
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
         "urllib3": {
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
     },
     "formatters": {
@@ -312,6 +326,8 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 VERSION = config("VERSION", default="dev")
 
 ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
+
+TRACK_TIME = config("TRACK_TIME", default=True, cast=bool)
 
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
@@ -509,6 +525,7 @@ ACCOUNT_FORMS = {
 
 if BASE_URL:
     ACCOUNT_LOGOUT_REDIRECT_URL = f"{BASE_URL}/accounts/login/?loggedout=1"
+    SESSION_COOKIE_PATH = BASE_URL + "/"
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
 

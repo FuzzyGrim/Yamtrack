@@ -240,7 +240,6 @@ class UserGetImportTasksTests(TestCase):
         self.assertEqual(import_tasks["results"][1]["status"], "SUCCESS")
         self.assertEqual(import_tasks["results"][1]["summary"], "Imported 10 items")
         self.assertEqual(import_tasks["results"][1]["errors"], [])
-        self.assertEqual(import_tasks["results"][1]["mode"], "overwrite")
 
         # Check second result
         self.assertEqual(import_tasks["results"][0]["task"], mock_task)
@@ -303,7 +302,6 @@ class UserGetImportTasksTests(TestCase):
         self.assertEqual(import_tasks["schedules"][0]["source"], "trakt")
         self.assertEqual(import_tasks["schedules"][0]["username"], "testuser")
         self.assertEqual(import_tasks["schedules"][0]["schedule"], "Daily at midnight")
-        self.assertEqual(import_tasks["schedules"][0]["mode"], "overwrite")
 
         # Check second schedule
         self.assertEqual(import_tasks["schedules"][1]["task"], periodic_task2)

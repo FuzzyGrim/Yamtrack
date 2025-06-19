@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -17,7 +17,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from app import helpers, history_processor
 from app import statistics as stats
-from app.forms import ManualItemForm, get_form_class
+from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
@@ -522,6 +522,11 @@ def episode_save(request):
     episode_number = int(request.POST["episode_number"])
     source = request.POST["source"]
 
+    form = EpisodeForm(request.POST)
+    if not form.is_valid():
+        logger.error("Form validation failed: %s", form.errors)
+        return HttpResponseBadRequest("Invalid form data")
+
     try:
         related_season = Season.objects.get(
             item__media_id=media_id,
@@ -559,11 +564,7 @@ def episode_save(request):
 
         logger.info("%s did not exist, it was created successfully.", related_season)
 
-    end_date = timezone.make_aware(
-        timezone.datetime.strptime(request.POST["date"], "%Y-%m-%dT%H:%M"),
-        timezone=timezone.get_current_timezone(),
-    )
-    related_season.watch(episode_number, end_date)
+    related_season.watch(episode_number, form.cleaned_data["end_date"])
 
     return helpers.redirect_back(request)
 

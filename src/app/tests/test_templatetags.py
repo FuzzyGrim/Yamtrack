@@ -99,11 +99,9 @@ class AppTagsTests(TestCase):
 
         # Test with special characters
         self.assertEqual(app_tags.slug("Anime: 31687"), "anime-31687")
-
-        # Test with characters that would be removed entirely
-        empty_slug = app_tags.slug("★★★")
-        self.assertEqual(empty_slug, "")
+        self.assertEqual(app_tags.slug("★★★"), "%E2%98%85%E2%98%85%E2%98%85")
         self.assertEqual(app_tags.slug("[Oshi no Ko]"), "oshi-no-ko")
+        self.assertEqual(app_tags.slug("_____"), "_____")
 
     def test_media_type_readable(self):
         """Test the media_type_readable filter."""

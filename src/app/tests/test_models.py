@@ -79,15 +79,6 @@ class MediaManagerTests(TestCase):
             setattr(self.user, f"{media_type.lower()}_enabled", True)
         self.user.save()
 
-        # Create test items for different media types
-        self.tv_item = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Friends",
-            image="http://example.com/image.jpg",
-        )
-
         self.movie_item = Item.objects.create(
             media_id="550",
             source=Sources.TMDB.value,
@@ -126,14 +117,6 @@ class MediaManagerTests(TestCase):
             media_type=MediaTypes.MANGA.value,
             title="Berserk",
             image="http://example.com/berserk.jpg",
-        )
-
-        # Create media objects
-        self.tv = TV.objects.create(
-            item=self.tv_item,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-            score=8,
         )
 
         self.movie = Movie.objects.create(
@@ -186,11 +169,12 @@ class MediaManagerTests(TestCase):
 
         self.season1 = Season.objects.create(
             item=self.season1_item,
-            related_tv=self.tv,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             score=8,
         )
+
+        self.tv = TV.objects.get(user=self.user)
 
         # Create episodes for season 1
         for i in range(1, 5):
@@ -977,26 +961,6 @@ class MediaModel(TestCase):
             status=Status.PLANNING.value,
         )
 
-    def test_completed_no_end(self):
-        """When completed, if not specified end_date, it should be the current date."""
-        self.anime.status = Status.COMPLETED.value
-        self.anime.save()
-
-        self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).end_date.date(),
-            timezone.now().date(),
-        )
-
-    def test_completed_end(self):
-        """When completed, if specified end_date, it should be the specified date."""
-        self.anime.status = Status.COMPLETED.value
-        self.anime.end_date = datetime(2023, 6, 1, 0, 0, tzinfo=UTC)
-        self.anime.save()
-        self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).end_date,
-            datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
-        )
-
     def test_completed_progress(self):
         """When completed, the progress should be the total number of episodes."""
         self.anime.status = Status.COMPLETED.value
@@ -1042,21 +1006,6 @@ class TVModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
-        item_tv = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Friends",
-            image="http://example.com/image.jpg",
-        )
-
-        self.tv = TV.objects.create(
-            item=item_tv,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-            notes="",
-        )
-
         item_season1 = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -1069,10 +1018,11 @@ class TVModel(TestCase):
         # create first season
         season1 = Season.objects.create(
             item=item_season1,
-            related_tv=self.tv,
             user=self.user,
             status=Status.IN_PROGRESS.value,
         )
+
+        self.tv = TV.objects.get(user=self.user)
 
         item_ep1 = Item.objects.create(
             media_id="1668",
@@ -1181,6 +1131,195 @@ class TVModel(TestCase):
         )
 
 
+class TVStatusTests(TestCase):
+    """Test TV model status change behaviors."""
+
+    def setUp(self):
+        """Create test data."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+        # Create TV show item
+        self.tv_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+        )
+
+        # Create TV instance
+        self.tv = TV.objects.create(
+            item=self.tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
+        # Create some seasons
+        self.season1_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+
+        self.season1 = Season.objects.create(
+            item=self.season1_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.IN_PROGRESS.value,
+        )
+
+        self.season2_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=2,
+        )
+
+        self.season2 = Season.objects.create(
+            item=self.season2_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_creates_all_seasons(self, mock_get_metadata):
+        """Test setting status to COMPLETED creates all seasons."""
+        mock_metadata = {
+            "max_progress": 10,
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "image": "img1.jpg"},
+                    {"season_number": 2, "image": "img2.jpg"},
+                    {"season_number": 3, "image": "img3.jpg"},
+                ],
+            },
+            "season/1": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 1,
+                "episodes": [{"episode_number": 1}] * 10,
+            },
+            "season/2": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 2,
+                "episodes": [{"episode_number": 1}] * 10,
+            },
+            "season/3": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 3,
+                "episodes": [{"episode_number": 1}] * 10,
+            },
+        }
+        mock_get_metadata.return_value = mock_metadata
+
+        self.tv.status = Status.COMPLETED.value
+        self.tv.save()
+
+        # Verify all seasons were created and marked completed
+        self.assertEqual(self.tv.seasons.count(), 3)
+        self.assertEqual(
+            self.tv.seasons.filter(status=Status.COMPLETED.value).count(),
+            3,
+        )
+
+        # Verify episodes were created for each season
+        for season in self.tv.seasons.all():
+            self.assertTrue(season.episodes.exists())
+
+    def test_dropped_status_marks_in_progress_seasons_dropped(self):
+        """Test setting status to DROPPED marks in-progress seasons as dropped."""
+        # Create another in-progress season
+        season3_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=3,
+        )
+
+        Season.objects.create(
+            item=season3_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.IN_PROGRESS.value,
+        )
+
+        self.tv.status = Status.DROPPED.value
+        self.tv.save()
+
+        # Verify all in-progress seasons were marked dropped
+        self.assertEqual(
+            self.tv.seasons.filter(status=Status.DROPPED.value).count(),
+            2,  # season1 and season3
+        )
+        # season2 should remain in planning
+        self.assertEqual(
+            self.tv.seasons.filter(status=Status.PLANNING.value).count(),
+            1,
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_in_progress_status_activates_next_season(self, _):
+        """Test setting status to IN_PROGRESS activates next available season."""
+        # Complete season1
+        self.season1.status = Status.COMPLETED.value
+        self.season1.save()
+
+        self.tv.status = Status.IN_PROGRESS.value
+        self.tv.save()
+
+        # Should activate season2 (was in planning)
+        season2 = Season.objects.get(pk=self.season2.pk)
+        self.assertEqual(season2.status, Status.IN_PROGRESS.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_in_progress_status_creates_new_season_if_needed(self, mock_get_metadata):
+        """Test setting status to IN_PROGRESS creates new season if needed."""
+        # Complete all existing seasons
+        self.season1.status = Status.COMPLETED.value
+        self.season1.save()
+        self.season2.status = Status.COMPLETED.value
+        self.season2.save()
+
+        # Mock metadata to return a new season
+        mock_metadata = {
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "image": "img1.jpg"},
+                    {"season_number": 2, "image": "img2.jpg"},
+                    {"season_number": 3, "image": "img3.jpg"},
+                ],
+            },
+        }
+        mock_get_metadata.return_value = mock_metadata
+
+        self.tv.status = Status.IN_PROGRESS.value
+        self.tv.save()
+
+        # Should create and activate season3
+        season3 = self.tv.seasons.get(item__season_number=3)
+        self.assertEqual(season3.status, Status.IN_PROGRESS.value)
+
+    def test_in_progress_status_noop_if_already_has_in_progress_season(self):
+        """Test IN_PROGRESS status change does nothing if season already in progress."""
+        # season1 is already in progress from setUp
+        original_season1_status = self.season1.status
+
+        self.tv.status = Status.IN_PROGRESS.value
+        self.tv.save()
+
+        # Verify no changes were made
+        season1 = Season.objects.get(pk=self.season1.pk)
+        self.assertEqual(season1.status, original_season1_status)
+
+
 class SeasonModel(TestCase):
     """Test the @properties and custom save of the Season model."""
 
@@ -1188,20 +1327,6 @@ class SeasonModel(TestCase):
         """Create a user and a season with episodes."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
-
-        item_tv = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Friends",
-            image="http://example.com/image.jpg",
-        )
-
-        related_tv = TV.objects.create(
-            item=item_tv,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-        )
 
         item_season = Item.objects.create(
             media_id="1668",
@@ -1214,7 +1339,6 @@ class SeasonModel(TestCase):
 
         self.season = Season.objects.create(
             item=item_season,
-            related_tv=related_tv,
             user=self.user,
             status=Status.IN_PROGRESS.value,
         )
@@ -1330,7 +1454,7 @@ class SeasonModel(TestCase):
         mock_get_episode_item.return_value = episode_item
 
         # Test watching with None date
-        self.season.watch(3, "None")
+        self.season.watch(3, None)
 
         # Check if the episode was created with None date
         episode = Episode.objects.get(
@@ -1434,6 +1558,168 @@ class SeasonModel(TestCase):
             )
 
 
+class SeasonStatusTests(TestCase):
+    """Test Season model status change behaviors."""
+
+    def setUp(self):
+        """Create test data."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+        # Create TV show item
+        self.tv_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+        )
+
+        # Create TV instance
+        self.tv = TV.objects.create(
+            item=self.tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
+        # Create season item
+        self.season_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+
+        # Create season instance
+        self.season = Season.objects.create(
+            item=self.season_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_creates_remaining_episodes(self, mock_get_metadata):
+        """Test setting status to COMPLETED creates remaining episodes."""
+        mock_metadata = {
+            "episodes": [
+                {"episode_number": 1, "image": "img1.jpg"},
+                {"episode_number": 2, "image": "img2.jpg"},
+                {"episode_number": 3, "image": "img3.jpg"},
+            ],
+            "image": "season_img.jpg",
+        }
+        mock_get_metadata.return_value = mock_metadata
+
+        self.season.status = Status.COMPLETED.value
+        self.season.save()
+
+        # Verify all episodes were created
+        self.assertEqual(self.season.episodes.count(), 3)
+        # Should have episodes 1, 2, and 3
+        episode_numbers = set(
+            self.season.episodes.values_list("item__episode_number", flat=True),
+        )
+        self.assertEqual(episode_numbers, {1, 2, 3})
+
+    def test_dropped_status_updates_tv_status(self):
+        """Test setting status to DROPPED updates TV status."""
+        self.season.status = Status.DROPPED.value
+        self.season.save()
+
+        # Verify TV show was also marked dropped
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.DROPPED.value)
+
+    def test_in_progress_status_updates_tv_status(self):
+        """Test setting status to IN_PROGRESS updates TV status."""
+        self.season.status = Status.IN_PROGRESS.value
+        self.season.save()
+
+        # Verify TV show was also marked in progress
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
+    def test_status_change_does_not_affect_tv_if_already_same_status(self):
+        """Test status change doesn't update TV if already same status."""
+        # Set TV to IN_PROGRESS first
+        self.tv.status = Status.IN_PROGRESS.value
+        self.tv.save()
+
+        # Track if save was called
+        with patch.object(TV, "save") as mock_tv_save:
+            self.season.status = Status.IN_PROGRESS.value
+            self.season.save()
+
+            # TV save shouldn't have been called
+            mock_tv_save.assert_not_called()
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_noop_if_no_remaining_episodes(self, mock_get_metadata):
+        """Test COMPLETED status does nothing if no remaining episodes."""
+        mock_metadata = {
+            "episodes": [
+                {"episode_number": 1, "image": "img1.jpg"},
+            ],
+            "image": "season_img.jpg",
+        }
+        mock_get_metadata.return_value = mock_metadata
+
+        # Create all episodes already
+        ep_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test Episode",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+        Episode.objects.bulk_create(
+            [
+                Episode(
+                    item=ep_item,
+                    related_season=self.season,
+                    end_date=timezone.now(),
+                ),
+            ],
+        )
+
+        # Track if bulk_create was called
+        with patch("app.models.bulk_create_with_history") as mock_bulk_create:
+            self.season.status = Status.COMPLETED.value
+            self.season.save()
+
+            # bulk_create shouldn't have been called
+            mock_bulk_create.assert_not_called()
+
+    def test_get_tv_creates_tv_if_not_exists(self):
+        """Test get_tv creates TV instance if it doesn't exist."""
+        # Delete existing TV
+        self.tv.delete()
+
+        # Mock metadata
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+        ) as mock_get_metadata:
+            mock_metadata = {
+                "title": "Test Show",
+                "image": "tv_img.jpg",
+                "details": {"seasons": 1},
+            }
+            mock_get_metadata.return_value = mock_metadata
+
+            # Call get_tv
+            tv = self.season.get_tv()
+
+            # Verify TV was created
+            self.assertIsNotNone(tv)
+            self.assertEqual(tv.item.title, "Test Show")
+            self.assertEqual(tv.status, Status.PLANNING.value)
+
+
 class EpisodeModel(TestCase):
     """Test the custom save of the Episode model."""
 
@@ -1441,21 +1727,6 @@ class EpisodeModel(TestCase):
         """Create a user and a season."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
-
-        item_tv = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Friends",
-            image="http://example.com/image.jpg",
-        )
-
-        related_tv = TV.objects.create(
-            item=item_tv,
-            user=self.user,
-            notes="",
-            status=Status.IN_PROGRESS.value,
-        )
 
         item_season = Item.objects.create(
             media_id="1668",
@@ -1468,7 +1739,6 @@ class EpisodeModel(TestCase):
 
         self.season = Season.objects.create(
             item=item_season,
-            related_tv=related_tv,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             notes="",
@@ -1495,183 +1765,204 @@ class EpisodeModel(TestCase):
         # when all episodes are created, the season status should be COMPLETED
         self.assertEqual(self.season.status, Status.COMPLETED.value)
 
-    @patch("app.providers.services.get_media_metadata")
-    def test_episode_save_updates_season_status(self, mock_get_media_metadata):
-        """Test that saving episodes updates the season status."""
-        # Mock the metadata service
-        mock_get_media_metadata.return_value = {
-            "related": {
-                "seasons": [{"season_number": 1}],
-            },
-            "season/1": {
-                "episodes": [{"episode_number": i} for i in range(1, 5)],
-            },
-        }
 
-        # Create episodes but not all of them
-        for i in range(1, 3):
-            item_episode = Item.objects.create(
-                media_id="1668",
-                source=Sources.TMDB.value,
-                media_type=MediaTypes.EPISODE.value,
-                title="Friends",
-                image="http://example.com/image.jpg",
-                season_number=1,
-                episode_number=i,
-            )
-            Episode.objects.create(
-                item=item_episode,
-                related_season=self.season,
-                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
-            )
+class EpisodeStatusTests(TestCase):
+    """Test how Episode model affects Season and TV statuses."""
 
-        # Season should still be in progress
-        self.assertEqual(self.season.status, Status.IN_PROGRESS.value)
+    def setUp(self):
+        """Create test data."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
 
-        # Add the remaining episodes
-        for i in range(3, 5):
-            item_episode = Item.objects.create(
-                media_id="1668",
-                source=Sources.TMDB.value,
-                media_type=MediaTypes.EPISODE.value,
-                title="Friends",
-                image="http://example.com/image.jpg",
-                season_number=1,
-                episode_number=i,
-            )
-            Episode.objects.create(
-                item=item_episode,
-                related_season=self.season,
-                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
-            )
-
-        # Season should now be completed
-        self.assertEqual(self.season.status, Status.COMPLETED.value)
-
-    @patch("app.providers.services.get_media_metadata")
-    def test_episode_save_with_repeats(self, mock_get_media_metadata):
-        """Test that saving episodes with repeats correctly calculates total watches."""
-        # Mock the metadata service
-        mock_get_media_metadata.return_value = {
-            "related": {
-                "seasons": [{"season_number": 1}],
-            },
-            "season/1": {
-                "episodes": [{"episode_number": i} for i in range(1, 3)],
-            },
-        }
-
-        # Create episodes with repeats
-        for i in range(1, 3):
-            item_episode = Item.objects.create(
-                media_id="1668",
-                source=Sources.TMDB.value,
-                media_type=MediaTypes.EPISODE.value,
-                title="Friends",
-                image="http://example.com/image.jpg",
-                season_number=1,
-                episode_number=i,
-            )
-            episode = Episode.objects.create(
-                item=item_episode,
-                related_season=self.season,
-                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
-            )
-
-            # Add repeats to the first episode
-            if i == 1:
-                episode.repeats = 1
-                episode.save()
-
-        self.assertEqual(self.season.status, Status.COMPLETED.value)
-
-        episode_2 = Episode.objects.get(
-            item__media_id="1668",
-            item__season_number=1,
-            item__episode_number=2,
-            related_season=self.season,
+        self.tv_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
         )
 
-        episode_2.repeats = 1
-        episode_2.save()
+        self.tv = TV.objects.create(
+            item=self.tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
 
+        self.season_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+
+        self.season = Season.objects.create(
+            item=self.season_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+
+        self.episode_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test Episode",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_first_episode_sets_season_in_progress(self, mock_get_metadata):
+        """Test first episode sets season to IN_PROGRESS."""
+        mock_metadata = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}, {"episode_number": 2}],
+            },
+            "related": {
+                "seasons": [{"season_number": 1}],
+            },
+        }
+        mock_get_metadata.return_value = mock_metadata
+
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        # Verify season status updated
+        self.season.refresh_from_db()
+        self.assertEqual(self.season.status, Status.IN_PROGRESS.value)
+
+        # Verify TV status updated
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_last_episode_sets_season_completed(self, mock_get_metadata):
+        """Test last episode sets season to COMPLETED."""
+        mock_metadata = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}],
+            },
+            "related": {
+                "seasons": [{"season_number": 1}],
+            },
+        }
+        mock_get_metadata.return_value = mock_metadata
+
+        # Create episode (will be the only/last one)
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        # Verify season status updated
         self.season.refresh_from_db()
         self.assertEqual(self.season.status, Status.COMPLETED.value)
 
-    @patch("app.providers.services.get_media_metadata")
-    def test_episode_save_updates_tv_status(self, mock_get_media_metadata):
-        """Test that completing the last season updates the TV status."""
-        # Mock the metadata service to indicate this is the last season
-        mock_get_media_metadata.return_value = {
+        # Verify TV status updated (since it's the last season)
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.COMPLETED.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_middle_episode_does_not_change_status(self, mock_get_metadata):
+        """Test middle episode doesn't change season/TV status."""
+        mock_metadata = {
+            "season/1": {
+                "episodes": [
+                    {"episode_number": 1},
+                    {"episode_number": 2},
+                    {"episode_number": 3},
+                ],
+            },
+            "related": {
+                "seasons": [{"season_number": 1}, {"season_number": 2}],
+            },
+        }
+        mock_get_metadata.return_value = mock_metadata
+
+        # Create first episode to set in progress
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        # Create second episode item
+        ep_item2 = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test Episode 2",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=2,
+        )
+
+        # Track bulk updates
+        with patch("app.models.bulk_update_with_history") as mock_bulk_update:
+            # Create second episode (middle of season)
+            Episode.objects.create(
+                item=ep_item2,
+                related_season=self.season,
+                end_date=timezone.now(),
+            )
+
+            # No status changes should occur
+            mock_bulk_update.assert_not_called()
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_last_season_completes_tv_show(self, mock_get_metadata):
+        """Test last season completion also completes TV show."""
+        mock_metadata = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}],
+            },
             "related": {
                 "seasons": [{"season_number": 1}],  # Only one season
             },
-            "season/1": {
-                "episodes": [{"episode_number": i} for i in range(1, 3)],
-            },
         }
+        mock_get_metadata.return_value = mock_metadata
 
-        # Create all episodes for the season
-        for i in range(1, 3):
-            item_episode = Item.objects.create(
-                media_id="1668",
-                source=Sources.TMDB.value,
-                media_type=MediaTypes.EPISODE.value,
-                title="Friends",
-                image="http://example.com/image.jpg",
-                season_number=1,
-                episode_number=i,
-            )
-            Episode.objects.create(
-                item=item_episode,
-                related_season=self.season,
-                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
-            )
+        # Create episode (will complete season and TV)
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
 
-        # Season should be completed
-        self.assertEqual(self.season.status, Status.COMPLETED.value)
+        # Verify TV status updated
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.COMPLETED.value)
 
-        # TV show should also be completed since this was the last season
-        self.assertEqual(self.season.related_tv.status, Status.COMPLETED.value)
-
-    @patch("app.providers.services.get_media_metadata")
-    def test_episode_save_not_last_season(self, mock_get_media_metadata):
-        """Test completing a season that is not the last one doesn't complete the TV."""
-        # Mock the metadata service to indicate this is not the last season
-        mock_get_media_metadata.return_value = {
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_non_last_season_does_not_complete_tv_show(self, mock_get_metadata):
+        """Test non-last season completion doesn't complete TV show."""
+        mock_metadata = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}],
+            },
             "related": {
-                "seasons": [
-                    {"season_number": 1},
-                    {"season_number": 2},
-                ],  # Two seasons
-            },
-            "season/1": {
-                "episodes": [{"episode_number": i} for i in range(1, 3)],
+                "seasons": [{"season_number": 1}, {"season_number": 2}],  # Two seasons
             },
         }
+        mock_get_metadata.return_value = mock_metadata
 
-        # Create all episodes for the season
-        for i in range(1, 3):
-            item_episode = Item.objects.create(
-                media_id="1668",
-                source=Sources.TMDB.value,
-                media_type=MediaTypes.EPISODE.value,
-                title="Friends",
-                image="http://example.com/image.jpg",
-                season_number=1,
-                episode_number=i,
-            )
-            Episode.objects.create(
-                item=item_episode,
-                related_season=self.season,
-                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
-            )
+        # Create episode (will complete season but not TV)
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
 
-        # Season should be completed
-        self.assertEqual(self.season.status, Status.COMPLETED.value)
-
-        # TV show should still be in progress since this was not the last season
-        self.assertEqual(self.season.related_tv.status, Status.IN_PROGRESS.value)
+        # Verify TV status remains unchanged
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.PLANNING.value)
 
 
 class GameModel(TestCase):

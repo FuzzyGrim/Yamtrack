@@ -31,20 +31,6 @@ class HomeViewTests(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-        # Create TV show with a season and episodes
-        tv_item = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Test TV Show",
-            image="http://example.com/image.jpg",
-        )
-        tv = TV.objects.create(
-            item=tv_item,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-        )
-
         # Create a season for the TV show
         season_item = Item.objects.create(
             media_id="1668",
@@ -57,7 +43,6 @@ class HomeViewTests(TestCase):
         season = Season.objects.create(
             item=season_item,
             user=self.user,
-            related_tv=tv,
             status=Status.IN_PROGRESS.value,
         )
 
@@ -130,29 +115,20 @@ class HomeViewTests(TestCase):
         """Test the HTMX load more functionality."""
         # Mock the API response
         mock_get_media_metadata.return_value = {
+            "title": "Test TV Show",
+            "image": "http://example.com/image.jpg",
             "season/1": {
                 "episodes": [{"id": 1}, {"id": 2}, {"id": 3}],  # 3 episodes
             },
             "related": {
-                "seasons": [{"season_number": 1}],  # Only one season
+                "seasons": [
+                    {"season_number": 1, "image": "http://example.com/image.jpg"},
+                ],  # Only one season
             },
         }
 
         # Create TV shows (just enough to test load more)
         for i in range(6, 20):  # Create 14 more TV shows (we already have 1)
-            tv_item = Item.objects.create(
-                media_id=str(i),
-                source=Sources.TMDB.value,
-                media_type=MediaTypes.TV.value,
-                title=f"Test TV Show {i}",
-                image="http://example.com/image.jpg",
-            )
-            tv = TV.objects.create(
-                item=tv_item,
-                user=self.user,
-                status=Status.IN_PROGRESS.value,
-            )
-
             # Create a season for each TV show
             season_item = Item.objects.create(
                 media_id=str(i),
@@ -165,7 +141,6 @@ class HomeViewTests(TestCase):
             season = Season.objects.create(
                 item=season_item,
                 user=self.user,
-                related_tv=tv,
                 status=Status.IN_PROGRESS.value,
             )
 
@@ -914,19 +889,6 @@ class DeleteMedia(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-        self.item_tv = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Friends",
-            image="http://example.com/image.jpg",
-        )
-        self.tv = TV.objects.create(
-            item=self.item_tv,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-        )
-
         self.item_season = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -938,7 +900,6 @@ class DeleteMedia(TestCase):
         self.season = Season.objects.create(
             item=self.item_season,
             user=self.user,
-            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
         )
 
@@ -960,11 +921,12 @@ class DeleteMedia(TestCase):
     def test_delete_tv(self):
         """Test the deletion of a tv through views."""
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
+        tv_obj = TV.objects.get(user=self.user)
 
         self.client.post(
             reverse("media_delete"),
             data={
-                "instance_id": self.tv.id,
+                "instance_id": tv_obj.id,
                 "media_type": MediaTypes.TV.value,
             },
         )
@@ -1011,19 +973,6 @@ class ProgressEditSeason(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
-        item_tv = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Friends",
-            image="http://example.com/image.jpg",
-        )
-        tv = TV.objects.create(
-            item=item_tv,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-        )
-
         self.item_season = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -1034,7 +983,6 @@ class ProgressEditSeason(TestCase):
         )
         self.season = Season.objects.create(
             item=self.item_season,
-            related_tv=tv,
             user=self.user,
             status=Status.IN_PROGRESS.value,
         )

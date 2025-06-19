@@ -113,4 +113,9 @@ def get_track_fields():
         all_fields.insert(end_idx, "end_date")
         all_fields.insert(end_idx, "start_date")
 
+    for timestamp_field in ("created_at", "progressed_at"):
+        if timestamp_field in all_fields:
+            all_fields.remove(timestamp_field)
+            all_fields.append(timestamp_field)
+
     return list(all_fields)

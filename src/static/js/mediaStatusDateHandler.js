@@ -1,6 +1,5 @@
 document.addEventListener("alpine:init", () => {
   Alpine.data("mediaForm", () => ({
-    // Track which fields were auto-filled
     autoFilled: {
       start_date: false,
       end_date: false,
@@ -10,11 +9,9 @@ document.addEventListener("alpine:init", () => {
       const statusField = this.$el.querySelector('[name="status"]');
       const endDateField = this.$el.querySelector('[name="end_date"]');
       const startDateField = this.$el.querySelector('[name="start_date"]');
-      const now = new Date(
-        new Date().getTime() - new Date().getTimezoneOffset() * 60000
-      )
-        .toISOString()
-        .slice(0, 16);
+
+      // Get the current time in correct format based on input type
+      const now = this.getCurrentDateTime(endDateField);
 
       // Initial load handling
       if (
@@ -65,5 +62,20 @@ document.addEventListener("alpine:init", () => {
         });
       }
     },
+
+    getCurrentDateTime(field) {
+      const date = new Date();
+
+      if (field.type === 'datetime-local') {
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+      } else if (field.type === 'date') {
+        return date.toISOString().slice(0, 10);
+      }
+
+      // Fallback to date format
+      return date.toISOString().slice(0, 10);
+    }
   }));
 });

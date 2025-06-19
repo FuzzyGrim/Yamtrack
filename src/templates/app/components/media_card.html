@@ -8,8 +8,95 @@
          data-src="{{ item.image }}"
          src="{{ IMG_NONE }}">
 
+    <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+      <div class="flex items-center">
+        {% if media.status == Status.COMPLETED.value %}
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4 {{ MediaTypes.TV.value|media_color }} {% if media.end_date %}mr-1.5{% endif %}">
+            <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+            <path d="m9 11 3 3L22 4" />
+          </svg>
+
+          {% if media.end_date is not None %}
+            <span class="text-sm text-white">{{ media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+          {% endif %}
+
+        {% elif media.status == Status.IN_PROGRESS.value %}
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4 {{ MediaTypes.EPISODE.value|media_color }} {% if media.start_date %}mr-1{% endif %}">
+            <polygon points="6 3 20 12 6 21 6 3" />
+          </svg>
+
+          {% if media.start_date is not None %}
+            <span class="text-sm text-white">{{ media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+          {% endif %}
+
+        {% elif media.status == Status.PAUSED.value %}
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4 {{ MediaTypes.MOVIE.value|media_color }}">
+            <rect x="14" y="4" width="4" height="16" rx="1" /><rect x="6" y="4" width="4" height="16" rx="1" />
+          </svg>
+
+        {% elif media.status == Status.PLANNING.value %}
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4 {{ MediaTypes.ANIME.value|media_color }}">
+            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+            <line x1="12" x2="12" y1="7" y2="13" /><line x1="15" x2="9" y1="10" y2="10" />
+          </svg>
+
+        {% elif media.status == Status.DROPPED.value %}
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4 {{ MediaTypes.MANGA.value|media_color }}">
+            <path d="m15 9-6 6" />
+            <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
+            <path d="m9 9 6 6" />
+          </svg>
+        {% endif %}
+      </div>
+    </div>
+
     {% if media.score is not None %}
-      <div class="absolute top-2 right-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+      <div class="absolute sm:top-2 sm:right-2 sm:left-auto top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         <div class="flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -147,7 +234,7 @@
   </div>
 
   {% if item.media_type == MediaTypes.EPISODE.value %}
-    {% include "app/components/fill_track_episode.html" with request=request media=item episode=item episode_title=title csrf_token=csrf_token only %}
+    {% include "app/components/fill_track_episode.html" with request=request media=item episode=item episode_title=title csrf_token=csrf_token TRACK_TIME=TRACK_TIME only %}
   {% else %}
     {# Track Modal #}
     <div x-show="trackOpen"

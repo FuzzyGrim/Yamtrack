@@ -226,7 +226,7 @@ class AniListImporter:
                     user=self.user,
                     score=content["score"],
                     progress=max_progress or 0,
-                    status=Status.IN_PROGRESS.value,
+                    status=Status.COMPLETED.value,
                     start_date=self._get_date(content["startedAt"]),
                     end_date=None,
                     notes=content["notes"] or "",

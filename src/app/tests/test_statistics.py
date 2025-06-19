@@ -29,14 +29,6 @@ class StatisticsDateFilteringTests(TestCase):
         self.credentials = {"username": "testuser", "password": "testpassword"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
-        # Create some test items
-        self.tv_item = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Test TV Show",
-        )
-
         # Create season item
         self.season_item = Item.objects.create(
             media_id="1668",
@@ -122,18 +114,9 @@ class StatisticsDateFilteringTests(TestCase):
             title="Movie partially in range (starts in range, ends after)",
         )
 
-        # Create test media
-        self.tv = TV.objects.create(
-            user=self.user,
-            item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-            score=8.5,
-        )
-
         self.season = Season.objects.create(
             user=self.user,
             item=self.season_item,
-            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
             score=8.0,
         )
@@ -479,14 +462,6 @@ class StatisticsTests(TestCase):
         self.credentials = {"username": "testuser", "password": "testpassword"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
-        # Create some test items
-        self.tv_item = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Test TV Show",
-        )
-
         # Create season item
         self.season_item = Item.objects.create(
             media_id="1668",
@@ -529,18 +504,9 @@ class StatisticsTests(TestCase):
             title="Test Anime",
         )
 
-        # Create test media
-        self.tv = TV.objects.create(
-            user=self.user,
-            item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-            score=8.5,
-        )
-
         self.season = Season.objects.create(
             user=self.user,
             item=self.season_item,
-            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
             score=8.0,
         )
@@ -708,6 +674,8 @@ class StatisticsTests(TestCase):
 
     def test_get_score_distribution(self):
         """Test the get_score_distribution function."""
+        TV.objects.filter(user=self.user).update(score=8.5)
+
         # Create user_media dict with our test objects
         user_media = {
             MediaTypes.TV.value: TV.objects.filter(user=self.user),

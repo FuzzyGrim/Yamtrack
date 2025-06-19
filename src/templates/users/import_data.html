@@ -267,7 +267,28 @@
 
         {# Yamtrack #}
         <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">{% source_display "yamtrack" %}</div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center">{% source_display "yamtrack" %}</div>
+            <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Yamtrack-CSV-Format"
+               target="_blank"
+               class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
+               title="View CSV format documentation">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-4 h-4">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+              </svg>
+            </a>
+          </div>
           <p class="text-sm text-gray-400 mb-3"
              x-text="importFrequency === 'once' ? '{% trans "Import from YamTrack backup" %}' : '{% trans "File uploads are not available for periodic imports" %}'">
           </p>
@@ -415,7 +436,7 @@
       <div class="space-y-3">
         {% for result in import_tasks.results %}
           <div class="bg-[#39404b] rounded-lg p-4">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
               <div class="flex items-center gap-3">
                 {% if result.status == "SUCCESS" %}
                   {% if result.errors %}
@@ -436,8 +457,6 @@
               </div>
               <span class="text-xs text-gray-400">{{ result.date|date:"DATETIME_FORMAT" }}</span>
             </div>
-
-            <div class="text-xs text-gray-400 mb-2">{% trans "Mode:" %} {{ result.mode }}</div>
 
             {% if result.status %}
               {% if result.summary %}<div class="text-sm text-gray-200">{{ result.summary }}</div>{% endif %}

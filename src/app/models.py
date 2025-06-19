@@ -495,7 +495,9 @@ class MediaManager(models.Manager):
             media_list,
             key=lambda x: (
                 primary_sort_function(x),
-                -timezone.datetime.timestamp(x.progress_changed),
+                -timezone.datetime.timestamp(
+                    x.progressed_at if x.progressed_at is not None else x.created_at,
+                ),
                 x.item.title.lower(),
             ),
         )
@@ -718,7 +720,7 @@ class Media(models.Model):
         inherit=True,
         excluded_fields=[
             "item",
-            "progress_changed",
+            "progressed_at",
             "user",
             "related_tv",
             "created_at",
@@ -740,7 +742,7 @@ class Media(models.Model):
         ],
     )
     progress = models.PositiveIntegerField(default=0)
-    progress_changed = MonitorField(monitor="progress")
+    progressed_at = MonitorField(monitor="progress")
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -787,18 +789,12 @@ class Media(models.Model):
                 if self.progress == max_progress:
                     self.status = Status.COMPLETED.value
 
+                    now = timezone.now().replace(second=0, microsecond=0)
+                    self.end_date = now
+
     def process_status(self):
         """Update fields depending on the status of the media."""
-        now = timezone.now().replace(second=0, microsecond=0)
-
-        if self.status == Status.IN_PROGRESS.value:
-            if not self.start_date:
-                self.start_date = now
-
-        elif self.status == Status.COMPLETED.value:
-            if not self.end_date:
-                self.end_date = now
-
+        if self.status == Status.COMPLETED.value:
             max_progress = providers.services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
@@ -830,13 +826,13 @@ class Media(models.Model):
         """Increase the progress of the media by one."""
         self.progress += 1
         self.save()
-        logger.info("Watched %s E%s", self, self.progress)
+        logger.info("Incresed progress of %s to %s", self, self.progress)
 
     def decrease_progress(self):
         """Decrease the progress of the media by one."""
         self.progress -= 1
         self.save()
-        logger.info("Unwatched %s E%s", self, self.progress + 1)
+        logger.info("Decreased progress of %s to %s", self, self.progress)
 
 
 class BasicMedia(Media):
@@ -849,7 +845,6 @@ class TV(Media):
     """Model for TV shows."""
 
     tracker = FieldTracker()
-    progress_changed = models.DateTimeField(default=timezone.now)
 
     class Meta:
         """Meta options for the model."""
@@ -869,7 +864,17 @@ class TV(Media):
 
         if self.tracker.has_changed("status"):
             if self.status == Status.COMPLETED.value:
-                self.completed()
+                self._completed()
+
+            elif self.status == Status.DROPPED.value:
+                self._mark_in_progress_seasons_as_dropped()
+
+            elif (
+                self.status == Status.IN_PROGRESS.value
+                and not self.seasons.filter(status=Status.IN_PROGRESS.value).exists()
+            ):
+                self._start_next_available_season()
+
             self.item.fetch_releases(delay=True)
 
     @property
@@ -907,6 +912,16 @@ class TV(Media):
         return f"S{latest_episode['season']:02d}E{latest_episode['episode']:02d}"
 
     @property
+    def progressed_at(self):
+        """Return the date when the last episode was watched."""
+        dates = [
+            season.progressed_at
+            for season in self.seasons.all()
+            if season.progressed_at and season.item.season_number != 0
+        ]
+        return max(dates) if dates else None
+
+    @property
     def start_date(self):
         """Return the date of the first episode watched."""
         dates = [
@@ -926,7 +941,7 @@ class TV(Media):
         ]
         return max(dates) if dates else None
 
-    def completed(self):
+    def _completed(self):
         """Create remaining seasons and episodes for a TV show."""
         tv_metadata = providers.services.get_media_metadata(
             self.item.media_type,
@@ -938,6 +953,7 @@ class TV(Media):
         if not max_progress or self.progress > max_progress:
             return
 
+        seasons_to_create = []
         seasons_to_update = []
         episodes_to_create = []
 
@@ -976,20 +992,97 @@ class TV(Media):
                     seasons_to_update.append(season_instance)
 
             except Season.DoesNotExist:
-                season_instance = Season(
-                    item=item,
-                    score=None,
-                    status=Status.COMPLETED.value,
-                    notes="",
-                    related_tv=self,
-                    user=self.user,
+                seasons_to_create.append(
+                    Season(
+                        item=item,
+                        score=None,
+                        status=Status.COMPLETED.value,
+                        notes="",
+                        related_tv=self,
+                        user=self.user,
+                    ),
                 )
-                Season.save_base(season_instance)
+
+        bulk_create_with_history(seasons_to_create, Season)
+        bulk_update_with_history(seasons_to_update, Season, ["status"])
+
+        for season_instance in seasons_to_create + seasons_to_update:
+            season_metadata = tv_with_seasons_metadata[
+                f"season/{season_instance.item.season_number}"
+            ]
             episodes_to_create.extend(
                 season_instance.get_remaining_eps(season_metadata),
             )
-        bulk_update_with_history(seasons_to_update, Season, ["status"])
         bulk_create_with_history(episodes_to_create, Episode)
+
+    def _mark_in_progress_seasons_as_dropped(self):
+        """Mark all in-progress seasons as dropped."""
+        in_progress_seasons = list(
+            self.seasons.filter(status=Status.IN_PROGRESS.value),
+        )
+
+        for season in in_progress_seasons:
+            season.status = Status.DROPPED.value
+
+        if in_progress_seasons:
+            bulk_update_with_history(
+                in_progress_seasons,
+                Season,
+                fields=["status"],
+            )
+
+    def _start_next_available_season(self):
+        """Find the next available season to watch and set it to in-progress."""
+        all_seasons = self.seasons.filter(
+            item__season_number__gt=0,
+        ).order_by("item__season_number")
+
+        next_unwatched_season = all_seasons.exclude(
+            status__in=[Status.COMPLETED.value],
+        ).first()
+
+        if not next_unwatched_season:
+            # If all existing seasons are watched, get the next available season
+            tv_metadata = providers.services.get_media_metadata(
+                self.item.media_type,
+                self.item.media_id,
+                self.item.source,
+            )
+
+            existing_season_numbers = set(
+                all_seasons.values_list("item__season_number", flat=True),
+            )
+
+            for season_data in tv_metadata["related"]["seasons"]:
+                season_number = season_data["season_number"]
+                if season_number > 0 and season_number not in existing_season_numbers:
+                    item, _ = Item.objects.get_or_create(
+                        media_id=self.item.media_id,
+                        source=self.item.source,
+                        media_type=MediaTypes.SEASON.value,
+                        season_number=season_data["season_number"],
+                        defaults={
+                            "title": self.item.title,
+                            "image": season_data["image"],
+                        },
+                    )
+
+                    next_unwatched_season = Season(
+                        item=item,
+                        user=self.user,
+                        related_tv=self,
+                        status=Status.IN_PROGRESS.value,
+                    )
+                    bulk_create_with_history([next_unwatched_season], Season)
+                    break
+
+        elif next_unwatched_season.status != Status.IN_PROGRESS.value:
+            next_unwatched_season.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [next_unwatched_season],
+                Season,
+                fields=["status"],
+            )
 
 
 class Season(Media):
@@ -1002,7 +1095,6 @@ class Season(Media):
     )
 
     tracker = FieldTracker()
-    progress_changed = models.DateTimeField(default=timezone.now)
 
     class Meta:
         """Limit the uniqueness of seasons.
@@ -1038,10 +1130,35 @@ class Season(Media):
                     self.item.source,
                     [self.item.season_number],
                 )
-                bulk_create_with_history(
-                    self.get_remaining_eps(season_metadata),
-                    Episode,
+                episodes_to_create = self.get_remaining_eps(season_metadata)
+                if episodes_to_create:
+                    bulk_create_with_history(
+                        episodes_to_create,
+                        Episode,
+                    )
+
+            elif (
+                self.status == Status.DROPPED.value
+                and self.related_tv.status != Status.DROPPED.value
+            ):
+                self.related_tv.status = Status.DROPPED.value
+                bulk_update_with_history(
+                    [self.related_tv],
+                    TV,
+                    fields=["status"],
                 )
+
+            elif (
+                self.status == Status.IN_PROGRESS.value
+                and self.related_tv.status != Status.IN_PROGRESS.value
+            ):
+                self.related_tv.status = Status.IN_PROGRESS.value
+                bulk_update_with_history(
+                    [self.related_tv],
+                    TV,
+                    fields=["status"],
+                )
+
             self.item.fetch_releases(delay=True)
 
     @property
@@ -1074,6 +1191,16 @@ class Season(Media):
             )
 
         return sorted_episodes[0].item.episode_number
+
+    @property
+    def progressed_at(self):
+        """Return the date when the last episode was watched."""
+        dates = [
+            episode.end_date
+            for episode in self.episodes.all()
+            if episode.end_date is not None
+        ]
+        return max(dates) if dates else None
 
     @property
     def start_date(self):
@@ -1124,9 +1251,6 @@ class Season(Media):
     def watch(self, episode_number, end_date):
         """Create or add a repeat to an episode of the season."""
         item = self.get_episode_item(episode_number)
-
-        if end_date == "None":
-            end_date = None
 
         episode = Episode.objects.create(
             related_season=self,
@@ -1225,19 +1349,19 @@ class Season(Media):
 
     def get_remaining_eps(self, season_metadata):
         """Return episodes needed to complete a season."""
-        max_episode_number = Episode.objects.filter(related_season=self).aggregate(
-            max_episode_number=Max("item__episode_number"),
-        )["max_episode_number"]
+        latest_watched_ep_num = Episode.objects.filter(related_season=self).aggregate(
+            latest_watched_ep_num=Max("item__episode_number"),
+        )["latest_watched_ep_num"]
 
-        if max_episode_number is None:
-            max_episode_number = 0
+        if latest_watched_ep_num is None:
+            latest_watched_ep_num = 0
 
         episodes_to_create = []
         now = timezone.now().replace(second=0, microsecond=0)
 
         # Create Episode objects for the remaining episodes
         for episode in reversed(season_metadata["episodes"]):
-            if episode["episode_number"] <= max_episode_number:
+            if episode["episode_number"] <= latest_watched_ep_num:
                 break
 
             item = self.get_episode_item(episode["episode_number"], season_metadata)
@@ -1325,42 +1449,56 @@ class Episode(models.Model):
         """Save the episode instance."""
         super().save(*args, **kwargs)
 
-        now = timezone.now()
-        self.related_season.progress_changed = now
-        self.related_season.save(update_fields=["progress_changed"])
-        self.related_season.related_tv.progress_changed = now
-        self.related_season.related_tv.save(update_fields=["progress_changed"])
+        season_number = self.item.season_number
+        tv_with_seasons_metadata = providers.services.get_media_metadata(
+            "tv_with_seasons",
+            self.item.media_id,
+            self.item.source,
+            [season_number],
+        )
+        season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
+        max_progress = len(season_metadata["episodes"])
 
-        if self.related_season.status == Status.IN_PROGRESS.value:
-            season_number = self.item.season_number
-            tv_with_seasons_metadata = providers.services.get_media_metadata(
-                "tv_with_seasons",
-                self.item.media_id,
-                self.item.source,
-                [season_number],
+        # clear prefetch cache to get the updated episodes
+        self.related_season.refresh_from_db()
+
+        season_just_completed = False
+        if self.related_season.progress == max_progress:
+            self.related_season.status = Status.COMPLETED.value
+            bulk_update_with_history(
+                [self.related_season],
+                Season,
+                fields=["status"],
             )
-            season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
-            max_progress = len(season_metadata["episodes"])
+            season_just_completed = True
 
-            # clear prefetch cache to get the updated episodes
-            self.related_season.refresh_from_db()
+        elif self.related_season.status != Status.IN_PROGRESS.value:
+            self.related_season.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [self.related_season],
+                Season,
+                fields=["status"],
+            )
 
-            season_just_completed = False
-            if self.related_season.progress == max_progress:
-                self.related_season.status = Status.COMPLETED.value
-                self.related_season.save_base(update_fields=["status"])
-                season_just_completed = True
-
-            if season_just_completed:
-                last_season = tv_with_seasons_metadata["related"]["seasons"][-1][
-                    "season_number"
-                ]
-                # mark the TV show as completed if it's the last season
-                if season_number == last_season:
-                    self.related_season.related_tv.status = Status.COMPLETED.value
-                    self.related_season.related_tv.save_base(
-                        update_fields=["status"],
-                    )
+        if season_just_completed:
+            last_season = tv_with_seasons_metadata["related"]["seasons"][-1][
+                "season_number"
+            ]
+            # mark the TV show as completed if it's the last season
+            if season_number == last_season:
+                self.related_season.related_tv.status = Status.COMPLETED.value
+                bulk_update_with_history(
+                    [self.related_season.related_tv],
+                    TV,
+                    fields=["status"],
+                )
+        elif self.related_season.related_tv.status != Status.IN_PROGRESS.value:
+            self.related_season.related_tv.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [self.related_season.related_tv],
+                TV,
+                fields=["status"],
+            )
 
 
 class Manga(Media):

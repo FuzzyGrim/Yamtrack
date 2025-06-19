@@ -1,9 +1,9 @@
 from django.apps import apps
 from django.template.defaultfilters import pluralize
-from django.utils import formats, timezone
 
 from app import helpers, media_type_config
 from app.models import MediaTypes, Status
+from app.templatetags import app_tags
 
 
 def process_history_entries(history_records, media_type, media_entry_number):
@@ -157,7 +157,8 @@ def apply_date_status_integration(changes):
         and status_change["new"] == Status.IN_PROGRESS.value
     ):
         date_changes["start_date"]["description"] = (
-            f"Started on {format_datetime(date_changes['start_date']['new'])}"
+            f"Started on "
+            f"{app_tags.date_tracker_format(date_changes['start_date']['new'])}"
         )
         changes["status_change"] = None
 
@@ -168,7 +169,8 @@ def apply_date_status_integration(changes):
         and status_change["new"] == Status.COMPLETED.value
     ):
         date_changes["end_date"]["description"] = (
-            f"Finished on {format_datetime(date_changes['end_date']['new'])}"
+            f"Finished on "
+            f"{app_tags.date_tracker_format(date_changes['end_date']['new'])}"
         )
         changes["status_change"] = None
 
@@ -196,8 +198,8 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
     taking into account the media type and status transitions.
     """
     if field_name in {"start_date", "end_date"}:
-        new_value = format_datetime(new_value)
-        old_value = format_datetime(old_value)
+        new_value = app_tags.date_tracker_format(new_value)
+        old_value = app_tags.date_tracker_format(old_value)
 
     # If old_value is None, treat it as an initial setting
     if old_value is None:
@@ -303,15 +305,3 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
     field_label = field_name.replace("_", " ").lower()
     return f"Updated {field_label} from {old_value} to {new_value}"
-
-
-def format_datetime(value):
-    """Format a datetime object to a readable string."""
-    if not value:
-        return value
-
-    local_dt = timezone.localtime(value)
-    return formats.date_format(
-        local_dt,
-        "DATETIME_FORMAT",
-    )

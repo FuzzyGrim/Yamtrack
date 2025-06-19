@@ -137,7 +137,7 @@
              x-init="$nextTick(() => checkClamp())">
           <p x-ref="synopsisText"
              :class="isExpanded ? '' : '{% if media.media_type == MediaTypes.SEASON.value %}line-clamp-4{% else %}line-clamp-5{% endif %}'"
-             class="text-gray-300 text-justify text-pretty">{{ media.synopsis|linebreaksbr|safe }}</p>
+             class="text-gray-300 text-pretty">{{ media.synopsis|linebreaksbr|safe }}</p>
           <button x-show="isClamped"
                   @click="isExpanded = !isExpanded"
                   class="text-indigo-400 hover:text-indigo-300 text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
@@ -159,7 +159,7 @@
                  stroke-linecap="round"
                  stroke-linejoin="round"
                  class="w-5 h-5 mr-2 text-yellow-400 flex-shrink-0 mt-0.5">
-              <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2V8Z"></path>
+              <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path>
               <path d="M15 3v4a2 2 0 0 0 2 2h4"></path>
             </svg>
             <div class="font-medium text-gray-400 mb-1">YOUR NOTES</div>
@@ -337,14 +337,14 @@
               {% if current_instance.start_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Started:</span>
-                  <span class="text-gray-200">{{ current_instance.start_date|date:"DATETIME_FORMAT" }}</span>
+                  <span class="text-gray-200">{{ current_instance.start_date|date_tracker_format }}</span>
                 </div>
               {% endif %}
 
               {% if current_instance.end_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Ended:</span>
-                  <span class="text-gray-200">{{ current_instance.end_date|date:"DATETIME_FORMAT" }}</span>
+                  <span class="text-gray-200">{{ current_instance.end_date|date_tracker_format }}</span>
                 </div>
               {% endif %}
 
@@ -450,11 +450,11 @@
                       {% endif %}
 
                       {% if user_media.start_date %}
-                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|date:"DATETIME_FORMAT" }}</div>
+                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|date_tracker_format }}</div>
                       {% endif %}
 
                       {% if user_media.end_date %}
-                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|date:"DATETIME_FORMAT" }}</div>
+                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|date_tracker_format }}</div>
                       {% endif %}
 
                       {% if user_media.notes %}
@@ -518,9 +518,11 @@
                  stroke-linecap="round"
                  stroke-linejoin="round"
                  class="w-4 h-4">
-              <path d="M12 10v6" />
-              <path d="M9 13h6" />
-              <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+              <path d="M11 12H3"></path>
+              <path d="M16 6H3"></path>
+              <path d="M16 18H3"></path>
+              <path d="M18 9v6"></path>
+              <path d="M21 12h-6"></path>
             </svg>
           </button>
 
@@ -706,7 +708,7 @@
                             {% endif %}
                           </button>
 
-                          {% include "app/components/fill_track_episode.html" with request=request media=media episode=episode episode_title=episode.title csrf_token=csrf_token only %}
+                          {% include "app/components/fill_track_episode.html" with request=request media=media episode=episode episode_title=episode.title csrf_token=csrf_token TRACK_TIME=TRACK_TIME only %}
 
                         </div>
 
@@ -762,9 +764,12 @@
                                  stroke-width="2"
                                  stroke-linecap="round"
                                  stroke-linejoin="round">
-                              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                              <path d="M3 3v5h5"></path>
-                              <path d="M12 7v5l4 2"></path>
+                              <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"></path>
+                              <path d="M16 2v4"></path>
+                              <path d="M8 2v4"></path>
+                              <path d="M3 10h5"></path>
+                              <path d="M17.5 17.5 16 16.3V14"></path>
+                              <circle cx="16" cy="16" r="6"></circle>
                             </svg>
                           </button>
                           <div x-show="historyOpen"
@@ -779,12 +784,12 @@
                       </div>
                     </div>
                     <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
-                      <p class="text-sm text-gray-300 leading-relaxed text-justify text-pretty">{{ episode.overview }}</p>
+                      <p class="text-sm text-gray-300 leading-relaxed text-pretty">{{ episode.overview }}</p>
                     </div>
                   </div>
                   {% if episode.history %}
                     <p class="text-xs text-gray-400 mt-2 px-4">
-                      Last watched: {{ episode.history.0.end_date|date:"DATETIME_FORMAT" }}
+                      Last watched: {{ episode.history.0.end_date|date_tracker_format|default_if_none:"No date provided" }}
                       {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                     </p>
                   {% endif %}

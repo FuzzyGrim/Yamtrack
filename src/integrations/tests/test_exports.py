@@ -8,7 +8,6 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
-    TV,
     Anime,
     Book,
     Episode,
@@ -31,23 +30,6 @@ class ExportCSVTest(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_superuser(**self.credentials)
         self.client.login(**self.credentials)
-
-        item_tv = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Friends",
-            image="https://image.url",
-        )
-
-        # Create test data for each model
-        tv = TV.objects.create(
-            item=item_tv,
-            user=self.user,
-            score=9,
-            status=Status.IN_PROGRESS.value,
-            notes="Nice",
-        )
 
         item_movie = Item.objects.create(
             media_id="10494",
@@ -77,7 +59,6 @@ class ExportCSVTest(TestCase):
 
         season = Season.objects.create(
             item=item_season,
-            related_tv=tv,
             user=self.user,
             score=9,
             status=Status.IN_PROGRESS.value,

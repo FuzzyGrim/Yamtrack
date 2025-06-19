@@ -9,6 +9,7 @@ from django.utils.dateparse import parse_datetime
 import app
 from app.models import MediaTypes, Sources
 from app.providers import services
+from app.templatetags import app_tags
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -65,6 +66,13 @@ class YamtrackImporter:
         for row in reader:
             try:
                 self._process_row(row)
+            except services.ProviderAPIError as error:
+                error_msg = (
+                    f"Error processing entry with ID {row['media_id']} "
+                    f"({app_tags.media_type_readable(row['media_type'])}): {error}"
+                )
+                self.warnings.append(error_msg)
+                continue
             except Exception as error:
                 error_msg = f"Error processing entry: {row}"
                 raise MediaImportUnexpectedError(error_msg) from error
@@ -143,9 +151,9 @@ class YamtrackImporter:
         )
 
         if form.is_valid():
-            progress_changed = row.get("progress_changed")
-            if progress_changed:
-                form.instance._history_date = parse_datetime(progress_changed)
+            progressed_at = row.get("progressed_at")
+            if progressed_at:
+                form.instance._history_date = parse_datetime(progressed_at)
             self.bulk_media[media_type].append(form.instance)
         else:
             error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"
@@ -157,18 +165,12 @@ class YamtrackImporter:
         if row["source"] == Sources.MANUAL.value and row["image"] == "":
             row["image"] = settings.IMG_NONE
         else:
-            try:
-                metadata = services.get_media_metadata(
-                    media_type,
-                    row["media_id"],
-                    row["source"],
-                    season_number,
-                    episode_number,
-                )
-                row["title"] = metadata["title"]
-                row["image"] = metadata["image"]
-            except services.ProviderAPIError as e:
-                self.warnings.append(
-                    f"Failed to fetch metadata for {row['media_id']}: {e!s}",
-                )
-                raise
+            metadata = services.get_media_metadata(
+                media_type,
+                row["media_id"],
+                row["source"],
+                [season_number],
+                episode_number,
+            )
+            row["title"] = metadata["title"]
+            row["image"] = metadata["image"]

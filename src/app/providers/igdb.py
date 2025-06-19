@@ -88,6 +88,7 @@ def search(query, page):
 
     if data is None:
         access_token = get_access_token()
+        url = f"{base_url}/multiquery"
         headers = {
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
@@ -120,13 +121,23 @@ def search(query, page):
             response = services.api_request(
                 Sources.IGDB.value,
                 "POST",
-                f"{base_url}/multiquery",
+                url,
                 data=multiquery,
                 headers=headers,
             )
 
         except requests.exceptions.HTTPError as error:
-            handle_error(error)
+            error_resp = handle_error(error)
+            if error_resp and error_resp.get("retry"):
+                # Retry the request with the new access token
+                headers["Authorization"] = f"Bearer {get_access_token()}"
+                response = services.api_request(
+                    Sources.IGDB.value,
+                    "POST",
+                    url,
+                    data=data,
+                    headers=headers,
+                )
 
         search_results = next(
             (item["result"] for item in response if item["name"] == "SearchResults"),

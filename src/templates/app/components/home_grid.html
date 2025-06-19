@@ -26,11 +26,11 @@
           </svg>
           <span class="text-xs font-medium text-white drop-shadow-sm truncate">
             {% if media.next_event.content_number %}
-              {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} 
+              {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }}
             {% else %}
               {% trans "Release" %}
             {% endif %}
-              
+
             • {{ media.next_event.datetime|natural_day }} {{ media.next_event.display_time }}
           </span>
         </div>
@@ -117,7 +117,7 @@
       <a href="{{ media.item|media_url }}"
          class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
          title="{{ media }}">{{ media }}</a>
-      <div id="progress-changer-{{ media.id }}">
+      <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
         {% include "app/components/progress_changer.html" with media=media csrf_token=csrf_token MediaTypes=MediaTypes only %}
       </div>
     </div>

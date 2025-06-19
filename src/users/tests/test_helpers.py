@@ -16,7 +16,6 @@ class HelpersTest(TestCase):
         """Test processing a failed task with MediaImportError."""
         task = Mock()
         task.status = "FAILURE"
-        task.task_kwargs = json.dumps({"mode": "new"})
         task.result = json.dumps(
             {
                 "exc_type": "MediaImportError",
@@ -29,13 +28,11 @@ class HelpersTest(TestCase):
 
         self.assertEqual(processed_task.summary, "Test error message")
         self.assertEqual(processed_task.errors, "Traceback info")
-        self.assertEqual(processed_task.mode, "Only New Items")
 
     def test_process_task_result_failure_unexpected_error(self):
         """Test processing a failed task with unexpected error."""
         task = Mock()
         task.status = "FAILURE"
-        task.task_kwargs = json.dumps({"mode": "overwrite"})
         task.result = json.dumps(
             {
                 "exc_type": "OtherError",
@@ -51,13 +48,11 @@ class HelpersTest(TestCase):
             "Unexpected error occurred while processing the task.",
         )
         self.assertEqual(processed_task.errors, "Traceback info")
-        self.assertEqual(processed_task.mode, "Overwrite Existing")
 
     def test_process_task_result_success_with_errors(self):
         """Test processing a successful task with errors."""
         task = Mock()
         task.status = "SUCCESS"
-        task.task_kwargs = {"mode": "new"}
         error_title = "ERRORS:\n"  # Assuming this is ERROR_TITLE
         task.result = json.dumps(f"Summary text{error_title}Error details")
         task.traceback = None
@@ -67,13 +62,11 @@ class HelpersTest(TestCase):
 
         self.assertEqual(processed_task.summary, "Summary text")
         self.assertEqual(processed_task.errors, "Error details")
-        self.assertEqual(processed_task.mode, "Only New Items")
 
     def test_process_task_result_success_no_errors(self):
         """Test processing a successful task without errors."""
         task = Mock()
         task.status = "SUCCESS"
-        task.task_kwargs = {"mode": "overwrite"}
         task.result = json.dumps("Summary text only")
         task.traceback = None
 
@@ -81,13 +74,11 @@ class HelpersTest(TestCase):
 
         self.assertEqual(processed_task.summary, "Summary text only")
         self.assertIsNone(processed_task.errors)
-        self.assertEqual(processed_task.mode, "Overwrite Existing")
 
     def test_process_task_result_started(self):
         """Test processing a task that's currently running."""
         task = Mock()
         task.status = "STARTED"
-        task.task_kwargs = json.dumps({"mode": "new"})
         task.result = None
         task.traceback = None
 
@@ -95,13 +86,11 @@ class HelpersTest(TestCase):
 
         self.assertEqual(processed_task.summary, "This task is currently running.")
         self.assertIsNone(processed_task.errors)
-        self.assertEqual(processed_task.mode, "Only New Items")
 
     def test_process_task_result_pending(self):
         """Test processing a pending task."""
         task = Mock()
         task.status = "PENDING"
-        task.task_kwargs = json.dumps({"mode": "overwrite"})
         task.result = None
         task.traceback = None
 
@@ -112,31 +101,6 @@ class HelpersTest(TestCase):
             "This task has been queued and is waiting to run.",
         )
         self.assertIsNone(processed_task.errors)
-        self.assertEqual(processed_task.mode, "Overwrite Existing")
-
-    def test_process_task_result_invalid_kwargs(self):
-        """Test processing with invalid task_kwargs."""
-        task = Mock()
-        task.status = "SUCCESS"
-        task.task_kwargs = "invalid json"
-        task.result = json.dumps("Summary")
-        task.traceback = None
-
-        processed_task = helpers.process_task_result(task)
-
-        self.assertEqual(processed_task.mode, "Only New Items")
-
-    def test_process_task_result_no_kwargs(self):
-        """Test processing with no task_kwargs."""
-        task = Mock()
-        task.status = "SUCCESS"
-        task.task_kwargs = None
-        task.result = json.dumps("Summary")
-        task.traceback = None
-
-        processed_task = helpers.process_task_result(task)
-
-        self.assertEqual(processed_task.mode, "Only New Items")
 
     @patch("django.utils.timezone.now")
     def test_get_next_run_info_daily(self, mock_now):

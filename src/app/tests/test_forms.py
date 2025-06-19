@@ -89,12 +89,15 @@ class BasicMediaForm(TestCase):
     def test_valid_episode_form(self):
         """Test the episode form with valid data."""
         form_data = {
-            "media_id": "1",
-            "source": Sources.TMDB.value,
-            "season_number": 1,
-            "episode_number": 1,
             "end_date": "2023-06-01",
-            "repeats": 0,
+        }
+        form = EpisodeForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_episode_datetime_form(self):
+        """Test the episode form with valid data."""
+        form_data = {
+            "end_date": "2023-06-01T12:00:00Z",
         }
         form = EpisodeForm(data=form_data)
         self.assertTrue(form.is_valid())

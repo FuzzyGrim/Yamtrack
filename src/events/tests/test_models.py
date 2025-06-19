@@ -27,13 +27,6 @@ class EventModelTests(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
         # Create test items
-        self.tv_item = Item.objects.create(
-            media_id="1668",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Test TV Show",
-        )
-
         self.season_item = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -63,17 +56,9 @@ class EventModelTests(TestCase):
             title="Test Manga",
         )
 
-        # Create media objects
-        self.tv = TV.objects.create(
-            user=self.user,
-            item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-        )
-
         self.season = Season.objects.create(
             user=self.user,
             item=self.season_item,
-            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
         )
 
@@ -206,13 +191,6 @@ class EventManagerTests(TestCase):
         self.other_tv = TV.objects.create(
             user=self.other_user,
             item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-        )
-
-        self.season = Season.objects.create(
-            user=self.user,
-            item=self.season_item,
-            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
         )
 
