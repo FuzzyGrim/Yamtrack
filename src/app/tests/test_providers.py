@@ -565,7 +565,7 @@ class Metadata(TestCase):
             episode_number=1,
         )
 
-        # Test episode metadata
+        # Test episode metadata for existing episode
         response = manual.episode("4", 1, 1)
 
         # Check episode data
@@ -573,6 +573,14 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Third TV Show")
         self.assertEqual(response["season_title"], "Season 1")
         self.assertEqual(response["episode_title"], "Special Episode")
+
+        # Test episode metadata for non-existing episode
+        with self.assertRaises(services.MediaNotFoundError) as cm:
+            manual.episode("4", 1, 2)
+
+        # Check that the error message contains expected details
+        self.assertIn("Episode 2 not found in season 1", str(cm.exception))
+        self.assertIn("media ID 4", str(cm.exception))
 
     def test_manual_process_episodes(self):
         """Test the process_episodes function for manual episodes."""
@@ -1245,6 +1253,31 @@ class ServicesTests(TestCase):
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Manual Episode"})
+
+        # Verify the correct function was called
+        mock_episode.assert_called_once_with("1", 1, "2")
+
+    @patch("app.providers.manual.episode")
+    def test_get_media_metadata_manual_episode_not_found(self, mock_episode):
+        """Test the get_media_metadata function for manual episodes that don't exist."""
+        # Setup mock to raise MediaNotFoundError
+        mock_episode.side_effect = services.MediaNotFoundError(
+            Sources.MANUAL.value,
+            "Episode 2 not found in season 1 for media ID 1"
+        )
+
+        # Call the function and expect MediaNotFoundError
+        with self.assertRaises(services.MediaNotFoundError) as cm:
+            services.get_media_metadata(
+                MediaTypes.EPISODE.value,
+                "1",
+                Sources.MANUAL.value,
+                season_numbers=[1],
+                episode_number="2",
+            )
+
+        # Verify the error message
+        self.assertIn("Episode 2 not found in season 1", str(cm.exception))
 
         # Verify the correct function was called
         mock_episode.assert_called_once_with("1", 1, "2")
