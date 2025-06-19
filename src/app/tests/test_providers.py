@@ -1263,7 +1263,7 @@ class ServicesTests(TestCase):
         # Setup mock to raise MediaNotFoundError
         mock_episode.side_effect = services.MediaNotFoundError(
             Sources.MANUAL.value,
-            "Episode 2 not found in season 1 for media ID 1"
+            "Episode 2 not found in season 1 for media ID 1",
         )
 
         # Call the function and expect MediaNotFoundError

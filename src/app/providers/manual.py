@@ -119,7 +119,8 @@ def episode(media_id, season_number, episode_number):
 
     raise services.MediaNotFoundError(
         Sources.MANUAL.value,
-        f"Episode {episode_number} not found in season {season_number} for media ID {media_id}"
+        f"Episode {episode_number} not found in season {season_number} "
+        f"for media ID {media_id}",
     )
 
 
