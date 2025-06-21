@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load app_tags %}
 {% load humanize %}
+{% load i18n %}
 
 {% block title %}
   {{ media.title }}
@@ -27,7 +28,7 @@
             {% if user_medias %}
               {{ current_instance.status|media_status_readable }}
             {% else %}
-              Add to tracker
+              {% trans "Add to tracker" %}
             {% endif %}
           </div>
 
@@ -110,7 +111,7 @@
                     <div class="flex-1 text-left">
                       <div class="text-sm font-medium">{{ tv_season.season_title }}</div>
                       <div class="text-xs text-gray-400">
-                        {{ tv_season.max_progress }} Episode{{ tv_season.max_progress|pluralize }}
+                        {{ tv_season.max_progress }} {% blocktrans count tv_season.max_progress as counter %}{{ counter|intcomma }} Episode{% plural %}{{ counter|intcomma }} Episodes{% endblocktrans %}
                         {% if tv_season.first_air_date %}• {{ tv_season.first_air_date }}{% endif %}
                       </div>
                     </div>
@@ -141,7 +142,7 @@
           <button x-show="isClamped"
                   @click="isExpanded = !isExpanded"
                   class="text-indigo-400 hover:text-indigo-300 text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
-            <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+            <span x-text="isExpanded ? '{% trans 'Show less' %}' : '{% trans 'Read more' %}'"></span>
           </button>
         </div>
 
@@ -162,7 +163,7 @@
               <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path>
               <path d="M15 3v4a2 2 0 0 0 2 2h4"></path>
             </svg>
-            <div class="font-medium text-gray-400 mb-1">YOUR NOTES</div>
+            <div class="font-medium text-gray-400 mb-1">{% trans "YOUR NOTES" %}</div>
           </div>
 
           <div x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.notesText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
@@ -173,7 +174,7 @@
             <button x-show="isClamped"
                     @click="isExpanded = !isExpanded"
                     class="text-indigo-400 hover:text-indigo-300 text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
-              <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+              <span x-text="isExpanded ? '{% trans 'Show less' %}' : '{% trans 'Read more' %}'"></span>
             </button>
           </div>
         {% endif %}
@@ -183,7 +184,7 @@
       <div class="flex flex-wrap gap-4">
         {% if media.score_count is not None %}
           <div class="bg-[#2a2f35] p-3 rounded-lg w-[120px]">
-            <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{{ media.source|upper }} SCORE</h3>
+            <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{{ media.source|upper }} {% trans "SCORE" %}</h3>
             <div class="flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
@@ -203,9 +204,9 @@
                 <span class="text-lg font-bold text-gray-400">-</span>
               {% endif %}
             </div>
-            <p class="text-xs text-gray-400 mt-0.5 text-center">
-              {{ media.score_count|intcomma }} vote{{ media.score_count|pluralize }}
-            </p>
+              <p class="text-xs text-gray-400 mt-0.5 text-center">
+                  {{ media.score_count|intcomma }} {% blocktrans count media.score_count as counter %}{{ counter|intcomma }} vote{% plural %}{{ counter|intcomma }} votes{% endblocktrans %}
+              </p>
           </div>
         {% endif %}
 
@@ -216,7 +217,7 @@
             <!-- Rating display -->
             <div @click="showRatingPopup = !showRatingPopup"
                  class="bg-[#2a2f35] p-3 rounded-lg w-[120px] cursor-pointer">
-              <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">YOUR SCORE</h3>
+              <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{% trans "YOUR SCORE" %}</h3>
               <div class="flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      width="24"
@@ -240,47 +241,48 @@
                   <span class="text-lg font-bold text-gray-400">-</span>
                 </template>
               </div>
-              <p class="text-xs text-gray-400 mt-0.5 text-center">Click to edit</p>
+              <p class="text-xs text-gray-400 mt-0.5 text-center">{% trans "Click to edit" %}</p>
             </div>
 
-            <!-- Rating popup -->
-            <div x-show="showRatingPopup"
-                 @click.outside="showRatingPopup = false; isHovering = false"
-                 class="absolute left-0 top-full mt-2 p-3 bg-[#2a2f35] rounded-lg shadow-lg z-10 w-[250px] border border-gray-700"
-                 @mouseenter="isHovering = true"
-                 @mouseleave="isHovering = false; hoverRating = null">
-              <div class="flex justify-between mb-1">
-                {% with rating_range=10|get_range %}
-                  {% for rating_value in rating_range %}
-                    <button @click="rating = {{ rating_value }}; showRatingPopup = false; isHovering = false"
-                            @mouseenter="hoverRating = {{ rating_value }}"
-                            hx-post="{% url 'update_media_score' media_type current_instance.id %}"
-                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                            hx-vals='{"score": {{ rating_value }} }'
-                            hx-trigger="click"
-                            hx-swap="none"
-                            class="focus:outline-none flex flex-col items-center cursor-pointer">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="24"
-                           height="24"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round"
-                           class="w-5 h-5 hover:scale-110 transition-transform"
-                           :class="{ 'text-yellow-400 fill-yellow-400': {{ rating_value }} <= (isHovering ? hoverRating : rating), 'text-gray-600': {{ rating_value }} > (isHovering ? hoverRating : rating) }">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                      <span class="text-xs mt-1 text-gray-400">{{ rating_value }}</span>
-                    </button>
-                  {% endfor %}
-                {% endwith %}
+              <!-- Rating popup -->
+              <div x-show="showRatingPopup"
+                   @click.outside="showRatingPopup = false; isHovering = false"
+                   class="absolute left-0 top-full mt-2 p-3 bg-[#2a2f35] rounded-lg shadow-lg z-10 w-[250px] border border-gray-700"
+                   @mouseenter="isHovering = true"
+                   @mouseleave="isHovering = false; hoverRating = null">
+                  <div class="flex justify-between mb-1">
+                      {% with rating_range=10|get_range %}
+                      {% for rating_value in rating_range %}
+                      <button @click="rating = {{ rating_value }}; showRatingPopup = false; isHovering = false"
+                              @mouseenter="hoverRating = {{ rating_value }}"
+                              hx-post="{% url 'update_media_score' media_type current_instance.id %}"
+                              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                              hx-vals='{"score": {{ rating_value }} }'
+                              hx-trigger="click"
+                              hx-swap="none"
+                              class="focus:outline-none flex flex-col items-center cursor-pointer">
+                          <svg xmlns="http://www.w3.org/2000/svg"
+                               width="24"
+                               height="24"
+                               viewBox="0 0 24 24"
+                               fill="none"
+                               stroke="currentColor"
+                               stroke-width="2"
+                               stroke-linecap="round"
+                               stroke-linejoin="round"
+                               class="w-5 h-5 hover:scale-110 transition-transform"
+                               :class="{ 'text-yellow-400 fill-yellow-400': {{ rating_value }} <= (isHovering ? hoverRating : rating), 'text-gray-600': {{ rating_value }} > (isHovering ? hoverRating : rating) }">
+                              <polygon
+                                      points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                          </svg>
+                          <span class="text-xs mt-1 text-gray-400">{{ rating_value }}</span>
+                      </button>
+                      {% endfor %}
+                      {% endwith %}
+                  </div>
               </div>
-            </div>
           </div>
-        {% endif %}
+          {% endif %}
       </div>
     </div>
   </div>
@@ -292,7 +294,7 @@
       {# Your History #}
       {% if user_medias|length > 1 or current_instance.start_date or current_instance.end_date or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-bold">Your History</h2>
+          <h2 class="text-xl font-bold">{% trans "Your History" %}</h2>
 
           {% if media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}
             <div x-data="{ trackOpen: false }">
@@ -336,21 +338,21 @@
             <div class="@container flex flex-col gap-y-1">
               {% if current_instance.start_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Started:</span>
+                  <span class="text-gray-400">{% trans "Started" %}:</span>
                   <span class="text-gray-200">{{ current_instance.start_date|date_tracker_format }}</span>
                 </div>
               {% endif %}
 
               {% if current_instance.end_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Ended:</span>
+                  <span class="text-gray-400">{% trans "Ended" %}:</span>
                   <span class="text-gray-200">{{ current_instance.end_date|date_tracker_format }}</span>
                 </div>
               {% endif %}
 
               {% if media_type != MediaTypes.MOVIE.value %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Progress:</span>
+                  <span class="text-gray-400">{% trans "Progress" %}:</span>
                   <span class="text-gray-200">
                     {{ current_instance.formatted_progress }}
                     {% if current_instance.max_progress %}/ {{ current_instance.max_progress }}{% endif %}
@@ -377,7 +379,7 @@
                      :class="{ 'rotate-180': showRepeats }">
                   <path d="m6 9 6 6 6-6"></path>
                 </svg>
-                Show Repeats ({{ user_medias|length|add:"-1" }})
+                {% trans "Show Repeats" %} ({{ user_medias|length|add:"-1" }})
               </button>
 
               <div x-show="showRepeats" class="space-y-2 mt-4">
@@ -400,7 +402,7 @@
                         {% if user_media.score %}
                           <span class="text-sm font-medium text-gray-300">{{ user_media.score }}</span>
                         {% else %}
-                          <span class="text-sm font-medium text-gray-400">Not rated</span>
+                          <span class="text-sm font-medium text-gray-400">{% trans "Not rated" %}</span>
                         {% endif %}
                       </div>
 
@@ -438,11 +440,11 @@
                     </div>
 
                     <div class="space-y-2">
-                      <div class="text-xs text-gray-400">Status: {{ user_media.status|media_status_readable }}</div>
+                      <div class="text-xs text-gray-400">{% trans "Status" %}: {{ user_media.status|media_status_readable }}</div>
 
                       {% if media.media_type != MediaTypes.MOVIE.value %}
                         <div class="text-xs text-gray-400">
-                          Progress: {{ user_media.formatted_progress }}
+                          {% trans "Progress" %}: {{ user_media.formatted_progress }}
                           {% if media.media_type != MediaTypes.GAME.value %}
                             {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
                           {% endif %}
@@ -450,11 +452,11 @@
                       {% endif %}
 
                       {% if user_media.start_date %}
-                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|date_tracker_format }}</div>
+                        <div class="text-xs text-gray-400">{% trans "Started" %}: {{ user_media.start_date|date_tracker_format }}</div>
                       {% endif %}
 
                       {% if user_media.end_date %}
-                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|date_tracker_format }}</div>
+                        <div class="text-xs text-gray-400">{% trans "Finished" %}: {{ user_media.end_date|date_tracker_format }}</div>
                       {% endif %}
 
                       {% if user_media.notes %}
@@ -482,7 +484,7 @@
                             <button x-show="isClamped"
                                     @click="isExpanded = !isExpanded"
                                     class="text-indigo-400 hover:text-indigo-300 text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
-                              <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+                              <span x-text="isExpanded ? '{% trans 'Show less' %}' : '{% trans 'Read more' %}'"></span>
                             </button>
                           </div>
                         </div>
@@ -497,12 +499,12 @@
       {% endif %}
 
       {# Actions #}
-      <h2 class="text-xl font-bold mb-4">Actions</h2>
+      <h2 class="text-xl font-bold mb-4">{% trans "Actions" %}</h2>
       <div class="bg-[#2a2f35] p-4 md:p-2 lg:p-4 rounded-lg flex items-center justify-center gap-x-5 md:gap-x-2 lg:gap-x-5 mb-6">
         {# Custom Lists #}
         <div x-data="{ listsOpen: false }">
           <button class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
-                  title="Add to custom lists"
+                  title="{% trans 'Add to custom lists' %}"
                   hx-get="{% media_view_url 'lists_modal' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'lists' media %}"
@@ -539,7 +541,7 @@
         {# Activity History #}
         <div x-data="{ historyOpen: false }">
           <button class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
-                  title="View your activity history"
+                  title="{% trans 'View your activity history' %}"
                   hx-get="{% media_view_url 'history_modal' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'history' media %}"
@@ -576,7 +578,7 @@
 
         {# Sync metadata #}
         <button type="button"
-                title="Sync metadata with provider"
+                title="{% trans 'Sync metadata with provider' %}"
                 class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer disabled:opacity-75"
                 hx-post="{% media_view_url 'sync_metadata' media %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -606,7 +608,7 @@
       </div>
 
       {# Media Details #}
-      <h2 class="text-xl font-bold mb-4">Details</h2>
+      <h2 class="text-xl font-bold mb-4">{% trans "Details" %}</h2>
       <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
         {% if media.details.items %}
           {% for key, value in media.details.items %}
@@ -621,14 +623,14 @@
           {% endfor %}
           {% if media.source != Sources.MANUAL.value %}
             <div>
-              <h3 class="text-sm font-semibold text-gray-400">Source</h3>
+              <h3 class="text-sm font-semibold text-gray-400">{% trans "Source" %}</h3>
               <a href="{{ media.source_url }}"
                  class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
                  target="_blank">{{ media.source|source_readable }}</a>
             </div>
           {% endif %}
         {% else %}
-          <div class="text-gray-200">No details available</div>
+          <div class="text-gray-200">{% trans "No details available" %}</div>
         {% endif %}
       </div>
     </div>
@@ -654,7 +656,7 @@
     {# Episodes List #}
     {% if media.episodes %}
       <div class="w-full">
-        <h2 class="text-xl font-bold mb-4">Episodes</h2>
+        <h2 class="text-xl font-bold mb-4">{% trans "Episodes" %}</h2>
         <div class="space-y-6">
           {% for episode in media.episodes %}
             <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
@@ -669,7 +671,7 @@
                       <div>
                         <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
                         <p class="text-sm text-gray-400">
-                          Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
+                          {% trans "Episode" %} {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
                         </p>
                       </div>
                       <div class="flex space-x-2">
@@ -789,8 +791,8 @@
                   </div>
                   {% if episode.history %}
                     <p class="text-xs text-gray-400 mt-2 px-4">
-                      Last watched: {{ episode.history.0.end_date|date_tracker_format|default_if_none:"No date provided" }}
-                      {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
+                      {% trans "Last watched" %}: {{ episode.history.0.end_date|date_tracker_format|default_if_none:"No date provided" }}
+                      {% if episode.history|length > 1 %}• {% trans "Watched" %} {{ episode.history|length }} {% trans "times" %}{% endif %}
                     </p>
                   {% endif %}
                 </div>

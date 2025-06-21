@@ -8,6 +8,7 @@
 {% endblock title %}
 
 {% block content %}
+    <script src="{% url 'javascript-catalog' %}"></script>
   <div class="mb-8">
     <h1 class="text-3xl font-bold mb-2">{% trans "Statistics" %}</h1>
     <p class="text-gray-400">{% trans "Track your media consumption habits" %}</p>
@@ -261,11 +262,10 @@
         <div>
           <h3 class="text-sm font-medium text-gray-400">{% trans "Current Streak" %}</h3>
           {% if activity_data.stats.most_active_day %}
-            {% trans "day,days,day" as item_forms %}
             <p class="text-2xl font-bold">
-              {{ activity_data.stats.current_streak }} {{ activity_data.stats.current_streak|smart_pluralize:item_forms }}
+              {{ activity_data.stats.current_streak }} {% blocktrans count activity_data.stats.current_streak as counter %}{{ counter|intcomma }} day{% plural %}{{ counter|intcomma }} days{% endblocktrans %}
               <p class="text-sm text-gray-500">
-                {% trans "Longest:" %} {{ activity_data.stats.longest_streak }} {{ activity_data.stats.longest_streak|smart_pluralize:item_forms }}
+                {% trans "Longest:" %} {{ activity_data.stats.longest_streak }} {% blocktrans count activity_data.stats.longest_streak as counter %}{{ counter|intcomma }} day{% plural %}{{ counter|intcomma }} days{% endblocktrans %}
               </p>
             </p>
           {% else %}
@@ -311,7 +311,7 @@
                 <div class="flex flex-col gap-1">
                   {% for day in week %}
                     <div class="w-4 h-4 rounded-sm transition-colors duration-200 hover:ring-2 hover:ring-white {% if day.level == 0 %}bg-[#2f353e]{% elif day.level == 1 %}bg-indigo-700{% elif day.level == 2 %}bg-indigo-600{% elif day.level == 3 %}bg-indigo-500{% elif day.level == 4 %}bg-indigo-400{% endif %}"
-                         title="{{ day.date }}: {{ day.count }} activit{{ day.count|pluralize:"y,ies" }}"></div>
+                         title="{{ day.date }}: {{ day.count }} {% blocktrans count day.count as counter %}{{ counter|intcomma }} activity{% plural %}{{ counter|intcomma }} activities{% endblocktrans %}"></div>
                   {% endfor %}
                 </div>
               {% endfor %}

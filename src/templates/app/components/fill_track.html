@@ -1,4 +1,5 @@
 {% load widget_tweaks %}
+{% load i18n %}
 
 <div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
   <div class="flex items-center justify-between mb-6">
@@ -110,15 +111,15 @@
               formaction="{% url 'media_save' %}?next={{ return_url }}"
               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">
         {% if media %}
-          Update
+          {% trans "Update" %}
         {% else %}
-          Add
+          {% trans "Add" %}
         {% endif %}
       </button>
       <button type="submit"
               formaction="{% url 'media_delete' %}?next={{ return_url }}"
               class="px-4 py-2 rounded-md transition duration-300 {% if media %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}"
-              {% if not media %}disabled{% endif %}>Delete</button>
+              {% if not media %}disabled{% endif %}>{% trans "Delete" %}</button>
     </div>
   </form>
 </div>

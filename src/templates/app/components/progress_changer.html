@@ -1,4 +1,5 @@
 {% load app_tags %}
+{% load i18n humanize %}
 
 <div class="flex items-center justify-center space-x-4">
   <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
@@ -27,9 +28,17 @@
 
     {% if media.item.media_type != MediaTypes.GAME.value and media.item.media_type != MediaTypes.MOVIE.value %}
       {% if media.max_progress %}
-        / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
+        / {% if media.item.media_type == MediaTypes.SEASON.value or media.item.media_type == MediaTypes.ANIME.value%}
+          {{ media.max_progress }} {% blocktrans count media.max_progress as counter %}{{ counter|intcomma }} Episode{% plural %}{{ counter|intcomma }} Episodes{% endblocktrans %}
+        {% elif media.item.media_type == MediaTypes.COMIC.value %}
+          {{ media.max_progress }} {% blocktrans count media.max_progress as counter %}{{ counter|intcomma }} Issue{% plural %}{{ counter|intcomma }} Issues{% endblocktrans %}
+        {% endif %}
       {% else %}
-        {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
+        {% if media.item.media_type == MediaTypes.MANGA.value %}
+          {% blocktrans count media.progress as counter %}{{ counter|intcomma }} Chapter{% plural %}{{ counter|intcomma }} Chapters{% endblocktrans %}
+        {% elif media.item.media_type == MediaTypes.BOOK.value %}
+          {% blocktrans count media.progress as counter %}{{ counter|intcomma }} Page{% plural %}{{ counter|intcomma }} Pages{% endblocktrans %}
+        {% endif %}
       {% endif %}
     {% endif %}
   </div>

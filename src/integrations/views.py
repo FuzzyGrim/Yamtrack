@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
+from django.utils.translation import gettext_lazy as _
 
 import users
 from integrations import exports, tasks
@@ -203,7 +204,7 @@ def import_hltb(request):
     )
     messages.info(
         request,
-        "The task to import media from HowLongToBeat CSV file has been queued.",
+        _("The task to import media from HowLongToBeat CSV file has been queued."),
     )
     return redirect("import_data")
 

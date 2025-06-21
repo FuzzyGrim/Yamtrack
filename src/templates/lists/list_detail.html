@@ -27,12 +27,9 @@
             {% endfor %}
           </div>
           <span class="text-sm text-gray-400">
-            {{ collaborators_count }}
-              {% trans "collaborator,collaborators,collaborator" as item_forms %}
-              {{ collaborators_count|smart_pluralize:item_forms }}
+            {{ collaborators_count }} {% blocktrans count collaborators_count as counter %}{{ counter|intcomma }} collaborator{% plural %}{{ counter|intcomma }} collaborators{% endblocktrans %}
             <span class="mx-2">•</span>
-            {% trans "item,items,item" as item_forms %}
-            {{ items_count }} {{ items_count|smart_pluralize:item_forms }}
+            {{ items_count }} {% blocktrans count items_count as counter %}{{ counter|intcomma }} item{% plural %}{{ counter|intcomma }} items{% endblocktrans %}
           </span>
         </div>
       </div>

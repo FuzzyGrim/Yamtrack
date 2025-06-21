@@ -43,7 +43,7 @@ class MediaSortChoices(models.TextChoices):
 class MediaStatusChoices(models.TextChoices):
     """Choices for media list status options."""
 
-    ALL = "All", "All"
+    ALL = "All", _("All")
     COMPLETED = Status.COMPLETED.value, Status.COMPLETED.label
     IN_PROGRESS = Status.IN_PROGRESS.value, Status.IN_PROGRESS.label
     PLANNING = Status.PLANNING.value, Status.PLANNING.label

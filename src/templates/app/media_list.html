@@ -184,7 +184,7 @@
           <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
              class="p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
-             title="Grid View"
+             title="{% trans 'Grid View' %}"
              @click="layout = 'grid'">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -202,7 +202,7 @@
           <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
              class="p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
-             title="Table View"
+             title="{% trans 'Table View' %}"
              @click="layout = 'table'">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"

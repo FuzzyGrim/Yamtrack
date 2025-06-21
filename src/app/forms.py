@@ -242,10 +242,12 @@ class MangaForm(MediaForm):
 
         model = Manga
         labels = {
-            "progress": (
-                f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.MANGA.value, short=False)}s)"
-            ),
+            "score": _("Score"),
+            "progress": _("Progress (Chapters)"),
+            "status": _("Status"),
+            "start_date": _("Start Date"),
+            "end_date": _("End Date"),
+            "notes": _("Notes"),
         }
 
 
@@ -256,7 +258,14 @@ class AnimeForm(MediaForm):
         """Bind form to model."""
 
         model = Anime
-
+        labels = {
+            "score": _("Score"),
+            "progress": _("Progress"),
+            "status": _("Status"),
+            "start_date": _("Start Date"),
+            "end_date": _("End Date"),
+            "notes": _("Notes"),
+        }
 
 class MovieForm(MediaForm):
     """Form for movies."""
@@ -288,14 +297,21 @@ class GameForm(MediaForm):
     progress = CustomDurationField(
         required=False,
         widget=forms.TextInput(attrs={"placeholder": "hh:mm"}),
-        label="Progress (Time Played)",
+        label=_("Progress (Time Played)"),
     )
 
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
         model = Game
-
+        labels = {
+            "score": _("Score"),
+            "progress": _("Progress (Time Played)"),
+            "status": _("Status"),
+            "start_date": _("Start Date"),
+            "end_date": _("End Date"),
+            "notes": _("Notes"),
+        }
 
 class BookForm(MediaForm):
     """Form for books."""
@@ -305,10 +321,12 @@ class BookForm(MediaForm):
 
         model = Book
         labels = {
-            "progress": (
-                f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.BOOK.value, short=False)}s)"
-            ),
+            "score": _("Score"),
+            "progress": _("Progress (Pages)"),
+            "status": _("Status"),
+            "start_date": _("Start Date"),
+            "end_date": _("End Date"),
+            "notes": _("Notes"),
         }
 
 
@@ -320,10 +338,12 @@ class ComicForm(MediaForm):
 
         model = Comic
         labels = {
-            "progress": (
-                f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.COMIC.value, short=False)}s)"
-            ),
+            "score": _("Score"),
+            "progress": _("Progress (Issues)"),
+            "status": _("Status"),
+            "start_date": _("Start Date"),
+            "end_date": _("End Date"),
+            "notes": _("Notes"),
         }
 
 
@@ -335,6 +355,11 @@ class TvForm(MediaForm):
 
         model = TV
         fields = ["score", "status", "notes"]
+        labels = {
+            "score": _("Score"),
+            "status": _("Status"),
+            "notes": _("Notes"),
+        }
 
 
 class SeasonForm(MediaForm):
@@ -351,6 +376,11 @@ class SeasonForm(MediaForm):
             "status",
             "notes",
         ]
+        labels = {
+            "score": _("Score"),
+            "status": _("Status"),
+            "notes": _("Notes"),
+        }
 
 
 class EpisodeForm(forms.ModelForm):

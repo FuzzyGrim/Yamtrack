@@ -32,10 +32,10 @@ def process_task_result(task):
             task.summary = result_json["exc_message"][0]
             task.errors = task.traceback
         else:
-            task.summary = "Unexpected error occurred while processing the task."
+            task.summary = _("Unexpected error occurred while processing the task.")
             task.errors = task.traceback
     elif task.status == "STARTED":
-        task.summary = "This task is currently running."
+        task.summary = _("This task is currently running.")
         task.errors = None
     elif task.status == "SUCCESS":
         result_json = json.loads(task.result)
@@ -52,7 +52,7 @@ def process_task_result(task):
             task.summary = result_json.strip()
             task.errors = None
     elif task.status == "PENDING":
-        task.summary = "This task has been queued and is waiting to run."
+        task.summary = _("This task has been queued and is waiting to run.")
         task.errors = None
 
     return task

@@ -29,13 +29,13 @@ logger = logging.getLogger(__name__)
 @require_GET
 def home(request):
     """Home page with media items in progress."""
-    sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
+    sort_by_key = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
     items_limit = 14
 
     list_by_type = BasicMedia.objects.get_in_progress(
         request.user,
-        sort_by,
+        sort_by_key, # Use the key for the database query
         items_limit,
         media_type_to_load,
     )
@@ -47,9 +47,14 @@ def home(request):
         }
         return render(request, "app/components/home_grid.html", context)
 
+    # Get the translated label for the current_sort key
+    # HomeSortChoices(sort_by_key) accesses the TextChoices member
+    # .label property gets the translated string (using gettext_lazy)
+    translated_sort_label = HomeSortChoices(sort_by_key).label
+
     context = {
         "list_by_type": list_by_type,
-        "current_sort": sort_by,
+        "current_sort": translated_sort_label, # Pass the translated label to the template
         "sort_choices": HomeSortChoices.choices,
         "items_limit": items_limit,
     }

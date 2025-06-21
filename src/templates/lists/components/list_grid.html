@@ -64,8 +64,7 @@
         </div>
         <div class="flex items-center text-gray-400 text-sm">
           {% with item_count=custom_list.items.count %}<span>
-            {% trans "item,items,item" as item_forms %}
-            {{ item_count }} {{ item_count|smart_pluralize:item_forms }}
+            {{ item_count }} {% blocktrans count item_count as counter %}{{ counter|intcomma }} item{% plural %}{{ counter|intcomma }} items{% endblocktrans %}
         </span>{% endwith %}
         </div>
       </div>

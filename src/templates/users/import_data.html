@@ -317,7 +317,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "hltb" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import games' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{% trans 'Import games' %}' : '{% trans 'File uploads are not available for periodic imports' %}'">
           </p>
           <form method="post"
                 action="{% url 'import_hltb' %}"
@@ -466,12 +466,12 @@
                   {% if result.status == "SUCCESS" %}
                     <button @click="showDetails = !showDetails"
                             class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                            x-text="showDetails ? 'Hide failed items' : 'Show failed items'">{% trans "Show failed items" %}</button>
+                            x-text="showDetails ? '{% trans 'Hide failed items' %}' : '{% trans 'Show failed items' %}'">{% trans "Show failed items" %}</button>
 
                   {% elif result.status == "FAILURE" %}
                     <button @click="showDetails = !showDetails"
                             class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                            x-text="showDetails ? 'Hide traceback' : 'Show traceback'">{% trans "Show traceback" %}</button>
+                            x-text="showDetails ? '{% trans 'Hide traceback' %}' : '{% trans 'Show traceback' %}'">{% trans "Show traceback" %}</button>
                   {% endif %}
 
                   <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded"

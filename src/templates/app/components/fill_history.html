@@ -25,7 +25,7 @@
           class="bg-[#39404b] p-4 pt-3 rounded-lg group relative space-y-1">
         <div class="flex justify-between items-center mb-2">
           {% if total_medias > 1 %}
-            <span class="text-xs px-2 py-1 rounded bg-gray-600 text-gray-300">Instance #{{ entry.media_entry_number }}</span>
+            <span class="text-xs px-2 py-1 rounded bg-gray-600 text-gray-300">{% trans "Instance" %} #{{ entry.media_entry_number }}</span>
           {% endif %}
           <span class="text-sm text-gray-400">{{ entry.date|date:"DATETIME_FORMAT" }}</span>
 

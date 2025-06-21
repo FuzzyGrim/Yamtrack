@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path
+from django.views.i18n import JavaScriptCatalog
 
 urlpatterns = [
     path("", include("app.urls")),
@@ -20,6 +21,7 @@ urlpatterns = [
     path("", include("users.urls")),
     path("", include("lists.urls")),
     path("", include("events.urls")),
+    path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
     path("select2/", include("django_select2.urls")),
     path("health/", decorator_include(login_not_required, "health_check.urls")),
 ]

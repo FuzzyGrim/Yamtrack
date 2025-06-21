@@ -3,7 +3,6 @@ import logging
 import requests
 from django.conf import settings
 from django.core.cache import cache
-from django.utils.translation import get_language
 
 from app import helpers
 from app.models import MediaTypes, Sources
@@ -13,6 +12,7 @@ logger = logging.getLogger(__name__)
 base_url = "https://api.themoviedb.org/3"
 base_params = {
     "api_key": settings.TMDB_API,
+    "language": settings.TMDB_LANG,
 }
 
 
@@ -41,7 +41,7 @@ def handle_error(error):
     )
 
 
-def search(media_type, query, page, language=None):
+def search(media_type, query, page):
     """Search for media on TMDB."""
     cache_key = f"search_{Sources.TMDB.value}_{media_type}_{query}_{page}"
     data = cache.get(cache_key)
@@ -51,7 +51,6 @@ def search(media_type, query, page, language=None):
 
         params = {
             **base_params,
-            "language": language,
             "query": query,
             "page": page,
         }
@@ -122,7 +121,7 @@ def find(external_id, external_source):
     return response
 
 
-def movie(media_id, language=None):
+def movie(media_id):
     """Return the metadata for the selected movie from The Movie Database."""
     cache_key = f"{Sources.TMDB.value}_{MediaTypes.MOVIE.value}_{media_id}"
     data = cache.get(cache_key)
@@ -131,7 +130,6 @@ def movie(media_id, language=None):
         url = f"{base_url}/movie/{media_id}"
         params = {
             **base_params,
-            "language": language,
             "append_to_response": "recommendations",
         }
 
@@ -179,7 +177,7 @@ def movie(media_id, language=None):
     return data
 
 
-def tv_with_seasons(media_id, season_numbers, language=None):
+def tv_with_seasons(media_id, season_numbers):
     """Return the metadata for the tv show with a season appended to the response."""
     if season_numbers == []:
         return tv(media_id)
@@ -208,7 +206,6 @@ def tv_with_seasons(media_id, season_numbers, language=None):
 
         params = {
             **base_params,
-            "language": language,
             "append_to_response": f"{base_append},{append_text}"
             if append_text
             else base_append,
@@ -268,7 +265,7 @@ def tv_with_seasons(media_id, season_numbers, language=None):
     return data
 
 
-def tv(media_id, language=None):
+def tv(media_id):
     """Return the metadata for the selected tv show from The Movie Database."""
     cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
     data = cache.get(cache_key)
@@ -277,7 +274,6 @@ def tv(media_id, language=None):
         url = f"{base_url}/tv/{media_id}"
         params = {
             **base_params,
-            "language": language,
             "append_to_response": "recommendations,external_ids",
         }
 
