@@ -1,0 +1,114 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-06-21 22:28+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n == 1 ? 0 : n % 1 == 0 && n "
+">= 2 && n <= 4 ? 1 : n % 1 != 0 ? 2: 3);\n"
+
+#: static/js/copy-item.js:66
+msgid ""
+"Could not copy to clipboard. Please select the text and press Ctrl+C/Cmd+C "
+"to copy."
+msgstr ""
+
+#: static/js/date-range.js:5 static/js/date-range.js:22
+#: static/js/date-range.js:126 static/js/date-range.js:315
+msgid "Last 12 Months"
+msgstr ""
+
+#: static/js/date-range.js:13 static/js/date-range.js:62
+#: static/js/date-range.js:219
+msgid "Today"
+msgstr ""
+
+#: static/js/date-range.js:14 static/js/date-range.js:68
+#: static/js/date-range.js:227
+msgid "Yesterday"
+msgstr ""
+
+#: static/js/date-range.js:15 static/js/date-range.js:75
+#: static/js/date-range.js:237
+msgid "This Week"
+msgstr ""
+
+#: static/js/date-range.js:16 static/js/date-range.js:84
+#: static/js/date-range.js:245
+msgid "Last 7 Days"
+msgstr ""
+
+#: static/js/date-range.js:17 static/js/date-range.js:90
+#: static/js/date-range.js:252
+msgid "This Month"
+msgstr ""
+
+#: static/js/date-range.js:18 static/js/date-range.js:96
+#: static/js/date-range.js:260
+msgid "Last 30 Days"
+msgstr ""
+
+#: static/js/date-range.js:19 static/js/date-range.js:102
+#: static/js/date-range.js:268
+msgid "Last 90 Days"
+msgstr ""
+
+#: static/js/date-range.js:20 static/js/date-range.js:108
+#: static/js/date-range.js:275
+msgid "This Year"
+msgstr ""
+
+#: static/js/date-range.js:21 static/js/date-range.js:114
+#: static/js/date-range.js:299
+msgid "Last 6 Months"
+msgstr ""
+
+#: static/js/date-range.js:23 static/js/date-range.js:136
+#: static/js/date-range.js:197
+msgid "All Time"
+msgstr ""
+
+#: static/js/statistics-charts.js:35
+msgid "Score: 10"
+msgstr ""
+
+#: static/js/statistics-charts.js:37 static/js/statistics-charts.js:342
+msgid "Score"
+msgstr ""
+
+#: static/js/statistics-charts.js:72
+msgid "<td>Total:</td>"
+msgstr ""
+
+#: static/js/statistics-charts.js:129
+msgid "Count: %(value)s"
+msgstr ""
+
+#: static/js/statistics-charts.js:349
+msgid "Number of Items"
+msgstr ""
+
+#: static/js/statistics-charts.js:355
+#, javascript-format
+msgid "%s item"
+msgid_plural "%s items"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: static/js/statistics-charts.js:356
+msgid "Average Score: %(average_score)s (%(total_scored_text)s)"
+msgstr ""

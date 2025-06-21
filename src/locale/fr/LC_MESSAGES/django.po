@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-19 19:59+0300\n"
+"POT-Creation-Date: 2025-06-21 23:44+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -44,34 +44,83 @@ msgstr ""
 msgid "Add any notes or comments..."
 msgstr ""
 
-#: app/forms.py:276 templates/app/create_entry.html:353
-#: templates/app/media_list.html:265
+#: app/forms.py:245 app/forms.py:262 app/forms.py:285 app/forms.py:308
+#: app/forms.py:324 app/forms.py:341 app/forms.py:359 app/forms.py:380
+#: templates/app/create_entry.html:353 templates/app/media_list.html:265
 msgid "Score"
 msgstr ""
 
-#: app/forms.py:277
-msgid "Number of Repeats"
+#: app/forms.py:246
+msgid "Progress (Chapters)"
 msgstr ""
 
-#: app/forms.py:278 templates/app/create_entry.html:453
+#: app/forms.py:247 app/forms.py:264 app/forms.py:287 app/forms.py:310
+#: app/forms.py:326 app/forms.py:343 app/forms.py:360 app/forms.py:381
+#: templates/app/create_entry.html:453 templates/app/media_details.html:443
 #: templates/app/media_list.html:268
 msgid "Status"
 msgstr ""
 
-#: app/forms.py:279 templates/app/create_entry.html:477
-#: templates/app/media_list.html:269 templates/app/statistics.html:99
+#: app/forms.py:248 app/forms.py:265 app/forms.py:288 app/forms.py:311
+#: app/forms.py:327 app/forms.py:344 templates/app/create_entry.html:477
+#: templates/app/media_list.html:269 templates/app/statistics.html:100
 #: users/models.py:39
 msgid "Start Date"
 msgstr ""
 
-#: app/forms.py:280 templates/app/create_entry.html:486
-#: templates/app/media_list.html:270 templates/app/statistics.html:106
+#: app/forms.py:249 app/forms.py:266 app/forms.py:289 app/forms.py:312
+#: app/forms.py:328 app/forms.py:345 templates/app/create_entry.html:486
+#: templates/app/media_list.html:270 templates/app/statistics.html:107
 #: users/models.py:40
 msgid "End Date"
 msgstr ""
 
-#: app/forms.py:281 templates/app/create_entry.html:495
+#: app/forms.py:250 app/forms.py:267 app/forms.py:290 app/forms.py:313
+#: app/forms.py:329 app/forms.py:346 app/forms.py:361 app/forms.py:382
+#: templates/app/create_entry.html:495
 msgid "Notes"
+msgstr ""
+
+#: app/forms.py:263 templates/app/create_entry.html:401
+#: templates/app/media_details.html:355 templates/app/media_details.html:447
+#: templates/app/media_list.html:266 users/models.py:38
+msgid "Progress"
+msgstr ""
+
+#: app/forms.py:286
+msgid "Number of Repeats"
+msgstr ""
+
+#: app/forms.py:300 app/forms.py:309
+msgid "Progress (Time Played)"
+msgstr ""
+
+#: app/forms.py:325
+msgid "Progress (Pages)"
+msgstr ""
+
+#: app/forms.py:342
+msgid "Progress (Issues)"
+msgstr ""
+
+#: app/history_processor.py:209
+msgid "Marked as"
+msgstr ""
+
+#: app/history_processor.py:222
+msgid "Rated"
+msgstr ""
+
+#: app/history_processor.py:302
+msgid "Added notes"
+msgstr ""
+
+#: app/history_processor.py:304
+msgid "Removed notes"
+msgstr ""
+
+#: app/history_processor.py:305
+msgid "Updated notes"
 msgstr ""
 
 #: app/media_type_config.py:14 app/media_type_config.py:24
@@ -91,7 +140,9 @@ msgid "E"
 msgstr ""
 
 #: app/media_type_config.py:32 app/media_type_config.py:70 app/models.py:54
-#: app/templatetags/app_tags.py:102
+#: app/templatetags/app_tags.py:101
+#: templates/app/components/fill_track_episode.html:38
+#: templates/app/media_details.html:674
 msgid "Episode"
 msgid_plural "Episodes"
 msgstr[0] ""
@@ -126,49 +177,49 @@ msgstr ""
 msgid "Issue"
 msgstr ""
 
-#: app/models.py:52 app/templatetags/app_tags.py:100
+#: app/models.py:52 app/templatetags/app_tags.py:99
 msgid "TV Show"
 msgid_plural "TV Shows"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/models.py:53 app/templatetags/app_tags.py:101
+#: app/models.py:53 app/templatetags/app_tags.py:100
 msgid "TV Season"
 msgid_plural "TV Seasons"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/models.py:55 app/templatetags/app_tags.py:103
+#: app/models.py:55 app/templatetags/app_tags.py:102
 msgid "Movie"
 msgid_plural "Movies"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/models.py:56 app/templatetags/app_tags.py:104
+#: app/models.py:56 app/templatetags/app_tags.py:103
 msgid "Anime"
 msgid_plural "Anime"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/models.py:57 app/templatetags/app_tags.py:105
+#: app/models.py:57 app/templatetags/app_tags.py:104
 msgid "Manga"
 msgid_plural "Manga"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/models.py:58 app/templatetags/app_tags.py:106
+#: app/models.py:58 app/templatetags/app_tags.py:105
 msgid "Game"
 msgid_plural "Games"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/models.py:59 app/templatetags/app_tags.py:107
+#: app/models.py:59 app/templatetags/app_tags.py:106
 msgid "Book"
 msgid_plural "Books"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/models.py:60 app/templatetags/app_tags.py:108
+#: app/models.py:60 app/templatetags/app_tags.py:107
 msgid "Comic"
 msgid_plural "Comics"
 msgstr[0] ""
@@ -192,6 +243,47 @@ msgstr ""
 
 #: app/models.py:712
 msgid "Dropped"
+msgstr ""
+
+#: app/statistics.py:529
+msgid "Monday"
+msgstr ""
+
+#: app/statistics.py:530
+msgid "Tuesday"
+msgstr ""
+
+#: app/statistics.py:531
+msgid "Wednesday"
+msgstr ""
+
+#: app/statistics.py:532
+msgid "Thursday"
+msgstr ""
+
+#: app/statistics.py:533
+msgid "Friday"
+msgstr ""
+
+#: app/statistics.py:534
+msgid "Saturday"
+msgstr ""
+
+#: app/statistics.py:535
+msgid "Sunday"
+msgstr ""
+
+#: integrations/tasks.py:85
+msgid "No media was imported."
+msgstr ""
+
+#: integrations/tasks.py:90
+#, python-format
+msgid "Imported %(parts)s."
+msgstr ""
+
+#: integrations/views.py:207
+msgid "The task to import media from HowLongToBeat CSV file has been queued."
 msgstr ""
 
 #: lists/forms.py:23 lists/views.py:83 users/models.py:72
@@ -355,13 +447,107 @@ msgstr ""
 msgid "Activity History"
 msgstr ""
 
+#: templates/app/components/fill_history.html:28
+msgid "Instance"
+msgstr ""
+
 #: templates/app/components/fill_history.html:57
 msgid "You haven't started tracking it yet."
+msgstr ""
+
+#: templates/app/components/fill_track.html:114
+msgid "Update"
+msgstr ""
+
+#: templates/app/components/fill_track.html:116
+#: templates/lists/components/list_item_button.html:16
+msgid "Add"
+msgstr ""
+
+#: templates/app/components/fill_track.html:122
+#: templates/app/components/fill_track_episode.html:69
+#: templates/lists/components/list_form.html:57
+msgid "Delete"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:12
+msgid "Track Episode"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:41
+msgid "Watched once"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:43
+#: templates/app/media_details.html:795
+msgid "Watched"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:43
+#: templates/app/media_details.html:795
+msgid "times"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:46
+msgid "Not watched yet"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:57
+msgid "Previous Watches"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:90
+msgid "Watch Date"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:95
+msgid "inputType"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:95
+msgid "date"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:121
+msgid "Air date"
+msgstr ""
+
+#: templates/app/components/fill_track_episode.html:130
+msgid "Add watch"
 msgstr ""
 
 #: templates/app/components/home_grid.html:31
 msgid "Release"
 msgstr ""
+
+#: templates/app/components/progress_changer.html:32
+#: templates/app/media_details.html:114
+#, python-format
+msgid "%(counter|intcomma)s Episode"
+msgid_plural "%(counter|intcomma)s Episodes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/app/components/progress_changer.html:34
+#, python-format
+msgid "%(counter|intcomma)s Issue"
+msgid_plural "%(counter|intcomma)s Issues"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/app/components/progress_changer.html:38
+#, python-format
+msgid "%(counter|intcomma)s Chapter"
+msgid_plural "%(counter|intcomma)s Chapters"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/app/components/progress_changer.html:40
+#, python-format
+msgid "%(counter|intcomma)s Page"
+msgid_plural "%(counter|intcomma)s Pages"
+msgstr[0] ""
+msgstr[1] ""
 
 #: templates/app/components/search_parent_season.html:8
 msgid "Season"
@@ -422,16 +608,11 @@ msgstr ""
 msgid "Enter image URL"
 msgstr ""
 
-#: templates/app/create_entry.html:401 templates/app/media_list.html:266
-#: users/models.py:38
-msgid "Progress"
-msgstr ""
-
 #: templates/app/create_entry.html:519
 msgid "Create Entry"
 msgstr ""
 
-#: templates/app/home.html:6 templates/base.html:76
+#: templates/app/home.html:6 templates/base.html:77
 msgid "Home"
 msgstr ""
 
@@ -451,17 +632,123 @@ msgstr ""
 msgid "Start tracking your progress by marking items as \"In Progress\"."
 msgstr ""
 
-#: templates/app/home.html:109 templates/lists/list_detail.html:259
+#: templates/app/home.html:109 templates/lists/list_detail.html:256
 msgid "Browse Media"
 msgstr ""
 
+#: templates/app/media_details.html:31
+msgid "Add to tracker"
+msgstr ""
+
+#: templates/app/media_details.html:145 templates/app/media_details.html:177
+#: templates/app/media_details.html:487
+msgid "Show less"
+msgstr ""
+
+#: templates/app/media_details.html:145 templates/app/media_details.html:177
+#: templates/app/media_details.html:487
+msgid "Read more"
+msgstr ""
+
+#: templates/app/media_details.html:166
+msgid "YOUR NOTES"
+msgstr ""
+
+#: templates/app/media_details.html:187
+msgid "SCORE"
+msgstr ""
+
+#: templates/app/media_details.html:208
+#, python-format
+msgid "%(counter|intcomma)s vote"
+msgid_plural "%(counter|intcomma)s votes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/app/media_details.html:220
+msgid "YOUR SCORE"
+msgstr ""
+
+#: templates/app/media_details.html:244
+msgid "Click to edit"
+msgstr ""
+
+#: templates/app/media_details.html:297
+msgid "Your History"
+msgstr ""
+
+#: templates/app/media_details.html:341 templates/app/media_details.html:455
+#: templates/users/import_data.html:449
+msgid "Started"
+msgstr ""
+
+#: templates/app/media_details.html:348
+msgid "Ended"
+msgstr ""
+
+#: templates/app/media_details.html:382
+msgid "Show Repeats"
+msgstr ""
+
+#: templates/app/media_details.html:405
+msgid "Not rated"
+msgstr ""
+
+#: templates/app/media_details.html:459 templates/users/import_data.html:443
+msgid "Finished"
+msgstr ""
+
+#: templates/app/media_details.html:502
+msgid "Actions"
+msgstr ""
+
+#: templates/app/media_details.html:507
+msgid "Add to custom lists"
+msgstr ""
+
+#: templates/app/media_details.html:544
+msgid "View your activity history"
+msgstr ""
+
+#: templates/app/media_details.html:581
+msgid "Sync metadata with provider"
+msgstr ""
+
+#: templates/app/media_details.html:611
+msgid "Details"
+msgstr ""
+
+#: templates/app/media_details.html:626
+msgid "Source"
+msgstr ""
+
+#: templates/app/media_details.html:633
+msgid "No details available"
+msgstr ""
+
+#: templates/app/media_details.html:659
+msgid "Episodes"
+msgstr ""
+
+#: templates/app/media_details.html:794
+msgid "Last watched"
+msgstr ""
+
 #: templates/app/media_list.html:38 templates/app/search.html:6
-#: templates/base.html:199 templates/events/components/calendar_list.html:11
+#: templates/base.html:200 templates/events/components/calendar_list.html:11
 msgid "Search"
 msgstr ""
 
 #: templates/app/media_list.html:38
 msgid "in your list..."
+msgstr ""
+
+#: templates/app/media_list.html:187
+msgid "Grid View"
+msgstr ""
+
+#: templates/app/media_list.html:205
+msgid "Table View"
 msgstr ""
 
 #: templates/app/media_list.html:246
@@ -501,8 +788,11 @@ msgid "of"
 msgstr ""
 
 #: templates/app/search.html:154
-msgid "results"
-msgstr ""
+#, python-format
+msgid "%(counter|intcomma)s result"
+msgid_plural "%(counter|intcomma)s results"
+msgstr[0] ""
+msgstr[1] ""
 
 #: templates/app/search.html:174
 msgid "No results found"
@@ -516,54 +806,57 @@ msgstr ""
 msgid "Try checking your spelling or using different keywords."
 msgstr ""
 
-#: templates/app/statistics.html:7 templates/app/statistics.html:12
-#: templates/base.html:108
+#: templates/app/statistics.html:7 templates/app/statistics.html:13
+#: templates/base.html:109
 msgid "Statistics"
 msgstr ""
 
-#: templates/app/statistics.html:13
+#: templates/app/statistics.html:14
 msgid "Track your media consumption habits"
 msgstr ""
 
-#: templates/app/statistics.html:61
+#: templates/app/statistics.html:62
 msgid "Predefined Ranges"
 msgstr ""
 
-#: templates/app/statistics.html:64
+#: templates/app/statistics.html:65
 msgid "Custom Range"
 msgstr ""
 
-#: templates/app/statistics.html:135
+#: templates/app/statistics.html:136
 msgid "Cancel"
 msgstr ""
 
-#: templates/app/statistics.html:151
+#: templates/app/statistics.html:152
 msgid "Apply Range"
 msgstr ""
 
-#: templates/app/statistics.html:179
+#: templates/app/statistics.html:180
 msgid "Completed Items"
 msgstr ""
 
-#: templates/app/statistics.html:207
+#: templates/app/statistics.html:208
 msgid "Average Rating"
 msgstr ""
 
-#: templates/app/statistics.html:236
+#: templates/app/statistics.html:237
 msgid "Most Active Day"
 msgstr ""
 
-#: templates/app/statistics.html:239
+#: templates/app/statistics.html:240
 msgid "of activity"
 msgstr ""
 
-#: templates/app/statistics.html:262
+#: templates/app/statistics.html:263
 msgid "Current Streak"
 msgstr ""
 
-#: templates/app/statistics.html:264
-msgid "day,days,day"
-msgstr ""
+#: templates/app/statistics.html:266 templates/app/statistics.html:268
+#, python-format
+msgid "%(counter|intcomma)s day"
+msgid_plural "%(counter|intcomma)s days"
+msgstr[0] ""
+msgstr[1] ""
 
 #: templates/app/statistics.html:268
 msgid "Longest:"
@@ -588,6 +881,13 @@ msgstr ""
 #: templates/events/components/calendar_grid.html:12
 msgid "Sun"
 msgstr ""
+
+#: templates/app/statistics.html:314
+#, python-format
+msgid "%(counter|intcomma)s activity"
+msgid_plural "%(counter|intcomma)s activities"
+msgstr[0] ""
+msgstr[1] ""
 
 #: templates/app/statistics.html:325
 msgid "Less"
@@ -662,25 +962,25 @@ msgstr ""
 msgid "Consume media items to see them appear on your timeline."
 msgstr ""
 
-#: templates/base.html:99
+#: templates/base.html:100
 msgid "Create Custom"
 msgstr ""
 
-#: templates/base.html:117 templates/lists/components/fill_lists.html:5
+#: templates/base.html:118 templates/lists/components/fill_lists.html:5
 #: templates/lists/custom_lists.html:10 templates/lists/custom_lists.html:17
 msgid "Lists"
 msgstr ""
 
-#: templates/base.html:126 templates/events/calendar.html:6
+#: templates/base.html:127 templates/events/calendar.html:6
 #: templates/events/calendar.html:11
 msgid "Calendar"
 msgstr ""
 
-#: templates/base.html:148 templates/users/base.html:8
+#: templates/base.html:149 templates/users/base.html:8
 msgid "Settings"
 msgstr ""
 
-#: templates/base.html:156
+#: templates/base.html:157
 msgid "Logout"
 msgstr ""
 
@@ -723,7 +1023,7 @@ msgid "You haven't created any lists yet."
 msgstr ""
 
 #: templates/lists/components/list_form.html:12
-#: templates/lists/list_detail.html:56
+#: templates/lists/list_detail.html:53
 msgid "Edit List"
 msgstr ""
 
@@ -735,10 +1035,6 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
-#: templates/lists/components/list_form.html:57
-msgid "Delete"
-msgstr ""
-
 #: templates/lists/components/list_form.html:64
 msgid "Create List"
 msgstr ""
@@ -748,16 +1044,15 @@ msgid "Edit list"
 msgstr ""
 
 #: templates/lists/components/list_grid.html:67
-#: templates/lists/list_detail.html:34
-msgid "item,items,item"
-msgstr ""
+#: templates/lists/list_detail.html:32
+#, python-format
+msgid "%(counter|intcomma)s item"
+msgid_plural "%(counter|intcomma)s items"
+msgstr[0] ""
+msgstr[1] ""
 
 #: templates/lists/components/list_item_button.html:8
 msgid "Remove"
-msgstr ""
-
-#: templates/lists/components/list_item_button.html:16
-msgid "Add"
 msgstr ""
 
 #: templates/lists/custom_lists.html:18
@@ -785,19 +1080,22 @@ msgstr ""
 msgid "Create Your First List"
 msgstr ""
 
-#: templates/lists/list_detail.html:31
-msgid "collaborator,collaborators,collaborator"
-msgstr ""
+#: templates/lists/list_detail.html:30
+#, python-format
+msgid "%(counter|intcomma)s collaborator"
+msgid_plural "%(counter|intcomma)s collaborators"
+msgstr[0] ""
+msgstr[1] ""
 
-#: templates/lists/list_detail.html:76
+#: templates/lists/list_detail.html:73
 msgid "Search in collection..."
 msgstr ""
 
-#: templates/lists/list_detail.html:255
+#: templates/lists/list_detail.html:252
 msgid "No items in this list yet"
 msgstr ""
 
-#: templates/lists/list_detail.html:256
+#: templates/lists/list_detail.html:253
 msgid "Start adding your favorite media to build your collection"
 msgstr ""
 
@@ -836,7 +1134,7 @@ msgstr ""
 msgid "Username"
 msgstr ""
 
-#: templates/users/account.html:68
+#: templates/users/account.html:68 templates/users/integrations.html:243
 msgid "Save Changes"
 msgstr ""
 
@@ -1025,12 +1323,16 @@ msgstr ""
 msgid "Import from YamTrack backup"
 msgstr ""
 
-#: templates/users/import_data.html:293
+#: templates/users/import_data.html:293 templates/users/import_data.html:320
 msgid "File uploads are not available for periodic imports"
 msgstr ""
 
 #: templates/users/import_data.html:311 templates/users/import_data.html:338
 msgid "Select CSV File"
+msgstr ""
+
+#: templates/users/import_data.html:320
+msgid "Import games"
 msgstr ""
 
 #: templates/users/import_data.html:361
@@ -1075,16 +1377,8 @@ msgstr ""
 msgid "Showing import activity from the last 7 days."
 msgstr ""
 
-#: templates/users/import_data.html:443
-msgid "Finished"
-msgstr ""
-
 #: templates/users/import_data.html:445
 msgid "Success"
-msgstr ""
-
-#: templates/users/import_data.html:449
-msgid "Started"
 msgstr ""
 
 #: templates/users/import_data.html:451
@@ -1096,7 +1390,15 @@ msgid "Pending"
 msgstr ""
 
 #: templates/users/import_data.html:469
+msgid "Hide failed items"
+msgstr ""
+
+#: templates/users/import_data.html:469
 msgid "Show failed items"
+msgstr ""
+
+#: templates/users/import_data.html:474
+msgid "Hide traceback"
 msgstr ""
 
 #: templates/users/import_data.html:474
@@ -1145,7 +1447,8 @@ msgstr ""
 msgid "Connect Jellyfin to automatically track your watching progress."
 msgstr ""
 
-#: templates/users/integrations.html:134
+#: templates/users/integrations.html:134 templates/users/integrations.html:249
+#: templates/users/integrations.html:311
 msgid "Setup Instructions"
 msgstr ""
 
@@ -1175,6 +1478,57 @@ msgstr ""
 
 #: templates/users/integrations.html:153
 msgid "In the Webhooks plugin settings:"
+msgstr ""
+
+#: templates/users/integrations.html:206
+msgid "Plex Integration"
+msgstr ""
+
+#: templates/users/integrations.html:208
+msgid "Connect Plex to automatically track your watching progress."
+msgstr ""
+
+#: templates/users/integrations.html:210
+msgid "Plex Usernames"
+msgstr ""
+
+#: templates/users/integrations.html:218
+msgid ""
+"This username (or several, comma separated) will be used to filter which "
+"events are sent to your webhook."
+msgstr ""
+
+#: templates/users/integrations.html:251
+msgid "You will need to have a PlexPass in order to have hooks enabled"
+msgstr ""
+
+#: templates/users/integrations.html:253
+msgid "In Plex settings, go to"
+msgstr ""
+
+#: templates/users/integrations.html:259
+msgid ""
+"In the Webhooks section, click on \"Add Webhook\" and enter the following URL"
+msgstr ""
+
+#: templates/users/integrations.html:307
+msgid "Emby Integration"
+msgstr ""
+
+#: templates/users/integrations.html:309
+msgid "Connect Emby to automatically track your watching progress."
+msgstr ""
+
+#: templates/users/integrations.html:313
+msgid "In Emby, go to Settings / Notifications"
+msgstr ""
+
+#: templates/users/integrations.html:314
+msgid "In the Notifications section, click on \"Add Notification\""
+msgstr ""
+
+#: templates/users/integrations.html:316
+msgid "In the Notification settings"
 msgstr ""
 
 #: templates/users/notifications.html:31
@@ -1281,6 +1635,18 @@ msgstr ""
 msgid "Select Language"
 msgstr ""
 
+#: users/helpers.py:35
+msgid "Unexpected error occurred while processing the task."
+msgstr ""
+
+#: users/helpers.py:38
+msgid "This task is currently running."
+msgstr ""
+
+#: users/helpers.py:55
+msgid "This task has been queued and is waiting to run."
+msgstr ""
+
 #: users/models.py:27
 msgid "Upcoming"
 msgstr ""
@@ -1295,6 +1661,10 @@ msgstr ""
 
 #: users/models.py:36
 msgid "Rating"
+msgstr ""
+
+#: users/models.py:46
+msgid "All"
 msgstr ""
 
 #: users/models.py:57 users/models.py:64
