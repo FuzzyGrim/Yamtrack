@@ -166,13 +166,14 @@ def media_search(request):
     )
     query = request.GET["q"]
     page = int(request.GET.get("page", 1))
+    layout = request.GET.get("layout", "grid")
 
     # only receives source when searching with secondary source
     source = request.GET.get("source")
 
     data = services.search(media_type, query, page, source)
 
-    context = {"data": data, "source": source, "media_type": media_type}
+    context = {"data": data, "source": source, "media_type": media_type, "layout": layout}
 
     return render(request, "app/search.html", context)
 
