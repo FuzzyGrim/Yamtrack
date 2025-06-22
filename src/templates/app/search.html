@@ -13,25 +13,25 @@
       <div class="flex gap-x-2">
         {% if media_type == MediaTypes.MANGA.value %}
           <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ MediaTypes.MANGA.value }}&layout={{ layout }}"
-             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source != Sources.MANGAUPDATES.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+            class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source != Sources.MANGAUPDATES.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
             MyAnimeList
           </a>
           <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ MediaTypes.MANGA.value }}&source={{ Sources.MANGAUPDATES.value }}&layout={{ layout }}"
-             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source == Sources.MANGAUPDATES.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+            class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source == Sources.MANGAUPDATES.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
             MangaUpdates
           </a>
         {% elif media_type == MediaTypes.BOOK.value %}
           <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ MediaTypes.BOOK.value }}&layout={{ layout }}"
-             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source != Sources.OPENLIBRARY.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+            class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source != Sources.OPENLIBRARY.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
             Hardcover
           </a>
           <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ MediaTypes.BOOK.value }}&source={{ Sources.OPENLIBRARY.value }}&layout={{ layout }}"
-             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source == Sources.OPENLIBRARY.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+            class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source == Sources.OPENLIBRARY.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
             Open Library
           </a>
         {% else %}
           <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ media_type }}&layout={{ layout }}"
-             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 w-max cursor-pointer bg-indigo-600 text-white">
+            class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 w-max cursor-pointer bg-indigo-600 text-white">
             {{ media_type|default_source }}
           </a>
         {% endif %}
@@ -79,17 +79,17 @@
           {# Previous button #}
           {% if data.page > 1 %}
             <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'-1' }}&layout={{ layout }}"
-               class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
+              class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
               <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-5 h-5">
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="w-5 h-5">
               <path d="m15 18-6-6 6-6"></path>
             </svg>
           </a>
@@ -97,15 +97,15 @@
           <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
                   disabled>
             <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-5 h-5">
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="w-5 h-5">
               <path d="m15 18-6-6 6-6"></path>
             </svg>
           </button>
@@ -123,15 +123,15 @@
             {# Ellipsis #}
             <span class="flex items-center justify-center w-10 h-10 text-gray-400">
               <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-5 h-5">
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="w-5 h-5">
                 <circle cx="12" cy="12" r="1"></circle>
                 <circle cx="19" cy="12" r="1"></circle>
                 <circle cx="5" cy="12" r="1"></circle>
@@ -143,17 +143,17 @@
         {# Next button #}
           {% if data.page < data.total_pages %}
             <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'1' }}&layout={{ layout }}"
-               class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
+              class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
               <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-5 h-5">
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="w-5 h-5">
               <path d="m9 18 6-6-6-6"></path>
             </svg>
           </a>
@@ -161,15 +161,15 @@
           <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
                   disabled>
             <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-5 h-5">
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="w-5 h-5">
               <path d="m9 18 6-6-6-6"></path>
             </svg>
           </button>
@@ -185,15 +185,15 @@
     <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
       <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-8 h-8 text-gray-400">
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="w-8 h-8 text-gray-400">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.3-4.3"></path>
         </svg>
