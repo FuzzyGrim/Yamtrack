@@ -596,4 +596,6 @@ def episode(media_id, season_number, episode_number):
     not_found_response.status_code = 404
     # Set the error attribute to match what ProviderAPIError expects
     not_found_error = type("Error", (), {"response": not_found_response})
-    raise services.ProviderAPIError(Sources.TMDB.value, error=not_found_error, details=msg)
+    raise services.ProviderAPIError(
+        Sources.TMDB.value, error=not_found_error, details=msg,
+    )

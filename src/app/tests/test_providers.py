@@ -1261,7 +1261,9 @@ class ServicesTests(TestCase):
     def test_get_media_metadata_tmdb_episode_not_found(self, mock_episode):
         """Test the get_media_metadata function for TMDB episodes that don't exist."""
         # Setup mock to raise ProviderAPIError
-        mock_response = type("Response", (), {"status_code": 404, "text": "Episode not found"})()
+        mock_response = type(
+            "Response", (), {"status_code": 404, "text": "Episode not found"},
+        )()
         mock_error = type("Error", (), {"response": mock_response})()
         mock_episode.side_effect = services.ProviderAPIError(
             Sources.TMDB.value,
