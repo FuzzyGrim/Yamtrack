@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-21 23:44+0300\n"
+"POT-Creation-Date: 2025-06-24 13:02+0300\n"
 "PO-Revision-Date: 2025-06-21 23:50+0300\n"
 "Last-Translator: Dreykp <>\n"
 "Language-Team: Ukrainian\n"
@@ -104,26 +104,6 @@ msgstr "Прогрес (Сторінки)"
 #: app/forms.py:342
 msgid "Progress (Issues)"
 msgstr "Прогрес (Випуски)"
-
-#: app/history_processor.py:209
-msgid "Marked as"
-msgstr "Позначено як"
-
-#: app/history_processor.py:222
-msgid "Rated"
-msgstr "Оцінено"
-
-#: app/history_processor.py:302
-msgid "Added notes"
-msgstr "Додані примітки"
-
-#: app/history_processor.py:304
-msgid "Removed notes"
-msgstr "Видалені примітки"
-
-#: app/history_processor.py:305
-msgid "Updated notes"
-msgstr "Оновлені примітки"
 
 #: app/media_type_config.py:14 app/media_type_config.py:24
 #: app/media_type_config.py:37 app/media_type_config.py:46
@@ -295,14 +275,9 @@ msgstr "Субота"
 msgid "Sunday"
 msgstr "Неділя"
 
-#: integrations/tasks.py:85
+#: integrations/tasks.py:44
 msgid "No media was imported."
 msgstr "Медіа для імпорту відсутні."
-
-#: integrations/tasks.py:90
-#, python-format
-msgid "Imported %(parts)s."
-msgstr "Імпортовано %(parts)s."
 
 #: integrations/views.py:207
 msgid "The task to import media from HowLongToBeat CSV file has been queued."
@@ -1762,6 +1737,25 @@ msgstr "Список"
 #: users/models.py:80
 msgid "Date Added"
 msgstr "Дата додавання"
+
+#~ msgid "Marked as"
+#~ msgstr "Позначено як"
+
+#~ msgid "Rated"
+#~ msgstr "Оцінено"
+
+#~ msgid "Added notes"
+#~ msgstr "Додані примітки"
+
+#~ msgid "Removed notes"
+#~ msgstr "Видалені примітки"
+
+#~ msgid "Updated notes"
+#~ msgstr "Оновлені примітки"
+
+#, python-format
+#~ msgid "Imported %(parts)s."
+#~ msgstr "Імпортовано %(parts)s."
 
 #~ msgid "day,days,day"
 #~ msgstr "день,дні,днів"
