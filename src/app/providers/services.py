@@ -94,20 +94,6 @@ class ProviderAPIError(Exception):
         super().__init__(message)
 
 
-class MediaNotFoundError(Exception):
-    """Exception raised when requested media is not found in the provider."""
-
-    def __init__(self, provider, details):
-        """Initialize the exception with the provider name and details."""
-        try:
-            provider_label = Sources(provider).label
-        except ValueError:
-            provider_label = provider.title()
-
-        message = f"{provider_label}: {details}"
-        super().__init__(message)
-
-
 def api_request(provider, method, url, params=None, data=None, headers=None):
     """Make a request to the API and return the response as a dictionary."""
     try:

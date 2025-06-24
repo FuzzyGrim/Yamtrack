@@ -1,6 +1,5 @@
 from app import models
 from app.models import MediaTypes, Sources
-from app.providers import services
 
 
 def metadata(media_id, media_type):
@@ -117,11 +116,7 @@ def episode(media_id, season_number, episode_number):
                 "image": episode["image"],
             }
 
-    raise services.MediaNotFoundError(
-        Sources.MANUAL.value,
-        f"Episode {episode_number} not found in season {season_number} "
-        f"for media ID {media_id}",
-    )
+    return None
 
 
 def process_episodes(season_metadata, episodes_in_db):

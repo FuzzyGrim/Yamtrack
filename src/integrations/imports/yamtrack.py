@@ -66,7 +66,7 @@ class YamtrackImporter:
         for row in reader:
             try:
                 self._process_row(row)
-            except (services.ProviderAPIError, services.MediaNotFoundError) as error:
+            except services.ProviderAPIError as error:
                 error_msg = (
                     f"Error processing entry with ID {row['media_id']} "
                     f"({app_tags.media_type_readable(row['media_type'])}): {error}"
