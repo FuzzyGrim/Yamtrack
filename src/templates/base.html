@@ -137,6 +137,14 @@
               {% url 'integrations' as integrations_url %}
               {% url 'import_data' as import_url %}
               {% url 'export_data' as export_url %}
+              {% url 'profile' as profile_url %}
+
+              <a href="{{ profile_url }}"
+                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == profile_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                {% icon 'user' is_active=request.path|str_equals:profile_url %}
+                <span>Profile</span>
+              </a>
+
               <a href="{{ account_url }}"
                  class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                 {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}

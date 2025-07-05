@@ -20,6 +20,14 @@ from users.forms import (
 logger = logging.getLogger(__name__)
 
 
+@require_GET
+def profile(request):
+    """Render the user's profile page."""
+    return render(request, "users/profile.html", {
+        "user": request.user,
+    })
+
+
 @require_http_methods(["GET", "POST"])
 def account(request):
     """Update the user's account and import/export data."""

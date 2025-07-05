@@ -3,6 +3,7 @@ from django.urls import path
 from users import views
 
 urlpatterns = [
+    path("profile", views.profile, name="profile"),
     path("settings/account", views.account, name="account"),
     path("settings/notifications", views.notifications, name="notifications"),
     path("notifications/search/", views.search_items, name="search_notification_items"),

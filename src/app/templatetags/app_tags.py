@@ -357,6 +357,10 @@ def icon(name, is_active, extra_classes=None):
                <polyline points="16 17 21 12 16 7"></polyline>
                <line x1="21" x2="9" y1="12" y2="12"></line>"""
         ),
+        "user": (
+            """<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+               <circle cx="12" cy="7" r="4"></circle>"""
+        ),
     }
 
     if name in MediaTypes.values:
