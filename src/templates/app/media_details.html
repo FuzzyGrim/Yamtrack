@@ -121,7 +121,15 @@
           </div>
         </div>
       {% else %}
-        <h1 class="text-3xl font-bold mb-4 text-center md:text-start">{{ media.title }}</h1>
+        <h1 class="text-3xl font-bold mb-4 text-center md:text-start">
+          {{ media.title }}
+          {% if media.details.release_date %}
+            <span class="text-gray-400 italic">({{ media.details.release_date|slice:":4" }})</span>
+          {% endif %}
+        </h1>
+        {% if media.details.director %}
+          <p class="text-gray-400 mb-6 text-center md:text-start">Directed by <span class="text-white">{{ media.details.director }}</span></p>
+        {% endif %}
       {% endif %}
 
       {# Description #}
@@ -199,14 +207,6 @@
             <p class="text-xs text-gray-400 mt-0.5 text-center">
               {{ media.score_count|intcomma }} vote{{ media.score_count|pluralize }}
             </p>
-          </div>
-        {% endif %}
-
-        {# Director info #}
-        {% if media.details.director %}
-          <div class="bg-[#2a2f35] p-3 rounded-lg">
-            <h3 class="text-xs font-semibold text-gray-400 mb-1">DIRECTOR</h3>
-            <p class="text-white">{{ media.details.director }}</p>
           </div>
         {% endif %}
       </div>
@@ -665,12 +665,37 @@
       <div class="w-full md:w-3/4">
         {% for name, related_items in media.related.items %}
           {% if related_items %}
-            <section class="{% if not forloop.last %}mb-8{% endif %}">
-              <h2 class="text-xl font-bold mb-4">{{ name|no_underscore|title }}</h2>
-              <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
-                {% for item in related_items %}
-                  {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
-                {% endfor %}
+            <section class="{% if not forloop.last %}mb-8{% endif %}" x-data="{ isOpen: false }">
+              {# Header with dropdown toggle #}
+              <div class="flex items-center mb-4 cursor-pointer" @click="isOpen = !isOpen">
+                <h2 class="text-xl font-bold">{{ name|no_underscore|title }}</h2>
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-5 h-5 ml-2 transition-transform duration-200"
+                     :class="{ 'rotate-180': isOpen }">
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
+              </div>
+              {# Content #}
+              <div x-show="isOpen"
+                   x-transition:enter="transition ease-out duration-200"
+                   x-transition:enter-start="opacity-0 transform -translate-y-2"
+                   x-transition:enter-end="opacity-100 transform translate-y-0"
+                   x-transition:leave="transition ease-in duration-150"
+                   x-transition:leave-start="opacity-100 transform translate-y-0"
+                   x-transition:leave-end="opacity-0 transform -translate-y-2">
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+                  {% for item in related_items %}
+                    {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
+                  {% endfor %}
+                </div>
               </div>
             </section>
           {% endif %}

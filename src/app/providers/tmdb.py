@@ -121,7 +121,7 @@ def find(external_id, external_source):
     return response
 
 
-def get_cast(credits, limit=5):
+def get_cast(credits, limit=15):
     """Return the top cast members with their images."""
     if not credits or "cast" not in credits:
         return None
@@ -131,7 +131,7 @@ def get_cast(credits, limit=5):
         cast.append({
             "name": actor["name"],
             "character": actor["character"],
-            "image": get_image_url(actor["profile_path"])
+            "image": get_image_url(actor.get("profile_path"))
         })
     return cast
 
