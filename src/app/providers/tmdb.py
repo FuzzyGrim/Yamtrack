@@ -303,7 +303,7 @@ def tv(media_id):
         url = f"{base_url}/tv/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations,external_ids",
+            "append_to_response": "recommendations,external_ids,credits",
         }
 
         try:
@@ -350,7 +350,9 @@ def process_tv(response):
             "studios": get_companies(response["production_companies"]),
             "country": get_country(response["production_countries"]),
             "languages": get_languages(response["spoken_languages"]),
+            "creator": get_creator(response.get("created_by")),
         },
+        "cast": get_cast(response.get("credits")),
         "related": {
             "seasons": get_related(
                 response["seasons"],
@@ -628,3 +630,10 @@ def episode(media_id, season_number, episode_number):
     raise services.ProviderAPIError(
         Sources.TMDB.value, error=not_found_error, details=msg,
     )
+
+
+def get_creator(creators):
+    """Return the creator name for the TV show."""
+    if creators and len(creators) > 0:
+        return creators[0]["name"]
+    return None

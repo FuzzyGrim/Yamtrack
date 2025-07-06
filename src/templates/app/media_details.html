@@ -123,12 +123,20 @@
       {% else %}
         <h1 class="text-3xl font-bold mb-4 text-center md:text-start">
           {{ media.title }}
-          {% if media.details.release_date %}
+          {% if media.media_type == MediaTypes.TV.value and media.details.first_air_date %}
+            <span class="text-gray-400 italic">({{ media.details.first_air_date|slice:":4" }})</span>
+          {% elif media.media_type == MediaTypes.MOVIE.value and media.details.release_date %}
             <span class="text-gray-400 italic">({{ media.details.release_date|slice:":4" }})</span>
           {% endif %}
         </h1>
-        {% if media.details.director %}
-          <p class="text-gray-400 mb-6 text-center md:text-start">Directed by <span class="text-white">{{ media.details.director }}</span></p>
+        {% if media.details.director or media.details.creator %}
+          <p class="text-gray-400 mb-6 text-center md:text-start">
+            {% if media.details.director %}
+              Directed by <span class="text-white">{{ media.details.director }}</span>
+            {% else %}
+              Created by <span class="text-white">{{ media.details.creator }}</span>
+            {% endif %}
+          </p>
         {% endif %}
       {% endif %}
 
@@ -215,21 +223,15 @@
       {% if media.cast %}
         <div class="mt-8">
           <h3 class="text-lg font-semibold mb-4">Cast</h3>
-          {# Scrollable container #}
-          <div class="flex overflow-x-auto pb-4 gap-4 hide-scrollbar">
+          {# Wrapping container #}
+          <div class="flex flex-wrap gap-2">
             {% for actor in media.cast %}
-              {# Cast card - fixed dimensions for better control #}
-              <div class="flex-none" style="width: 120px"> {# Explicit width control #}
-                {# Image container with fixed aspect ratio #}
-                <div class="relative bg-[#2a2f35] rounded-t-lg" style="height: 160px">
-                  <img src="{{ actor.image }}" 
-                       alt="{{ actor.name }}" 
-                       class="absolute inset-0 w-full h-full object-cover rounded-t-lg">
-                </div>
-                {# Text content #}
-                <div class="bg-[#2a2f35] p-2 rounded-b-lg">
-                  <p class="font-medium text-white text-sm truncate">{{ actor.name }}</p>
-                  <p class="text-xs text-gray-400 truncate">{{ actor.character }}</p>
+              {# Cast card - dynamic width based on content #}
+              <div class="flex-none"> {# Removed fixed width #}
+                {# Text content - width based on content #}
+                <div class="bg-[#2a2f35] p-2" style="border-radius: 5px;">
+                  <p class="font-medium text-white text-sm whitespace-nowrap">{{ actor.name }}</p>
+                  <p class="text-xs text-gray-400 whitespace-nowrap">{{ actor.character }}</p>
                 </div>
               </div>
             {% endfor %}
@@ -691,9 +693,11 @@
                    x-transition:leave="transition ease-in duration-150"
                    x-transition:leave-start="opacity-100 transform translate-y-0"
                    x-transition:leave-end="opacity-0 transform -translate-y-2">
-                <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+                <div class="flex flex-wrap gap-4">
                   {% for item in related_items %}
-                    {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
+                    <div class="w-[120px]">
+                      {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
+                    </div>
                   {% endfor %}
                 </div>
               </div>
