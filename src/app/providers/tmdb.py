@@ -121,6 +121,33 @@ def find(external_id, external_source):
     return response
 
 
+def get_cast(credits, limit=5):
+    """Return the top cast members with their images."""
+    if not credits or "cast" not in credits:
+        return None
+        
+    cast = []
+    for actor in sorted(credits["cast"], key=lambda x: x.get("order", 999))[:limit]:
+        cast.append({
+            "name": actor["name"],
+            "character": actor["character"],
+            "image": get_image_url(actor["profile_path"])
+        })
+    return cast
+
+
+def get_director(credits):
+    """Return the director's name from crew."""
+    if not credits or "crew" not in credits:
+        return None
+        
+    directors = [
+        crew["name"] for crew in credits["crew"] 
+        if crew["job"].lower() == "director"
+    ]
+    return directors[0] if directors else None
+
+
 def movie(media_id):
     """Return the metadata for the selected movie from The Movie Database."""
     cache_key = f"{Sources.TMDB.value}_{MediaTypes.MOVIE.value}_{media_id}"
@@ -130,7 +157,7 @@ def movie(media_id):
         url = f"{base_url}/movie/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations",
+            "append_to_response": "recommendations,credits",
         }
 
         try:
@@ -163,7 +190,9 @@ def movie(media_id):
                 "studios": get_companies(response["production_companies"]),
                 "country": get_country(response["production_countries"]),
                 "languages": get_languages(response["spoken_languages"]),
+                "director": get_director(response.get("credits")),
             },
+            "cast": get_cast(response.get("credits")),
             "related": {
                 "recommendations": get_related(
                     response.get("recommendations", {}).get("results", [])[:15],

@@ -124,13 +124,6 @@
         <h1 class="text-3xl font-bold mb-4 text-center md:text-start">{{ media.title }}</h1>
       {% endif %}
 
-      {# Genres #}
-      <div class="flex flex-wrap gap-2 mb-4">
-        {% for genre in media.genres %}
-          <span class="px-3 py-1 bg-violet-600 text-white rounded-full text-sm">{{ genre }}</span>
-        {% endfor %}
-      </div>
-
       {# Description #}
       <div class="mb-6">
         <div x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.synopsisText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
@@ -209,79 +202,113 @@
           </div>
         {% endif %}
 
-        {# User score #}
-        {% if user_medias %}
-          <div x-data="{ showRatingPopup: false, rating: {{ current_instance.score|default:'null' }}, hoverRating: null, isHovering: false }"
-               class="relative">
-            <!-- Rating display -->
-            <div @click="showRatingPopup = !showRatingPopup"
-                 class="bg-[#2a2f35] p-3 rounded-lg w-[120px] cursor-pointer">
-              <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">YOUR SCORE</h3>
-              <div class="flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                <template x-if="rating">
-                  <div class="flex items-baseline">
-                    <span class="text-lg font-bold text-white" x-text="rating"></span>
-                    <span class="text-gray-400 ml-0.5 text-sm">/10</span>
-                  </div>
-                </template>
-                <template x-if="!rating">
-                  <span class="text-lg font-bold text-gray-400">-</span>
-                </template>
-              </div>
-              <p class="text-xs text-gray-400 mt-0.5 text-center">Click to edit</p>
-            </div>
-
-            <!-- Rating popup -->
-            <div x-show="showRatingPopup"
-                 @click.outside="showRatingPopup = false; isHovering = false"
-                 class="absolute left-0 top-full mt-2 p-3 bg-[#2a2f35] rounded-lg shadow-lg z-10 w-[250px] border border-gray-700"
-                 @mouseenter="isHovering = true"
-                 @mouseleave="isHovering = false; hoverRating = null">
-              <div class="flex justify-between mb-1">
-                {% with rating_range=10|get_range %}
-                  {% for rating_value in rating_range %}
-                    <button @click="rating = {{ rating_value }}; showRatingPopup = false; isHovering = false"
-                            @mouseenter="hoverRating = {{ rating_value }}"
-                            hx-post="{% url 'update_media_score' media_type current_instance.id %}"
-                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                            hx-vals='{"score": {{ rating_value }} }'
-                            hx-trigger="click"
-                            hx-swap="none"
-                            class="focus:outline-none flex flex-col items-center cursor-pointer">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="24"
-                           height="24"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round"
-                           class="w-5 h-5 hover:scale-110 transition-transform"
-                           :class="{ 'text-yellow-400 fill-yellow-400': {{ rating_value }} <= (isHovering ? hoverRating : rating), 'text-gray-600': {{ rating_value }} > (isHovering ? hoverRating : rating) }">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                      <span class="text-xs mt-1 text-gray-400">{{ rating_value }}</span>
-                    </button>
-                  {% endfor %}
-                {% endwith %}
-              </div>
-            </div>
+        {# Director info #}
+        {% if media.details.director %}
+          <div class="bg-[#2a2f35] p-3 rounded-lg">
+            <h3 class="text-xs font-semibold text-gray-400 mb-1">DIRECTOR</h3>
+            <p class="text-white">{{ media.details.director }}</p>
           </div>
         {% endif %}
       </div>
+
+      {# Cast section #}
+      {% if media.cast %}
+        <div class="mt-8">
+          <h3 class="text-lg font-semibold mb-4">Cast</h3>
+          {# Scrollable container #}
+          <div class="flex overflow-x-auto pb-4 gap-4 hide-scrollbar">
+            {% for actor in media.cast %}
+              {# Cast card - fixed dimensions for better control #}
+              <div class="flex-none" style="width: 120px"> {# Explicit width control #}
+                {# Image container with fixed aspect ratio #}
+                <div class="relative bg-[#2a2f35] rounded-t-lg" style="height: 160px">
+                  <img src="{{ actor.image }}" 
+                       alt="{{ actor.name }}" 
+                       class="absolute inset-0 w-full h-full object-cover rounded-t-lg">
+                </div>
+                {# Text content #}
+                <div class="bg-[#2a2f35] p-2 rounded-b-lg">
+                  <p class="font-medium text-white text-sm truncate">{{ actor.name }}</p>
+                  <p class="text-xs text-gray-400 truncate">{{ actor.character }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {# User score #}
+      {% if user_medias %}
+        <div x-data="{ showRatingPopup: false, rating: {{ current_instance.score|default:'null' }}, hoverRating: null, isHovering: false }"
+             class="relative">
+          <!-- Rating display -->
+          <div @click="showRatingPopup = !showRatingPopup"
+               class="bg-[#2a2f35] p-3 rounded-lg w-[120px] cursor-pointer">
+            <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">YOUR SCORE</h3>
+            <div class="flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <template x-if="rating">
+                <div class="flex items-baseline">
+                  <span class="text-lg font-bold text-white" x-text="rating"></span>
+                  <span class="text-gray-400 ml-0.5 text-sm">/10</span>
+                </div>
+              </template>
+              <template x-if="!rating">
+                <span class="text-lg font-bold text-gray-400">-</span>
+              </template>
+            </div>
+            <p class="text-xs text-gray-400 mt-0.5 text-center">Click to edit</p>
+          </div>
+
+          <!-- Rating popup -->
+          <div x-show="showRatingPopup"
+               @click.outside="showRatingPopup = false; isHovering = false"
+               class="absolute left-0 top-full mt-2 p-3 bg-[#2a2f35] rounded-lg shadow-lg z-10 w-[250px] border border-gray-700"
+               @mouseenter="isHovering = true"
+               @mouseleave="isHovering = false; hoverRating = null">
+            <div class="flex justify-between mb-1">
+              {% with rating_range=10|get_range %}
+                {% for rating_value in rating_range %}
+                  <button @click="rating = {{ rating_value }}; showRatingPopup = false; isHovering = false"
+                          @mouseenter="hoverRating = {{ rating_value }}"
+                          hx-post="{% url 'update_media_score' media_type current_instance.id %}"
+                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                          hx-vals='{"score": {{ rating_value }} }'
+                          hx-trigger="click"
+                          hx-swap="none"
+                          class="focus:outline-none flex flex-col items-center cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="24"
+                         height="24"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         class="w-5 h-5 hover:scale-110 transition-transform"
+                         :class="{ 'text-yellow-400 fill-yellow-400': {{ rating_value }} <= (isHovering ? hoverRating : rating), 'text-gray-600': {{ rating_value }} > (isHovering ? hoverRating : rating) }">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                    <span class="text-xs mt-1 text-gray-400">{{ rating_value }}</span>
+                  </button>
+                {% endfor %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
     </div>
   </div>
 
