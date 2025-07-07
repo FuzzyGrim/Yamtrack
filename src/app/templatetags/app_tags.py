@@ -433,3 +433,35 @@ def get_pagination_range(current_page, total_pages, window):
         result.append(total_pages)
 
     return result
+
+
+# Define which details to exclude for each media type
+DETAILS_EXCLUSIONS = {
+    'default': [],  # Applied to all types unless overridden
+    'movie': ['director', 'runtime', 'release_date'],  # Since director is shown at the top
+    'tv': ['creator'],      # Since creator is shown at the top
+    'book': ['author'],     # If author is shown elsewhere
+    'manga': ['author'],
+    'anime': ['studios'],   # If studios are shown elsewhere
+    'game': ['companies'],
+}
+
+@register.filter
+def filter_details(details, media_type=None):
+    """
+    Filter out specific keys from media details.
+    
+    Args:
+        details: The details dictionary to filter
+        media_type: String indicating the media type (e.g. 'movie', 'tv', etc.)
+    """
+    if not details or not isinstance(details, dict):
+        return {}
+        
+    # Get exclusions for this media type
+    exclusions = set(DETAILS_EXCLUSIONS['default'])
+    if media_type and media_type in DETAILS_EXCLUSIONS:
+        exclusions.update(DETAILS_EXCLUSIONS[media_type])
+    
+    # Filter out excluded keys
+    return {k: v for k, v in details.items() if k not in exclusions}

@@ -133,8 +133,14 @@
           <p class="text-gray-400 mb-6 text-center md:text-start">
             {% if media.details.director %}
               Directed by <span class="text-white">{{ media.details.director }}</span>
+              {% if media.details.runtime %} • {{ media.details.runtime }} {% endif %}
+              {% if media.details.release_date %} • {{ media.details.release_date }}{% endif %}
             {% else %}
               Created by <span class="text-white">{{ media.details.creator }}</span>
+              {% if media.details.runtime %} • {{ media.details.runtime }} {% endif %}
+              {% if media.details.first_air_date %}
+                • {{ media.details.first_air_date|slice:":4" }}{% if media.details.status == "Ended" and media.details.last_air_date %}-{{ media.details.last_air_date|slice:":4" }}{% elif media.details.status == "Returning Series" %}-{% endif %}
+              {% endif %}
             {% endif %}
           </p>
         {% endif %}
@@ -217,6 +223,30 @@
             </p>
           </div>
         {% endif %}
+
+        <!-- Details card -->
+        <div class="bg-[#2a2f35] p-3 rounded-lg flex-1">
+          <div class="flex items-center justify-between h-full">
+            {% if media.details %}
+              {% with filtered_details=media.details|filter_details:media_type %}
+                {% for key, value in filtered_details.items|slice:":5" %}
+                  <div class="flex flex-col items-center">
+                    <span class="text-xs uppercase tracking-wider text-gray-400">{{ key|no_underscore|upper }}:</span>
+                    <span class="text-xs text-white">
+                      {% if value|default_if_none:"Unknown"|stringformat:"s"|first == "[" %}
+                        {{ value|join:", " }}
+                      {% else %}
+                        {{ value|default_if_none:"Unknown" }}
+                      {% endif %}
+                    </span>
+                  </div>
+                {% endfor %}
+              {% endwith %}
+            {% else %}
+              <span class="text-xs text-gray-400">No details available</span>
+            {% endif %}
+          </div>
+        </div>
       </div>
 
       {# Cast section #}
@@ -632,33 +662,6 @@
             <path d="M8 16H3v5"></path>
           </svg>
         </button>
-      </div>
-
-      {# Media Details #}
-      <h2 class="text-xl font-bold mb-4">Details</h2>
-      <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
-        {% if media.details.items %}
-          {% for key, value in media.details.items %}
-            <div class="mb-4">
-              <h3 class="text-sm font-semibold text-gray-400">{{ key|no_underscore|upper }}</h3>
-              {% if value|is_list %}
-                {% for item in value %}<p class="text-gray-200">{{ item }}</p>{% endfor %}
-              {% else %}
-                <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
-              {% endif %}
-            </div>
-          {% endfor %}
-          {% if media.source != Sources.MANUAL.value %}
-            <div>
-              <h3 class="text-sm font-semibold text-gray-400">Source</h3>
-              <a href="{{ media.source_url }}"
-                 class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
-                 target="_blank">{{ media.source|source_readable }}</a>
-            </div>
-          {% endif %}
-        {% else %}
-          <div class="text-gray-200">No details available</div>
-        {% endif %}
       </div>
     </div>
 
