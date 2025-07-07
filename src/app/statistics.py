@@ -17,7 +17,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from app import media_type_config
-from app.models import TV, BasicMedia, Episode, MediaTypes, Season, Status
+from app.models import TV, BasicMedia, Episode, MediaManager, MediaTypes, Season, Status
 from app.templatetags import app_tags
 
 logger = logging.getLogger(__name__)
@@ -225,25 +225,16 @@ def get_score_distribution(user_media):
     total_scored = 0
     total_score_sum = 0
 
-    # Use heapq to maintain top items efficiently
     top_rated = []
     top_rated_count = 14
-    counter = itertools.count()  # For unique identifiers
-
-    # Define score range (0-10)
+    counter = itertools.count()  # Ensures stable sorting for equal scores
     score_range = range(11)
 
     for media_type, media_list in user_media.items():
-        # Initialize score counts for this media type
         score_counts = dict.fromkeys(score_range, 0)
-
-        # Get all scored media with their scores
         scored_media = media_list.exclude(score__isnull=True).select_related("item")
 
-        # Process each media item
         for media in scored_media:
-            # Use negative score for max heap (heapq implements min heap)
-            # Add counter as tiebreaker
             if len(top_rated) < top_rated_count:
                 heapq.heappush(
                     top_rated,
@@ -255,28 +246,25 @@ def get_score_distribution(user_media):
                     (float(media.score), next(counter), media),
                 )
 
-            # Bin the score
             binned_score = int(media.score)
             score_counts[binned_score] += 1
-
-            # Update totals with exact score
             total_scored += 1
             total_score_sum += media.score
 
         distribution[media_type] = score_counts
 
-    # Calculate average score
     average_score = (
         round(total_score_sum / total_scored, 2) if total_scored > 0 else None
     )
 
-    # Convert heap to sorted list of top rated items
-    top_rated = [
+    top_rated_media = [
         media for _, _, media in sorted(top_rated, key=lambda x: (-x[0], x[1]))
     ]
 
+    top_rated_media = _annotate_top_rated_media(top_rated_media)
+
     return {
-        "labels": [str(score) for score in score_range],  # 0-10 as labels
+        "labels": [str(score) for score in score_range],
         "datasets": [
             {
                 "label": app_tags.media_type_readable(media_type),
@@ -287,7 +275,41 @@ def get_score_distribution(user_media):
         ],
         "average_score": average_score,
         "total_scored": total_scored,
-    }, top_rated
+    }, top_rated_media
+
+
+def _annotate_top_rated_media(top_rated_media):
+    """Apply prefetch_related and annotate max_progress for top rated media."""
+    if not top_rated_media:
+        return top_rated_media
+
+    # Group by media type to batch database operations
+    media_by_type = {}
+    for media in top_rated_media:
+        media_type = media.item.media_type
+        if media_type not in media_by_type:
+            media_by_type[media_type] = []
+        media_by_type[media_type].append(media)
+
+    media_manager = MediaManager()
+
+    for media_type, media_list in media_by_type.items():
+        model = apps.get_model(app_label="app", model_name=media_type)
+        media_ids = [media.id for media in media_list]
+
+        # Fetch fresh instances with proper relationships and annotations
+        queryset = model.objects.filter(id__in=media_ids)
+        queryset = media_manager._apply_prefetch_related(queryset, media_type)
+        media_manager.annotate_max_progress(queryset, media_type)
+
+        prefetched_media_map = {media.id: media for media in queryset}
+
+        # Replace original instances with enhanced ones
+        for i, media in enumerate(top_rated_media):
+            if media.item.media_type == media_type:
+                top_rated_media[i] = prefetched_media_map[media.id]
+
+    return top_rated_media
 
 
 def get_status_color(status):

@@ -411,7 +411,7 @@ class MediaManager(models.Manager):
 
         # Default sorting by media field
         return queryset.order_by(
-            f"-{sort_filter}",
+            models.F(sort_filter).desc(nulls_last=True),
             models.functions.Lower("item__title"),
         )
 
