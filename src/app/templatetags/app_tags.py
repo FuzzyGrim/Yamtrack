@@ -439,7 +439,7 @@ def get_pagination_range(current_page, total_pages, window):
 DETAILS_EXCLUSIONS = {
     'default': [],  # Applied to all types unless overridden
     'movie': ['director', 'runtime', 'release_date'],  # Since director is shown at the top
-    'tv': ['creator'],      # Since creator is shown at the top
+    'tv': ['creator', 'runtime', 'format', 'seasons', 'episodes'],      # Since creator is shown at the top
     'book': ['author'],     # If author is shown elsewhere
     'manga': ['author'],
     'anime': ['studios'],   # If studios are shown elsewhere

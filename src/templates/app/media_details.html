@@ -141,6 +141,9 @@
               {% if media.details.first_air_date %}
                 • {{ media.details.first_air_date|slice:":4" }}{% if media.details.status == "Ended" and media.details.last_air_date %}-{{ media.details.last_air_date|slice:":4" }}{% elif media.details.status == "Returning Series" %}-{% endif %}
               {% endif %}
+              {% if media.details.seasons and media.details.episodes %}
+                • {{ media.details.seasons }} season{{ media.details.seasons|pluralize }} • {{ media.details.episodes }} episode{{ media.details.episodes|pluralize }}
+              {% endif %}
             {% endif %}
           </p>
         {% endif %}
@@ -230,11 +233,17 @@
             {% if media.details %}
               {% with filtered_details=media.details|filter_details:media_type %}
                 {% for key, value in filtered_details.items|slice:":5" %}
-                  <div class="flex flex-col items-center">
+                  <div class="flex flex-col items-center {% if key == 'studios' %}w-1/3{% endif %}">
                     <span class="text-xs uppercase tracking-wider text-gray-400">{{ key|no_underscore|upper }}:</span>
-                    <span class="text-xs text-white">
+                    <span class="text-xs text-white {% if key == 'studios' %}text-center{% endif %}">
                       {% if value|default_if_none:"Unknown"|stringformat:"s"|first == "[" %}
-                        {{ value|join:", " }}
+                        {% if key == 'studios' %}
+                          {% for studio in value %}
+                            {{ studio }}{% if not forloop.last %}<br>{% endif %}
+                          {% endfor %}
+                        {% else %}
+                          {{ value|join:", " }}
+                        {% endif %}
                       {% else %}
                         {{ value|default_if_none:"Unknown" }}
                       {% endif %}
