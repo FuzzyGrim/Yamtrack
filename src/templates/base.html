@@ -47,6 +47,14 @@
           content="{% static "favicon/browserconfig.xml" %}">
     <meta name="theme-color" content="#181a1b">
 
+    <style>
+      @media (min-width: 1024px) {
+        .desktop-nav {
+          display: flex !important;
+        }
+      }
+    </style>
+
   </head>
 
   <body>
@@ -60,11 +68,11 @@
              class="fixed inset-0 bg-black/50 z-30 lg:hidden"
              @click="isMobileMenuOpen = false"></div>
 
-        {# Sidebar #}
-        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
+        {# Sidebar - Mobile only #}
+        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:hidden flex flex-col"
                :class="isMobileMenuOpen ? 'translate-x-0' : ''">
           <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
-            <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
+            <h1 class="text-2xl font-semibold text-gray-100">spine</h1>
           </div>
           <nav class="p-4 flex-1 overflow-y-auto">
             <ul class="space-y-1 mb-6">
@@ -171,125 +179,165 @@
         <div class="flex-1 flex flex-col min-h-screen">
           {# Top bar #}
           <div class="sticky top-0 z-10 bg-[#1a1d20] border-b border-[#2c3136] shadow-md">
-            <div class="container mx-auto">
-              <div class="flex items-center h-16 px-8">
-                {# Mobile: sidebar toggle button #}
-                <button @click="isMobileMenuOpen = !isMobileMenuOpen"
-                        class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       width="24"
-                       height="24"
-                       viewBox="0 0 24 24"
-                       fill="none"
-                       stroke="currentColor"
-                       stroke-width="2"
-                       stroke-linecap="round"
-                       stroke-linejoin="round"
-                       class="w-6 h-6">
-                    <line x1="4" x2="20" y1="12" y2="12"></line>
-                    <line x1="4" x2="20" y1="6" y2="6"></line>
-                    <line x1="4" x2="20" y1="18" y2="18"></line>
-                  </svg>
-                </button>
+            <div class="container mx-auto px-8">
+              <div class="flex items-center justify-between h-16">
+                {# Left side - Mobile toggle, Brand, Search #}
+                <div class="flex items-center space-x-4">
+                  {# Mobile: sidebar toggle button #}
+                  <button @click="isMobileMenuOpen = !isMobileMenuOpen"
+                          class="lg:hidden text-gray-400 hover:text-white transition-colors duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                      <line x1="4" x2="20" y1="12" y2="12"></line>
+                      <line x1="4" x2="20" y1="6" y2="6"></line>
+                      <line x1="4" x2="20" y1="18" y2="18"></line>
+                    </svg>
+                  </button>
 
-                {# Define search type from current media type (if it exists) or last search type #}
-                {% if media_type == MediaTypes.SEASON.value %}
-                  {% firstof MediaTypes.TV.value as search_type %}
-                {% else %}
-                  {% firstof media_type user.last_search_type as search_type %}
-                {% endif %}
+                  {# Brand #}
+                  <a href="{% url 'home' %}" class="text-xl font-semibold text-gray-100 hover:text-white transition-colors duration-200">spine</a>
 
-                {# Search bar #}
-                <div class="relative"
-                     x-data="{ 
-                       isExpanded: false, 
-                       isOpen: false, 
-                       selectedType: { 
-                         display: '{{ search_type|media_type_readable_plural }}', 
-                         value: '{{ search_type }}' 
-                       }, 
-                       mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, 
-                       getPlaceholder() { 
-                         return `Search ${this.selectedType.display.toLowerCase()}...` 
-                       }
-                     }">
-                  <form method="get"
-                        action="{% url 'search' %}"
-                        class="flex items-center"
-                        @click.outside="if (!isOpen) isExpanded = false">
-                    <div class="flex items-center">
-                      {# Search button that's always visible #}
-                      <button type="button"
-                              @click="isExpanded = !isExpanded; if (isExpanded) $nextTick(() => $refs.searchInput.focus())"
-                              class="p-2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             width="24"
-                             height="24"
-                             viewBox="0 0 24 24"
-                             fill="none"
-                             stroke="currentColor"
-                             stroke-width="2"
-                             stroke-linecap="round"
-                             stroke-linejoin="round"
-                             class="w-5 h-5">
+                  {# Define search type from current media type (if it exists) or last search type #}
+                  {% if media_type == MediaTypes.SEASON.value %}
+                    {% firstof MediaTypes.TV.value as search_type %}
+                  {% else %}
+                    {% firstof media_type user.last_search_type as search_type %}
+                  {% endif %}
+
+                  {# Search bar #}
+                  <div class="relative" x-data="{ 
+                    isExpanded: false, 
+                    isOpen: false, 
+                    selectedType: { 
+                      display: '{{ search_type|media_type_readable_plural }}', 
+                      value: '{{ search_type }}' 
+                    }, 
+                    mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, 
+                    getPlaceholder() { 
+                      return `Search ${this.selectedType.display.toLowerCase()}...` 
+                    }
+                  }">
+                    <form method="get" action="{% url 'search' %}" class="flex items-center" @click.outside="if (!isOpen) isExpanded = false">
+                      <button type="button" @click="isExpanded = !isExpanded; if (isExpanded) $nextTick(() => $refs.searchInput.focus())" class="p-2 text-gray-400 hover:text-white transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
                           <circle cx="11" cy="11" r="8"></circle>
                           <path d="m21 21-4.3-4.3"></path>
                         </svg>
                       </button>
-
-                      {# Expandable search input #}
-                      <div class="flex overflow-hidden transition-all duration-300 ease-out"
-                           :class="isExpanded ? 'w-[400px] opacity-100' : 'w-0 opacity-0'">
-                        <div class="relative flex-grow min-w-0">
-                          <input type="search"
-                                 name="q"
-                                 x-ref="searchInput"
-                                 value="{{ request.GET.q }}"
-                                 :placeholder="getPlaceholder()"
-                                 class="w-full py-2 pl-3 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
-                        </div>
-
+                      <div class="flex overflow-hidden transition-all duration-300 ease-out" :class="isExpanded ? 'w-[400px] opacity-100' : 'w-0 opacity-0'">
+                        <input type="search" name="q" x-ref="searchInput" value="{{ request.GET.q }}" :placeholder="getPlaceholder()" class="w-full py-2 pl-3 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] placeholder-gray-500">
                         <input type="hidden" name="media_type" :value="selectedType.value">
-
-                        {# Media type dropdown #}
-                        <button type="button"
-                                @click="isOpen = !isOpen"
-                                @click.away="isOpen = false"
-                                class="flex items-center justify-between w-32 px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200">
+                        <button type="button" @click="isOpen = !isOpen" @click.away="isOpen = false" class="flex items-center justify-between w-32 px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md hover:bg-[#2a2e33] transition-colors duration-200">
                           <span class="truncate" x-text="selectedType.display"></span>
-                          <svg class="w-4 h-4 ml-2"
-                               fill="none"
-                               stroke="currentColor"
-                               viewBox="0 0 24 24"
-                               xmlns="http://www.w3.org/2000/svg">
+                          <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                           </svg>
                         </button>
-
-                        <ul x-cloak
-                            x-show="isOpen"
-                            @keydown.escape.window="isOpen = false"
-                            x-transition:enter="transition ease-out duration-100"
-                            x-transition:enter-start="transform opacity-0 scale-95"
-                            x-transition:enter-end="transform opacity-100 scale-100"
-                            x-transition:leave="transition ease-in duration-75"
-                            x-transition:leave-start="transform opacity-100 scale-100"
-                            x-transition:leave-end="transform opacity-0 scale-95"
-                            class="absolute z-20 py-1 mt-1 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-[128px]"
-                            style="top: 100%;">
+                        <ul x-show="isOpen" x-transition class="absolute z-20 py-1 mt-12 w-32 text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0">
                           <template x-for="type in mediaTypes.filter(t => t.value !== selectedType.value)" :key="type.value">
-                            <li @click="selectedType = type; isOpen = false"
-                                class="px-4 py-2 text-sm text-gray-300 text-center cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
-                                x-text="type.display"></li>
+                            <li @click="selectedType = type; isOpen = false" class="px-4 py-2 text-center cursor-pointer hover:bg-[#343a40] transition" x-text="type.display"></li>
                           </template>
                         </ul>
                       </div>
-                    </div>
-                  </form>
+                    </form>
+                  </div>
                 </div>
 
-                {# Right side space for future nav items #}
-                <div class="flex-1"></div>
+                {# Center/Right - Desktop Navigation #}
+                <div class="desktop-nav flex items-center space-x-6" x-data="{ mediaOpen: false, createOpen: false, userOpen: false }" style="display: none;">
+                  {# Media Dropdown #}
+                  <div class="relative">
+                    <button @click="mediaOpen = !mediaOpen" @click.away="mediaOpen = false" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
+                      <span>Media</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div x-show="mediaOpen" x-transition class="absolute left-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
+                      <div class="py-1">
+                        <a href="{% url 'home' %}" class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white {% if request.path == "/" %}text-white bg-[#343a40]{% endif %}">
+                          {% icon 'home' is_active=request.path|str_equals:"/" %}
+                          <span>Home</span>
+                        </a>
+                        {% get_sidebar_media_types user as sidebar_media_types %}
+                        {% for item in sidebar_media_types %}
+                          <a href="{% url 'medialist' media_type=item.media_type %}" class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white {% if media_type == item.media_type %}text-white bg-[#343a40]{% endif %}">
+                            {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
+                            <span>{{ item.display_name }}</span>
+                          </a>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+
+                  {# Create Dropdown #}
+                  <div class="relative">
+                    <button @click="createOpen = !createOpen" @click.away="createOpen = false" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
+                      <span>Create</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div x-show="createOpen" x-transition class="absolute left-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
+                      <div class="py-1">
+                        {% url 'create_entry' as create_entry_url %}
+                        <a href="{{ create_entry_url }}" class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white {% if request.path == create_entry_url %}text-white bg-[#343a40]{% endif %}">
+                          {% icon 'create' is_active=request.path|str_equals:create_entry_url %}
+                          <span>Create Custom</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {# Direct Links #}
+                  {% url 'lists' as lists_url %}
+                  <a href="{{ lists_url }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white {% if request.path == lists_url %}text-white{% endif %}">Lists</a>
+
+                  {% url 'calendar' as calendar_url %}
+                  <a href="{{ calendar_url }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white {% if request.path == calendar_url %}text-white{% endif %}">Calendar</a>
+
+                  {% url 'statistics' as statistics_url %}
+                  <a href="{{ statistics_url }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white {% if request.path == statistics_url %}text-white{% endif %}">Statistics</a>
+
+                  {# User Menu #}
+                  <div class="relative">
+                    <button @click="userOpen = !userOpen" @click.away="userOpen = false" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
+                      <span>👤</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div x-show="userOpen" x-transition class="absolute right-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
+                      <div class="py-1">
+                        {% url 'profile' as profile_url %}
+                        <a href="{{ profile_url }}" class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white {% if request.path == profile_url %}text-white bg-[#343a40]{% endif %}">
+                          {% icon 'user' is_active=request.path|str_equals:profile_url %}
+                          <span>Profile</span>
+                        </a>
+                        {% url 'account' as account_url %}
+                        {% url 'notifications' as notifications_url %}
+                        {% url 'sidebar' as sidebar_url %}
+                        {% url 'integrations' as integrations_url %}
+                        {% url 'import_data' as import_url %}
+                        {% url 'export_data' as export_url %}
+                        <a href="{{ account_url }}" class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#343a40]{% endif %}">
+                          {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
+                            {% icon 'settings' is_active=True %}
+                          {% else %}
+                            {% icon 'settings' is_active=False %}
+                          {% endif %}
+                          <span>Settings</span>
+                        </a>
+                        <form method="post" action="{% url 'account_logout' %}" class="w-full">
+                          {% csrf_token %}
+                          <button type="submit" class="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white">
+                            {% icon 'logout' is_active=False %}
+                            <span>Logout</span>
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -305,7 +353,7 @@
     {% endblock body %}
 
     {% if messages %}
-      <div class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none">
+      <div class="fixed top-24 right-0 left-0 z-50 flex justify-center pointer-events-none">
         <div class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">
           {% for message in messages %}
             {# djlint:off #}
