@@ -40,9 +40,32 @@
         </div>
       </div>
     </td>
-    <td class="p-2 font-medium">
-      <a href="{{ media.item|media_url }}"
-         class="hover:text-indigo-400 transition-colors line-clamp-2">{{ media.item }}</a>
+    <td class="p-2 pe-8 font-medium">
+      <div class=" flex justify-between items-center">
+        <a href="{{ media.item|media_url }}"
+           class="hover:text-indigo-400 transition-colors line-clamp-1">{{ media.item }}</a>
+
+        {% if media.repeats > 1 %}
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4 text-slate-200 mr-1">
+              <path d="m17 2 4 4-4 4" />
+              <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+              <path d="m7 22-4-4 4-4" />
+              <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+            </svg>
+            <span class="text-sm text-white">{{ media.repeats }}</span>
+          </div>
+        {% endif %}
+      </div>
     </td>
     {% if media.score is not None %}
       <td class="p-2 text-center">

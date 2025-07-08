@@ -170,7 +170,7 @@ class ReloadCalendarTaskTests(TestCase):
             )
         )
         # Setup mock for process_anime_bulk to create events for anime items
-        mock_process_anime_bulk.side_effect = lambda items, events_bulk: [
+        mock_process_anime_bulk.side_effect = lambda items, events_bulk, __: [
             events_bulk.append(
                 Event(
                     item=item,
@@ -762,7 +762,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process anime items
         events_bulk = []
-        process_anime_bulk([self.anime_item], events_bulk)
+        process_anime_bulk([self.anime_item], events_bulk, set())
 
         # Verify events were added
         self.assertEqual(len(events_bulk), 1)
@@ -774,8 +774,8 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(events_bulk[0].datetime, expected_date)
 
     @patch("events.calendar.services.api_request")
-    def test_process_anime_bulk_no_matching_anime(self, mock_api_request):
-        """Test process_anime_bulk with no matching anime."""
+    def test_process_anime_bulk_no_matching_anime_anilist(self, mock_api_request):
+        """Test process_anime_bulk with no matching anime in Anilist."""
         # Setup mock with empty media list
         mock_api_request.return_value = {
             "data": {
@@ -788,10 +788,10 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process anime items
         events_bulk = []
-        process_anime_bulk([self.anime_item], events_bulk)
+        process_anime_bulk([self.anime_item], events_bulk, set())
 
-        # Verify no events were added
-        self.assertEqual(len(events_bulk), 0)
+        # Verify anime added from default source
+        self.assertEqual(len(events_bulk), 1)
 
     @patch("app.providers.tmdb.movie")
     def test_http_error_handling(self, mock_tmdb_movie):
@@ -810,7 +810,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item - should not raise exception
         events_bulk = []
-        skipped_items = []
+        skipped_items = set()
         process_other(self.movie_item, events_bulk, skipped_items)
 
         # Verify no events were added

@@ -404,6 +404,8 @@ def track_modal(
             season_number=season_number,
         )
         media = user_medias.first()
+        if media:
+            instance_id = media.id
 
     initial_data = {
         "media_id": media_id,

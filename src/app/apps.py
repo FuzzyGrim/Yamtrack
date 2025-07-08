@@ -9,4 +9,4 @@ class AppConfig(AppConfig):
 
     def ready(self):
         """Import signals when the app is ready."""
-        import app.signals  # noqa: F401
+        import app.signals  # noqa: F401, PLC0415

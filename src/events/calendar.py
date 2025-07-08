@@ -35,7 +35,7 @@ def process_items(items_to_process):
     """Process items and categorize them."""
     events_bulk = []
     anime_to_process = []
-    skipped_items = []
+    skipped_items = set()
 
     for item in items_to_process:
         if item.media_type == MediaTypes.ANIME.value:
@@ -47,7 +47,7 @@ def process_items(items_to_process):
         else:
             process_other(item, events_bulk, skipped_items)
 
-    process_anime_bulk(anime_to_process, events_bulk)
+    process_anime_bulk(anime_to_process, events_bulk, skipped_items)
     return events_bulk, skipped_items
 
 
@@ -235,7 +235,7 @@ def exclude_items_to_fetch(items):
     )
 
 
-def process_anime_bulk(items, events_bulk):
+def process_anime_bulk(items, events_bulk, skipped_items):
     """Process multiple anime items and add events to the event list."""
     if not items:
         return
@@ -259,6 +259,13 @@ def process_anime_bulk(items, events_bulk):
                         datetime=episode_datetime,
                     ),
                 )
+        else:
+            logger.info(
+                "Anime: %s (%s), not found in AniList",
+                item.title,
+                item.media_id,
+            )
+            process_other(item, events_bulk, skipped_items)
 
 
 def get_anime_schedule_bulk(media_ids):
@@ -370,11 +377,11 @@ def process_tv(tv_item, events_bulk, skipped_items):
             tv_item,
         )
         if tv_item not in skipped_items:
-            skipped_items.append(tv_item)
+            skipped_items.add(tv_item)
     except Exception:
         logger.exception("Error processing %s", tv_item)
         if tv_item not in skipped_items:
-            skipped_items.append(tv_item)
+            skipped_items.add(tv_item)
 
 
 def get_seasons_to_process(tv_item):
@@ -560,8 +567,7 @@ def get_tvmaze_episode_map(tvdb_id):
                 key = f"{season_num}_{episode_num}"
                 tvmaze_map[key] = ep.get("airstamp")
 
-    # Cache the processed map for 24 hours
-    cache.set(cache_key, tvmaze_map, timeout=86400)
+    cache.set(cache_key, tvmaze_map)
     logger.info(
         "%s - Cached TVMaze episode map with %d entries",
         tvdb_id,
@@ -626,7 +632,7 @@ def process_comic(item, events_bulk, skipped_items):
             item,
         )
         if item not in skipped_items:
-            skipped_items.append(item)
+            skipped_items.add(item)
         return
 
     # get latest event
@@ -645,7 +651,7 @@ def process_comic(item, events_bulk, skipped_items):
             item,
         )
         if item not in skipped_items:
-            skipped_items.append(item)
+            skipped_items.add(item)
         return
 
     if issue_metadata["store_date"]:
@@ -679,7 +685,7 @@ def process_other(item, events_bulk, skipped_items):
             item,
         )
         if item not in skipped_items:
-            skipped_items.append(item)
+            skipped_items.add(item)
         return
 
     date_key = media_type_config.get_date_key(item.media_type)

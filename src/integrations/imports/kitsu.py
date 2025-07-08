@@ -24,7 +24,7 @@ def importer(kitsu_id, user, mode):
 class KitsuImporter:
     """Class to handle importing user data from Kitsu."""
 
-    KITSU_API_BASE_URL = "https://kitsu.io/api/edge"
+    KITSU_API_BASE_URL = "https://kitsu.app/api/edge"
     KITSU_PAGE_LIMIT = 500
 
     def __init__(self, kitsu_id, user, mode):

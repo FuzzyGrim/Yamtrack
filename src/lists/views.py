@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
 from app import helpers
-from app.models import Item, MediaTypes
+from app.models import Item, MediaManager, MediaTypes
 from app.providers import services
 from lists.forms import CustomListForm
 from lists.models import CustomList, CustomListItem
@@ -137,15 +137,30 @@ def list_detail(request, list_id):
     items_page = paginator.get_page(params["page"])
 
     media_by_item_id = {}
-    for media_type in {item.media_type for item in items_page}:
+    media_types_in_page = {item.media_type for item in items_page}
+
+    media_manager = MediaManager()
+
+    for media_type in media_types_in_page:
         model = apps.get_model("app", media_type)
-        filter_kwargs = {
-            "item_id__in": [item.id for item in items_page],
-            "user"
-            if media_type != MediaTypes.EPISODE.value
-            else "related_season__user": request.user,
-        }
-        for entry in model.objects.filter(**filter_kwargs).select_related("item"):
+
+        if media_type == MediaTypes.EPISODE.value:
+            filter_kwargs = {
+                "item_id__in": [item.id for item in items_page],
+                "related_season__user": request.user,
+            }
+        else:
+            filter_kwargs = {
+                "item_id__in": [item.id for item in items_page],
+                "user": request.user,
+            }
+
+        queryset = model.objects.filter(**filter_kwargs).select_related("item")
+        queryset = media_manager._apply_prefetch_related(queryset, media_type)
+        media_manager.annotate_max_progress(queryset, media_type)
+
+        # Map media objects by item_id
+        for entry in queryset:
             media_by_item_id.setdefault(entry.item_id, entry)
 
     # Annotate items with media objects

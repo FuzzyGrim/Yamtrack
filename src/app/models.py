@@ -10,13 +10,16 @@ from django.core.validators import (
 from django.db import models
 from django.db.models import (
     CheckConstraint,
+    Count,
+    F,
     IntegerField,
     Max,
     Prefetch,
     Q,
     UniqueConstraint,
+    Window,
 )
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, RowNumber
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
@@ -60,7 +63,7 @@ class MediaTypes(models.TextChoices):
 
 
 class Item(CalendarTriggerMixin, models.Model):
-    """Model for items in custom lists."""
+    """Model to store basic information about media items."""
 
     media_id = models.CharField(max_length=20)
     source = models.CharField(
@@ -181,40 +184,42 @@ class Item(CalendarTriggerMixin, models.Model):
 
     def fetch_releases(self, delay):
         """Fetch releases for the item."""
-        if not self._disable_calendar_triggers:
-            if self.media_type == MediaTypes.SEASON.value:
-                # Get or create the TV item for this season
-                try:
-                    tv_item = Item.objects.get(
-                        media_id=self.media_id,
-                        source=self.source,
-                        media_type=MediaTypes.TV.value,
-                    )
-                except Item.DoesNotExist:
-                    # Get metadata for the TV show
-                    tv_metadata = providers.services.get_media_metadata(
-                        MediaTypes.TV.value,
-                        self.media_id,
-                        self.source,
-                    )
-                    tv_item = Item.objects.create(
-                        media_id=self.media_id,
-                        source=self.source,
-                        media_type=MediaTypes.TV.value,
-                        title=tv_metadata["title"],
-                        image=tv_metadata["image"],
-                    )
-                    logger.info("Created TV item %s for season %s", tv_item, self)
+        if self._disable_calendar_triggers:
+            return
 
-                # Process the TV item instead of the season
-                items_to_process = [tv_item]
-            else:
-                items_to_process = [self]
+        if self.media_type == MediaTypes.SEASON.value:
+            # Get or create the TV item for this season
+            try:
+                tv_item = Item.objects.get(
+                    media_id=self.media_id,
+                    source=self.source,
+                    media_type=MediaTypes.TV.value,
+                )
+            except Item.DoesNotExist:
+                # Get metadata for the TV show
+                tv_metadata = providers.services.get_media_metadata(
+                    MediaTypes.TV.value,
+                    self.media_id,
+                    self.source,
+                )
+                tv_item = Item.objects.create(
+                    media_id=self.media_id,
+                    source=self.source,
+                    media_type=MediaTypes.TV.value,
+                    title=tv_metadata["title"],
+                    image=tv_metadata["image"],
+                )
+                logger.info("Created TV item %s for season %s", tv_item, self)
 
-            if delay:
-                events.tasks.reload_calendar.delay(items_to_process=items_to_process)
-            else:
-                events.tasks.reload_calendar(items_to_process=items_to_process)
+            # Process the TV item instead of the season
+            items_to_process = [tv_item]
+        else:
+            items_to_process = [self]
+
+        if delay:
+            events.tasks.reload_calendar.delay(items_to_process=items_to_process)
+        else:
+            events.tasks.reload_calendar(items_to_process=items_to_process)
 
 
 class MediaManager(models.Manager):
@@ -234,6 +239,18 @@ class MediaManager(models.Manager):
 
         if search:
             queryset = queryset.filter(item__title__icontains=search)
+
+        queryset = queryset.annotate(
+            repeats=Window(
+                expression=Count("id"),
+                partition_by=[F("item")],
+            ),
+            row_number=Window(
+                expression=RowNumber(),
+                partition_by=[F("item")],
+                order_by=F("created_at").desc(),
+            ),
+        ).filter(row_number=1)
 
         queryset = queryset.select_related("item")
         queryset = self._apply_prefetch_related(queryset, media_type)
@@ -394,7 +411,7 @@ class MediaManager(models.Manager):
 
         # Default sorting by media field
         return queryset.order_by(
-            f"-{sort_filter}",
+            models.F(sort_filter).desc(nulls_last=True),
             models.functions.Lower("item__title"),
         )
 
@@ -1462,7 +1479,7 @@ class Episode(models.Model):
         self.related_season.refresh_from_db()
 
         season_just_completed = False
-        if self.related_season.progress == max_progress:
+        if self.item.episode_number == max_progress:
             self.related_season.status = Status.COMPLETED.value
             bulk_update_with_history(
                 [self.related_season],

@@ -2,6 +2,8 @@
 
 from django.conf import settings
 
+from app.models import MediaTypes, Sources, Status
+
 
 def export_vars(request):  # noqa: ARG001
     """Export variables to templates."""
@@ -13,10 +15,8 @@ def export_vars(request):  # noqa: ARG001
     }
 
 
-def media_enums(request): # noqa: ARG001
+def media_enums(request):  # noqa: ARG001
     """Export media enums to templates."""
-    from app.models import MediaTypes, Sources, Status
-
     return {
         "MediaTypes": MediaTypes,
         "Sources": Sources,

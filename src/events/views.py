@@ -33,9 +33,7 @@ def calendar(request):
 
     try:
         current_date = (
-            date(int(year), int(month), 1)
-            if month and year
-            else timezone.localdate()
+            date(int(year), int(month), 1) if month and year else timezone.localdate()
         )
         month, year = current_date.month, current_date.year
     except (ValueError, TypeError):
@@ -118,9 +116,11 @@ def download_calendar(_, token: str):
         )
         return HttpResponse(status=401)
 
+    now = timezone.now()
+
     # Define default start and end date (from past 30 days to incoming 90 days)
-    start_date = timezone.now().date() - timedelta(days=30)
-    end_date = timezone.now().date() + timedelta(days=90)
+    start_date = now.date() - timedelta(days=30)
+    end_date = now.date() + timedelta(days=90)
 
     # Retrieve release events
     releases = Event.objects.get_user_events(user, start_date, end_date)
@@ -137,6 +137,7 @@ def download_calendar(_, token: str):
         dt_tz_aware = release.datetime.replace(tzinfo=UTC)
         cal_event.add("dtstart", dt_tz_aware)
         cal_event.add("dtend", dt_tz_aware)
+        cal_event.add("dtstamp", now)
         cal.add_component(cal_event)
 
     # Return the iCal file

@@ -209,7 +209,7 @@ else:
 
 # Cache
 # https://docs.djangoproject.com/en/stable/topics/cache/
-CACHE_TIMEOUT = 18000  # 5 hours
+CACHE_TIMEOUT = 86400  # 24 hours
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
 CACHES = {
     "default": {

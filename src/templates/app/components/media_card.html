@@ -1,6 +1,6 @@
 {% load app_tags %}
 
-<div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg relative"
+<div class="{% if secondary_color %}bg-[#39404b]{% else %}bg-[#2a2f35]{% endif %} rounded-lg overflow-hidden shadow-lg relative"
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="relative">
     <img alt="{{ title }}"
@@ -8,8 +8,8 @@
          data-src="{{ item.image }}"
          src="{{ IMG_NONE }}">
 
-    <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
-      <div class="flex items-center">
+    {% if media.status %}
+      <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         {% if media.status == Status.COMPLETED.value %}
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -20,14 +20,10 @@
                stroke-width="2"
                stroke-linecap="round"
                stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.TV.value|media_color }} {% if media.end_date %}mr-1.5{% endif %}">
+               class="w-4 h-4 {{ MediaTypes.TV.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
             <path d="M21.801 10A10 10 0 1 1 17 3.335" />
             <path d="m9 11 3 3L22 4" />
           </svg>
-
-          {% if media.end_date is not None %}
-            <span class="text-sm text-white">{{ media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
-          {% endif %}
 
         {% elif media.status == Status.IN_PROGRESS.value %}
           <svg xmlns="http://www.w3.org/2000/svg"
@@ -39,13 +35,9 @@
                stroke-width="2"
                stroke-linecap="round"
                stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.EPISODE.value|media_color }} {% if media.start_date %}mr-1{% endif %}">
+               class="w-4 h-4 {{ MediaTypes.EPISODE.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
             <polygon points="6 3 20 12 6 21 6 3" />
           </svg>
-
-          {% if media.start_date is not None %}
-            <span class="text-sm text-white">{{ media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
-          {% endif %}
 
         {% elif media.status == Status.PAUSED.value %}
           <svg xmlns="http://www.w3.org/2000/svg"
@@ -57,7 +49,7 @@
                stroke-width="2"
                stroke-linecap="round"
                stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.MOVIE.value|media_color }}">
+               class="w-4 h-4 {{ MediaTypes.MOVIE.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
             <rect x="14" y="4" width="4" height="16" rx="1" /><rect x="6" y="4" width="4" height="16" rx="1" />
           </svg>
 
@@ -71,7 +63,7 @@
                stroke-width="2"
                stroke-linecap="round"
                stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.ANIME.value|media_color }}">
+               class="w-4 h-4 {{ MediaTypes.ANIME.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
             <line x1="12" x2="12" y1="7" y2="13" /><line x1="15" x2="9" y1="10" y2="10" />
           </svg>
@@ -86,32 +78,66 @@
                stroke-width="2"
                stroke-linecap="round"
                stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.MANGA.value|media_color }}">
+               class="w-4 h-4 {{ MediaTypes.MANGA.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
             <path d="m15 9-6 6" />
             <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
             <path d="m9 9 6 6" />
           </svg>
         {% endif %}
+
+        {% if media.end_date is not None %}
+          <span class="text-sm text-white">{{ media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+        {% elif media.start_date is not None %}
+          <span class="text-sm text-white">{{ media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+        {% endif %}
       </div>
-    </div>
+    {% endif %}
 
     {% if media.score is not None %}
       <div class="absolute sm:top-2 sm:right-2 sm:left-auto top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
-        <div class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 text-yellow-400 mr-1 fill-current">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-          </svg>
-          <span class="text-sm text-white">{{ media.formatted_score }}</span>
-        </div>
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-4 h-4 text-yellow-400 mr-1 fill-current">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span class="text-sm text-white">{{ media.formatted_score }}</span>
+      </div>
+    {% endif %}
+
+    {% if media.progress and media_type != MediaTypes.MOVIE.value %}
+      <div class="absolute bottom-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+        <span class="text-sm text-white">
+          {{ media.formatted_progress }}
+          {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
+        </span>
+      </div>
+    {% endif %}
+
+    {% if media.repeats > 1 %}
+      <div class="absolute sm:bottom-2 sm:right-2 sm:left-auto bottom-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-4 h-4 text-slate-200 mr-1">
+          <path d="m17 2 4 4-4 4" />
+          <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+          <path d="m7 22-4-4 4-4" />
+          <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+        </svg>
+        <span class="text-sm text-white">{{ media.repeats }}</span>
       </div>
     {% endif %}
 

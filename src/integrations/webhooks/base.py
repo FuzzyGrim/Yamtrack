@@ -75,7 +75,11 @@ class BaseWebhookProcessor:
                 episode_number,
             )
             if mal_id:
-                logger.info("Detected anime episode with MAL ID: %s", mal_id)
+                logger.info(
+                    "Detected anime episode via MAL ID: %s, Episode: %d",
+                    mal_id,
+                    episode_offset,
+                )
                 self._handle_anime(mal_id, episode_offset, payload, user)
                 return
 
@@ -323,17 +327,45 @@ class BaseWebhookProcessor:
         episode_item = season_instance.get_episode_item(episode_number, season_metadata)
 
         if self._is_played(payload):
-            app.models.Episode.objects.create(
-                item=episode_item,
-                related_season=season_instance,
-                end_date=timezone.now().replace(second=0, microsecond=0),
+            now = timezone.now().replace(second=0, microsecond=0)
+            latest_episode = (
+                app.models.Episode.objects.filter(
+                    item=episode_item,
+                    related_season=season_instance,
+                )
+                .order_by("-end_date")
+                .first()
             )
-            logger.info(
-                "Marked episode as played: %s S%02dE%02d",
-                tv_metadata["title"],
-                season_number,
-                episode_number,
-            )
+
+            should_create = True
+            # check for duplicate episode records,
+            # sometimes webhooks are triggered multiple times #689
+            if latest_episode and latest_episode.end_date:
+                time_diff = abs((now - latest_episode.end_date).total_seconds())
+                threshold = 5
+                if time_diff < threshold:
+                    should_create = False
+                    logger.info(
+                        "Skipping duplicate episode record "
+                        "(time difference: %d seconds): %s S%02dE%02d",
+                        time_diff,
+                        tv_metadata["title"],
+                        season_number,
+                        episode_number,
+                    )
+
+            if should_create:
+                app.models.Episode.objects.create(
+                    item=episode_item,
+                    related_season=season_instance,
+                    end_date=now,
+                )
+                logger.info(
+                    "Marked episode as played: %s S%02dE%02d",
+                    tv_metadata["title"],
+                    season_number,
+                    episode_number,
+                )
         else:
             logger.info(
                 "Episode not marked as played: %s S%02dE%02d",
