@@ -14,8 +14,6 @@ def convert_repeats_to_instances(apps, schema_editor):
     Episode = apps.get_model('app', 'Episode')
     HistoricalEpisode = apps.get_model('app', 'HistoricalEpisode')
 
-    logger.info("Starting migration: convert_repeats_to_instances")
-
     # Grab repeat episodes once so we can delete them later
     episodes_qs = (
         Episode.objects
@@ -67,8 +65,6 @@ def convert_repeats_to_instances(apps, schema_editor):
 
         # Delete the originals in bulk
         Episode.objects.filter(pk__in=episode_ids).delete()
-
-    logger.info("Migration convert_repeats_to_instances completed.")
 
 
 def _flush_pairs(pair_buffer, Episode, HistoricalEpisode):
