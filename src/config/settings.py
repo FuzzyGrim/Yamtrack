@@ -504,7 +504,7 @@ else:
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
 
 ACCOUNT_LOGOUT_REDIRECT_URL = config(
-    "ACCOUNT_LOGOUT_REDIRECT_URL", default="/accounts/login/?loggedout=1"
+    "ACCOUNT_LOGOUT_REDIRECT_URL", default="/accounts/login/?loggedout=1",
 )
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_USER_MODEL_EMAIL_FIELD = None
