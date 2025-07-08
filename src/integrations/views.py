@@ -208,6 +208,33 @@ def import_hltb(request):
     return redirect("import_data")
 
 
+@require_POST
+def import_steam(request):
+    """View for importing game data from Steam."""
+    steam_id = request.POST.get("user")
+    if not steam_id:
+        messages.error(request, "Steam ID is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
+
+    if frequency == "once":
+        tasks.import_steam.delay(username=steam_id, user_id=request.user.id, mode=mode)
+        messages.info(request, "The task to import media from Steam has been queued.")
+    else:
+        import_time = request.POST["time"]
+        helpers.create_import_schedule(
+            steam_id,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "Steam",
+        )
+    return redirect("import_data")
+
+
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""

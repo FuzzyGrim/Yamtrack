@@ -51,6 +51,10 @@ def source_display(source_name):
             "name": "HowLongToBeat",
             "logo": "https://howlongtobeat.com/img/icons/favicon-96x96.png",
         },
+        "steam": {
+            "name": "Steam",
+            "logo": "https://store.steampowered.com/favicon.ico",
+        },
     }
 
     # Get source info or use defaults if source not found

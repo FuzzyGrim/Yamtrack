@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -28,6 +28,7 @@ from integrations.imports import (
     kitsu,
     mal,
     simkl,
+    steam,
     yamtrack,
 )
 from integrations.imports.trakt import TraktImporter, importer
@@ -819,3 +820,154 @@ class HelpersTest(TestCase):
 
         schedule = CrontabSchedule.objects.first()
         self.assertEqual(schedule.day_of_week, "*/2")
+
+
+class ImportSteam(TestCase):
+    """Test importing media from Steam."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    @patch("integrations.imports.steam.services.api_request")
+    @patch("integrations.imports.steam.services.search")
+    def test_import_steam_games(self, mock_search, mock_api_request):
+        """Test importing games from Steam."""
+        # Mock Steam API response
+        mock_api_request.return_value = {
+            "response": {
+                "games": [
+                    {
+                        "appid": 730,
+                        "name": "Counter-Strike 2",
+                        "playtime_forever": 1250,
+                        "playtime_2weeks": 120,  # Recent activity
+                        "rtime_last_played": 1704067200,  # Recent timestamp
+                    },
+                    {
+                        "appid": 570,
+                        "name": "Dota 2",
+                        "playtime_forever": 0,  # Never played
+                        "playtime_2weeks": 0,  # No recent activity
+                    },
+                    {
+                        "appid": 440,
+                        "name": "Team Fortress 2",
+                        "playtime_forever": 500,
+                        "playtime_2weeks": 0,  # No recent activity
+                        "rtime_last_played": 1672531200,  # Old timestamp (over 14 days)
+                    },
+                ]
+            }
+        }
+
+        # Mock IGDB search results
+        mock_search.side_effect = [
+            {"results": [{"media_id": "1", "title": "Counter-Strike 2", "image": "http://example.com/cs2.jpg"}]},
+            {"results": [{"media_id": "2", "title": "Dota 2", "image": "http://example.com/dota2.jpg"}]},
+            {"results": [{"media_id": "3", "title": "Team Fortress 2", "image": "http://example.com/tf2.jpg"}]},
+        ]
+
+        # Import games
+        imported_counts, warnings = steam.importer("76561198000000000", self.user, "new")
+
+        # Verify import counts
+        self.assertEqual(imported_counts[MediaTypes.GAME.value], 3)
+
+        # Verify games were created with correct statuses
+        games = Game.objects.filter(user=self.user)
+        self.assertEqual(games.count(), 3)
+
+        # Check specific game statuses
+        cs2_game = games.get(item__title="Counter-Strike 2")
+        self.assertEqual(cs2_game.status, Status.IN_PROGRESS.value)
+        self.assertEqual(cs2_game.progress, 1250)
+
+        dota_game = games.get(item__title="Dota 2")
+        self.assertEqual(dota_game.status, Status.PLANNING.value)
+        self.assertEqual(dota_game.progress, 0)
+
+        tf2_game = games.get(item__title="Team Fortress 2")
+        self.assertEqual(tf2_game.status, Status.PAUSED.value)
+        self.assertEqual(tf2_game.progress, 500)
+
+    @patch("integrations.imports.steam.services.api_request")
+    def test_import_steam_private_profile(self, mock_api_request):
+        """Test handling of private Steam profile."""
+        from requests.exceptions import HTTPError
+        from requests import Response
+
+        # Create a mock 403 response
+        response = Response()
+        response.status_code = 403
+        mock_api_request.side_effect = HTTPError(response=response)
+
+        # Test that the correct error is raised
+        with self.assertRaises(helpers.MediaImportError) as context:
+            steam.importer("76561198000000000", self.user, "new")
+
+        self.assertIn("private or invalid", str(context.exception))
+
+    @patch("integrations.imports.steam.services.api_request")
+    @patch("integrations.imports.steam.services.search")
+    def test_import_steam_game_not_found_in_igdb(self, mock_search, mock_api_request):
+        """Test handling of games not found in IGDB."""
+        # Mock Steam API response
+        mock_api_request.return_value = {
+            "response": {
+                "games": [
+                    {
+                        "appid": 999,
+                        "name": "Unknown Game",
+                        "playtime_forever": 100,
+                        "playtime_2weeks": 0,
+                    }
+                ]
+            }
+        }
+
+        # Mock IGDB search returning no results
+        mock_search.return_value = {"results": []}
+
+        # Import games
+        imported_counts, warnings = steam.importer("76561198000000000", self.user, "new")
+
+        # Verify the game was imported as a manual entry
+        self.assertEqual(imported_counts.get(MediaTypes.GAME.value, 0), 1)
+        
+        # Verify the game was created with manual source
+        game = Game.objects.get(user=self.user)
+        self.assertEqual(game.item.source, Sources.MANUAL.value)
+        self.assertEqual(game.item.media_id, "steam_999")
+        self.assertEqual(game.item.title, "Unknown Game")
+        self.assertEqual(game.status, Status.PAUSED.value)  # 100 minutes total, 0 recent
+
+    def test_determine_game_status_logic(self):
+        """Test the status determination logic."""
+        importer_instance = steam.SteamImporter("76561198000000000", self.user, "new")
+
+        # Test Planning status (no playtime)
+        status = importer_instance._determine_game_status(0, 0)
+        self.assertEqual(status, Status.PLANNING.value)
+
+        # Test In Progress status (played in last 2 weeks)
+        status = importer_instance._determine_game_status(100, 50)
+        self.assertEqual(status, Status.IN_PROGRESS.value)
+
+        # Test Paused status (has playtime but no recent activity)
+        status = importer_instance._determine_game_status(100, 0)
+        self.assertEqual(status, Status.PAUSED.value)
+
+        # Test Paused status (has playtime but no 2-week activity data)
+        status = importer_instance._determine_game_status(100, 0)
+        self.assertEqual(status, Status.PAUSED.value)
+
+    @patch("integrations.imports.steam.services.api_request")
+    def test_import_steam_no_api_key(self, mock_api_request):
+        """Test handling when Steam API key is not configured."""
+        with patch.object(settings, 'STEAM_API_KEY', ''):
+            with self.assertRaises(helpers.MediaImportError) as context:
+                steam.importer("76561198000000000", self.user, "new")
+
+            self.assertIn("Steam API key not configured", str(context.exception))

@@ -361,6 +361,11 @@ IGDB_SECRET = config(
 )
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+STEAM_API_KEY = config(
+    "STEAM_API_KEY",
+    default=secret("STEAM_API_KEY_FILE", ""), # TODO: Generate default key https://steamcommunity.com/dev/apikey
+)
+
 HARDCOVER_API = config(
     "HARDCOVER_API",
     default=secret(
