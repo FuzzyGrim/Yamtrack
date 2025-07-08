@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import requests
 from django.conf import settings
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import app
@@ -284,8 +285,11 @@ class SimklImporter:
                     related_season=season_instance,
                     end_date=self._get_date(episode.get("watched_at")),
                 )
-                episode_instance._history_date = parse_datetime(
-                    episode.get("watched_at"),
+                episode_instance._history_date = (
+                    self._get_date(
+                        episode.get("watched_at"),
+                    )
+                    or timezone.now()
                 )
                 self.bulk_media[MediaTypes.EPISODE.value].append(episode_instance)
 
@@ -475,8 +479,16 @@ class SimklImporter:
         """Get the start date based on earliest watched episode."""
         if "seasons" in anime:
             episodes = anime["seasons"][0]["episodes"]
-            dates = [self._get_date(episode.get("watched_at")) for episode in episodes]
-            return min(dates) if dates else None
+            current_min_date = None
+
+            for episode in episodes:
+                date = self._get_date(episode.get("watched_at"))
+                if date is not None and (
+                    current_min_date is None or date < current_min_date
+                ):
+                    current_min_date = date
+
+            return current_min_date
 
         return None
 
@@ -490,4 +502,8 @@ class SimklImporter:
         """Get the history date from the entry."""
         if entry.get("last_watched_at"):
             return parse_datetime(entry.get("last_watched_at"))
-        return parse_datetime(entry.get("added_to_watchlist_at"))
+
+        if entry.get("added_to_watchlist_at"):
+            return parse_datetime(entry.get("added_to_watchlist_at"))
+
+        return timezone.now()

@@ -570,7 +570,7 @@ class ImportSimkl(TestCase):
                         {
                             "number": 1,
                             "episodes": [
-                                {"number": 1, "watched_at": "2023-01-01T00:00:00Z"},
+                                {"number": 1},
                                 {"number": 2, "watched_at": "2023-01-02T00:00:00Z"},
                             ],
                         },
