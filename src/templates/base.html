@@ -53,6 +53,12 @@
           display: flex !important;
         }
       }
+      
+      /* Remove blue focus ring from search input */
+      .search-container input[type="search"]:focus {
+        outline: none !important;
+        box-shadow: none !important;
+      }
     </style>
 
   </head>
@@ -204,9 +210,10 @@
                   {% endif %}
 
                   {# Search bar #}
-                  <div class="relative" x-data="{ 
+                  <div class="search-container relative" x-data="{ 
                     isExpanded: false, 
                     isOpen: false, 
+                    isClicked: false,
                     selectedType: { 
                       display: '{{ search_type|media_type_readable_plural }}', 
                       value: '{{ search_type }}' 
@@ -214,17 +221,30 @@
                     mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, 
                     getPlaceholder() { 
                       return `Search ${this.selectedType.display.toLowerCase()}...` 
+                    },
+                    expandSearch() {
+                      this.isExpanded = true;
+                      this.$nextTick(() => this.$refs.searchInput.focus());
+                    },
+                    collapseSearch() {
+                      if (!this.isClicked && !this.isOpen) {
+                        this.isExpanded = false;
+                      }
+                    },
+                    clickSearch() {
+                      this.isClicked = true;
+                      this.expandSearch();
                     }
-                  }">
-                    <form method="get" action="{% url 'search' %}" class="flex items-center" @click.outside="if (!isOpen) isExpanded = false">
-                      <button type="button" @click="isExpanded = !isExpanded; if (isExpanded) $nextTick(() => $refs.searchInput.focus())" class="p-2 text-gray-400 hover:text-white transition-colors duration-200">
+                  }" @mouseleave="collapseSearch()" @click.outside="isClicked = false; if (!isOpen) isExpanded = false">
+                    <form method="get" action="{% url 'search' %}" class="flex items-center">
+                      <button type="button" @click="clickSearch()" @mouseenter="expandSearch()" class="p-2 text-gray-400 hover:text-white transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
                           <circle cx="11" cy="11" r="8"></circle>
                           <path d="m21 21-4.3-4.3"></path>
                         </svg>
                       </button>
                       <div class="flex overflow-hidden transition-all duration-300 ease-out" :class="isExpanded ? 'w-[400px] opacity-100' : 'w-0 opacity-0'">
-                        <input type="search" name="q" x-ref="searchInput" value="{{ request.GET.q }}" :placeholder="getPlaceholder()" class="w-full py-2 pl-3 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] placeholder-gray-500">
+                        <input type="search" name="q" x-ref="searchInput" value="{{ request.GET.q }}" :placeholder="getPlaceholder()" class="w-full py-2 pl-3 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md placeholder-gray-500">
                         <input type="hidden" name="media_type" :value="selectedType.value">
                         <button type="button" @click="isOpen = !isOpen" @click.away="isOpen = false" class="flex items-center justify-between w-32 px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md hover:bg-[#2a2e33] transition-colors duration-200">
                           <span class="truncate" x-text="selectedType.display"></span>
@@ -243,10 +263,17 @@
                 </div>
 
                 {# Center/Right - Desktop Navigation #}
-                <div class="desktop-nav flex items-center space-x-6" x-data="{ mediaOpen: false, createOpen: false, userOpen: false }" style="display: none;">
+                <div class="desktop-nav flex items-center space-x-6" x-data="{ 
+                  mediaOpen: false, 
+                  createOpen: false, 
+                  userOpen: false,
+                  mediaClicked: false,
+                  createClicked: false,
+                  userClicked: false
+                }" style="display: none;">
                   {# Media Dropdown #}
-                  <div class="relative">
-                    <button @click="mediaOpen = !mediaOpen" @click.away="mediaOpen = false" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
+                  <div class="relative" @mouseleave="if (!mediaClicked) mediaOpen = false">
+                    <button @click="mediaClicked = true; mediaOpen = !mediaOpen" @click.away="mediaClicked = false; mediaOpen = false" @mouseenter="mediaOpen = true" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
                       <span>Media</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -270,8 +297,8 @@
                   </div>
 
                   {# Create Dropdown #}
-                  <div class="relative">
-                    <button @click="createOpen = !createOpen" @click.away="createOpen = false" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
+                  <div class="relative" @mouseleave="if (!createClicked) createOpen = false">
+                    <button @click="createClicked = true; createOpen = !createOpen" @click.away="createClicked = false; createOpen = false" @mouseenter="createOpen = true" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
                       <span>Create</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -299,8 +326,8 @@
                   <a href="{{ statistics_url }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white {% if request.path == statistics_url %}text-white{% endif %}">Statistics</a>
 
                   {# User Menu #}
-                  <div class="relative">
-                    <button @click="userOpen = !userOpen" @click.away="userOpen = false" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
+                  <div class="relative" @mouseleave="if (!userClicked) userOpen = false">
+                    <button @click="userClicked = true; userOpen = !userOpen" @click.away="userClicked = false; userOpen = false" @mouseenter="userOpen = true" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
                       <span>👤</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -462,3 +489,4 @@
     <script src="{% static 'js/mediaStatusDateHandler.js' %}{% get_static_file_mtime 'js/mediaStatusDateHandler.js' %}"></script>
   </body>
 </html>
+
