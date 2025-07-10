@@ -141,6 +141,7 @@
       </div>
     {% endif %}
 
+    {% if not hof_search and not hof_display %}
     <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100">
       <a href="{{ item|media_url }}" class="absolute inset-0"></a>
 
@@ -251,6 +252,7 @@
         </button>
       </div>
     </div>
+    {% endif %}
   </div>
 
   <div class="p-3">

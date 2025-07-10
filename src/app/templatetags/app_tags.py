@@ -465,3 +465,24 @@ def filter_details(details, media_type=None):
     
     # Filter out excluded keys
     return {k: v for k, v in details.items() if k not in exclusions}
+
+
+@register.filter
+def media_type_label(media_type):
+    """Convert media type to a human-readable label."""
+    labels = {
+        'tv': 'TV Show',
+        'movie': 'Movie',
+        'anime': 'Anime',
+        'manga': 'Manga',
+        'game': 'Game',
+        'book': 'Book',
+        'comic': 'Comic'
+    }
+    return labels.get(media_type, media_type.title())
+
+
+@register.filter
+def get_item(dictionary, key):
+    """Get a dictionary item by key."""
+    return dictionary.get(key)

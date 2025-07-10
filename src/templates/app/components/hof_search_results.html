@@ -1,0 +1,102 @@
+{% load app_tags %}
+
+{% if data.results %}
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 p-4">
+    {% for item in data.results %}
+      <div class="relative group">
+        {% include "app/components/media_card.html" with item=item title=item.title from_grid=True hof_search=True %}
+        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <button hx-post="{% url 'toggle_hof' %}"
+                  hx-vals='{"media_type": "{{ media_type }}", "media_id": "{{ item.media_id }}", "source": "{{ item.source }}"}'
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-swap="none"
+                  class="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full hover:scale-110 transition-all duration-200 cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+              <path d="M5 12h14"/>
+              <path d="M12 5v14"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if data.total_pages > 1 %}
+    <div class="flex flex-wrap justify-center items-center mt-8 gap-x-2 gap-y-3">
+      {# Previous button #}
+      {% if data.page > 1 %}
+        <button hx-get="{% url 'hof_search' %}?q={{ query }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'-1' }}"
+                hx-target="#hof-search-results"
+                class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+        </button>
+      {% else %}
+        <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+        </button>
+      {% endif %}
+
+      {# Page numbers with ellipses #}
+      {% get_pagination_range data.page data.total_pages 2 as pages %}
+      {% for page_num in pages %}
+        {% if page_num %}
+          <button hx-get="{% url 'hof_search' %}?q={{ query }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ page_num }}"
+                  hx-target="#hof-search-results"
+                  class="w-10 h-10 rounded-md {% if data.page == page_num %}bg-indigo-600{% else %}bg-[#2a2f35] hover:bg-[#39404b]{% endif %} text-white flex items-center justify-center">
+            {{ page_num }}
+          </button>
+        {% else %}
+          {# Ellipsis #}
+          <span class="flex items-center justify-center w-10 h-10 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+              <circle cx="5" cy="12" r="1"></circle>
+            </svg>
+          </span>
+        {% endif %}
+      {% endfor %}
+
+      {# Next button #}
+      {% if data.page < data.total_pages %}
+        <button hx-get="{% url 'hof_search' %}?q={{ query }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'1' }}"
+                hx-target="#hof-search-results"
+                class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <path d="m9 18 6-6-6-6"></path>
+          </svg>
+        </button>
+      {% else %}
+        <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <path d="m9 18 6-6-6-6"></path>
+          </svg>
+        </button>
+      {% endif %}
+    </div>
+
+    {# Page info text #}
+    <div class="text-center text-sm text-gray-400 mt-3">
+      Page {{ data.page }} of {{ data.total_pages }} ({{ data.total_results }} results)
+    </div>
+  {% endif %}
+{% else %}
+  <div class="flex flex-col items-center justify-center py-16 px-4">
+    <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-gray-400">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.3-4.3"></path>
+      </svg>
+    </div>
+    <h3 class="text-xl font-semibold mb-2">
+      {% if query %}No results found{% else %}Ready to search{% endif %}
+    </h3>
+    <p class="text-gray-400 text-center max-w-md">
+      {% if query %}We couldn't find any matches for "{{ query }}". Try checking your spelling or using different keywords.{% else %}Start typing to search for {{ media_type }} items.{% endif %}
+    </p>
+  </div>
+{% endif %} 

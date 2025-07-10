@@ -1,0 +1,56 @@
+{% if data and data.items %}
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+    {% for item in data.items %}
+      <div class="relative bg-[#39404b] rounded-lg overflow-hidden shadow-lg">
+        <img src="{{ item.image }}" alt="{{ item.title }}" class="w-full aspect-[2/3] object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-3">
+          <h3 class="text-sm font-medium text-white truncate">{{ item.title }}</h3>
+          {% if item.subtitle %}
+            <p class="text-xs text-gray-300 truncate">{{ item.subtitle }}</p>
+          {% endif %}
+        </div>
+        <button hx-post="{% url 'toggle_hof' %}"
+                hx-vals='{"media_type": "{{ media_type }}", "item_id": "{{ item.media_id }}", "source": "{{ item.source }}"}'
+                hx-target="#hof-search-results"
+                hx-swap="outerHTML"
+                class="absolute top-2 right-2 px-2 py-1 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Add
+        </button>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if data.has_next %}
+    <div class="col-span-full mt-4 text-center">
+      <button hx-get="{% url 'hof_search' %}"
+              hx-vals='{"media_type": "{{ media_type }}", "q": "{{ query }}", "page": {{ data.next_page }}, "source": "{{ source }}"}'
+              hx-target="#hof-search-results"
+              hx-swap="beforeend"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        Load More
+      </button>
+    </div>
+  {% endif %}
+{% else %}
+  <div class="col-span-full flex flex-col items-center justify-center h-64 text-center">
+    {% if query and query|length > 1 %}
+      <div class="text-gray-400 mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mx-auto opacity-50">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-gray-200 mb-2">No results found</h3>
+      <p class="text-gray-400">We couldn't find any matches for "{{ query }}". Try checking your spelling or using different keywords.</p>
+    {% else %}
+      <div class="text-gray-400 mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mx-auto opacity-50">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+      </div>
+      <p class="text-gray-400">Start typing to search...</p>
+    {% endif %}
+  </div>
+{% endif %} 

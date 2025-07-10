@@ -830,3 +830,120 @@ def statistics(request):
     }
 
     return render(request, "app/statistics.html", context)
+
+
+@require_GET
+def hof_search(request):
+    """Return search results for Hall of Fame selection."""
+    try:
+        media_type = request.GET["media_type"]  # Use square brackets like working search
+        query = request.GET["q"]  # Use square brackets like working search
+    except KeyError as e:
+        print(f"HOF Search - Missing parameter: {e}")
+        print(f"HOF Search - Available params: {list(request.GET.keys())}")
+        return render(request, "app/components/hof_search_results.html", {
+            "data": None,
+            "query": "",
+            "media_type": ""
+        })
+    
+    page = int(request.GET.get("page", 1))
+    source = request.GET.get("source")
+
+    # Debug logging
+    print(f"HOF Search - Media Type: '{media_type}', Query: '{query}', Page: {page}")
+
+    # Don't search if query is too short
+    if len(query.strip()) <= 1:
+        print("HOF Search - Query too short")
+        return render(request, "app/components/hof_search_results.html", {
+            "data": None,
+            "query": query,
+            "media_type": media_type
+        })
+
+    try:
+        # Use exact same call as working search
+        data = services.search(media_type, query, page, source)
+        print(f"HOF Search - Success: {len(data.get('items', []))} items found")
+        print(f"HOF Search - Data keys: {list(data.keys()) if data else 'None'}")
+    except Exception as e:
+        print(f"HOF Search - Error: {e}")
+        import traceback
+        traceback.print_exc()
+        data = None
+
+    return render(request, "app/components/hof_search_results.html", {
+        "data": data,
+        "source": source,
+        "media_type": media_type,
+        "query": query
+    })
+
+@require_POST
+def toggle_hof(request):
+    """Toggle an item's Hall of Fame status."""
+    print(f"HOF Toggle - POST data: {request.POST}")
+    print(f"HOF Toggle - User: {request.user}")
+    
+    try:
+        media_type = request.POST["media_type"]
+        media_id = request.POST["media_id"]
+        source = request.POST["source"]
+        
+        print(f"HOF Toggle - Media Type: {media_type}, ID: {media_id}, Source: {source}")
+        
+        # Get metadata for the media item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        print(f"HOF Toggle - Metadata: {metadata.get('title', 'No title')}")
+        
+        # Create or get the Item instance
+        item, created = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata.get("image"),
+            }
+        )
+        print(f"HOF Toggle - Item {'created' if created else 'found'}: {item}")
+        
+        # Update the user's hall of fame selection
+        field_name = f"hof_{media_type}"
+        print(f"HOF Toggle - Field name: {field_name}")
+        
+        if hasattr(request.user, field_name):
+            current_item = getattr(request.user, field_name)
+            print(f"HOF Toggle - Current item: {current_item}")
+            
+            if current_item and current_item.id == item.id:
+                # If the same item is selected, remove it
+                setattr(request.user, field_name, None)
+                print("HOF Toggle - Removing item")
+            else:
+                # Otherwise, set the new item
+                setattr(request.user, field_name, item)
+                print(f"HOF Toggle - Setting new item: {item}")
+            
+            request.user.save()
+            print("HOF Toggle - User saved")
+            
+            # Verify the save worked
+            request.user.refresh_from_db()
+            new_value = getattr(request.user, field_name)
+            print(f"HOF Toggle - Verified new value: {new_value}")
+        else:
+            print(f"HOF Toggle - User does not have field: {field_name}")
+    
+    except Exception as e:
+        print(f"HOF Toggle - Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return HttpResponse("Error", status=500)
+    
+    # Return HTMX response to close modal and refresh Hall of Fame
+    response = HttpResponse("Success")
+    response["HX-Trigger"] = "hofUpdated,close-hof-modal"
+    print("HOF Toggle - Returning response")
+    return response

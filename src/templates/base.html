@@ -328,7 +328,10 @@
                   {# User Menu #}
                   <div class="relative" @mouseleave="if (!userClicked) userOpen = false">
                     <button @click="userClicked = true; userOpen = !userOpen" @click.away="userClicked = false; userOpen = false" @mouseenter="userOpen = true" class="flex items-center space-x-1 px-3 py-2 text-sm text-gray-300 hover:text-white">
-                      <span>👤</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>

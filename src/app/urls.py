@@ -10,6 +10,8 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("medialist/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
+    path("hof/search", views.hof_search, name="hof_search"),
+    path("hof/toggle", views.toggle_hof, name="toggle_hof"),
     path(
         "details/<source:source>/<media_type:media_type>/<str:media_id>/<str:title>",
         views.media_details,

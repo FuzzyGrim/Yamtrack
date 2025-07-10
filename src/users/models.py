@@ -288,6 +288,136 @@ class User(AbstractUser):
         help_text="Comma-separated list of Plex usernames for webhook matching",
     )
 
+    # Hall of Fame - one favorite item per media type
+    hof_tv = models.ForeignKey(
+        'app.Item',
+        null=True,
+        blank=True,
+        related_name='+',
+        on_delete=models.SET_NULL,
+        help_text="Hall of Fame TV show"
+    )
+    hof_movie = models.ForeignKey(
+        'app.Item',
+        null=True,
+        blank=True,
+        related_name='+',
+        on_delete=models.SET_NULL,
+        help_text="Hall of Fame movie"
+    )
+    hof_anime = models.ForeignKey(
+        'app.Item',
+        null=True,
+        blank=True,
+        related_name='+',
+        on_delete=models.SET_NULL,
+        help_text="Hall of Fame anime"
+    )
+    hof_manga = models.ForeignKey(
+        'app.Item',
+        null=True,
+        blank=True,
+        related_name='+',
+        on_delete=models.SET_NULL,
+        help_text="Hall of Fame manga"
+    )
+    hof_game = models.ForeignKey(
+        'app.Item',
+        null=True,
+        blank=True,
+        related_name='+',
+        on_delete=models.SET_NULL,
+        help_text="Hall of Fame game"
+    )
+    hof_book = models.ForeignKey(
+        'app.Item',
+        null=True,
+        blank=True,
+        related_name='+',
+        on_delete=models.SET_NULL,
+        help_text="Hall of Fame book"
+    )
+    hof_comic = models.ForeignKey(
+        'app.Item',
+        null=True,
+        blank=True,
+        related_name='+',
+        on_delete=models.SET_NULL,
+        help_text="Hall of Fame comic"
+    )
+
+    # Hall of Fame helper methods
+    def get_hall_of_fame_items(self):
+        """
+        Get all hall of fame items for this user.
+        
+        Returns:
+            dict: Dictionary mapping media types to their hall of fame items
+        """
+        return {
+            MediaTypes.TV.value: self.hof_tv,
+            MediaTypes.MOVIE.value: self.hof_movie,
+            MediaTypes.ANIME.value: self.hof_anime,
+            MediaTypes.MANGA.value: self.hof_manga,
+            MediaTypes.GAME.value: self.hof_game,
+            MediaTypes.BOOK.value: self.hof_book,
+            MediaTypes.COMIC.value: self.hof_comic,
+        }
+    
+    def get_hall_of_fame_item(self, media_type):
+        """
+        Get the hall of fame item for a specific media type.
+        
+        Args:
+            media_type (str): The media type ('tv', 'movie', 'anime', etc.)
+            
+        Returns:
+            Item or None: The hall of fame item for the media type, or None if not set
+        """
+        field_name = f'hof_{media_type}'
+        if hasattr(self, field_name):
+            return getattr(self, field_name)
+        return None
+    
+    def set_hall_of_fame_item(self, media_type, item):
+        """
+        Set the hall of fame item for a specific media type.
+        
+        Args:
+            media_type (str): The media type ('tv', 'movie', 'anime', etc.)
+            item (Item or None): The item to set, or None to clear
+            
+        Returns:
+            bool: True if successfully set, False if invalid media type
+        """
+        field_name = f'hof_{media_type}'
+        if hasattr(self, field_name):
+            setattr(self, field_name, item)
+            return True
+        return False
+    
+    def clear_hall_of_fame_item(self, media_type):
+        """
+        Clear the hall of fame item for a specific media type.
+        
+        Args:
+            media_type (str): The media type to clear
+            
+        Returns:
+            bool: True if successfully cleared, False if invalid media type
+        """
+        return self.set_hall_of_fame_item(media_type, None)
+    
+    def get_hall_of_fame_count(self):
+        """
+        Get the count of how many hall of fame items are set.
+        
+        Returns:
+            int: Number of hall of fame items that are not None
+        """
+        items = self.get_hall_of_fame_items()
+        return sum(1 for item in items.values() if item is not None)
+
     class Meta:
         """Meta options for the model."""
 
