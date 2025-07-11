@@ -53,7 +53,7 @@ def source_display(source_name):
         },
         "imdb": {
             "name": "IMDB",
-            "logo": "https://m.media-amazon.com/images/G/01/imdbpro/help/help_site_content/G9PS4SXQVSC34B3L/IMDb_Logo_Rectangle_Gold_.png",
+            "logo": "/static/img/logo-imdb.svg",
         },
     }
 
