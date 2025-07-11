@@ -2,494 +2,421 @@
 {% load user_tags %}
 
 {% block title %}
-  Import - Yamtrack
+Import - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
-  <div class="space-y-6"
-       x-data="{ importFrequency: 'once', importTime: '{% now "H:i" %}', importMode: 'new' }">
+<div class="space-y-6" x-data="{ importFrequency: 'once', importTime: '{% now " H:i" %}', importMode: 'new' }">
 
-    {# Import settings #}
-    <div class="bg-[#2a2f35] rounded-lg p-6">
-      <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <path d="M20 7h-9" />
-          <path d="M14 17H5" />
-          <circle cx="17" cy="17" r="3" /><circle cx="7" cy="7" r="3" />
-        </svg>
-        <h2 class="text-xl font-semibold">Import Settings</h2>
-      </div>
-      <p class="text-gray-400 mb-5 text-sm">Configure your import preferences.</p>
-      <div class="bg-[#39404b] p-5 rounded-lg">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-gray-400 mb-2">Import Frequency</label>
-            <div class="relative">
-              <select x-model="importFrequency"
-                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
-                <option value="once">One Time Import</option>
-                <option value="daily">Every Day</option>
-                <option value="2days">Every 2 Days</option>
-              </select>
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none">
-                <path d="m6 9 6 6 6-6"></path>
-              </svg>
-            </div>
-            <div x-cloak class="mt-4" x-show="importFrequency !== 'once'">
-              <label class="block text-sm text-gray-400 mb-2">Import Time</label>
-              <input x-model="importTime"
-                     class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 [color-scheme:dark]"
-                     type="time">
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-2">Import Mode</label>
-            <div class="relative">
-              <select x-model="importMode"
-                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
-                <option value="new">Only Sync New Items</option>
-                <option value="overwrite">Sync New Items and Overwrite Existing</option>
-              </select>
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none">
-                <path d="m6 9 6 6 6-6"></path>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
+  {# Import settings #}
+  <div class="bg-[#2a2f35] rounded-lg p-6">
+    <div class="flex items-center mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="w-6 h-6 text-indigo-400 mr-3">
+        <path d="M20 7h-9" />
+        <path d="M14 17H5" />
+        <circle cx="17" cy="17" r="3" />
+        <circle cx="7" cy="7" r="3" />
+      </svg>
+      <h2 class="text-xl font-semibold">Import Settings</h2>
     </div>
-
-    {# Import Sources #}
-    <div class="bg-[#2a2f35] rounded-lg p-6">
-      <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-          <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
-          <path d="M3 12A9 3 0 0 0 21 12"></path>
-        </svg>
-        <h2 class="text-xl font-semibold">Import Sources</h2>
-      </div>
-      <p class="text-gray-400 mb-5 text-sm">Import your media data from external services.</p>
+    <p class="text-gray-400 mb-5 text-sm">Configure your import preferences.</p>
+    <div class="bg-[#39404b] p-5 rounded-lg">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {# Trakt #}
-        <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">{% source_display "trakt" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import TV shows and movies</p>
-          <form class="flex items-center"
-                method="post"
-                action="{% url 'import_trakt' %}">
-            {% csrf_token %}
-            <input type="hidden" name="frequency" x-model="importFrequency">
-            <input type="hidden" name="time" x-model="importTime">
-            <input type="hidden" name="mode" x-model="importMode">
-            <div class="relative flex-1">
-              <input placeholder="Trakt username slug"
-                     name="user"
-                     class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                     type="text">
-              <div class="group absolute right-2 top-1/2 -translate-y-1/2">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4 text-gray-400">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 16v-4" />
-                  <path d="M12 8h.01" />
-                </svg>
-                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 invisible group-hover:visible shadow-lg">
-                  Found in your Trakt profile URL:
-                  <br>
-                  trakt.tv/users/<span class="text-indigo-400">username-slug</span>
-                </div>
-              </div>
-            </div>
-            <button type="submit"
-                    class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-              Import
-            </button>
-          </form>
-        </div>
-
-        {# Simkl #}
-        <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">{% source_display "simkl" %}</div>
-          <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import TV shows, movies and anime' : 'OAuth-based imports are not available for periodic imports'">
-          </p>
-          <form method="post" action="{% url 'simkl_oauth' %}">
-            {% csrf_token %}
-            <input type="hidden" name="frequency" x-model="importFrequency">
-            <input type="hidden" name="time" x-model="importTime">
-            <input type="hidden" name="mode" x-model="importMode">
-            <button type="submit"
-                    class="w-full px-4 py-2 text-sm rounded-md transition-colors"
-                    :class="importFrequency === 'once' ? 'cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
-                    :disabled="importFrequency !== 'once'">Connect with Simkl</button>
-          </form>
-        </div>
-
-        {# MyAnimeList #}
-        <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">{% source_display "myanimelist" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
-          <form class="flex items-center"
-                method="post"
-                action="{% url 'import_mal' %}">
-            {% csrf_token %}
-            <input type="hidden" name="frequency" x-model="importFrequency">
-            <input type="hidden" name="time" x-model="importTime">
-            <input type="hidden" name="mode" x-model="importMode">
-            <div class="flex w-full">
-              <input placeholder="MAL username"
-                     name="user"
-                     class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                     type="text">
-              <button type="submit"
-                      class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-                Import
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {# AniList #}
-        <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">{% source_display "anilist" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
-          <form class="flex items-center"
-                method="post"
-                action="{% url 'import_anilist' %}">
-            {% csrf_token %}
-            <input type="hidden" name="frequency" x-model="importFrequency">
-            <input type="hidden" name="time" x-model="importTime">
-            <input type="hidden" name="mode" x-model="importMode">
-            <div class="flex w-full">
-              <input placeholder="AniList username"
-                     name="user"
-                     class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                     type="text">
-              <button type="submit"
-                      class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-                Import
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {# Kitsu #}
-        <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">{% source_display "kitsu" %}</div>
-          <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
-          <form class="flex items-center"
-                method="post"
-                action="{% url 'import_kitsu' %}">
-            {% csrf_token %}
-            <input type="hidden" name="frequency" x-model="importFrequency">
-            <input type="hidden" name="time" x-model="importTime">
-            <input type="hidden" name="mode" x-model="importMode">
-            <div class="relative flex-1">
-              <input placeholder="Kitsu user ID"
-                     name="user"
-                     class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                     type="text">
-              <div class="group absolute right-2 top-1/2 -translate-y-1/2">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4 text-gray-400">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 16v-4" />
-                  <path d="M12 8h.01" />
-                </svg>
-                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 invisible group-hover:visible shadow-lg">
-                  Found in your Kitsu profile URL:
-                  <br>
-                  kitsu.app/users/<span class="text-indigo-400">1234567</span>
-                </div>
-              </div>
-            </div>
-            <button type="submit"
-                    class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-              Import
-            </button>
-          </form>
-        </div>
-
-        {# Yamtrack #}
-        <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center">{% source_display "yamtrack" %}</div>
-            <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Yamtrack-CSV-Format"
-               target="_blank"
-               class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
-               title="View CSV format documentation">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-              </svg>
-            </a>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Import Frequency</label>
+          <div class="relative">
+            <select x-model="importFrequency"
+              class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
+              <option value="once">One Time Import</option>
+              <option value="daily">Every Day</option>
+              <option value="2days">Every 2 Days</option>
+            </select>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
           </div>
-          <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import from YamTrack backup' : 'File uploads are not available for periodic imports'">
-          </p>
-          <form method="post"
-                action="{% url 'import_yamtrack' %}"
-                enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="frequency" x-model="importFrequency">
-            <input type="hidden" name="time" x-model="importTime">
-            <input type="hidden" name="mode" x-model="importMode">
-            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
-                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
-                   :disabled="importFrequency !== 'once'">
-              <input name="yamtrack_csv"
-                     accept=".csv"
-                     class="hidden"
-                     type="file"
-                     :disabled="importFrequency !== 'once'"
-                     @change="importFrequency === 'once' && $el.form.submit()">
-              Select CSV File
-            </label>
-          </form>
+          <div x-cloak class="mt-4" x-show="importFrequency !== 'once'">
+            <label class="block text-sm text-gray-400 mb-2">Import Time</label>
+            <input x-model="importTime"
+              class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 [color-scheme:dark]"
+              type="time">
+          </div>
         </div>
-
-        {# HowLongToBeat #}
-        <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">{% source_display "hltb" %}</div>
-          <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import games' : 'File uploads are not available for periodic imports'">
-          </p>
-          <form method="post"
-                action="{% url 'import_hltb' %}"
-                enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="frequency" x-model="importFrequency">
-            <input type="hidden" name="time" x-model="importTime">
-            <input type="hidden" name="mode" x-model="importMode">
-            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
-                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
-                   :disabled="importFrequency !== 'once'">
-              <input name="hltb_csv"
-                     accept=".csv"
-                     class="hidden"
-                     type="file"
-                     :disabled="importFrequency !== 'once'"
-                     @change="importFrequency === 'once' && $el.form.submit()">
-              Select CSV File
-            </label>
-          </form>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Import Mode</label>
+          <div class="relative">
+            <select x-model="importMode"
+              class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
+              <option value="new">Only Sync New Items</option>
+              <option value="overwrite">Sync New Items and Overwrite Existing</option>
+            </select>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </div>
         </div>
-
-      </div>
-    </div>
-
-    {# Active Periodic Imports #}
-    <div class="bg-[#2a2f35] rounded-lg p-6">
-      <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-        <h2 class="text-xl font-semibold">Active Periodic Imports</h2>
-      </div>
-      <p class="text-gray-400 mb-5 text-sm">
-        Automated imports that run on a schedule. These will continue to sync your media until disabled.
-      </p>
-      <div class="space-y-3">
-        {% for periodic_import in import_tasks.schedules %}
-          <div class="bg-[#39404b] rounded-lg p-4">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-3">
-                {% source_display periodic_import.source %}
-                <span class="text-sm text-gray-400">{{ periodic_import.schedule }}</span>
-              </div>
-              <form action="{% url 'delete_import_schedule' %}" method="post">
-                {% csrf_token %}
-                <input type="hidden"
-                       name="task_name"
-                       value="{{ periodic_import.task.name }}">
-                <button class="text-red-400 hover:text-white p-2 rounded-md transition-all duration-200 hover:bg-red-500 cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       width="24"
-                       height="24"
-                       viewBox="0 0 24 24"
-                       fill="none"
-                       stroke="currentColor"
-                       stroke-width="2"
-                       stroke-linecap="round"
-                       stroke-linejoin="round"
-                       class="w-4 h-4">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    <line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line>
-                  </svg>
-                </button>
-              </form>
-            </div>
-            <div class="text-sm text-gray-400 space-y-1">
-              <div>Username: {{ periodic_import.username }}</div>
-              <div>Mode: {{ periodic_import.mode }}</div>
-              <div>Last Import: {{ periodic_import.last_run|date:"DATETIME_FORMAT" }}</div>
-              <div>Next Import: {{ periodic_import.next_run|date:"DATETIME_FORMAT" }}</div>
-            </div>
-          </div>
-        {% empty %}
-          <div class="bg-[#39404b] rounded-lg p-6 text-center">
-            <p class="text-gray-400 text-sm">No periodic imports configured</p>
-            <p class="text-gray-500 text-xs mt-1">Set up an import with a daily or 2-day frequency to see it here</p>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    {# Import History #}
-    <div class="bg-[#2a2f35] rounded-lg p-6">
-      <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-          <path d="M3 3v5h5"></path>
-          <path d="M12 7v5l4 2"></path>
-        </svg>
-        <h2 class="text-xl font-semibold">Import History</h2>
-      </div>
-
-      <p class="text-gray-400 mb-5 text-sm">Showing import activity from the last 7 days.</p>
-
-      <div class="space-y-3">
-        {% for result in import_tasks.results %}
-          <div class="bg-[#39404b] rounded-lg p-4">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-              <div class="flex items-center gap-3">
-                {% if result.status == "SUCCESS" %}
-                  {% if result.errors %}
-                    <span class="px-2 py-1 rounded text-xs font-medium text-emerald-400 bg-emerald-400/10">Finished</span>
-                  {% else %}
-                    <span class="px-2 py-1 rounded text-xs font-medium text-green-400 bg-green-400/10">Success</span>
-
-                  {% endif %}
-                {% elif result.status == "STARTED" %}
-                  <span class="px-2 py-1 rounded text-xs font-medium text-blue-400 bg-blue-400/10">Started</span>
-                {% elif result.status == "FAILURE" %}
-                  <span class="px-2 py-1 rounded text-xs font-medium text-red-400 bg-red-400/10">Failed</span>
-                {% else %}
-                  <span class="px-2 py-1 rounded text-xs font-medium text-yellow-400 bg-yellow-400/10">Pending</span>
-                {% endif %}
-
-                {% source_display result.source %}
-              </div>
-              <span class="text-xs text-gray-400">{{ result.date|date:"DATETIME_FORMAT" }}</span>
-            </div>
-
-            {% if result.status %}
-              {% if result.summary %}<div class="text-sm text-gray-200">{{ result.summary }}</div>{% endif %}
-
-              <div class="mt-2" x-data="{ showDetails: false }" x-cloak>
-                {% if result.errors %}
-                  {% if result.status == "SUCCESS" %}
-                    <button @click="showDetails = !showDetails"
-                            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                            x-text="showDetails ? 'Hide failed items' : 'Show failed items'">Show failed items</button>
-
-                  {% elif result.status == "FAILURE" %}
-                    <button @click="showDetails = !showDetails"
-                            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                            x-text="showDetails ? 'Hide traceback' : 'Show traceback'">Show traceback</button>
-                  {% endif %}
-
-                  <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded"
-                       x-show="showDetails">
-                    <div class="text-xs space-y-1 text-red-400">
-                      {% for error in result.errors.splitlines %}<div>{{ error }}</div>{% endfor %}
-                    </div>
-                  </div>
-                {% endif %}
-              </div>
-            {% endif %}
-          </div>
-        {% empty %}
-          <div class="bg-[#39404b] rounded-lg p-6 text-center">
-            <p class="text-gray-400 text-sm">No imports in the last 7 days</p>
-            <p class="text-gray-500 text-xs mt-1">Import your media from any source to see the history here</p>
-          </div>
-        {% endfor %}
       </div>
     </div>
   </div>
+
+  {# Import Sources #}
+  <div class="bg-[#2a2f35] rounded-lg p-6">
+    <div class="flex items-center mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="w-6 h-6 text-indigo-400 mr-3">
+        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+        <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
+        <path d="M3 12A9 3 0 0 0 21 12"></path>
+      </svg>
+      <h2 class="text-xl font-semibold">Import Sources</h2>
+    </div>
+    <p class="text-gray-400 mb-5 text-sm">Import your media data from external services.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      {# Trakt #}
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="flex items-center mb-3">{% source_display "trakt" %}</div>
+        <p class="text-sm text-gray-400 mb-3">Import TV shows and movies</p>
+        <form class="flex items-center" method="post" action="{% url 'import_trakt' %}">
+          {% csrf_token %}
+          <input type="hidden" name="frequency" x-model="importFrequency">
+          <input type="hidden" name="time" x-model="importTime">
+          <input type="hidden" name="mode" x-model="importMode">
+          <div class="relative flex-1">
+            <input placeholder="Trakt username slug" name="user"
+              class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              type="text">
+            <div class="group absolute right-2 top-1/2 -translate-y-1/2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="w-4 h-4 text-gray-400">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+              <div
+                class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 invisible group-hover:visible shadow-lg">
+                Found in your Trakt profile URL:
+                <br>
+                trakt.tv/users/<span class="text-indigo-400">username-slug</span>
+              </div>
+            </div>
+          </div>
+          <button type="submit"
+            class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+            Import
+          </button>
+        </form>
+      </div>
+
+      {# Simkl #}
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="flex items-center mb-3">{% source_display "simkl" %}</div>
+        <p class="text-sm text-gray-400 mb-3"
+          x-text="importFrequency === 'once' ? 'Import TV shows, movies and anime' : 'OAuth-based imports are not available for periodic imports'">
+        </p>
+        <form method="post" action="{% url 'simkl_oauth' %}">
+          {% csrf_token %}
+          <input type="hidden" name="frequency" x-model="importFrequency">
+          <input type="hidden" name="time" x-model="importTime">
+          <input type="hidden" name="mode" x-model="importMode">
+          <button type="submit" class="w-full px-4 py-2 text-sm rounded-md transition-colors"
+            :class="importFrequency === 'once' ? 'cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+            :disabled="importFrequency !== 'once'">Connect with Simkl</button>
+        </form>
+      </div>
+
+      {# MyAnimeList #}
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="flex items-center mb-3">{% source_display "myanimelist" %}</div>
+        <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
+        <form class="flex items-center" method="post" action="{% url 'import_mal' %}">
+          {% csrf_token %}
+          <input type="hidden" name="frequency" x-model="importFrequency">
+          <input type="hidden" name="time" x-model="importTime">
+          <input type="hidden" name="mode" x-model="importMode">
+          <div class="flex w-full">
+            <input placeholder="MAL username" name="user"
+              class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              type="text">
+            <button type="submit"
+              class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+              Import
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {# AniList #}
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="flex items-center mb-3">{% source_display "anilist" %}</div>
+        <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
+        <form class="flex items-center" method="post" action="{% url 'import_anilist' %}">
+          {% csrf_token %}
+          <input type="hidden" name="frequency" x-model="importFrequency">
+          <input type="hidden" name="time" x-model="importTime">
+          <input type="hidden" name="mode" x-model="importMode">
+          <div class="flex w-full">
+            <input placeholder="AniList username" name="user"
+              class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              type="text">
+            <button type="submit"
+              class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+              Import
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {# Kitsu #}
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="flex items-center mb-3">{% source_display "kitsu" %}</div>
+        <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
+        <form class="flex items-center" method="post" action="{% url 'import_kitsu' %}">
+          {% csrf_token %}
+          <input type="hidden" name="frequency" x-model="importFrequency">
+          <input type="hidden" name="time" x-model="importTime">
+          <input type="hidden" name="mode" x-model="importMode">
+          <div class="relative flex-1">
+            <input placeholder="Kitsu user ID" name="user"
+              class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              type="text">
+            <div class="group absolute right-2 top-1/2 -translate-y-1/2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="w-4 h-4 text-gray-400">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+              <div
+                class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 invisible group-hover:visible shadow-lg">
+                Found in your Kitsu profile URL:
+                <br>
+                kitsu.app/users/<span class="text-indigo-400">1234567</span>
+              </div>
+            </div>
+          </div>
+          <button type="submit"
+            class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+            Import
+          </button>
+        </form>
+      </div>
+
+      {# Yamtrack #}
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center">{% source_display "yamtrack" %}</div>
+          <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Yamtrack-CSV-Format" target="_blank"
+            class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
+            title="View CSV format documentation">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4"></path>
+              <path d="M12 8h.01"></path>
+            </svg>
+          </a>
+        </div>
+        <p class="text-sm text-gray-400 mb-3"
+          x-text="importFrequency === 'once' ? 'Import from YamTrack backup' : 'File uploads are not available for periodic imports'">
+        </p>
+        <form method="post" action="{% url 'import_yamtrack' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="frequency" x-model="importFrequency">
+          <input type="hidden" name="time" x-model="importTime">
+          <input type="hidden" name="mode" x-model="importMode">
+          <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+            :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+            :disabled="importFrequency !== 'once'">
+            <input name="yamtrack_csv" accept=".csv" class="hidden" type="file" :disabled="importFrequency !== 'once'"
+              @change="importFrequency === 'once' && $el.form.submit()">
+            Select CSV File
+          </label>
+        </form>
+      </div>
+
+      {# HowLongToBeat #}
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="flex items-center mb-3">{% source_display "hltb" %}</div>
+        <p class="text-sm text-gray-400 mb-3"
+          x-text="importFrequency === 'once' ? 'Import games' : 'File uploads are not available for periodic imports'">
+        </p>
+        <form method="post" action="{% url 'import_hltb' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="frequency" x-model="importFrequency">
+          <input type="hidden" name="time" x-model="importTime">
+          <input type="hidden" name="mode" x-model="importMode">
+          <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+            :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+            :disabled="importFrequency !== 'once'">
+            <input name="hltb_csv" accept=".csv" class="hidden" type="file" :disabled="importFrequency !== 'once'"
+              @change="importFrequency === 'once' && $el.form.submit()">
+            Select CSV File
+          </label>
+        </form>
+      </div>
+
+      {# IMDB #}
+      <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center">{% source_display "imdb" %}</div>
+        </div>
+        <p class="text-sm text-gray-400 mb-3"
+          x-text="importFrequency === 'once' ? 'Import movies and TV shows from your ratings' : 'File uploads are not available for periodic imports'">
+        </p>
+        <form method="post" action="{% url 'import_imdb' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="frequency" x-model="importFrequency">
+          <input type="hidden" name="time" x-model="importTime">
+          <input type="hidden" name="mode" x-model="importMode">
+          <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+            :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+            :disabled="importFrequency !== 'once'">
+            <input name="imdb_csv" accept=".csv" class="hidden" type="file" :disabled="importFrequency !== 'once'"
+              @change="importFrequency === 'once' && $el.form.submit()">
+            Select CSV File
+          </label>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  {# Active Periodic Imports #}
+  <div class="bg-[#2a2f35] rounded-lg p-6">
+    <div class="flex items-center mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="w-6 h-6 text-indigo-400 mr-3">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <h2 class="text-xl font-semibold">Active Periodic Imports</h2>
+    </div>
+    <p class="text-gray-400 mb-5 text-sm">
+      Automated imports that run on a schedule. These will continue to sync your media until disabled.
+    </p>
+    <div class="space-y-3">
+      {% for periodic_import in import_tasks.schedules %}
+      <div class="bg-[#39404b] rounded-lg p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-3">
+            {% source_display periodic_import.source %}
+            <span class="text-sm text-gray-400">{{ periodic_import.schedule }}</span>
+          </div>
+          <form action="{% url 'delete_import_schedule' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="task_name" value="{{ periodic_import.task.name }}">
+            <button
+              class="text-red-400 hover:text-white p-2 rounded-md transition-all duration-200 hover:bg-red-500 cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                <line x1="10" x2="10" y1="11" y2="17"></line>
+                <line x1="14" x2="14" y1="11" y2="17"></line>
+              </svg>
+            </button>
+          </form>
+        </div>
+        <div class="text-sm text-gray-400 space-y-1">
+          <div>Username: {{ periodic_import.username }}</div>
+          <div>Mode: {{ periodic_import.mode }}</div>
+          <div>Last Import: {{ periodic_import.last_run|date:"DATETIME_FORMAT" }}</div>
+          <div>Next Import: {{ periodic_import.next_run|date:"DATETIME_FORMAT" }}</div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="bg-[#39404b] rounded-lg p-6 text-center">
+        <p class="text-gray-400 text-sm">No periodic imports configured</p>
+        <p class="text-gray-500 text-xs mt-1">Set up an import with a daily or 2-day frequency to see it here</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Import History #}
+  <div class="bg-[#2a2f35] rounded-lg p-6">
+    <div class="flex items-center mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="w-6 h-6 text-indigo-400 mr-3">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+        <path d="M3 3v5h5"></path>
+        <path d="M12 7v5l4 2"></path>
+      </svg>
+      <h2 class="text-xl font-semibold">Import History</h2>
+    </div>
+
+    <p class="text-gray-400 mb-5 text-sm">Showing import activity from the last 7 days.</p>
+
+    <div class="space-y-3">
+      {% for result in import_tasks.results %}
+      <div class="bg-[#39404b] rounded-lg p-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <div class="flex items-center gap-3">
+            {% if result.status == "SUCCESS" %}
+            {% if result.errors %}
+            <span class="px-2 py-1 rounded text-xs font-medium text-emerald-400 bg-emerald-400/10">Finished</span>
+            {% else %}
+            <span class="px-2 py-1 rounded text-xs font-medium text-green-400 bg-green-400/10">Success</span>
+
+            {% endif %}
+            {% elif result.status == "STARTED" %}
+            <span class="px-2 py-1 rounded text-xs font-medium text-blue-400 bg-blue-400/10">Started</span>
+            {% elif result.status == "FAILURE" %}
+            <span class="px-2 py-1 rounded text-xs font-medium text-red-400 bg-red-400/10">Failed</span>
+            {% else %}
+            <span class="px-2 py-1 rounded text-xs font-medium text-yellow-400 bg-yellow-400/10">Pending</span>
+            {% endif %}
+
+            {% source_display result.source %}
+          </div>
+          <span class="text-xs text-gray-400">{{ result.date|date:"DATETIME_FORMAT" }}</span>
+        </div>
+
+        {% if result.status %}
+        {% if result.summary %}<div class="text-sm text-gray-200">{{ result.summary }}</div>{% endif %}
+
+        <div class="mt-2" x-data="{ showDetails: false }" x-cloak>
+          {% if result.errors %}
+          {% if result.status == "SUCCESS" %}
+          <button @click="showDetails = !showDetails"
+            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+            x-text="showDetails ? 'Hide failed items' : 'Show failed items'">Show failed items</button>
+
+          {% elif result.status == "FAILURE" %}
+          <button @click="showDetails = !showDetails"
+            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+            x-text="showDetails ? 'Hide traceback' : 'Show traceback'">Show traceback</button>
+          {% endif %}
+
+          <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded" x-show="showDetails">
+            <div class="text-xs space-y-1 text-red-400">
+              {% for error in result.errors.splitlines %}<div>{{ error }}</div>{% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% empty %}
+      <div class="bg-[#39404b] rounded-lg p-6 text-center">
+        <p class="text-gray-400 text-sm">No imports in the last 7 days</p>
+        <p class="text-gray-500 text-xs mt-1">Import your media from any source to see the history here</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
 {% endblock settings_content %}

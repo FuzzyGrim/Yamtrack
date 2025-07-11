@@ -11,6 +11,7 @@ from integrations.imports import (
     anilist,
     helpers,
     hltb,
+    imdb,
     kitsu,
     mal,
     simkl,
@@ -101,3 +102,9 @@ def import_yamtrack(file, user_id, mode):
 def import_hltb(file, user_id, mode):
     """Celery task for importing media data from HowLongToBeat."""
     return import_media(hltb.importer, file, user_id, mode)
+
+
+@shared_task(name="Import from IMDB")
+def import_imdb(file, user_id, mode):
+    """Celery task for importing media data from IMDB."""
+    return import_media(imdb.importer, file, user_id, mode)

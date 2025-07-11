@@ -51,6 +51,10 @@ def source_display(source_name):
             "name": "HowLongToBeat",
             "logo": "https://howlongtobeat.com/img/icons/favicon-96x96.png",
         },
+        "imdb": {
+            "name": "IMDB",
+            "logo": "https://m.media-amazon.com/images/G/01/imdbpro/help/help_site_content/G9PS4SXQVSC34B3L/IMDb_Logo_Rectangle_Gold_.png",
+        },
     }
 
     # Get source info or use defaults if source not found
