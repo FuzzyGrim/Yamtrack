@@ -1,4 +1,4 @@
-aiohttp==3.12.13
+aiohttp==3.12.14
 apprise==1.9.3
 beautifulsoup4==4.13.4
 celery==5.5.3
