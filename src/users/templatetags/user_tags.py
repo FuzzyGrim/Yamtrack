@@ -53,7 +53,7 @@ def source_display(source_name):
         },
         "imdb": {
             "name": "IMDB",
-            "logo": "/static/img/logo-imdb.svg",
+            "logo": static("img/logo-imdb.svg"),
         },
     }
 
