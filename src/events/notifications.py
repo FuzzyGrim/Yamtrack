@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import formats, timezone
 
-from app.models import MediaTypes
+from app.models import TV, MediaTypes, Season
 from app.templatetags import app_tags
 from events.models import INACTIVE_TRACKING_STATUSES, Event
 
@@ -18,18 +18,6 @@ def send_releases():
     """Send notifications for recently released media."""
     now = timezone.now()
     thirty_minutes_ago = now - timezone.timedelta(minutes=30)
-
-    # Find events that were released recently and haven't been notified yet
-    base_queryset = Event.objects.filter(
-        datetime__gte=thirty_minutes_ago,
-        datetime__lte=now,
-        notification_sent=False,
-    ).select_related("item")
-
-    events = Event.objects.sort_with_sentinel_last(base_queryset)
-
-    if not events.exists():
-        return "No recent releases found"
 
     # Get users who should receive notifications
     users = (
@@ -43,6 +31,18 @@ def send_releases():
 
     if not users.exists():
         return "No users with release notifications enabled"
+
+    # Find events that were released recently and haven't been notified yet
+    base_queryset = Event.objects.filter(
+        datetime__gte=thirty_minutes_ago,
+        datetime__lte=now,
+        notification_sent=False,
+    ).select_related("item")
+
+    events = Event.objects.sort_with_sentinel_last(base_queryset)
+
+    if not events.exists():
+        return "No recent releases found"
 
     result = send_notifications(
         events=events,
@@ -78,17 +78,6 @@ def send_daily_digest():
     today_start_utc = today_start.astimezone(UTC)
     today_end_utc = today_end.astimezone(UTC)
 
-    # Get today's events using the converted UTC times
-    base_queryset = Event.objects.filter(
-        datetime__gte=today_start_utc,
-        datetime__lt=today_end_utc,
-    ).select_related("item")
-
-    events = Event.objects.sort_with_sentinel_last(base_queryset)
-
-    if not events.exists():
-        return "No releases scheduled for today"
-
     # Get users who have enabled daily digest
     users = (
         get_user_model()
@@ -101,6 +90,17 @@ def send_daily_digest():
 
     if not users.exists():
         return "No users with daily digest enabled"
+
+    # Get today's events using the converted UTC times
+    base_queryset = Event.objects.filter(
+        datetime__gte=today_start_utc,
+        datetime__lt=today_end_utc,
+    ).select_related("item")
+
+    events = Event.objects.sort_with_sentinel_last(base_queryset)
+
+    if not events.exists():
+        return "No releases scheduled for today"
 
     # Format date for display in local timezone
     message_date = formats.date_format(
@@ -118,11 +118,7 @@ def send_daily_digest():
     return f"Daily digest sent for {result['event_count']} releases"
 
 
-def send_notifications(
-    events,
-    users,
-    title,
-):
+def send_notifications(events, users, title):
     """Process events and send notifications to appropriate users.
 
     Args:
@@ -137,182 +133,254 @@ def send_notifications(
     logger.info("Found %s events for notification", event_count)
     logger.info("Found %s eligible users", users.count())
 
-    # Prepare user data and event data
-    user_data = prepare_user_data(users)
-    event_data = prepare_event_data(events)
-
-    # Match users with their relevant releases
-    user_releases = match_users_to_releases(event_data, user_data)
-
-    # Send the notifications
-    deliver_notifications(
-        user_releases,
-        user_data,
-        title,
-    )
-
-    return {
-        "event_count": event_count,
-        "event_ids": event_data["event_ids"],
-    }
-
-
-def prepare_user_data(users):
-    """Prepare user data for notification processing.
-
-    Args:
-        users: QuerySet of User objects
-
-    Returns:
-        Dictionary with user data mappings
-    """
-    # Create user exclusion mapping
-    user_exclusions = {
-        user.id: set(user.notification_excluded_items.values_list("id", flat=True))
-        for user in users
-    }
-
-    # Create a mapping of users to their active media types
-    user_media_types = {user.id: user.get_active_media_types() for user in users}
-
-    # Create a mapping of users to their notification URLs
-    user_notification_urls = {}
-    for user in users:
-        urls = [
-            url.strip() for url in user.notification_urls.splitlines() if url.strip()
-        ]
-        if urls:
-            user_notification_urls[user.id] = urls
-
-    # Create a mapping of user IDs to user objects
-    users_by_id = {user.id: user for user in users}
-
-    return {
-        "exclusions": user_exclusions,
-        "media_types": user_media_types,
-        "notification_urls": user_notification_urls,
-        "users_by_id": users_by_id,
-    }
-
-
-def prepare_event_data(events):
-    """Prepare event data for notification processing.
-
-    Args:
-        events: QuerySet of Event objects
-
-    Returns:
-        Dictionary with event data
-    """
-    # Group events by media type for more efficient processing
-    events_by_media_type = {}
+    # Create event lookup for quick access
+    events_by_item_and_content = {}
     event_ids = []
 
     for event in events:
-        media_type = event.item.media_type
-        if media_type not in events_by_media_type:
-            events_by_media_type[media_type] = []
-        events_by_media_type[media_type].append(event)
+        key = (event.item.id, event.content_number)
+        events_by_item_and_content[key] = event
         event_ids.append(event.id)
 
+    user_releases = get_user_releases(
+        users=users,
+        target_events=events_by_item_and_content,
+    )
+
+    deliver_notifications(user_releases, users, title)
+
     return {
-        "by_media_type": events_by_media_type,
+        "event_count": event_count,
         "event_ids": event_ids,
     }
 
 
-def match_users_to_releases(event_data, user_data):
-    """Match users with the releases they should be notified about.
-
-    Args:
-        event_data: Dictionary with event information
-        user_data: Dictionary with user information
-
-    Returns:
-        Dictionary mapping user IDs to lists of events
-    """
-    user_releases = {}
-    events_by_media_type = event_data["by_media_type"]
-    user_exclusions = user_data["exclusions"]
-    user_media_types = user_data["media_types"]
-
-    for media_type, media_events in events_by_media_type.items():
-        model_name = media_type.capitalize()
-        model = apps.get_model("app", model_name)
-
-        # Get all unique item IDs from the events
-        item_ids = [event.item.id for event in media_events]
-        unique_item_ids = set(item_ids)
-
-        # Create a mapping of item IDs to LISTS of events for that item
-        item_to_events = {}
-        for event in media_events:
-            item_id = event.item.id
-            if item_id not in item_to_events:
-                item_to_events[item_id] = []
-            item_to_events[item_id].append(event)
-
-        logger.info("Item to events mapping: %s", item_to_events)
-
-        # Get tracking records for these items
-        tracking_records = (
-            model.objects.filter(
-                item_id__in=unique_item_ids,
-            )
-            .exclude(
-                Q(status__in=INACTIVE_TRACKING_STATUSES)
-                | Q(user__notification_urls=""),
-            )
-            .values_list("user_id", "item_id")
+def get_user_releases(users, target_events):
+    """Get user releases with optimized queries that avoid N+1 problems."""
+    user_exclusions = {}
+    for user in users:
+        user_exclusions[user.id] = set(
+            user.notification_excluded_items.values_list("id", flat=True),
         )
 
-        # Process tracking records
-        for user_id, item_id in tracking_records:
-            # Skip if user not in our target users
-            if user_id not in user_exclusions:
+    user_enabled_types = {}
+    for user in users:
+        user_enabled_types[user.id] = user.get_enabled_media_types()
+
+    user_tracking_data = get_all_user_tracking_data(
+        users,
+        target_events,
+        user_exclusions,
+    )
+    user_releases = {}
+    for user in users:
+        user_events = []
+        enabled_types = user_enabled_types[user.id]
+        excluded_items = user_exclusions.get(user.id, set())
+
+        for event in target_events.values():
+            # Check if user has excluded this item
+            if event.item.media_type != Season and event.item.id in excluded_items:
                 continue
 
-            # Skip if user has excluded this item
-            if item_id in user_exclusions[user_id]:
-                logger.info(
-                    "User %s has excluded item %s from notifications, skipping",
-                    user_id,
-                    item_id,
-                )
+            # Check if user is tracking this media type
+            if event.item.media_type not in enabled_types:
                 continue
 
-            # Get all events for this item
-            item_events = item_to_events.get(item_id, [])
-            if not item_events:
-                continue
+            # Check if user is tracking this item
+            if is_user_tracking_item(
+                user,
+                event.item,
+                user_tracking_data,
+            ):
+                user_events.append(event)
 
-            # Skip if media type not in user's active types
-            if media_type not in user_media_types.get(user_id, []):
-                continue
-
-            # Add all events to user's releases
-            if user_id not in user_releases:
-                user_releases[user_id] = []
-
-            user_releases[user_id].extend(item_events)
+        if user_events:
+            user_releases[user.id] = user_events
 
     return user_releases
 
 
-def deliver_notifications(
-    user_releases,
-    user_data,
-    title,
-):
-    """Deliver notifications to users.
+def get_all_user_tracking_data(users, target_events, user_exclusions):
+    """Get all user tracking data for the specified users and events."""
+    user_ids = [user.id for user in users]
+
+    # Group items by media type
+    items_by_type = {}
+    season_items = []
+    for event in target_events.values():
+        media_type = event.item.media_type
+
+        if media_type == MediaTypes.SEASON.value:
+            season_items.append(event.item)
+            continue
+
+        if media_type not in items_by_type:
+            items_by_type[media_type] = []
+
+        items_by_type[media_type].append(event.item.id)
+
+    # Pre-fetch all tracking data for each media type
+    tracking_data = {}
+
+    for media_type, item_ids_for_type in items_by_type.items():
+        media_model = apps.get_model(
+            app_label="app",
+            model_name=media_type.capitalize(),
+        )
+
+        # Get all user-item combinations for this media type
+        media_objects = media_model.objects.filter(
+            user_id__in=user_ids,
+            item_id__in=item_ids_for_type,
+        ).select_related("item")
+
+        # Store in lookup format: (user_id, item_id) -> media_object
+        for media_obj in media_objects:
+            key = (media_obj.user_id, media_obj.item_id)
+            tracking_data[key] = media_obj
+
+    # Handle TV seasons separately
+    tv_tracking_data = get_tv_tracking_data(users, season_items, user_exclusions)
+    tracking_data.update(tv_tracking_data)
+
+    return tracking_data
+
+
+def get_tv_tracking_data(users, season_items, user_exclusions):
+    """Get tracking data for TV shows and seasons."""
+    user_ids = [user.id for user in users]
+
+    if not season_items:
+        return {}
+
+    media_ids = list({item.media_id for item in season_items})
+
+    # Pre-fetch all TV shows and seasons
+    tv_lookup, season_lookup = build_tv_lookups(
+        user_ids,
+        media_ids,
+        user_exclusions,
+    )
+
+    return determine_season_tracking_status(
+        season_items,
+        user_ids,
+        tv_lookup,
+        season_lookup,
+    )
+
+
+def build_tv_lookups(user_ids, media_ids, user_exclusions):
+    """Build lookup structures for TV shows and seasons."""
+    tv_shows = TV.objects.filter(
+        user_id__in=user_ids,
+        item__media_id__in=media_ids,
+    ).select_related("item")
+
+    seasons = Season.objects.filter(
+        user_id__in=user_ids,
+        item__media_id__in=media_ids,
+    ).select_related("item")
+
+    tv_lookup = {}  # (user_id, media_id) -> TV object
+    season_lookup = {}  # (user_id, media_id) -> list of Season objects
+
+    # Build TV lookup
+    for tv in tv_shows:
+        if tv.item.id not in user_exclusions.get(tv.user.id, set()):
+            key = (tv.user_id, tv.item.media_id)
+            tv_lookup[key] = tv
+
+    # Build season lookup
+    for season in seasons:
+        if season.item.id not in user_exclusions.get(season.user.id, set()):
+            key = (season.user_id, season.item.media_id)
+            if key not in season_lookup:
+                season_lookup[key] = []
+            season_lookup[key].append(season)
+
+    return tv_lookup, season_lookup
+
+
+def determine_season_tracking_status(season_items, user_ids, tv_lookup, season_lookup):
+    """Determine tracking status for each season item."""
+    tracking_data = {}
+
+    for season_item in season_items:
+        for user_id in user_ids:
+            is_tracking = check_user_season_tracking(
+                user_id,
+                season_item,
+                tv_lookup,
+                season_lookup,
+            )
+
+            if is_tracking is not None:
+                item_key = (user_id, season_item.id)
+                tracking_data[item_key] = is_tracking
+
+    return tracking_data
+
+
+def check_user_season_tracking(user_id, season_item, tv_lookup, season_lookup):
+    """Check if a user is tracking a specific season.
+
+    Returns:
+        bool: True if tracking, False if not tracking, None if no TV show found
+    """
+    tv_key = (user_id, season_item.media_id)
+    season_key = (user_id, season_item.media_id)
+
+    # Check if user has the TV show and it's active
+    tv_show = tv_lookup.get(tv_key)
+    if not tv_show or tv_show.status in INACTIVE_TRACKING_STATUSES:
+        return None
+
+    # Check for dropped seasons
+    user_seasons = season_lookup.get(season_key, [])
+    dropped_seasons = [
+        s
+        for s in user_seasons
+        if s.status in INACTIVE_TRACKING_STATUSES
+        and s.item.season_number <= season_item.season_number
+    ]
+
+    if dropped_seasons:
+        first_dropped = min(dropped_seasons, key=lambda s: s.item.season_number)
+        return season_item.season_number < first_dropped.item.season_number
+
+    return True
+
+
+def is_user_tracking_item(user, item, user_tracking_data):
+    """Check if user is tracking item using pre-fetched data."""
+    media_type = item.media_type
+
+    # Handle TV seasons
+    if media_type == MediaTypes.SEASON.value:
+        key = (user.id, item.id)
+        return user_tracking_data.get(key, False)
+
+    key = (user.id, item.id)
+    media_obj = user_tracking_data.get(key)
+
+    if not media_obj:
+        return False
+
+    return media_obj.status not in INACTIVE_TRACKING_STATUSES
+
+
+def deliver_notifications(user_releases, users, title):
+    """Deliver notifications to users using calendar logic.
 
     Args:
         user_releases: Dictionary mapping user IDs to lists of events
-        user_data: Dictionary with user information
+        users: QuerySet of User objects
         title: Notification title
     """
-    users_by_id = user_data["users_by_id"]
-    user_notification_urls = user_data["notification_urls"]
+    # Create user lookup
+    users_by_id = {user.id: user for user in users}
 
     for user_id, releases in user_releases.items():
         if not releases:
@@ -324,7 +392,9 @@ def deliver_notifications(
             continue
 
         # Get notification URLs for this user
-        urls = user_notification_urls.get(user_id, [])
+        urls = [
+            url.strip() for url in user.notification_urls.splitlines() if url.strip()
+        ]
         if not urls:
             continue
 
@@ -333,36 +403,6 @@ def deliver_notifications(
 
         # Send notification
         send_user_notification(user, urls, title, notification_body)
-
-
-def send_user_notification(user, urls, title, body):
-    """Send a notification to a specific user.
-
-    Args:
-        user: User object
-        urls: List of notification URLs
-        title: Notification title
-        body: Notification body
-    """
-    apobj = apprise.Apprise()
-    for url in urls:
-        apobj.add(url)
-
-    try:
-        result = apobj.notify(title=title, body=body)
-
-        if result:
-            logger.info(
-                "Notification sent to %s",
-                user.username,
-            )
-        else:
-            logger.error(
-                "Failed to send notification to %s",
-                user.username,
-            )
-    except Exception:
-        logger.exception("Error sending notification to %s", user.username)
 
 
 def format_notification(releases):
@@ -413,3 +453,33 @@ def format_notification(releases):
     notification_body.append("Enjoy your media!")
 
     return "\n".join(notification_body)
+
+
+def send_user_notification(user, urls, title, body):
+    """Send a notification to a specific user.
+
+    Args:
+        user: User object
+        urls: List of notification URLs
+        title: Notification title
+        body: Notification body
+    """
+    apobj = apprise.Apprise()
+    for url in urls:
+        apobj.add(url)
+
+    try:
+        result = apobj.notify(title=title, body=body)
+
+        if result:
+            logger.info(
+                "Notification sent to %s",
+                user.username,
+            )
+        else:
+            logger.error(
+                "Failed to send notification to %s",
+                user.username,
+            )
+    except Exception:
+        logger.exception("Error sending notification to %s", user.username)
