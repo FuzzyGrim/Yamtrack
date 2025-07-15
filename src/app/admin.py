@@ -7,6 +7,7 @@ from django.contrib.admin.sites import AlreadyRegistered
 from app.models import (
     Episode,
     Item,
+    CustomPosterPreference,
 )
 
 
@@ -41,14 +42,23 @@ class MediaAdmin(admin.ModelAdmin):
     list_filter = ["status"]
 
 
+class CustomPosterPreferenceAdmin(admin.ModelAdmin):
+    """Custom admin for CustomPosterPreference model."""
+    
+    search_fields = ["item__title", "user__username"]
+    list_display = ["__str__", "user", "item", "updated_at"]
+    list_filter = ["user"]
+
+
 # Register models with custom admin classes
 admin.site.register(Item, ItemAdmin)
 admin.site.register(Episode, EpisodeAdmin)
+admin.site.register(CustomPosterPreference, CustomPosterPreferenceAdmin)
 
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia"]
+SpecialModels = ["Item", "Episode", "BasicMedia", "CustomPosterPreference"]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

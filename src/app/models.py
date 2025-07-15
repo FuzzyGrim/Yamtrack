@@ -1568,3 +1568,27 @@ class Comic(Media):
     """Model for comics."""
 
     tracker = FieldTracker()
+
+
+class CustomPosterPreference(models.Model):
+    """Model to store user's custom poster preferences for media items."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    custom_image_url = models.URLField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Meta options for the model."""
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "item"],
+                name="unique_user_item_poster"
+            )
+        ]
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        """Return string representation."""
+        return f"{self.user.username}'s custom poster for {self.item.title}"

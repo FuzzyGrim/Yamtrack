@@ -56,7 +56,7 @@ def get_access_token():
     access_token = cache.get(f"{Sources.IGDB.value}_access_token")
     if access_token is None:
         url = "https://id.twitch.tv/oauth2/token"
-        json = {
+        data = {
             "client_id": settings.IGDB_ID,
             "client_secret": settings.IGDB_SECRET,
             "grant_type": "client_credentials",
@@ -67,7 +67,7 @@ def get_access_token():
                 Sources.IGDB.value,
                 "POST",
                 url,
-                params=json,
+                data=data,
             )
         except requests.exceptions.HTTPError as error:
             handle_error(error)

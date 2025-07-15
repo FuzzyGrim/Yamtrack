@@ -1,12 +1,14 @@
 {% load app_tags %}
 
-<div class="{% if secondary_color %}bg-[#39404b]{% else %}bg-[#2a2f35]{% endif %} rounded-lg overflow-hidden shadow-lg relative"
+<div class="{% if secondary_color %}bg-[#39404b]{% else %}bg-[#2a2f35]{% endif %} rounded-lg overflow-hidden shadow-lg relative group"
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="relative">
     <img alt="{{ title }}"
          class="lazyload w-full {% if from_grid %}aspect-[2/3]{% else %}h-48{% endif %} bg-[#3e454d] {% if item.image != IMG_NONE %}object-cover{% endif %}"
-         data-src="{{ item.image }}"
+         data-src="{% get_user_poster_image item user %}"
          src="{{ IMG_NONE }}">
+
+
 
     {% if media.status %}
       <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
@@ -295,3 +297,5 @@
     </div>
   </div>
 </div>
+
+

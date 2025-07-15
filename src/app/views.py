@@ -904,46 +904,135 @@ def toggle_hof(request):
             media_type=media_type,
             defaults={
                 "title": metadata["title"],
-                "image": metadata.get("image"),
-            }
+                "image": metadata["image"],
+            },
         )
-        print(f"HOF Toggle - Item {'created' if created else 'found'}: {item}")
         
-        # Update the user's hall of fame selection
-        field_name = f"hof_{media_type}"
-        print(f"HOF Toggle - Field name: {field_name}")
+        # Toggle the HOF status
+        user = request.user
+        hof_field = f"hof_{media_type}"
         
-        if hasattr(request.user, field_name):
-            current_item = getattr(request.user, field_name)
-            print(f"HOF Toggle - Current item: {current_item}")
-            
-            if current_item and current_item.id == item.id:
-                # If the same item is selected, remove it
-                setattr(request.user, field_name, None)
-                print("HOF Toggle - Removing item")
+        if hasattr(user, hof_field):
+            hof_items = getattr(user, hof_field)
+            if item in hof_items.all():
+                hof_items.remove(item)
+                added = False
             else:
-                # Otherwise, set the new item
-                setattr(request.user, field_name, item)
-                print(f"HOF Toggle - Setting new item: {item}")
+                hof_items.add(item)
+                added = True
             
-            request.user.save()
-            print("HOF Toggle - User saved")
-            
-            # Verify the save worked
-            request.user.refresh_from_db()
-            new_value = getattr(request.user, field_name)
-            print(f"HOF Toggle - Verified new value: {new_value}")
-        else:
-            print(f"HOF Toggle - User does not have field: {field_name}")
-    
+            return JsonResponse({"added": added})
     except Exception as e:
         print(f"HOF Toggle - Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return HttpResponse("Error", status=500)
-    
-    # Return HTMX response to close modal and refresh Hall of Fame
-    response = HttpResponse("Success")
-    response["HX-Trigger"] = "hofUpdated,close-hof-modal"
-    print("HOF Toggle - Returning response")
-    return response
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@require_GET
+def poster_selection_modal(request, media_type, media_id, source):
+    """Return the poster selection modal with available posters."""
+    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        return HttpResponseBadRequest("Poster selection only available for TMDB movies and TV shows")
+        
+    try:
+        # Get or create the item
+        try:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+            )
+        except Item.DoesNotExist:
+            # Item doesn't exist, so we need to create it
+            # First get the metadata from TMDB
+            from app.providers import services
+            metadata = services.get_media_metadata(media_type, media_id, source)
+            
+            item = Item.objects.create(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                title=metadata["title"],
+                image=metadata["image"],
+            )
+        
+        # Get available posters from TMDB
+        tmdb_posters = tmdb.get_poster_images(media_id, "movie" if media_type == MediaTypes.MOVIE.value else "tv")
+        
+        # Create the original poster entry
+        original_poster = {
+            "url": item.image,
+            "width": 0,
+            "height": 0,
+            "aspect_ratio": 0.667,
+            "vote_average": 0,
+            "vote_count": 0,
+            "language": None,
+            "is_original": True
+        }
+        
+        # Combine original with TMDB posters, ensuring original is first
+        # and not duplicated if it's already in the TMDB results
+        posters = [original_poster]
+        for poster in tmdb_posters:
+            if poster["url"] != item.image:
+                # Ensure language is None instead of undefined for consistency
+                poster_copy = poster.copy()
+                if poster_copy.get("language") is None:
+                    poster_copy["language"] = None
+                posters.append(poster_copy)
+        
+        # Get current custom poster if exists
+        from app.models import CustomPosterPreference
+        try:
+            current_preference = CustomPosterPreference.objects.get(
+                user=request.user,
+                item=item
+            )
+            current_poster = current_preference.custom_image_url
+        except CustomPosterPreference.DoesNotExist:
+            current_poster = item.image
+            
+        context = {
+            "item": item,
+            "posters": posters,
+            "current_poster": current_poster,
+        }
+        
+        return render(request, "app/components/poster_selection_modal.html", context)
+        
+    except Exception as e:
+        logger.error("Error in poster selection modal: %s", e)
+        return HttpResponseBadRequest("Error loading posters")
+
+
+@require_POST
+def save_poster_preference(request):
+    """Save the user's poster preference for an item."""
+    try:
+        media_type = request.POST["media_type"]
+        media_id = request.POST["media_id"]
+        source = request.POST["source"]
+        custom_image_url = request.POST["poster_url"]
+        
+        # Get or create the item
+        item = Item.objects.get(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+        )
+        
+        # Update or create the preference
+        from app.models import CustomPosterPreference
+        CustomPosterPreference.objects.update_or_create(
+            user=request.user,
+            item=item,
+            defaults={"custom_image_url": custom_image_url}
+        )
+        
+        return JsonResponse({"success": True})
+        
+    except Item.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+    except Exception as e:
+        logger.error("Error saving poster preference: %s", e)
+        return JsonResponse({"error": str(e)}, status=400)

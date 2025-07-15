@@ -13,6 +13,12 @@ urlpatterns = [
     path("hof/search", views.hof_search, name="hof_search"),
     path("hof/toggle", views.toggle_hof, name="toggle_hof"),
     path(
+        "poster_modal/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.poster_selection_modal,
+        name="poster_selection_modal",
+    ),
+    path("save_poster", views.save_poster_preference, name="save_poster_preference"),
+    path(
         "details/<source:source>/<media_type:media_type>/<str:media_id>/<str:title>",
         views.media_details,
         name="media_details",

@@ -633,7 +633,65 @@ def episode(media_id, season_number, episode_number):
 
 
 def get_creator(creators):
-    """Return the creator name for the TV show."""
-    if creators and len(creators) > 0:
+    """Return the creator's name from the list."""
+    if creators:
         return creators[0]["name"]
     return None
+
+
+def get_poster_images(media_id, media_type):
+    """Get all available poster images for a movie or TV show from TMDB.
+    
+    Args:
+        media_id: TMDB ID of the media
+        media_type: Either 'movie' or 'tv'
+        
+    Returns:
+        List of poster image URLs and metadata
+    """
+    cache_key = f"{Sources.TMDB.value}_{media_type}_posters_{media_id}"
+    data = cache.get(cache_key)
+    
+    if data is None:
+        url = f"{base_url}/{media_type}/{media_id}/images"
+        params = {
+            **base_params,
+            # Remove language filtering to get ALL posters
+        }
+        # Remove the language parameter entirely to get all languages
+        del params["language"]
+        
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        # Extract and format poster data
+        posters = []
+        for poster in response.get("posters", []):
+            posters.append({
+                "url": f"https://image.tmdb.org/t/p/original{poster['file_path']}",
+                "width": poster["width"],
+                "height": poster["height"],
+                "aspect_ratio": poster["aspect_ratio"],
+                "vote_average": poster.get("vote_average", 0),
+                "vote_count": poster.get("vote_count", 0),
+                "language": poster.get("iso_639_1")
+            })
+            
+        # Sort by vote average (highest first), then by vote count
+        data = sorted(
+            posters,
+            key=lambda x: (x["vote_average"], x["vote_count"]),
+            reverse=True
+        )
+        
+        # Cache for 24 hours - posters don't change often
+        cache.set(cache_key, data, 86400)
+        
+    return data

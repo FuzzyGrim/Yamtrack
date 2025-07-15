@@ -147,7 +147,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
+        "APP_DIRS": DEBUG,  # Only use APP_DIRS when DEBUG=True (no custom loaders)
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -162,6 +162,16 @@ TEMPLATES = [
         },
     },
 ]
+
+# Disable template caching in production only
+if not DEBUG:
+    TEMPLATES[0]["APP_DIRS"] = False
+    TEMPLATES[0]["OPTIONS"]["loaders"] = [
+        ("django.template.loaders.cached.Loader", [
+            "django.template.loaders.filesystem.Loader",
+            "django.template.loaders.app_directories.Loader",
+        ]),
+    ]
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
@@ -213,6 +223,8 @@ CACHE_TIMEOUT = 86400  # 24 hours
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
 CACHES = {
     "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    } if DEBUG else {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,

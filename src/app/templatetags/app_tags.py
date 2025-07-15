@@ -484,5 +484,64 @@ def media_type_label(media_type):
 
 @register.filter
 def get_item(dictionary, key):
-    """Get a dictionary item by key."""
+    """Return the value for a key in a dictionary."""
     return dictionary.get(key)
+
+
+@register.simple_tag
+def get_user_poster_image(item, user):
+    """Get the user's preferred poster image for an item.
+    
+    Args:
+        item: Item model instance or dictionary with item data
+        user: User model instance
+        
+    Returns:
+        URL of the poster image to display
+    """
+    if not user.is_authenticated:
+        return item.image if hasattr(item, 'image') else item.get('image')
+        
+    # Handle both model instances and dictionaries
+    source = item.source if hasattr(item, 'source') else item.get('source')
+    media_type = item.media_type if hasattr(item, 'media_type') else item.get('media_type')
+    media_id = item.media_id if hasattr(item, 'media_id') else item.get('media_id')
+    default_image = item.image if hasattr(item, 'image') else item.get('image')
+    
+    if not all([source, media_type, media_id]):
+        return default_image
+    
+    from app.models import CustomPosterPreference, Item
+    try:
+        # First try to get the Item instance
+        db_item = Item.objects.get(
+            source=source,
+            media_type=media_type,
+            media_id=media_id
+        )
+        # Then get the custom preference
+        pref = CustomPosterPreference.objects.get(user=user, item=db_item)
+        return pref.custom_image_url
+    except (Item.DoesNotExist, CustomPosterPreference.DoesNotExist):
+        return default_image
+
+
+@register.simple_tag
+def can_customize_poster(item):
+    """Check if poster customization is available for this item.
+    
+    Args:
+        item: Item model instance or dictionary with item data
+        
+    Returns:
+        Boolean indicating if poster can be customized
+    """
+    from app.models import Sources, MediaTypes
+    
+    # Handle both model instances and dictionaries
+    source = item.source if hasattr(item, 'source') else item.get('source')
+    media_type = item.media_type if hasattr(item, 'media_type') else item.get('media_type')
+    
+    # Only TMDB movies and TV shows can have custom posters
+    return (source == Sources.TMDB.value and 
+            media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value])

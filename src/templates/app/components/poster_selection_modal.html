@@ -1,0 +1,224 @@
+{% load app_tags %}
+
+{{ posters|json_script:"posters-data" }}
+
+<!-- Modal backdrop -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
+    <!-- Modal content -->
+    <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative"
+         style="width: 60vw; max-width: 765px; height: 90vh;"
+         x-data="{ 
+            selectedPoster: '{{ current_poster }}',
+            selectedLanguage: 'all',
+            languageNames: {
+                'en': 'English',
+                'es': 'Spanish',
+                'fr': 'French',
+                'de': 'German',
+                'it': 'Italian',
+                'pt': 'Portuguese',
+                'ru': 'Russian',
+                'ja': 'Japanese',
+                'ko': 'Korean',
+                'zh': 'Chinese',
+                'cn': 'Chinese',
+                'ar': 'Arabic',
+                'hi': 'Hindi',
+                'th': 'Thai',
+                'vi': 'Vietnamese',
+                'tr': 'Turkish',
+                'pl': 'Polish',
+                'nl': 'Dutch',
+                'sv': 'Swedish',
+                'da': 'Danish',
+                'no': 'Norwegian',
+                'fi': 'Finnish',
+                'hu': 'Hungarian',
+                'cs': 'Czech',
+                'sk': 'Slovak',
+                'sl': 'Slovenian',
+                'hr': 'Croatian',
+                'bg': 'Bulgarian',
+                'ro': 'Romanian',
+                'uk': 'Ukrainian',
+                'he': 'Hebrew',
+                'ca': 'Catalan',
+                'be': 'Belarusian',
+                'ms': 'Malay'
+            },
+            get allPosters() {
+                return JSON.parse(document.getElementById('posters-data').textContent);
+            },
+            getLanguageName(code) {
+                return this.languageNames[code] || code?.toUpperCase() || 'Unknown';
+            },
+            getFilteredPosters() {
+                if (this.selectedLanguage === 'all') {
+                    return this.allPosters;
+                }
+                return this.allPosters.filter(poster => 
+                    this.selectedLanguage === 'none' ? 
+                        (!poster.language || poster.language === null) : 
+                        poster.language === this.selectedLanguage
+                );
+            },
+            savePoster() {
+                fetch('{% url 'save_poster_preference' %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: new URLSearchParams({
+                        'media_type': '{{ item.media_type }}',
+                        'media_id': '{{ item.media_id }}',
+                        'source': '{{ item.source }}',
+                        'poster_url': this.selectedPoster
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Failed to save poster preference.');
+                    }
+                })
+                .catch(() => {
+                    alert('Failed to save poster preference.');
+                });
+            }
+         }"
+         @click.stop>
+         
+        <div class="p-6 h-full flex flex-col">
+            <!-- Header with Language Filter -->
+            <div class="flex items-center justify-between mb-4 flex-shrink-0">
+                <div class="relative" x-data="{ open: false }">
+                    <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+                            @click="open = !open"
+                            @click.away="open = false"
+                            type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             width="24"
+                             height="24"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             class="w-4 h-4">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                        <span class="text-sm" x-text="selectedLanguage === 'all' ? 'All Languages' : selectedLanguage === 'none' ? 'No Language' : getLanguageName(selectedLanguage)"></span>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             width="24"
+                             height="24"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             class="w-4 h-4">
+                            <path d="m6 9 6 6 6-6"></path>
+                        </svg>
+                    </button>
+
+                    <div x-show="open" 
+                         x-transition
+                         class="absolute left-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                        <div class="py-1">
+                            <a @click="selectedLanguage = 'all'; open = false" 
+                               class="block px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white cursor-pointer"
+                               :class="selectedLanguage === 'all' ? 'text-white bg-[#343a40]' : ''">
+                                All Languages
+                            </a>
+                            
+                            <!-- Show English first if it exists -->
+                            <template x-if="allPosters.some(p => p.language === 'en')">
+                                <a @click="selectedLanguage = 'en'; open = false" 
+                                   class="block px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white cursor-pointer"
+                                   :class="selectedLanguage === 'en' ? 'text-white bg-[#343a40]' : ''">
+                                    English
+                                </a>
+                            </template>
+                            
+                            <!-- Show divider if English exists and there are other languages -->
+                            <template x-if="allPosters.some(p => p.language === 'en') && allPosters.some(p => p.language && p.language !== 'en')">
+                                <div class="border-t border-gray-700 my-1"></div>
+                            </template>
+                            
+                            <!-- Get unique languages except English -->
+                            <template x-for="lang in [...new Set(allPosters.map(p => p.language).filter(l => l !== null && l !== undefined && l !== 'en'))]" :key="lang">
+                                <a @click="selectedLanguage = lang; open = false" 
+                                   class="block px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white cursor-pointer"
+                                   :class="selectedLanguage === lang ? 'text-white bg-[#343a40]' : ''"
+                                   x-text="getLanguageName(lang)"></a>
+                            </template>
+                            
+                            <!-- Add divider before "No Language" option -->
+                            <template x-if="allPosters.some(p => !p.language || p.language === null)">
+                                <div class="border-t border-gray-700 my-1"></div>
+                            </template>
+                            
+                            <!-- Add "No Language" option if there are posters without language -->
+                            <template x-if="allPosters.some(p => !p.language || p.language === null)">
+                                <a @click="selectedLanguage = 'none'; open = false" 
+                                   class="block px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white cursor-pointer"
+                                   :class="selectedLanguage === 'none' ? 'text-white bg-[#343a40]' : ''">
+                                    No Language
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="this.closest('.fixed').remove()" 
+                        class="text-gray-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                        <path d="M18 6 6 18"/>
+                        <path d="m6 6 12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body with poster grid -->
+            <div class="flex-1 overflow-y-auto">
+                {% if posters %}
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 4px;">
+                        <template x-for="poster in getFilteredPosters()" :key="poster.url">
+                            <div class="relative bg-[#39404b] rounded-lg overflow-hidden shadow-lg cursor-pointer transition-all hover:ring-2 hover:ring-gray-400" 
+                                 style="aspect-ratio: 2/3;"
+                                 :class="selectedPoster === poster.url ? 'ring-2 ring-indigo-500' : ''"
+                                 @click="selectedPoster = poster.url">
+                                <img :src="poster.url" 
+                                     alt="Poster option" 
+                                     class="w-full h-full object-cover">
+                                <div x-show="poster.is_original" class="absolute top-1 left-1 bg-green-600 text-xs text-white px-1.5 py-0.5 rounded">
+                                    Original
+                                </div>
+                                <div x-show="poster.language && !poster.is_original" class="absolute bottom-1 right-1 bg-black/75 text-xs text-white px-1 py-0.5 rounded" x-text="poster.language ? getLanguageName(poster.language) : ''">
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                {% else %}
+                    <div class="text-white">No posters available</div>
+                {% endif %}
+            </div>
+
+            <!-- Footer with Confirm button -->
+            <div class="flex justify-end items-center pt-4 mt-4 border-t border-gray-700">
+                <button onclick="this.closest('.fixed').remove()" 
+                        class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                    Cancel
+                </button>
+                <button @click="savePoster()"
+                        class="ml-3 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div> 
