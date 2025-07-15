@@ -8,6 +8,7 @@ from app.models import (
     Episode,
     Item,
     CustomPosterPreference,
+    DiaryEntry,
 )
 
 
@@ -50,15 +51,24 @@ class CustomPosterPreferenceAdmin(admin.ModelAdmin):
     list_filter = ["user"]
 
 
+class DiaryEntryAdmin(admin.ModelAdmin):
+    """Custom admin for DiaryEntry model with search and filter options."""
+    
+    search_fields = ["item__title", "user__username", "review"]
+    list_display = ["__str__", "user", "consumed_at", "rating"]
+    list_filter = ["user", "consumed_at"]
+
+
 # Register models with custom admin classes
 admin.site.register(Item, ItemAdmin)
 admin.site.register(Episode, EpisodeAdmin)
 admin.site.register(CustomPosterPreference, CustomPosterPreferenceAdmin)
+admin.site.register(DiaryEntry, DiaryEntryAdmin)
 
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia", "CustomPosterPreference"]
+SpecialModels = ["Item", "Episode", "BasicMedia", "CustomPosterPreference", "DiaryEntry"]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

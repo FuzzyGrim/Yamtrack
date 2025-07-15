@@ -850,6 +850,21 @@ class Media(models.Model):
         self.save()
         logger.info("Decreased progress of %s to %s", self, self.progress)
 
+    def mark_consumed(self):
+        """Mark media as consumed, setting appropriate fields."""
+        self.status = Status.COMPLETED.value
+        
+        # Only set end_date if not already set
+        if not self.end_date:
+            self.end_date = timezone.now()
+        
+        # Set progress to max if determinable
+        if hasattr(self, 'get_max_progress'):
+            self.progress = self.get_max_progress()
+            
+        self.save()
+        return self
+
 
 class BasicMedia(Media):
     """Model for basic media types."""
@@ -1592,3 +1607,60 @@ class CustomPosterPreference(models.Model):
     def __str__(self):
         """Return string representation."""
         return f"{self.user.username}'s custom poster for {self.item.title}"
+
+
+class DiaryEntry(models.Model):
+    """Model to store diary entries for media consumption."""
+
+    history = HistoricalRecords(
+        cascade_delete_history=True,
+        excluded_fields=[
+            "item",
+            "user",
+            "created_at",
+        ],
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    consumed_at = models.DateTimeField()
+    rating = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=3,
+        decimal_places=1,
+        validators=[
+            DecimalValidator(3, 1),
+            MinValueValidator(0),
+            MaxValueValidator(10),
+        ],
+    )
+    review = models.TextField(blank=True, default="")
+    progress_snapshot = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        """Meta options for the model."""
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "item", "consumed_at"],
+                name="unique_diary_entry"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["user", "-consumed_at"]),
+        ]
+        ordering = ["-consumed_at"]
+
+    def __str__(self):
+        """Return string representation of the diary entry."""
+        return f"{self.user.username}'s entry for {self.item} on {self.consumed_at}"
+
+    @property
+    def rewatch_count(self):
+        """Return number of times this item has been logged before this entry."""
+        return DiaryEntry.objects.filter(
+            user=self.user,
+            item=self.item,
+            consumed_at__lt=self.consumed_at
+        ).count()
