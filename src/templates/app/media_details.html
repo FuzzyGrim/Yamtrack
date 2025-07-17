@@ -31,35 +31,59 @@
       </div>
 
       <div x-data="{ trackOpen: false }">
-        <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
-                hx-get="{% media_view_url 'track_modal' media %}"
-                hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
-                hx-target="#{% component_id 'track' media current_instance.id %}"
-                hx-trigger="click"
-                @click="trackOpen = true">
-          <div class="flex-1 text-center font-medium">
-            {% if user_medias %}
-              {{ current_instance.status|media_status_readable }}
-            {% else %}
-              Add to tracker
-            {% endif %}
-          </div>
+        {% if media.media_type == MediaTypes.MOVIE.value %}
+          {# Two buttons for movies: Mark as Watched and Log #}
+          <div class="mt-4 flex gap-2 w-full">
+            <button class="flex-1 px-4 py-0.5 rounded text-white transition duration-300 cursor-pointer bg-green-600 hover:bg-green-700 text-sm"
+                    style="background-color: #059669;"
+                    hx-post="{% url 'mark_movie_watched' media.source media.media_type media.media_id %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="body"
+                    hx-swap="none">
+              Mark as Watched
+            </button>
 
-          <div class="h-5 mx-2 border-l border-white/30"></div>
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-5 h-5 flex-shrink-0">
-            <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
-          </svg>
-        </button>
+            <button class="flex-1 px-4 py-0.5 rounded text-white transition duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-sm"
+                    onclick="fetch('{% url 'log_modal' media.source media.media_type media.media_id %}')
+                      .then(response => response.text())
+                      .then(html => {
+                        document.getElementById('log-modal-container').innerHTML = html;
+                      })">
+              Log
+            </button>
+          </div>
+        {% else %}
+          {# Track button for non-movies #}
+          <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
+                  hx-get="{% media_view_url 'track_modal' media %}"
+                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
+                  hx-target="#{% component_id 'track' media current_instance.id %}"
+                  hx-trigger="click"
+                  @click="trackOpen = true">
+            <div class="flex-1 text-center font-medium">
+              {% if user_medias %}
+                {{ current_instance.status|media_status_readable }}
+              {% else %}
+                Add to tracker
+              {% endif %}
+            </div>
+
+            <div class="h-5 mx-2 border-l border-white/30"></div>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-5 h-5 flex-shrink-0">
+              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
+            </svg>
+          </button>
+        {% endif %}
 
         {# Track Modal #}
         <div x-show="trackOpen"
@@ -293,400 +317,14 @@
       {% endif %}
 
       {# User score #}
-      {% if user_medias %}
-        <div x-data="{ showRatingPopup: false, rating: {{ current_instance.score|default:'null' }}, hoverRating: null, isHovering: false }"
-             class="relative">
-          <!-- Rating display -->
-          <div @click="showRatingPopup = !showRatingPopup"
-               class="bg-[#2a2f35] p-3 rounded-lg w-[120px] cursor-pointer">
-            <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">YOUR SCORE</h3>
-            <div class="flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-              <template x-if="rating">
-                <div class="flex items-baseline">
-                  <span class="text-lg font-bold text-white" x-text="rating"></span>
-                  <span class="text-gray-400 ml-0.5 text-sm">/10</span>
-                </div>
-              </template>
-              <template x-if="!rating">
-                <span class="text-lg font-bold text-gray-400">-</span>
-              </template>
-            </div>
-            <p class="text-xs text-gray-400 mt-0.5 text-center">Click to edit</p>
-          </div>
 
-          <!-- Rating popup -->
-          <div x-show="showRatingPopup"
-               @click.outside="showRatingPopup = false; isHovering = false"
-               class="absolute left-0 top-full mt-2 p-3 bg-[#2a2f35] rounded-lg shadow-lg z-10 w-[250px] border border-gray-700"
-               @mouseenter="isHovering = true"
-               @mouseleave="isHovering = false; hoverRating = null">
-            <div class="flex justify-between mb-1">
-              {% with rating_range=10|get_range %}
-                {% for rating_value in rating_range %}
-                  <button @click="rating = {{ rating_value }}; showRatingPopup = false; isHovering = false"
-                          @mouseenter="hoverRating = {{ rating_value }}"
-                          hx-post="{% url 'update_media_score' media_type current_instance.id %}"
-                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                          hx-vals='{"score": {{ rating_value }} }'
-                          hx-trigger="click"
-                          hx-swap="none"
-                          class="focus:outline-none flex flex-col items-center cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         width="24"
-                         height="24"
-                         viewBox="0 0 24 24"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2"
-                         stroke-linecap="round"
-                         stroke-linejoin="round"
-                         class="w-5 h-5 hover:scale-110 transition-transform"
-                         :class="{ 'text-yellow-400 fill-yellow-400': {{ rating_value }} <= (isHovering ? hoverRating : rating), 'text-gray-600': {{ rating_value }} > (isHovering ? hoverRating : rating) }">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                        </svg>
-                    <span class="text-xs mt-1 text-gray-400">{{ rating_value }}</span>
-                  </button>
-                {% endfor %}
-              {% endwith %}
-            </div>
-          </div>
-        </div>
-      {% endif %}
     </div>
   </div>
 
   <div class="flex flex-col md:flex-row gap-12 md:gap-10">
     {# Details Column #}
 
-    <div class="w-full md:w-1/4 md:max-w-[250px] mx-auto lg:mx-0">
-      {# Your History #}
-      {% if user_medias|length > 1 or current_instance.start_date or current_instance.end_date or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-bold">Your History</h2>
 
-          {% if media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}
-            <div x-data="{ trackOpen: false }">
-              <button class="p-2  text-white rounded-md bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
-                      hx-get="{% media_view_url 'track_modal' media %}"
-                      hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "is_create": true}'
-                      hx-target="#{% component_id 'track' media %}"
-                      hx-trigger="click once"
-                      @click="trackOpen = true"
-                      title="Add new consumption">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4">
-                  <path d="M5 12h14"></path>
-                  <path d="M12 5v14"></path>
-                </svg>
-              </button>
-
-              {# Track Modal #}
-              <div x-show="trackOpen"
-                   @keydown.escape.window="trackOpen = false"
-                   class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div class="w-[38rem] max-h-[90vh] px-4 md:px-0 relative z-60"
-                     @click.outside="trackOpen = false">
-                  <div id="{% component_id 'track' media %}"></div>
-                </div>
-              </div>
-            </div>
-          {% endif %}
-        </div>
-
-        <div class="space-y-4 mb-6">
-          <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
-            <div class="@container flex flex-col gap-y-1">
-              {% if current_instance.start_date %}
-                <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Started:</span>
-                  <span class="text-gray-200">{{ current_instance.start_date|date_tracker_format }}</span>
-                </div>
-              {% endif %}
-
-              {% if current_instance.end_date %}
-                <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Ended:</span>
-                  <span class="text-gray-200">{{ current_instance.end_date|date_tracker_format }}</span>
-                </div>
-              {% endif %}
-
-              {% if media_type != MediaTypes.MOVIE.value %}
-                <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Progress:</span>
-                  <span class="text-gray-200">
-                    {{ current_instance.formatted_progress }}
-                    {% if current_instance.max_progress %}/ {{ current_instance.max_progress }}{% endif %}
-                  </span>
-                </div>
-              {% endif %}
-            </div>
-          </div>
-
-          {% if user_medias|length > 1 %}
-            <div x-data="{ showRepeats: false }">
-              <button @click="showRepeats = !showRepeats"
-                      class="group flex items-center justify-center w-full px-3 py-2 text-sm text-white bg-gray-600 hover:bg-gray-700 transition-all duration-200 rounded-lg tracking-wide cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="lucide lucide-chevron-down w-4 h-4 mr-2 transition-transform"
-                     :class="{ 'rotate-180': showRepeats }">
-                  <path d="m6 9 6 6 6-6"></path>
-                </svg>
-                Show Repeats ({{ user_medias|length|add:"-1" }})
-              </button>
-
-              <div x-show="showRepeats" class="space-y-2 mt-4">
-                {% for user_media in user_medias|slice:"1:" %}
-                  <div class="bg-[#2a2f35] p-4 rounded-lg">
-                    <div class="flex items-center justify-between mb-2">
-                      <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             width="24"
-                             height="24"
-                             viewBox="0 0 24 24"
-                             fill="none"
-                             stroke="currentColor"
-                             stroke-width="2"
-                             stroke-linecap="round"
-                             stroke-linejoin="round"
-                             class="w-4 h-4 {% if user_media.score %} text-yellow-400 fill-yellow-400 {% else %}text-gray-400 fill-gray-400{% endif %} mr-2">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                        </svg>
-                        {% if user_media.score %}
-                          <span class="text-sm font-medium text-gray-300">{{ user_media.score }}</span>
-                        {% else %}
-                          <span class="text-sm font-medium text-gray-400">Not rated</span>
-                        {% endif %}
-                      </div>
-
-                      <div x-data="{ trackOpen: false }">
-                        <button class="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                                hx-get="{% media_view_url 'track_modal' media %}"
-                                hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ user_media.id }}"}'
-                                hx-target="#{% component_id 'track' media user_media.id %}"
-                                hx-trigger="click once"
-                                @click="trackOpen = true">
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                               width="24"
-                               height="24"
-                               viewBox="0 0 24 24"
-                               fill="none"
-                               stroke="currentColor"
-                               stroke-width="2"
-                               stroke-linecap="round"
-                               stroke-linejoin="round"
-                               class="w-4 h-4">
-                            <path d="M12 20h9"></path>
-                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                          </svg>
-                        </button>
-
-                        <div x-show="trackOpen"
-                             @keydown.escape.window="trackOpen = false"
-                             class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                          <div class="w-[38rem] max-h-[90vh] px-4 md:px-0 relative z-60"
-                               @click.outside="trackOpen = false">
-                            <div id="{% component_id 'track' media user_media.id %}"></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="space-y-2">
-                      <div class="text-xs text-gray-400">Status: {{ user_media.status|media_status_readable }}</div>
-
-                      {% if media.media_type != MediaTypes.MOVIE.value %}
-                        <div class="text-xs text-gray-400">
-                          Progress: {{ user_media.formatted_progress }}
-                          {% if media.media_type != MediaTypes.GAME.value %}
-                            {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
-                          {% endif %}
-                        </div>
-                      {% endif %}
-
-                      {% if user_media.start_date %}
-                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|date_tracker_format }}</div>
-                      {% endif %}
-
-                      {% if user_media.end_date %}
-                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|date_tracker_format }}</div>
-                      {% endif %}
-
-                      {% if user_media.notes %}
-                        <div class="flex items-start mt-3"
-                             x-data="{ isExpanded:false, isClamped:false, measure(){ const el = this.$refs.notesText; this.isClamped = el.scrollHeight > el.clientHeight }, rafMeasure(){ requestAnimationFrame(() => this.measure()) }, reset(){ this.isExpanded = false; this.$nextTick(() => this.rafMeasure()) } }"
-                             x-init="rafMeasure(); $watch('showRepeats', v => { if (v) reset() })">
-
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                               width="24"
-                               height="24"
-                               viewBox="0 0 24 24"
-                               fill="none"
-                               stroke="currentColor"
-                               stroke-width="2"
-                               stroke-linecap="round"
-                               stroke-linejoin="round"
-                               class="w-3 h-3 mr-1 text-yellow-400 flex-shrink-0 mt-0.5">
-                            <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path>
-                            <path d="M15 3v4a2 2 0 0 0 2 2h4"></path>
-                          </svg>
-                          <div class="flex-1">
-                            <p x-ref="notesText"
-                               :class="isExpanded ? '' : 'line-clamp-2'"
-                               class="text-xs text-gray-300 italic">"{{ user_media.notes|linebreaksbr }}"</p>
-                            <button x-show="isClamped"
-                                    @click="isExpanded = !isExpanded"
-                                    class="text-indigo-400 hover:text-indigo-300 text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
-                              <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
-                            </button>
-                          </div>
-                        </div>
-                      {% endif %}
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-            </div>
-          {% endif %}
-        </div>
-      {% endif %}
-
-      {# Actions #}
-      <h2 class="text-xl font-bold mb-4">Actions</h2>
-      <div class="bg-[#2a2f35] p-4 md:p-2 lg:p-4 rounded-lg flex items-center justify-center gap-x-5 md:gap-x-2 lg:gap-x-5 mb-6">
-        {# Custom Lists #}
-        <div x-data="{ listsOpen: false }">
-          <button class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
-                  title="Add to custom lists"
-                  hx-get="{% media_view_url 'lists_modal' media %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                  hx-target="#{% component_id 'lists' media %}"
-                  hx-trigger="click once"
-                  @click="listsOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-4 h-4">
-              <path d="M11 12H3"></path>
-              <path d="M16 6H3"></path>
-              <path d="M16 18H3"></path>
-              <path d="M18 9v6"></path>
-              <path d="M21 12h-6"></path>
-            </svg>
-          </button>
-
-          <div x-show="listsOpen"
-               @keydown.escape.window="listsOpen = false"
-               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
-                 @click.outside="listsOpen = false">
-              <div id="{% component_id 'lists' media %}"></div>
-            </div>
-          </div>
-        </div>
-
-        {# Activity History #}
-        <div x-data="{ historyOpen: false }">
-          <button class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
-                  title="View your activity history"
-                  hx-get="{% media_view_url 'history_modal' media %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                  hx-target="#{% component_id 'history' media %}"
-                  hx-trigger="click once"
-                  @click="historyOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-4 h-4">
-              <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"></path>
-              <path d="M16 2v4"></path>
-              <path d="M8 2v4"></path>
-              <path d="M3 10h5"></path>
-              <path d="M17.5 17.5 16 16.3V14"></path>
-              <circle cx="16" cy="16" r="6"></circle>
-            </svg>
-          </button>
-
-          <div x-show="historyOpen"
-               @keydown.escape.window="historyOpen = false"
-               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
-                 @click.outside="historyOpen = false">
-              <div id="{% component_id 'history' media %}"></div>
-            </div>
-          </div>
-        </div>
-
-        {# Sync metadata #}
-        <button type="button"
-                title="Sync metadata with provider"
-                class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer disabled:opacity-75"
-                hx-post="{% media_view_url 'sync_metadata' media %}"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-vals='{"next": "{{ request.get_full_path|urlencode }}"}'
-                hx-target="body"
-                hx-swap="none"
-                x-data="{ loading: false }"
-                @click="loading = true"
-                :disabled="loading">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4"
-               :class="{ 'animate-spin': loading }">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-            <path d="M21 3v5h-5"></path>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-            <path d="M8 16H3v5"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
 
     {# Related Media #}
     {% if media.related %}
@@ -722,7 +360,7 @@
                 <div class="flex flex-wrap gap-4">
                   {% for item in related_items %}
                     <div class="w-[120px]">
-                      {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
+                      {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None from_grid=True hof_display=True %}
                     </div>
                   {% endfor %}
                 </div>
@@ -886,4 +524,7 @@
 
   {# Poster Modal Container #}
   <div id="poster-modal-container"></div>
+
+  {# Log Modal Container #}
+  <div id="log-modal-container"></div>
 {% endblock content %}

@@ -15,6 +15,7 @@ from app.models import (
     Movie,
     Season,
     Sources,
+    DiaryEntry,
 )
 
 
@@ -361,3 +362,82 @@ class EpisodeForm(forms.ModelForm):
             self.fields["end_date"].widget = forms.DateInput(
                 attrs={"type": "date"},
             )
+
+
+class DiaryEntryForm(forms.ModelForm):
+    """Form for creating and editing diary entries."""
+    
+    class Meta:
+        """Bind form to model."""
+        model = DiaryEntry
+        fields = ["consumed_at", "rating", "review"]
+        widgets = {
+            "consumed_at": forms.DateTimeInput(
+                attrs={
+                    "type": "datetime-local",
+                    "class": "form-control",
+                }
+            ) if settings.TRACK_TIME else forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "class": "form-control",
+                }
+            ),
+            "rating": forms.NumberInput(
+                attrs={
+                    "min": 0,
+                    "max": 10,
+                    "step": 0.5,
+                    "class": "form-control",
+                    "placeholder": "0-10",
+                }
+            ),
+            "review": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 5,
+                    "placeholder": "Write your thoughts...",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        self.user = kwargs.pop("user", None)
+        self.item = kwargs.pop("item", None)
+        super().__init__(*args, **kwargs)
+        
+        if not settings.TRACK_TIME and "consumed_at" in self.initial:
+            # If not tracking time, only show the date part
+            self.initial["consumed_at"] = self.initial["consumed_at"].date()
+
+    def clean(self):
+        """Validate the form data."""
+        cleaned_data = super().clean()
+        consumed_at = cleaned_data.get("consumed_at")
+        
+        if consumed_at and self.user and self.item:
+            # Check if there's already an entry for this item on this day
+            existing = DiaryEntry.objects.filter(
+                user=self.user,
+                item=self.item,
+                consumed_at__date=consumed_at.date(),
+            )
+            
+            if self.instance:
+                existing = existing.exclude(pk=self.instance.pk)
+                
+            if existing.exists():
+                self.add_error(
+                    "consumed_at",
+                    "You already have a diary entry for this item on this date."
+                )
+        
+        return cleaned_data
+
+
+class QuickConsumeForm(forms.Form):
+    """Hidden form for marking media as consumed."""
+    
+    # No visible fields, just CSRF protection
+    pass

@@ -31,6 +31,7 @@ import events
 import users
 from app import providers
 from app.mixins import CalendarTriggerMixin
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -1610,7 +1611,7 @@ class CustomPosterPreference(models.Model):
 
 
 class DiaryEntry(models.Model):
-    """Model to store diary entries for media consumption."""
+    """Model to store diary entries for movie consumption."""
 
     history = HistoricalRecords(
         cascade_delete_history=True,
@@ -1622,7 +1623,11 @@ class DiaryEntry(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    item = models.ForeignKey(
+        Item, 
+        on_delete=models.CASCADE,
+        limit_choices_to={'media_type': MediaTypes.MOVIE.value}
+    )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     consumed_at = models.DateTimeField()
     rating = models.DecimalField(
@@ -1656,9 +1661,20 @@ class DiaryEntry(models.Model):
         """Return string representation of the diary entry."""
         return f"{self.user.username}'s entry for {self.item} on {self.consumed_at}"
 
+    def clean(self):
+        """Validate that the item is a movie."""
+        if self.item.media_type != MediaTypes.MOVIE.value:
+            raise ValidationError("Diary entries can only be created for movies.")
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        """Save the diary entry."""
+        self.clean()
+        super().save(*args, **kwargs)
+
     @property
     def rewatch_count(self):
-        """Return number of times this item has been logged before this entry."""
+        """Return number of times this movie has been logged before this entry."""
         return DiaryEntry.objects.filter(
             user=self.user,
             item=self.item,

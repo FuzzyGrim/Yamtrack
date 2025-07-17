@@ -7,8 +7,8 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
-from django.shortcuts import redirect, render
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse, Http404
+from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -18,10 +18,12 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
+from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
+from app.forms import DiaryEntryForm
+from app.models import DiaryEntry
 
 logger = logging.getLogger(__name__)
 
@@ -1036,3 +1038,201 @@ def save_poster_preference(request):
     except Exception as e:
         logger.error("Error saving poster preference: %s", e)
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@require_POST
+def mark_consumed(request, media_type, instance_id):
+    """Mark a media item as consumed."""
+    if media_type != MediaTypes.MOVIE.value:
+        raise Http404("Mark as consumed is only available for movies")
+        
+    media = BasicMedia.objects.get_media(
+        request.user,
+        media_type,
+        instance_id,
+    )
+    
+    from app.services import mark_consumed as mark_consumed_service
+    mark_consumed_service(request.user, media)
+    
+    # Return fragment for HTMX to swap
+    context = {
+        "media": media,
+        "media_type": media_type,
+    }
+    return render(request, "app/components/media_actions.html", context)
+
+
+@require_POST
+def add_diary_entry(request, media_type, instance_id):
+    """Create a new diary entry."""
+    if media_type != MediaTypes.MOVIE.value:
+        raise Http404("Diary entries are only available for movies")
+        
+    media = BasicMedia.objects.get_media(
+        request.user,
+        media_type,
+        instance_id,
+    )
+    
+    form = DiaryEntryForm(
+        request.POST,
+        user=request.user,
+        item=media.item,
+    )
+    
+    if form.is_valid():
+        from app.services import create_diary_entry
+        entry = create_diary_entry(
+            user=request.user,
+            item=media.item,
+            consumed_at=form.cleaned_data["consumed_at"],
+            rating=form.cleaned_data["rating"],
+            review=form.cleaned_data["review"],
+            auto_mark_consumed=request.POST.get("auto_mark_consumed") == "true",
+        )
+        
+        if request.headers.get("HX-Request"):
+            # Return fragment for modal to close and actions to refresh
+            context = {
+                "media": media,
+                "media_type": media_type,
+                "entry": entry,
+            }
+            return render(request, "app/components/media_actions.html", context)
+        
+        return redirect("diary_item", media_type=media_type, instance_id=instance_id)
+    
+    # If form invalid, return the form with errors
+    context = {
+        "form": form,
+        "media": media,
+        "media_type": media_type,
+    }
+    return render(request, "app/components/diary_form.html", context)
+
+
+@require_GET
+def diary_list(request):
+    """Show user's diary entries."""
+    # Get filters from query params
+    media_type = request.GET.get("media_type", "")
+    year = request.GET.get("year")
+    page = request.GET.get("page", 1)
+    
+    # Base queryset
+    entries = DiaryEntry.objects.filter(user=request.user)
+    
+    # Apply filters
+    if media_type:
+        entries = entries.filter(item__media_type=media_type)
+    
+    if year:
+        try:
+            year = int(year)
+            entries = entries.filter(consumed_at__year=year)
+        except ValueError:
+            pass
+    
+    # Get unique years for filter dropdown
+    years = entries.dates("consumed_at", "year", order="DESC")
+    
+    # Paginate
+    paginator = Paginator(entries, 25)  # 25 entries per page
+    page_obj = paginator.get_page(page)
+    
+    context = {
+        "entries": page_obj,
+        "years": years,
+        "current_year": year,
+        "current_media_type": media_type,
+        "media_type_choices": MediaTypes.choices,
+    }
+    
+    if request.headers.get("HX-Request"):
+        return render(request, "app/components/diary_entries.html", context)
+    
+    return render(request, "app/diary.html", context)
+
+
+@require_GET
+def diary_item(request, media_type, instance_id):
+    """Show diary entries for a specific item."""
+    media = BasicMedia.objects.get_media(
+        request.user,
+        media_type,
+        instance_id,
+    )
+    
+    entries = DiaryEntry.objects.filter(
+        user=request.user,
+        item=media.item,
+    ).order_by("-consumed_at")
+    
+    context = {
+        "media": media,
+        "media_type": media_type,
+        "entries": entries,
+    }
+    
+    if request.headers.get("HX-Request"):
+        return render(request, "app/components/diary_item_entries.html", context)
+    
+    return render(request, "app/diary_item.html", context)
+
+
+from datetime import date
+
+def log_modal(request, source, media_type, media_id):
+    """Show the log entry modal."""
+    if media_type != MediaTypes.MOVIE.value:
+        raise Http404("Logging is only available for movies")
+        
+    item = get_object_or_404(Item, source=source, media_type=media_type, media_id=media_id)
+    return render(request, 'app/components/log_modal.html', {
+        'item': item,
+        'user': request.user,
+        'today': date.today(),
+    })
+
+
+@require_POST
+def mark_movie_watched(request, source, media_type, media_id):
+    """Mark a movie as watched by creating a tracking instance and marking it as consumed."""
+    if media_type != MediaTypes.MOVIE.value:
+        raise Http404("Mark as watched is only available for movies")
+        
+    # Get or create the item
+    metadata = services.get_media_metadata(media_type, media_id, source)
+    item, _ = Item.objects.get_or_create(
+        media_id=media_id,
+        source=source,
+        media_type=media_type,
+        defaults={
+            "title": metadata["title"],
+            "image": metadata["image"],
+        },
+    )
+    
+    # Get or create the media instance
+    from app.models import Movie
+    media_instance, created = Movie.objects.get_or_create(
+        item=item,
+        user=request.user,
+        defaults={
+            "status": Status.COMPLETED.value,
+            "end_date": timezone.now(),
+        }
+    )
+    
+    if not created:
+        # If it already exists, mark it as consumed
+        media_instance.mark_consumed()
+    
+    # Return fragment for HTMX to swap
+    context = {
+        "media": metadata,
+        "media_type": media_type,
+        "current_instance": media_instance,
+    }
+    return render(request, "app/components/media_actions.html", context)

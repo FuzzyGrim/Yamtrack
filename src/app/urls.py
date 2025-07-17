@@ -89,4 +89,25 @@ urlpatterns = [
         name="search_parent_season",
     ),
     path("statistics", views.statistics, name="statistics"),
+
+    # Diary URLs
+    path(
+        "media/<media_type:media_type>/<int:instance_id>/consume/",
+        views.mark_consumed,
+        name="mark_consumed",
+    ),
+    path(
+        "media/<media_type:media_type>/<int:instance_id>/diary/add/",
+        views.add_diary_entry,
+        name="add_diary_entry",
+    ),
+    path("diary/", views.diary_list, name="diary_list"),
+    path(
+        "media/<media_type:media_type>/<int:instance_id>/diary/",
+        views.diary_item,
+        name="diary_item",
+    ),
+    path('media/<str:source>/<str:media_type>/<str:media_id>/poster/', views.poster_selection_modal, name='poster_selection_modal'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/log/', views.log_modal, name='log_modal'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/mark-watched/', views.mark_movie_watched, name='mark_movie_watched'),
 ]
