@@ -2,6 +2,12 @@
 
 set -e
 
+if [ -n "$CA_CERT" ] && [ -f "$CA_CERT" ]; then
+    echo "Adding custom CA certificate to Python certificate bundle..."
+    cat "$CA_CERT" >> $(python -m certifi)
+    echo "Custom CA certificate added to Python certificate bundle"
+fi
+
 python manage.py migrate --noinput
 
 PUID=${PUID:-1000}
