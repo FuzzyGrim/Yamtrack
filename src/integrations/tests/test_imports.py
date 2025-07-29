@@ -675,7 +675,6 @@ class ImportIMDB(TestCase):
 
     def test_import_imdb_csv(self):
         """Test importing movies and TV shows from IMDB CSV."""
-
         imported_counts, warnings = self.import_results
 
         # Check import counts
@@ -693,7 +692,10 @@ class ImportIMDB(TestCase):
         self.assertEqual(movie_1.score, 9)
         self.assertEqual(movie_1.status, Status.COMPLETED.value)
         self.assertEqual(movie_1.progress, 1)
-        self.assertEqual(movie_1.end_date.date(), datetime(2025, 2, 3).date())
+        self.assertEqual(
+            movie_1.end_date.date(),
+            datetime(2025, 2, 3, tzinfo=UTC).date(),
+        )
 
         # Check TV show data
         game_of_thrones = TV.objects.get(item__title="Game of Thrones")
@@ -704,10 +706,12 @@ class ImportIMDB(TestCase):
         importer_instance = imdb.IMDBImporter(None, self.user, "new")
 
         self.assertEqual(
-            importer_instance._extract_imdb_id({"Const": "tt0111161"}), "tt0111161"
+            importer_instance._extract_imdb_id({"Const": "tt0111161"}),
+            "tt0111161",
         )
         self.assertEqual(
-            importer_instance._extract_imdb_id({"Const": "0111161"}), "tt0111161"
+            importer_instance._extract_imdb_id({"Const": "0111161"}),
+            "tt0111161",
         )
         self.assertIsNone(importer_instance._extract_imdb_id({"Const": ""}))
         self.assertIsNone(importer_instance._extract_imdb_id({"Const": "invalid"}))
@@ -733,7 +737,7 @@ class ImportIMDB(TestCase):
 
         # Valid date
         parsed_date = importer_instance._parse_date("2023-01-15")
-        self.assertEqual(parsed_date.date(), datetime(2023, 1, 15).date())
+        self.assertEqual(parsed_date.date(), datetime(2023, 1, 15, tzinfo=UTC).date())
 
         # Invalid dates
         self.assertIsNone(importer_instance._parse_date(""))

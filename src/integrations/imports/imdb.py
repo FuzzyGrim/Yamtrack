@@ -9,20 +9,20 @@ from django.utils.dateparse import parse_datetime
 import app
 import app.providers
 from app.models import MediaTypes, Sources, Status
+from app.providers.services import ProviderAPIError
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
-
 
 logger = logging.getLogger(__name__)
 
 # Mapping of IMDB title types to media types
 IMDB_TYPE_MAPPING = {
-    "Movie": MediaTypes.MOVIE.value,
-    "TV Series": MediaTypes.TV.value,
-    "Short": MediaTypes.MOVIE.value,
-    "TV Mini Series": MediaTypes.TV.value,
-    "TV Movie": MediaTypes.MOVIE.value,
-    "TV Special": MediaTypes.MOVIE.value,
+    "Movie": MediaTypes.MOVIE,
+    "TV Series": MediaTypes.TV,
+    "Short": MediaTypes.MOVIE,
+    "TV Mini Series": MediaTypes.TV,
+    "TV Movie": MediaTypes.MOVIE,
+    "TV Special": MediaTypes.MOVIE,
 }
 
 # IMDB title types we don't support
@@ -226,7 +226,7 @@ class IMDBImporter:
         """Look up media in TMDB using IMDB ID."""
         try:
             response = app.providers.tmdb.find(imdb_id, "imdb_id")
-        except Exception as e:
+        except ProviderAPIError as e:
             logger.warning("Error looking up IMDB ID %s in TMDB: %s", imdb_id, e)
             return None
 
@@ -290,14 +290,13 @@ class IMDBImporter:
 
         # Movies can have progress and end_date set directly.
         # TV shows manage their own progress and dates through episodes.
-        if media_type == MediaTypes.MOVIE.value:
-            if status == Status.COMPLETED.value:
-                # filter out None dates
-                dates = [date_created, date_modified, date_rated]
-                most_recent_date = max(date for date in dates if date)
+        if media_type == MediaTypes.MOVIE.value and status == Status.COMPLETED.value:
+            # filter out None dates
+            dates = [date_created, date_modified, date_rated]
+            most_recent_date = max(date for date in dates if date)
 
-                params["progress"] = 1
-                params["end_date"] = most_recent_date
+            params["progress"] = 1
+            params["end_date"] = most_recent_date
 
         instance = model(**params)
 
@@ -315,7 +314,9 @@ class IMDBImporter:
         try:
             rating = float(rating_str.strip())
             # IMDB ratings are 1-10, ensure it's in valid range
-            if 1 <= rating <= 10:
+            min_rating = 1
+            max_rating = 10
+            if min_rating <= rating <= max_rating:
                 return rating
         except (ValueError, TypeError):
             pass
