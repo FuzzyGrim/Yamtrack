@@ -153,7 +153,7 @@ class ReloadCalendarTaskTests(TestCase):
     ):
         """Test fetch_releases with all media types."""
         # Setup mocks
-        mock_process_tv.side_effect = lambda _, events_bulk, __: events_bulk.append(
+        mock_process_tv.side_effect = lambda _, events_bulk: events_bulk.append(
             Event(
                 item=self.season_item,
                 content_number=1,
@@ -161,7 +161,7 @@ class ReloadCalendarTaskTests(TestCase):
             ),
         )
         mock_process_other.side_effect = (
-            lambda item, events_bulk, __: events_bulk.append(
+            lambda item, events_bulk: events_bulk.append(
                 Event(
                     item=item,
                     content_number=1,
@@ -170,7 +170,7 @@ class ReloadCalendarTaskTests(TestCase):
             )
         )
         # Setup mock for process_anime_bulk to create events for anime items
-        mock_process_anime_bulk.side_effect = lambda items, events_bulk, __: [
+        mock_process_anime_bulk.side_effect = lambda items, events_bulk: [
             events_bulk.append(
                 Event(
                     item=item,
@@ -215,7 +215,7 @@ class ReloadCalendarTaskTests(TestCase):
         """Test fetch_releases with specific items to process."""
         # Setup mock
         mock_process_other.side_effect = (
-            lambda item, events_bulk, _: events_bulk.append(
+            lambda item, events_bulk: events_bulk.append(
                 Event(
                     item=item,
                     content_number=1,
@@ -398,8 +398,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_tv(self.tv_item, events_bulk, skipped_items)
+        process_tv(self.tv_item, events_bulk)
 
         # Verify events were added
         self.assertEqual(len(events_bulk), 6)
@@ -425,8 +424,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_other(self.movie_item, events_bulk, skipped_items)
+        process_other(self.movie_item, events_bulk)
 
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
@@ -453,8 +451,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_other(self.book_item, events_bulk, skipped_items)
+        process_other(self.book_item, events_bulk)
 
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
@@ -478,8 +475,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_other(self.manga_item, events_bulk, skipped_items)
+        process_other(self.manga_item, events_bulk)
 
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
@@ -714,8 +710,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_other(self.movie_item, events_bulk, skipped_items)
+        process_other(self.movie_item, events_bulk)
 
         # Verify no events were added
         self.assertEqual(len(events_bulk), 0)
@@ -730,8 +725,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_other(self.movie_item, events_bulk, skipped_items)
+        process_other(self.movie_item, events_bulk)
 
         # Verify no events were added
         self.assertEqual(len(events_bulk), 0)
@@ -762,7 +756,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process anime items
         events_bulk = []
-        process_anime_bulk([self.anime_item], events_bulk, set())
+        process_anime_bulk([self.anime_item], events_bulk)
 
         # Verify events were added
         self.assertEqual(len(events_bulk), 1)
@@ -788,7 +782,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process anime items
         events_bulk = []
-        process_anime_bulk([self.anime_item], events_bulk, set())
+        process_anime_bulk([self.anime_item], events_bulk)
 
         # Verify anime added from default source
         self.assertEqual(len(events_bulk), 1)
@@ -810,8 +804,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item - should not raise exception
         events_bulk = []
-        skipped_items = set()
-        process_other(self.movie_item, events_bulk, skipped_items)
+        process_other(self.movie_item, events_bulk)
 
         # Verify no events were added
         self.assertEqual(len(events_bulk), 0)
@@ -843,8 +836,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_comic(comic_item, events_bulk, skipped_items)
+        process_comic(comic_item, events_bulk)
 
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
@@ -889,8 +881,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_comic(comic_item, events_bulk, skipped_items)
+        process_comic(comic_item, events_bulk)
 
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
@@ -928,8 +919,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        skipped_items = []
-        process_comic(comic_item, events_bulk, skipped_items)
+        process_comic(comic_item, events_bulk)
 
         # Verify no event was added
         self.assertEqual(len(events_bulk), 0)

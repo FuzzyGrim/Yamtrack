@@ -1,9 +1,13 @@
+import base64
 import datetime
+import hashlib
 import json
 import logging
 from collections import defaultdict
 
+from cryptography.fernet import Fernet
 from django.apps import apps
+from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
@@ -238,3 +242,22 @@ def join_with_commas_and(items):
     if len(items) == 1:
         return items[0]
     return ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def fernet():
+    """Derive a stable 32-byte key from Django's SECRET_KEY.
+
+    Uses SHA-256 then urlsafe_b64encode to satisfy Fernet.
+    """
+    digest = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(digest))
+
+
+def encrypt(value):
+    """Return url-safe encrypted string."""
+    return fernet().encrypt(value.encode()).decode()
+
+
+def decrypt(token):
+    """Decrypt value that was encrypted with `encrypt`."""
+    return fernet().decrypt(token.encode()).decode()

@@ -1,10 +1,10 @@
-aiohttp==3.12.13
+aiohttp==3.12.14
 apprise==1.9.3
 beautifulsoup4==4.13.4
 celery==5.5.3
 croniter==6.0.0
 Django==5.2.2
-django-allauth[socialaccount]==65.9.0
+django-allauth[socialaccount]==65.10.0
 django-celery-beat==2.8.1
 django-celery-results==2.6.0
 django_debug_toolbar==5.2.0

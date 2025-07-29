@@ -20,14 +20,14 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
 
         event_type = payload.get("Event")
         if not self._is_supported_event(event_type):
-            logger.info("Ignoring Jellyfin webhook event type: %s", event_type)
+            logger.debug("Ignoring Jellyfin webhook event type: %s", event_type)
             return
 
         ids = self._extract_external_ids(payload)
         logger.debug("Extracted IDs from payload: %s", ids)
 
         if not any(ids.values()):
-            logger.info("Ignoring Jellyfin webhook call because no ID was found.")
+            logger.warning("Ignoring Jellyfin webhook call because no ID was found.")
             return
 
         self._process_media(payload, user, ids)

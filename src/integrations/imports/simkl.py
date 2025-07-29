@@ -220,7 +220,6 @@ class SimklImporter:
                         tv,
                         tv_instance,
                         metadata,
-                        season_numbers,
                     )
 
             except Exception as error:
@@ -229,7 +228,7 @@ class SimklImporter:
 
         logger.info("Processed %d tv shows", len(tv_list))
 
-    def _process_seasons_and_episodes(self, tv, tv_instance, metadata, season_numbers):
+    def _process_seasons_and_episodes(self, tv, tv_instance, metadata):
         """Process seasons and episodes for a TV show."""
         tmdb_id = tv["show"]["ids"]["tmdb"]
 
@@ -249,12 +248,10 @@ class SimklImporter:
                 },
             )
 
-            # Prepare Season instance for bulk creation
-            season_status = (
-                Status.COMPLETED.value
-                if season_number != season_numbers[-1]
-                else tv_instance.status
-            )
+            if episodes[-1]["number"] == season_metadata["max_progress"]:
+                season_status = Status.COMPLETED.value
+            else:
+                season_status = tv_instance.status
 
             season_instance = app.models.Season(
                 item=season_item,

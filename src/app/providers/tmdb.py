@@ -116,9 +116,10 @@ def find(external_id, external_source):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        cache.set(cache_key, data)
+        cache.set(cache_key, response)
+        return response
 
-    return response
+    return data
 
 
 def movie(media_id):
@@ -333,7 +334,7 @@ def process_tv(response):
                 MediaTypes.TV.value,
             ),
         },
-        "tvdb_id": response["external_ids"]["tvdb_id"],
+        "tvdb_id": response.get("external_ids", {}).get("tvdb_id"),
         "last_episode_season": last_episode["season_number"] if last_episode else None,
         "next_episode_season": next_episode["season_number"] if next_episode else None,
     }
@@ -597,5 +598,7 @@ def episode(media_id, season_number, episode_number):
     # Set the error attribute to match what ProviderAPIError expects
     not_found_error = type("Error", (), {"response": not_found_response})
     raise services.ProviderAPIError(
-        Sources.TMDB.value, error=not_found_error, details=msg,
+        Sources.TMDB.value,
+        error=not_found_error,
+        details=msg,
     )

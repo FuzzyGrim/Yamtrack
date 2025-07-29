@@ -71,7 +71,8 @@ def import_trakt(username, user_id, mode):
 @shared_task(name="Import from SIMKL")
 def import_simkl(username, user_id, mode):
     """Celery task for importing media data from SIMKL."""
-    return import_media(simkl.importer, username, user_id, mode)
+    token = helpers.decrypt(username)
+    return import_media(simkl.importer, token, user_id, mode)
 
 
 @shared_task(name="Import from MyAnimeList")

@@ -4,7 +4,7 @@ import json
 import warnings
 import zoneinfo
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from celery.schedules import crontab
 from decouple import (
@@ -503,7 +503,9 @@ else:
     # Empty CSRF_TRUSTED_ORIGINS, default to http
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
 
-ACCOUNT_LOGOUT_REDIRECT_URL = "/accounts/login/?loggedout=1"
+ACCOUNT_LOGOUT_REDIRECT_URL = config(
+    "ACCOUNT_LOGOUT_REDIRECT_URL", default="/accounts/login/?loggedout=1",
+)
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_USER_MODEL_EMAIL_FIELD = None
 ACCOUNT_FORMS = {
@@ -512,7 +514,9 @@ ACCOUNT_FORMS = {
 }
 
 if BASE_URL:
-    ACCOUNT_LOGOUT_REDIRECT_URL = f"{BASE_URL}/accounts/login/?loggedout=1"
+    # Join base only if relative URL
+    if not urlparse(ACCOUNT_LOGOUT_REDIRECT_URL).netloc:
+        ACCOUNT_LOGOUT_REDIRECT_URL = urljoin(BASE_URL, ACCOUNT_LOGOUT_REDIRECT_URL)
     SESSION_COOKIE_PATH = BASE_URL + "/"
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
