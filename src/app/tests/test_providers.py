@@ -381,6 +381,22 @@ class Metadata(TestCase):
             ["Action", "Fantasy", "Open world"],
         )
 
+    def test_external_game_steam(self):
+        """Test the external_game method for Steam games."""
+        # Test with a known Steam game ID - The Witcher 3: Wild Hunt (Steam ID: 292030)
+        igdb_game_id = igdb.external_game("292030", igdb.ExternalGameSource.STEAM)
+        
+        # Should return the IGDB game ID (1942 for The Witcher 3)
+        self.assertEqual(igdb_game_id, 1942)
+
+    def test_external_game_not_found(self):
+        """Test the external_game method with non-existent Steam ID."""
+        # Test with a Steam ID that doesn't exist in IGDB
+        igdb_game_id = igdb.external_game("999999999", igdb.ExternalGameSource.STEAM)
+        
+        # Should return None for non-existent games
+        self.assertIsNone(igdb_game_id)
+
     def test_book(self):
         """Test the metadata method for books."""
         response = openlibrary.book("OL21733390M")

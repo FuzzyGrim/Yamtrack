@@ -8,6 +8,7 @@ from django.conf import settings
 import app
 from app.models import MediaTypes, Sources, Status
 from app.providers import services
+from app.providers.igdb import external_game, ExternalGameSource
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -261,25 +262,39 @@ class SteamImporter:
         return Status.PAUSED.value
 
     def _match_with_igdb(self, game_name, steam_appid):
-        """Try to match Steam game with IGDB for better metadata."""
+        """Try to match Steam game with IGDB using External Game endpoint."""
         try:
-            search_results = services.search(
-                MediaTypes.GAME.value,
-                game_name,
-                1,
-            )
-
-            if search_results and search_results.get("results"):
-                logger.debug(
-                    "Matched Steam game %s (appid: %s) with IGDB",
-                    game_name,
-                    steam_appid,
+            # Try to find IGDB game by Steam App ID using external_game endpoint
+          
+            
+            igdb_game_id = external_game(steam_appid, ExternalGameSource.STEAM)
+            
+            if igdb_game_id:
+                # Get the game details using the IGDB ID
+                game_details = services.get_media_metadata(
+                    MediaTypes.GAME.value,
+                    str(igdb_game_id),
+                    Sources.IGDB.value,
                 )
-                return search_results["results"][0]
+                
+                if game_details:
+                    logger.debug(
+                        "Matched Steam game %s (appid: %s) with IGDB ID %s via external_game",
+                        game_name,
+                        steam_appid,
+                        igdb_game_id,
+                    )
+                    return {
+                        "media_id": igdb_game_id,
+                        "source": Sources.IGDB.value,
+                        "media_type": MediaTypes.GAME.value,
+                        "title": game_details.get("title", game_name),
+                        "image": game_details.get("image", ""),
+                    }
 
         except (ValueError, KeyError, TypeError) as e:
             logger.debug(
-                "Failed to match Steam game %s (appid: %s) with IGDB: %s",
+                "Failed to match Steam game %s (appid: %s) with IGDB via external_game: %s",
                 game_name,
                 steam_appid,
                 e,

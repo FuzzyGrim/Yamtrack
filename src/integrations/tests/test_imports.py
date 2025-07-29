@@ -831,8 +831,9 @@ class ImportSteam(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
     @patch("integrations.imports.steam.services.api_request")
-    @patch("integrations.imports.steam.services.search")
-    def test_import_steam_games(self, mock_search, mock_api_request):
+    @patch("integrations.imports.steam.external_game")
+    @patch("integrations.imports.steam.services.get_media_metadata")
+    def test_import_steam_games(self, mock_get_metadata, mock_external_game, mock_api_request):
         """Test importing games from Steam."""
         # Mock Steam API response
         mock_api_request.return_value = {
@@ -862,11 +863,14 @@ class ImportSteam(TestCase):
             }
         }
 
-        # Mock IGDB search results
-        mock_search.side_effect = [
-            {"results": [{"media_id": "1", "title": "Counter-Strike 2", "image": "http://example.com/cs2.jpg"}]},
-            {"results": [{"media_id": "2", "title": "Dota 2", "image": "http://example.com/dota2.jpg"}]},
-            {"results": [{"media_id": "3", "title": "Team Fortress 2", "image": "http://example.com/tf2.jpg"}]},
+        # Mock IGDB external_game results (returns IGDB game IDs)
+        mock_external_game.side_effect = [1, 2, 3]  # IGDB game IDs for each Steam app
+        
+        # Mock IGDB get_media_metadata results
+        mock_get_metadata.side_effect = [
+            {"title": "Counter-Strike 2", "image": "http://example.com/cs2.jpg"},
+            {"title": "Dota 2", "image": "http://example.com/dota2.jpg"},
+            {"title": "Team Fortress 2", "image": "http://example.com/tf2.jpg"},
         ]
 
         # Import games
@@ -910,8 +914,8 @@ class ImportSteam(TestCase):
         self.assertIn("private or invalid", str(context.exception))
 
     @patch("integrations.imports.steam.services.api_request")
-    @patch("integrations.imports.steam.services.search")
-    def test_import_steam_game_not_found_in_igdb(self, mock_search, mock_api_request):
+    @patch("integrations.imports.steam.external_game")
+    def test_import_steam_game_not_found_in_igdb(self, mock_external_game, mock_api_request):
         """Test handling of games not found in IGDB."""
         # Mock Steam API response
         mock_api_request.return_value = {
@@ -927,8 +931,8 @@ class ImportSteam(TestCase):
             }
         }
 
-        # Mock IGDB search returning no results
-        mock_search.return_value = {"results": []}
+        # Mock IGDB external_game returning no results (None)
+        mock_external_game.return_value = None
 
         # Import games
         imported_counts, warnings = steam.importer("76561198000000000", self.user, "new")
