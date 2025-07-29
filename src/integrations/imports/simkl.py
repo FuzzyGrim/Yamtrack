@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import requests
 from django.conf import settings
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import app
@@ -219,7 +220,6 @@ class SimklImporter:
                         tv,
                         tv_instance,
                         metadata,
-                        season_numbers,
                     )
 
             except Exception as error:
@@ -228,7 +228,7 @@ class SimklImporter:
 
         logger.info("Processed %d tv shows", len(tv_list))
 
-    def _process_seasons_and_episodes(self, tv, tv_instance, metadata, season_numbers):
+    def _process_seasons_and_episodes(self, tv, tv_instance, metadata):
         """Process seasons and episodes for a TV show."""
         tmdb_id = tv["show"]["ids"]["tmdb"]
 
@@ -248,12 +248,10 @@ class SimklImporter:
                 },
             )
 
-            # Prepare Season instance for bulk creation
-            season_status = (
-                Status.COMPLETED.value
-                if season_number != season_numbers[-1]
-                else tv_instance.status
-            )
+            if episodes[-1]["number"] == season_metadata["max_progress"]:
+                season_status = Status.COMPLETED.value
+            else:
+                season_status = tv_instance.status
 
             season_instance = app.models.Season(
                 item=season_item,
@@ -284,8 +282,11 @@ class SimklImporter:
                     related_season=season_instance,
                     end_date=self._get_date(episode.get("watched_at")),
                 )
-                episode_instance._history_date = parse_datetime(
-                    episode.get("watched_at"),
+                episode_instance._history_date = (
+                    self._get_date(
+                        episode.get("watched_at"),
+                    )
+                    or timezone.now()
                 )
                 self.bulk_media[MediaTypes.EPISODE.value].append(episode_instance)
 
@@ -475,8 +476,16 @@ class SimklImporter:
         """Get the start date based on earliest watched episode."""
         if "seasons" in anime:
             episodes = anime["seasons"][0]["episodes"]
-            dates = [self._get_date(episode.get("watched_at")) for episode in episodes]
-            return min(dates) if dates else None
+            current_min_date = None
+
+            for episode in episodes:
+                date = self._get_date(episode.get("watched_at"))
+                if date is not None and (
+                    current_min_date is None or date < current_min_date
+                ):
+                    current_min_date = date
+
+            return current_min_date
 
         return None
 
@@ -490,4 +499,8 @@ class SimklImporter:
         """Get the history date from the entry."""
         if entry.get("last_watched_at"):
             return parse_datetime(entry.get("last_watched_at"))
-        return parse_datetime(entry.get("added_to_watchlist_at"))
+
+        if entry.get("added_to_watchlist_at"):
+            return parse_datetime(entry.get("added_to_watchlist_at"))
+
+        return timezone.now()

@@ -17,12 +17,12 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
 
         event_type = payload.get("event")
         if not self._is_supported_event(payload.get("event")):
-            logger.info("Ignoring Plex webhook event type: %s", event_type)
+            logger.debug("Ignoring Plex webhook event type: %s", event_type)
             return
 
         payload_user = payload["Account"]["title"].strip().lower()
         if not self._is_valid_user(payload_user, user):
-            logger.info(
+            logger.debug(
                 "Ignoring Plex webhook event for user %s: not a valid user",
                 payload_user,
             )
@@ -32,7 +32,7 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
         logger.debug("Extracted IDs from payload: %s", ids)
 
         if not any(ids.values()):
-            logger.info("Ignoring Plex webhook call because no ID was found.")
+            logger.warning("Ignoring Plex webhook call because no ID was found.")
             return
 
         self._process_media(payload, user, ids)

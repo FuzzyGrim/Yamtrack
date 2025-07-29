@@ -55,9 +55,10 @@ def simkl_oauth(request):
     redirect_uri = request.build_absolute_uri(reverse("import_simkl"))
     url = "https://simkl.com/oauth/authorize"
 
-    mode = request.POST["mode"]
     # store in session because simkl drops all additional parameters
-    request.session["simkl_import_mode"] = mode
+    request.session["simkl_import_mode"] = request.POST["mode"]
+    request.session["simkl_import_frequency"] = request.POST["frequency"]
+    request.session["simkl_import_time"] = request.POST["time"]
 
     return redirect(
         f"{url}?client_id={settings.SIMKL_ID}&redirect_uri={redirect_uri}&response_type=code",
@@ -67,12 +68,25 @@ def simkl_oauth(request):
 @require_GET
 def import_simkl(request):
     """View for getting the SIMKL OAuth2 token."""
-    mode = request.session.get("simkl_import_mode")
-    request.session.pop("simkl_import_mode", None)  # Clean up session
-
     token = simkl.get_token(request)
-    tasks.import_simkl.delay(username=token, user_id=request.user.id, mode=mode)
-    messages.info(request, "The task to import media from Simkl has been queued.")
+    enc_token = helpers.encrypt(token)
+    frequency = request.session.pop("simkl_import_frequency")
+    mode = request.session.pop("simkl_import_mode")
+    import_time = request.session.pop("simkl_import_time")
+
+    if frequency == "once":
+        tasks.import_simkl.delay(username=enc_token, user_id=request.user.id, mode=mode)
+        messages.info(request, "The task to import media from Simkl has been queued.")
+    else:
+        helpers.create_import_schedule(
+            enc_token,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "SIMKL",
+        )
+
     return redirect("import_data")
 
 

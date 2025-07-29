@@ -156,18 +156,16 @@
         {# Simkl #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "simkl" %}</div>
-          <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import TV shows, movies and anime' : 'OAuth-based imports are not available for periodic imports'">
-          </p>
+          <p class="text-sm text-gray-400 mb-3">Import TV shows, movies and anime</p>
           <form method="post" action="{% url 'simkl_oauth' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <button type="submit"
-                    class="w-full px-4 py-2 text-sm rounded-md transition-colors"
-                    :class="importFrequency === 'once' ? 'cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
-                    :disabled="importFrequency !== 'once'">Connect with Simkl</button>
+                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
+              Connect with Simkl
+            </button>
           </form>
         </div>
 

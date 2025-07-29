@@ -298,8 +298,8 @@ def unicode_icon(name):
 
 
 @register.simple_tag
-def icon(name, is_active, extra_classes=None):
-    """Return the SVG icon for the media type."""
+def icon(name, is_active, extra_classes="w-5 h-5"):
+    """Return the SVG icon for the given name."""
     base_svg = """<svg xmlns="http://www.w3.org/2000/svg"
                       width="24"
                       height="24"
@@ -365,7 +365,6 @@ def icon(name, is_active, extra_classes=None):
         content = other_icons[name]
 
     active_class = "text-indigo-400 " if is_active else ""
-    extra_classes = extra_classes or "w-5 h-5"
 
     svg = base_svg.format(
         content=content,

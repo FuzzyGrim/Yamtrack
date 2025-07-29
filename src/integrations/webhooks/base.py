@@ -45,7 +45,7 @@ class BaseWebhookProcessor:
         """Route processing based on media type."""
         media_type = self._get_media_type(payload)
         if not media_type:
-            logger.info("Ignoring unsupported media type")
+            logger.debug("Ignoring unsupported media type")
             return
 
         title = self._get_media_title(payload)
@@ -59,14 +59,18 @@ class BaseWebhookProcessor:
     def _process_tv(self, payload, user, ids):
         media_id, season_number, episode_number = self._find_tv_media_id(ids)
         if not media_id:
-            logger.info("No matching TMDB ID found for TV show")
+            logger.warning("No matching TMDB ID found for TV show")
             return
 
         tvdb_id = app.providers.tmdb.tv_with_seasons(media_id, [season_number])[
             "tvdb_id"
         ]
 
-        if tvdb_id and user.anime_enabled:
+        if not tvdb_id:
+            logger.warning("No TVDB ID found for TMDB ID: %s", media_id)
+            return
+
+        if user.anime_enabled:
             mapping_data = self._fetch_mapping_data()
             mal_id, episode_offset = self._get_mal_id_from_tvdb(
                 mapping_data,
@@ -105,7 +109,7 @@ class BaseWebhookProcessor:
             logger.info("Detected movie via TMDB ID: %s", tmdb_id)
             self._handle_movie(tmdb_id, payload, user)
         elif ids["imdb_id"]:
-            logger.info("No TMDB ID found, looking up via IMDB ID: %s", ids["imdb_id"])
+            logger.debug("No TMDB ID found, looking up via IMDB ID: %s", ids["imdb_id"])
 
             response = app.providers.tmdb.find(ids["imdb_id"], "imdb_id")
             if response.get("movie_results"):
@@ -113,9 +117,12 @@ class BaseWebhookProcessor:
                 logger.info("Found matching TMDB ID: %s", media_id)
                 self._handle_movie(media_id, payload, user)
             else:
-                logger.info("No matching TMDB ID found for IMDB ID: %s", ids["imdb_id"])
+                logger.warning(
+                    "No matching TMDB ID found for IMDB ID: %s",
+                    ids["imdb_id"],
+                )
         else:
-            logger.info("No TMDB or IMDB ID found for movie, skipping processing")
+            logger.warning("No TMDB or IMDB ID found for movie, skipping processing")
             return
 
     def _find_tv_media_id(self, ids):
@@ -231,7 +238,7 @@ class BaseWebhookProcessor:
                     current_instance.status,
                 )
             else:
-                logger.info(
+                logger.debug(
                     "No changes detected for existing movie instance: %s",
                     current_instance.item,
                 )
@@ -345,7 +352,7 @@ class BaseWebhookProcessor:
                 threshold = 5
                 if time_diff < threshold:
                     should_create = False
-                    logger.info(
+                    logger.debug(
                         "Skipping duplicate episode record "
                         "(time difference: %d seconds): %s S%02dE%02d",
                         time_diff,
@@ -367,7 +374,7 @@ class BaseWebhookProcessor:
                     episode_number,
                 )
         else:
-            logger.info(
+            logger.debug(
                 "Episode not marked as played: %s S%02dE%02d",
                 tv_metadata["title"],
                 season_number,
@@ -416,7 +423,7 @@ class BaseWebhookProcessor:
                     episode_number,
                 )
             else:
-                logger.info(
+                logger.debug(
                     "No changes detected for existing anime instance: %s",
                     current_instance.item,
                 )
