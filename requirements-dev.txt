@@ -1,6 +1,6 @@
 coverage==7.10.0
 djlint==1.36.4
-fakeredis==2.30.1
+fakeredis==2.30.3
 pytest-django==4.11.1
 pytest-playwright==0.7.0
 ruff==0.12.5
