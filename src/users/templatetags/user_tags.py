@@ -59,6 +59,7 @@ def source_display(source_name):
             "name": "Steam",
             "logo": "https://store.steampowered.com/favicon.ico",
         },
+        "goodreads": {"name": "GoodReads", "logo": static("img/logo-goodreads.svg")},
     }
 
     # Get source info or use defaults if source not found
