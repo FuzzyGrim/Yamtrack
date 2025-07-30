@@ -16,7 +16,7 @@ base_url = "https://api.igdb.com/v4"
 
 class ExternalGameSource(IntEnum):
     """External game source IDs from IGDB API."""
-    
+
     STEAM = 1
     GOG = 5
     YOUTUBE = 10
@@ -109,21 +109,24 @@ def get_access_token():
 
 def external_game(external_id, source=ExternalGameSource.STEAM):
     """Find IGDB game by external ID using the external_game endpoint.
-    
+
     Args:
         external_id (str): The external ID (e.g., Steam App ID)
         source (ExternalGameSource): The external game source (defaults to Steam)
-        
+
     Returns:
         int or None: IGDB game ID if found, None otherwise
     """
     cache_key = f"external_game_{Sources.IGDB.value}_{source}_{external_id}"
     data = cache.get(cache_key)
-    
+
     if data is None:
         access_token = get_access_token()
         url = f"{base_url}/external_games"
-        query = f'fields game; where uid = "{external_id}" & external_game_source = {source};'
+        query = (
+            f'fields game; where uid = "{external_id}" & '
+            f'external_game_source = {source};'
+        )
         headers = {
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
@@ -166,9 +169,9 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
                 external_id,
                 source.name,
             )
-            
+
         cache.set(cache_key, data, 3600)  # Cache for 1 hour
-    
+
     return data
 
 

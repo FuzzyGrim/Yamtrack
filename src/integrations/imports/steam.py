@@ -8,7 +8,7 @@ from django.conf import settings
 import app
 from app.models import MediaTypes, Sources, Status
 from app.providers import services
-from app.providers.igdb import external_game, ExternalGameSource
+from app.providers.igdb import ExternalGameSource, external_game
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -119,15 +119,24 @@ class SteamImporter:
 
                 if "games" not in response["response"]:
                     # User might have private profile or no games
-                    logger.warning("No games found in Steam response for user %s", self.steam_id)
+                    logger.warning(
+                        "No games found in Steam response for user %s", self.steam_id,
+                    )
                     return []
 
                 games = response["response"]["games"]
-                logger.info("Found %d games for Steam user %s", len(games), self.steam_id)
-                return games
+                logger.info(
+                    "Found %d games for Steam user %s", len(games), self.steam_id,
+                )
+                return games  # noqa: TRY300
 
             except requests.HTTPError as e:
-                if e.response.status_code == 429:
+                # Define HTTP status codes as constants for better readability
+                http_too_many_requests = 429
+                http_forbidden = 403
+                http_internal_server_error = 500
+
+                if e.response.status_code == http_too_many_requests:
                     if attempt < max_retries - 1:
                         delay = base_delay * (2 ** attempt)
                         logger.warning(
@@ -139,15 +148,14 @@ class SteamImporter:
                         continue
                     msg = "Steam API rate limit exceeded. Please try again later."
                     raise MediaImportError(msg) from e
-                elif e.response.status_code == 403:
+                if e.response.status_code == http_forbidden:
                     msg = "Steam profile is private or invalid"
                     raise MediaImportError(msg) from e
-                elif e.response.status_code == 500:
+                if e.response.status_code == http_internal_server_error:
                     msg = "Steam API returned an internal error"
                     raise MediaImportError(msg) from e
-                else:
-                    msg = f"Steam API error: {e.response.status_code}"
-                    raise MediaImportError(msg) from e
+                msg = f"Steam API error: {e.response.status_code}"
+                raise MediaImportError(msg) from e
             except requests.RequestException as e:
                 logger.exception("Request error when fetching Steam games")
                 msg = "Failed to connect to Steam API"
@@ -242,11 +250,11 @@ class SteamImporter:
 
     def _determine_game_status(self, playtime_forever, playtime_2weeks):
         """Determine game status based on Steam playtime data.
-        
+
         Args:
             playtime_forever (int): Total playtime in minutes
             playtime_2weeks (int): Playtime in last 2 weeks in minutes
-            
+
         Returns:
             str: Status value from Status choices
         """
@@ -257,7 +265,7 @@ class SteamImporter:
         # Games played in the last 2 weeks are "In Progress"
         if playtime_2weeks > 0:
             return Status.IN_PROGRESS.value
-        
+
         # Games with total playtime but no recent activity are "On Hold"
         return Status.PAUSED.value
 
@@ -265,10 +273,10 @@ class SteamImporter:
         """Try to match Steam game with IGDB using External Game endpoint."""
         try:
             # Try to find IGDB game by Steam App ID using external_game endpoint
-          
-            
+
+
             igdb_game_id = external_game(steam_appid, ExternalGameSource.STEAM)
-            
+
             if igdb_game_id:
                 # Get the game details using the IGDB ID
                 game_details = services.get_media_metadata(
@@ -276,10 +284,11 @@ class SteamImporter:
                     str(igdb_game_id),
                     Sources.IGDB.value,
                 )
-                
+
                 if game_details:
                     logger.debug(
-                        "Matched Steam game %s (appid: %s) with IGDB ID %s via external_game",
+                        "Matched Steam game %s (appid: %s) with IGDB ID %s "
+                        "via external_game",
                         game_name,
                         steam_appid,
                         igdb_game_id,
@@ -294,7 +303,8 @@ class SteamImporter:
 
         except (ValueError, KeyError, TypeError) as e:
             logger.debug(
-                "Failed to match Steam game %s (appid: %s) with IGDB via external_game: %s",
+                "Failed to match Steam game %s (appid: %s) with IGDB "
+                "via external_game: %s",
                 game_name,
                 steam_appid,
                 e,
