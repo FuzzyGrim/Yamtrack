@@ -248,6 +248,26 @@ def import_steam(request):
         )
     return redirect("import_data")
 
+def import_imdb(request):
+    """View for importing data from IMDB."""
+    file = request.FILES.get("imdb_csv")
+
+    if not file:
+        messages.error(request, "IMDB CSV file is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    tasks.import_imdb.delay(
+        file=request.FILES["imdb_csv"],
+        user_id=request.user.id,
+        mode=mode,
+    )
+    messages.info(
+        request,
+        "The task to import media from IMDB CSV file has been queued.",
+    )
+    return redirect("import_data")
+
 
 @require_GET
 def export_csv(request):

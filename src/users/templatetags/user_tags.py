@@ -25,23 +25,23 @@ def source_display(source_name):
     sources = {
         "kitsu": {
             "name": "Kitsu",
-            "logo": "https://kitsu.app/favicon-194x194-2f4dbec5ffe82b8f61a3c6d28a77bc6e.png",
+            "logo": static("img/kitsu-logo.png"),
         },
         "trakt": {
             "name": "Trakt",
-            "logo": "https://trakt.tv/assets/logos/logomark.square.gradient-b644b16c38ff775861b4b1f58c1230f6a097a2466ab33ae00445a505c33fcb91.svg",
+            "logo": static("img/trakt-logo.svg"),
         },
         "myanimelist": {
             "name": "MyAnimeList",
-            "logo": "https://cdn.myanimelist.net/images/favicon.ico",
+            "logo": static("img/mal-logo.ico"),
         },
         "anilist": {
             "name": "AniList",
-            "logo": "https://anilist.co/img/icons/icon.svg",
+            "logo": static("img/anilist-logo.svg"),
         },
         "simkl": {
             "name": "SIMKL",
-            "logo": "https://eu.simkl.in/img_favicon/v2/favicon-192x192.png",
+            "logo": static("img/simkl-logo.png"),
         },
         "yamtrack": {
             "name": "YamTrack",
@@ -49,7 +49,11 @@ def source_display(source_name):
         },
         "hltb": {
             "name": "HowLongToBeat",
-            "logo": "https://howlongtobeat.com/img/icons/favicon-96x96.png",
+            "logo": static("img/hltb-logo.png"),
+        },
+        "imdb": {
+            "name": "IMDB",
+            "logo": static("img/imdb-logo.png"),
         },
         "steam": {
             "name": "Steam",

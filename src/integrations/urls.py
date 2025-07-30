@@ -12,6 +12,7 @@ urlpatterns = [
     path("import/yamtrack", views.import_yamtrack, name="import_yamtrack"),
     path("import/hltb", views.import_hltb, name="import_hltb"),
     path("import/steam", views.import_steam, name="import_steam"),
+    path("import/imdb", views.import_imdb, name="import_imdb"),
     path("export/csv", views.export_csv, name="export_csv"),
     path(
         "webhook/jellyfin/<str:token>",
