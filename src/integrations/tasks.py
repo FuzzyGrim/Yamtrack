@@ -52,24 +52,25 @@ def format_import_message(imported_counts, warning_messages=None):
     return info_message
 
 
-def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
+def import_media(
+    importer_func,
+    identifier,
+    user_id,
+    mode,
+    oauth_username=None,
+    task_name=None,
+):
     """Handle the import process for different media services."""
     user = get_user_model().objects.get(id=user_id)
 
     with disable_fetch_releases():
-        if oauth_username is None:
-            imported_counts, warnings = importer_func(
-                identifier,
-                user,
-                mode,
-            )
-        else:
-            imported_counts, warnings = importer_func(
-                identifier,
-                user,
-                mode,
-                username=oauth_username,
-            )
+        imported_counts, warnings = importer_func(
+            identifier,
+            user,
+            mode,
+            username=oauth_username,
+            task_name=task_name,
+        )
 
     events.tasks.reload_calendar.delay()
 
@@ -77,61 +78,64 @@ def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
 
 
 @shared_task(name="Import from Trakt")
-def import_trakt(user_id, mode, token=None, username=None):
+def import_trakt(user_id, mode, token=None, username=None, task_name=None):
     """Celery task for importing media data from Trakt."""
     token_dec = None
     if token is not None:
         token_dec = helpers.decrypt(token)
-    return import_media(trakt.importer, token_dec, user_id, mode, username)
+    return import_media(trakt.importer, token_dec, user_id, mode, username, task_name)
 
 
 @shared_task(name="Import from SIMKL")
-def import_simkl(token, user_id, mode, username=None):  # noqa: ARG001
+def import_simkl(token, user_id, mode, **_):
     """Celery task for importing media data from SIMKL."""
     token_dec = helpers.decrypt(token)
     return import_media(simkl.importer, token_dec, user_id, mode)
 
 
 @shared_task(name="Import from MyAnimeList")
-def import_mal(username, user_id, mode):
+def import_mal(username, user_id, mode, **_):
     """Celery task for importing anime and manga data from MyAnimeList."""
     return import_media(mal.importer, username, user_id, mode)
 
 
 @shared_task(name="Import from AniList")
-def import_anilist(username, user_id, mode):
+def import_anilist(username, user_id, mode, **_):
     """Celery task for importing anime and manga data from AniList."""
     return import_media(anilist.importer, username, user_id, mode)
 
 
 @shared_task(name="Import from Kitsu")
-def import_kitsu(username, user_id, mode):
+def import_kitsu(username, user_id, mode, **_):
     """Celery task for importing anime and manga data from Kitsu."""
     return import_media(kitsu.importer, username, user_id, mode)
 
 
 @shared_task(name="Import from Yamtrack")
-def import_yamtrack(file, user_id, mode):
+def import_yamtrack(file, user_id, mode, **_):
     """Celery task for importing media data from Yamtrack."""
     return import_media(yamtrack.importer, file, user_id, mode)
 
 
 @shared_task(name="Import from HowLongToBeat")
-def import_hltb(file, user_id, mode):
+def import_hltb(file, user_id, mode, **_):
     """Celery task for importing media data from HowLongToBeat."""
     return import_media(hltb.importer, file, user_id, mode)
 
+
 @shared_task(name="Import from Steam")
-def import_steam(username, user_id, mode):
+def import_steam(username, user_id, mode, **_):
     """Celery task for importing game data from Steam."""
     return import_media(steam.importer, username, user_id, mode)
 
+
 @shared_task(name="Import from IMDB")
-def import_imdb(file, user_id, mode):
+def import_imdb(file, user_id, mode, **_):
     """Celery task for importing media data from IMDB."""
     return import_media(imdb.importer, file, user_id, mode)
 
+
 @shared_task(name="Import from GoodReads")
-def import_goodreads(file, user_id, mode):
+def import_goodreads(file, user_id, mode, **_):
     """Celery task for importing media data from GoodReads."""
     return import_media(goodreads.importer, file, user_id, mode)

@@ -37,7 +37,7 @@ UNSUPPORTED_TYPES = {
 }
 
 
-def importer(file, user, mode):
+def importer(file, user, mode, **_):
     """Import media from IMDB CSV file."""
     imdb_importer = IMDBImporter(file, user, mode)
     return imdb_importer.import_data()

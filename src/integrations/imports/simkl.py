@@ -76,7 +76,7 @@ def get_username(token):
     return user_info["account"]["id"]
 
 
-def importer(token, user, mode):
+def importer(token, user, mode, **_):
     """Import tv shows, movies and anime from SIMKL."""
     simkl_importer = SimklImporter(token, user, mode)
     return simkl_importer.import_data()

@@ -5,6 +5,7 @@ from collections import defaultdict
 import requests
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
+from django_celery_beat.models import PeriodicTask
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -106,23 +107,31 @@ def get_access_token(refresh_token):
             msg = "Invalid Trakt secret key."
             raise MediaImportError(msg) from error
         raise
+    return {
+        "access_token": request["access_token"],
+        "refresh_token": request["refresh_token"],
+    }
 
-    return request["access_token"]
 
-
-def importer(token, user, mode, username=None):
+def importer(token, user, mode, username=None, task_name=None):
     """Import the user's data from Trakt using OAuth."""
     # Use "me" as Trakt username for OAuth authenticated user
     if username is None:
         username = "me"
-    trakt_importer = TraktImporter(username, user, mode, refresh_token=token)
+    trakt_importer = TraktImporter(
+        username,
+        user,
+        mode,
+        refresh_token=token,
+        task_name=task_name,
+    )
     return trakt_importer.import_data()
 
 
 class TraktImporter:
     """Class to handle importing user data from Trakt."""
 
-    def __init__(self, username, user, mode, refresh_token=None):
+    def __init__(self, username, user, mode, refresh_token=None, task_name=None):
         """Initialize the importer with user details and mode.
 
         Args:
@@ -135,6 +144,7 @@ class TraktImporter:
         self.user = user
         self.mode = mode
         self.refresh_token = refresh_token
+        self.task_name = task_name
         self.user_base_url = f"{TRAKT_API_BASE_URL}/users/{username}"
         self.warnings = []
 
@@ -185,7 +195,18 @@ class TraktImporter:
             try:
                 headers["Authorization"] = f"Bearer {self.access_token}"
             except AttributeError:
-                self.access_token = get_access_token(self.refresh_token)
+                token_response = get_access_token(self.refresh_token)
+                self.access_token = token_response["access_token"]
+                if self.task_name:
+                    periodic_task = PeriodicTask.objects.filter(
+                        name=self.task_name,
+                    ).first()
+                    task_args = json.loads(periodic_task.kwargs)
+                    task_args["token"] = helpers.encrypt(
+                        token_response["refresh_token"],
+                    )
+                    periodic_task.kwargs = json.dumps(task_args)
+                    periodic_task.save()
                 headers["Authorization"] = f"Bearer {self.access_token}"
         return services.api_request(
             "TRAKT",

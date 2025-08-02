@@ -16,7 +16,7 @@ from integrations.imports.helpers import MediaImportError, MediaImportUnexpected
 logger = logging.getLogger(__name__)
 
 
-def importer(username, user, mode):
+def importer(username, user, mode, **_):
     """Import anime and manga from MyAnimeList."""
     mal_importer = MyAnimeListImporter(username, user, mode)
     return mal_importer.import_data()

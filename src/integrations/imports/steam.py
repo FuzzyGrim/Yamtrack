@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 STEAM_API_BASE_URL = "https://api.steampowered.com"
 
 
-def importer(steam_id, user, mode):
+def importer(steam_id, user, mode, **_):
     """Import the user's games from Steam."""
     steam_importer = SteamImporter(steam_id, user, mode)
     return steam_importer.import_data()
@@ -120,13 +120,16 @@ class SteamImporter:
                 if "games" not in response["response"]:
                     # User might have private profile or no games
                     logger.warning(
-                        "No games found in Steam response for user %s", self.steam_id,
+                        "No games found in Steam response for user %s",
+                        self.steam_id,
                     )
                     return []
 
                 games = response["response"]["games"]
                 logger.info(
-                    "Found %d games for Steam user %s", len(games), self.steam_id,
+                    "Found %d games for Steam user %s",
+                    len(games),
+                    self.steam_id,
                 )
                 return games  # noqa: TRY300
 
@@ -138,11 +141,13 @@ class SteamImporter:
 
                 if e.response.status_code == http_too_many_requests:
                     if attempt < max_retries - 1:
-                        delay = base_delay * (2 ** attempt)
+                        delay = base_delay * (2**attempt)
                         logger.warning(
                             "Steam API rate limited (429). "
                             "Retrying in %d seconds (attempt %d/%d)",
-                            delay, attempt + 1, max_retries,
+                            delay,
+                            attempt + 1,
+                            max_retries,
                         )
                         time.sleep(delay)
                         continue
@@ -273,7 +278,6 @@ class SteamImporter:
         """Try to match Steam game with IGDB using External Game endpoint."""
         try:
             # Try to find IGDB game by Steam App ID using external_game endpoint
-
 
             igdb_game_id = external_game(steam_appid, ExternalGameSource.STEAM)
 

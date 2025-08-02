@@ -17,7 +17,7 @@ from integrations.imports.helpers import MediaImportError, MediaImportUnexpected
 logger = logging.getLogger(__name__)
 
 
-def importer(file, user, mode):
+def importer(file, user, mode, **_):
     """Import media from CSV file using the class-based importer."""
     csv_importer = YamtrackImporter(file, user, mode)
     return csv_importer.import_data()
@@ -204,4 +204,3 @@ class YamtrackImporter:
 
         msg = f"Missing metadata for: {row}"
         raise MediaImportError(msg)
-

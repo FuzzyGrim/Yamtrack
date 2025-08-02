@@ -15,7 +15,7 @@ from integrations.imports.helpers import MediaImportError, MediaImportUnexpected
 logger = logging.getLogger(__name__)
 
 
-def importer(file, user, mode):
+def importer(file, user, mode, **_):
     """Import media from CSV file."""
     hltb_importer = HowLongToBeatImporter(file, user, mode)
     return hltb_importer.import_data()

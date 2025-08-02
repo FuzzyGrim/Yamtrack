@@ -15,7 +15,7 @@ from integrations.imports.helpers import MediaImportError, MediaImportUnexpected
 logger = logging.getLogger(__name__)
 
 
-def importer(kitsu_id, user, mode):
+def importer(kitsu_id, user, mode, **_):
     """Import anime and manga ratings from Kitsu."""
     kitsu_importer = KitsuImporter(kitsu_id, user, mode)
     return kitsu_importer.import_data()
