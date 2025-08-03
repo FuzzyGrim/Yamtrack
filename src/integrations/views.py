@@ -7,13 +7,16 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponse, StreamingHttpResponse
+from django.core.paginator import Paginator
+from django.http import HttpResponse, StreamingHttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from app import providers
+from app.models import BasicMedia, MediaTypes
 import users
 from integrations import exports, tasks
 from integrations.imports import helpers, simkl, trakt
@@ -268,6 +271,7 @@ def import_steam(request):
         )
     return redirect("import_data")
 
+
 def import_imdb(request):
     """View for importing data from IMDB."""
     file = request.FILES.get("imdb_csv")
@@ -322,6 +326,63 @@ def export_csv(request):
     )
     logger.info("User %s started CSV export", request.user.username)
     return response
+
+
+@login_not_required
+@csrf_exempt
+@require_GET
+def api_medialist(request, media_type):
+    token = request.GET.get("token")
+    logger.info(token)
+    try:
+        request.user = users.models.User.objects.get(token=token)
+    except ObjectDoesNotExist:
+        logger.warning(
+            "Could not process API call: Invalid token: %s",
+            token,
+        )
+        return HttpResponse(status=401)
+    sort_filter = request.user.update_preference(
+        f"{media_type}_sort",
+        request.GET.get("sort"),
+    )
+    status_filter = request.user.update_preference(
+        f"{media_type}_status",
+        request.GET.get("status"),
+    )
+    logger.info(status_filter)
+    search_query = request.GET.get("search", "")
+    page = request.GET.get("page", 1)
+    media_queryset = BasicMedia.objects.get_media_list(
+        user=request.user,
+        media_type=media_type,
+        status_filter=status_filter,
+        sort_filter=sort_filter,
+        search=search_query,
+    )
+    items_per_page = 100
+    paginator = Paginator(media_queryset, items_per_page)
+    media_page = paginator.get_page(page)
+
+    resp = []
+
+    for object in media_page.object_list:
+        if media_type in [MediaTypes.TV.value, MediaTypes.ANIME.value]:
+            metadata = providers.services.get_media_metadata(
+                    media_type,
+                    object.item.media_id,
+                    object.item.source,
+                )
+            if "tvdb_id" in metadata:
+                resp.append({"tvdbId": str(metadata["tvdb_id"]), "title": str(object.item)})
+        else:
+            resp.append({"id": object.item.media_id, "title": str(object.item)})
+
+    return JsonResponse(
+        resp,
+        safe=False,
+        json_dumps_params={"ensure_ascii": False},
+    )
 
 
 @login_not_required

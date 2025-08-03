@@ -31,4 +31,9 @@ urlpatterns = [
         views.emby_webhook,
         name="emby_webhook",
     ),
+    path(
+        "api/medialist/<media_type:media_type>",
+        views.api_medialist,
+        name="api_medialist"
+    )
 ]
