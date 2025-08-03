@@ -367,19 +367,17 @@ def api_medialist(request, media_type):
     resp = []
 
     for media_object in media_page.object_list:
-        item = {
-            "id": media_object.item.media_id,
-            "title": str(media_object.item),
-            "source": media_object.item.source,
-            "tvdbId": None,
-        }
         m = providers.services.get_media_metadata(
             media_type,
             media_object.item.media_id,
             media_object.item.source,
         )
-        item.update(
+        resp.append(
             {
+                "id": media_object.item.media_id,
+                "title": str(media_object.item),
+                "source": media_object.item.source,
+                "tvdbId": m.get("tvdb_id", None),
                 "max_progress": m["max_progress"],
                 "source_url": m["source_url"],
                 "image": m["image"],
@@ -390,9 +388,6 @@ def api_medialist(request, media_type):
                 "score_count": m["score_count"],
             },
         )
-        if "tvdb_id" in m:
-            item["tvdbId"] = str(m["tvdb_id"])
-        resp.append(item)
 
     return JsonResponse(
         resp,
