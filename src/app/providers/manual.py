@@ -98,7 +98,7 @@ def get_season_episodes(season):
         source=Sources.MANUAL.value,
         media_type=MediaTypes.EPISODE.value,
         season_number=season.season_number,
-    )
+    ).order_by("episode_number")
 
 
 def episode(media_id, season_number, episode_number):
