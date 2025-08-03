@@ -8,16 +8,16 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
-from django.http import HttpResponse, StreamingHttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
-from app import providers
-from app.models import BasicMedia, MediaTypes
 import users
+from app import providers
+from app.models import BasicMedia
 from integrations import exports, tasks
 from integrations.imports import helpers, simkl, trakt
 from integrations.webhooks import emby, jellyfin, plex
@@ -366,17 +366,33 @@ def api_medialist(request, media_type):
 
     resp = []
 
-    for object in media_page.object_list:
-        if media_type in [MediaTypes.TV.value, MediaTypes.ANIME.value]:
-            metadata = providers.services.get_media_metadata(
-                    media_type,
-                    object.item.media_id,
-                    object.item.source,
-                )
-            if "tvdb_id" in metadata:
-                resp.append({"tvdbId": str(metadata["tvdb_id"]), "title": str(object.item)})
-        else:
-            resp.append({"id": object.item.media_id, "title": str(object.item)})
+    for media_object in media_page.object_list:
+        item = {
+            "id": media_object.item.media_id,
+            "title": str(media_object.item),
+            "source": media_object.item.source,
+            "tvdbId": None,
+        }
+        m = providers.services.get_media_metadata(
+            media_type,
+            media_object.item.media_id,
+            media_object.item.source,
+        )
+        item.update(
+            {
+                "max_progress": m["max_progress"],
+                "source_url": m["source_url"],
+                "image": m["image"],
+                "synopsis": m["synopsis"],
+                "details": m["details"],
+                "genres": m["genres"],
+                "score": m["score"],
+                "score_count": m["score_count"],
+            },
+        )
+        if "tvdb_id" in m:
+            item["tvdbId"] = str(m["tvdb_id"])
+        resp.append(item)
 
     return JsonResponse(
         resp,

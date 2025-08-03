@@ -34,6 +34,6 @@ urlpatterns = [
     path(
         "api/medialist/<media_type:media_type>",
         views.api_medialist,
-        name="api_medialist"
-    )
+        name="api_medialist",
+    ),
 ]
