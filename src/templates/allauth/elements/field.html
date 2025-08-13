@@ -32,6 +32,7 @@
              x-bind:type="{% if attrs.name == 'password2' %}showConfirmPassword{% else %}showPassword{% endif %} ? 'text' : 'password'"
              class="w-full p-3 pr-10 bg-[#39404b] rounded-md text-white border {% if attrs.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
       <button type="button"
+              tabindex="-1"
               @click="{% if attrs.name == 'password2' %}showConfirmPassword = !showConfirmPassword{% else %}showPassword = !showPassword{% endif %}"
               class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
         <!-- Show when password is hidden -->

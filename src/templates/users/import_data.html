@@ -114,41 +114,14 @@
           <p class="text-sm text-gray-400 mb-3">Import TV shows and movies</p>
           <form class="flex items-center"
                 method="post"
-                action="{% url 'import_trakt' %}">
+                action="{% url 'trakt_oauth' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
-            <div class="relative flex-1">
-              <input placeholder="Trakt username slug"
-                     name="user"
-                     class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                     type="text">
-              <div class="group absolute right-2 top-1/2 -translate-y-1/2">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4 text-gray-400">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 16v-4" />
-                  <path d="M12 8h.01" />
-                </svg>
-                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 invisible group-hover:visible shadow-lg">
-                  Found in your Trakt profile URL:
-                  <br>
-                  trakt.tv/users/<span class="text-indigo-400">username-slug</span>
-                </div>
-              </div>
-            </div>
             <button type="submit"
-                    class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
-              Import
+                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
+              Connect with Trakt
             </button>
           </form>
         </div>
@@ -156,18 +129,16 @@
         {# Simkl #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "simkl" %}</div>
-          <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import TV shows, movies and anime' : 'OAuth-based imports are not available for periodic imports'">
-          </p>
+          <p class="text-sm text-gray-400 mb-3">Import TV shows, movies and anime</p>
           <form method="post" action="{% url 'simkl_oauth' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <button type="submit"
-                    class="w-full px-4 py-2 text-sm rounded-md transition-colors"
-                    :class="importFrequency === 'once' ? 'cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
-                    :disabled="importFrequency !== 'once'">Connect with Simkl</button>
+                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
+              Connect with Simkl
+            </button>
           </form>
         </div>
 
@@ -250,8 +221,8 @@
                   <path d="M12 16v-4" />
                   <path d="M12 8h.01" />
                 </svg>
-                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 invisible group-hover:visible shadow-lg">
-                  Found in your Kitsu profile URL:
+                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
+                  Find it on your Kitsu profile URL:
                   <br>
                   kitsu.app/users/<span class="text-indigo-400">1234567</span>
                 </div>
@@ -329,6 +300,108 @@
                    :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
                    :disabled="importFrequency !== 'once'">
               <input name="hltb_csv"
+                     accept=".csv"
+                     class="hidden"
+                     type="file"
+                     :disabled="importFrequency !== 'once'"
+                     @change="importFrequency === 'once' && $el.form.submit()">
+              Select CSV File
+            </label>
+          </form>
+        </div>
+
+        {# Steam #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center mb-3">{% source_display "steam" %}</div>
+          <p class="text-sm text-gray-400 mb-3">Import games from your Steam library</p>
+          <form class="flex items-center"
+                method="post"
+                action="{% url 'import_steam' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <div class="relative flex-1">
+              <input placeholder="Steam 64-bit ID"
+                     name="user"
+                     class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     type="text">
+              <div class="group absolute right-2 top-1/2 -translate-y-1/2">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-4 h-4 text-gray-400">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
+                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
+                  Find it on your Steam account details page under your username.
+                  <br>
+                  <br>
+                  Your profile must be public if the API key you are using is not linked to the steamid you are requesting.
+                </div>
+              </div>
+            </div>
+            <button type="submit"
+                    class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+              Import
+            </button>
+          </form>
+        </div>
+
+        {# IMDB #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center">{% source_display "imdb" %}</div>
+          </div>
+          <p class="text-sm text-gray-400 mb-3"
+             x-text="importFrequency === 'once' ? 'Import movies and TV shows from your ratings' : 'File uploads are not available for periodic imports'">
+          </p>
+          <form method="post"
+                action="{% url 'import_imdb' %}"
+                enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :disabled="importFrequency !== 'once'">
+              <input name="imdb_csv"
+                     accept=".csv"
+                     class="hidden"
+                     type="file"
+                     :disabled="importFrequency !== 'once'"
+                     @change="importFrequency === 'once' && $el.form.submit()">
+              Select CSV File
+            </label>
+          </form>
+        </div>
+
+        {# GoodReads #}
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <div class="flex items-center mb-3">{% source_display "goodreads" %}</div>
+          <p class="text-sm text-gray-400 mb-3"
+             x-text="importFrequency === 'once' ? 'Import from GoodReads backup' : 'File uploads are not available for periodic imports'">
+          </p>
+          <form method="post"
+                action="{% url 'import_goodreads' %}"
+                enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :disabled="importFrequency !== 'once'">
+              <input name="goodreads_csv"
                      accept=".csv"
                      class="hidden"
                      type="file"

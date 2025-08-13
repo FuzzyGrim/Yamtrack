@@ -1,0 +1,44 @@
+{
+    "response": {
+        "game_count": 5,
+        "games": [
+            {
+                "appid": 730,
+                "name": "Counter-Strike 2",
+                "playtime_forever": 1250,
+                "playtime_2weeks": 120,
+                "img_icon_url": "bb1c5f60fcb9b74d36f798b9e8b93cf8a3ac9b46",
+                "rtime_last_played": 1720396800
+            },
+            {
+                "appid": 570,
+                "name": "Dota 2",
+                "playtime_forever": 0,
+                "playtime_2weeks": 0,
+                "img_icon_url": "0bbb630d63262dd66d2fdd0f7d37e8661a410075"
+            },
+            {
+                "appid": 440,
+                "name": "Team Fortress 2",
+                "playtime_forever": 500,
+                "playtime_2weeks": 0,
+                "img_icon_url": "e3f595a92552da3d664ad00277fad2107345f743",
+                "rtime_last_played": 1672531200
+            },
+            {
+                "appid": 271590,
+                "name": "Grand Theft Auto V",
+                "playtime_forever": 2850,
+                "img_icon_url": "f6d7836459b6ad7a99f9b84e55598e81db9ba9d3",
+                "rtime_last_played": 1704000000
+            },
+            {
+                "appid": 431960,
+                "name": "Wallpaper Engine",
+                "playtime_forever": 45,
+                "img_icon_url": "ac1a7c78c98ad69cfe81b96b5d1afdb01d39a61a",
+                "rtime_last_played": 1680000000
+            }
+        ]
+    }
+}

@@ -11,50 +11,56 @@ def get_attr(obj, attr):
     return getattr(obj, attr, None)
 
 
+SOURCES_CONFIG = {
+    "kitsu": {
+        "name": "Kitsu",
+        "logo": static("img/kitsu-logo.png"),
+    },
+    "trakt": {
+        "name": "Trakt",
+        "logo": static("img/trakt-logo.svg"),
+    },
+    "myanimelist": {
+        "name": "MyAnimeList",
+        "logo": static("img/mal-logo.ico"),
+    },
+    "anilist": {
+        "name": "AniList",
+        "logo": static("img/anilist-logo.svg"),
+    },
+    "simkl": {
+        "name": "SIMKL",
+        "logo": static("img/simkl-logo.png"),
+    },
+    "yamtrack": {
+        "name": "YamTrack",
+        "logo": static("favicon/apple-touch-icon.png"),
+    },
+    "hltb": {
+        "name": "HowLongToBeat",
+        "logo": static("img/hltb-logo.png"),
+    },
+    "imdb": {
+        "name": "IMDB",
+        "logo": static("img/imdb-logo.png"),
+    },
+    "steam": {
+        "name": "Steam",
+        "logo": static("img/steam-logo.ico"),
+    },
+    "goodreads": {
+        "name": "GoodReads",
+        "logo": static("img/logo-goodreads.svg"),
+    },
+}
+
+
 @register.simple_tag
 def source_display(source_name):
-    """
-    Generate HTML display for a media source with logo and name.
-
-    Args:
-        source_name: The source identifier (e.g., 'kitsu', 'trakt')
-
-    Returns:
-        HTML markup for the source with logo and name
-    """
-    sources = {
-        "kitsu": {
-            "name": "Kitsu",
-            "logo": "https://kitsu.app/favicon-194x194-2f4dbec5ffe82b8f61a3c6d28a77bc6e.png",
-        },
-        "trakt": {
-            "name": "Trakt",
-            "logo": "https://trakt.tv/assets/logos/logomark.square.gradient-b644b16c38ff775861b4b1f58c1230f6a097a2466ab33ae00445a505c33fcb91.svg",
-        },
-        "myanimelist": {
-            "name": "MyAnimeList",
-            "logo": "https://cdn.myanimelist.net/images/favicon.ico",
-        },
-        "anilist": {
-            "name": "AniList",
-            "logo": "https://anilist.co/img/icons/icon.svg",
-        },
-        "simkl": {
-            "name": "SIMKL",
-            "logo": "https://eu.simkl.in/img_favicon/v2/favicon-192x192.png",
-        },
-        "yamtrack": {
-            "name": "YamTrack",
-            "logo": static("favicon//apple-touch-icon.png"),
-        },
-        "hltb": {
-            "name": "HowLongToBeat",
-            "logo": "https://howlongtobeat.com/img/icons/favicon-96x96.png",
-        },
-    }
-
-    # Get source info or use defaults if source not found
-    info = sources[source_name]
+    """Generate HTML display for a media source with logo and name."""
+    info = SOURCES_CONFIG.get(source_name)
+    if not info:
+        return ""
 
     html = f"""
         <div class="flex items-center">

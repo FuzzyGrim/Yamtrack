@@ -9,11 +9,9 @@ from dateutil.relativedelta import relativedelta
 from django.apps import apps
 from django.db import models
 from django.db.models import (
-    Count,
     Prefetch,
     Q,
 )
-from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from app import media_type_config
@@ -514,36 +512,33 @@ def get_level(count):
 
 
 def get_filtered_historical_data(start_date, end_date, user):
-    """Get historical data filtered by date range."""
+    """Return [{"date": datetime.date, "count": int}]."""
     historical_models = BasicMedia.objects.get_historical_models()
-    combined_data = []
-    local_timezone = timezone.get_current_timezone()
+    local_tz = timezone.get_current_timezone()
+
+    day_buckets = defaultdict(int)
 
     for model_name in historical_models:
-        historical_model = apps.get_model("app", model_name)
+        model = apps.get_model("app", model_name)
 
-        # Start with base query
-        query = historical_model.objects.filter(
-            history_user_id=user,
-        )
+        qs = model.objects.filter(history_user_id=user)
 
-        # Add date filters conditionally
-        if start_date is not None:
-            query = query.filter(history_date__date__gte=start_date)
-        if end_date is not None:
-            query = query.filter(history_date__date__lte=end_date)
+        if start_date:
+            qs = qs.filter(history_date__gte=start_date)
+        if end_date:
+            qs = qs.filter(history_date__lte=end_date)
 
-        # Annotate and aggregate
-        data = (
-            query.annotate(
-                date=TruncDate("history_date", tzinfo=local_timezone),
-            )
-            .values("date")
-            .annotate(count=Count("id"))
-        )
+        # We only need the timestamp, stream results to keep memory usage flat
+        for ts in qs.values_list("history_date", flat=True).iterator(chunk_size=2_000):
+            aware_ts = timezone.localtime(ts, local_tz)
 
-        combined_data.extend(data)
+            day_buckets[aware_ts.date()] += 1
 
+    combined_data = [
+        {"date": day, "count": count} for day, count in day_buckets.items()
+    ]
+
+    logger.info("%s - built historical data (%s rows)", user, len(combined_data))
     return combined_data
 
 

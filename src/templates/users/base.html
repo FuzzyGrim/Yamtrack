@@ -155,7 +155,9 @@
           </nav>
         </div>
       </div>
-      <div class="flex-1">
+
+      <!-- min-w-0 prevents flex item overflow, happens when creating periodic import for Simkl -->
+      <div class="flex-1 min-w-0">
         {% block settings_content %}
         {% endblock settings_content %}
       </div>

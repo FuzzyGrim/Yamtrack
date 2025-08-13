@@ -1,4 +1,5 @@
 import logging
+from enum import IntEnum
 
 import requests
 from django.conf import settings
@@ -11,6 +12,31 @@ from app.providers import services
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.igdb.com/v4"
+
+
+class ExternalGameSource(IntEnum):
+    """External game source IDs from IGDB API."""
+
+    STEAM = 1
+    GOG = 5
+    YOUTUBE = 10
+    MICROSOFT = 11
+    APPLE = 13
+    TWITCH = 14
+    ANDROID = 15
+    AMAZON_ASIN = 20
+    AMAZON_LUNA = 22
+    AMAZON_ADG = 23
+    EPIC_GAME_STORE = 26
+    OCULUS = 28
+    UTOMIK = 29
+    ITCH_IO = 30
+    XBOX_MARKETPLACE = 31
+    KARTRIDGE = 32
+    PLAYSTATION_STORE_US = 36
+    FOCUS_ENTERTAINMENT = 37
+    XBOX_GAME_PASS_ULTIMATE_CLOUD = 54
+    GAMEJOLT = 55
 
 
 def handle_error(error):
@@ -79,6 +105,74 @@ def get_access_token():
             response["expires_in"] - 60,
         )  # 1 min buffer to avoid using an expired token
     return access_token
+
+
+def external_game(external_id, source=ExternalGameSource.STEAM):
+    """Find IGDB game by external ID using the external_game endpoint.
+
+    Args:
+        external_id (str): The external ID (e.g., Steam App ID)
+        source (ExternalGameSource): The external game source (defaults to Steam)
+
+    Returns:
+        int or None: IGDB game ID if found, None otherwise
+    """
+    cache_key = f"external_game_{Sources.IGDB.value}_{source}_{external_id}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        access_token = get_access_token()
+        url = f"{base_url}/external_games"
+        query = (
+            f'fields game; where uid = "{external_id}" & '
+            f'external_game_source = {source};'
+        )
+        headers = {
+            "Client-ID": settings.IGDB_ID,
+            "Authorization": f"Bearer {access_token}",
+        }
+
+        try:
+            response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                data=query,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            error_resp = handle_error(error)
+            if error_resp and error_resp.get("retry"):
+                # Retry the request with the new access token
+                headers["Authorization"] = f"Bearer {get_access_token()}"
+                response = services.api_request(
+                    Sources.IGDB.value,
+                    "POST",
+                    url,
+                    data=query,
+                    headers=headers,
+                )
+
+        # Return the IGDB game ID if found, None otherwise
+        if response and len(response) > 0:
+            data = response[0].get("game")
+            logger.debug(
+                "Found IGDB match for external ID %s (source: %s): %s",
+                external_id,
+                source.name,
+                data,
+            )
+        else:
+            data = None
+            logger.debug(
+                "No IGDB match found for external ID %s (source: %s)",
+                external_id,
+                source.name,
+            )
+
+        cache.set(cache_key, data)
+
+    return data
 
 
 def search(query, page):

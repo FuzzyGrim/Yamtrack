@@ -35,7 +35,7 @@ def get_token(request):
     }
 
     try:
-        request = app.providers.services.api_request(
+        token_response = app.providers.services.api_request(
             "SIMKL",
             "POST",
             url,
@@ -48,7 +48,32 @@ def get_token(request):
             raise MediaImportError(msg) from error
         raise
 
-    return request["access_token"]
+    return {
+        "access_token": token_response["access_token"],
+        "username": get_username(token_response["access_token"]),
+    }
+
+
+def get_username(token):
+    """Get the username from SIMKL using the provided token."""
+    try:
+        user_info = app.providers.services.api_request(
+            "SIMKL",
+            "POST",
+            "https://api.simkl.com/users/settings",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "simkl-api-key": settings.SIMKL_ID,
+                "Content-Type": "application/json",
+            },
+        )
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
+            msg = "Invalid SIMKL secret key."
+            raise MediaImportError(msg) from error
+        raise
+
+    return user_info["user"]["name"]
 
 
 def importer(token, user, mode):
@@ -70,7 +95,7 @@ class SimklImporter:
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
         """
-        self.token = token
+        self.token = helpers.decrypt(token)
         self.user = user
         self.mode = mode
         self.warnings = []
@@ -220,7 +245,6 @@ class SimklImporter:
                         tv,
                         tv_instance,
                         metadata,
-                        season_numbers,
                     )
 
             except Exception as error:
@@ -229,7 +253,7 @@ class SimklImporter:
 
         logger.info("Processed %d tv shows", len(tv_list))
 
-    def _process_seasons_and_episodes(self, tv, tv_instance, metadata, season_numbers):
+    def _process_seasons_and_episodes(self, tv, tv_instance, metadata):
         """Process seasons and episodes for a TV show."""
         tmdb_id = tv["show"]["ids"]["tmdb"]
 
@@ -249,12 +273,10 @@ class SimklImporter:
                 },
             )
 
-            # Prepare Season instance for bulk creation
-            season_status = (
-                Status.COMPLETED.value
-                if season_number != season_numbers[-1]
-                else tv_instance.status
-            )
+            if episodes[-1]["number"] == season_metadata["max_progress"]:
+                season_status = Status.COMPLETED.value
+            else:
+                season_status = tv_instance.status
 
             season_instance = app.models.Season(
                 item=season_item,

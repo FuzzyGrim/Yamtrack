@@ -1,4 +1,5 @@
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime
 
@@ -214,12 +215,25 @@ class MyAnimeListImporter:
         if date_str is None:
             return None
 
-        return datetime.strptime(date_str, "%Y-%m-%d").replace(
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=timezone.get_current_timezone(),
-        )
+        try:
+            # turn year-only date into YYYY-MM-YY; assume Jan. 1st
+            if re.fullmatch(r"\d{4}", date_str):
+                return datetime(int(date_str), 1, 1).replace(
+                    hour=0,
+                    minute=0,
+                    second=0,
+                    tzinfo=timezone.get_current_timezone(),
+                )
+
+            return datetime.strptime(date_str, "%Y-%m-%d").replace(
+                hour=0,
+                minute=0,
+                second=0,
+                tzinfo=timezone.get_current_timezone(),
+            )
+        except ValueError:
+            logger.warning("Unexpected MAL date format: %s", date_str)
+            return None
 
     def _get_status(self, status):
         """Convert the status from MyAnimeList to the status used in the app."""

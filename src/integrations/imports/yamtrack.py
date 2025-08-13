@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 import app
+from app import media_type_config
 from app.models import MediaTypes, Sources
 from app.providers import services
 from app.templatetags import app_tags
@@ -164,13 +165,43 @@ class YamtrackImporter:
         """Handle missing metadata by fetching from provider."""
         if row["source"] == Sources.MANUAL.value and row["image"] == "":
             row["image"] = settings.IMG_NONE
-        else:
+            return
+
+        if row.get("media_id", "") != "":
             metadata = services.get_media_metadata(
                 media_type,
                 row["media_id"],
                 row["source"],
-                [season_number],
+                season_number,
                 episode_number,
             )
             row["title"] = metadata["title"]
             row["image"] = metadata["image"]
+            return
+
+        if row.get("title", "") != "":
+            source = row.get("source", "")
+            if source == "":
+                source = media_type_config.get_default_source_name(media_type)
+
+            metadata = services.search(
+                media_type,
+                row["title"],
+                1,
+                source,
+            )
+
+            first_result = metadata["results"][0]
+            row["title"] = first_result["title"]
+            row["source"] = first_result["source"]
+            row["media_id"] = first_result["media_id"]
+            row["media_type"] = media_type
+            row["image"] = first_result["image"]
+
+            logger.info("Added title from %s: %s", source, row["title"])
+            logger.info("Obtained media id: %s", row["media_id"])
+            return
+
+        msg = f"Missing metadata for: {row}"
+        raise MediaImportError(msg)
+

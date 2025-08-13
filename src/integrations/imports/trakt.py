@@ -1,9 +1,11 @@
+import json
 import logging
 from collections import defaultdict
 
 import requests
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
+from django_celery_beat.models import PeriodicTask
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -17,26 +19,134 @@ TRAKT_API_BASE_URL = "https://api.trakt.tv"
 BULK_PAGE_SIZE = 1000
 
 
-def importer(username, user, mode):
-    """Import the user's data from Trakt."""
-    trakt_importer = TraktImporter(username, user, mode)
+def handle_oauth_callback(request):
+    """View for getting the Trakt OAuth2 token."""
+    domain = request.get_host()
+    scheme = request.scheme
+    code = request.GET["code"]
+
+    url = "https://api.trakt.tv/oauth/token"
+
+    params = {
+        "client_id": settings.TRAKT_API,
+        "client_secret": settings.TRAKT_API_SECRET,
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": f"{scheme}://{domain}/import/trakt",
+    }
+
+    try:
+        token_response = app.providers.services.api_request(
+            "TRAKT",
+            "POST",
+            url,
+            params=params,
+        )
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
+            msg = "Invalid Trakt secret key."
+            raise MediaImportError(msg) from error
+        raise
+
+    return {
+        "refresh_token": token_response["refresh_token"],
+        "username": get_username_from_oauth(token_response["access_token"]),
+    }
+
+
+def get_username_from_oauth(access_token):
+    """View for getting the Trakt OAuth2 username."""
+    url = "https://api.trakt.tv/users/me"
+
+    headers = {
+        "Content-Type": "application/json",
+        "trakt-api-version": "2",
+        "trakt-api-key": settings.TRAKT_API,
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    try:
+        request = app.providers.services.api_request(
+            "TRAKT",
+            "GET",
+            url,
+            headers=headers,
+        )
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
+            msg = "Invalid Trakt secret key."
+            raise MediaImportError(msg) from error
+        raise
+
+    return request["username"]
+
+
+def get_access_token(refresh_token):
+    """View for getting the Trakt OAuth2 access token."""
+    url = "https://api.trakt.tv/oauth/token"
+
+    params = {
+        "client_id": settings.TRAKT_API,
+        "client_secret": settings.TRAKT_API_SECRET,
+        "refresh_token": helpers.decrypt(refresh_token),
+        "grant_type": "refresh_token",
+        "redirect_uri": f"{settings.BASE_URL}/import/trakt",
+    }
+
+    try:
+        request = app.providers.services.api_request(
+            "TRAKT",
+            "POST",
+            url,
+            params=params,
+        )
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
+            msg = "Invalid Trakt secret key."
+            raise MediaImportError(msg) from error
+        raise
+
+    # refresh tokens are one time use only
+    update_refresh_token(refresh_token, request["refresh_token"])
+    return request["access_token"]
+
+
+def update_refresh_token(old_token, new_token):
+    """Update the refresh token in periodic tasks."""
+    periodic_task = PeriodicTask.objects.filter(
+        task="Import from Trakt",
+        kwargs__contains=f'"token": "{old_token}"',
+    ).first()
+
+    if periodic_task:
+        task_kwargs = json.loads(periodic_task.kwargs)
+        task_kwargs["token"] = helpers.encrypt(new_token)
+        periodic_task.kwargs = json.dumps(task_kwargs)
+        periodic_task.save()
+
+
+def importer(token, user, mode, username=None):
+    """Import the user's data from Trakt using OAuth."""
+    trakt_importer = TraktImporter(username, user, mode, refresh_token=token)
     return trakt_importer.import_data()
 
 
 class TraktImporter:
     """Class to handle importing user data from Trakt."""
 
-    def __init__(self, username, user, mode):
+    def __init__(self, username, user, mode, refresh_token=None):
         """Initialize the importer with user details and mode.
 
         Args:
             username (str): Trakt username to import from
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
+            refresh_token (str, optional): OAuth2 refresh token if using OAuth
         """
         self.username = username
         self.user = user
         self.mode = mode
+        self.refresh_token = refresh_token
         self.user_base_url = f"{TRAKT_API_BASE_URL}/users/{username}"
         self.warnings = []
 
@@ -83,6 +193,13 @@ class TraktImporter:
             "trakt-api-version": "2",
             "trakt-api-key": settings.TRAKT_API,
         }
+        if self.refresh_token:
+            try:
+                # already made api_request before, so access_token is set
+                headers["Authorization"] = f"Bearer {self.access_token}"
+            except AttributeError:
+                self.access_token = get_access_token(self.refresh_token)
+                headers["Authorization"] = f"Bearer {self.access_token}"
         return services.api_request(
             "TRAKT",
             "GET",

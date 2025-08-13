@@ -4,7 +4,7 @@ import json
 import warnings
 import zoneinfo
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from celery.schedules import crontab
 from decouple import (
@@ -373,6 +373,11 @@ IGDB_SECRET = config(
 )
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+STEAM_API_KEY = config(
+    "STEAM_API_KEY",
+    default=secret("STEAM_API_KEY_FILE", ""), # Generate default key https://steamcommunity.com/dev/apikey
+)
+
 HARDCOVER_API = config(
     "HARDCOVER_API",
     default=secret(
@@ -403,6 +408,15 @@ TRAKT_API = config(
         "b4d9702b11cfaddf5e863001f68ce9d4394b678926e8a3f64d47bf69a55dd0fe",
     ),
 )
+
+TRAKT_API_SECRET = config(
+    "TRAKT_API_SECRET",
+    default=secret(
+        "TRAKT_API_SECRET_FILE",
+        "",
+    ),
+)
+
 SIMKL_ID = config(
     "SIMKL_ID",
     default=secret(
@@ -515,7 +529,10 @@ else:
     # Empty CSRF_TRUSTED_ORIGINS, default to http
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
 
-ACCOUNT_LOGOUT_REDIRECT_URL = "/accounts/login/?loggedout=1"
+ACCOUNT_LOGOUT_REDIRECT_URL = config(
+    "ACCOUNT_LOGOUT_REDIRECT_URL",
+    default="/accounts/login/?loggedout=1",
+)
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_USER_MODEL_EMAIL_FIELD = None
 ACCOUNT_FORMS = {
@@ -524,7 +541,9 @@ ACCOUNT_FORMS = {
 }
 
 if BASE_URL:
-    ACCOUNT_LOGOUT_REDIRECT_URL = f"{BASE_URL}/accounts/login/?loggedout=1"
+    # Join base only if relative URL
+    if not urlparse(ACCOUNT_LOGOUT_REDIRECT_URL).netloc:
+        ACCOUNT_LOGOUT_REDIRECT_URL = urljoin(BASE_URL, ACCOUNT_LOGOUT_REDIRECT_URL)
     SESSION_COOKIE_PATH = BASE_URL + "/"
 
 SOCIALACCOUNT_LOGIN_ON_GET = True

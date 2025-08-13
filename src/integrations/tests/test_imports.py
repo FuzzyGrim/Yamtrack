@@ -6,11 +6,15 @@ from unittest.mock import MagicMock, Mock, patch
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
+from requests import Response
+from requests.exceptions import HTTPError
 
 from app.models import (
     TV,
     Anime,
+    Book,
     Episode,
     Game,
     Item,
@@ -23,11 +27,14 @@ from app.models import (
 )
 from integrations.imports import (
     anilist,
+    goodreads,
     helpers,
     hltb,
+    imdb,
     kitsu,
     mal,
     simkl,
+    steam,
     yamtrack,
 )
 from integrations.imports.trakt import TraktImporter, importer
@@ -248,6 +255,46 @@ class ImportYamtrack(TestCase):
             # Verify the row was modified as expected
             self.assertNotEqual(row["title"], original_row["title"])
             self.assertNotEqual(row["image"], original_row["image"])
+
+
+class ImportYamtrackPartials(TestCase):
+    """Test importing yamtrack media with no ID."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        with Path(mock_path / "import_yamtrack_partials.csv").open("rb") as file:
+            self.import_results = yamtrack.importer(file, self.user, "new")
+
+    def test_import_counts(self):
+        """Test basic counts of imported media."""
+        self.assertEqual(Book.objects.filter(user=self.user).count(), 3)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+    def test_end_dates(self):
+        """Test end dates during import."""
+        book = Book.objects.filter(user=self.user).first()
+        self.assertEqual(book.history.count(), 1)
+        bookqs = Book.objects.filter(
+            user=self.user,
+            item__title="Warlock",
+        ).order_by("-end_date")
+        books = list(bookqs)
+
+        self.assertEqual(len(books), 3)
+        self.assertEqual(
+            books[0].end_date,
+            datetime(2024, 5, 9, 0, 0, 0, tzinfo=UTC),
+        )
+        self.assertEqual(
+            books[1].end_date,
+            datetime(2024, 4, 9, 0, 0, 0, tzinfo=UTC),
+        )
+        self.assertEqual(
+            books[2].end_date,
+            datetime(2024, 3, 9, 0, 0, 0, tzinfo=UTC),
+        )
 
 
 class ImportHowLongToBeat(TestCase):
@@ -550,7 +597,11 @@ class ImportSimkl(TestCase):
         """Create user for the tests."""
         credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**credentials)
-        self.importer = simkl.SimklImporter("testuser", self.user, "new")
+        self.importer = simkl.SimklImporter(
+            helpers.encrypt("token"),
+            self.user,
+            "new",
+        )
 
     @patch("integrations.imports.simkl.SimklImporter._get_user_list")
     def test_importer(
@@ -601,11 +652,7 @@ class ImportSimkl(TestCase):
             ],
         }
 
-        imported_counts, warnings = simkl.importer(
-            "token",
-            self.user,
-            "new",
-        )
+        imported_counts, warnings = self.importer.import_data()
 
         # Check the results
         self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
@@ -660,6 +707,257 @@ class ImportSimkl(TestCase):
             datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC),
         )
         self.assertIsNone(self.importer._get_date(None))
+
+    @patch("integrations.imports.simkl.SimklImporter._get_user_list")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    def test_season_status_logic_with_completed_seasons(
+        self,
+        mock_tv_with_seasons,
+        mock_user_list,
+    ):
+        """Test that seasons are marked as completed when all episodes are watched."""
+        # Mock TMDB metadata response
+        mock_tv_with_seasons.return_value = {
+            "title": "Breaking Bad",
+            "image": "https://image.tmdb.org/t/p/w500/test.jpg",
+            "season/1": {
+                "image": "https://image.tmdb.org/t/p/w500/season1.jpg",
+                "max_progress": 7,
+                "episodes": [
+                    {"episode_number": 1, "still_path": "/ep1.jpg"},
+                    {"episode_number": 2, "still_path": "/ep2.jpg"},
+                    {"episode_number": 3, "still_path": "/ep3.jpg"},
+                    {"episode_number": 4, "still_path": "/ep4.jpg"},
+                    {"episode_number": 5, "still_path": "/ep5.jpg"},
+                    {"episode_number": 6, "still_path": "/ep6.jpg"},
+                    {"episode_number": 7, "still_path": "/ep7.jpg"},
+                ],
+            },
+            "season/2": {
+                "image": "https://image.tmdb.org/t/p/w500/season2.jpg",
+                "max_progress": 13,
+            },
+        }
+
+        mock_user_list.return_value = {
+            "shows": [
+                {
+                    "last_watched_at": "2023-01-15T00:00:00Z",
+                    "show": {"title": "Breaking Bad", "ids": {"tmdb": 1396}},
+                    "status": "watching",  # TV show is still in progress
+                    "user_rating": 9,
+                    "seasons": [
+                        {
+                            "number": 1,
+                            "episodes": [
+                                {"number": 1, "watched_at": "2023-01-01T00:00:00Z"},
+                                {"number": 2, "watched_at": "2023-01-02T00:00:00Z"},
+                                {"number": 3, "watched_at": "2023-01-03T00:00:00Z"},
+                                {"number": 4, "watched_at": "2023-01-04T00:00:00Z"},
+                                {"number": 5, "watched_at": "2023-01-05T00:00:00Z"},
+                                {"number": 6, "watched_at": "2023-01-06T00:00:00Z"},
+                                {"number": 7, "watched_at": "2023-01-07T00:00:00Z"},
+                            ],
+                        },
+                    ],
+                    "memo": {},
+                },
+            ],
+            "movies": [],
+            "anime": [],
+        }
+
+        imported_counts, _ = self.importer.import_data()
+
+        # Verify import counts
+        self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.SEASON.value], 1)
+        self.assertEqual(
+            imported_counts[MediaTypes.EPISODE.value],
+            7,
+        )
+
+        # Check TV show status
+        tv_item = Item.objects.get(media_type=MediaTypes.TV.value)
+        tv_obj = TV.objects.get(item=tv_item)
+        self.assertEqual(tv_obj.status, Status.IN_PROGRESS.value)
+
+        # Check Season 1 - should be COMPLETED because all 7 episodes are watched
+        season1_item = Item.objects.get(
+            media_type=MediaTypes.SEASON.value,
+            season_number=1,
+        )
+        season1_obj = Season.objects.get(item=season1_item)
+        self.assertEqual(
+            season1_obj.status,
+            Status.COMPLETED.value,
+            "Season 1 should be completed when all episodes are watched",
+        )
+
+        # Verify all episodes were created correctly
+        season1_episodes = Episode.objects.filter(
+            item__season_number=1,
+            item__media_type=MediaTypes.EPISODE.value,
+        )
+        self.assertEqual(season1_episodes.count(), 7)
+
+        # Verify episode dates are set correctly
+        for episode in season1_episodes:
+            self.assertIsNotNone(episode.end_date)
+
+
+class ImportIMDB(TestCase):
+    """Test importing media from IMDB CSV."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        with Path(mock_path / "import_imdb.csv").open("rb") as file:
+            self.import_results = imdb.importer(file, self.user, "new")
+
+    def test_import_imdb_csv(self):
+        """Test importing movies and TV shows from IMDB CSV."""
+        imported_counts, warnings = self.import_results
+
+        # Check import counts
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 4)
+        self.assertEqual(imported_counts[MediaTypes.TV.value], 2)
+
+        # Check that unsupported type was skipped
+        self.assertIn(
+            "The Last of Us: Unsupported title type 'Video Game' - skipped",
+            warnings,
+        )
+
+        # Check Movie data
+        movie_1 = Movie.objects.get(item__title="The Shawshank Redemption")
+        self.assertEqual(movie_1.score, 9)
+        self.assertEqual(movie_1.status, Status.COMPLETED.value)
+        self.assertEqual(movie_1.progress, 1)
+        self.assertEqual(
+            movie_1.end_date,
+            datetime(2025, 2, 3, tzinfo=timezone.get_current_timezone()),
+        )
+
+        # Check TV show data
+        game_of_thrones = TV.objects.get(item__title="Game of Thrones")
+        self.assertEqual(game_of_thrones.status, Status.PLANNING.value)
+
+    def test_extract_imdb_id(self):
+        """Test IMDB ID extraction and formatting."""
+        importer_instance = imdb.IMDBImporter(None, self.user, "new")
+
+        self.assertEqual(
+            importer_instance._extract_imdb_id({"Const": "tt0111161"}),
+            "tt0111161",
+        )
+        self.assertEqual(
+            importer_instance._extract_imdb_id({"Const": "0111161"}),
+            "tt0111161",
+        )
+        self.assertIsNone(importer_instance._extract_imdb_id({"Const": ""}))
+        self.assertIsNone(importer_instance._extract_imdb_id({"Const": "invalid"}))
+
+    def test_parse_rating(self):
+        """Test rating parsing."""
+        importer_instance = imdb.IMDBImporter(None, self.user, "new")
+
+        # Valid ratings
+        self.assertEqual(importer_instance._parse_rating("8.5"), 8.5)
+        self.assertEqual(importer_instance._parse_rating("10"), 10.0)
+        self.assertEqual(importer_instance._parse_rating("1"), 1.0)
+
+        # Invalid ratings
+        self.assertIsNone(importer_instance._parse_rating(""))
+        self.assertIsNone(importer_instance._parse_rating("invalid"))
+        self.assertIsNone(importer_instance._parse_rating("11"))
+        self.assertIsNone(importer_instance._parse_rating("0"))
+
+    def test_parse_date_rated(self):
+        """Test date parsing."""
+        importer_instance = imdb.IMDBImporter(None, self.user, "new")
+
+        # Valid date
+        parsed_date = importer_instance._parse_date("2023-01-15")
+        self.assertEqual(parsed_date.date(), datetime(2023, 1, 15, tzinfo=UTC).date())
+
+        # Invalid dates
+        self.assertIsNone(importer_instance._parse_date(""))
+        self.assertIsNone(importer_instance._parse_date("invalid-date"))
+
+    def test_is_supported_type(self):
+        """Test title type support checking."""
+        importer_instance = imdb.IMDBImporter(None, self.user, "new")
+        type_tests = {
+            ("Movie", True),
+            ("TV Series", True),
+            ("Short", True),
+            ("TV Mini Series", True),
+            ("TV Movie", True),
+            ("TV Special", True),
+            ("TV Episode", False),
+            ("TV Short", False),
+            ("Video Game", False),
+            ("Video", False),
+            ("Music Video", False),
+            ("Podcast Series", False),
+            ("Podcast Episode", False),
+        }
+
+        for media_type, result in type_tests:
+            self.assertEqual(importer_instance._is_supported_type(media_type), result)
+
+    @patch("app.providers.tmdb.find")
+    def test_lookup_in_tmdb_not_found(self, mock_tmdb_find):
+        """Test TMDB lookup when no results are found."""
+        mock_tmdb_find.return_value = {}
+
+        importer_instance = imdb.IMDBImporter(None, self.user, "new")
+        result = importer_instance._lookup_in_tmdb("tt9999999", "movie")
+
+        self.assertIsNone(result)
+
+    def test_duplicate_handling(self):
+        """Test handling of duplicate IMDB entries that map to same TMDB ID."""
+        imported_counts, warnings = self.import_results
+
+        # There are three movies in the test CSV, one of them is a duplicate
+        # The test CSV file contains a duplicate of The Dark Knight
+        self.assertEqual(imported_counts.get(MediaTypes.MOVIE.value, 0), 4)
+
+        # Should have duplicate warning
+        self.assertIn("They were matched to the same TMDB ID 155", warnings)
+
+
+class ImportGoodreads(TestCase):
+    """Test importing media from GoodReads CSV."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        with Path(mock_path / "import_goodreads.csv").open("rb") as file:
+            self.import_results = goodreads.importer(file, self.user, "new")
+
+    def test_import_counts(self):
+        """Test basic counts of imported books."""
+        self.assertEqual(Book.objects.filter(user=self.user).count(), 3)
+
+    def test_historical_records(self):
+        """Test historical records creation during import."""
+        book = Book.objects.filter(user=self.user).first()
+        self.assertEqual(book.history.count(), 1)
+
+    def test_stored_progress(self):
+        """Test progress of imported books."""
+        read_book = Book.objects.get(status=Status.COMPLETED.value)
+        self.assertEqual(read_book.status, Status.COMPLETED.value)
+        self.assertEqual(read_book.progress, 994)
+
+        read_book = Book.objects.get(status=Status.IN_PROGRESS.value)
+        self.assertEqual(read_book.status, Status.IN_PROGRESS.value)
+        self.assertEqual(read_book.progress, 0)
 
 
 class HelpersTest(TestCase):
@@ -819,3 +1117,173 @@ class HelpersTest(TestCase):
 
         schedule = CrontabSchedule.objects.first()
         self.assertEqual(schedule.day_of_week, "*/2")
+
+
+class ImportSteam(TestCase):
+    """Test importing media from Steam."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    @patch("integrations.imports.steam.services.api_request")
+    @patch("integrations.imports.steam.external_game")
+    @patch("integrations.imports.steam.services.get_media_metadata")
+    def test_import_steam_games(
+        self,
+        mock_get_metadata,
+        mock_external_game,
+        mock_api_request,
+    ):
+        """Test importing games from Steam."""
+        # Mock Steam API response
+        mock_api_request.return_value = {
+            "response": {
+                "games": [
+                    {
+                        "appid": 730,
+                        "name": "Counter-Strike 2",
+                        "playtime_forever": 1250,
+                        "playtime_2weeks": 120,  # Recent activity
+                        "rtime_last_played": 1704067200,  # Recent timestamp
+                    },
+                    {
+                        "appid": 570,
+                        "name": "Dota 2",
+                        "playtime_forever": 0,  # Never played
+                        "playtime_2weeks": 0,  # No recent activity
+                    },
+                    {
+                        "appid": 440,
+                        "name": "Team Fortress 2",
+                        "playtime_forever": 500,
+                        "playtime_2weeks": 0,  # No recent activity
+                        "rtime_last_played": 1672531200,  # Old timestamp (over 14 days)
+                    },
+                ],
+            },
+        }
+
+        # Mock IGDB external_game results (returns IGDB game IDs)
+        mock_external_game.side_effect = [1, 2, 3]  # IGDB game IDs for each Steam app
+
+        # Mock IGDB get_media_metadata results
+        mock_get_metadata.side_effect = [
+            {"title": "Counter-Strike 2", "image": "http://example.com/cs2.jpg"},
+            {"title": "Dota 2", "image": "http://example.com/dota2.jpg"},
+            {"title": "Team Fortress 2", "image": "http://example.com/tf2.jpg"},
+        ]
+
+        # Import games
+        imported_counts, warnings = steam.importer(
+            "76561198000000000",
+            self.user,
+            "new",
+        )
+
+        # Verify import counts
+        self.assertEqual(imported_counts[MediaTypes.GAME.value], 3)
+
+        # Verify games were created with correct statuses
+        games = Game.objects.filter(user=self.user)
+        self.assertEqual(games.count(), 3)
+
+        # Check specific game statuses
+        cs2_game = games.get(item__title="Counter-Strike 2")
+        self.assertEqual(cs2_game.status, Status.IN_PROGRESS.value)
+        self.assertEqual(cs2_game.progress, 1250)
+
+        dota_game = games.get(item__title="Dota 2")
+        self.assertEqual(dota_game.status, Status.PLANNING.value)
+        self.assertEqual(dota_game.progress, 0)
+
+        tf2_game = games.get(item__title="Team Fortress 2")
+        self.assertEqual(tf2_game.status, Status.PAUSED.value)
+        self.assertEqual(tf2_game.progress, 500)
+
+    @patch("integrations.imports.steam.services.api_request")
+    def test_import_steam_private_profile(self, mock_api_request):
+        """Test handling of private Steam profile."""
+        # Create a mock 403 response
+        response = Response()
+        response.status_code = 403
+        mock_api_request.side_effect = HTTPError(response=response)
+
+        # Test that the correct error is raised
+        with self.assertRaises(helpers.MediaImportError) as context:
+            steam.importer("76561198000000000", self.user, "new")
+
+        self.assertIn("private or invalid", str(context.exception))
+
+    @patch("integrations.imports.steam.services.api_request")
+    @patch("integrations.imports.steam.external_game")
+    def test_import_steam_game_not_found_in_igdb(
+        self,
+        mock_external_game,
+        mock_api_request,
+    ):
+        """Test handling of games not found in IGDB."""
+        # Mock Steam API response
+        mock_api_request.return_value = {
+            "response": {
+                "games": [
+                    {
+                        "appid": 999,
+                        "name": "Unknown Game",
+                        "playtime_forever": 100,
+                        "playtime_2weeks": 0,
+                    },
+                ],
+            },
+        }
+
+        # Mock IGDB external_game returning no results (None)
+        mock_external_game.return_value = None
+
+        # Import games
+        imported_counts, _ = steam.importer(
+            "76561198000000000",
+            self.user,
+            "new",
+        )
+
+        # Verify the game was imported as a manual entry
+        self.assertEqual(imported_counts.get(MediaTypes.GAME.value, 0), 1)
+
+        # Verify the game was created with manual source
+        game = Game.objects.get(user=self.user)
+        self.assertEqual(game.item.source, Sources.MANUAL.value)
+        self.assertEqual(game.item.media_id, "1")
+        self.assertEqual(game.item.title, "Unknown Game")
+        # 100 minutes total, 0 recent
+        self.assertEqual(game.status, Status.PAUSED.value)
+
+    def test_determine_game_status_logic(self):
+        """Test the status determination logic."""
+        importer_instance = steam.SteamImporter("76561198000000000", self.user, "new")
+
+        # Test Planning status (no playtime)
+        status = importer_instance._determine_game_status(0, 0)
+        self.assertEqual(status, Status.PLANNING.value)
+
+        # Test In Progress status (played in last 2 weeks)
+        status = importer_instance._determine_game_status(100, 50)
+        self.assertEqual(status, Status.IN_PROGRESS.value)
+
+        # Test Paused status (has playtime but no recent activity)
+        status = importer_instance._determine_game_status(100, 0)
+        self.assertEqual(status, Status.PAUSED.value)
+
+        # Test Paused status (has playtime but no 2-week activity data)
+        status = importer_instance._determine_game_status(100, 0)
+        self.assertEqual(status, Status.PAUSED.value)
+
+    @patch("integrations.imports.steam.services.api_request")
+    def test_import_steam_no_api_key(self, _mock_api_request):
+        """Test handling when Steam API key is not configured."""
+        with patch.object(settings, "STEAM_API_KEY", ""):
+            with self.assertRaises(helpers.MediaImportError) as context:
+                steam.importer("76561198000000000", self.user, "new")
+
+            self.assertIn("Steam API key not configured", str(context.exception))

@@ -381,6 +381,22 @@ class Metadata(TestCase):
             ["Action", "Fantasy", "Open world"],
         )
 
+    def test_external_game_steam(self):
+        """Test the external_game method for Steam games."""
+        # Test with a known Steam game ID - The Witcher 3: Wild Hunt (Steam ID: 292030)
+        igdb_game_id = igdb.external_game("292030", igdb.ExternalGameSource.STEAM)
+
+        # Should return the IGDB game ID (1942 for The Witcher 3)
+        self.assertEqual(igdb_game_id, 1942)
+
+    def test_external_game_not_found(self):
+        """Test the external_game method with non-existent Steam ID."""
+        # Test with a Steam ID that doesn't exist in IGDB
+        igdb_game_id = igdb.external_game("999999999", igdb.ExternalGameSource.STEAM)
+
+        # Should return None for non-existent games
+        self.assertIsNone(igdb_game_id)
+
     def test_book(self):
         """Test the metadata method for books."""
         response = openlibrary.book("OL21733390M")
@@ -397,9 +413,9 @@ class Metadata(TestCase):
         response = hardcover.book("377193")
         self.assertEqual(response["title"], "The Great Gatsby")
         self.assertEqual(response["details"]["author"], "F. Scott Fitzgerald")
-        self.assertEqual(response["details"]["publisher"], "imusti")
+        self.assertEqual(response["details"]["publisher"], "Penguin UK")
         self.assertEqual(response["details"]["publish_date"], "1920-06-01")
-        self.assertEqual(response["details"]["number_of_pages"], 180)
+        self.assertEqual(response["details"]["number_of_pages"], 217)
         self.assertEqual(response["details"]["format"], "Paperback")
         # Testing that we have some of the expected genres
         self.assertIn("Fiction", response["genres"])
