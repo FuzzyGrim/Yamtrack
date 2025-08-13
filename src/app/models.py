@@ -1643,6 +1643,7 @@ class DiaryEntry(models.Model):
     )
     review = models.TextField(blank=True, default="")
     progress_snapshot = models.JSONField(null=True, blank=True)
+    liked = models.BooleanField(default=False)
 
     class Meta:
         """Meta options for the model."""

@@ -16,6 +16,7 @@ def create_diary_entry(
     consumed_at=None,
     rating=None,
     review="",
+    liked=False,
     auto_mark_consumed=False,
 ) -> DiaryEntry:
     """
@@ -35,9 +36,6 @@ def create_diary_entry(
     if consumed_at is None:
         consumed_at = timezone.now()
 
-    # Get or create the media instance for this item
-    media_instance = Media.objects.filter(user=user, item=item).first()
-    
     with transaction.atomic():
         # Create the diary entry
         entry = DiaryEntry.objects.create(
@@ -46,11 +44,29 @@ def create_diary_entry(
             consumed_at=consumed_at,
             rating=rating,
             review=review,
+            liked=liked,
         )
         
         # Optionally mark as consumed
-        if auto_mark_consumed and media_instance:
-            media_instance.mark_consumed()
+        if auto_mark_consumed:
+            # For movies, get or create a Movie tracking instance
+            if item.media_type == 'movie':
+                from app.models import Movie, Status
+                movie_instance, created = Movie.objects.get_or_create(
+                    item=item,
+                    user=user,
+                    defaults={
+                        "status": Status.COMPLETED.value,
+                        "end_date": consumed_at,
+                    }
+                )
+                if not created:
+                    movie_instance.mark_consumed()
+            else:
+                # For other media types, try to find existing instance
+                media_instance = Media.objects.filter(user=user, item=item).first()
+                if media_instance:
+                    media_instance.mark_consumed()
             
         # Queue statistics update
         transaction.on_commit(lambda: update_daily_statistics.delay(

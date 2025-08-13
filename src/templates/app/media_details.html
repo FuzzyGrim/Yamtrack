@@ -52,6 +52,21 @@
               Log
             </button>
           </div>
+          
+          {% if diary_entries %}
+            <div class="mt-2 text-xs text-gray-400 text-center">
+              {% if diary_entries|length == 1 %}
+                Logged {{ diary_entries.0.consumed_at|date:"M d, Y" }}
+                {% if diary_entries.0.rating %} • ★ {{ diary_entries.0.rating }}{% endif %}
+                {% if diary_entries.0.liked %} • <span class="text-red-400">❤️</span>{% endif %}
+              {% else %}
+                {{ diary_entries|length }} logs (last: {{ diary_entries.0.consumed_at|date:"M d" }})
+                {% for entry in diary_entries %}
+                  {% if entry.liked %} • <span class="text-red-400">❤️</span>{% endif %}
+                {% endfor %}
+              {% endif %}
+            </div>
+          {% endif %}
         {% else %}
           {# Track button for non-movies #}
           <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
@@ -527,4 +542,70 @@
 
   {# Log Modal Container #}
   <div id="log-modal-container"></div>
+
+  <script>
+  function submitDiaryLog(button) {
+      console.log('Log button clicked');
+      
+      const modal = button.closest('.fixed');
+      
+      // Get form data
+      const watchDate = modal.querySelector('[name="watch_date"]').value;
+      const rating = modal.querySelector('[name="rating"]').value || '';
+      const review = modal.querySelector('[name="review"]').value || '';
+      const isRewatch = modal.querySelector('[name="is_rewatch"]').checked;
+      const liked = modal.querySelector('[name="liked"]').value === 'true';
+      
+      console.log('Form data:', { watchDate, rating, review, isRewatch, liked });
+      
+      const formData = new FormData();
+      formData.append('watch_date', watchDate);
+      formData.append('rating', rating);
+      formData.append('review', review);
+      formData.append('is_rewatch', isRewatch);
+      formData.append('liked', liked);
+      formData.append('auto_mark_consumed', 'true');
+      formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+      
+      // Disable button
+      button.disabled = true;
+      button.textContent = 'Logging...';
+      
+      const url = '{% url "add_movie_diary_entry" media.source media.media_type media.media_id %}';
+      console.log('Submitting to:', url);
+      
+      // Submit via fetch
+      fetch(url, {
+          method: 'POST',
+          body: formData,
+          headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+          }
+      })
+      .then(response => {
+          console.log('Response status:', response.status);
+          if (response.ok) {
+              return response.json();
+          } else {
+              return response.text().then(text => {
+                  console.error('Error response:', text);
+                  throw new Error('Server error: ' + response.status);
+              });
+          }
+      })
+      .then(data => {
+          console.log('Success:', data);
+          // Success - close modal and reload page to show changes
+          modal.remove();
+          window.location.reload();
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          // Re-enable button on error
+          button.disabled = false;
+          button.textContent = 'Log';
+          alert('Error logging movie: ' + error.message);
+      });
+  }
+  </script>
 {% endblock content %}

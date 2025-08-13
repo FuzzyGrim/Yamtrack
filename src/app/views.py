@@ -191,11 +191,21 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     )
     current_instance = user_medias[0] if user_medias else None
 
+    # Get diary entries for this media if it's a movie
+    diary_entries = []
+    if media_type == MediaTypes.MOVIE.value:
+        try:
+            item = Item.objects.get(source=source, media_type=media_type, media_id=media_id)
+            diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        except Item.DoesNotExist:
+            pass
+
     context = {
         "media": media_metadata,
         "media_type": media_type,
         "user_medias": user_medias,
         "current_instance": current_instance,
+        "diary_entries": diary_entries,
     }
     return render(request, "app/media_details.html", context)
 
@@ -1188,7 +1198,22 @@ def log_modal(request, source, media_type, media_id):
     if media_type != MediaTypes.MOVIE.value:
         raise Http404("Logging is only available for movies")
         
-    item = get_object_or_404(Item, source=source, media_type=media_type, media_id=media_id)
+    # Get or create the item - fetch metadata if it doesn't exist
+    try:
+        item = Item.objects.get(source=source, media_type=media_type, media_id=media_id)
+    except Item.DoesNotExist:
+        # Fetch metadata and create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
+        
     return render(request, 'app/components/log_modal.html', {
         'item': item,
         'user': request.user,
@@ -1236,3 +1261,68 @@ def mark_movie_watched(request, source, media_type, media_id):
         "current_instance": media_instance,
     }
     return render(request, "app/components/media_actions.html", context)
+
+
+@require_POST
+def add_movie_diary_entry(request, source, media_type, media_id):
+    """Create a diary entry for a movie using media metadata."""
+    try:
+        if media_type != MediaTypes.MOVIE.value:
+            raise Http404("Diary entries are only available for movies")
+            
+        logger.info(f"Creating diary entry for {media_type} {media_id} from {source}")
+        logger.info(f"POST data: {dict(request.POST)}")
+        
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        item, created = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
+        logger.info(f"Item {'created' if created else 'found'}: {item}")
+        
+        # Create diary entry using the services function
+        from app.services import create_diary_entry
+        from django.utils.dateparse import parse_date
+        
+        # Parse form data
+        consumed_at = parse_date(request.POST.get('watch_date'))
+        if not consumed_at:
+            consumed_at = timezone.now().date()
+            
+        rating = request.POST.get('rating')
+        if rating and rating.strip():
+            rating = float(rating)
+        else:
+            rating = None
+            
+        review = request.POST.get('review', '').strip()
+        liked = request.POST.get('liked', '').lower() == 'true'
+        auto_mark_consumed = request.POST.get('auto_mark_consumed') == 'true'
+        
+        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: {len(review)} chars, Liked: {liked}, Auto-consume: {auto_mark_consumed}")
+        
+        # Create the diary entry
+        entry = create_diary_entry(
+            user=request.user,
+            item=item,
+            consumed_at=consumed_at,
+            rating=rating,
+            review=review,
+            liked=liked,
+            auto_mark_consumed=auto_mark_consumed,
+        )
+        
+        logger.info(f"Diary entry created successfully: {entry}")
+        
+        # Return success response
+        return JsonResponse({"success": True, "entry_id": entry.id})
+        
+    except Exception as e:
+        logger.error(f"Error creating diary entry: {str(e)}", exc_info=True)
+        return JsonResponse({"error": str(e)}, status=400)
