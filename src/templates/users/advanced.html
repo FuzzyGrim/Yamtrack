@@ -1,0 +1,87 @@
+{% extends "users/base.html" %}
+
+{% load socialaccount %}
+{% load static %}
+
+{% block title %}
+    Advanced - Yamtrack
+{% endblock title %}
+
+{% block settings_content %}
+
+    <div class="space-y-6">
+        <div class="bg-[#2a2f35] rounded-lg p-6">
+            <div class="flex items-center mb-5">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-6 h-6 text-indigo-400 mr-3">
+                    <line x1="4" x2="4" y1="21" y2="14" /><line x1="4" x2="4" y1="10" y2="3" /><line x1="12" x2="12" y1="21" y2="12" /><line x1="12" x2="12" y1="8" y2="3" /><line x1="20" x2="20" y1="21" y2="16" /><line x1="20" x2="20" y1="12" y2="3" /><line x1="2" x2="6" y1="14" y2="14" /><line x1="10" x2="14" y1="8" y2="8" /><line x1="18" x2="22" y1="16" y2="16" />
+                </svg>
+                <h2 class="text-xl font-semibold">Advanced</h2>
+            </div>
+
+            <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+                <div class="flex items-center mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="24"
+                         height="24"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         class="w-5 h-5 text-indigo-400 mr-2">
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <h3 class="text-base font-medium">Clear Search Cache</h3>
+                </div>
+                <p class="text-gray-400 mb-4 text-sm">
+                    Yamtrack stores your search results in a cache to speed up performance and reduce API calls.
+                    <br>
+                    Normally, these cached results expire automatically after 24 hours.
+                    If your search results appear outdated, you can clear the cache manually.
+                    <br>
+                    Your next search may be slightly slower as fresh data is retrieved.
+                </p>
+                <div class="flex space-x-3">
+                    <form method="post" action="{% url 'clear_search_cache' %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 width="24"
+                                 height="24"
+                                 viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round"
+                                 class="w-4 h-4 mr-2">
+                                <path d="M10 11v6" />
+                                <path d="M14 11v6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                <path d="M3 6h18" />
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                            Clear Search Cache
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock settings_content %}

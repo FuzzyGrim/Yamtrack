@@ -21,6 +21,7 @@ urlpatterns = [
     path("settings/integrations", views.integrations, name="integrations"),
     path("settings/import", views.import_data, name="import_data"),
     path("settings/export", views.export_data, name="export_data"),
+    path("settings/advanced", views.advanced, name="advanced"),
     path("settings/about", views.about, name="about"),
     path(
         "delete_import_schedule",
@@ -28,6 +29,7 @@ urlpatterns = [
         name="delete_import_schedule",
     ),
     path("regenerate_token", views.regenerate_token, name="regenerate_token"),
+    path("clear_search_cache", views.clear_search_cache, name="clear_search_cache"),
     path(
         "update_plex_usernames",
         views.update_plex_usernames,
