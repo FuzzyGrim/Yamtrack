@@ -8,13 +8,12 @@ from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import (require_GET, require_http_methods,
-                                          require_POST)
+from django.template.defaultfilters import pluralize
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
-from users.forms import (NotificationSettingsForm, PasswordChangeForm,
-                         UserUpdateForm)
+from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +260,7 @@ def export_data(request):
 
 @require_GET
 def advanced(request):
-    """Render the advanced settings page"""
+    """Render the advanced settings page."""
     return render(request, "users/advanced.html")
 
 @require_GET
@@ -323,13 +322,16 @@ def update_plex_usernames(request):
 
 @require_POST
 def clear_search_cache(request):
-    """Clear all cached search entries"""
+    """Clear all cached search entries."""
     deleted = cache.delete_pattern("search_*")
 
-    messages.success(request, f"Successfully cleared {deleted} search entrie{'s' if deleted > 1 or deleted == 0 else ''}")
+    messages.success(
+        request,
+        f"Successfully cleared {deleted} search entr{pluralize(deleted, 'y,ies')}",
+    )
     logger.info(
         "Successfully cleared %s search entries",
         deleted,
     )
-    
+
     return redirect("advanced")
