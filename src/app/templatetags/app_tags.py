@@ -91,8 +91,15 @@ def media_type_readable(media_type):
 @register.filter
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
-    singular = MediaTypes(media_type).label
-
+    # Handle empty or invalid media types
+    if not media_type:
+        return ""
+    
+    try:
+        singular = MediaTypes(media_type).label
+    except (ValueError, KeyError):
+        return media_type  # Return as-is if invalid
+    
     # Special cases that don't change in plural form
     if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
         return singular
@@ -139,9 +146,13 @@ def long_unit(media_type):
 @register.simple_tag
 def get_search_media_types(user):
     """Return available media types for search based on user preferences."""
-    enabled_types = (
-        user.get_enabled_media_types() if user.hide_from_search else MediaTypes.values
-    )
+    # Handle anonymous users
+    if not user.is_authenticated or not hasattr(user, 'get_enabled_media_types'):
+        enabled_types = MediaTypes.values
+    else:
+        enabled_types = (
+            user.get_enabled_media_types() if user.hide_from_search else MediaTypes.values
+        )
 
     # Filter and format the types for search
     return [
@@ -157,6 +168,10 @@ def get_search_media_types(user):
 @register.simple_tag
 def get_sidebar_media_types(user):
     """Return available media types for sidebar navigation based on user preferences."""
+    # Handle anonymous users
+    if not user.is_authenticated or not hasattr(user, 'get_enabled_media_types'):
+        return []
+    
     enabled_types = user.get_enabled_media_types()
 
     # Format the types for sidebar
@@ -360,6 +375,13 @@ def icon(name, is_active, extra_classes="w-5 h-5"):
         "user": (
             """<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                <circle cx="12" cy="7" r="4"></circle>"""
+        ),
+        "diary": (
+            """<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+               <polyline points="14 2 14 8 20 8"></polyline>
+               <line x1="16" x2="8" y1="13" y2="13"></line>
+               <line x1="16" x2="8" y1="17" y2="17"></line>
+               <polyline points="10 9 9 9 8 9"></polyline>"""
         ),
     }
 

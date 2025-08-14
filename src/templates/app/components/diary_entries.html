@@ -1,0 +1,126 @@
+{% load static %}
+{% load app_tags %}
+
+{% if entries %}
+  <!-- Entries Grid -->
+  <div class="space-y-4">
+    {% for entry in entries %}
+      <div class="bg-[#2a2f35] rounded-lg p-6 hover:bg-[#343a40] transition-colors">
+        <div class="flex items-start gap-4">
+          <!-- Movie Poster -->
+          <div class="flex-shrink-0">
+            <a href="{{ entry.item|media_url }}">
+              {% get_user_poster_image entry.item user as poster_url %}
+              <img alt="{{ entry.item.title }}"
+                   class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if poster_url != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
+                   src="{{ IMG_NONE }}"
+                   data-src="{{ poster_url }}">
+            </a>
+          </div>
+
+          <!-- Entry Details -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <h3 class="font-medium text-lg mb-1">
+                  <a href="{{ entry.item|media_url }}" 
+                     class="hover:text-indigo-400 transition-colors line-clamp-2">
+                    {{ entry.item.title }}
+                  </a>
+                </h3>
+                
+                <!-- Entry Metadata -->
+                <div class="flex items-center text-sm text-gray-400 mb-3 gap-4">
+                  <span>{{ entry.consumed_at|date:"M d, Y" }}</span>
+                  {% if entry.rating %}
+                    <div class="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="text-yellow-400 mr-1">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                      <span class="text-yellow-400">{{ entry.rating }}/10</span>
+                    </div>
+                  {% endif %}
+                  {% if entry.liked %}
+                    <span class="text-red-400">❤️</span>
+                  {% endif %}
+                  {% if entry.rewatch_count > 0 %}
+                    <span class="text-indigo-400">
+                      {% if entry.rewatch_count == 1 %}Rewatch{% else %}Rewatch #{{ entry.rewatch_count }}{% endif %}
+                    </span>
+                  {% endif %}
+                </div>
+
+                <!-- Review -->
+                {% if entry.review %}
+                  <div class="text-gray-300 text-sm">
+                    <p class="line-clamp-3">{{ entry.review }}</p>
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Entry Actions -->
+              <div class="flex-shrink-0 ml-4">
+                <div class="flex items-center gap-2">
+                  <!-- Edit entry (if needed later) -->
+                  <!-- <button class="text-gray-400 hover:text-white transition-colors p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button> -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if entries.has_other_pages %}
+    <div class="flex justify-center mt-8">
+      <div class="flex items-center gap-2">
+        {% if entries.has_previous %}
+          <a href="?page={{ entries.previous_page_number }}{% if current_media_type %}&media_type={{ current_media_type }}{% endif %}{% if current_year %}&year={{ current_year }}{% endif %}"
+             class="px-3 py-2 bg-[#2a2f35] hover:bg-[#343a40] text-gray-300 rounded-md transition-colors">
+            Previous
+          </a>
+        {% endif %}
+        
+        <span class="px-4 py-2 text-gray-400">
+          Page {{ entries.number }} of {{ entries.paginator.num_pages }}
+        </span>
+        
+        {% if entries.has_next %}
+          <a href="?page={{ entries.next_page_number }}{% if current_media_type %}&media_type={{ current_media_type }}{% endif %}{% if current_year %}&year={{ current_year }}{% endif %}"
+             class="px-3 py-2 bg-[#2a2f35] hover:bg-[#343a40] text-gray-300 rounded-md transition-colors">
+            Next
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+{% else %}
+  <!-- Empty State -->
+  <div class="bg-[#2a2f35] rounded-lg p-12">
+    <div class="flex flex-col items-center justify-center text-center">
+      <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+        {% icon 'diary' is_active=False extra_classes="w-8 h-8" %}
+      </div>
+      <h3 class="text-lg font-medium mb-2">No diary entries yet</h3>
+      <p class="text-gray-400 text-center max-w-md mb-6">
+        Start logging movies to see them appear in your diary. Your watched movies will show up here with ratings, reviews, and watch dates.
+      </p>
+      <a href="{% url 'search' %}" 
+         class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-md transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        Find Movies to Log
+      </a>
+    </div>
+  </div>
+{% endif %}
