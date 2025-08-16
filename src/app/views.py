@@ -118,22 +118,511 @@ def media_list(request, media_type):
         search=search_query,
     )
 
-    # Paginate results
-    items_per_page = 32
-    paginator = Paginator(media_queryset, items_per_page)
-    media_page = paginator.get_page(page)
+    # Apply custom sorting for time_left BEFORE pagination
+    print(f"DEBUG: sort_filter = '{sort_filter}', media_type = '{media_type}'")
+    if sort_filter == "time_left" and media_type == MediaTypes.TV.value:
+        # Convert queryset to list for custom sorting
+        media_list = list(media_queryset)
+        
+        # Annotate max_progress for the entire list
+        BasicMedia.objects.annotate_max_progress(
+            media_list,
+            media_type,
+        )
+        
+        # Calculate episodes_left and time_left fields for the entire list
+        for media in media_list:
+            if hasattr(media, 'max_progress') and media.max_progress > 0:
+                media.episodes_left = media.max_progress - media.progress
+                
+                # Calculate actual time_left based on episode runtime
+                try:
+                    from app.providers import services
+                    
+                    # Get the first season to access episode runtime data
+                    tv_metadata = services.get_media_metadata(
+                        MediaTypes.TV.value,
+                        media.item.media_id,
+                        media.item.source
+                    )
+                    
+                    # Debug: Print what we got from the TV API
+                    print(f"DEBUG: {media.item.title} - TV Metadata keys: {list(tv_metadata.keys()) if tv_metadata else 'None'}")
+                    
+                    # Try to get season data to access episode runtime
+                    seasons = tv_metadata.get("related", {}).get("seasons", [])
+                    if seasons:
+                        # Skip season 0 (often contains specials/OVAs with different runtime characteristics)
+                        # Start with season 1, fall back to season 0 only if no other seasons exist
+                        first_season = None
+                        for season in seasons:
+                            season_num = season.get("season_number", 0)
+                            if season_num > 0:  # Prefer season 1 or higher
+                                first_season = season_num
+                                break
+                        
+                        # If no season > 0 found, use the first available season
+                        if first_season is None and seasons:
+                            first_season = seasons[0].get("season_number", 1)
+                        
+                        print(f"DEBUG: {media.item.title} - Fetching season {first_season} for runtime data")
+                        
+                        # Fetch season metadata
+                        season_metadata = services.get_media_metadata(
+                            MediaTypes.SEASON.value,
+                            media.item.media_id,
+                            media.item.source,
+                            [first_season]
+                        )
+                        
+                        print(f"DEBUG: {media.item.title} - Season metadata keys: {list(season_metadata.keys()) if season_metadata else 'None'}")
+                        
+                        # Get episode runtime data from season
+                        episodes = season_metadata.get("episodes", [])
+                        if episodes:
+                            # Calculate average episode runtime
+                            runtimes = []
+                            for episode in episodes:
+                                if episode.get("runtime"):
+                                    runtimes.append(episode["runtime"])
+                            
+                            if runtimes:
+                                avg_runtime = sum(runtimes) / len(runtimes)
+                                print(f"DEBUG: {media.item.title} - Average episode runtime: {avg_runtime:.1f} minutes")
+                                
+                                # Validate that the runtime makes sense
+                                # TV episodes should typically be between 15-90 minutes
+                                # If runtime is unrealistic, fall back to other methods
+                                if avg_runtime < 15 or avg_runtime > 90:
+                                    print(f"DEBUG: {media.item.title} - Unrealistic episode runtime ({avg_runtime:.1f}min), falling back to TV show runtime")
+                                    # Try to use TV show runtime from tv_metadata
+                                    tv_runtime = tv_metadata.get("details", {}).get("runtime")
+                                    if tv_runtime:
+                                        # Parse formatted runtime like "45m" or "1h 30m"
+                                        try:
+                                            runtime_minutes = 0
+                                            if 'h' in tv_runtime:
+                                                hours_part = tv_runtime.split('h')[0]
+                                                runtime_minutes += int(hours_part) * 60
+                                            
+                                            if 'm' in tv_runtime:
+                                                minutes_part = tv_runtime.split('m')[0]
+                                                if 'h' in tv_runtime:
+                                                    # Extract minutes after hours (e.g., "1h 30m" -> " 30")
+                                                    minutes_part = minutes_part.split('h')[-1].strip()
+                                                runtime_minutes += int(minutes_part)
+                                            
+                                            if runtime_minutes > 0:
+                                                print(f"DEBUG: {media.item.title} - Using TV show runtime: {tv_runtime} ({runtime_minutes} minutes)")
+                                                total_time_left = media.episodes_left * runtime_minutes
+                                                hours = int(total_time_left // 60)
+                                                minutes = int(total_time_left % 60)
+                                                if hours > 0:
+                                                    media.time_left = f"{hours}h {minutes}m"
+                                                else:
+                                                    media.time_left = f"{minutes}m"
+                                            else:
+                                                raise ValueError("Invalid runtime format")
+                                        except (ValueError, IndexError):
+                                            # If parsing fails, use industry standard
+                                            if media.item.source == "tmdb":
+                                                standard_runtime = 30
+                                            elif media.item.source == "mal":
+                                                standard_runtime = 23
+                                            else:
+                                                standard_runtime = 30
+                                            
+                                            print(f"DEBUG: {media.item.title} - Failed to parse TV runtime, using standard {standard_runtime}min episodes")
+                                            total_time_left = media.episodes_left * standard_runtime
+                                            hours = int(total_time_left // 60)
+                                            minutes = int(total_time_left % 60)
+                                            if hours > 0:
+                                                media.time_left = f"{hours}h {minutes}m"
+                                            else:
+                                                media.time_left = f"{minutes}m"
+                                    else:
+                                        # Use industry standard episode length
+                                        if media.item.source == "tmdb":
+                                            standard_runtime = 30
+                                        elif media.item.source == "mal":
+                                            standard_runtime = 23
+                                        else:
+                                            standard_runtime = 30
+                                        
+                                        print(f"DEBUG: {media.item.title} - No TV runtime available, using standard {standard_runtime}min episodes")
+                                        total_time_left = media.episodes_left * standard_runtime
+                                        hours = int(total_time_left // 60)
+                                        minutes = int(total_time_left % 60)
+                                        if hours > 0:
+                                            media.time_left = f"{hours}h {minutes}m"
+                                        else:
+                                            media.time_left = f"{minutes}m"
+                                else:
+                                    # Runtime is realistic, use it for calculation
+                                    total_time_left = media.episodes_left * avg_runtime
+                                    
+                                    # Convert minutes to hours and minutes with clean formatting
+                                    hours = int(total_time_left // 60)
+                                    minutes = int(total_time_left % 60)
+                                    if hours > 0:
+                                        media.time_left = f"{hours}h {minutes}m"
+                                    else:
+                                        media.time_left = f"{minutes}m"
+                                    print(f"DEBUG: {media.item.title} - Calculated time_left: {media.time_left} (avg runtime: {avg_runtime:.1f}min × {media.episodes_left} episodes)")
+                            else:
+                                # No episode runtimes available, fall back to TV show runtime
+                                tv_runtime = tv_metadata.get("details", {}).get("runtime")
+                                if tv_runtime:
+                                    # Parse formatted runtime like "45m" or "1h 30m"
+                                    try:
+                                        runtime_minutes = 0
+                                        if 'h' in tv_runtime:
+                                            hours_part = tv_runtime.split('h')[0]
+                                            runtime_minutes += int(hours_part) * 60
+                                        
+                                        if 'm' in tv_runtime:
+                                            minutes_part = tv_runtime.split('m')[0]
+                                            if 'h' in tv_runtime:
+                                                # Extract minutes after hours (e.g., "1h 30m" -> " 30")
+                                                minutes_part = minutes_part.split('h')[-1].strip()
+                                            runtime_minutes += int(minutes_part)
+                                        
+                                        if runtime_minutes > 0:
+                                            print(f"DEBUG: {media.item.title} - No episode runtimes, using TV show runtime: {tv_runtime} ({runtime_minutes} minutes)")
+                                            total_time_left = media.episodes_left * runtime_minutes
+                                            hours = int(total_time_left // 60)
+                                            minutes = int(total_time_left % 60)
+                                            if hours > 0:
+                                                media.time_left = f"{hours}h {minutes}m"
+                                            else:
+                                                media.time_left = f"{minutes}m"
+                                        else:
+                                            raise ValueError("Invalid runtime format")
+                                    except (ValueError, IndexError):
+                                        # If parsing fails, fall back to standard runtime
+                                        print(f"DEBUG: {media.item.title} - Failed to parse TV runtime '{tv_runtime}', using standard runtime")
+                                        if media.item.source == "tmdb":
+                                            standard_runtime = 30
+                                        elif media.item.source == "mal":
+                                            standard_runtime = 23
+                                        else:
+                                            standard_runtime = 30
+                                        
+                                        total_time_left = media.episodes_left * standard_runtime
+                                        hours = int(total_time_left // 60)
+                                        minutes = int(total_time_left % 60)
+                                        if hours > 0:
+                                            media.time_left = f"{hours}h {minutes}m"
+                                        else:
+                                            media.time_left = f"{minutes}m"
+                                else:
+                                    # Fallback 2: Use industry standard episode length based on source
+                                    if media.item.source == "tmdb":
+                                        # TMDB shows are typically 22-45 minutes
+                                        standard_runtime = 30  # 30 minutes as default
+                                    elif media.item.source == "mal":
+                                        # Anime episodes are typically 22-24 minutes
+                                        standard_runtime = 23
+                                    else:
+                                        standard_runtime = 30
+                                    
+                                    print(f"DEBUG: {media.item.title} - No runtime data available, using standard {standard_runtime}min episodes")
+                                    total_time_left = media.episodes_left * standard_runtime
+                                    hours = int(total_time_left // 60)
+                                    minutes = int(total_time_left % 60)
+                                    if hours > 0:
+                                        media.time_left = f"{hours}h {minutes}m"
+                                    else:
+                                        media.time_left = f"{minutes}m"
+                        else:
+                            # No episodes in season, fall back to TV show runtime
+                            tv_runtime = tv_metadata.get("details", {}).get("runtime")
+                            if tv_runtime:
+                                # Parse formatted runtime like "45m" or "1h 30m"
+                                try:
+                                    runtime_minutes = 0
+                                    if 'h' in tv_runtime:
+                                        hours_part = tv_runtime.split('h')[0]
+                                        runtime_minutes += int(hours_part) * 60
+                                    
+                                    if 'm' in tv_runtime:
+                                        minutes_part = tv_runtime.split('m')[0]
+                                        if 'h' in tv_runtime:
+                                            # Extract minutes after hours (e.g., "1h 30m" -> " 30")
+                                            minutes_part = minutes_part.split('h')[-1].strip()
+                                        runtime_minutes += int(minutes_part)
+                                    
+                                    if runtime_minutes > 0:
+                                        print(f"DEBUG: {media.item.title} - No episodes in season, using TV show runtime: {tv_runtime} ({runtime_minutes} minutes)")
+                                        total_time_left = media.episodes_left * runtime_minutes
+                                        hours = int(total_time_left // 60)
+                                        minutes = int(total_time_left % 60)
+                                        if hours > 0:
+                                            media.time_left = f"{hours}h {minutes}m"
+                                        else:
+                                            media.time_left = f"{minutes}m"
+                                    else:
+                                        raise ValueError("Invalid runtime format")
+                                except (ValueError, IndexError):
+                                    # If parsing fails, fall back to standard runtime
+                                    print(f"DEBUG: {media.item.title} - Failed to parse TV runtime '{tv_runtime}', using standard runtime")
+                                    if media.item.source == "tmdb":
+                                        standard_runtime = 30
+                                    elif media.item.source == "mal":
+                                        standard_runtime = 23
+                                    else:
+                                        standard_runtime = 30
+                                    
+                                    total_time_left = media.episodes_left * standard_runtime
+                                    hours = int(total_time_left // 60)
+                                    minutes = int(total_time_left % 60)
+                                    if hours > 0:
+                                        media.time_left = f"{hours}h {minutes}m"
+                                    else:
+                                        media.time_left = f"{minutes}m"
+                            else:
+                                # Fallback 2: Use industry standard episode length
+                                if media.item.source == "tmdb":
+                                    standard_runtime = 30
+                                elif media.item.source == "mal":
+                                    standard_runtime = 23
+                                else:
+                                    standard_runtime = 30
+                                
+                                print(f"DEBUG: {media.item.title} - No season data, using standard {standard_runtime}min episodes")
+                                total_time_left = media.episodes_left * standard_runtime
+                                hours = int(total_time_left // 60)
+                                minutes = int(total_time_left % 60)
+                                if hours > 0:
+                                    media.time_left = f"{hours}h {minutes}m"
+                                else:
+                                    media.time_left = f"{minutes}m"
+                    else:
+                        # No seasons found, fall back to TV show runtime
+                        tv_runtime = tv_metadata.get("details", {}).get("runtime")
+                        if tv_runtime:
+                            # Parse formatted runtime like "45m" or "1h 30m"
+                            try:
+                                runtime_minutes = 0
+                                if 'h' in tv_runtime:
+                                    hours_part = tv_runtime.split('h')[0]
+                                    runtime_minutes += int(hours_part) * 60
+                                
+                                if 'm' in tv_runtime:
+                                    minutes_part = tv_runtime.split('m')[0]
+                                    if 'h' in tv_runtime:
+                                        # Extract minutes after hours (e.g., "1h 30m" -> " 30")
+                                        minutes_part = minutes_part.split('h')[-1].strip()
+                                    runtime_minutes += int(minutes_part)
+                                
+                                if runtime_minutes > 0:
+                                    print(f"DEBUG: {media.item.title} - No seasons found, using TV show runtime: {tv_runtime} ({runtime_minutes} minutes)")
+                                    total_time_left = media.episodes_left * runtime_minutes
+                                    hours = int(total_time_left // 60)
+                                    minutes = int(total_time_left % 60)
+                                    if hours > 0:
+                                        media.time_left = f"{hours}h {minutes}m"
+                                    else:
+                                        media.time_left = f"{minutes}m"
+                                else:
+                                    raise ValueError("Invalid runtime format")
+                            except (ValueError, IndexError):
+                                # If parsing fails, fall back to standard runtime
+                                print(f"DEBUG: {media.item.title} - Failed to parse TV runtime '{tv_runtime}', using standard runtime")
+                                if media.item.source == "tmdb":
+                                    standard_runtime = 30
+                                elif media.item.source == "mal":
+                                    standard_runtime = 23
+                                else:
+                                    standard_runtime = 30
+                                
+                                total_time_left = media.episodes_left * standard_runtime
+                                hours = int(total_time_left // 60)
+                                minutes = int(total_time_left % 60)
+                                if hours > 0:
+                                    media.time_left = f"{hours}h {minutes}m"
+                                else:
+                                    media.time_left = f"{minutes}m"
+                        else:
+                            # Fallback 2: Use industry standard episode length
+                            if media.item.source == "tmdb":
+                                standard_runtime = 30
+                            elif media.item.source == "mal":
+                                standard_runtime = 23
+                            else:
+                                standard_runtime = 30
+                            
+                            print(f"DEBUG: {media.item.title} - No metadata available, using standard {standard_runtime}min episodes")
+                            total_time_left = media.episodes_left * standard_runtime
+                            hours = int(total_time_left // 60)
+                            minutes = int(total_time_left % 60)
+                            if hours > 0:
+                                media.time_left = f"{hours}h {minutes}m"
+                            else:
+                                media.time_left = f"{minutes}m"
+                        
+                except Exception as e:
+                    # If metadata retrieval fails, use industry standard episode length as fallback
+                    print(f"ERROR calculating time_left for {media.item.title}: {e}")
+                    
+                    # Last resort: use industry standard episode length
+                    if media.item.source == "tmdb":
+                        standard_runtime = 30
+                    elif media.item.source == "mal":
+                        standard_runtime = 23
+                    else:
+                        standard_runtime = 30
+                    
+                    print(f"DEBUG: {media.item.title} - Using emergency fallback: {standard_runtime}min episodes")
+                    total_time_left = media.episodes_left * standard_runtime
+                    hours = int(total_time_left // 60)
+                    minutes = int(total_time_left % 60)
+                    if hours > 0:
+                        media.time_left = f"{hours}h {minutes}m"
+                    else:
+                        media.time_left = f"{minutes}m"
+            else:
+                media.episodes_left = 0
+                media.time_left = "0 ep"
+        
+        # Define sorting function
+        def time_left_sort_key(media):
+            if not hasattr(media, 'max_progress') or media.max_progress == 0:
+                return float('inf')  # Put shows with no max_progress at the end
+            
+            # Calculate episodes left
+            episodes_left = media.max_progress - media.progress
+            
+            # If 100% complete (0 episodes left), put at the very end
+            if episodes_left <= 0:
+                return float('inf')  # This will sort to the very end
+            
+            # Check if show is dropped
+            is_dropped = media.status == "Dropped"
+            
+            # Try to use actual time_left for sorting if available
+            if hasattr(media, 'time_left') and media.time_left and not media.time_left.endswith(' ep'):
+                # Parse time format like "2h 30m" or "45m"
+                try:
+                    time_str = media.time_left
+                    total_minutes = 0
+                    
+                    if 'h' in time_str:
+                        hours_part = time_str.split('h')[0]
+                        total_minutes += int(hours_part) * 60
+                    
+                    if 'm' in time_str:
+                        minutes_part = time_str.split('m')[0]
+                        if 'h' in time_str:
+                            # Extract minutes after hours (e.g., "2h 30m" -> " 30")
+                            minutes_part = minutes_part.split('h')[-1].strip()
+                        total_minutes += int(minutes_part)
+                    
+                    # Add a large offset for dropped shows so they appear after active shows
+                    # but before 100% completed shows
+                    if is_dropped:
+                        total_minutes += 1000000  # 1 million minutes = ~694 days
+                    
+                    return total_minutes
+                except (ValueError, IndexError):
+                    # If parsing fails, fall back to episodes left
+                    if is_dropped:
+                        return episodes_left + 1000000  # Add offset for dropped shows
+                    return episodes_left
+            
+            # Fallback: use episodes left for sorting
+            if is_dropped:
+                return episodes_left + 1000000  # Add offset for dropped shows
+            return episodes_left
+        
+        # Debug: Print sorting information
+        print(f"\n=== Time Left Sorting Debug ===")
+        print(f"Total TV shows to sort: {len(media_list)}")
+        print(f"Sorting by: LEAST time remaining first, then dropped shows, then 100% completed shows last")
+        print()
+        
+        # Calculate sort keys for all media before sorting
+        for media in media_list:
+            media.sort_key = time_left_sort_key(media)
+        
+        # Debug: Show status values to understand what we're actually reading
+        print(f"Status Field Debug:")
+        status_counts = {}
+        for media in media_list[:20]:  # Check first 20 shows
+            status = media.status
+            if status not in status_counts:
+                status_counts[status] = 0
+            status_counts[status] += 1
+            print(f"  {media.item.title[:30]:<30} | Status: '{status}' | Type: {type(status)}")
+        
+        print(f"Status Counts: {status_counts}")
+        print()
+        
+        # Sort the entire list by time left
+        media_list = sorted(media_list, key=lambda m: m.sort_key, reverse=False)
+        
+        # Debug: Show sorting summary
+        active_shows = [m for m in media_list if m.status != "Dropped" and hasattr(m, 'episodes_left') and m.episodes_left > 0]
+        dropped_shows = [m for m in media_list if m.status == "Dropped" and hasattr(m, 'episodes_left') and m.episodes_left > 0]
+        completed_shows = [m for m in media_list if hasattr(m, 'episodes_left') and m.episodes_left <= 0]
+        
+        print(f"Sorting Summary:")
+        print(f"  Active Shows: {len(active_shows)}")
+        print(f"  Dropped Shows: {len(dropped_shows)}")
+        print(f"  Completed Shows: {len(completed_shows)}")
+        print()
+        
+        # Debug: Print first 10 sorted results
+        for i, media in enumerate(media_list[:10]):
+            progress_pct = (media.progress / media.max_progress * 100) if media.max_progress > 0 else 0
+            episodes_left = media.episodes_left
+            time_left = media.time_left
+            status = media.status
+            status_indicator = "✅ COMPLETED" if episodes_left <= 0 else f"🔄 {status.upper()}"
+            print(f"{i+1:2d}. {media.item.title[:30]:<30} | {media.progress:2d}/{media.max_progress:2d} ({progress_pct:5.1f}%) | Episodes Left: {episodes_left:2d} | Time Left: {time_left:>8} | Status: {status:>10} | Sort Key: {media.sort_key:>12} | {status_indicator}")
+        
+        # Also show some dropped shows and completed shows for verification
+        print(f"\n=== Sample Dropped Shows ===")
+        dropped_shows = [m for m in media_list if m.status == "Dropped" and hasattr(m, 'episodes_left') and m.episodes_left > 0][:5]
+        for i, media in enumerate(dropped_shows):
+            progress_pct = (media.progress / media.max_progress * 100) if media.max_progress > 0 else 0
+            episodes_left = media.episodes_left
+            time_left = media.time_left
+            print(f"     {media.item.title[:30]:<30} | {media.progress:2d}/{media.max_progress:2d} ({progress_pct:5.1f}%) | Episodes Left: {episodes_left:2d} | Time Left: {time_left:>8} | Status: {media.status} | Sort Key: {media.sort_key}")
+        
+        print(f"\n=== Sample Completed Shows ===")
+        completed_shows = [m for m in media_list if hasattr(m, 'episodes_left') and m.episodes_left <= 0][:5]
+        for i, media in enumerate(completed_shows):
+            progress_pct = (media.progress / media.max_progress * 100) if media.max_progress > 0 else 0
+            print(f"     {media.item.title[:30]:<30} | {media.progress:2d}/{media.max_progress:2d} ({progress_pct:5.1f}%) | Status: {media.status} | Sort Key: {media.sort_key}")
+        
+        # Now paginate the sorted list
+        items_per_page = 32
+        paginator = Paginator(media_list, items_per_page)
+        media_page = paginator.get_page(page)
+        
+        print(f"=== After Pagination ===")
+        print(f"Page {page} of {paginator.num_pages}")
+        print(f"Items on this page: {len(media_page.object_list)}")
+        print("=" * 80)
+        
+    else:
+        # Standard pagination for non-time_left sorts
+        items_per_page = 32
+        paginator = Paginator(media_queryset, items_per_page)
+        media_page = paginator.get_page(page)
 
-    BasicMedia.objects.annotate_max_progress(
-        media_page.object_list,
-        media_type,
-    )
+        BasicMedia.objects.annotate_max_progress(
+            media_page.object_list,
+            media_type,
+        )
 
     context = {
         "media_type": media_type,
         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
         "media_list": media_page,
         "current_layout": layout,
-        "layout_class": ".media-grid" if layout == "grid" else "tbody",
+        "layout_class": ".media-grid" if layout == "grid" else ".media-table",
         "current_sort": sort_filter,
         "current_status": status_filter,
         "sort_choices": MediaSortChoices.choices,
@@ -142,15 +631,23 @@ def media_list(request, media_type):
 
     # Handle HTMX requests for partial updates
     if request.headers.get("HX-Request"):
+        # Check if this is a pagination request (has page parameter)
+        is_pagination = request.GET.get("page") and request.GET.get("page") != "1"
+        
         # Changing from empty list to a status with items
         if request.headers.get("HX-Target") == "empty_list":
             response = HttpResponse()
             response["HX-Redirect"] = reverse("medialist", args=[media_type])
             return response
+        
         if layout == "grid":
             template_name = "app/components/media_grid_items.html"
         else:
-            template_name = "app/components/media_table_items.html"
+            # For table layout: pagination requests get just rows, sort/filter changes get full table
+            if is_pagination:
+                template_name = "app/components/media_table_items.html"
+            else:
+                template_name = "app/components/media_table_complete.html"
     else:
         template_name = "app/media_list.html"
 

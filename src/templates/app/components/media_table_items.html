@@ -106,12 +106,28 @@
 
     {# Progress field #}
     {% if media_type != MediaTypes.MOVIE.value %}
-      <td class="p-2 text-center">
-        {{ media.formatted_progress }}
-        {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
-      </td>
-      {% if media_type == MediaTypes.TV.value %}<td class="p-2 text-center">{{ media.last_watched }}</td>{% endif %}
+      {% if current_sort == "time_left" and media_type == MediaTypes.TV.value %}
+        <td class="p-2 text-center">
+          {% if media.episodes_left is not None %}
+            {{ media.episodes_left }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td class="p-2 text-center">
+          {% if media.time_left is not None %}
+            {{ media.time_left }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+      {% else %}
+        <td class="p-2 text-center">
+          {{ media.formatted_progress }}
+        </td>
+      {% endif %}
     {% endif %}
+    {% if media_type == MediaTypes.TV.value %}<td class="p-2 text-center">{{ media.last_watched }}</td>{% endif %}
 
     <td class="p-2 text-center">{{ media.status|media_status_readable }}</td>
 

@@ -36,6 +36,7 @@ class MediaSortChoices(models.TextChoices):
     SCORE = "score", "Rating"
     TITLE = "title", "Title"
     PROGRESS = "progress", "Progress"
+    TIME_LEFT = "time_left", "Time Left"
     START_DATE = "start_date", "Start Date"
     END_DATE = "end_date", "End Date"
 

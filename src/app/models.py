@@ -343,6 +343,13 @@ class MediaManager(models.Manager):
                 models.functions.Lower("item__title"),
             )
 
+        if sort_filter == "time_left":
+            # For time_left sorting, we need to calculate the percentage of completion
+            # and sort by how close shows are to 100% (but not 100%)
+            # This requires custom Python sorting after max_progress is annotated
+            # We'll return the queryset as-is and handle the sorting in the view
+            return queryset
+
         # Default to generic sorting
         return self._sort_generic_media_list(queryset, sort_filter)
 
@@ -559,37 +566,67 @@ class MediaManager(models.Manager):
 
     def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
-        # Prefetch all relevant events in one query
-        released_events = events.models.Event.objects.filter(
-            item__media_id__in=[tv.item.media_id for tv in tv_list],
-            item__source=tv_list[0].item.source if tv_list else None,
-            item__media_type=MediaTypes.SEASON.value,
-            item__season_number__gt=0,
-            datetime__lte=current_datetime,
-            content_number__isnull=False,
-        ).select_related("item")
-
-        # Create a dictionary to store max episode numbers per season per show
-        released_episodes = {}
-
-        for event in released_events:
-            media_id = event.item.media_id
-            season_number = event.item.season_number
-            episode_number = event.content_number
-
-            if media_id not in released_episodes:
-                released_episodes[media_id] = {}
-
-            if (
-                season_number not in released_episodes[media_id]
-                or episode_number > released_episodes[media_id][season_number]
-            ):
-                released_episodes[media_id][season_number] = episode_number
-
-        # Calculate total released episodes per TV show
+        if not tv_list:
+            return
+            
+        # Group TV shows by source for more efficient querying
+        tv_by_source = {}
         for tv in tv_list:
-            tv_episodes = released_episodes.get(tv.item.media_id, {})
-            tv.max_progress = sum(tv_episodes.values()) if tv_episodes else 0
+            source = tv.item.source
+            if source not in tv_by_source:
+                tv_by_source[source] = []
+            tv_by_source[source].append(tv)
+        
+        # Process each source separately
+        for source, tv_shows in tv_by_source.items():
+            # Get all TV show media IDs for this source
+            tv_media_ids = [tv.item.media_id for tv in tv_shows]
+            
+            # Prefetch all relevant season events in one query for this source
+            released_events = events.models.Event.objects.filter(
+                item__media_id__in=tv_media_ids,
+                item__source=source,
+                item__media_type=MediaTypes.SEASON.value,
+                item__season_number__gt=0,
+                datetime__lte=current_datetime,
+                content_number__isnull=False,
+            ).select_related("item")
+
+            # Create a dictionary to store max episode numbers per season per show
+            released_episodes = {}
+
+            for event in released_events:
+                media_id = event.item.media_id
+                season_number = event.item.season_number
+                episode_number = event.content_number
+
+                if media_id not in released_episodes:
+                    released_episodes[media_id] = {}
+
+                if (
+                    season_number not in released_episodes[media_id]
+                    or episode_number > released_episodes[media_id][season_number]
+                ):
+                    released_episodes[media_id][season_number] = episode_number
+
+            # Calculate total released episodes per TV show for this source
+            for tv in tv_shows:
+                tv_episodes = released_episodes.get(tv.item.media_id, {})
+                tv.max_progress = sum(tv_episodes.values()) if tv_episodes else 0
+                
+                # If no events were found, try to get max_progress from metadata
+                if tv.max_progress == 0:
+                    try:
+                        from app.providers import services
+                        metadata = services.get_media_metadata(
+                            MediaTypes.TV.value,
+                            tv.item.media_id,
+                            tv.item.source
+                        )
+                        tv.max_progress = metadata.get("max_progress", 0)
+                    except Exception:
+                        # If metadata retrieval fails, keep max_progress as 0
+                        tv.max_progress = 0
 
     def get_media(
         self,
@@ -839,6 +876,8 @@ class Media(models.Model):
     @property
     def formatted_progress(self):
         """Return the progress of the media in a formatted string."""
+        if hasattr(self, 'max_progress') and self.max_progress is not None:
+            return f"{self.progress} / {self.max_progress}"
         return str(self.progress)
 
     def increase_progress(self):
