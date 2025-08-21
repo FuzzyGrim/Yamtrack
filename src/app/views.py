@@ -292,7 +292,10 @@ def media_list(request, media_type):
                 if cached_season_data and cached_season_data.get("episodes"):
                     # Filter out episodes with unknown air dates for time-left calculation
                     # This ensures only actually aired episodes count toward viewing time
-                    aired_episodes = [ep for ep in cached_season_data["episodes"] if ep.get("air_date")]
+                    print(f"DEBUG: {media.item.title} - Raw episodes data: {cached_season_data['episodes'][:2]}")  # Show first 2 episodes
+                    aired_episodes = [ep for ep in cached_season_data["episodes"] if ep.get("air_date") and ep["air_date"] not in [None, "", "unknown", "Unknown"]]
+                    print(f"DEBUG: {media.item.title} - Filtered episodes: {len(aired_episodes)} out of {len(cached_season_data['episodes'])}")
+                    print(f"DEBUG: {media.item.title} - Sample air_dates: {[ep.get('air_date') for ep in cached_season_data['episodes'][:3]]}")
                     media.max_progress = len(aired_episodes)
                     media.episodes_left = media.max_progress - media.progress
                     print(f"DEBUG: {media.item.title} - Set max_progress from season 1 cache: {media.max_progress} (filtered from {len(cached_season_data['episodes'])} total episodes), episodes_left: {media.episodes_left}")
@@ -316,7 +319,9 @@ def media_list(request, media_type):
                         cached_season_data = cache.get(season_cache_key)
                         if cached_season_data and cached_season_data.get("episodes"):
                             # Filter out episodes with unknown air dates for time-left calculation
-                            aired_episodes = [ep for ep in cached_season_data["episodes"] if ep.get("air_date")]
+                            aired_episodes = [ep for ep in cached_season_data["episodes"] if ep.get("air_date") and ep["air_date"] not in [None, "", "unknown", "Unknown"]]
+                            print(f"DEBUG: {media.item.title} - Season {season_num} filtered episodes: {len(aired_episodes)} out of {len(cached_season_data['episodes'])}")
+                            print(f"DEBUG: {media.item.title} - Season {season_num} sample air_dates: {[ep.get('air_date') for ep in cached_season_data['episodes'][:3]]}")
                             media.max_progress = len(aired_episodes)
                             media.episodes_left = media.max_progress - media.progress
                             print(f"DEBUG: {media.item.title} - Set max_progress from season {season_num} cache: {media.max_progress} (filtered from {len(cached_season_data['episodes'])} total episodes), episodes_left: {media.episodes_left}")
