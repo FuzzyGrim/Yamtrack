@@ -290,9 +290,12 @@ def media_list(request, media_type):
                 cached_season_data = cache.get(season_cache_key)
                 
                 if cached_season_data and cached_season_data.get("episodes"):
-                    media.max_progress = len(cached_season_data["episodes"])
+                    # Filter out episodes with unknown air dates for time-left calculation
+                    # This ensures only actually aired episodes count toward viewing time
+                    aired_episodes = [ep for ep in cached_season_data["episodes"] if ep.get("air_date")]
+                    media.max_progress = len(aired_episodes)
                     media.episodes_left = media.max_progress - media.progress
-                    print(f"DEBUG: {media.item.title} - Set max_progress from season 1 cache: {media.max_progress}, episodes_left: {media.episodes_left}")
+                    print(f"DEBUG: {media.item.title} - Set max_progress from season 1 cache: {media.max_progress} (filtered from {len(cached_season_data['episodes'])} total episodes), episodes_left: {media.episodes_left}")
                     print(f"DEBUG: {media.item.title} - Season 1 cache keys: {list(cached_season_data.keys())}")
                     print(f"DEBUG: {media.item.title} - Episodes count: {len(cached_season_data['episodes'])}")
                     print(f"DEBUG: {media.item.title} - Details: {cached_season_data.get('details', {})}")
@@ -312,9 +315,11 @@ def media_list(request, media_type):
                         season_cache_key = f"tmdb_season_{media.item.media_id}_{season_num}"
                         cached_season_data = cache.get(season_cache_key)
                         if cached_season_data and cached_season_data.get("episodes"):
-                            media.max_progress = len(cached_season_data["episodes"])
+                            # Filter out episodes with unknown air dates for time-left calculation
+                            aired_episodes = [ep for ep in cached_season_data["episodes"] if ep.get("air_date")]
+                            media.max_progress = len(aired_episodes)
                             media.episodes_left = media.max_progress - media.progress
-                            print(f"DEBUG: {media.item.title} - Set max_progress from season {season_num} cache: {media.max_progress}, episodes_left: {media.episodes_left}")
+                            print(f"DEBUG: {media.item.title} - Set max_progress from season {season_num} cache: {media.max_progress} (filtered from {len(cached_season_data['episodes'])} total episodes), episodes_left: {media.episodes_left}")
                             
                             # Calculate time_left with corrected episode count
                             if cached_season_data.get("details", {}).get("runtime"):
