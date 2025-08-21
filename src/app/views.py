@@ -293,6 +293,8 @@ def media_list(request, media_type):
                     # Filter out episodes with unknown air dates for time-left calculation
                     # This ensures only actually aired episodes count toward viewing time
                     print(f"DEBUG: {media.item.title} - Raw episodes data: {cached_season_data['episodes'][:2]}")  # Show first 2 episodes
+                    print(f"DEBUG: {media.item.title} - First episode keys: {list(cached_season_data['episodes'][0].keys()) if cached_season_data['episodes'] else 'No episodes'}")
+                    print(f"DEBUG: {media.item.title} - First episode air_date: {cached_season_data['episodes'][0].get('air_date') if cached_season_data['episodes'] else 'No episodes'}")
                     aired_episodes = [ep for ep in cached_season_data["episodes"] if ep.get("air_date") and ep["air_date"] not in [None, "", "unknown", "Unknown"]]
                     print(f"DEBUG: {media.item.title} - Filtered episodes: {len(aired_episodes)} out of {len(cached_season_data['episodes'])}")
                     print(f"DEBUG: {media.item.title} - Sample air_dates: {[ep.get('air_date') for ep in cached_season_data['episodes'][:3]]}")
