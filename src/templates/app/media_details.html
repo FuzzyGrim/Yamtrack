@@ -30,44 +30,27 @@
         {% endif %}
       </div>
 
-      <div x-data="{ trackOpen: false }">
-        {% if media.media_type == MediaTypes.MOVIE.value %}
-          {# Two buttons for movies: Mark as Watched and Log #}
-          <div class="mt-4 flex gap-2 w-full">
-            <button class="flex-1 px-4 py-0.5 rounded text-white transition duration-300 cursor-pointer bg-green-600 hover:bg-green-700 text-sm"
-                    style="background-color: #059669;"
-                    hx-post="{% url 'mark_movie_watched' media.source media.media_type media.media_id %}"
-                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-target="body"
-                    hx-swap="none">
-              Mark as Watched
-            </button>
-
-            <button class="flex-1 px-4 py-0.5 rounded text-white transition duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-sm"
-                    onclick="fetch('{% url 'log_modal' media.source media.media_type media.media_id %}')
-                      .then(response => response.text())
-                      .then(html => {
-                        document.getElementById('log-modal-container').innerHTML = html;
-                      })">
-              Log
-            </button>
-          </div>
-          
-          {% if diary_entries %}
-            <div class="mt-2 text-xs text-gray-400 text-center">
-              {% if diary_entries|length == 1 %}
-                Logged {{ diary_entries.0.consumed_at|date:"M d, Y" }}
-                {% if diary_entries.0.rating %} • ★ {{ diary_entries.0.rating }}{% endif %}
-                {% if diary_entries.0.liked %} • <span class="text-red-400">❤️</span>{% endif %}
-              {% else %}
-                {{ diary_entries|length }} logs (last: {{ diary_entries.0.consumed_at|date:"M d" }})
-                {% for entry in diary_entries %}
-                  {% if entry.liked %} • <span class="text-red-400">❤️</span>{% endif %}
-                {% endfor %}
-              {% endif %}
-            </div>
+      <div id="media-actions">
+        {% include "app/components/media_actions.html" %}
+      </div>
+      
+      {% if media.media_type == MediaTypes.MOVIE.value and diary_entries %}
+        <div class="mt-2 text-xs text-gray-400 text-center">
+          {% if diary_entries|length == 1 %}
+            Logged {{ diary_entries.0.consumed_at|date:"M d, Y" }}
+            {% if diary_entries.0.rating %} • ★ {{ diary_entries.0.rating }}{% endif %}
+            {% if diary_entries.0.liked %} • <span class="text-red-400">❤️</span>{% endif %}
+          {% else %}
+            {{ diary_entries|length }} logs (last: {{ diary_entries.0.consumed_at|date:"M d" }})
+            {% for entry in diary_entries %}
+              {% if entry.liked %} • <span class="text-red-400">❤️</span>{% endif %}
+            {% endfor %}
           {% endif %}
-        {% else %}
+        </div>
+      {% endif %}
+      
+      <div x-data="{ trackOpen: false }">
+        {% if media.media_type != MediaTypes.MOVIE.value %}
           {# Track button for non-movies #}
           <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
                   hx-get="{% media_view_url 'track_modal' media %}"
@@ -336,14 +319,9 @@
     </div>
   </div>
 
-  <div class="flex flex-col md:flex-row gap-12 md:gap-10">
-    {# Details Column #}
-
-
-
-    {# Related Media #}
-    {% if media.related %}
-      <div class="w-full md:w-3/4">
+  {# Related Media #}
+  {% if media.related %}
+    <div class="w-full">
         {% for name, related_items in media.related.items %}
           {% if related_items %}
             <section class="{% if not forloop.last %}mb-8{% endif %}" x-data="{ isOpen: false }">
@@ -383,8 +361,8 @@
             </section>
           {% endif %}
         {% endfor %}
-      </div>
-    {% endif %}
+    </div>
+  {% endif %}
 
     {# Episodes List #}
     {% if media.episodes %}

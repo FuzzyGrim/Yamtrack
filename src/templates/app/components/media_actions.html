@@ -1,0 +1,58 @@
+{% load app_tags %}
+
+{# Action buttons for movies #}
+{% if media.media_type == MediaTypes.MOVIE.value %}
+  {% if current_instance and current_instance.status == "Completed" %}
+    {# Movie is already marked as watched #}
+    <div class="mt-4 flex gap-2 w-full">
+      <div class="flex-1 px-4 py-2 rounded text-gray-400 bg-gray-600 text-sm text-center">
+        ✓ Watched
+      </div>
+      <button class="flex-1 px-4 py-2 rounded text-white transition duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-sm"
+              onclick="fetch('{% url 'log_modal' media.source media.media_type media.media_id %}')
+                .then(response => response.text())
+                .then(html => {
+                  document.getElementById('log-modal-container').innerHTML = html;
+                })">
+        Log
+      </button>
+    </div>
+  {% else %}
+    {# Movie not watched yet #}
+    <div class="mt-4 flex gap-2 w-full">
+      <button class="flex-1 px-4 py-2 rounded text-white transition duration-300 cursor-pointer bg-green-600 hover:bg-green-700 text-sm flex items-center justify-center gap-1"
+              style="background-color: #059669;"
+              hx-post="{% url 'mark_movie_watched' media.source media.media_type media.media_id %}"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-target="#media-actions"
+              hx-swap="innerHTML">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        Watched
+      </button>
+      <button class="flex-1 px-4 py-2 rounded text-white transition duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-sm"
+              onclick="fetch('{% url 'log_modal' media.source media.media_type media.media_id %}')
+                .then(response => response.text())
+                .then(html => {
+                  document.getElementById('log-modal-container').innerHTML = html;
+                })">
+        Log
+      </button>
+    </div>
+  {% endif %}
+{% else %}
+  {# Non-movie media - show original "Add to tracker" button #}
+  <div class="mt-4">
+    <button class="w-full px-4 py-3 rounded bg-gray-700 hover:bg-gray-600 transition duration-300 text-white font-medium"
+            hx-post="{% url 'add_to_tracker' %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-vals='{"media_type": "{{ media.media_type }}", "media_id": "{{ media.media_id }}", "source": "{{ media.source }}"}'
+            hx-target="this"
+            hx-swap="outerHTML">
+      {% icon 'add' is_active=False %}
+      Add to tracker
+    </button>
+  </div>
+{% endif %}

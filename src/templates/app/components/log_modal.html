@@ -4,134 +4,132 @@
 
 <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
     <!-- Modal content -->
-    <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative"
-         style="width: 60vw; max-width: 765px; height: 35vh;"
+    <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative max-w-2xl w-full mx-4"
          @click.stop>
          
-        <div class="p-6 h-full flex flex-col">
+        <div class="p-6">
             <!-- Header -->
-            <div class="mb-4 flex-shrink-0">
-                <div class="flex justify-between items-center mb-2">
-                    <h2 class="text-xl font-bold">{{ item.title }}</h2>
-                    <button onclick="this.closest('.fixed').remove()" 
-                            class="text-gray-400 hover:text-white transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
-                <div class="flex gap-6">
-                    <img src="{% get_user_poster_image item user %}" alt="{{ item.title }}" class="w-32 h-48 object-cover rounded max-h-[200px]">
-                    <div class="flex-1 flex flex-col" style="height: 192px">
-                        <div class="flex items-center gap-4 mb-2">
-                            <input type="date" 
-                                   id="watch-date" 
-                                   name="watch_date"
-                                   class="bg-[#1f2329] text-white px-2 py-1 rounded border border-gray-600 focus:outline-none focus:border-gray-400 w-40 text-sm"
-                                   value="{{ today|date:'Y-m-d' }}">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">{{ item.title }}</h2>
+                <button onclick="this.closest('.fixed').remove()" 
+                        class="text-gray-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Content -->
+            <div class="flex gap-4">
+                <img src="{% get_user_poster_image item user %}" alt="{{ item.title }}" class="w-20 h-32 object-cover rounded flex-shrink-0">
+                <div class="flex-1 flex flex-col">
+                    <div class="flex items-center gap-4 mb-3">
+                        <input type="date" 
+                               id="watch-date" 
+                               name="watch_date"
+                               class="bg-[#1f2329] text-white px-2 py-1 rounded border border-gray-600 focus:outline-none focus:border-gray-400 w-40 text-sm"
+                               value="{{ today|date:'Y-m-d' }}">
+                        
+                        <!-- Stars Rating -->
+                        <div class="rating flex items-center" x-data="{ rating: 0, temp: 0, isRewatch: false }">
+                            <button type="button" 
+                                    class="text-gray-400 hover:text-yellow-400"
+                                    :class="{ 'text-yellow-400': rating >= 1 || temp >= 1 }"
+                                    @click="rating = rating === 1 ? 0 : 1"
+                                    @mouseenter="temp = 1"
+                                    @mouseleave="temp = 0">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </button>
+                            <button type="button" 
+                                    class="text-gray-400 hover:text-yellow-400"
+                                    :class="{ 'text-yellow-400': rating >= 2 || temp >= 2 }"
+                                    @click="rating = rating === 2 ? 0 : 2"
+                                    @mouseenter="temp = 2"
+                                    @mouseleave="temp = 0">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </button>
+                            <button type="button" 
+                                    class="text-gray-400 hover:text-yellow-400"
+                                    :class="{ 'text-yellow-400': rating >= 3 || temp >= 3 }"
+                                    @click="rating = rating === 3 ? 0 : 3"
+                                    @mouseenter="temp = 3"
+                                    @mouseleave="temp = 0">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </button>
+                            <button type="button" 
+                                    class="text-gray-400 hover:text-yellow-400"
+                                    :class="{ 'text-yellow-400': rating >= 4 || temp >= 4 }"
+                                    @click="rating = rating === 4 ? 0 : 4"
+                                    @mouseenter="temp = 4"
+                                    @mouseleave="temp = 0">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </button>
+                            <button type="button" 
+                                    class="text-gray-400 hover:text-yellow-400"
+                                    :class="{ 'text-yellow-400': rating >= 5 || temp >= 5 }"
+                                    @click="rating = rating === 5 ? 0 : 5"
+                                    @mouseenter="temp = 5"
+                                    @mouseleave="temp = 0">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </button>
+                            <input type="hidden" name="rating" :value="rating">
                             
-                            <div class="rating flex items-center" x-data="{ rating: 0, temp: 0, isRewatch: false }">
-                                <button type="button" 
-                                        class="text-gray-400 hover:text-yellow-400"
-                                        :class="{ 'text-yellow-400': rating >= 1 || temp >= 1 }"
-                                        @click="rating = rating === 1 ? 0 : 1"
-                                        @mouseenter="temp = 1"
-                                        @mouseleave="temp = 0">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                    </svg>
-                                </button>
-                                <button type="button" 
-                                        class="text-gray-400 hover:text-yellow-400"
-                                        :class="{ 'text-yellow-400': rating >= 2 || temp >= 2 }"
-                                        @click="rating = rating === 2 ? 0 : 2"
-                                        @mouseenter="temp = 2"
-                                        @mouseleave="temp = 0">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                    </svg>
-                                </button>
-                                <button type="button" 
-                                        class="text-gray-400 hover:text-yellow-400"
-                                        :class="{ 'text-yellow-400': rating >= 3 || temp >= 3 }"
-                                        @click="rating = rating === 3 ? 0 : 3"
-                                        @mouseenter="temp = 3"
-                                        @mouseleave="temp = 0">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                    </svg>
-                                </button>
-                                <button type="button" 
-                                        class="text-gray-400 hover:text-yellow-400"
-                                        :class="{ 'text-yellow-400': rating >= 4 || temp >= 4 }"
-                                        @click="rating = rating === 4 ? 0 : 4"
-                                        @mouseenter="temp = 4"
-                                        @mouseleave="temp = 0">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                    </svg>
-                                </button>
-                                <button type="button" 
-                                        class="text-gray-400 hover:text-yellow-400"
-                                        :class="{ 'text-yellow-400': rating >= 5 || temp >= 5 }"
-                                        @click="rating = rating === 5 ? 0 : 5"
-                                        @mouseenter="temp = 5"
-                                        @mouseleave="temp = 0">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                    </svg>
-                                </button>
-                                <input type="hidden" name="rating" :value="rating">
-
-                                <div class="ml-4 flex items-center gap-4">
-                                    <label class="inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" 
-                                               name="is_rewatch"
-                                               class="w-4 h-4 rounded bg-[#1f2329] border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 focus:ring-1 cursor-pointer"
-                                               x-model="isRewatch">
-                                        <span class="ml-2 text-sm font-medium text-gray-300">Rewatch</span>
-                                    </label>
-                                    
-                                    <div x-data="{ liked: false }" class="flex items-center">
-                                        <button type="button" 
-                                                @click="liked = !liked"
-                                                class="flex items-center gap-1 px-2 py-1 rounded transition-colors duration-200"
-                                                :class="liked ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'">
-                                            <svg xmlns="http://www.w3.org/2000/svg" 
-                                                 width="16" 
-                                                 height="16" 
-                                                 viewBox="0 0 24 24" 
-                                                 :fill="liked ? 'currentColor' : 'none'"
-                                                 stroke="currentColor" 
-                                                 stroke-width="2" 
-                                                 stroke-linecap="round" 
-                                                 stroke-linejoin="round">
-                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                                            </svg>
-                                            <span class="text-xs font-medium">Like</span>
-                                        </button>
-                                        <input type="hidden" name="liked" :value="liked">
-                                    </div>
+                            <div class="ml-4 flex items-center gap-4">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" 
+                                           name="is_rewatch"
+                                           class="w-4 h-4 rounded bg-[#1f2329] border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 focus:ring-1 cursor-pointer"
+                                           x-model="isRewatch">
+                                    <span class="ml-2 text-sm font-medium text-gray-300">Rewatch</span>
+                                </label>
+                                
+                                <div x-data="{ liked: false }" class="flex items-center">
+                                    <button type="button" 
+                                            @click="liked = !liked"
+                                            class="flex items-center gap-1 px-2 py-1 rounded transition-colors duration-200"
+                                            :class="liked ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'">
+                                        <svg xmlns="http://www.w3.org/2000/svg" 
+                                             width="16" 
+                                             height="16" 
+                                             viewBox="0 0 24 24" 
+                                             :fill="liked ? 'currentColor' : 'none'"
+                                             stroke="currentColor" 
+                                             stroke-width="2" 
+                                             stroke-linecap="round" 
+                                             stroke-linejoin="round">
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                        </svg>
+                                        <span class="text-xs font-medium">Like</span>
+                                    </button>
+                                    <input type="hidden" name="liked" :value="liked">
                                 </div>
                             </div>
                         </div>
-                        <textarea 
-                            name="review" 
-                            placeholder="Add a review..."
-                            class="w-full flex-1 bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400 resize-none text-sm"
-                        ></textarea>
                     </div>
+                    
+                    <!-- Review Textarea -->
+                    <textarea 
+                        name="review" 
+                        placeholder="Add a review..."
+                        class="w-full flex-1 bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400 resize-none text-sm"
+                        rows="4"
+                    ></textarea>
                 </div>
             </div>
 
-            <!-- Content area -->
-            <div class="flex-1 overflow-y-auto">
-                <!-- Empty content -->
-            </div>
-
             <!-- Footer with Log button -->
-            <div class="flex justify-end mt-4">
+            <div class="flex justify-end mt-6 pt-4 border-t border-gray-600">
                 <button type="button" 
                         onclick="submitDiaryLog(this)"
                         class="bg-gray-700 hover:bg-gray-600 px-8 py-2.5 text-sm font-medium text-white rounded transition-colors duration-200 ease-in-out">

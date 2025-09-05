@@ -1260,7 +1260,11 @@ def mark_movie_watched(request, source, media_type, media_id):
         # If it already exists, mark it as consumed
         media_instance.mark_consumed()
     
-    # Return fragment for HTMX to swap
+    # Return updated action buttons for HTMX to swap  
+    # Add required fields to metadata for template compatibility
+    metadata["media_type"] = media_type
+    metadata["source"] = source
+    metadata["media_id"] = media_id
     context = {
         "media": metadata,
         "media_type": media_type,
