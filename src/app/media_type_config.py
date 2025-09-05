@@ -6,6 +6,7 @@ from app.models import MediaTypes, Sources
 # --- Central Configuration Dictionary ---
 MEDIA_TYPE_CONFIG = {
     MediaTypes.TV.value: {
+        "sources": [Sources.TMDB],
         "default_source": Sources.TMDB.label,
         "sample_query": "Breaking Bad",
         "unicode_icon": "📺",
@@ -17,6 +18,7 @@ MEDIA_TYPE_CONFIG = {
             <polyline points="17 2 12 7 7 2"/>""",
     },
     MediaTypes.SEASON.value: {
+        "sources": [Sources.TMDB],
         "default_source": Sources.TMDB.label,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
@@ -30,6 +32,7 @@ MEDIA_TYPE_CONFIG = {
         "unit": ("E", "Episode"),
     },
     MediaTypes.EPISODE.value: {
+        "sources": [Sources.TMDB],
         "default_source": Sources.TMDB.label,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
@@ -38,6 +41,7 @@ MEDIA_TYPE_CONFIG = {
         "svg_icon": """<polygon points="6 3 20 12 6 21 6 3"/>""",
     },
     MediaTypes.MOVIE.value: {
+        "sources": [Sources.TMDB],
         "default_source": Sources.TMDB.label,
         "sample_query": "The Shawshank Redemption",
         "unicode_icon": "🎬",
@@ -56,6 +60,7 @@ MEDIA_TYPE_CONFIG = {
         "date_key": "release_date",
     },
     MediaTypes.ANIME.value: {
+        "sources": [Sources.MAL],
         "default_source": Sources.MAL.label,
         "sample_query": "Perfect Blue",
         "unicode_icon": "🎭",
@@ -69,6 +74,7 @@ MEDIA_TYPE_CONFIG = {
         "date_key": "end_date",
     },
     MediaTypes.MANGA.value: {
+        "sources": [Sources.MAL, Sources.MANGAUPDATES],
         "default_source": Sources.MAL.label,
         "sample_query": "Berserk",
         "unicode_icon": "📚",
@@ -86,6 +92,7 @@ MEDIA_TYPE_CONFIG = {
         "unit": ("#", "Chapter"),
     },
     MediaTypes.GAME.value: {
+        "sources": [Sources.IGDB],
         "default_source": Sources.IGDB.label,
         "sample_query": "Half-Life",
         "unicode_icon": "🎮",
@@ -107,6 +114,7 @@ MEDIA_TYPE_CONFIG = {
         "date_key": "release_date",
     },
     MediaTypes.BOOK.value: {
+        "sources": [Sources.HARDCOVER, Sources.OPENLIBRARY],
         "default_source": Sources.HARDCOVER.label,
         "sample_query": "The Great Gatsby",
         "unicode_icon": "📖",
@@ -120,6 +128,7 @@ MEDIA_TYPE_CONFIG = {
         "unit": ("P", "Page"),
     },
     MediaTypes.COMIC.value: {
+        "sources": [Sources.COMICVINE],
         "default_source": Sources.COMICVINE.label,
         "sample_query": "Batman",
         "unicode_icon": "📕",
@@ -149,6 +158,11 @@ def get_property(media_type, prop_name):
     except KeyError:
         msg = f"Property '{prop_name}' not found for media type '{media_type}'."
         raise KeyError(msg) from None
+
+
+def get_sources(media_type):
+    """Get the list of sources for a media type."""
+    return get_property(media_type, "sources")
 
 
 def get_default_source_name(media_type):

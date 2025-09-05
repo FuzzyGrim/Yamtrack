@@ -404,13 +404,14 @@
                       <div>
                         <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
                         <p class="text-sm text-gray-400">
-                          Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
+                          Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}{% if episode.runtime %} • {{ episode.runtime }}{% endif %}
                         </p>
                       </div>
                       <div class="flex space-x-2">
                         {# Track Episode #}
                         <div x-data="{ trackOpen: false }">
                           <button @click="trackOpen = true"
+                                  title="Track Episode"
                                   class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
                             {% if episode.history %}
                               <svg xmlns="http://www.w3.org/2000/svg"
@@ -450,6 +451,7 @@
                         {# Lists #}
                         <div x-data="{ listsOpen: false }">
                           <button class="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition duration-300 cursor-pointer"
+                                  title="Add to custom lists"
                                   hx-get="{% media_view_url 'lists_modal' episode %}"
                                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                                   hx-target="#{% component_id 'lists' episode %}"
@@ -485,6 +487,7 @@
                         {# History #}
                         <div x-data="{ historyOpen: false }">
                           <button class="p-2 bg-amber-600 hover:bg-amber-700 text-white rounded-full transition duration-300 cursor-pointer"
+                                  title="View your activity history"
                                   hx-get="{% media_view_url 'history_modal' episode %}"
                                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                                   hx-target="#{% component_id 'history' episode %}"

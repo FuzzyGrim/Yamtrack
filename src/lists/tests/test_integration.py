@@ -75,7 +75,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         ).first.click()
         self.page.locator(".absolute > .relative > button:nth-child(2)").first.click()
         expect(self.page.locator("#lists-anime-437")).to_contain_text("Lists test Add")
-        self.page.get_by_role("button", name="Add").click()
+        self.page.get_by_role("button", name="Add", exact=True).click()
         expect(self.page.locator("#lists-anime-437")).to_contain_text("Remove")
         self.page.locator("#lists-anime-437").get_by_role("button").first.click()
 

@@ -821,7 +821,7 @@ class ImportIMDB(TestCase):
         imported_counts, warnings = self.import_results
 
         # Check import counts
-        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 4)
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 5)
         self.assertEqual(imported_counts[MediaTypes.TV.value], 2)
 
         # Check that unsupported type was skipped
@@ -896,10 +896,10 @@ class ImportIMDB(TestCase):
             ("TV Mini Series", True),
             ("TV Movie", True),
             ("TV Special", True),
+            ("Video", True),
             ("TV Episode", False),
             ("TV Short", False),
             ("Video Game", False),
-            ("Video", False),
             ("Music Video", False),
             ("Podcast Series", False),
             ("Podcast Episode", False),
@@ -922,9 +922,9 @@ class ImportIMDB(TestCase):
         """Test handling of duplicate IMDB entries that map to same TMDB ID."""
         imported_counts, warnings = self.import_results
 
-        # There are three movies in the test CSV, one of them is a duplicate
+        # There are six movies in the test CSV, one of them is a duplicate
         # The test CSV file contains a duplicate of The Dark Knight
-        self.assertEqual(imported_counts.get(MediaTypes.MOVIE.value, 0), 4)
+        self.assertEqual(imported_counts.get(MediaTypes.MOVIE.value, 0), 5)
 
         # Should have duplicate warning
         self.assertIn("They were matched to the same TMDB ID 155", warnings)

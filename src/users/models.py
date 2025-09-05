@@ -24,6 +24,7 @@ class HomeSortChoices(models.TextChoices):
     """Choices for home page sort options."""
 
     UPCOMING = "upcoming", "Upcoming"
+    RECENT = "recent", "Recent"
     COMPLETION = "completion", "Completion"
     EPISODES_LEFT = "episodes_left", "Episodes Left"
     TITLE = "title", "Title"

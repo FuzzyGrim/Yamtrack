@@ -716,6 +716,10 @@ class MediaManagerTests(TestCase):
         # Fewer episodes left first
         self.assertEqual(sorted_list, [anime1, anime3, anime2])
 
+        # Test sort by recent
+        sorted_list = manager._sort_in_progress_media(anime_list, sort_by="recent")
+        self.assertEqual(sorted_list, [anime3, anime2, anime1])
+
     def test_annotate_max_progress(self):
         """Test the annotate_max_progress method."""
         manager = MediaManager()
@@ -848,6 +852,7 @@ class MediaManagerTests(TestCase):
             6,
         )  # 11 total - 5 offset
         self.assertEqual(in_progress[MediaTypes.ANIME.value]["total"], 11)
+
 
     def test_get_media(self):
         """Test the get_media method."""

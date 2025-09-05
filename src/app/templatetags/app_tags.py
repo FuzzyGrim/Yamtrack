@@ -136,6 +136,12 @@ def long_unit(media_type):
     return media_type_config.get_unit(media_type, short=False)
 
 
+@register.filter
+def sources(media_type):
+    """Template filter to get source options for a media type."""
+    return media_type_config.get_sources(media_type)
+
+
 @register.simple_tag
 def get_search_media_types(user):
     """Return available media types for search based on user preferences."""
