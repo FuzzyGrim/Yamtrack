@@ -1,7 +1,9 @@
 services:
   yamtrack:
     container_name: yamtrack
-    image: ghcr.io/fuzzygrim/yamtrack
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       - redis
@@ -12,7 +14,7 @@ services:
     volumes:
       - ./db:/yamtrack/db
     ports:
-      - "8000:8000"
+      - "8036:8000"
 
   redis:
     container_name: yamtrack-redis
