@@ -960,3 +960,16 @@ class StatisticsTests(TestCase):
         )
         self.assertEqual(current_streak, 0)
         self.assertEqual(longest_streak, 0)
+
+    def test_get_top_played_media(self):
+        """Test the get_top_played_media function."""
+        # Test with empty user media
+        empty_user_media = {}
+        result = statistics.get_top_played_media(empty_user_media, None, None)
+        self.assertEqual(result, {})
+        
+        # Test with non-existent media types
+        user_media = {'anime': MagicMock()}
+        user_media['anime'].exists.return_value = False
+        result = statistics.get_top_played_media(user_media, None, None)
+        self.assertEqual(result, {})

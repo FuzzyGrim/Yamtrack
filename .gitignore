@@ -7,3 +7,5 @@ src/staticfiles
 src/db/db.sqlite3
 db.sqlite3-shm
 db.sqlite3-wal
+.DS_Store
+**/.DS_Store

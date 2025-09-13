@@ -260,6 +260,9 @@
     <a href="{{ item|media_url }}"
        class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
        title="{{ title }}">{{ title }}</a>
+    {% if duration %}
+      <p class="text-xs text-gray-400 mt-1">{{ duration }}</p>
+    {% endif %}
   </div>
 
   {% if item.media_type == MediaTypes.EPISODE.value %}

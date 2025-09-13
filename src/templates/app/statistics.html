@@ -7,73 +7,113 @@
 {% endblock title %}
 
 {% block content %}
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold mb-2">Statistics</h1>
-    <p class="text-gray-400">Track your media consumption habits</p>
-  </div>
-  <div x-data="dateRangePicker()" x-init="init()" class="relative mb-8">
-    <!-- Trigger Button -->
-    <button @click="toggleDropdown()"
-            class="flex items-center gap-2 px-4 py-2.5 bg-[#2a2f35] hover:bg-[#343a40] rounded-lg transition-all duration-200 border border-gray-700 shadow-sm cursor-pointer">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="w-5 h-5 text-indigo-400">
-        <path d="M8 2v4"></path>
-        <path d="M16 2v4"></path>
-        <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-        <path d="M3 10h18"></path>
-      </svg>
-      <span class="font-medium" x-text="selectedRange"></span>
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="w-4 h-4 ml-1 transition-transform duration-200"
-           :class="{'rotate-180': isOpen}">
-        <path d="m6 9 6 6 6-6"></path>
-      </svg>
-    </button>
+  <div x-data="dateRangePicker()" x-init="init()">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-2">Statistics</h1>
+      <p class="text-gray-400">Track your media consumption habits</p>
+    </div>
+    <div class="relative mb-8">
+      <!-- Trigger Button -->
+      <button @click="toggleDropdown()"
+              class="flex items-center gap-2 px-4 py-2.5 bg-[#2a2f35] hover:bg-[#343a40] rounded-lg transition-all duration-200 border border-gray-700 shadow-sm cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-5 h-5 text-indigo-400">
+          <path d="M8 2v4"></path>
+          <path d="M16 2v4"></path>
+          <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+          <path d="M3 10h18"></path>
+        </svg>
+        <span class="font-medium" x-text="selectedRange"></span>
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-4 h-4 ml-1 transition-transform duration-200"
+             :class="{'rotate-180': isOpen}">
+          <path d="m6 9 6 6 6-6"></path>
+        </svg>
+      </button>
 
-    <!-- Dropdown -->
-    <div x-cloak
-         x-show="isOpen"
-         x-transition
-         @click.outside="isOpen = false"
-         class="absolute z-20 mt-2 w-[340px] bg-[#2a2f35] rounded-lg shadow-lg border border-gray-700 overflow-hidden transition-all duration-200 animate-in fade-in-50 slide-in-from-top-5">
+      <!-- Dropdown -->
+      <div x-cloak
+           x-show="isOpen"
+           x-transition
+           @click.outside="isOpen = false"
+           class="absolute z-20 mt-2 w-[340px] bg-[#2a2f35] rounded-lg shadow-lg border border-gray-700 overflow-hidden transition-all duration-200 animate-in fade-in-50 slide-in-from-top-5">
 
-      <!-- Tabs -->
-      <div class="flex border-b border-gray-700">
-        <button @click="activeTab = 'predefined'"
-                :class="{'text-white border-b-2 border-indigo-500': activeTab === 'predefined', 'text-gray-400 hover:text-gray-200': activeTab !== 'predefined'}"
-                class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Predefined Ranges</button>
-        <button @click="activeTab = 'custom'"
-                :class="{'text-white border-b-2 border-indigo-500': activeTab === 'custom', 'text-gray-400 hover:text-gray-200': activeTab !== 'custom'}"
-                class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Custom Range</button>
-      </div>
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-700">
+          <button @click="activeTab = 'predefined'"
+                  :class="{'text-white border-b-2 border-indigo-500': activeTab === 'predefined', 'text-gray-400 hover:text-gray-200': activeTab !== 'predefined'}"
+                  class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Predefined Ranges</button>
+          <button @click="activeTab = 'custom'"
+                  :class="{'text-white border-b-2 border-indigo-500': activeTab === 'custom', 'text-gray-400 hover:text-gray-200': activeTab !== 'custom'}"
+                  class="flex-1 py-3 text-sm font-medium transition-colors cursor-pointer">Custom Range</button>
+        </div>
 
-      <!-- Predefined Ranges Tab -->
-      <div x-show="activeTab === 'predefined'"
-           class="p-2 max-h-[320px] overflow-y-auto">
-        <div class="grid grid-cols-2 gap-2">
-          <template x-for="range in predefinedRanges" :key="range.name">
-            <button @click="selectPredefinedRange(range.name)"
-                    :class="{'bg-indigo-600 text-white': selectedRange === range.name, 'hover:bg-[#39404b] text-gray-200': selectedRange !== range.name}"
-                    class="flex items-center justify-between p-3 rounded-md text-left text-sm transition-all cursor-pointer">
-              <span x-text="range.name"></span>
-              <svg x-show="selectedRange === range.name"
-                   xmlns="http://www.w3.org/2000/svg"
+        <!-- Predefined Ranges Tab -->
+        <div x-show="activeTab === 'predefined'"
+             class="p-2 max-h-[320px] overflow-y-auto">
+          <div class="grid grid-cols-2 gap-2">
+            <template x-for="range in predefinedRanges" :key="range.name">
+              <button @click="selectPredefinedRange(range.name)"
+                      :class="{'bg-indigo-600 text-white': selectedRange === range.name, 'hover:bg-[#39404b] text-gray-200': selectedRange !== range.name}"
+                      class="flex items-center justify-between p-3 rounded-md text-left text-sm transition-all cursor-pointer">
+                <span x-text="range.name"></span>
+                <svg x-show="selectedRange === range.name"
+                     xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-4 h-4">
+                  <path d="M20 6 9 17l-5-5"></path>
+                </svg>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Custom Range Tab -->
+        <div x-show="activeTab === 'custom'" class="p-4">
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
+                <input x-model="startDate"
+                       @change="updateDateRange()"
+                       class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
+                       type="date">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
+                <input x-model="endDate"
+                       @change="updateDateRange()"
+                       class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
+                       type="date">
+              </div>
+            </div>
+
+            <div class="flex items-center justify-center py-2 px-3 bg-[#343a40] rounded-md">
+              <span class="text-sm text-gray-300" x-text="formatDisplayDate(startDate)"></span>
+              <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
                    viewBox="0 0 24 24"
@@ -82,36 +122,45 @@
                    stroke-width="2"
                    stroke-linecap="round"
                    stroke-linejoin="round"
-                   class="w-4 h-4">
-                <path d="M20 6 9 17l-5-5"></path>
+                   class="mx-2 w-4 h-4 text-gray-500">
+                <path d="M5 12h14"></path>
+                <path d="m12 5 7 7-7 7"></path>
               </svg>
-            </button>
-          </template>
-        </div>
-      </div>
-
-      <!-- Custom Range Tab -->
-      <div x-show="activeTab === 'custom'" class="p-4">
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
-              <input x-model="startDate"
-                     @change="updateDateRange()"
-                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
-                     type="date">
+              <span class="text-sm text-gray-300" x-text="formatDisplayDate(endDate)"></span>
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
-              <input x-model="endDate"
-                     @change="updateDateRange()"
-                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
-                     type="date">
+
+            <div class="flex justify-end gap-2 pt-2">
+              <button @click="isOpen = false"
+                      class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors cursor-pointer">
+                Cancel
+              </button>
+              <button @click="applyCustomRange()"
+                      class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-md transition-colors cursor-pointer flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-4 h-4">
+                  <path d="M20 6 9 17l-5-5"></path>
+                </svg>
+                Apply Range
+              </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <div class="flex items-center justify-center py-2 px-3 bg-[#343a40] rounded-md">
-            <span class="text-sm text-gray-300" x-text="formatDisplayDate(startDate)"></span>
+    <div class="space-y-8">
+      <!-- Statistics Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
+          <div class="bg-indigo-600/20 p-4 rounded-full mr-4">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -121,226 +170,733 @@
                  stroke-width="2"
                  stroke-linecap="round"
                  stroke-linejoin="round"
-                 class="mx-2 w-4 h-4 text-gray-500">
-              <path d="M5 12h14"></path>
-              <path d="m12 5 7 7-7 7"></path>
+                 class="w-8 h-8 text-indigo-400">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <path d="m9 11 3 3L22 4"></path>
             </svg>
-            <span class="text-sm text-gray-300" x-text="formatDisplayDate(endDate)"></span>
           </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button @click="isOpen = false"
-                    class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors cursor-pointer">
-              Cancel
-            </button>
-            <button @click="applyCustomRange()"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-md transition-colors cursor-pointer flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4">
-                <path d="M20 6 9 17l-5-5"></path>
-              </svg>
-              Apply Range
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="space-y-8">
-    <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
-        <div class="bg-indigo-600/20 p-4 rounded-full mr-4">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-indigo-400">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <path d="m9 11 3 3L22 4"></path>
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-sm font-medium text-gray-400">Completed Items</h3>
-          {% if media_count.total %}
-            <p class="text-2xl font-bold">
-              {{ status_distribution.total_completed }} <span class="text-gray-500 text-lg">/ {{ media_count.total }}</span>
-            </p>
-          {% else %}
-            <p class="text-2xl font-bold text-gray-500">--</p>
-          {% endif %}
-        </div>
-      </div>
-      <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
-        <div class="bg-yellow-600/20 p-4 rounded-full mr-4">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-yellow-400">
-            <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526">
-            </path>
-            <circle cx="12" cy="8" r="6"></circle>
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-sm font-medium text-gray-400">Average Rating</h3>
-          {% if score_distribution.total_scored %}
-            <p class="text-2xl font-bold">
-              {{ score_distribution.average_score }} <span class="text-gray-500 text-lg">/ 10</span>
-            </p>
-          {% else %}
-            <p class="text-2xl font-bold text-gray-500">--</p>
-          {% endif %}
-        </div>
-      </div>
-      <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
-        <div class="bg-emerald-600/20 p-4 rounded-full mr-4">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-emerald-400">
-            <path d="M8 2v4"></path>
-            <path d="M16 2v4"></path>
-            <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-            <path d="M3 10h18"></path>
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-sm font-medium text-gray-400">Most Active Day</h3>
-          {% if activity_data.stats.most_active_day %}
-            <p class="text-2xl font-bold">{{ activity_data.stats.most_active_day }}</p>
-            <p class="text-sm text-gray-500">{{ activity_data.stats.most_active_day_percentage }}% of activity</p>
-          {% else %}
-            <p class="text-2xl font-bold text-gray-500">--</p>
-          {% endif %}
-        </div>
-      </div>
-      <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
-        <div class="bg-red-600/20 p-4 rounded-full mr-4">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-red-400">
-            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z">
-            </path>
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-sm font-medium text-gray-400">Current Streak</h3>
-          {% if activity_data.stats.most_active_day %}
-            <p class="text-2xl font-bold">
-              {{ activity_data.stats.current_streak }} day{{ activity_data.stats.current_streak|pluralize }}
-              <p class="text-sm text-gray-500">
-                Longest: {{ activity_data.stats.longest_streak }} day{{ activity_data.stats.longest_streak|pluralize }}
+          <div>
+            <h3 class="text-sm font-medium text-gray-400">Completed Items</h3>
+            {% if media_count.total %}
+              <p class="text-2xl font-bold">
+                {{ status_distribution.total_completed }} <span class="text-gray-500 text-lg">/ {{ media_count.total }}</span>
               </p>
-            </p>
-          {% else %}
-            <p class="text-2xl font-bold text-gray-500">--</p>
-          {% endif %}
+            {% else %}
+              <p class="text-2xl font-bold text-gray-500">--</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
+          <div class="bg-yellow-600/20 p-4 rounded-full mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-8 h-8 text-yellow-400">
+              <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526">
+              </path>
+              <circle cx="12" cy="8" r="6"></circle>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-400">Average Rating</h3>
+            {% if score_distribution.total_scored %}
+              <p class="text-2xl font-bold">
+                {{ score_distribution.average_score }} <span class="text-gray-500 text-lg">/ 10</span>
+              </p>
+            {% else %}
+              <p class="text-2xl font-bold text-gray-500">--</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
+          <div class="bg-emerald-600/20 p-4 rounded-full mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-8 h-8 text-emerald-400">
+              <path d="M8 2v4"></path>
+              <path d="M16 2v4"></path>
+              <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+              <path d="M3 10h18"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-400">Most Active Day</h3>
+            {% if activity_data.stats.most_active_day %}
+              <p class="text-2xl font-bold">{{ activity_data.stats.most_active_day }}</p>
+              <p class="text-sm text-gray-500">{{ activity_data.stats.most_active_day_percentage }}% of activity</p>
+            {% else %}
+              <p class="text-2xl font-bold text-gray-500">--</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
+          <div class="bg-red-600/20 p-4 rounded-full mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-8 h-8 text-red-400">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z">
+              </path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-400">Current Streak</h3>
+            {% if activity_data.stats.most_active_day %}
+              <p class="text-2xl font-bold">
+                {{ activity_data.stats.current_streak }} day{{ activity_data.stats.current_streak|pluralize }}
+                <p class="text-sm text-gray-500">
+                  Longest: {{ activity_data.stats.longest_streak }} day{{ activity_data.stats.longest_streak|pluralize }}
+                </p>
+              </p>
+            {% else %}
+              <p class="text-2xl font-bold text-gray-500">--</p>
+            {% endif %}
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Activity History Section -->
-    <div class="bg-[#2a2f35] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
-      <h2 class="text-xl font-semibold mb-4 text-center">Activity History</h2>
-      <div class="overflow-x-auto flex flex-col justify-center"
-           x-data="{ graphTooWide: false }"
-           x-init="$nextTick(() => { const graphWidth = $refs.graphContainer.scrollWidth; const parentWidth = $el.clientWidth; graphTooWide = graphWidth > parentWidth; })"
-           :class="graphTooWide ? 'items-start' : 'items-center'">
+      <!-- Activity History Section -->
+      <div class="bg-[#2a2f35] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
+        <h2 class="text-xl font-semibold mb-4 text-center">Activity History</h2>
+        <div class="overflow-x-auto flex flex-col justify-center"
+             x-data="{ graphTooWide: false }"
+             x-init="$nextTick(() => { const graphWidth = $refs.graphContainer.scrollWidth; const parentWidth = $el.clientWidth; graphTooWide = graphWidth > parentWidth; })"
+             :class="graphTooWide ? 'items-start' : 'items-center'">
 
-        <div class="p-4" x-ref="graphContainer">
-          <!-- Months row -->
-          <div class="flex mb-2 pl-[36.68px]">
-            {% for month, week_count in activity_data.months %}
-              <div class="text-xs text-gray-400"
-                   style="width: calc({{ week_count }} * 1rem + ({{ week_count }} * 0.25rem))">{{ month }}</div>
-            {% endfor %}
-          </div>
-
-          <!-- Graph wrapper -->
-          <div class="flex">
-            <!-- Weekday labels -->
-            <div class="flex flex-col justify-between pr-2 text-sm text-gray-400">
-              <div class="h-4 flex items-center">Mon</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">Wed</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">Fri</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">Sun</div>
-            </div>
-
-            <!-- Weeks grid -->
-            <div class="flex gap-1">
-              {% for week in activity_data.calendar_weeks %}
-                <div class="flex flex-col gap-1">
-                  {% for day in week %}
-                    <div class="w-4 h-4 rounded-sm transition-colors duration-200 hover:ring-2 hover:ring-white {% if day.level == 0 %}bg-[#2f353e]{% elif day.level == 1 %}bg-indigo-700{% elif day.level == 2 %}bg-indigo-600{% elif day.level == 3 %}bg-indigo-500{% elif day.level == 4 %}bg-indigo-400{% endif %}"
-                         title="{{ day.date }}: {{ day.count }} activit{{ day.count|pluralize:"y,ies" }}"></div>
-                  {% endfor %}
-                </div>
+          <div class="p-4" x-ref="graphContainer">
+            <!-- Months row -->
+            <div class="flex mb-2 pl-[36.68px]">
+              {% for month, week_count in activity_data.months %}
+                <div class="text-xs text-gray-400"
+                     style="width: calc({{ week_count }} * 1rem + ({{ week_count }} * 0.25rem))">{{ month }}</div>
               {% endfor %}
             </div>
+
+            <!-- Graph wrapper -->
+            <div class="flex">
+              <!-- Weekday labels -->
+              <div class="flex flex-col justify-between pr-2 text-sm text-gray-400">
+                <div class="h-4 flex items-center">Mon</div>
+                <div class="h-4"></div>
+                <div class="h-4 flex items-center">Wed</div>
+                <div class="h-4"></div>
+                <div class="h-4 flex items-center">Fri</div>
+                <div class="h-4"></div>
+                <div class="h-4 flex items-center">Sun</div>
+              </div>
+
+              <!-- Weeks grid -->
+              <div class="flex gap-1">
+                {% for week in activity_data.calendar_weeks %}
+                  <div class="flex flex-col gap-1">
+                    {% for day in week %}
+                      <div class="w-4 h-4 rounded-sm transition-colors duration-200 hover:ring-2 hover:ring-white {% if day.level == 0 %}bg-[#2f353e]{% elif day.level == 1 %}bg-indigo-700{% elif day.level == 2 %}bg-indigo-600{% elif day.level == 3 %}bg-indigo-500{% elif day.level == 4 %}bg-indigo-400{% endif %}"
+                           title="{{ day.date }}: {{ day.count }} activit{{ day.count|pluralize:"y,ies" }}"></div>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div class="flex items-center gap-2 pl-6 text-xs text-gray-400"
+               :class="graphTooWide ? 'mb-5 mt-2' : 'mt-4'">
+            <span>Less</span>
+            <div class="w-4 h-4 rounded-sm bg-[#2f353e]"></div>
+            <div class="w-4 h-4 rounded-sm bg-indigo-700"></div>
+            <div class="w-4 h-4 rounded-sm bg-indigo-600"></div>
+            <div class="w-4 h-4 rounded-sm bg-indigo-500"></div>
+            <div class="w-4 h-4 rounded-sm bg-indigo-400"></div>
+            <span>More</span>
           </div>
         </div>
+      </div>
 
-        <!-- Legend -->
-        <div class="flex items-center gap-2 pl-6 text-xs text-gray-400"
-             :class="graphTooWide ? 'mb-5 mt-2' : 'mt-4'">
-          <span>Less</span>
-          <div class="w-4 h-4 rounded-sm bg-[#2f353e]"></div>
-          <div class="w-4 h-4 rounded-sm bg-indigo-700"></div>
-          <div class="w-4 h-4 rounded-sm bg-indigo-600"></div>
-          <div class="w-4 h-4 rounded-sm bg-indigo-500"></div>
-          <div class="w-4 h-4 rounded-sm bg-indigo-400"></div>
-          <span>More</span>
+      <!-- Media Type Hours Cards Section -->
+      <div class="grid gap-4 mb-8" 
+           x-data="{ 
+             cardCount: 0,
+             init() {
+               this.$nextTick(() => {
+                 this.cardCount = this.$el.querySelectorAll('[data-media-card]').length;
+                 this.updateGrid();
+               });
+             },
+             updateGrid() {
+               // Remove all grid column classes first
+               this.$el.classList.remove('grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3', 'lg:grid-cols-4');
+               
+               if (this.cardCount === 1) {
+                 this.$el.classList.add('grid-cols-1');
+               } else if (this.cardCount === 2) {
+                 this.$el.classList.add('grid-cols-1', 'md:grid-cols-2');
+               } else if (this.cardCount === 3) {
+                 this.$el.classList.add('grid-cols-1', 'md:grid-cols-3');
+               } else if (this.cardCount >= 4) {
+                 this.$el.classList.add('grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-4');
+               }
+             }
+           }">
+        {% if hours_per_media_type.tv and hours_per_media_type.tv != "0h 0min" %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center" data-media-card>
+          <div class="bg-indigo-600/20 p-4 rounded-full mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-8 h-8 text-indigo-400">
+              <rect width="20" height="15" x="2" y="7" rx="2" ry="2"/>
+              <polyline points="17 2 12 7 7 2"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-400">TV Shows</h3>
+            <p class="text-2xl font-bold">{{ hours_per_media_type.tv }}</p>
+            <p class="text-sm text-gray-500" x-text="selectedRange"></p>
+          </div>
+        </div>
+        {% endif %}
+        
+        {% if hours_per_media_type.movie and hours_per_media_type.movie != "0h 0min" %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center" data-media-card>
+          <div class="bg-red-600/20 p-4 rounded-full mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-8 h-8 text-red-400">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path d="M7 3v18"/>
+              <path d="M3 7.5h4"/>
+              <path d="M3 12h18"/>
+              <path d="M3 16.5h4"/>
+              <path d="M17 3v18"/>
+              <path d="M17 7.5h4"/>
+              <path d="M17 16.5h4"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-400">Movies</h3>
+            <p class="text-2xl font-bold">{{ hours_per_media_type.movie }}</p>
+            <p class="text-sm text-gray-500" x-text="selectedRange"></p>
+          </div>
+        </div>
+        {% endif %}
+        
+        {% if hours_per_media_type.game and hours_per_media_type.game != "0h 0min" %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center" data-media-card>
+          <div class="bg-emerald-600/20 p-4 rounded-full mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-8 h-8 text-emerald-400">
+              <line x1="6" x2="10" y1="11" y2="11"/>
+              <line x1="8" x2="8" y1="9" y2="13"/>
+              <line x1="15" x2="15.01" y1="12" y2="12"/>
+              <line x1="18" x2="18.01" y1="10" y2="10"/>
+              <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-400">Games</h3>
+            <p class="text-2xl font-bold">{{ hours_per_media_type.game }}</p>
+            <p class="text-sm text-gray-500" x-text="selectedRange"></p>
+          </div>
+        </div>
+        {% endif %}
+        
+        {% if hours_per_media_type.anime and hours_per_media_type.anime != "0h 0min" %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center" data-media-card>
+          <div class="bg-pink-600/20 p-4 rounded-full mr-4">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-8 h-8 text-pink-400">
+              <circle cx="12" cy="12" r="10"/>
+              <polygon points="10 8 16 12 10 16 10 8"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-400">Anime</h3>
+            <p class="text-2xl font-bold">{{ hours_per_media_type.anime }}</p>
+            <p class="text-sm text-gray-500" x-text="selectedRange"></p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Media Type Distribution Section -->
+        <div class="bg-[#2a2f35] rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-4">Media Type Distribution</h2>
+
+          {% if media_type_distribution.labels %}
+            <div class="h-80 flex justify-center items-center">
+              <canvas id="mediaTypeChart"></canvas>
+            </div>
+          {% else %}
+            <div class="flex flex-col items-center justify-center py-16">
+              <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-8 h-8 text-gray-400">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-medium mb-2">No media types to display</h3>
+              <p class="text-gray-400 text-center max-w-md">Add different types of media to see their distribution.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Status Distribution Section -->
+        <div class="bg-[#2a2f35] rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-4">Status Distribution</h2>
+
+          {% if status_pie_chart_data.labels %}
+            <div class="h-80 flex justify-center items-center">
+              <canvas id="statusChart"></canvas>
+            </div>
+          {% else %}
+            <div class="flex flex-col items-center justify-center py-16">
+              <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-8 h-8 text-gray-400">
+                  <line x1="12" x2="12" y1="20" y2="10"></line><line x1="18" x2="18" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="16"></line>
+                </svg>
+              </div>
+              <h3 class="text-lg font-medium mb-2">No status data to display</h3>
+              <p class="text-gray-400 text-center max-w-md">Track media items with different statuses to see their distribution.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Status Distribution by Media Type Section -->
+        <div class="bg-[#2a2f35] rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-4">Status Distribution by Media Type</h2>
+
+          {% if media_type_distribution.labels %}
+            <div class="h-80 flex justify-center items-center">
+              <canvas id="statusStackedChart"></canvas>
+            </div>
+          {% else %}
+            <div class="flex flex-col items-center justify-center py-16">
+              <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-8 h-8 text-gray-400">
+                  <line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line>
+                </svg>
+              </div>
+              <h3 class="text-lg font-medium mb-2">No data available</h3>
+              <p class="text-gray-400 text-center max-w-md">
+                Add media items with different statuses to see their distribution by type.
+              </p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Score Distribution by Media Type Section -->
+        <div class="bg-[#2a2f35] rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-4">Score Distribution by Media Type</h2>
+
+          {% if score_distribution.total_scored %}
+            <div class="h-80 flex justify-center items-center">
+              <canvas id="scoreStackedChart"></canvas>
+            </div>
+          {% else %}
+            <div class="flex flex-col items-center justify-center py-16">
+              <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     class="w-8 h-8 text-gray-400">
+                  <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526">
+                  </path>
+                  <circle cx="12" cy="8" r="6"></circle>
+                </svg>
+              </div>
+              <h3 class="text-lg font-medium mb-2">No ratings yet</h3>
+              <p class="text-gray-400 text-center max-w-md">Rate your media items to see score distribution statistics.</p>
+            </div>
+          {% endif %}
         </div>
       </div>
-    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <!-- Media Type Distribution Section -->
-      <div class="bg-[#2a2f35] rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Media Type Distribution</h2>
-
-        {% if media_type_distribution.labels %}
-          <div class="h-80 flex justify-center items-center">
-            <canvas id="mediaTypeChart"></canvas>
+      <!-- Top Movies Section -->
+      {% if top_played.movie %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">Top Movies - <span x-text="selectedRange"></span></h2>
+            <a href="{% url 'medialist' 'movie' %}" class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
+              See all your top movies →
+            </a>
           </div>
-        {% else %}
+          <div class="media-grid">
+            {% for item in top_played.movie %}
+              <div class="{% if secondary_color %}bg-[#39404b]{% else %}bg-[#2a2f35]{% endif %} rounded-lg overflow-hidden shadow-lg relative">
+                <div class="relative">
+                  <img alt="{{ item.media.item }}"
+                       class="lazyload w-full aspect-[2/3] bg-[#3e454d] {% if item.media.item.image != IMG_NONE %}object-cover{% endif %}"
+                       data-src="{{ item.media.item.image }}"
+                       src="{{ IMG_NONE }}">
+                  
+                  {% if item.media.status %}
+                    <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+                      {% if item.media.status == Status.COMPLETED.value %}
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             width="24"
+                             height="24"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             class="w-4 h-4 {{ MediaTypes.MOVIE.value|media_color }} mr-1.5">
+                          <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                          <path d="m9 11 3 3L22 4" />
+                        </svg>
+                      {% endif %}
+                      {% if item.media.end_date is not None %}
+                        <span class="text-sm text-white">{{ item.media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+                      {% elif item.media.start_date is not None %}
+                        <span class="text-sm text-white">{{ item.media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                  
+                  {% if item.media.score is not None %}
+                    <div class="absolute top-2 right-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           width="24"
+                           height="24"
+                           viewBox="0 0 24 24"
+                           fill="none"
+                           stroke="currentColor"
+                           stroke-width="2"
+                           stroke-linecap="round"
+                           stroke-linejoin="round"
+                           class="w-4 h-4 text-yellow-400 mr-1">
+                        <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      <span class="text-sm text-white">{{ item.media.score }}</span>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="p-3">
+                  <a href="{{ item.media.item|media_url }}"
+                     class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+                     title="{{ item.media.item }}">{{ item.media.item }}</a>
+                  <p class="text-xs text-gray-400 mt-1">1 play</p>
+                  <p class="text-xs text-indigo-400 mt-1">{{ item.formatted_duration }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Top TV Shows Section -->
+      {% if top_played.tv %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">Top TV Shows - <span x-text="selectedRange"></span></h2>
+            <a href="{% url 'medialist' 'tv' %}" class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
+              See all your top TV shows →
+            </a>
+          </div>
+          <div class="media-grid">
+            {% for item in top_played.tv %}
+              <div class="{% if secondary_color %}bg-[#39404b]{% else %}bg-[#2a2f35]{% endif %} rounded-lg overflow-hidden shadow-lg relative">
+                <div class="relative">
+                  <img alt="{{ item.media.item }}"
+                       class="lazyload w-full aspect-[2/3] bg-[#3e454d] {% if item.media.item.image != IMG_NONE %}object-cover{% endif %}"
+                       data-src="{{ item.media.item.image }}"
+                       src="{{ IMG_NONE }}">
+                  
+                  {% if item.media.status %}
+                    <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+                      {% if item.media.status == Status.COMPLETED.value %}
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             width="24"
+                             height="24"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             class="w-4 h-4 {{ MediaTypes.TV.value|media_color }} mr-1.5">
+                          <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                          <path d="m9 11 3 3L22 4" />
+                        </svg>
+                      {% endif %}
+                      {% if item.media.end_date is not None %}
+                        <span class="text-sm text-white">{{ item.media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+                      {% elif item.media.start_date is not None %}
+                        <span class="text-sm text-white">{{ item.media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                  
+                  {% if item.media.score is not None %}
+                    <div class="absolute top-2 right-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           width="24"
+                           height="24"
+                           viewBox="0 0 24 24"
+                           fill="none"
+                           stroke="currentColor"
+                           stroke-width="2"
+                           stroke-linecap="round"
+                           stroke-linejoin="round"
+                           class="w-4 h-4 text-yellow-400 mr-1">
+                        <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      <span class="text-sm text-white">{{ item.media.score }}</span>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="p-3">
+                  <a href="{{ item.media.item|media_url }}"
+                     class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+                     title="{{ item.media.item }}">{{ item.media.item }}</a>
+                  <p class="text-xs text-gray-400 mt-1">{{ item.episode_count }} episodes</p>
+                  <p class="text-xs text-indigo-400 mt-1">{{ item.formatted_duration }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Top Games Section -->
+      {% if top_played.game %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">Top Games - <span x-text="selectedRange"></span></h2>
+            <a href="{% url 'medialist' 'game' %}" class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
+              See all your top games →
+            </a>
+          </div>
+          <div class="media-grid">
+            {% for item in top_played.game %}
+              <div class="{% if secondary_color %}bg-[#39404b]{% else %}bg-[#2a2f35]{% endif %} rounded-lg overflow-hidden shadow-lg relative">
+                <div class="relative">
+                  <img alt="{{ item.media.item }}"
+                       class="lazyload w-full aspect-[2/3] bg-[#3e454d] {% if item.media.item.image != IMG_NONE %}object-cover{% endif %}"
+                       data-src="{{ item.media.item.image }}"
+                       src="{{ IMG_NONE }}">
+                  
+                  {% if item.media.status %}
+                    <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+                      {% if item.media.status == Status.COMPLETED.value %}
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             width="24"
+                             height="24"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             class="w-4 h-4 {{ MediaTypes.GAME.value|media_color }} mr-1.5">
+                          <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                          <path d="m9 11 3 3L22 4" />
+                        </svg>
+                      {% endif %}
+                      {% if item.media.end_date is not None %}
+                        <span class="text-sm text-white">{{ item.media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+                      {% elif item.media.start_date is not None %}
+                        <span class="text-sm text-white">{{ item.media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                  
+                  {% if item.media.score is not None %}
+                    <div class="absolute top-2 right-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           width="24"
+                           height="24"
+                           viewBox="0 0 24 24"
+                           fill="none"
+                           stroke="currentColor"
+                           stroke-width="2"
+                           stroke-linecap="round"
+                           stroke-linejoin="round"
+                           class="w-4 h-4 text-yellow-400 mr-1">
+                        <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      <span class="text-sm text-white">{{ item.media.score }}</span>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="p-3">
+                  <a href="{{ item.media.item|media_url }}"
+                     class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+                     title="{{ item.media.item }}">{{ item.media.item }}</a>
+                  <p class="text-xs text-indigo-400 mt-1">{{ item.formatted_duration }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Top Anime Section -->
+      {% if top_played.anime %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">Top Anime - <span x-text="selectedRange"></span></h2>
+            <a href="{% url 'medialist' 'anime' %}" class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
+              See all your top anime →
+            </a>
+          </div>
+          <div class="media-grid">
+            {% for item in top_played.anime %}
+              <div class="{% if secondary_color %}bg-[#39404b]{% else %}bg-[#2a2f35]{% endif %} rounded-lg overflow-hidden shadow-lg relative">
+                <div class="relative">
+                  <img alt="{{ item.media.item }}"
+                       class="lazyload w-full aspect-[2/3] bg-[#3e454d] {% if item.media.item.image != IMG_NONE %}object-cover{% endif %}"
+                       data-src="{{ item.media.item.image }}"
+                       src="{{ IMG_NONE }}">
+                  
+                  {% if item.media.status %}
+                    <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+                      {% if item.media.status == Status.COMPLETED.value %}
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             width="24"
+                             height="24"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             class="w-4 h-4 {{ MediaTypes.ANIME.value|media_color }} mr-1.5">
+                          <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                          <path d="m9 11 3 3L22 4" />
+                        </svg>
+                      {% endif %}
+                      {% if item.media.end_date is not None %}
+                        <span class="text-sm text-white">{{ item.media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+                      {% elif item.media.start_date is not None %}
+                        <span class="text-sm text-white">{{ item.media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                  
+                  {% if item.media.score is not None %}
+                    <div class="absolute top-2 right-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           width="24"
+                           height="24"
+                           viewBox="0 0 24 24"
+                           fill="none"
+                           stroke="currentColor"
+                           stroke-width="2"
+                           stroke-linecap="round"
+                           stroke-linejoin="round"
+                           class="w-4 h-4 text-yellow-400 mr-1">
+                        <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      <span class="text-sm text-white">{{ item.media.score }}</span>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="p-3">
+                  <a href="{{ item.media.item|media_url }}"
+                     class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+                     title="{{ item.media.item }}">{{ item.media.item }}</a>
+                  <p class="text-xs text-gray-400 mt-1">{{ item.episode_count }} episodes</p>
+                  <p class="text-xs text-indigo-400 mt-1">{{ item.formatted_duration }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Empty State for Top Played -->
+      {% if not top_played.movie and not top_played.tv and not top_played.game and not top_played.anime %}
+        <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
+          <h2 class="text-xl font-semibold mb-4">Top Played</h2>
           <div class="flex flex-col items-center justify-center py-16">
             <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg"
@@ -353,85 +909,25 @@
                    stroke-linecap="round"
                    stroke-linejoin="round"
                    class="w-8 h-8 text-gray-400">
-                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-                <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                <path d="M3 3v18h18"></path>
+                <path d="M18.7 8l-5.1 5.1-2.8-2.7L7 14.3"></path>
               </svg>
             </div>
-            <h3 class="text-lg font-medium mb-2">No media types to display</h3>
-            <p class="text-gray-400 text-center max-w-md">Add different types of media to see their distribution.</p>
+            <h3 class="text-lg font-medium mb-2">No activity yet</h3>
+            <p class="text-gray-400 text-center max-w-md">Start tracking your media to see your top played items.</p>
           </div>
-        {% endif %}
-      </div>
+        </div>
+      {% endif %}
 
-      <!-- Status Distribution Section -->
+      <!-- Top Rated Media Section -->
       <div class="bg-[#2a2f35] rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Status Distribution</h2>
+        <h2 class="text-xl font-semibold mb-4">Top Rated Media</h2>
 
-        {% if status_pie_chart_data.labels %}
-          <div class="h-80 flex justify-center items-center">
-            <canvas id="statusChart"></canvas>
-          </div>
-        {% else %}
-          <div class="flex flex-col items-center justify-center py-16">
-            <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-8 h-8 text-gray-400">
-                <line x1="12" x2="12" y1="20" y2="10"></line><line x1="18" x2="18" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="16"></line>
-              </svg>
-            </div>
-            <h3 class="text-lg font-medium mb-2">No status data to display</h3>
-            <p class="text-gray-400 text-center max-w-md">Track media items with different statuses to see their distribution.</p>
-          </div>
-        {% endif %}
-      </div>
-
-      <!-- Status Distribution by Media Type Section -->
-      <div class="bg-[#2a2f35] rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Status Distribution by Media Type</h2>
-
-        {% if media_type_distribution.labels %}
-          <div class="h-80 flex justify-center items-center">
-            <canvas id="statusStackedChart"></canvas>
-          </div>
-        {% else %}
-          <div class="flex flex-col items-center justify-center py-16">
-            <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-8 h-8 text-gray-400">
-                <line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line>
-              </svg>
-            </div>
-            <h3 class="text-lg font-medium mb-2">No data available</h3>
-            <p class="text-gray-400 text-center max-w-md">
-              Add media items with different statuses to see their distribution by type.
-            </p>
-          </div>
-        {% endif %}
-      </div>
-
-      <!-- Score Distribution by Media Type Section -->
-      <div class="bg-[#2a2f35] rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Score Distribution by Media Type</h2>
-
-        {% if score_distribution.total_scored %}
-          <div class="h-80 flex justify-center items-center">
-            <canvas id="scoreStackedChart"></canvas>
+        {% if top_rated %}
+          <div class="media-grid">
+            {% for media in top_rated %}
+              {% include "app/components/media_card.html" with media=media item=media.item title=media.item from_grid=True secondary_color=True %}
+            {% endfor %}
           </div>
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
@@ -456,148 +952,114 @@
           </div>
         {% endif %}
       </div>
-    </div>
 
-    <!-- Top Rated Media Section -->
-    <div class="bg-[#2a2f35] rounded-lg p-6">
-      <h2 class="text-xl font-semibold mb-4">Top Rated Media</h2>
+      <!-- Media Timeline Section -->
+      <div class="bg-[#2a2f35] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
+        <h2 class="text-xl font-semibold mb-6 md:mb-10">Media Timeline</h2>
 
-      {% if top_rated %}
-        <div class="media-grid">
-          {% for media in top_rated %}
-            {% include "app/components/media_card.html" with media=media item=media.item title=media.item from_grid=True secondary_color=True %}
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="flex flex-col items-center justify-center py-16">
-          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-8 h-8 text-gray-400">
-              <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526">
-              </path>
-              <circle cx="12" cy="8" r="6"></circle>
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium mb-2">No ratings yet</h3>
-          <p class="text-gray-400 text-center max-w-md">Rate your media items to see score distribution statistics.</p>
-        </div>
-      {% endif %}
-    </div>
+        {% if timeline %}
+          <div class="relative flex justify-center">
+            <div class="absolute top-0 bottom-0 w-px bg-indigo-500/50 hidden md:block"></div>
 
-    <!-- Media Timeline Section -->
-    <div class="bg-[#2a2f35] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
-      <h2 class="text-xl font-semibold mb-6 md:mb-10">Media Timeline</h2>
+            <div class="w-full space-y-10 md:space-y-20">
+              {% for month_year, media_list in timeline.items %}
+                <div class="relative">
 
-      {% if timeline %}
-        <div class="relative flex justify-center">
-          <div class="absolute top-0 bottom-0 w-px bg-indigo-500/50 hidden md:block"></div>
+                  <h3 class="text-lg font-medium text-center md:hidden md:text-left md:absolute md:top-0 md:left-1/2 md:transform md:translate-y-0 md:-translate-x-1/2 md:whitespace-nowrap">
+                    {{ month_year }}
+                  </h3>
 
-          <div class="w-full space-y-10 md:space-y-20">
-            {% for month_year, media_list in timeline.items %}
-              <div class="relative">
-
-                <h3 class="text-lg font-medium text-center md:hidden md:text-left md:absolute md:top-0 md:left-1/2 md:transform md:translate-y-0 md:-translate-x-1/2 md:whitespace-nowrap">
-                  {{ month_year }}
-                </h3>
-
-                <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10 hidden md:block">
-                  <div class="w-3 h-3 rounded-full bg-indigo-500 mx-auto mb-2"></div>
-                  <div class="absolute top-1.5 left-1/2 flex -translate-y-1/2">
-                    {% if forloop.counter|divisibleby:2 %}
-                      {# to the left #}
-                      <div class="h-px w-40 bg-indigo-500/50 transform -translate-x-full"></div>
-                      <div class="absolute -top-7 right-46 whitespace-nowrap">
-                        <h3 class="text-lg font-medium">{{ month_year }}</h3>
+                  <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10 hidden md:block">
+                    <div class="w-3 h-3 rounded-full bg-indigo-500 mx-auto mb-2"></div>
+                    <div class="absolute top-1.5 left-1/2 flex -translate-y-1/2">
+                      {% if forloop.counter|divisibleby:2 %}
+                        {# to the left #}
+                        <div class="h-px w-40 bg-indigo-500/50 transform -translate-x-full"></div>
+                        <div class="absolute -top-7 right-46 whitespace-nowrap">
+                          <h3 class="text-lg font-medium">{{ month_year }}</h3>
+                        </div>
+                      {% else %}
+                        {# to the right #}
+                        <div class="h-px w-40 bg-indigo-500/50"></div>
+                        <div class="absolute -top-7 left-4 whitespace-nowrap">
+                          <h3 class="text-lg font-medium">{{ month_year }}</h3>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 md:w-[calc(50%-2rem)] lg:w-[calc(50%-1rem)] {% if forloop.counter|divisibleby:2 %}md:mr-auto md:ml-0{% else %}md:ml-auto md:mr-0{% endif %}">
+                    {% for media in media_list %}
+                      <div class="bg-[#39404b] p-4 rounded-lg hover:ring-2 hover:ring-indigo-500 transition-all duration-200">
+                        <div class="flex items-start gap-4">
+                          <div class="flex-shrink-0 order-0">
+                            <a href="{{ media.item|media_url }}">
+                              <img alt="{{ media.item }}"
+                                   class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.image != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
+                                   src="{{ IMG_NONE }}"
+                                   data-src="{{ media.item.image }}">
+                            </a>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <h4 class="font-medium">
+                              <a href="{{ media.item|media_url }}"
+                                 class="hover:text-indigo-400 transition-colors line-clamp-2">{{ media.item }}</a>
+                            </h4>
+                            <div class="text-sm text-gray-400 mt-1">
+                              <p>
+                                {% if media.start_date %}{{ media.start_date|date_tracker_format }}{% endif %}
+                                {% if media.start_date and media.end_date %}-{% endif %}
+                                {% if media.end_date %}{{ media.end_date|date_tracker_format }}{% endif %}
+                              </p>
+                            </div>
+                            {% if media.score is not None %}
+                              <div class="flex items-center text-sm text-yellow-400 mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     width="24"
+                                     height="24"
+                                     viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round"
+                                     class="w-4 h-4 mr-1 fill-current">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                                <span>{{ media.formatted_score }}</span>
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
                       </div>
-                    {% else %}
-                      {# to the right #}
-                      <div class="h-px w-40 bg-indigo-500/50"></div>
-                      <div class="absolute -top-7 left-4 whitespace-nowrap">
-                        <h3 class="text-lg font-medium">{{ month_year }}</h3>
-                      </div>
-                    {% endif %}
+                    {% endfor %}
                   </div>
                 </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 md:w-[calc(50%-2rem)] lg:w-[calc(50%-1rem)] {% if forloop.counter|divisibleby:2 %}md:mr-auto md:ml-0{% else %}md:ml-auto md:mr-0{% endif %}">
-                  {% for media in media_list %}
-                    <div class="bg-[#39404b] p-4 rounded-lg hover:ring-2 hover:ring-indigo-500 transition-all duration-200">
-                      <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 order-0">
-                          <a href="{{ media.item|media_url }}">
-                            <img alt="{{ media.item }}"
-                                 class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.image != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
-                                 src="{{ IMG_NONE }}"
-                                 data-src="{{ media.item.image }}">
-                          </a>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <h4 class="font-medium">
-                            <a href="{{ media.item|media_url }}"
-                               class="hover:text-indigo-400 transition-colors line-clamp-2">{{ media.item }}</a>
-                          </h4>
-                          <div class="text-sm text-gray-400 mt-1">
-                            <p>
-                              {% if media.start_date %}{{ media.start_date|date_tracker_format }}{% endif %}
-                              {% if media.start_date and media.end_date %}-{% endif %}
-                              {% if media.end_date %}{{ media.end_date|date_tracker_format }}{% endif %}
-                            </p>
-                          </div>
-                          {% if media.score is not None %}
-                            <div class="flex items-center text-sm text-yellow-400 mt-2">
-                              <svg xmlns="http://www.w3.org/2000/svg"
-                                   width="24"
-                                   height="24"
-                                   viewBox="0 0 24 24"
-                                   fill="none"
-                                   stroke="currentColor"
-                                   stroke-width="2"
-                                   stroke-linecap="round"
-                                   stroke-linejoin="round"
-                                   class="w-4 h-4 mr-1 fill-current">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                              </svg>
-                              <span>{{ media.formatted_score }}</span>
-                            </div>
-                          {% endif %}
-                        </div>
-                      </div>
-                    </div>
-                  {% endfor %}
-                </div>
-              </div>
-            {% endfor %}
+              {% endfor %}
+            </div>
           </div>
-        </div>
-      {% else %}
-        <div class="flex flex-col items-center justify-center py-16">
-          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-8 h-8 text-gray-400">
-              <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
+        {% else %}
+          <div class="flex flex-col items-center justify-center py-16">
+            <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-8 h-8 text-gray-400">
+                <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <h3 class="text-lg font-medium mb-2">Your timeline is empty</h3>
+            <p class="text-gray-400 text-center max-w-md">Consume media items to see them appear on your timeline.</p>
           </div>
-          <h3 class="text-lg font-medium mb-2">Your timeline is empty</h3>
-          <p class="text-gray-400 text-center max-w-md">Consume media items to see them appear on your timeline.</p>
-        </div>
-      {% endif %}
-    </div>
+        {% endif %}
+      </div>
 
+    </div>
   </div>
 {% endblock content %}
 
