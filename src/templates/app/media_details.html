@@ -17,7 +17,7 @@
            src="{{ media.image }}">
     {% if not public_profile %}
       <div x-data="{ trackOpen: false }">
-        <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
+        <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-accent hover:bg-accent{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
                 hx-get="{% media_view_url 'track_modal' media %}"
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
                 hx-target="#{% component_id 'track' media current_instance.id %}"
@@ -65,7 +65,7 @@
     {# Media details #}
     <div class="md:w-3/4">
       {% if media.media_type == MediaTypes.SEASON.value %}
-        <h2 class="text-xl font-semibold cursor-pointer hover:text-indigo-500 transition-colors duration-200 mb-2 text-gray-400 text-center md:text-start">
+        <h2 class="text-xl font-semibold cursor-pointer hover:text-accent transition-colors duration-200 mb-2 text-gray-400 text-center md:text-start">
           <a href="{% url 'media_details' source=media.source media_type=MediaTypes.TV.value media_id=media.media_id title=media.title|slug %}">{{ media.title }}</a>
         </h2>
 
@@ -109,7 +109,7 @@
                     {% endif %}
                     class="w-full px-4 py-3 flex items-center space-x-3 hover:bg-gray-700 transition-colors duration-200 cursor-pointer {% if tv_season.season_number == media.season_number %}bg-[#343a40]{% endif %}"
                   >
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-600 text-white">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent text-white">
                       {{ tv_season.season_number }}
                     </div>
                     <div class="flex-1 text-left">
@@ -146,7 +146,7 @@
              class="text-gray-300 text-pretty">{{ media.synopsis|linebreaksbr|safe }}</p>
           <button x-show="isClamped"
                   @click="isExpanded = !isExpanded"
-                  class="text-indigo-400 hover:text-indigo-300 text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
+                  class="color-accent hover:text-accent-hover text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
             <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
           </button>
         </div>
@@ -178,7 +178,7 @@
                class="text-gray-300 italic">"{{ current_instance.notes|linebreaksbr }}"</p>
             <button x-show="isClamped"
                     @click="isExpanded = !isExpanded"
-                    class="text-indigo-400 hover:text-indigo-300 text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
+                    class="color-accent hover:text-accent-hover text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
               <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
             </button>
           </div>
@@ -303,7 +303,7 @@
 
           {% if media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}
             <div x-data="{ trackOpen: false }">
-              <button class="p-2  text-white rounded-md bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
+              <button class="p-2  text-white rounded-md bg-accent hover:bg-accent transition-colors cursor-pointer"
                       hx-get="{% media_view_url 'track_modal' media %}"
                       hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "is_create": true}'
                       hx-target="#{% component_id 'track' media %}"
@@ -488,7 +488,7 @@
                                class="text-xs text-gray-300 italic">"{{ user_media.notes|linebreaksbr }}"</p>
                             <button x-show="isClamped"
                                     @click="isExpanded = !isExpanded"
-                                    class="text-indigo-400 hover:text-indigo-300 text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
+                                    class="color-accent hover:text-accent-hover text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
                               <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
                             </button>
                           </div>
@@ -630,7 +630,7 @@
             <div>
               <h3 class="text-sm font-semibold text-gray-400">Source</h3>
               <a href="{{ media.source_url }}"
-                 class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
+                 class="text-gray-200 hover:text-accent transition-colors duration-200"
                  target="_blank">{{ media.source|source_readable }}</a>
             </div>
           {% endif %}
@@ -684,7 +684,7 @@
                         <div x-data="{ trackOpen: false }">
                           <button @click="trackOpen = true"
                                   title="Track Episode"
-                                  class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
+                                  class="p-2 bg-accent hover:bg-accent text-white rounded-full transition duration-300 cursor-pointer">
                             {% if episode.history %}
                               <svg xmlns="http://www.w3.org/2000/svg"
                                    width="16"

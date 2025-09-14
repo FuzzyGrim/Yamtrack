@@ -17,7 +17,7 @@
         <p class="text-gray-400">Organize and share your media lists</p>
       </div>
       <button @click="showModal = true"
-              class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
+              class="flex items-center px-4 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
@@ -125,7 +125,7 @@
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="sort === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                    :class="sort === '{{ value }}' ? 'bg-accent text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
                     @click="sort = '{{ value }}'; open = false"
                     type="button">{{ label }}</button>
           {% endfor %}
@@ -162,7 +162,7 @@
           <h3 class="text-xl font-semibold mb-2">No Lists Created Yet</h3>
           <p class="text-gray-400 mb-6">Create custom lists to organize your media collection and share with friends.</p>
           <button @click="showModal = true"
-                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
+                  class="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors cursor-pointer">
             Create Your First List
           </button>
         </div>

@@ -135,7 +135,7 @@
             {% for media_type in media_types %}
               <button type="button"
                       @click="mediaType = '{{ media_type }}'"
-                      :class="mediaType === '{{ media_type }}' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
+                      :class="mediaType === '{{ media_type }}' ? 'bg-accent border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
                       class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
                 {% icon media_type is_active=False %}
                 <span class="text-sm font-medium">{{ media_type|media_type_readable }}</span>
@@ -500,7 +500,7 @@
       </div>
 
       <button type="submit"
-              class="flex items-center mt-5 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+              class="flex items-center mt-5 px-4 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors text-sm cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"

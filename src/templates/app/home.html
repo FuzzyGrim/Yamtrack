@@ -52,7 +52,7 @@
            class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
         {% for value, label in sort_choices %}
           <a href="{% url 'home' %}?sort={{ value }}"
-             class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+             class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-accent text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
             {{ label }}
           </a>
         {% endfor %}
@@ -76,7 +76,7 @@
                     hx-swap="beforeend"
                     hx-indicator="#loading-indicator-{{ media_type }}"
                     hx-trigger="click"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors cursor-pointer"
+                    class="px-4 py-2 bg-accent hover:bg-accent text-white rounded-md transition-colors cursor-pointer"
                     hx-on:click="this.remove()">Load All ({{ media_list.total }})</button>
             <div id="loading-indicator-{{ media_type }}"
                  class="htmx-indicator text-center hidden">
@@ -108,7 +108,7 @@
           <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>
         <div class="pt-4">
           <a href="{{ 'tv'|sample_search }}"
-             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
+             class="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors">Browse Media</a>
         </div>
       {% endif %}
       </div>

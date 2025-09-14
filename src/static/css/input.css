@@ -47,7 +47,7 @@
 }
 
 .toast-info {
-  @apply bg-indigo-700/95 border-indigo-600;
+  @apply bg-accent/95 border-indigo-600;
 }
 
 .select2-container--tailwindcss-4 {

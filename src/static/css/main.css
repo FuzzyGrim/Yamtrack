@@ -1340,33 +1340,20 @@
   .bg-indigo-400 {
     background-color: var(--color-indigo-400);
   }
-  .bg-indigo-500 {
-    background-color: var(--color-indigo-500);
+
+
+
+
+  .bg-accent {
+    background-color: var(--color-accent);
   }
-  .bg-indigo-500\/10 {
-    background-color: color-mix(in srgb, oklch(58.5% 0.233 277.117) 10%, transparent);
+  .bg-accent\/20 {
+    background-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-indigo-500) 10%, transparent);
+      background-color: color-mix(in oklab, var(--color-accent) 20%, transparent);
     }
   }
-  .bg-indigo-500\/50 {
-    background-color: color-mix(in srgb, oklch(58.5% 0.233 277.117) 50%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-indigo-500) 50%, transparent);
-    }
-  }
-  .bg-indigo-600 {
-    background-color: var(--color-indigo-600);
-  }
-  .bg-indigo-600\/20 {
-    background-color: color-mix(in srgb, oklch(51.1% 0.262 276.966) 20%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-indigo-600) 20%, transparent);
-    }
-  }
-  .bg-indigo-700 {
-    background-color: var(--color-indigo-700);
-  }
+
   .bg-red-400 {
     background-color: var(--color-red-400);
   }
@@ -1696,17 +1683,17 @@
   .text-green-400 {
     color: var(--color-green-400);
   }
-  .text-indigo-300 {
-    color: var(--color-indigo-300);
+  .color-accent {
+    color: var(--color-accent);
   }
-  .text-indigo-400 {
-    color: var(--color-indigo-400);
+  .text-accent-nohover {
+    color: var(--color-accent);
   }
-  .text-indigo-500 {
-    color: var(--color-indigo-500);
+    .text-accent-hover {
+    color: var(--color-accent-hover);
   }
-  .text-indigo-600 {
-    color: var(--color-indigo-600);
+  .text-accent{
+    color: var(--color-accent);
   }
   .text-orange-400 {
     color: var(--color-orange-400);
@@ -1886,10 +1873,10 @@
       }
     }
   }
-  .group-hover\:text-indigo-400 {
+  .group-hover\:color-accent {
     &:is(:where(.group):hover *) {
       @media (hover: hover) {
-        color: var(--color-indigo-400);
+        color: var(--color-accent-hover);
       }
     }
   }
@@ -1907,9 +1894,9 @@
       }
     }
   }
-  .peer-checked\:bg-indigo-600 {
+  .peer-checked\:bg-accent {
     &:is(:where(.peer):checked ~ *) {
-      background-color: var(--color-indigo-600);
+      background-color: var(--color-accent);
     }
   }
   .after\:absolute {
@@ -2133,26 +2120,15 @@
       }
     }
   }
-  .hover\:bg-indigo-500 {
+
+  .hover\:bg-accent {
     &:hover {
       @media (hover: hover) {
-        background-color: var(--color-indigo-500);
+        background-color: var(--color-accent-hover);
       }
     }
   }
-  .hover\:bg-indigo-600 {
-    &:hover {
-      @media (hover: hover) {
-        background-color: var(--color-indigo-600);
-      }
-    }
-  }
-  .hover\:bg-indigo-700 {
-    &:hover {
-      @media (hover: hover) {
-        background-color: var(--color-indigo-700);
-      }
-    }
+
   }
   .hover\:bg-red-400\/10 {
     &:hover {
@@ -2209,24 +2185,18 @@
       }
     }
   }
-  .hover\:text-indigo-300 {
+
+  .hover\:color-accent {
     &:hover {
       @media (hover: hover) {
-        color: var(--color-indigo-300);
+        color: var(--color-accent-hover);
       }
     }
   }
-  .hover\:text-indigo-400 {
+  .hover\:text-accent {
     &:hover {
       @media (hover: hover) {
-        color: var(--color-indigo-400);
-      }
-    }
-  }
-  .hover\:text-indigo-500 {
-    &:hover {
-      @media (hover: hover) {
-        color: var(--color-indigo-500);
+        color: var(--color-accent-hover);
       }
     }
   }

@@ -47,7 +47,7 @@
         <div class="flex flex-row-reverse justify-between mt-6">
           <button type="submit"
                   formaction="{% url 'list_edit' %}?next={{ request.path }}"
-                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">
+                  class="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent cursor-pointer">
             Save
           </button>
           <button type="submit"
@@ -59,7 +59,7 @@
         <div class="flex justify-end pt-4">
           <button type="submit"
                   formaction="{% url 'list_create' %}?next={{ request.path }}"
-                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
+                  class="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors cursor-pointer">
             Create List
           </button>
         </div>

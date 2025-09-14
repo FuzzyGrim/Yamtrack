@@ -392,7 +392,7 @@ def icon(name, is_active, extra_classes="w-5 h-5"):
     else:
         content = other_icons[name]
 
-    active_class = "text-indigo-400 " if is_active else ""
+    active_class = "color-accent " if is_active else ""
 
     svg = base_svg.format(
         content=content,

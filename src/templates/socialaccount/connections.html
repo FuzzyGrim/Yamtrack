@@ -35,14 +35,14 @@
                 {% endsetvar %}
 
                 <div class="flex items-center p-4 rounded-md border cursor-pointer"
-                     :class="selectedAccount === '{{ account.account.pk }}' ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 bg-[#39404b]'"
+                     :class="selectedAccount === '{{ account.account.pk }}' ? 'border-indigo-500 bg-accent/10' : 'border-gray-700 bg-[#39404b]'"
                      x-on:click="selectedAccount = '{{ account.account.pk }}'; document.getElementById('{{ radio_id }}').checked = true;">
                   <input type="radio"
                          id="{{ radio_id }}"
                          name="account"
                          value="{{ account.account.pk }}"
                          @change="selectedAccount = '{{ account.account.pk }}'"
-                         class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                         class="h-4 w-4 text-accent-nohover focus:ring-indigo-500 border-gray-300">
 
                   <div class="ml-4 flex items-center flex-1">
                     <svg xmlns="http://www.w3.org/2000/svg"
@@ -115,7 +115,7 @@
 
   <div class="flex mt-8">
     <a href="{% url 'home' %}"
-       class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+       class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white rounded-md hover:bg-accent transition-colors">
       <svg xmlns="http://www.w3.org/2000/svg"
            width="24"
            height="24"

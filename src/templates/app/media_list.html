@@ -116,7 +116,7 @@
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                      :class="status === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      :class="status === '{{ value }}' ? 'bg-accent text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
                       @click="status = '{{ value }}'; open = false"
                       type="button">{{ label }}</button>
             {% endfor %}
@@ -175,7 +175,7 @@
                         hx-include="#filter-form"
                         hx-indicator="#loading-indicator"
                         class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                        :class="sort === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                        :class="sort === '{{ value }}' ? 'bg-accent text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
                         @click="sort = '{{ value }}'; open = false"
                         type="button">{{ label }}</button>
               {% endif %}
@@ -193,7 +193,7 @@
               :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
             {% endif %}
              class="p-2 cursor-pointer"
-             :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
+             :class="layout === 'grid' ? 'bg-accent text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Grid View"
              @click="layout = 'grid'">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -216,7 +216,7 @@
               :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
             {% endif %}
              class="p-2 cursor-pointer"
-             :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
+             :class="layout === 'table' ? 'bg-accent text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Table View"
              @click="layout = 'table'">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -264,7 +264,7 @@
                 Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
               </p>
               <a href="{{ media_type|sample_search }}"
-                 class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+                 class="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors">
                 Browse {{ media_type|media_type_readable_plural }}
               </a>
           {% endif %}

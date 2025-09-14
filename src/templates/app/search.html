@@ -14,14 +14,14 @@
         {% with source_options=media_type|sources %}
           {% for source in source_options %}
             <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ media_type }}&source={{ source.value }}&layout={{ layout }}"
-               class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer flex items-center {% if request.GET.source == source.value or source_options|length == 1 %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+               class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer flex items-center {% if request.GET.source == source.value or source_options|length == 1 %}bg-accent text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
               {{ source.label }}
             </a>
           {% endfor %}
         {% endwith %}
         <div class="flex rounded-md overflow-hidden border border-gray-700">
           <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=grid"
-             {% if layout == 'grid' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
+             {% if layout == 'grid' %} class="p-2 cursor-pointer bg-accent text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
              title="Grid View">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -37,7 +37,7 @@
             </svg>
           </a>
           <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=list"
-             {% if layout == 'list' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
+             {% if layout == 'list' %} class="p-2 cursor-pointer bg-accent text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
              title="List View">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -113,7 +113,7 @@
       {% for page_num in pages %}
         {% if page_num %}
           <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ page_num }}&layout={{ layout }}"
-             class="w-10 h-10 rounded-md {% if data.page == page_num %}bg-indigo-600{% else %}bg-[#2a2f35] hover:bg-[#39404b]{% endif %} text-white flex items-center justify-center">
+             class="w-10 h-10 rounded-md {% if data.page == page_num %}bg-accent{% else %}bg-[#2a2f35] hover:bg-[#39404b]{% endif %} text-white flex items-center justify-center">
             {{ page_num }}
           </a>
         {% else %}

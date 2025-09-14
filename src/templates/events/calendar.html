@@ -76,7 +76,7 @@
         </form>
 
         <div class="bg-[#39404b] rounded-md p-1 space-x-0.5 flex">
-          <a class="p-2 rounded-md transition-colors cursor-pointer {% if view_type == 'grid' %}bg-indigo-600 text-white{% else %}hover:bg-[#454d5a]{% endif %}"
+          <a class="p-2 rounded-md transition-colors cursor-pointer {% if view_type == 'grid' %}bg-accent text-white{% else %}hover:bg-[#454d5a]{% endif %}"
              href="{% url 'calendar' %}?month={{ month }}&year={{ year }}&view=grid">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -95,7 +95,7 @@
               <path d="M15 3v18"></path>
             </svg>
           </a>
-          <a class="p-2 rounded-md transition-colors cursor-pointer {% if view_type == 'list' %}bg-indigo-600 text-white{% else %}hover:bg-[#454d5a]{% endif %}"
+          <a class="p-2 rounded-md transition-colors cursor-pointer {% if view_type == 'list' %}bg-accent text-white{% else %}hover:bg-[#454d5a]{% endif %}"
              href="{% url 'calendar' %}?month={{ month }}&year={{ year }}&view=list">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -150,7 +150,7 @@
            stroke-width="2"
            stroke-linecap="round"
            stroke-linejoin="round"
-           class="w-5 h-5 text-indigo-400 mr-2">
+           class="w-5 h-5 color-accent mr-2">
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
       </svg>

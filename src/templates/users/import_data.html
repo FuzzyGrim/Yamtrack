@@ -21,7 +21,7 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
+             class="w-6 h-6 color-accent mr-3">
           <path d="M20 7h-9" />
           <path d="M14 17H5" />
           <circle cx="17" cy="17" r="3" /><circle cx="7" cy="7" r="3" />
@@ -98,7 +98,7 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
+             class="w-6 h-6 color-accent mr-3">
           <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
           <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
           <path d="M3 12A9 3 0 0 0 21 12"></path>
@@ -120,7 +120,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <button type="submit"
-                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
+                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-accent text-white hover:bg-accent">
               Connect with Trakt
             </button>
           </form>
@@ -136,7 +136,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <button type="submit"
-                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
+                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-accent text-white hover:bg-accent">
               Connect with Simkl
             </button>
           </form>
@@ -159,7 +159,7 @@
                      class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
               <button type="submit"
-                      class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+                      class="px-3 py-2 bg-accent text-white rounded-r-md hover:bg-accent transition-colors text-sm border border-indigo-600 cursor-pointer">
                 Import
               </button>
             </div>
@@ -183,7 +183,7 @@
                      class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
               <button type="submit"
-                      class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+                      class="px-3 py-2 bg-accent text-white rounded-r-md hover:bg-accent transition-colors text-sm border border-indigo-600 cursor-pointer">
                 Import
               </button>
             </div>
@@ -224,12 +224,12 @@
                 <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
                   Find it on your Kitsu profile URL:
                   <br>
-                  kitsu.app/users/<span class="text-indigo-400">1234567</span>
+                  kitsu.app/users/<span class="color-accent">1234567</span>
                 </div>
               </div>
             </div>
             <button type="submit"
-                    class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+                    class="px-3 py-2 bg-accent text-white rounded-r-md hover:bg-accent transition-colors text-sm border border-indigo-600 cursor-pointer">
               Import
             </button>
           </form>
@@ -241,7 +241,7 @@
             <div class="flex items-center">{% source_display "yamtrack" %}</div>
             <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Yamtrack-CSV-Format"
                target="_blank"
-               class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
+               class="text-gray-400 hover:color-accent transition-colors p-1 rounded-md hover:bg-gray-600/50"
                title="View CSV format documentation">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
@@ -270,7 +270,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
-                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :class="importFrequency === 'once' ? 'bg-accent text-white hover:bg-accent cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
                    :disabled="importFrequency !== 'once'">
               <input name="yamtrack_csv"
                      accept=".csv"
@@ -297,7 +297,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
-                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :class="importFrequency === 'once' ? 'bg-accent text-white hover:bg-accent cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
                    :disabled="importFrequency !== 'once'">
               <input name="hltb_csv"
                      accept=".csv"
@@ -350,7 +350,7 @@
               </div>
             </div>
             <button type="submit"
-                    class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
+                    class="px-3 py-2 bg-accent text-white rounded-r-md hover:bg-accent transition-colors text-sm border border-indigo-600 cursor-pointer">
               Import
             </button>
           </form>
@@ -372,7 +372,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
-                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :class="importFrequency === 'once' ? 'bg-accent text-white hover:bg-accent cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
                    :disabled="importFrequency !== 'once'">
               <input name="imdb_csv"
                      accept=".csv"
@@ -399,7 +399,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
-                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
+                   :class="importFrequency === 'once' ? 'bg-accent text-white hover:bg-accent cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
                    :disabled="importFrequency !== 'once'">
               <input name="goodreads_csv"
                      accept=".csv"
@@ -427,7 +427,7 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
+             class="w-6 h-6 color-accent mr-3">
           <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
         </svg>
         <h2 class="text-xl font-semibold">Active Periodic Imports</h2>
@@ -495,7 +495,7 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
+             class="w-6 h-6 color-accent mr-3">
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
           <path d="M3 3v5h5"></path>
           <path d="M12 7v5l4 2"></path>
@@ -537,12 +537,12 @@
                 {% if result.errors %}
                   {% if result.status == "SUCCESS" %}
                     <button @click="showDetails = !showDetails"
-                            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                            class="text-xs color-accent hover:text-accent-hover transition-colors cursor-pointer"
                             x-text="showDetails ? 'Hide failed items' : 'Show failed items'">Show failed items</button>
 
                   {% elif result.status == "FAILURE" %}
                     <button @click="showDetails = !showDetails"
-                            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                            class="text-xs color-accent hover:text-accent-hover transition-colors cursor-pointer"
                             x-text="showDetails ? 'Hide traceback' : 'Show traceback'">Show traceback</button>
                   {% endif %}
 

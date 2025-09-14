@@ -102,7 +102,7 @@
             {% if episode.air_date %}
               <button type="button"
                       @click="inputDateTime = inputType === 'datetime-local' ? '{{ episode.air_date }}T{% now "H:i" %}' : '{{ episode.air_date }}'"
-                      class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors bg-[#2a2f35] px-2 py-1 rounded cursor-pointer">
+                      class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm color-accent hover:text-accent-hover transition-colors bg-[#2a2f35] px-2 py-1 rounded cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      width="24"
                      height="24"
@@ -126,7 +126,7 @@
 
           <div class="flex justify-end-safe gap-3 mt-6">
             <button type="submit"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
+                    class="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors cursor-pointer">
               Add watch
             </button>
           </div>

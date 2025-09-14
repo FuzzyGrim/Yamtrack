@@ -17,7 +17,7 @@
         <div class="flex-1 min-w-0">
           <h3 class="text-lg font-semibold text-white mb-2 line-clamp-2">
             <a href="{{ item|media_url }}"
-               class="hover:text-indigo-400 transition-colors">{{ title }}</a>
+               class="hover:color-accent transition-colors">{{ title }}</a>
           </h3>
 
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-400">
@@ -49,7 +49,7 @@
         {% if public_profile != True %}
         <div class="relative flex items-center justify-center space-x-2.5">
           {# Track Button #}
-          <button class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
+          <button class="p-2.5 bg-accent text-white rounded-full hover:bg-accent hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
                   title="Add to tracker"
                   hx-get="{% media_view_url 'track_modal' item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'

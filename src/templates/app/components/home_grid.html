@@ -20,7 +20,7 @@
                stroke-width="2"
                stroke-linecap="round"
                stroke-linejoin="round"
-               class="w-3.5 h-3.5 text-indigo-400">
+               class="w-3.5 h-3.5 color-accent">
             <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
           </svg>
           <span class="text-xs font-medium text-white drop-shadow-sm truncate">
@@ -44,7 +44,7 @@
           {% if public_profile is not True %}
         <div class="relative flex items-center justify-center space-x-2.5">
           {# Track Button #}
-          <button class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
+          <button class="p-2.5 bg-accent text-white rounded-full hover:bg-accent hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
                   title="Add to tracker"
                   hx-get="{% media_view_url 'track_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
@@ -127,7 +127,7 @@
          {% else %}
          href="{{ media.item|public_media_url:user.username }}"
          {% endif %}
-         class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
+         class="text-sm font-semibold text-white hover:color-accent transition duration-300 line-clamp-1 text-center"
          title="{{ media }}">{{ media }}</a>
        {% if public_profile is not True %}
           <div id="progress-{{ media.item.media_type }}-{{ media.id }}">

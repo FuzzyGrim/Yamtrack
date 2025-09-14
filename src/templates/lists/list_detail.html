@@ -146,7 +146,7 @@
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="type === 'all' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                    :class="type === 'all' ? 'bg-accent text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
                     @click="type = 'all'; open = false"
                     type="button">All</button>
             {% for media_type in media_types %}
@@ -155,7 +155,7 @@
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                      :class="type === '{{ media_type }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      :class="type === '{{ media_type }}' ? 'bg-accent text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
                       @click="type = '{{ media_type }}'; open = false"
                       type="button">{{ media_type|media_type_readable_plural }}</button>
             {% endfor %}
@@ -214,7 +214,7 @@
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                      :class="sort === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      :class="sort === '{{ value }}' ? 'bg-accent text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
                       @click="sort = '{{ value }}'; open = false"
                       type="button">{{ label }}</button>
             {% endfor %}
@@ -252,7 +252,7 @@
           <p class="text-gray-400 mb-6">Start adding your favorite media to build your collection</p>
           <div class="pt-4">
             <a href="{{ 'tv'|sample_search }}"
-               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
+               class="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors">Browse Media</a>
           </div>
         </div>
       </div>

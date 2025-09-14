@@ -36,7 +36,7 @@ MEDIA_TYPE_CONFIG = {
         "default_source": Sources.TMDB.label,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
-        "text_color": "text-indigo-400",
+        "text_color": "color-accent",
         "stats_color": "#6366f1",
         "svg_icon": """<polygon points="6 3 20 12 6 21 6 3"/>""",
     },

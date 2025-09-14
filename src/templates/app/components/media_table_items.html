@@ -20,7 +20,7 @@
            data-src="{{ media.item.image }}"
            src="{{ IMG_NONE }}">
       {% if not public_profile %}
-      <button class="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
+      <button class="w-10 h-10 bg-accent hover:bg-accent text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
               hx-get="{% media_view_url 'track_modal' media.item %}"
               hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
               hx-target="#{% component_id 'track' media.item media.id %}"
@@ -60,7 +60,7 @@
                 {% else %}
                 href="{{ media.item|public_media_url:user.username }}"
                 {% endif %}
-           class="hover:text-indigo-400 transition-colors line-clamp-1">{{ media.item }}</a>
+           class="hover:color-accent transition-colors line-clamp-1">{{ media.item }}</a>
 
         {% if media.repeats > 1 %}
           <div class="flex items-center">
