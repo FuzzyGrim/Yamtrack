@@ -819,10 +819,6 @@ def statistics(request):
         status_distribution,
     )
     timeline = stats.get_timeline(user_media)
-    top_played = stats.get_top_played_media(user_media, start_date, end_date)
-    
-    # Calculate hours per media type for the new statistics cards
-    hours_per_media_type = stats.get_hours_per_media_type(user_media, start_date, end_date)
 
     activity_data = stats.get_activity_data(request.user, start_date, end_date)
 
@@ -834,11 +830,9 @@ def statistics(request):
         "media_type_distribution": media_type_distribution,
         "score_distribution": score_distribution,
         "top_rated": top_rated,
-        "top_played": top_played,
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
-        "hours_per_media_type": hours_per_media_type,
     }
 
     return render(request, "app/statistics.html", context)
