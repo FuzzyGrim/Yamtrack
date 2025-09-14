@@ -142,8 +142,10 @@
     {% endif %}
 
     <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100">
-      <a href="{{  item|public_media_url:user.username }}" class="absolute inset-0"></a>
-      {% if public_profile != True %}
+      {% if public_profile == True %}
+        <a href="{{  item|public_media_url:user.username }}" class="absolute inset-0"></a>
+      {% else %}
+          <a href="{{  item|media_url}}" class="absolute inset-0"></a>
       <div class="relative flex items-center justify-center space-x-2.5">
         {% if item.media_type == MediaTypes.EPISODE.value %}
           <button @click="trackOpen = true"
