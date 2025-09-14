@@ -36,7 +36,7 @@
       {% endif %}
 
       <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100">
-        {% if public_profile is not None %}
+        {% if public_profile is not True %}
       <a href="{{ media.item|media_url }}" class="absolute inset-0"></a>
       {% else %}
       <a href="{{ media.item|public_media_url:user.username }}" class="absolute inset-0"></a>
