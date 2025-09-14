@@ -1,8 +1,8 @@
 {% if results %}
-  <div class="absolute z-10 w-full mt-1 bg-[#39404b] rounded-md shadow-lg border border-gray-600 max-h-60 overflow-auto">
+  <div class="absolute z-10 w-full mt-1 bg-[#292929] rounded-md shadow-lg border border-gray-600 max-h-60 overflow-auto">
     {% for tv in results %}
       <button type="button" 
-              class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-[#2a2f35] hover:text-white"
+              class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-[#222222] hover:text-white"
               onclick="document.getElementById('parent-tv-input').value = '{{ tv.item.title }}'; 
                        document.getElementById('parent-tv-id').value = '{{ tv.id }}';
                        document.getElementById('parent-tv-results').innerHTML = '';">
@@ -11,7 +11,7 @@
     {% endfor %}
   </div>
 {% elif query %}
-  <div class="absolute z-10 w-full mt-1 bg-[#39404b] rounded-md shadow-lg border border-gray-600 p-3">
+  <div class="absolute z-10 w-full mt-1 bg-[#292929] rounded-md shadow-lg border border-gray-600 p-3">
     <p class="text-sm text-gray-400">No TV shows found matching "{{ query }}". Please try a different search term.</p>
   </div>
 {% endif %}

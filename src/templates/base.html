@@ -2,7 +2,7 @@
 {% load app_tags %}
 
 <!DOCTYPE html>
-<html lang="en" class="scheme-dark bg-[#212529]">
+<html lang="en" class="scheme-dark bg-[#1a1a1a]">
   <head>
     {# Required meta tags #}
     <meta charset="UTF-8">
@@ -52,7 +52,7 @@
   <body>
     {% block body %}
       {# Main container for the layout #}
-      <div class="flex min-h-screen bg-[#212529] text-gray-100"
+      <div class="flex min-h-screen bg-[#1a1a1a] text-gray-100"
            x-data="{ isMobileMenuOpen: false }">
 
         {# Mobile menu overlay #}
@@ -61,7 +61,7 @@
              @click="isMobileMenuOpen = false"></div>
 
         {# Sidebar #}
-        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
+        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#161616] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
                :class="isMobileMenuOpen ? 'translate-x-0' : ''">
           <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
             <h1 class="text-2xl font-semibold text-gray-100">Foxtrack{% if public_profile %} | {{ user.username }}{% endif %}</h1>
@@ -186,7 +186,7 @@
         {# Main content #}
         <div class="flex-1 flex flex-col min-h-screen">
           {# Top bar #}
-          <div class="sticky top-0 z-10 bg-[#1a1d20] border-b border-[#2c3136] shadow-md">
+          <div class="sticky top-0 z-10 bg-[#161616] border-b border-[#2c3136] shadow-md">
             <div class="container mx-auto px-4">
               <div class="flex items-center justify-between lg:justify-center h-16">
                 {# Mobile: sidebar toggle button #}
@@ -227,7 +227,7 @@
                                    name="q"
                                    value="{{ request.GET.q }}"
                                    :placeholder="getPlaceholder()"
-                                   class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
+                                   class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#1a1a1a] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
                             <button type="submit"
                                     class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
                               <svg xmlns="http://www.w3.org/2000/svg"
@@ -252,7 +252,7 @@
                           <button type="button"
                                   @click="isOpen = !isOpen"
                                   @click.away="isOpen = false"
-                                  class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
+                                  class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#1a1a1a] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
                             <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
                             <svg class="w-4 h-4 ml-2"
                                  fill="none"
@@ -286,7 +286,7 @@
             </div>
           </div>
 
-          <main class="flex-1 relative bg-[#212529]">
+          <main class="flex-1 relative bg-[#1a1a1a]">
             <div class="container mx-auto px-8 py-12">
               {% block content %}
               {% endblock content %}

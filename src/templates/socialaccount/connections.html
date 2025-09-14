@@ -35,7 +35,7 @@
                 {% endsetvar %}
 
                 <div class="flex items-center p-4 rounded-md border cursor-pointer"
-                     :class="selectedAccount === '{{ account.account.pk }}' ? 'border-indigo-500 bg-accent/10' : 'border-gray-700 bg-[#39404b]'"
+                     :class="selectedAccount === '{{ account.account.pk }}' ? 'border-indigo-500 bg-accent/10' : 'border-gray-700 bg-[#292929]'"
                      x-on:click="selectedAccount = '{{ account.account.pk }}'; document.getElementById('{{ radio_id }}').checked = true;">
                   <input type="radio"
                          id="{{ radio_id }}"

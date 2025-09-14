@@ -21,7 +21,7 @@
         {% endwith %}
         <div class="flex rounded-md overflow-hidden border border-gray-700">
           <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=grid"
-             {% if layout == 'grid' %} class="p-2 cursor-pointer bg-accent text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
+             {% if layout == 'grid' %} class="p-2 cursor-pointer bg-accent text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#292929] hover:bg-[#454d5a] flex items-center" {% endif %}
              title="Grid View">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -37,7 +37,7 @@
             </svg>
           </a>
           <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=list"
-             {% if layout == 'list' %} class="p-2 cursor-pointer bg-accent text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
+             {% if layout == 'list' %} class="p-2 cursor-pointer bg-accent text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#292929] hover:bg-[#454d5a] flex items-center" {% endif %}
              title="List View">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -76,7 +76,7 @@
       {# Previous button #}
       {% if data.page > 1 %}
         <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'-1' }}&layout={{ layout }}"
-           class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
+           class="p-2 rounded-md bg-[#222222] text-white hover:bg-[#292929]">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
                height="24"
@@ -113,7 +113,7 @@
       {% for page_num in pages %}
         {% if page_num %}
           <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ page_num }}&layout={{ layout }}"
-             class="w-10 h-10 rounded-md {% if data.page == page_num %}bg-accent{% else %}bg-[#2a2f35] hover:bg-[#39404b]{% endif %} text-white flex items-center justify-center">
+             class="w-10 h-10 rounded-md {% if data.page == page_num %}bg-accent{% else %}bg-[#222222] hover:bg-[#292929]{% endif %} text-white flex items-center justify-center">
             {{ page_num }}
           </a>
         {% else %}
@@ -140,7 +140,7 @@
       {# Next button #}
       {% if data.page < data.total_pages %}
         <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'1' }}&layout={{ layout }}"
-           class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
+           class="p-2 rounded-md bg-[#222222] text-white hover:bg-[#292929]">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
                height="24"
@@ -179,8 +179,8 @@
     </div>
   {% endif %}
 {% else %}
-  <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
-    <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+  <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#222222] rounded-lg">
+    <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
       <svg xmlns="http://www.w3.org/2000/svg"
            width="24"
            height="24"

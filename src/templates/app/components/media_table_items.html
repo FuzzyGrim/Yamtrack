@@ -1,7 +1,7 @@
 {% load app_tags %}
 
 {% for media in media_list %}
-  <tr class="hover:bg-[#39404b] transition-colors cursor-pointer hover-tap"
+  <tr class="hover:bg-[#292929] transition-colors cursor-pointer hover-tap"
       x-data="{ trackOpen: false }"
       {% if forloop.last and media_list.has_next %}
       {% if public_profile %}

@@ -14,7 +14,7 @@
   <div x-data="dateRangePicker()" x-init="init()" class="relative mb-8">
     <!-- Trigger Button -->
     <button @click="toggleDropdown()"
-            class="flex items-center gap-2 px-4 py-2.5 bg-[#2a2f35] hover:bg-[#343a40] rounded-lg transition-all duration-200 border border-gray-700 shadow-sm cursor-pointer">
+            class="flex items-center gap-2 px-4 py-2.5 bg-[#222222] hover:bg-[#343a40] rounded-lg transition-all duration-200 border border-gray-700 shadow-sm cursor-pointer">
       <svg xmlns="http://www.w3.org/2000/svg"
            width="24"
            height="24"
@@ -51,7 +51,7 @@
          x-show="isOpen"
          x-transition
          @click.outside="isOpen = false"
-         class="absolute z-20 mt-2 w-[340px] bg-[#2a2f35] rounded-lg shadow-lg border border-gray-700 overflow-hidden transition-all duration-200 animate-in fade-in-50 slide-in-from-top-5">
+         class="absolute z-20 mt-2 w-[340px] bg-[#222222] rounded-lg shadow-lg border border-gray-700 overflow-hidden transition-all duration-200 animate-in fade-in-50 slide-in-from-top-5">
 
       <!-- Tabs -->
       <div class="flex border-b border-gray-700">
@@ -69,7 +69,7 @@
         <div class="grid grid-cols-2 gap-2">
           <template x-for="range in predefinedRanges" :key="range.name">
             <button @click="selectPredefinedRange(range.name)"
-                    :class="{'bg-accent text-white': selectedRange === range.name, 'hover:bg-[#39404b] text-gray-200': selectedRange !== range.name}"
+                    :class="{'bg-accent text-white': selectedRange === range.name, 'hover:bg-[#292929] text-gray-200': selectedRange !== range.name}"
                     class="flex items-center justify-between p-3 rounded-md text-left text-sm transition-all cursor-pointer">
               <span x-text="range.name"></span>
               <svg x-show="selectedRange === range.name"
@@ -98,14 +98,14 @@
               <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
               <input x-model="startDate"
                      @change="updateDateRange()"
-                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
+                     class="w-full p-2.5 bg-[#292929] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
                      type="date">
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
               <input x-model="endDate"
                      @change="updateDateRange()"
-                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
+                     class="w-full p-2.5 bg-[#292929] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
                      type="date">
             </div>
           </div>
@@ -158,7 +158,7 @@
   <div class="space-y-8">
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
+      <div class="bg-[#222222] rounded-lg p-6 flex items-center">
         <div class="bg-accent/20 p-4 rounded-full mr-4">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -185,7 +185,7 @@
           {% endif %}
         </div>
       </div>
-      <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
+      <div class="bg-[#222222] rounded-lg p-6 flex items-center">
         <div class="bg-yellow-600/20 p-4 rounded-full mr-4">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -213,7 +213,7 @@
           {% endif %}
         </div>
       </div>
-      <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
+      <div class="bg-[#222222] rounded-lg p-6 flex items-center">
         <div class="bg-emerald-600/20 p-4 rounded-full mr-4">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -241,7 +241,7 @@
           {% endif %}
         </div>
       </div>
-      <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
+      <div class="bg-[#222222] rounded-lg p-6 flex items-center">
         <div class="bg-red-600/20 p-4 rounded-full mr-4">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -274,7 +274,7 @@
     </div>
 
     <!-- Activity History Section -->
-    <div class="bg-[#2a2f35] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
+    <div class="bg-[#222222] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
       <h2 class="text-xl font-semibold mb-4 text-center">Activity History</h2>
       <div class="overflow-x-auto flex flex-col justify-center"
            x-data="{ graphTooWide: false }"
@@ -333,7 +333,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Media Type Distribution Section -->
-      <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="bg-[#222222] rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4">Media Type Distribution</h2>
 
         {% if media_type_distribution.labels %}
@@ -342,7 +342,7 @@
           </div>
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
-            <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -364,7 +364,7 @@
       </div>
 
       <!-- Status Distribution Section -->
-      <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="bg-[#222222] rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4">Status Distribution</h2>
 
         {% if status_pie_chart_data.labels %}
@@ -373,7 +373,7 @@
           </div>
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
-            <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -394,7 +394,7 @@
       </div>
 
       <!-- Status Distribution by Media Type Section -->
-      <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="bg-[#222222] rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4">Status Distribution by Media Type</h2>
 
         {% if media_type_distribution.labels %}
@@ -403,7 +403,7 @@
           </div>
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
-            <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -426,7 +426,7 @@
       </div>
 
       <!-- Score Distribution by Media Type Section -->
-      <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="bg-[#222222] rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4">Score Distribution by Media Type</h2>
 
         {% if score_distribution.total_scored %}
@@ -435,7 +435,7 @@
           </div>
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
-            <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -459,7 +459,7 @@
     </div>
 
     <!-- Top Rated Media Section -->
-    <div class="bg-[#2a2f35] rounded-lg p-6">
+    <div class="bg-[#222222] rounded-lg p-6">
       <h2 class="text-xl font-semibold mb-4">Top Rated Media</h2>
 
       {% if top_rated %}
@@ -470,7 +470,7 @@
         </div>
       {% else %}
         <div class="flex flex-col items-center justify-center py-16">
-          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -493,7 +493,7 @@
     </div>
 
     <!-- Media Timeline Section -->
-    <div class="bg-[#2a2f35] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
+    <div class="bg-[#222222] rounded-lg p-6 max-w-[calc(100svw-4rem)]">
       <h2 class="text-xl font-semibold mb-6 md:mb-10">Media Timeline</h2>
 
       {% if timeline %}
@@ -528,7 +528,7 @@
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 md:w-[calc(50%-2rem)] lg:w-[calc(50%-1rem)] {% if forloop.counter|divisibleby:2 %}md:mr-auto md:ml-0{% else %}md:ml-auto md:mr-0{% endif %}">
                   {% for media in media_list %}
-                    <div class="bg-[#39404b] p-4 rounded-lg hover:ring-2 hover:ring-indigo-500 transition-all duration-200">
+                    <div class="bg-[#292929] p-4 rounded-lg hover:ring-2 hover:ring-indigo-500 transition-all duration-200">
                       <div class="flex items-start gap-4">
                         <div class="flex-shrink-0 order-0">
                           <a
@@ -585,7 +585,7 @@
         </div>
       {% else %}
         <div class="flex flex-col items-center justify-center py-16">
-          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"

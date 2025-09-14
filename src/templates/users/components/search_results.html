@@ -1,7 +1,7 @@
 {% load app_tags %}
 
 {% if items %}
-  <div class="max-h-48 overflow-y-auto bg-[#39404b] rounded-md mb-4">
+  <div class="max-h-48 overflow-y-auto bg-[#292929] rounded-md mb-4">
     {% for item in items %}
       <div class="flex items-center justify-between p-2 hover:bg-[#343a40] border-b border-gray-700 last:border-0 cursor-pointer"
            hx-post="{% url 'exclude_notification_item' %}"
@@ -23,7 +23,7 @@
     {% endfor %}
   </div>
 {% elif query %}
-  <div class="max-h-48 overflow-y-auto bg-[#39404b] rounded-md mb-4">
+  <div class="max-h-48 overflow-y-auto bg-[#292929] rounded-md mb-4">
     <div class="p-3 text-sm text-gray-400 text-center">No matching items found</div>
   </div>
 {% endif %}

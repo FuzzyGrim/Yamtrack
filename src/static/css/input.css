@@ -56,7 +56,7 @@
 
 /* Dropdown */
 .select2-container--tailwindcss-4.select2-container--open .select2-dropdown {
-  @apply w-full mt-1 overflow-auto rounded-md text-base bg-[#39404b] border-gray-600 border focus-within:border-indigo-500 focus-within:ring focus-within:ring-indigo-200/50;
+  @apply w-full mt-1 overflow-auto rounded-md text-base bg-[#292929] border-gray-600 border focus-within:border-indigo-500 focus-within:ring focus-within:ring-indigo-200/50;
 }
 
 .select2-container--tailwindcss-4 .select2-results__message {
@@ -70,7 +70,7 @@
 
 /* Multiple selection */
 .select2-container--tailwindcss-4 .select2-selection--multiple {
-  @apply rounded-md text-base sm:text-sm/6 bg-[#39404b] p-1.5 cursor-default text-white border border-white/10;
+  @apply rounded-md text-base sm:text-sm/6 bg-[#292929] p-1.5 cursor-default text-white border border-white/10;
 }
 
 /* Multiple selection list */
@@ -193,3 +193,4 @@
   font-size: 15px;
   margin-top: 3px;
 }
+

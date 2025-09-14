@@ -7,7 +7,7 @@
 {% endblock title %}
 
 {% block settings_content %}
-  <div class="bg-[#2a2f35] rounded-lg p-6">
+  <div class="bg-[#222222] rounded-lg p-6">
     <div class="flex items-center mb-4">
       <svg xmlns="http://www.w3.org/2000/svg"
            width="24"
@@ -31,7 +31,7 @@
     <form method="post">
       {% csrf_token %}
       <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+        <div class="flex items-center justify-between p-3 bg-[#292929] rounded-md">
           <div class="flex items-center text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -63,7 +63,7 @@
 
       <div class="grid gap-3 md:grid-cols-3">
         {% for media_type in media_types %}
-          <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+          <div class="flex items-center justify-between p-3 bg-[#292929] rounded-md">
             <div class="flex items-center text-gray-400">
               {% icon media_type is_active=False %}
               <span class="text-gray-200 text-sm ml-2">{{ media_type |media_type_readable_plural }}</span>

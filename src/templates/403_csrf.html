@@ -6,7 +6,7 @@
 {% endblock title %}
 
 {% block body %}
-  <div class="min-h-screen bg-[#212529] flex flex-col items-center justify-center text-white p-4">
+  <div class="min-h-screen bg-[#1a1a1a] flex flex-col items-center justify-center text-white p-4">
     <div class="text-center max-w-md">
       <div class="mb-6">
         <div class="text-9xl font-bold text-red-400">403</div>
@@ -14,14 +14,14 @@
         <p class="text-gray-400 mb-4">
           You don't have permission to access this resource. Please log in or contact an administrator.
         </p>
-        <div class="bg-[#2a2f35] p-4 rounded-lg mb-4 text-left">
+        <div class="bg-[#222222] p-4 rounded-lg mb-4 text-left">
           <h3 class="font-medium mb-2 text-gray-300">Using a Reverse Proxy?</h3>
           <p class="text-sm text-gray-400">
-            If you're accessing YamTrack through a reverse proxy, you need to set the <code class="bg-[#39404b] px-1 py-0.5 rounded">URLS</code> environment variable to your application URL.
+            If you're accessing YamTrack through a reverse proxy, you need to set the <code class="bg-[#292929] px-1 py-0.5 rounded">URLS</code> environment variable to your application URL.
           </p>
 
           <p class="text-sm text-gray-400 mt-2">
-            For example, <code class="bg-[#39404b] px-1 py-0.5 rounded">https://yamtrack.mydomain.com</code>.
+            For example, <code class="bg-[#292929] px-1 py-0.5 rounded">https://yamtrack.mydomain.com</code>.
           </p>
         </div>
         <p class="text-sm text-gray-500 mb-6">
@@ -48,7 +48,7 @@
           <span>Log In</span></a>
 
         <a href="{% url 'home' %}"
-           class="flex items-center justify-center gap-2 px-6 py-3 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors">
+           class="flex items-center justify-center gap-2 px-6 py-3 bg-[#292929] text-white rounded-md hover:bg-[#454d5a] transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
                height="24"

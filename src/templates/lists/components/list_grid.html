@@ -1,5 +1,5 @@
 {% for custom_list in custom_lists %}
-  <div class="bg-[#2a2f35] rounded-lg overflow-hidden hover:shadow-lg group"
+  <div class="bg-[#222222] rounded-lg overflow-hidden hover:shadow-lg group"
        x-data="{ showModal: false }"
        {% if forloop.last and custom_lists.has_next %} hx-get="{% url 'lists' %}?page={{ custom_lists.next_page_number }}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
     <div class="relative h-48 flex items-center justify-center">
@@ -53,10 +53,10 @@
             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
           <div class="flex -space-x-2">
-            <div class="w-6 h-6 rounded-full bg-[#4f46e5] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
+            <div class="w-6 h-6 rounded-full bg-[#4f46e5] flex items-center justify-center border-2 border-[#222222] text-xs font-medium"
                  title="{{ custom_list.owner.username }}">{{ custom_list.owner.username.0|upper }}</div>
             {% for collaborator in custom_list.collaborators.all %}
-              <div class="w-6 h-6 rounded-full bg-[#4b5563] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
+              <div class="w-6 h-6 rounded-full bg-[#4b5563] flex items-center justify-center border-2 border-[#222222] text-xs font-medium"
                    title="{{ collaborator.username }}">{{ collaborator.username.0|upper }}</div>
             {% endfor %}
           </div>

@@ -35,7 +35,7 @@
       <!-- Search -->
       <div class="relative flex-grow">
         <input placeholder="Search {{ media_type_plural }} in your list..."
-               class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+               class="w-full py-2 pl-10 pr-4 bg-[#292929] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="search"
                {% if public_profile %}
@@ -70,7 +70,7 @@
         <!-- Filter by Status -->
       {% if public_profile is not True %}
         <div class="relative" x-data="{ open: false }">
-          <button class="flex items-center px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+          <button class="flex items-center px-4 py-2 bg-[#292929] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
                   @click="open = !open"
                   type="button">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -100,7 +100,7 @@
             </svg>
           </button>
 
-          <div class="absolute z-10 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden border border-gray-700"
+          <div class="absolute z-10 mt-2 py-1 w-48 bg-[#292929] rounded-md shadow-lg overflow-hidden border border-gray-700"
                x-cloak
                x-show="open"
                @click.outside="open = false"
@@ -125,7 +125,7 @@
 
         <!-- Sort by -->
         <div class="relative" x-data="{ open: false }">
-          <button class="flex items-center px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+          <button class="flex items-center px-4 py-2 bg-[#292929] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
                   @click="open = !open"
                   type="button">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -158,7 +158,7 @@
             </svg>
           </button>
 
-          <div class="absolute z-10 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden border border-gray-700"
+          <div class="absolute z-10 mt-2 py-1 w-48 bg-[#292929] rounded-md shadow-lg overflow-hidden border border-gray-700"
                x-cloak
                x-show="open"
                @click.outside="open = false"
@@ -193,7 +193,7 @@
               :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
             {% endif %}
              class="p-2 cursor-pointer"
-             :class="layout === 'grid' ? 'bg-accent text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
+             :class="layout === 'grid' ? 'bg-accent text-white' : 'bg-[#292929] hover:bg-[#454d5a]'"
              title="Grid View"
              @click="layout = 'grid'">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -216,7 +216,7 @@
               :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
             {% endif %}
              class="p-2 cursor-pointer"
-             :class="layout === 'table' ? 'bg-accent text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
+             :class="layout === 'table' ? 'bg-accent text-white' : 'bg-[#292929] hover:bg-[#454d5a]'"
              title="Table View"
              @click="layout = 'table'">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -241,9 +241,9 @@
 
     {% if not media_list %}
       <div id="empty_list"
-           class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
+           class="flex flex-col items-center justify-center py-16 bg-[#222222] rounded-lg">
         <div class="text-center max-w-md mx-auto p-6">
-          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -273,8 +273,8 @@
     {% elif current_layout == "grid" %}
       <div class="media-grid">{% include "app/components/media_grid_items.html" %}</div>
     {% else %}
-      <div class="bg-[#2a2f35] p-4 rounded-lg overflow-hidden max-w-[calc(100svw-4rem)] overflow-x-scroll">
-        <table class="w-full bg-[#2a2f35]">
+      <div class="bg-[#222222] p-4 rounded-lg overflow-hidden max-w-[calc(100svw-4rem)] overflow-x-scroll">
+        <table class="w-full bg-[#222222]">
           <thead class="text-left text-gray-400 text-sm">
             <tr>
               <th class="p-2 w-15"></th>

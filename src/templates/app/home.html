@@ -12,7 +12,7 @@
       {% if public_profile is not True %}
         <button @click="open = !open"
               @click.outside="open = false"
-              class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
+              class="flex items-center gap-2 px-4 py-2 bg-[#292929] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
@@ -49,7 +49,7 @@
            x-transition:leave="transition ease-in duration-75"
            x-transition:leave-start="transform opacity-100 scale-100"
            x-transition:leave-end="transform opacity-0 scale-95"
-           class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
+           class="absolute right-0 mt-2 py-1 w-48 bg-[#292929] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
         {% for value, label in sort_choices %}
           <a href="{% url 'home' %}?sort={{ value }}"
              class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-accent text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
@@ -88,8 +88,8 @@
         {% endif %}
       </div>
     {% empty %}
-      <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
-        <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+      <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#222222] rounded-lg">
+        <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
                height="24"

@@ -18,10 +18,10 @@
       <div class="flex items-center gap-4">
         <div class="flex items-center">
           <div class="flex -space-x-2 mr-2">
-            <div class="w-6 h-6 rounded-full bg-[#4f46e5] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
+            <div class="w-6 h-6 rounded-full bg-[#4f46e5] flex items-center justify-center border-2 border-[#222222] text-xs font-medium"
                  title="{{ custom_list.owner.username }}">{{ custom_list.owner.username.0|upper }}</div>
             {% for collaborator in custom_list.collaborators.all %}
-              <div class="w-6 h-6 rounded-full bg-[#4b5563] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
+              <div class="w-6 h-6 rounded-full bg-[#4b5563] flex items-center justify-center border-2 border-[#222222] text-xs font-medium"
                    title="{{ collaborator.username }}">{{ collaborator.username.0|upper }}</div>
             {% endfor %}
           </div>
@@ -34,7 +34,7 @@
       </div>
     </div>
     <button @click="showModal = true"
-            class="px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 text-sm group cursor-pointer">
+            class="px-4 py-2 bg-[#292929] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 text-sm group cursor-pointer">
       <svg xmlns="http://www.w3.org/2000/svg"
            width="24"
            height="24"
@@ -70,7 +70,7 @@
       <div class="relative flex-1">
         <input id="search-input"
                placeholder="Search in collection..."
-               class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+               class="w-full py-2 pl-10 pr-4 bg-[#292929] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="query"
                autocomplete="off"
@@ -101,7 +101,7 @@
       <div class="flex items-center gap-2 flex-shrink-0">
         {# Filter by Type #}
         <div class="relative" x-data="{ open: false }">
-          <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+          <button class="h-10 flex items-center gap-2 px-4 bg-[#292929] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
                   @click="open = !open"
                   type="button">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -131,7 +131,7 @@
             </svg>
           </button>
 
-          <div class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
+          <div class="absolute right-0 mt-2 py-1 w-48 bg-[#292929] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
                x-cloak
                x-show="open"
                @click.outside="open = false"
@@ -164,7 +164,7 @@
 
         {# Sort by #}
         <div class="relative" x-data="{ open: false }">
-          <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+          <button class="h-10 flex items-center gap-2 px-4 bg-[#292929] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
                   @click="open = !open"
                   type="button">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -198,7 +198,7 @@
             </svg>
           </button>
 
-          <div class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
+          <div class="absolute right-0 mt-2 py-1 w-48 bg-[#292929] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
                x-cloak
                x-show="open"
                @click.outside="open = false"
@@ -228,9 +228,9 @@
         {% include "lists/components/media_grid.html" %}
       </div>
     {% else %}
-      <div class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
+      <div class="flex flex-col items-center justify-center py-16 bg-[#222222] rounded-lg">
         <div class="text-center max-w-md mx-auto p-6">
-          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <div class="bg-[#292929] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"

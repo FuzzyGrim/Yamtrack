@@ -11,10 +11,10 @@
     <p class="text-gray-400">Track upcoming releases from your list.</p>
   </div>
 
-  <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
+  <div class="bg-[#222222] rounded-lg p-6 mb-6">
     <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
       <div class="flex items-center gap-4">
-        <div class="flex items-center bg-[#39404b] rounded-md p-1">
+        <div class="flex items-center bg-[#292929] rounded-md p-1">
           <a class="p-2 hover:bg-[#454d5a] rounded-md transition-colors"
              href="{% url 'calendar' %}?month={{ prev_month }}&year={{ prev_year }}&view={{ view_type }}">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -50,12 +50,12 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <a class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
+        <a class="px-4 py-2 text-sm bg-[#292929] hover:bg-[#454d5a] rounded-md transition-colors"
            href="{% url 'calendar' %}?month={{ today.month }}&year={{ today.year }}&view={{ view_type }}">Today</a>
 
         <form method="post" action="{% url 'reload_calendar' %}">
           {% csrf_token %}
-          <button class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 cursor-pointer">
+          <button class="px-4 py-2 text-sm bg-[#292929] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -75,7 +75,7 @@
           </button>
         </form>
 
-        <div class="bg-[#39404b] rounded-md p-1 space-x-0.5 flex">
+        <div class="bg-[#292929] rounded-md p-1 space-x-0.5 flex">
           <a class="p-2 rounded-md transition-colors cursor-pointer {% if view_type == 'grid' %}bg-accent text-white{% else %}hover:bg-[#454d5a]{% endif %}"
              href="{% url 'calendar' %}?month={{ month }}&year={{ year }}&view=grid">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -112,7 +112,7 @@
           </a>
         </div>
 
-        <a class="p-3 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
+        <a class="p-3 text-sm bg-[#292929] hover:bg-[#454d5a] rounded-md transition-colors"
            href="{% url 'download_calendar' token=user.token %}">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -139,7 +139,7 @@
     {% endif %}
   </div>
 
-  <div class="bg-[#2a2f35] p-5 rounded-lg mb-6">
+  <div class="bg-[#222222] p-5 rounded-lg mb-6">
     <div class="flex items-center mb-3">
       <svg xmlns="http://www.w3.org/2000/svg"
            width="24"
@@ -159,9 +159,9 @@
     <p class="text-gray-400 mb-4 text-sm">
       This link can be used to integrate your calendar into any of your calendar applications.
     </p>
-    <div class="bg-[#262a2f] p-3 rounded-md mb-4">
+    <div class="bg-[#2e2e2e] p-3 rounded-md mb-4">
       <input readonly=""
-             class="w-full py-2 px-3 bg-[#262a2f] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono"
+             class="w-full py-2 px-3 bg-[#2e2e2e] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono"
              type="text"
              value="{{ request.scheme }}://{{ request.get_host }}{% url 'download_calendar' token=user.token %}">
     </div>

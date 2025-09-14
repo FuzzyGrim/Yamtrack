@@ -9,7 +9,7 @@
 
 {% block settings_content %}
   <div class="space-y-6">
-    <div class="bg-[#2a2f35] rounded-lg p-6">
+    <div class="bg-[#222222] rounded-lg p-6">
       <div class="flex items-center mb-5">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
@@ -40,7 +40,7 @@
                  class="block text-sm font-medium mb-2 text-gray-300">Username</label>
           <input id="{{ user_form.username.id_for_label }}"
                  name="{{ user_form.username.html_name }}"
-                 class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.username.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                 class="w-full py-2 px-3 bg-[#292929] rounded-md text-white text-sm border {% if user_form.username.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                  type="text"
                  value="{{ user_form.username.value|default:user.username }}">
           {% if user_form.username.errors %}
@@ -70,7 +70,7 @@
       </form>
     </div>
 
-    <div class="bg-[#2a2f35] rounded-lg p-6">
+    <div class="bg-[#222222] rounded-lg p-6">
       <div class="flex items-center mb-5">
         <svg xmlns="http://www.w3.org/2000/svg"
          viewBox="0 0 24 24"
@@ -86,7 +86,7 @@
                type="text"
                readonly
                value="{{ request.scheme }}://{{ request.get_host }}{% url 'public_home' username=user.username %}"
-               class="flex-1 py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+               class="flex-1 py-2 px-3 bg-[#292929] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
         <button type="button"
           onclick="copyToClipboard()"
           class="px-3 py-2 bg-accent text-white rounded-md hover:bg-accent transition-colors text-sm flex items-center">
@@ -124,7 +124,7 @@
       }
     </script>
 
-    <div class="bg-[#2a2f35] rounded-lg p-6">
+    <div class="bg-[#222222] rounded-lg p-6">
       <div class="flex items-center mb-5">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
@@ -158,7 +158,7 @@
           <div class="relative">
             <input id="{{ password_form.old_password.id_for_label }}"
                    name="{{ password_form.old_password.html_name }}"
-                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border {% if password_form.old_password.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   class="w-full py-2 px-3 pr-10 bg-[#292929] rounded-md text-white text-sm border {% if password_form.old_password.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                    :type="showCurrentPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
@@ -209,7 +209,7 @@
           <div class="relative">
             <input id="{{ password_form.new_password1.id_for_label }}"
                    name="{{ password_form.new_password1.html_name }}"
-                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border {% if password_form.new_password1.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   class="w-full py-2 px-3 pr-10 bg-[#292929] rounded-md text-white text-sm border {% if password_form.new_password1.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                    :type="showNewPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
@@ -260,7 +260,7 @@
           <div class="relative">
             <input id="{{ password_form.new_password2.id_for_label }}"
                    name="{{ password_form.new_password2.html_name }}"
-                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border {% if password_form.new_password2.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   class="w-full py-2 px-3 pr-10 bg-[#292929] rounded-md text-white text-sm border {% if password_form.new_password2.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                    :type="showConfirmPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
@@ -330,7 +330,7 @@
     
     {% get_providers as socialaccount_providers %}
     {% if socialaccount_providers %}
-      <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="bg-[#222222] rounded-lg p-6">
         <div class="flex items-center mb-5">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"

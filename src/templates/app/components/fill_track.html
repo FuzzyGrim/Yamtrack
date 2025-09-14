@@ -1,6 +1,6 @@
 {% load widget_tweaks %}
 
-<div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
+<div class="bg-[#222222] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
   <div class="flex items-center justify-between mb-6">
     <h2 class="text-2xl font-bold text-white line-clamp-1">{{ title }}</h2>
     <button class="text-gray-400 hover:text-white cursor-pointer"
@@ -38,7 +38,7 @@
                      for="{{ field.id_for_label }}">{{ field.label }}</label>
               <div class="relative">
                 {% if field.name == "status" %}
-                  {{ field|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none" }}
+                  {{ field|add_class:"w-full p-2 bg-[#292929] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none" }}
                   <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg"
                          width="16"
@@ -53,7 +53,7 @@
                     </svg>
                   </div>
                 {% elif field.field.widget.input_type == 'number' %}
-                  {{ field|add_class:"w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
+                  {{ field|add_class:"w-full p-2 pr-12 bg-[#292929] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
                   <div class="absolute inset-y-0 right-0 flex flex-col border-l border-gray-600">
                     <button type="button"
                             class="flex-1 px-2 hover:bg-gray-700 transition-colors rounded-tr-md border-t border-r border-gray-600"
@@ -87,7 +87,7 @@
                     </button>
                   </div>
                 {% else %}
-                  {{ field|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]" }}
+                  {{ field|add_class:"w-full p-2 bg-[#292929] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]" }}
                 {% endif %}
               </div>
             </div>
@@ -101,7 +101,7 @@
       <div class="mb-5">
         <label class="block text-sm font-medium mb-1 text-gray-300"
                for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-        {{ form.notes|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]" }}
+        {{ form.notes|add_class:"w-full p-2 bg-[#292929] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]" }}
       </div>
     {% endif %}
 

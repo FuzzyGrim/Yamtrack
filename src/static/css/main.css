@@ -1178,8 +1178,8 @@
     border-left-style: var(--tw-border-style);
     border-left-width: 2px;
   }
-  .border-\[\#2a2f35\] {
-    border-color: #2a2f35;
+  .border-\[\#222222\] {
+    border-color: #222222;
   }
   .border-\[\#2c3136\] {
     border-color: #2c3136;
@@ -1194,10 +1194,10 @@
     border-color: var(--color-gray-700);
   }
   .border-indigo-500 {
-    border-color: var(--color-indigo-500);
+    border-color: var(--color-accent);
   }
   .border-indigo-600 {
-    border-color: var(--color-indigo-600);
+    border-color: var(--color-accent);
   }
   .border-red-500 {
     border-color: var(--color-red-500);
@@ -1217,14 +1217,14 @@
       border-color: color-mix(in oklab, var(--color-white) 30%, transparent);
     }
   }
-  .bg-\[\#1a1d20\] {
-    background-color: #1a1d20;
+  .bg-\[\#161616\] {
+    background-color: #161616;
   }
   .bg-\[\#2a2e33\] {
     background-color: #2a2e33;
   }
-  .bg-\[\#2a2f35\] {
-    background-color: #2a2f35;
+  .bg-\[\#222222\] {
+    background-color: #222222;
   }
   .bg-\[\#2c3136\] {
     background-color: #2c3136;
@@ -1241,20 +1241,20 @@
   .bg-\[\#4f46e5\] {
     background-color: #4f46e5;
   }
-  .bg-\[\#262a2f\] {
-    background-color: #262a2f;
+  .bg-\[\#2e2e2e\] {
+    background-color: #2e2e2e;
   }
-  .bg-\[\#272c31\] {
-    background-color: #272c31;
+  .bg-\[\#1a1a1a\] {
+    background-color: #1a1a1a;
   }
   .bg-\[\#343a40\] {
     background-color: #343a40;
   }
-  .bg-\[\#39404b\] {
-    background-color: #39404b;
+  .bg-\[\#292929\] {
+    background-color: #292929;
   }
-  .bg-\[\#212529\] {
-    background-color: #212529;
+  .bg-\[\#1a1a1a\] {
+    background-color: #1a1a1a;
   }
   .bg-amber-600 {
     background-color: var(--color-amber-600);
@@ -2009,10 +2009,10 @@
       }
     }
   }
-  .hover\:bg-\[\#2a2f35\] {
+  .hover\:bg-\[\#222222\] {
     &:hover {
       @media (hover: hover) {
-        background-color: #2a2f35;
+        background-color: #222222;
       }
     }
   }
@@ -2037,17 +2037,17 @@
       }
     }
   }
-  .hover\:bg-\[\#39404b\] {
+  .hover\:bg-\[\#292929\] {
     &:hover {
       @media (hover: hover) {
-        background-color: #39404b;
+        background-color: #292929;
       }
     }
   }
-  .hover\:bg-\[\#313842\] {
+  .hover\:bg-\[\#282828\] {
     &:hover {
       @media (hover: hover) {
-        background-color: #313842;
+        background-color: #282828;
       }
     }
   }
@@ -2298,7 +2298,7 @@
   }
   .focus\:border-indigo-500 {
     &:focus {
-      border-color: var(--color-indigo-500);
+      border-color: var(--color-accent);
     }
   }
   .focus\:ring {
@@ -2816,7 +2816,7 @@
   border-style: var(--tw-border-style);
   border-width: 1px;
   border-color: var(--color-gray-600);
-  background-color: #39404b;
+  background-color: #292929;
   font-size: var(--text-base);
   line-height: var(--tw-leading, var(--text-base--line-height));
   &:focus-within {
@@ -2851,7 +2851,7 @@
   @supports (color: color-mix(in lab, red, red)) {
     border-color: color-mix(in oklab, var(--color-white) 10%, transparent);
   }
-  background-color: #39404b;
+  background-color: #292929;
   padding: calc(var(--spacing) * 1.5);
   font-size: var(--text-base);
   line-height: var(--tw-leading, var(--text-base--line-height));
@@ -3299,4 +3299,7 @@
       --tw-content: "";
     }
   }
+}
+input, textarea {
+  outline: none!important;
 }

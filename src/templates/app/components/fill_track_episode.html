@@ -7,7 +7,7 @@
      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
   <div class="w-[400px] max-h-[90vh] px-4 md:px-0 relative z-60"
        @click.outside="trackOpen = false">
-    <div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
+    <div class="bg-[#222222] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-white">Track Episode</h2>
         <button class="text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -102,7 +102,7 @@
             {% if episode.air_date %}
               <button type="button"
                       @click="inputDateTime = inputType === 'datetime-local' ? '{{ episode.air_date }}T{% now "H:i" %}' : '{{ episode.air_date }}'"
-                      class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm color-accent hover:text-accent-hover transition-colors bg-[#2a2f35] px-2 py-1 rounded cursor-pointer">
+                      class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm color-accent hover:text-accent-hover transition-colors bg-[#222222] px-2 py-1 rounded cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      width="24"
                      height="24"

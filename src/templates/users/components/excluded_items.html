@@ -4,7 +4,7 @@
 <div class="space-y-2">
   {% if excluded_items %}
     {% for item in excluded_items %}
-      <div class="flex items-center justify-between p-2 bg-[#39404b] rounded-md">
+      <div class="flex items-center justify-between p-2 bg-[#292929] rounded-md">
         <div class="flex items-center">
           <img alt="{{ item }}"
                class="w-8 h-10 object-cover rounded mr-2"
@@ -40,7 +40,7 @@
     {% endfor %}
   {% else %}
     <div class="space-y-2">
-      <p class="text-xs text-gray-400 text-center py-2 bg-[#39404b] rounded-md">No media items excluded yet</p>
+      <p class="text-xs text-gray-400 text-center py-2 bg-[#292929] rounded-md">No media items excluded yet</p>
     </div>
   {% endif %}
 </div>
