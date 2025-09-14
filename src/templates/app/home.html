@@ -2,14 +2,15 @@
 {% load app_tags %}
 
 {% block title %}
-  Home - Yamtrack
+  Home - Foxtrack
 {% endblock title %}
 
 {% block content %}
   <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
     <h1 class="text-3xl font-bold text-center w-full sm:w-auto">In Progress</h1>
     <div class="relative" x-data="{ open: false }">
-      <button @click="open = !open"
+      {% if public_profile is not True %}
+        <button @click="open = !open"
               @click.outside="open = false"
               class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg"
@@ -56,6 +57,7 @@
           </a>
         {% endfor %}
       </div>
+    {% endif %}
     </div>
   </div>
   <div class="space-y-8">
@@ -102,11 +104,13 @@
           </svg>
         </div>
         <h3 class="text-xl font-semibold mb-2">No media in progress</h3>
-        <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>
+        {% if public_profile is not True %}
+          <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>
         <div class="pt-4">
           <a href="{{ 'tv'|sample_search }}"
              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
         </div>
+      {% endif %}
       </div>
     {% endfor %}
   </div>

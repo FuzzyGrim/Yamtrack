@@ -239,6 +239,28 @@ def media_url(media):
         },
     )
 
+@register.filter
+def public_media_url(media, username):
+    """Return the media URL for both metadata and model object cases."""
+    is_dict = isinstance(media, dict)
+
+    # Get attributes using either dict access or object attribute
+    media_type = media["media_type"] if is_dict else media.media_type
+    source = media["source"] if is_dict else media.source
+    media_id = media["media_id"] if is_dict else media.media_id
+    title = media["title"] if is_dict else media.title
+
+    return reverse(
+        "public_media_details",
+        kwargs={
+            "username": username,
+            "source": source,
+            "media_type": media_type,
+            "media_id": media_id,
+            "title": slug(title),
+        },
+    )
+
 
 @register.simple_tag
 def media_view_url(view_name, media):

@@ -5,7 +5,7 @@
 {% block title %}
   {{ media.title }}
   {% if media.media_type == MediaTypes.SEASON.value %}S{{ media.season_number }}{% endif %}
-  - Yamtrack
+  - Foxtrack
 {% endblock title %}
 
 {% block content %}
@@ -15,7 +15,7 @@
       <img alt="{{ media.title }}"
            class="w-full rounded-lg shadow-lg bg-[#2a2f35] object-cover"
            src="{{ media.image }}">
-
+    {% if not public_profile %}
       <div x-data="{ trackOpen: false }">
         <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
                 hx-get="{% media_view_url 'track_modal' media %}"
@@ -59,6 +59,7 @@
           </div>
         </div>
       </div>
+    {% endif %}
     </div>
 
     {# Media details #}
@@ -102,8 +103,12 @@
                  class="absolute right-1/2 md:right-0 translate-x-1/2 md:translate-x-0 mt-2 w-64 bg-[#2a2f35] rounded-md shadow-lg overflow-hidden z-10">
               <div class="max-h-[300px] overflow-y-auto">
                 {% for tv_season in tv.related.seasons %}
-                  <a href="{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=tv_season.season_number %}"
-                     class="w-full px-4 py-3 flex items-center space-x-3 hover:bg-gray-700 transition-colors duration-200 cursor-pointer {% if tv_season.season_number == media.season_number %}bg-[#343a40]{% endif %}">
+                  <a
+                    {% if not public_profile %}
+                      href="{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=tv_season.season_number %}"
+                    {% endif %}
+                    class="w-full px-4 py-3 flex items-center space-x-3 hover:bg-gray-700 transition-colors duration-200 cursor-pointer {% if tv_season.season_number == media.season_number %}bg-[#343a40]{% endif %}"
+                  >
                     <div class="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-600 text-white">
                       {{ tv_season.season_number }}
                     </div>
@@ -116,6 +121,7 @@
                     </div>
                   </a>
                 {% endfor %}
+
               </div>
             </div>
           </div>
@@ -145,7 +151,7 @@
           </button>
         </div>
 
-        {% if current_instance.notes %}
+        {% if current_instance.notes and not public_profile %}
           <div class="my-3 border-t border-gray-700"></div>
 
           <div class="flex items-start mt-2">
@@ -210,7 +216,7 @@
         {% endif %}
 
         {# User score #}
-        {% if user_medias %}
+        {% if user_medias and not public_profile %}
           <div x-data="{ showRatingPopup: false, rating: {{ current_instance.score|default:'null' }}, hoverRating: null, isHovering: false }"
                class="relative">
             <!-- Rating display -->
@@ -290,6 +296,7 @@
 
     <div class="w-full md:w-1/4 md:max-w-[250px] mx-auto lg:mx-0">
       {# Your History #}
+    {% if not public_profile %}
       {% if user_medias|length > 1 or current_instance.start_date or current_instance.end_date or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold">Your History</h2>
@@ -604,7 +611,7 @@
           </svg>
         </button>
       </div>
-
+{% endif %}
       {# Media Details #}
       <h2 class="text-xl font-bold mb-4">Details</h2>
       <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
@@ -632,7 +639,7 @@
         {% endif %}
       </div>
     </div>
-
+{% if not public_profile %}
     {# Related Media #}
     {% if media.related %}
       <div class="w-full md:w-3/4">
@@ -802,6 +809,7 @@
           {% endfor %}
         </div>
       </div>
+        {% endif %}
     {% endif %}
   </div>
 {% endblock content %}

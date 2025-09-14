@@ -1,5 +1,6 @@
 from django.urls import path, register_converter
-
+from django.contrib.auth.decorators import login_not_required
+from decorator_include import decorator_include
 from app import converters, views
 
 register_converter(converters.MediaTypeChecker, "media_type")
@@ -15,6 +16,7 @@ urlpatterns = [
         views.media_details,
         name="media_details",
     ),
+
     path(
         "details/<source:source>/tv/<str:media_id>/<str:title>/season/<int:season_number>",
         views.season_details,
@@ -81,4 +83,20 @@ urlpatterns = [
         name="search_parent_season",
     ),
     path("statistics", views.statistics, name="statistics"),
+]
+
+public_patterns = [
+    path("u/<str:username>/", views.public_home, name="public_home"),
+    path("u/<str:username>/medialist/<str:media_type>/", views.public_media_list, name="public_media_list"),
+    path("u/<str:username>/search/", views.public_search, name="public_search"),
+    path("u/<str:username>/statistics/", views.public_statistics, name="public_statistics"),
+    path(
+        "u/<str:username>/details/<source:source>/<media_type:media_type>/<str:media_id>/<str:title>",
+        views.public_media_details,
+        name="public_media_details",
+    ),
+]
+
+urlpatterns += [
+    path("", decorator_include(login_not_required, public_patterns)),
 ]

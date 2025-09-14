@@ -3,7 +3,7 @@
 {% load app_tags %}
 
 {% block title %}
-  {{ media_type|media_type_readable_plural }} - Yamtrack
+  {{ media_type|media_type_readable_plural }} - Foxtrack
 {% endblock title %}
 
 {% block content %}
@@ -38,7 +38,11 @@
                class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="search"
-               hx-get="{% url 'medialist' media_type %}"
+               {% if public_profile %}
+                  hx-get="{% url 'public_media_list' user.username media_type %}"
+                {% else %}
+                  hx-get="{% url 'medialist' media_type %}"
+                {% endif %}
                hx-trigger="keyup changed delay:300ms, search"
                {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
                hx-include="#filter-form"
@@ -64,6 +68,7 @@
 
       <div class="flex gap-2 flex-wrap">
         <!-- Filter by Status -->
+      {% if public_profile is not True %}
         <div class="relative" x-data="{ open: false }">
           <button class="flex items-center px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
                   @click="open = !open"
@@ -177,10 +182,16 @@
             {% endfor %}
           </div>
         </div>
+      {% endif %}
 
         <!-- Layout Toggle -->
         <div class="flex rounded-md overflow-hidden border border-gray-700">
-          <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
+          <a
+            {% if public_profile %}
+              :href="`{% url 'public_media_list' user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
+            {% else %}
+              :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
+            {% endif %}
              class="p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Grid View"
@@ -198,7 +209,12 @@
               <rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect>
             </svg>
           </a>
-          <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
+          <a
+            {% if public_profile %}
+              :href="`{% url 'public_media_list' user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
+            {% else %}
+              :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
+            {% endif %}
              class="p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Table View"
@@ -243,13 +259,15 @@
             </svg>
           </div>
           <h3 class="text-xl font-semibold mb-2">No {{ media_type|media_type_readable_plural }} Tracked Yet</h3>
-          <p class="text-gray-400 mb-6">
-            Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
-          </p>
-          <a href="{{ media_type|sample_search }}"
-             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-            Browse {{ media_type|media_type_readable_plural }}
-          </a>
+          {% if public_profile != True %}
+              <p class="text-gray-400 mb-6">
+                Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
+              </p>
+              <a href="{{ media_type|sample_search }}"
+                 class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+                Browse {{ media_type|media_type_readable_plural }}
+              </a>
+          {% endif %}
         </div>
       </div>
     {% elif current_layout == "grid" %}

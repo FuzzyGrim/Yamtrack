@@ -8,13 +8,13 @@ from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.timezone import datetime
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
-
+from django.contrib.auth import get_user_model
 from app import helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
@@ -54,6 +54,198 @@ def home(request):
         "items_limit": items_limit,
     }
     return render(request, "app/home.html", context)
+
+@require_GET
+def public_media_list(request, username, media_type):
+    User = get_user_model()
+    profile_user = get_object_or_404(User, username=username)
+
+    # Use the same logic as the private media_list view
+    layout = profile_user.update_preference(f"{media_type}_layout", request.GET.get("layout"))
+    sort_filter = profile_user.update_preference(f"{media_type}_sort", request.GET.get("sort"))
+    status_filter = profile_user.update_preference(f"{media_type}_status", request.GET.get("status"))
+    search_query = request.GET.get("search", "")
+    page = request.GET.get("page", 1)
+
+    if not status_filter:
+        status_filter = MediaStatusChoices.ALL
+
+    media_queryset = BasicMedia.objects.get_media_list(
+        user=profile_user,
+        media_type=media_type,
+        status_filter=status_filter,
+        sort_filter=sort_filter,
+        search=search_query,
+    )
+
+    items_per_page = 32
+    paginator = Paginator(media_queryset, items_per_page)
+    media_page = paginator.get_page(page)
+
+    BasicMedia.objects.annotate_max_progress(
+        media_page.object_list,
+        media_type,
+    )
+
+    context = {
+        "media_list": media_page,
+        "media_type": media_type,
+        
+        "user": profile_user,
+        "public_profile": True,
+        "current_layout": layout,
+        "layout_class": ".media-grid" if layout == "grid" else "tbody",
+        "current_sort": sort_filter,
+        "current_status": status_filter,
+        "sort_choices": MediaSortChoices.choices,
+        "status_choices": MediaStatusChoices.choices,
+    }
+
+    if request.headers.get("HX-Request"):
+        if layout == "grid":
+            template_name = "app/components/media_grid_items.html"
+        else:
+            template_name = "app/components/media_table_items.html"
+    else:
+        template_name = "app/media_list.html"
+
+
+    return render(
+        request,
+        template_name,
+        context,
+    )
+
+@require_GET
+def public_search(request, username):
+    User = get_user_model()
+    profile_user = get_object_or_404(User, username=username)
+
+    query = request.GET.get("q", "").strip()
+    media_type = request.GET.get("media_type")
+    results = []
+
+    if query and media_type:
+        results = BasicMedia.objects.get_media_list(
+            user=profile_user,
+            media_type=media_type,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter='title', # or another default sort
+            search=query
+        )
+
+    return render(
+        request,
+        "app/search.html", # Assuming you have a template for search results
+        {"data": {"results": results},
+         
+         "public_profile": True},
+    )
+
+
+@require_GET
+def public_home(request, username):
+    User = get_user_model()
+    profile_user = get_object_or_404(User, username=username)
+    sort_by =profile_user.update_preference("home_sort", request.GET.get("sort"))
+    media_type_to_load = request.GET.get("load_media_type")
+    items_limit = 14
+
+    list_by_type = BasicMedia.objects.get_in_progress(
+        profile_user,
+        sort_by,
+        items_limit,
+        media_type_to_load,
+    )
+
+    if request.headers.get("HX-Request") and media_type_to_load:
+        context = {
+            "media_list": list_by_type.get(media_type_to_load, []),
+        }
+        return render(request, "app/components/home_grid.html", context)
+
+    context = {
+        "user": profile_user,
+        
+        "public_profile": True,
+        "list_by_type": list_by_type,
+        "current_sort": sort_by,
+        "sort_choices": HomeSortChoices.choices,
+        "items_limit": items_limit,
+    }
+    return render(request, "app/home.html", context)
+
+
+
+@require_GET
+def public_statistics(request, username):
+    """Return the public statistics page for a user."""
+    User = get_user_model()
+    profile_user = get_object_or_404(User, username=username)
+
+
+    # Set default date range to last year
+    timeformat = "%Y-%m-%d"
+    today = timezone.localdate()
+    one_year_ago = today.replace(year=today.year - 1)
+
+    # Get date parameters with defaults
+    start_date_str = request.GET.get("start-date") or one_year_ago.strftime(timeformat)
+    end_date_str = request.GET.get("end-date") or today.strftime(timeformat)
+
+    if start_date_str == "all" and end_date_str == "all":
+        start_date = None
+        end_date = None
+    else:
+        start_date = parse_date(start_date_str)
+        end_date = parse_date(end_date_str)
+
+        if start_date and end_date:
+            # Convert to datetime with timezone awareness
+            start_date = timezone.make_aware(
+                datetime.combine(start_date, datetime.min.time()),
+            )
+            # End date should be end of day
+            end_date = timezone.make_aware(
+                datetime.combine(end_date, datetime.max.time()),
+            )
+
+    # Get all user media data using the profile_user
+    user_media, media_count = stats.get_user_media(
+        profile_user,
+        start_date,
+        end_date,
+    )
+
+    # Calculate all statistics from the retrieved data
+    media_type_distribution = stats.get_media_type_distribution(
+        media_count,
+    )
+    score_distribution, top_rated = stats.get_score_distribution(user_media)
+    status_distribution = stats.get_status_distribution(user_media)
+    status_pie_chart_data = stats.get_status_pie_chart_data(
+        status_distribution,
+    )
+    timeline = stats.get_timeline(user_media)
+    activity_data = stats.get_activity_data(profile_user, start_date, end_date)
+
+    context = {
+        
+        "public_profile": True,
+        "start_date": start_date,
+        "end_date": end_date,
+        "user": profile_user,
+        "media_count": media_count,
+        "activity_data": activity_data,
+        "media_type_distribution": media_type_distribution,
+        "score_distribution": score_distribution,
+        "top_rated": top_rated,
+        "status_distribution": status_distribution,
+        "status_pie_chart_data": status_pie_chart_data,
+        "timeline": timeline,
+    }
+
+    return render(request, "app/statistics.html", context)
 
 
 @require_POST
@@ -181,7 +373,29 @@ def media_search(request):
     }
 
     return render(request, "app/search.html", context)
+@require_GET
+def public_media_details(request, username, source, media_type, media_id, title):  # noqa: ARG001 title for URL
+    User = get_user_model()
+    profile_user = get_object_or_404(User, username=username)
+    media_metadata = services.get_media_metadata(media_type, media_id, source)
+    user_medias = BasicMedia.objects.filter_media_prefetch(
+        profile_user,
+        media_id,
+        media_type,
+        source,
+    )
+    current_instance = user_medias[0] if user_medias else None
 
+    context = {
+        "media": media_metadata,
+        "media_type": media_type,
+        "public_profile": True,
+        "user_medias": user_medias,
+        "user": profile_user,
+        
+        "current_instance": current_instance,
+    }
+    return render(request, "app/media_details.html", context)
 
 @require_GET
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL

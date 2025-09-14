@@ -3,7 +3,7 @@
 {% load app_tags %}
 
 {% block title %}
-  Statistics - Yamtrack
+  Statistics - Foxtrack
 {% endblock title %}
 
 {% block content %}
@@ -531,7 +531,10 @@
                     <div class="bg-[#39404b] p-4 rounded-lg hover:ring-2 hover:ring-indigo-500 transition-all duration-200">
                       <div class="flex items-start gap-4">
                         <div class="flex-shrink-0 order-0">
-                          <a href="{{ media.item|media_url }}">
+                          <a
+                                  {% if public_profile is not True %}
+                                  href="{{ media.item|media_url }}">
+                                  {% endif %}
                             <img alt="{{ media.item }}"
                                  class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.image != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
                                  src="{{ IMG_NONE }}"
@@ -540,7 +543,11 @@
                         </div>
                         <div class="flex-1 min-w-0">
                           <h4 class="font-medium">
-                            <a href="{{ media.item|media_url }}"
+
+                            <a
+                               {% if public_profile is not True %}
+                               href="{{ media.item|media_url }}"
+                               {% endif %}
                                class="hover:text-indigo-400 transition-colors line-clamp-2">{{ media.item }}</a>
                           </h4>
                           <div class="text-sm text-gray-400 mt-1">

@@ -36,8 +36,12 @@
       {% endif %}
 
       <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100">
-        <a href="{{ media.item|media_url }}" class="absolute inset-0"></a>
-
+        {% if public_profile is not None %}
+      <a href="{{ media.item|media_url }}" class="absolute inset-0"></a>
+      {% else %}
+      <a href="{{ media.item|public_media_url:user.username }}" class="absolute inset-0"></a>
+      {% endif %}
+          {% if public_profile is not True %}
         <div class="relative flex items-center justify-center space-x-2.5">
           {# Track Button #}
           <button class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
@@ -112,16 +116,24 @@
             </svg>
           </button>
         </div>
+          {% endif %}
       </div>
     </div>
 
     <div class="p-3 space-y-3">
-      <a href="{{ media.item|media_url }}"
+      <a
+         {% if public_profile is not True %}
+         href="{{ media.item|media_url }}"
+         {% else %}
+         href="{{ media.item|public_media_url:user.username }}"
+         {% endif %}
          class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
          title="{{ media }}">{{ media }}</a>
-      <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
-        {% include "app/components/progress_changer.html" with media=media csrf_token=csrf_token MediaTypes=MediaTypes only %}
-      </div>
+       {% if public_profile is not True %}
+          <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
+            {% include "app/components/progress_changer.html" with media=media csrf_token=csrf_token MediaTypes=MediaTypes only %}
+          </div>
+        {% endif %}
     </div>
 
     {# Track Modal #}

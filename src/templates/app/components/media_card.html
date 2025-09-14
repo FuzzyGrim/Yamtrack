@@ -142,8 +142,8 @@
     {% endif %}
 
     <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100">
-      <a href="{{ item|media_url }}" class="absolute inset-0"></a>
-
+      <a href="{{  item|public_media_url:user.username }}" class="absolute inset-0"></a>
+      {% if public_profile != True %}
       <div class="relative flex items-center justify-center space-x-2.5">
         {% if item.media_type == MediaTypes.EPISODE.value %}
           <button @click="trackOpen = true"
@@ -253,11 +253,12 @@
           </svg>
         </button>
       </div>
+    {% endif %}
     </div>
   </div>
 
   <div class="p-3">
-    <a href="{{ item|media_url }}"
+    <a href="{{  item|public_media_url:user.username }}"
        class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
        title="{{ title }}">{{ title }}</a>
   </div>
