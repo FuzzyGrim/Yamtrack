@@ -63,8 +63,9 @@
         {# Sidebar #}
         <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#161616] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
                :class="isMobileMenuOpen ? 'translate-x-0' : ''">
-          <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
-            <h1 class="text-2xl font-semibold text-gray-100">Foxtrack{% if public_profile %} | {{ user.username }}{% endif %}</h1>
+          <div class="h-16 border-b border-[#2c3136] flex justify-center flex-col px-6">
+            <h1 class="text-2xl font-semibold text-gray-100">Foxtrack</h1>
+            {% if public_profile %} <h3>{{ user.username }}</h3>{% endif %}
           </div>
           <nav class="p-4 flex-1 overflow-y-auto">
             <ul class="space-y-1 mb-6">
