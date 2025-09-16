@@ -1472,7 +1472,31 @@ def delete_diary_entry(request, entry_id):
     """Delete a diary entry."""
     try:
         entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
+        item = entry.item
+        user = entry.user
+        
+        logger.info(f"Deleting diary entry {entry_id} for {item} by {user}")
+        
+        # Delete the entry
         entry.delete()
+        
+        # Check if this was the last diary entry for this movie
+        remaining_entries = DiaryEntry.objects.filter(
+            user=user, 
+            item=item
+        ).exists()
+        
+        logger.info(f"Remaining diary entries for {item}: {remaining_entries}")
+        
+        # If no diary entries remain, also delete the Movie instance (unwatch)
+        if not remaining_entries:
+            try:
+                movie_instance = Movie.objects.get(user=user, item=item)
+                logger.info(f"Deleting Movie instance to unwatch: {movie_instance}")
+                movie_instance.delete()
+                logger.info(f"Successfully unwatched {item} for {user}")
+            except Movie.DoesNotExist:
+                logger.info(f"No Movie instance found for {item} - already unwatched")
         
         # Return success response
         return JsonResponse({"success": True})
