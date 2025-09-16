@@ -12,64 +12,13 @@
     <p class="text-gray-400">Your movie watching log</p>
   </div>
 
-  <!-- Filters Section -->
-  <div class="bg-[#2a2f35] rounded-lg p-6 mb-8">
-    <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
-      <!-- Media Type Filter -->
-      <div class="flex-1">
-        <label class="block text-sm font-medium mb-2 text-gray-300">Media Type</label>
-        <select name="media_type" 
-                class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
-                hx-get="{% url 'diary_list' %}"
-                hx-target="#diary-entries"
-                hx-include="[name='year']"
-                hx-push-url="true">
-          <option value="">All Types</option>
-          {% for value, display in media_type_choices %}
-            <option value="{{ value }}" {% if current_media_type == value %}selected{% endif %}>
-              {{ display }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <!-- Year Filter -->
-      <div class="flex-1">
-        <label class="block text-sm font-medium mb-2 text-gray-300">Year</label>
-        <select name="year" 
-                class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
-                hx-get="{% url 'diary_list' %}"
-                hx-target="#diary-entries"
-                hx-include="[name='media_type']"
-                hx-push-url="true">
-          <option value="">All Years</option>
-          {% for year in years %}
-            <option value="{{ year.year }}" {% if current_year == year.year %}selected{% endif %}>
-              {{ year.year }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <!-- Clear Filters -->
-      {% if current_media_type or current_year %}
-        <div class="flex-shrink-0">
-          <a href="{% url 'diary_list' %}" 
-             class="inline-flex items-center px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-            Clear Filters
-          </a>
-        </div>
-      {% endif %}
-    </div>
-  </div>
 
   <!-- Diary Entries -->
   <div id="diary-entries">
     {% include "app/components/diary_entries.html" %}
   </div>
+
+  <!-- Edit Modal Container -->
+  <div id="edit-modal-container"></div>
 
 {% endblock content %}

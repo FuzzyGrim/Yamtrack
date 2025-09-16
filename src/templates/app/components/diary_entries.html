@@ -34,10 +34,20 @@
                   <span>{{ entry.consumed_at|date:"M d, Y" }}</span>
                   {% if entry.rating %}
                     <div class="flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="text-yellow-400 mr-1">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                      <span class="text-yellow-400">{{ entry.rating }}/10</span>
+                      <div class="flex items-center space-x-0.5 mr-1">
+                        {% for i in "12345" %}
+                          {% if entry.rating >= i|add:0 %}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="text-yellow-400">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                              {% else %}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                              {% endif %}
+                        {% endfor %}
+                      </div>
+                      <span class="text-yellow-400">{{ entry.rating|floatformat:1 }}</span>
                     </div>
                   {% endif %}
                   {% if entry.liked %}
@@ -59,15 +69,78 @@
               </div>
 
               <!-- Entry Actions -->
-              <div class="flex-shrink-0 ml-4">
-                <div class="flex items-center gap-2">
-                  <!-- Edit entry (if needed later) -->
-                  <!-- <button class="text-gray-400 hover:text-white transition-colors p-1">
+              <div class="flex-shrink-0 ml-4" x-data="{ open: false }">
+                <div class="relative">
+                  <!-- 3-dots menu button -->
+                  <button @click="open = !open" 
+                          @click.away="open = false"
+                          class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-[#39404b]">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      <circle cx="12" cy="12" r="1"></circle>
+                      <circle cx="12" cy="5" r="1"></circle>
+                      <circle cx="12" cy="19" r="1"></circle>
                     </svg>
-                  </button> -->
+                  </button>
+
+                  <!-- Dropdown menu -->
+                  <div x-show="open" 
+                       x-transition:enter="transition ease-out duration-100"
+                       x-transition:enter-start="transform opacity-0 scale-95"
+                       x-transition:enter-end="transform opacity-100 scale-100"
+                       x-transition:leave="transition ease-in duration-75"
+                       x-transition:leave-start="transform opacity-100 scale-100"
+                       x-transition:leave-end="transform opacity-0 scale-95"
+                       class="absolute right-0 mt-2 w-48 bg-[#39404b] rounded-md shadow-lg z-10 border border-gray-600"
+                       style="display: none;">
+                    <div class="py-1">
+                      <!-- Edit Entry -->
+                      <button onclick="fetch('{% url 'edit_diary_entry' entry.id %}')
+                        .then(response => response.text())
+                        .then(html => {
+                          document.getElementById('edit-modal-container').innerHTML = html;
+                        })"
+                        class="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-[#454d5a] hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit Entry
+                      </button>
+                      
+                      <!-- Delete Entry -->
+                      <button onclick="if(confirm('Are you sure you want to delete this diary entry?')) {
+                        fetch('{% url 'delete_diary_entry' entry.id %}', {
+                          method: 'POST',
+                          headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json',
+                          }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                          if (data.success) {
+                            // Reload the diary entries
+                            htmx.ajax('GET', '{% url 'diary_list' %}', {target: '#diary-entries'});
+                          } else {
+                            alert('Error deleting entry: ' + (data.error || 'Unknown error'));
+                          }
+                        })
+                        .catch(error => {
+                          console.error('Error:', error);
+                          alert('Error deleting entry');
+                        });
+                      }"
+                        class="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-red-600/20 hover:text-red-400 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                          <polyline points="3,6 5,6 21,6"></polyline>
+                          <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        Delete Entry
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

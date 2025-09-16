@@ -1274,6 +1274,58 @@ def mark_movie_watched(request, source, media_type, media_id):
 
 
 @require_POST
+def unmark_movie_watched(request, source, media_type, media_id):
+    """Unmark a movie as watched by removing the tracking instance."""
+    if media_type != MediaTypes.MOVIE.value:
+        raise Http404("Unwatch is only available for movies")
+        
+    try:
+        # Get the item
+        item = Item.objects.get(
+            media_id=media_id,
+            source=source,
+            media_type=media_type
+        )
+        
+        # Get the media instance
+        from app.models import Movie
+        media_instance = Movie.objects.get(
+            item=item,
+            user=request.user
+        )
+        
+        # Delete the media instance to "unwatch" it
+        media_instance.delete()
+        
+        # Get metadata for template
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": None,  # No instance after unwatching
+        }
+        return render(request, "app/components/media_actions.html", context)
+        
+    except (Item.DoesNotExist, Movie.DoesNotExist):
+        # If the item or media instance doesn't exist, return the unwatched state
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": None,
+        }
+        return render(request, "app/components/media_actions.html", context)
+
+
+@require_POST
 def add_movie_diary_entry(request, source, media_type, media_id):
     """Create a diary entry for a movie using media metadata."""
     try:
@@ -1335,4 +1387,96 @@ def add_movie_diary_entry(request, source, media_type, media_id):
         
     except Exception as e:
         logger.error(f"Error creating diary entry: {str(e)}", exc_info=True)
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@require_GET
+def edit_diary_entry(request, entry_id):
+    """Show edit modal for a diary entry."""
+    entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
+    
+    # Pre-populate form with existing data
+    form = DiaryEntryForm(initial={
+        'consumed_at': entry.consumed_at,
+        'rating': entry.rating,
+        'review': entry.review,
+    })
+    
+    context = {
+        'entry': entry,
+        'form': form,
+        'user': request.user,
+    }
+    
+    return render(request, 'app/components/edit_diary_modal.html', context)
+
+
+@require_POST
+def update_diary_entry(request, entry_id):
+    """Update a diary entry."""
+    try:
+        entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
+        
+        # Debug: Log the POST data
+        logger.info(f"Update diary entry {entry_id} - POST data: {dict(request.POST)}")
+        
+        # Parse form data
+        consumed_at = parse_date(request.POST.get('watch_date'))
+        if not consumed_at:
+            consumed_at = timezone.now().date()
+            
+        rating = request.POST.get('rating')
+        if rating and rating.strip():
+            rating = float(rating)
+        else:
+            rating = None
+            
+        review = request.POST.get('review', '').strip()
+        liked = request.POST.get('liked', '').lower() == 'true'
+        
+        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: '{review}', Liked: {liked}")
+        
+        # Update the entry
+        entry.consumed_at = consumed_at
+        entry.rating = rating
+        entry.review = review
+        entry.liked = liked
+        entry.save()
+        
+        logger.info(f"Diary entry updated successfully: {entry}")
+        logger.info(f"Updated values - Date: {entry.consumed_at}, Rating: {entry.rating}, Review: '{entry.review}', Liked: {entry.liked}")
+        
+        # Return updated diary entries HTML
+        from django.core.paginator import Paginator
+        entries = DiaryEntry.objects.filter(user=request.user).order_by('-consumed_at')
+        paginator = Paginator(entries, 25)
+        page_obj = paginator.get_page(1)
+        
+        context = {
+            "entries": page_obj,
+            "years": entries.dates("consumed_at", "year", order="DESC"),
+            "current_year": None,
+            "current_media_type": None,
+            "media_type_choices": MediaTypes.choices,
+        }
+        
+        return render(request, "app/components/diary_entries.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error updating diary entry: {str(e)}", exc_info=True)
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@require_POST
+def delete_diary_entry(request, entry_id):
+    """Delete a diary entry."""
+    try:
+        entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
+        entry.delete()
+        
+        # Return success response
+        return JsonResponse({"success": True})
+        
+    except Exception as e:
+        logger.error(f"Error deleting diary entry: {str(e)}", exc_info=True)
         return JsonResponse({"error": str(e)}, status=400)
