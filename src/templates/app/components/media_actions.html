@@ -57,16 +57,5 @@
     </div>
   {% endif %}
 {% else %}
-  {# Non-movie media - show original "Add to tracker" button #}
-  <div class="mt-4">
-    <button class="w-full px-4 py-3 rounded bg-gray-700 hover:bg-gray-600 transition duration-300 text-white font-medium"
-            hx-post="{% url 'add_to_tracker' %}"
-            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-            hx-vals='{"media_type": "{{ media.media_type }}", "media_id": "{{ media.media_id }}", "source": "{{ media.source }}"}'
-            hx-target="this"
-            hx-swap="outerHTML">
-      {% icon 'add' is_active=False %}
-      Add to tracker
-    </button>
-  </div>
+  {# Non-movie media actions are handled elsewhere on the page (track button/modal). Nothing to render here. #}
 {% endif %}
