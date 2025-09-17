@@ -1,0 +1,44 @@
+{% load app_tags %}
+{% load humanize %}
+
+{# RatingPanel Component - Numeric rating, distribution bars, and action buttons #}
+<div class="space-y-4">
+  {# Rating Block #}
+  <div class="flex items-center gap-5">
+    {# Numeric Rating #}
+    <div class="flex items-center gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-teal fill-brand-teal">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+      {% if media.score %}
+        <span class="text-2xl sm:text-3xl lg:text-[40px] font-semibold text-white">{{ media.score|floatformat:1 }}</span>
+      {% else %}
+        <span class="text-2xl sm:text-3xl lg:text-[40px] font-semibold text-text-muted">-</span>
+      {% endif %}
+    </div>
+    
+    {# Rating Distribution Bars #}
+    {% if media.rating_distribution %}
+      <div class="flex items-end gap-1 h-12">
+        {% for rating, count in media.rating_distribution %}
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-3 bg-white/15 rounded-sm relative overflow-hidden" style="height: 48px;">
+              {% if count > 0 %}
+                <div class="rating-bar absolute bottom-0 left-0 w-full rounded-sm" 
+                     style="height: {% widthratio count media.max_rating_count 100 %}%;"></div>
+              {% endif %}
+            </div>
+            <span class="text-[10px] text-text-muted">{{ rating }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+  
+  {# Source Score Info #}
+  {% if media.score_count %}
+    <p class="text-[13px] text-text-muted leading-tight">
+      {{ media.score_count|intcomma }} vote{{ media.score_count|pluralize }} on {{ media.source|upper }}
+    </p>
+  {% endif %}
+</div>

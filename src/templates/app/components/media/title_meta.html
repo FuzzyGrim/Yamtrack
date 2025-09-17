@@ -1,0 +1,145 @@
+{% load app_tags %}
+
+{# TitleMeta Component - Renders title row and meta pills #}
+<div class="space-y-4">
+  {# Title Row #}
+  <div class="flex items-center gap-3">
+    <h1 class="text-2xl sm:text-3xl lg:text-[44px]/[1.1] font-semibold tracking-[0.01em] text-text-primary">
+      {% if media.media_type == MediaTypes.SEASON.value %}
+        {{ media.season_title }}
+      {% else %}
+        {{ media.title }}
+      {% endif %}
+    </h1>
+    
+    {# Year Pill #}
+    {% if media.details.release_date or media.details.first_air_date or media.details.start_date or media.details.end_date or media.details.published_date %}
+      <span class="px-2 py-[2px] rounded-md bg-white/5 border border-white/10 text-[18px] text-text-muted">
+        {% if media.media_type == MediaTypes.TV.value and media.details.first_air_date %}
+          {{ media.details.first_air_date|slice:":4" }}
+        {% elif media.media_type == MediaTypes.MOVIE.value and media.details.release_date %}
+          {{ media.details.release_date|slice:":4" }}
+        {% elif media.media_type == MediaTypes.ANIME.value and media.details.start_date %}
+          {{ media.details.start_date|slice:":4" }}
+        {% elif media.media_type == MediaTypes.MANGA.value and media.details.start_date %}
+          {{ media.details.start_date|slice:":4" }}
+        {% elif media.media_type == MediaTypes.BOOK.value and media.details.published_date %}
+          {{ media.details.published_date|slice:":4" }}
+        {% elif media.media_type == MediaTypes.GAME.value and media.details.release_date %}
+          {{ media.details.release_date|slice:":4" }}
+        {% elif media.details.first_air_date %}
+          {{ media.details.first_air_date|slice:":4" }}
+        {% elif media.details.release_date %}
+          {{ media.details.release_date|slice:":4" }}
+        {% elif media.details.start_date %}
+          {{ media.details.start_date|slice:":4" }}
+        {% elif media.details.published_date %}
+          {{ media.details.published_date|slice:":4" }}
+        {% endif %}
+      </span>
+    {% endif %}
+
+    {% if media.media_type == MediaTypes.MOVIE.value and media.details.runtime %}
+      <span class="px-2 py-[2px] rounded-md bg-white/5 border border-white/10 text-[18px] text-text-muted">
+        {{ media.details.runtime }}
+      </span>
+    {% endif %}
+  </div>
+  
+  {# Meta Pills Row #}
+  <div class="flex flex-wrap gap-2">
+    {# Runtime #}
+    {% if media.details.runtime and media.media_type != MediaTypes.MOVIE.value %}
+      <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+        {{ media.details.runtime }}
+      </span>
+    {% endif %}
+    
+    {# Genres (limit to 3) #}
+    {% if media.details.genres %}
+      {% for genre in media.details.genres|slice:":3" %}
+        <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+          {{ genre }}
+        </span>
+      {% endfor %}
+    {% endif %}
+    
+    {# Certification #}
+    {% if media.details.certification %}
+      <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+        {{ media.details.certification }}
+      </span>
+    {% endif %}
+    
+    {# TV Show specific meta #}
+    {% if media.media_type == MediaTypes.TV.value %}
+      {% if media.details.seasons %}
+        <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+          {{ media.details.seasons }} season{{ media.details.seasons|pluralize }}
+        </span>
+      {% endif %}
+      {% if media.details.episodes %}
+        <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+          {{ media.details.episodes }} episode{{ media.details.episodes|pluralize }}
+        </span>
+      {% endif %}
+    {% endif %}
+    
+    {# Season specific meta #}
+    {% if media.media_type == MediaTypes.SEASON.value %}
+      <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+        {{ media.max_progress }} episode{{ media.max_progress|pluralize }}
+      </span>
+    {% endif %}
+    
+    {# Anime specific meta #}
+    {% if media.media_type == MediaTypes.ANIME.value %}
+      {% if media.details.episodes %}
+        <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+          {{ media.details.episodes }} episode{{ media.details.episodes|pluralize }}
+        </span>
+      {% endif %}
+      {% if media.details.status %}
+        <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+          {{ media.details.status }}
+        </span>
+      {% endif %}
+    {% endif %}
+    
+    {# Book specific meta #}
+    {% if media.media_type == MediaTypes.BOOK.value %}
+      {% if media.details.pages %}
+        <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+          {{ media.details.pages }} pages
+        </span>
+      {% endif %}
+      {% if media.details.authors %}
+        <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+          {{ media.details.authors|join:", " }}
+        </span>
+      {% endif %}
+    {% endif %}
+    
+    {# Game specific meta #}
+    {% if media.media_type == MediaTypes.GAME.value %}
+      {% if media.details.platforms %}
+        {% for platform in media.details.platforms|slice:":2" %}
+          <span class="rounded-full px-3 py-1 text-[13px] bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-text-muted">
+            {{ platform }}
+          </span>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+  </div>
+  
+  {# Director/Creator info #}
+  {% if media.details.director or media.details.creator %}
+    <p class="text-[18px] font-medium text-text-muted">
+      {% if media.details.director %}
+        Directed by <span class="text-text-primary">{{ media.details.director }}</span>
+      {% elif media.details.creator %}
+        Created by <span class="text-text-primary">{{ media.details.creator }}</span>
+      {% endif %}
+    </p>
+  {% endif %}
+</div>

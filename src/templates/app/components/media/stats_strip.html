@@ -1,0 +1,75 @@
+{% load app_tags %}
+{% load humanize %}
+
+{# StatsStrip Component - Community stats and social proof #}
+<section class="flex flex-wrap items-center gap-6 text-sm text-text-muted">
+  {# Fans count #}
+  {% if media.fans_count %}
+    <div class="flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-teal">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>{{ media.fans_count|intcomma }} fan{{ media.fans_count|pluralize }}</span>
+    </div>
+  {% endif %}
+  
+  {# Watched by users count #}
+  {% if media.watched_count %}
+    <div class="flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-purple">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      <span>Watched by {{ media.watched_count|intcomma }} user{{ media.watched_count|pluralize }}</span>
+    </div>
+  {% endif %}
+  
+  {# Last logged by friends #}
+  {% if media.recent_friend_activity %}
+    <div class="flex items-center gap-3">
+      <span>Last logged by friends:</span>
+      <div class="flex -space-x-2">
+        {% for friend in media.recent_friend_activity|slice:":5" %}
+          <div class="w-6 h-6 rounded-full bg-white/10 border-2 border-base overflow-hidden relative"
+               title="{{ friend.username }} - {{ friend.logged_at|timesince }} ago">
+            {% if friend.profile_picture %}
+              <img src="{{ friend.profile_picture }}" 
+                   alt="{{ friend.username }}"
+                   class="w-full h-full object-cover">
+            {% else %}
+              <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-teal to-brand-purple">
+                <span class="text-xs font-semibold text-white">
+                  {{ friend.username|first|upper }}
+                </span>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+        {% if media.recent_friend_activity|length > 5 %}
+          <div class="w-6 h-6 rounded-full bg-white/5 border-2 border-base flex items-center justify-center">
+            <span class="text-xs text-text-muted">+{{ media.recent_friend_activity|length|add:"-5" }}</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+  
+  {# Popularity rank #}
+  {% if media.popularity_rank %}
+    <div class="flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+      <span>#{{ media.popularity_rank|intcomma }} most popular</span>
+    </div>
+  {% endif %}
+  
+  {# Release status #}
+  {% if media.details.status %}
+    <div class="flex items-center gap-2">
+      <div class="w-2 h-2 rounded-full {% if media.details.status == 'Released' or media.details.status == 'Ended' %}bg-green-400{% elif media.details.status == 'In Production' or media.details.status == 'Returning Series' %}bg-blue-400{% else %}bg-yellow-400{% endif %}"></div>
+      <span>{{ media.details.status }}</span>
+    </div>
+  {% endif %}
+</section>

@@ -11,3 +11,4 @@ db.sqlite3-wal
 # Media files (user uploads)
 src/media/
 profile_pictures/
+tailwindcss

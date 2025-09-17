@@ -1,0 +1,99 @@
+{% load app_tags %}
+
+{# ReviewsFeed Component - Two-column review cards with tabs #}
+{% if media.reviews %}
+<section class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h2 class="text-xl font-semibold text-text-primary">Reviews</h2>
+    <div class="flex items-center gap-1 glass-card rounded-lg p-1" x-data="{ activeTab: 'all' }">
+      <button @click="activeTab = 'all'"
+              :class="activeTab === 'all' ? 'bg-white/10 text-text-primary' : 'text-text-muted'"
+              class="px-3 py-1 text-sm rounded transition-colors">
+        All
+      </button>
+      <button @click="activeTab = 'friends'"
+              :class="activeTab === 'friends' ? 'bg-white/10 text-text-primary' : 'text-text-muted'"
+              class="px-3 py-1 text-sm rounded transition-colors">
+        Friends
+      </button>
+      <button @click="activeTab = 'text'"
+              :class="activeTab === 'text' ? 'bg-white/10 text-text-primary' : 'text-text-muted'"
+              class="px-3 py-1 text-sm rounded transition-colors">
+        With Text
+      </button>
+    </div>
+  </div>
+  
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% for review in media.reviews|slice:":6" %}
+      <div class="glass-card rounded-2xl p-4 hover:bg-white/10 transition-colors space-y-3"
+           x-data="{ expanded: false }">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-full bg-white/10 overflow-hidden flex-shrink-0">
+            {% if review.user.profile_picture %}
+              <img src="{{ review.user.profile_picture }}" 
+                   alt="{{ review.user.display_name }}"
+                   class="w-full h-full object-cover">
+            {% else %}
+              <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-teal to-brand-purple">
+                <span class="text-sm font-semibold text-white">
+                  {{ review.user.display_name|first|upper }}
+                </span>
+              </div>
+            {% endif %}
+          </div>
+          
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <p class="font-medium text-text-primary truncate">{{ review.user.display_name }}</p>
+              {% if review.rating %}
+                <div class="flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-teal fill-brand-teal">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  <span class="text-sm text-text-primary">{{ review.rating }}</span>
+                </div>
+              {% endif %}
+            </div>
+            <p class="text-xs text-text-muted">{{ review.created_at|timesince }} ago</p>
+          </div>
+        </div>
+        
+        {% if review.text %}
+          <div>
+            <p :class="expanded ? '' : 'line-clamp-3'"
+               class="text-sm text-text-muted">
+              {{ review.text }}
+            </p>
+            {% if review.text|length > 150 %}
+              <button @click="expanded = !expanded"
+                      class="text-xs text-brand-teal hover:text-brand-purple mt-1 transition-colors">
+                <span x-text="expanded ? 'Show less' : 'Read more'"></span>
+              </button>
+            {% endif %}
+          </div>
+        {% endif %}
+        
+        {% if review.spoiler %}
+          <div class="flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span class="text-xs text-yellow-400">Contains spoilers</span>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  
+  {% if media.reviews|length > 6 %}
+    <div class="text-center">
+      <button class="glass-card rounded-lg px-6 py-3 hover:bg-white/10 transition-colors text-text-primary">
+        Load more reviews
+      </button>
+    </div>
+  {% endif %}
+</section>
+{% endif %}

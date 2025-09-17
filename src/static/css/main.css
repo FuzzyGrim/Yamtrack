@@ -3328,3 +3328,66 @@
     }
   }
 }
+
+/* Essential layout fixes */
+.w-poster {
+  width: 320px;
+}
+
+@media (min-width: 1024px) {
+  .lg\:w-poster {
+    width: 360px;
+  }
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+.gap-10 {
+  gap: 2.5rem;
+}
+
+.space-y-8 > * + * {
+  margin-top: 2rem;
+}
+
+.space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 1024px) {
+  .lg\:flex-row {
+    flex-direction: row;
+  }
+  
+  .lg\:gap-10 {
+    gap: 2.5rem;
+  }
+  
+  .lg\:mx-0 {
+    margin-left: 0px;
+    margin-right: 0px;
+  }
+}

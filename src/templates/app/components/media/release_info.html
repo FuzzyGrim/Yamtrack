@@ -1,0 +1,134 @@
+{% load app_tags %}
+{% load humanize %}
+
+{# ReleaseInfo Component - Right-aligned metadata stack #}
+<section class="space-y-4 text-right">
+  <h3 class="text-[12px] uppercase tracking-[0.12em] text-text-muted/70 font-medium">Release Details</h3>
+  
+  <div class="space-y-3 text-sm">
+    {# Country #}
+    {% if media.details.origin_country or media.details.country %}
+      <div class="space-y-1">
+        <p class="text-text-muted">Country</p>
+        <p class="text-text-primary">
+          {% if media.details.origin_country %}
+            {% for country in media.details.origin_country %}
+              {{ country }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+          {% else %}
+            {{ media.details.country }}
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
+    
+    {# Release Date #}
+    {% if media.details.release_date or media.details.first_air_date %}
+      <div class="space-y-1">
+        <p class="text-text-muted">
+          {% if media.media_type == MediaTypes.TV.value %}First Aired{% else %}Released{% endif %}
+        </p>
+        <p class="text-text-primary">
+          {% if media.details.first_air_date %}
+            {{ media.details.first_air_date }}
+          {% else %}
+            {{ media.details.release_date }}
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
+    
+    {# Last Air Date (for TV shows) #}
+    {% if media.details.last_air_date and media.details.status == "Ended" %}
+      <div class="space-y-1">
+        <p class="text-text-muted">Last Aired</p>
+        <p class="text-text-primary">{{ media.details.last_air_date }}</p>
+      </div>
+    {% endif %}
+    
+    {# Languages #}
+    {% if media.details.spoken_languages or media.details.original_language %}
+      <div class="space-y-1">
+        <p class="text-text-muted">Language{{ media.details.spoken_languages|length|pluralize }}</p>
+        <p class="text-text-primary">
+          {% if media.details.spoken_languages %}
+            {% for lang in media.details.spoken_languages|slice:":3" %}
+              {{ lang }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+          {% else %}
+            {{ media.details.original_language|upper }}
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
+    
+    {# Production Companies #}
+    {% if media.details.production_companies %}
+      <div class="space-y-1">
+        <p class="text-text-muted">Production</p>
+        <div class="space-y-1">
+          {% for company in media.details.production_companies|slice:":3" %}
+            <p class="text-text-primary text-xs">{{ company }}</p>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+    
+    {# Networks (for TV shows) #}
+    {% if media.details.networks %}
+      <div class="space-y-1">
+        <p class="text-text-muted">Network{{ media.details.networks|length|pluralize }}</p>
+        <div class="space-y-1">
+          {% for network in media.details.networks|slice:":2" %}
+            <p class="text-text-primary text-xs">{{ network }}</p>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+    
+    {# Studios (for anime) #}
+    {% if media.details.studios %}
+      <div class="space-y-1">
+        <p class="text-text-muted">Studio{{ media.details.studios|length|pluralize }}</p>
+        <div class="space-y-1">
+          {% for studio in media.details.studios|slice:":2" %}
+            <p class="text-text-primary text-xs">{{ studio }}</p>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+    
+    {# Budget (for movies) #}
+    {% if media.details.budget and media.details.budget > 0 %}
+      <div class="space-y-1">
+        <p class="text-text-muted">Budget</p>
+        <p class="text-text-primary">${{ media.details.budget|intcomma }}</p>
+      </div>
+    {% endif %}
+    
+    {# Revenue (for movies) #}
+    {% if media.details.revenue and media.details.revenue > 0 %}
+      <div class="space-y-1">
+        <p class="text-text-muted">Revenue</p>
+        <p class="text-text-primary">${{ media.details.revenue|intcomma }}</p>
+      </div>
+    {% endif %}
+    
+    {# External IDs #}
+    {% if media.details.imdb_id %}
+      <div class="space-y-1">
+        <p class="text-text-muted">External Links</p>
+        <a href="https://www.imdb.com/title/{{ media.details.imdb_id }}" 
+           target="_blank"
+           rel="noopener noreferrer"
+           class="inline-flex items-center gap-1 text-brand-teal hover:text-brand-purple transition-colors text-xs">
+          <span>IMDb</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 17L17 7"/>
+            <path d="M7 7h10v10"/>
+          </svg>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</section>

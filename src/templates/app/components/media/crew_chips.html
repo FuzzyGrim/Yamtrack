@@ -1,0 +1,66 @@
+{% load app_tags %}
+
+{# CrewChips Component - Horizontal scrollable crew pills #}
+{% if media.crew or media.details.director or media.details.creator %}
+<section class="space-y-4">
+  <h3 class="text-lg font-semibold text-text-primary">Crew</h3>
+  
+  <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+    {# Director #}
+    {% if media.details.director %}
+      <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
+        <span class="text-text-primary font-medium">Director:</span> {{ media.details.director }}
+      </div>
+    {% endif %}
+    
+    {# Creator (for TV shows) #}
+    {% if media.details.creator %}
+      <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
+        <span class="text-text-primary font-medium">Creator:</span> {{ media.details.creator }}
+      </div>
+    {% endif %}
+    
+    {# Additional crew from crew array #}
+    {% if media.crew %}
+      {% for crew_member in media.crew|slice:":6" %}
+        <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
+          <span class="text-text-primary font-medium">{{ crew_member.job }}:</span> {{ crew_member.name }}
+        </div>
+      {% endfor %}
+    {% endif %}
+    
+    {# Writer #}
+    {% if media.details.writer %}
+      <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
+        <span class="text-text-primary font-medium">Writer:</span> {{ media.details.writer }}
+      </div>
+    {% endif %}
+    
+    {# Composer #}
+    {% if media.details.composer %}
+      <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
+        <span class="text-text-primary font-medium">Composer:</span> {{ media.details.composer }}
+      </div>
+    {% endif %}
+    
+    {# Production companies #}
+    {% if media.details.production_companies %}
+      {% for company in media.details.production_companies|slice:":2" %}
+        <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
+          <span class="text-text-primary font-medium">Producer:</span> {{ company }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</section>
+
+<style>
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+</style>
+{% endif %}

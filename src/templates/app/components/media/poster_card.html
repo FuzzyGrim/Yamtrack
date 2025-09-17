@@ -1,0 +1,97 @@
+{% load app_tags %}
+
+{# PosterCard Component - Renders poster with provider pills #}
+<div class="w-poster lg:w-poster mx-auto lg:mx-0 flex-shrink-0">
+  <div class="glass-card rounded-2xl shadow-elev transition-default">
+    <div class="relative group">
+      <img alt="{{ media.title }}" 
+           class="w-full aspect-[2/3] rounded-[18px] shadow-lg bg-[#2a2f35] object-cover"
+           src="{% get_user_poster_image media user %}"
+           loading="lazy">
+      
+      {# Customize Poster Button #}
+      {% can_customize_poster media as can_customize %}
+      {% if can_customize and user.is_authenticated %}
+        <button class="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/75 rounded-full opacity-0 group-hover:opacity-100 transition-default text-white hover:text-brand-teal cursor-pointer z-10"
+                onclick="fetch('{% url 'poster_selection_modal' media.source media.media_type media.media_id %}').then((response) => response.text()).then((html) => { document.getElementById('poster-modal-container').innerHTML = html; })">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      {% endif %}
+    </div>
+    
+    {# Watch Providers - Pills under poster #}
+    {% if media.watch_providers %}
+      <div class="p-4 space-y-2">
+        {% for provider in media.watch_providers|slice:":4" %}
+          <a href="{{ provider.link }}" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             class="flex items-center justify-between w-full rounded-full bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 px-4 py-2 text-sm transition-default group">
+            <div class="flex items-center gap-3">
+              {% if provider.logo %}
+                <img src="{{ provider.logo }}" alt="{{ provider.name }}" class="w-5 h-5 rounded">
+              {% endif %}
+              <span class="text-text-primary">{{ provider.name }}</span>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted group-hover:text-brand-teal transition-colors">
+              <path d="M7 17L17 7"/>
+              <path d="M7 7h10v10"/>
+            </svg>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+    
+    {# Action Buttons - Movies only #}
+    {% if media.media_type == MediaTypes.MOVIE.value %}
+      <div class="p-4 pt-2">
+        <div class="flex gap-1.5">
+          {# Watched/Mark as Watched Button #}
+          {% if current_instance and current_instance.status == "Completed" %}
+            <button class="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 focus-visible:ring-2 ring-offset-0 ring-brand-purple/60 px-3 py-1.5 transition-default text-xs text-text-primary hover:text-brand-teal"
+                    hx-post="{% url 'unmark_movie_watched' media.source media.media_type media.media_id %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="#media-actions"
+                    hx-swap="innerHTML">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span class="text-xs font-medium">Watched</span>
+            </button>
+          {% else %}
+            <button class="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 focus-visible:ring-2 ring-offset-0 ring-brand-purple/60 px-3 py-1.5 transition-default text-xs text-text-primary hover:text-brand-teal"
+                    hx-post="{% url 'mark_movie_watched' media.source media.media_type media.media_id %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="#media-actions"
+                    hx-swap="innerHTML">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/>
+                <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/>
+                <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/>
+                <path d="m2 2 20 20"/>
+              </svg>
+              <span class="text-xs font-medium">Mark as Watched</span>
+            </button>
+          {% endif %}
+
+          {# Log Button #}
+          <button class="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 focus-visible:ring-2 ring-offset-0 ring-brand-purple/60 px-3 py-1.5 transition-default text-xs text-text-primary hover:text-brand-teal"
+                  onclick="fetch('{% url 'log_modal' media.source media.media_type media.media_id %}')
+                    .then(response => response.text())
+                    .then(html => {
+                      document.getElementById('log-modal-container').innerHTML = html;
+                    })">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+            </svg>
+            <span class="text-xs font-medium">Log</span>
+          </button>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>

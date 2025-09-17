@@ -1,0 +1,49 @@
+{% load app_tags %}
+
+{# Synopsis Component - Title and description #}
+<div class="space-y-4">
+  {% if media.synopsis %}
+    <div x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.synopsisText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
+         x-init="$nextTick(() => checkClamp())">
+      <p x-ref="synopsisText"
+         :class="isExpanded ? '' : 'line-clamp-4'"
+         class="text-[15px]/[1.7] text-text-muted max-w-[70ch]">
+        {{ media.synopsis|linebreaksbr|safe }}
+      </p>
+      <button x-show="isClamped"
+              @click="isExpanded = !isExpanded"
+              class="text-brand-teal hover:text-brand-purple text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
+        <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+      </button>
+    </div>
+  {% else %}
+    <p class="text-[15px]/[1.7] text-text-muted/60 italic">No synopsis available.</p>
+  {% endif %}
+  
+  {# User Notes #}
+  {% if current_instance.notes %}
+    <div class="mt-6 pt-6 border-t border-white/10">
+      <div class="flex items-start gap-2 mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-teal flex-shrink-0 mt-0.5">
+          <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"/>
+          <path d="M15 3v4a2 2 0 0 0 2 2h4"/>
+        </svg>
+        <h3 class="text-[12px] uppercase tracking-[0.12em] text-brand-teal font-medium">Your Notes</h3>
+      </div>
+      
+      <div x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.notesText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
+           x-init="$nextTick(() => checkClamp())">
+        <p x-ref="notesText"
+           :class="isExpanded ? '' : 'line-clamp-3'"
+           class="text-[15px]/[1.7] text-text-primary italic pl-6">
+          "{{ current_instance.notes|linebreaksbr }}"
+        </p>
+        <button x-show="isClamped"
+                @click="isExpanded = !isExpanded"
+                class="text-brand-teal hover:text-brand-purple text-xs mt-1 pl-6 focus:outline-none transition-colors cursor-pointer">
+          <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+        </button>
+      </div>
+    </div>
+  {% endif %}
+</div>
