@@ -36,7 +36,7 @@ class CustomSignupForm(SignupForm):
 
 
 class UserUpdateForm(forms.ModelForm):
-    """Custom form for updating username."""
+    """Custom form for updating username, bio, and profile picture."""
 
     def clean(self):
         """Check if the user is demo before changing the password."""
@@ -51,11 +51,39 @@ class UserUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["username"].help_text = None
 
+    def save(self, commit=True):
+        """Save the form, preserving existing profile picture if no new one is uploaded."""
+        instance = super().save(commit=False)
+        
+        # If no new profile picture was uploaded, keep the existing one
+        if not self.files.get('profile_picture') and instance.pk:
+            # Get the original instance from the database
+            original_instance = self.Meta.model.objects.get(pk=instance.pk)
+            instance.profile_picture = original_instance.profile_picture
+        
+        if commit:
+            instance.save()
+        return instance
+
     class Meta:
-        """Only allow updating username."""
+        """Allow updating username, bio, and profile picture."""
 
         model = User
-        fields = ["username"]
+        fields = ["username", "bio", "profile_picture"]
+        widgets = {
+            "bio": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": "Tell us about yourself...",
+                    "maxlength": 500,
+                },
+            ),
+            "profile_picture": forms.FileInput(
+                attrs={
+                    "accept": "image/*",
+                },
+            ),
+        }
 
 
 class PasswordChangeForm(PasswordChangeForm):

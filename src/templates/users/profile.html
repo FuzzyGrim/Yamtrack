@@ -11,26 +11,57 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-6 h-6 text-indigo-400 mr-3">
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <h2 class="text-xl font-semibold">{{ user.username }}</h2>
+          {% if user.profile_picture %}
+            <img src="{{ user.profile_picture.url }}" 
+                 alt="{{ user.username }}'s profile picture" 
+                 class="w-16 h-16 rounded-full object-cover mr-4 border-2 border-gray-600 shadow-lg">
+          {% else %}
+            <div class="w-16 h-16 rounded-full bg-[#39404b] border-2 border-gray-600 flex items-center justify-center mr-4 shadow-lg">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="32"
+                   height="32"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="text-indigo-400">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+          {% endif %}
+          <h2 class="text-xl font-semibold mr-3">{{ user.username }}</h2>
+          <a href="{% url 'account' %}" 
+             class="p-1 text-gray-400 hover:text-indigo-400 transition-colors self-end"
+             title="Account Settings">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="10"
+                 height="10"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </a>
         </div>
         <div class="text-right">
           <p class="text-gray-400 text-sm">Member Since</p>
           <p class="text-white">{{ user.date_joined|date:"F j, Y" }}</p>
         </div>
       </div>
+
+      {% if user.bio %}
+        <div class="mt-4 mb-4">
+          <p class="text-gray-300 text-sm leading-relaxed">{{ user.bio }}</p>
+        </div>
+      {% endif %}
 
       <div class="border-t border-gray-600"></div>
       

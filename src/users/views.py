@@ -43,20 +43,22 @@ def account(request):
     password_form = PasswordChangeForm(user=request.user)
 
     if request.method == "POST":
-        # Handle username update
-        if "username" in request.POST:
-            user_form = UserUpdateForm(request.POST, instance=request.user)
+        # Handle username, bio, and profile picture update
+        if "username" in request.POST or "bio" in request.POST or "profile_picture" in request.FILES:
+            user_form = UserUpdateForm(request.POST, request.FILES, instance=request.user)
 
             if user_form.is_valid():
                 user_form.save()
-                messages.success(request, "Your username has been updated!")
+                # Refresh the user instance to get the updated data
+                request.user.refresh_from_db()
+                messages.success(request, "Your profile information has been updated!")
                 logger.info(
-                    "Successful username change for user: %s",
+                    "Successful profile update for user: %s",
                     request.user.username,
                 )
                 return redirect("account")
             logger.warning(
-                "Failed username change for user: %s - %s",
+                "Failed profile update for user: %s - %s",
                 request.user.username,
                 list(user_form.errors.keys()),
             )
@@ -86,6 +88,9 @@ def account(request):
                 list(password_form.errors.keys()),
             )
 
+    # Ensure we're using the latest user data for the form
+    user_form = UserUpdateForm(instance=request.user)
+    
     context = {
         "user_form": user_form,
         "password_form": password_form,

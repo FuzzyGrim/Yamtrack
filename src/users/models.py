@@ -289,6 +289,19 @@ class User(AbstractUser):
         help_text="Comma-separated list of Plex usernames for webhook matching",
     )
 
+    bio = models.TextField(
+        blank=True,
+        max_length=500,
+        help_text="User bio/description (max 500 characters)",
+    )
+
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/',
+        blank=True,
+        null=True,
+        help_text="User profile picture",
+    )
+
     # Hall of Fame - one favorite item per media type
     hof_tv = models.ForeignKey(
         'app.Item',

@@ -33,7 +33,7 @@
         </div>
       {% endif %}
 
-      <form method="post" class="space-y-4">
+      <form method="post" enctype="multipart/form-data" class="space-y-4">
         {% csrf_token %}
         <div>
           <label for="{{ user_form.username.id_for_label }}"
@@ -46,6 +46,62 @@
           {% if user_form.username.errors %}
             <p class="mt-1 text-sm text-red-400">{{ user_form.username.errors.0 }}</p>
           {% endif %}
+        </div>
+        
+        <div>
+          <label for="{{ user_form.profile_picture.id_for_label }}"
+                 class="block text-sm font-medium mb-2 text-gray-300">Profile Picture</label>
+          <div class="relative">
+            <input id="{{ user_form.profile_picture.id_for_label }}"
+                   name="{{ user_form.profile_picture.html_name }}"
+                   class="hidden"
+                   type="file"
+                   accept="image/*"
+                   onchange="updateFileLabel(this)">
+            <button type="button" 
+                    id="file-upload-button"
+                    onclick="document.getElementById('{{ user_form.profile_picture.id_for_label }}').click()"
+                    style="width: 100%; padding: 8px 12px; background-color: #39404b; border-radius: 6px; color: white; font-size: 14px; border: 1px solid #4b5563; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#4a5058'" 
+                    onmouseout="this.style.backgroundColor='#39404b'">
+              <span id="file-label">Choose File</span>
+              <span id="file-name" class="text-gray-400 text-xs" style="display: none; color: #9ca3af; font-size: 12px;"></span>
+            </button>
+          </div>
+          {% if user_form.profile_picture.errors %}
+            <p class="mt-1 text-sm text-red-400">{{ user_form.profile_picture.errors.0 }}</p>
+          {% endif %}
+          <div class="mt-2">
+            <p class="text-xs text-gray-400 mb-1">Current profile picture:</p>
+            {% if user.profile_picture %}
+              <img src="{{ user.profile_picture.url }}" 
+                   alt="Current profile picture" 
+                   class="w-16 h-16 rounded-full object-cover border border-gray-600">
+            {% else %}
+              <div class="w-16 h-16 rounded-full border border-gray-600 bg-[#39404b] flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-gray-500">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+            {% endif %}
+          </div>
+          <p class="mt-1 text-xs text-gray-400">Upload a profile picture (JPG, PNG, GIF)</p>
+        </div>
+        
+        <div>
+          <label for="{{ user_form.bio.id_for_label }}"
+                 class="block text-sm font-medium mb-2 text-gray-300">Bio</label>
+          <textarea id="{{ user_form.bio.id_for_label }}"
+                    name="{{ user_form.bio.html_name }}"
+                    class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.bio.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 resize-none"
+                    rows="4"
+                    placeholder="Tell us about yourself..."
+                    maxlength="500">{{ user_form.bio.value|default:user.bio }}</textarea>
+          {% if user_form.bio.errors %}
+            <p class="mt-1 text-sm text-red-400">{{ user_form.bio.errors.0 }}</p>
+          {% endif %}
+          <p class="mt-1 text-xs text-gray-400">Maximum 500 characters</p>
         </div>
         <div class="pt-2">
           <button type="submit"
@@ -315,5 +371,39 @@
     {% endif %}
 
   </div>
+
+  <script>
+    function updateFileLabel(input) {
+      console.log('updateFileLabel called');
+      const fileName = input.files[0] ? input.files[0].name : '';
+      console.log('fileName:', fileName);
+      const fileLabel = document.getElementById('file-label');
+      const fileNameSpan = document.getElementById('file-name');
+      console.log('fileLabel:', fileLabel);
+      console.log('fileNameSpan:', fileNameSpan);
+      
+      if (fileName) {
+        fileLabel.textContent = 'File selected:';
+        fileNameSpan.textContent = fileName;
+        fileNameSpan.style.display = 'block';
+        console.log('File selected, updating display');
+      } else {
+        fileLabel.textContent = 'Choose File';
+        fileNameSpan.textContent = '';
+        fileNameSpan.style.display = 'none';
+        console.log('No file, resetting display');
+      }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, initializing file input');
+      const fileInput = document.getElementById('{{ user_form.profile_picture.id_for_label }}');
+      console.log('fileInput found:', fileInput);
+      if (fileInput) {
+        updateFileLabel(fileInput);
+      }
+    });
+  </script>
 
 {% endblock settings_content %}
