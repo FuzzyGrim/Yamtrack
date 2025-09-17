@@ -17,6 +17,7 @@ def create_diary_entry(
     rating=None,
     review="",
     liked=False,
+    is_rewatch=False,
     auto_mark_consumed=False,
 ) -> DiaryEntry:
     """
@@ -45,6 +46,7 @@ def create_diary_entry(
             rating=rating,
             review=review,
             liked=liked,
+            is_rewatch=is_rewatch,
         )
         
         # Optionally mark as consumed

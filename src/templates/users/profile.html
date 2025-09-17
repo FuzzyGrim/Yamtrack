@@ -52,11 +52,8 @@
                  stroke-linecap="round"
                  stroke-linejoin="round"
                  class="w-6 h-6 text-indigo-400 mr-3">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" x2="8" y1="13" y2="13"></line>
-              <line x1="16" x2="8" y1="17" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
             </svg>
             <h3 class="text-xl font-semibold">Recent Activity</h3>
           </div>
@@ -66,41 +63,67 @@
           </a>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <!-- Recent Activity Grid -->
+        <div class="grid grid-cols-7 gap-4">
           {% for entry in recent_diary_entries %}
-            <div class="group">
-              <a href="{{ entry.item|media_url }}" class="block">
-                {% get_user_poster_image entry.item user as poster_url %}
-                <div class="relative aspect-[2/3] mb-2">
-                  <img alt="{{ entry.item.title }}"
-                       class="lazyload w-full h-full rounded-md bg-[#3e454d] {% if poster_url != IMG_NONE %}object-cover{% endif %} group-hover:opacity-80 transition-opacity"
-                       src="{{ IMG_NONE }}"
-                       data-src="{{ poster_url }}">
-                  
-                  <!-- Heart indicator for liked entries -->
-                  {% if entry.liked %}
-                    <div class="absolute top-2 right-2 text-red-400 bg-black/50 rounded-full p-1">
-                      <span class="text-sm">❤️</span>
+            <div class="relative">
+              <div class="relative group">
+                <!-- Custom diary card using Hall of Fame structure -->
+                <div class="bg-[#39404b] rounded-lg overflow-hidden shadow-lg relative group">
+                  <div class="relative">
+                    {% get_user_poster_image entry.item user as poster_url %}
+                    <img alt="{{ entry.item.title }}"
+                         class="lazyload w-full aspect-[2/3] bg-[#3e454d] {% if poster_url != IMG_NONE %}object-cover{% endif %}"
+                         data-src="{{ poster_url }}"
+                         src="{{ IMG_NONE }}">
+
+                    <!-- Link overlay -->
+                    <a href="{{ entry.item|media_url }}" class="absolute inset-0"></a>
+                  </div>
+
+                  <!-- Title and date section -->
+                  <div class="p-3">
+                    <a href="{{ entry.item|media_url }}"
+                       class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+                       title="{{ entry.item.title }}">{{ entry.item.title }}</a>
+                    
+                    <!-- Date with rating and liked indicators -->
+                    <div class="flex items-center gap-2 mt-1">
+                      <p class="text-xs text-gray-400">{{ entry.consumed_at|date:"M d" }}</p>
+                      
+                      <!-- Rating indicator -->
+                      {% if entry.rating %}
+                        <div class="flex items-center text-yellow-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="mr-0.5">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                          </svg>
+                          <span class="text-xs text-yellow-400">{{ entry.rating }}</span>
+                        </div>
+                      {% endif %}
+                      
+                      <!-- Heart indicator for liked entries -->
+                      {% if entry.liked %}
+                        <div class="text-red-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                          </svg>
+                        </div>
+                      {% endif %}
+                      
+                      <!-- Rewatch indicator -->
+                      {% if entry.is_rewatch %}
+                        <div class="text-indigo-400" title="Rewatch">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                            <path d="M21 3v5h-5"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                            <path d="M3 21v-5h5"/>
+                          </svg>
+                        </div>
+                      {% endif %}
                     </div>
-                  {% endif %}
-                  
-                  <!-- Rating indicator -->
-                  {% if entry.rating %}
-                    <div class="absolute bottom-2 left-2 bg-black/75 rounded px-2 py-1 text-xs text-yellow-400 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="mr-1">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                      {{ entry.rating }}
-                    </div>
-                  {% endif %}
+                  </div>
                 </div>
-              </a>
-              
-              <div class="text-center">
-                <h4 class="font-medium text-sm line-clamp-2 mb-1 group-hover:text-indigo-400 transition-colors">
-                  <a href="{{ entry.item|media_url }}">{{ entry.item.title }}</a>
-                </h4>
-                <p class="text-xs text-gray-400">{{ entry.consumed_at|date:"M d" }}</p>
               </div>
             </div>
           {% endfor %}

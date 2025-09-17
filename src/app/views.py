@@ -1365,9 +1365,10 @@ def add_movie_diary_entry(request, source, media_type, media_id):
             
         review = request.POST.get('review', '').strip()
         liked = request.POST.get('liked', '').lower() == 'true'
+        is_rewatch = request.POST.get('is_rewatch') == 'on'
         auto_mark_consumed = request.POST.get('auto_mark_consumed') == 'true'
         
-        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: {len(review)} chars, Liked: {liked}, Auto-consume: {auto_mark_consumed}")
+        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: {len(review)} chars, Liked: {liked}, Rewatch: {is_rewatch}, Auto-consume: {auto_mark_consumed}")
         
         # Create the diary entry
         entry = create_diary_entry(
@@ -1377,6 +1378,7 @@ def add_movie_diary_entry(request, source, media_type, media_id):
             rating=rating,
             review=review,
             liked=liked,
+            is_rewatch=is_rewatch,
             auto_mark_consumed=auto_mark_consumed,
         )
         
@@ -1433,14 +1435,16 @@ def update_diary_entry(request, entry_id):
             
         review = request.POST.get('review', '').strip()
         liked = request.POST.get('liked', '').lower() == 'true'
+        is_rewatch = request.POST.get('is_rewatch') == 'on'  # Checkbox value
         
-        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: '{review}', Liked: {liked}")
+        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: '{review}', Liked: {liked}, Rewatch: {is_rewatch}")
         
         # Update the entry
         entry.consumed_at = consumed_at
         entry.rating = rating
         entry.review = review
         entry.liked = liked
+        entry.is_rewatch = is_rewatch
         entry.save()
         
         logger.info(f"Diary entry updated successfully: {entry}")

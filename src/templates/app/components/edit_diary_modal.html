@@ -34,6 +34,7 @@
           rating: {{ entry.rating|default:0 }}, 
           temp: 0, 
           liked: {{ entry.liked|yesno:'true,false' }},
+          isRewatch: {{ entry.is_rewatch|yesno:'true,false' }},
           setRatingFromStar(starNum) { this.rating = starNum; }
         }">
           <!-- Left side - Date and Rating -->
@@ -65,6 +66,20 @@
                   <span class="ml-2 text-sm text-gray-400" x-text="rating ? rating + '/5' : 'No rating'"></span>
                 </div>
                 <input type="hidden" name="rating" :value="rating">
+              </div>
+            </div>
+
+            <!-- Rewatch Toggle -->
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-300">Rewatch</label>
+              <div>
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" 
+                         name="is_rewatch"
+                         class="w-4 h-4 rounded bg-[#39404b] border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 focus:ring-1 cursor-pointer"
+                         x-model="isRewatch">
+                  <span class="ml-2 text-sm font-medium text-gray-300">This is a rewatch</span>
+                </label>
               </div>
             </div>
 
