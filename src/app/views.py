@@ -931,15 +931,26 @@ def toggle_hof(request):
         hof_field = f"hof_{media_type}"
         
         if hasattr(user, hof_field):
-            hof_items = getattr(user, hof_field)
-            if item in hof_items.all():
-                hof_items.remove(item)
+            current_hof_item = getattr(user, hof_field)
+            if current_hof_item == item:
+                # Remove from hall of fame
+                setattr(user, hof_field, None)
+                user.save()
                 added = False
             else:
-                hof_items.add(item)
+                # Add to hall of fame
+                setattr(user, hof_field, item)
+                user.save()
                 added = True
             
-            return JsonResponse({"added": added})
+            # Trigger HTMX update
+            from django.template.loader import render_to_string
+            from django.http import HttpResponse
+            
+            # Return a response that triggers the hofUpdated event
+            response = HttpResponse()
+            response['HX-Trigger'] = 'hofUpdated'
+            return response
     except Exception as e:
         print(f"HOF Toggle - Error: {e}")
         return JsonResponse({"error": str(e)}, status=400)
