@@ -853,7 +853,7 @@ class ServicesTests(TestCase):
 
         # Verify the request was made correctly
         mock_get.assert_called_once()
-        args, kwargs = mock_get.call_args
+        _, kwargs = mock_get.call_args
         self.assertEqual(kwargs["url"], "https://example.com/api")
         self.assertEqual(kwargs["params"], {"param": "value"})
         self.assertIn("timeout", kwargs)
@@ -880,7 +880,7 @@ class ServicesTests(TestCase):
 
         # Verify the request was made correctly
         mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
+        _, kwargs = mock_post.call_args
         self.assertEqual(kwargs["url"], "https://example.com/api")
         self.assertEqual(kwargs["json"], {"json_param": "value"})
         self.assertEqual(kwargs["data"], {"form_data": "value"})

@@ -1176,7 +1176,7 @@ class ImportSteam(TestCase):
         ]
 
         # Import games
-        imported_counts, warnings = steam.importer(
+        imported_counts, _ = steam.importer(
             "76561198000000000",
             self.user,
             "new",
