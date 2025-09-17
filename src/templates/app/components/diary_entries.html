@@ -1,0 +1,204 @@
+{% load static %}
+{% load app_tags %}
+
+{% if entries %}
+  <!-- Entries Grid -->
+  <div class="space-y-4">
+    {% for entry in entries %}
+      <div class="bg-[#2a2f35] rounded-lg p-6 hover:bg-[#343a40] transition-colors">
+        <div class="flex items-start gap-4">
+          <!-- Movie Poster -->
+          <div class="flex-shrink-0">
+            <a href="{{ entry.item|media_url }}">
+              {% get_user_poster_image entry.item user as poster_url %}
+              <img alt="{{ entry.item.title }}"
+                   class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if poster_url != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
+                   src="{{ IMG_NONE }}"
+                   data-src="{{ poster_url }}">
+            </a>
+          </div>
+
+          <!-- Entry Details -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <h3 class="font-medium text-lg mb-1">
+                  <a href="{{ entry.item|media_url }}" 
+                     class="hover:text-indigo-400 transition-colors line-clamp-2">
+                    {{ entry.item.title }}
+                  </a>
+                </h3>
+                
+                <!-- Entry Metadata -->
+                <div class="flex items-center text-sm text-gray-400 mb-3 gap-4">
+                  <span>{{ entry.consumed_at|date:"M d, Y" }}</span>
+                  {% if entry.rating %}
+                    <div class="flex items-center">
+                      <div class="flex items-center space-x-0.5 mr-1">
+                        {% for i in "12345" %}
+                          {% if entry.rating >= i|add:0 %}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="text-yellow-400">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                              {% else %}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                              {% endif %}
+                        {% endfor %}
+                      </div>
+                      <span class="text-yellow-400">{{ entry.rating|floatformat:1 }}</span>
+                    </div>
+                  {% endif %}
+                  {% if entry.liked %}
+                    <span class="text-red-400">❤️</span>
+                  {% endif %}
+                  {% if entry.is_rewatch %}
+                    <span class="text-indigo-400" title="Rewatch">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                      </svg>
+                    </span>
+                  {% endif %}
+                </div>
+
+                <!-- Review -->
+                {% if entry.review %}
+                  <div class="text-gray-300 text-sm">
+                    <p class="line-clamp-3">{{ entry.review }}</p>
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Entry Actions -->
+              <div class="flex-shrink-0 ml-4" x-data="{ open: false }">
+                <div class="relative">
+                  <!-- 3-dots menu button -->
+                  <button @click="open = !open" 
+                          @click.away="open = false"
+                          class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-[#39404b]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="1"></circle>
+                      <circle cx="12" cy="5" r="1"></circle>
+                      <circle cx="12" cy="19" r="1"></circle>
+                    </svg>
+                  </button>
+
+                  <!-- Dropdown menu -->
+                  <div x-show="open" 
+                       x-transition:enter="transition ease-out duration-100"
+                       x-transition:enter-start="transform opacity-0 scale-95"
+                       x-transition:enter-end="transform opacity-100 scale-100"
+                       x-transition:leave="transition ease-in duration-75"
+                       x-transition:leave-start="transform opacity-100 scale-100"
+                       x-transition:leave-end="transform opacity-0 scale-95"
+                       class="absolute right-0 mt-2 w-48 bg-[#39404b] rounded-md shadow-lg z-10 border border-gray-600"
+                       style="display: none;">
+                    <div class="py-1">
+                      <!-- Edit Entry -->
+                      <button onclick="fetch('{% url 'edit_diary_entry' entry.id %}')
+                        .then(response => response.text())
+                        .then(html => {
+                          document.getElementById('edit-modal-container').innerHTML = html;
+                        })"
+                        class="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-[#454d5a] hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit Entry
+                      </button>
+                      
+                      <!-- Delete Entry -->
+                      <button onclick="if(confirm('Are you sure you want to delete this diary entry?')) {
+                        fetch('{% url 'delete_diary_entry' entry.id %}', {
+                          method: 'POST',
+                          headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json',
+                          }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                          if (data.success) {
+                            // Reload the diary entries
+                            htmx.ajax('GET', '{% url 'diary_list' %}', {target: '#diary-entries'});
+                          } else {
+                            alert('Error deleting entry: ' + (data.error || 'Unknown error'));
+                          }
+                        })
+                        .catch(error => {
+                          console.error('Error:', error);
+                          alert('Error deleting entry');
+                        });
+                      }"
+                        class="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-red-600/20 hover:text-red-400 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                          <polyline points="3,6 5,6 21,6"></polyline>
+                          <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        Delete Entry
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if entries.has_other_pages %}
+    <div class="flex justify-center mt-8">
+      <div class="flex items-center gap-2">
+        {% if entries.has_previous %}
+          <a href="?page={{ entries.previous_page_number }}{% if current_media_type %}&media_type={{ current_media_type }}{% endif %}{% if current_year %}&year={{ current_year }}{% endif %}"
+             class="px-3 py-2 bg-[#2a2f35] hover:bg-[#343a40] text-gray-300 rounded-md transition-colors">
+            Previous
+          </a>
+        {% endif %}
+        
+        <span class="px-4 py-2 text-gray-400">
+          Page {{ entries.number }} of {{ entries.paginator.num_pages }}
+        </span>
+        
+        {% if entries.has_next %}
+          <a href="?page={{ entries.next_page_number }}{% if current_media_type %}&media_type={{ current_media_type }}{% endif %}{% if current_year %}&year={{ current_year }}{% endif %}"
+             class="px-3 py-2 bg-[#2a2f35] hover:bg-[#343a40] text-gray-300 rounded-md transition-colors">
+            Next
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+{% else %}
+  <!-- Empty State -->
+  <div class="bg-[#2a2f35] rounded-lg p-12">
+    <div class="flex flex-col items-center justify-center text-center">
+      <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+        {% icon 'diary' is_active=False extra_classes="w-8 h-8" %}
+      </div>
+      <h3 class="text-lg font-medium mb-2">No diary entries yet</h3>
+      <p class="text-gray-400 text-center max-w-md mb-6">
+        Start logging movies to see them appear in your diary. Your watched movies will show up here with ratings, reviews, and watch dates.
+      </p>
+      <a href="{% url 'search' %}" 
+         class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-md transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        Find Movies to Log
+      </a>
+    </div>
+  </div>
+{% endif %}

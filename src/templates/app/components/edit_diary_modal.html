@@ -1,0 +1,263 @@
+{% load app_tags %}
+
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
+  <!-- Modal content -->
+  <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative max-w-2xl w-full mx-4" @click.stop>
+    
+    <div class="p-6 h-full flex flex-col">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4 flex-shrink-0">
+        <div class="flex items-center gap-3">
+          {% get_user_poster_image entry.item user as poster_url %}
+          <img src="{{ poster_url }}" alt="{{ entry.item.title }}" class="w-20 h-32 object-cover rounded flex-shrink-0">
+          <div>
+            <h2 class="text-xl font-bold">{{ entry.item.title }}</h2>
+            <p class="text-sm text-gray-400">Edit Diary Entry</p>
+          </div>
+        </div>
+        <button onclick="this.closest('.fixed').remove()" 
+                class="text-gray-400 hover:text-white transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form id="edit-diary-form" 
+            class="flex-1 flex flex-col">
+        
+        {% csrf_token %}
+        
+        <div class="flex gap-4 flex-1" x-data="{ 
+          rating: {{ entry.rating|default:0 }}, 
+          temp: 0, 
+          liked: {{ entry.liked|yesno:'true,false' }},
+          isRewatch: {{ entry.is_rewatch|yesno:'true,false' }},
+          setRatingFromStar(starNum) { this.rating = starNum; }
+        }">
+          <!-- Left side - Date and Rating -->
+          <div class="flex-shrink-0 w-48 space-y-4">
+            <!-- Date -->
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-300">Watch Date</label>
+              <input type="date" 
+                     name="watch_date" 
+                     value="{{ entry.consumed_at|date:'Y-m-d' }}"
+                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm">
+            </div>
+
+            <!-- Rating -->
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-300">Rating</label>
+              <div class="space-y-2">
+                <div class="flex items-center space-x-1">
+                  <template x-for="i in 5" :key="i">
+                    <button type="button" 
+                            @click="setRatingFromStar(i)"
+                            @mouseenter="temp = i"
+                            @mouseleave="temp = 0"
+                            class="text-2xl transition-colors"
+                            :class="(temp || rating) >= i ? 'text-yellow-400' : 'text-gray-600'">
+                      ★
+                    </button>
+                  </template>
+                  <span class="ml-2 text-sm text-gray-400" x-text="rating ? rating + '/5' : 'No rating'"></span>
+                </div>
+                <input type="hidden" name="rating" :value="rating">
+              </div>
+            </div>
+
+            <!-- Rewatch Toggle -->
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-300">Rewatch</label>
+              <div>
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" 
+                         name="is_rewatch"
+                         class="w-4 h-4 rounded bg-[#39404b] border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 focus:ring-1 cursor-pointer"
+                         x-model="isRewatch">
+                  <span class="ml-2 text-sm font-medium text-gray-300">This is a rewatch</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Like/Heart -->
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-300">Like</label>
+              <div>
+                <button type="button" 
+                        @click="liked = !liked"
+                        class="flex items-center space-x-2 p-2 rounded-md transition-colors"
+                        :class="liked ? 'bg-red-600/20 text-red-400' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                  <span x-text="liked ? 'Liked' : 'Not liked'"></span>
+                </button>
+                <input type="hidden" name="liked" :value="liked">
+              </div>
+            </div>
+          </div>
+
+          <!-- Right side - Review -->
+          <div class="flex-1">
+            <label class="block text-sm font-medium mb-2 text-gray-300">Review</label>
+            <textarea name="review" 
+                      rows="4"
+                      placeholder="Write your review..."
+                      class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm resize-none">{{ entry.review }}</textarea>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="pt-4 border-t border-gray-600 mt-4">
+          <div class="flex justify-end space-x-3">
+            <button type="button" 
+                    onclick="this.closest('.fixed').remove()"
+                    class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors">
+              Cancel
+            </button>
+            <button type="button" 
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors"
+                    hx-post="{% url 'update_diary_entry' entry.id %}"
+                    hx-include="#edit-diary-form"
+                    hx-target="#diary-entries"
+                    hx-swap="innerHTML"
+                    onclick="
+                      console.log('Update button clicked!'); 
+                      console.log('Button element:', this); 
+                      console.log('hx-post attribute:', this.getAttribute('hx-post')); 
+                      console.log('HTMX available:', typeof htmx !== 'undefined');
+                      console.log('Target element exists:', document.querySelector('#diary-entries') !== null);
+                      console.log('Form element exists:', document.querySelector('#edit-diary-form') !== null);
+                      
+                      // Manually trigger HTMX
+                      if (typeof htmx !== 'undefined') {
+                        console.log('Manually triggering HTMX request...');
+                        const formValues = htmx.values(document.querySelector('#edit-diary-form'));
+                        console.log('Form values being sent:', formValues);
+                        
+                        htmx.ajax('POST', this.getAttribute('hx-post'), {
+                          source: this,
+                          target: '#diary-entries',
+                          swap: 'innerHTML',
+                          values: formValues,
+                          headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                          }
+                        }).then(function(result) {
+                          console.log('HTMX request completed successfully:', result);
+                          // Close modal on success
+                          console.log('Attempting to close modal...');
+                          // Use the button's context to find the modal
+                          const buttonElement = document.querySelector('button[hx-post]');
+                          const modalFromButton = buttonElement.closest('.fixed');
+                          console.log('Modal from button context:', modalFromButton);
+                          
+                          if (modalFromButton) {
+                            console.log('Removing modal from button context...');
+                            modalFromButton.remove();
+                          } else {
+                            console.log('Trying alternative modal removal methods...');
+                            // Clear the edit modal container
+                            const container = document.getElementById('edit-modal-container');
+                            if (container) {
+                              console.log('Clearing edit-modal-container...');
+                              container.innerHTML = '';
+                            }
+                          }
+                        }).catch(function(error) {
+                          console.error('HTMX request failed:', error);
+                        });
+                      }
+                    ">
+              Update Entry
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Check if HTMX is available
+if (typeof htmx === 'undefined') {
+  console.error('HTMX is not loaded!');
+} else {
+  console.log('HTMX is available:', htmx);
+  
+  // Process HTMX attributes on the newly loaded modal content
+  console.log('Processing HTMX attributes on modal...');
+  htmx.process(document.getElementById('edit-diary-form'));
+  
+  // Add manual click handler as fallback
+  const updateButton = document.querySelector('button[hx-post]');
+  if (updateButton) {
+    console.log('Found update button, adding manual click handler');
+    updateButton.addEventListener('click', function(e) {
+      console.log('Manual click handler triggered');
+      console.log('Button attributes:', {
+        'hx-post': this.getAttribute('hx-post'),
+        'hx-include': this.getAttribute('hx-include'),
+        'hx-target': this.getAttribute('hx-target'),
+        'hx-swap': this.getAttribute('hx-swap')
+      });
+    });
+  } else {
+    console.error('Update button not found!');
+  }
+}
+
+// Handle button HTMX response
+document.querySelector('button[hx-post]').addEventListener('htmx:afterRequest', function(event) {
+  console.log('HTMX afterRequest event:', event.detail);
+  console.log('Response status:', event.detail.xhr.status);
+  console.log('Response text:', event.detail.xhr.responseText);
+  
+  if (event.detail.xhr.status === 200) {
+    console.log('Update successful, closing modal');
+    // Close modal on success
+    document.querySelector('.fixed').remove();
+  } else {
+    console.log('Update failed');
+    // Show error if update failed
+    try {
+      const response = JSON.parse(event.detail.xhr.responseText);
+      alert('Error updating entry: ' + (response.error || 'Unknown error'));
+    } catch (e) {
+      alert('Error updating entry: ' + (event.detail.xhr.responseText || 'Unknown error'));
+    }
+  }
+});
+
+// Also listen for beforeRequest to see what's being sent
+document.querySelector('button[hx-post]').addEventListener('htmx:beforeRequest', function(event) {
+  console.log('HTMX beforeRequest event:', event.detail);
+  const formData = new FormData(event.detail.elt);
+  console.log('Form data being sent:');
+  for (let [key, value] of formData.entries()) {
+    console.log(`  ${key}: ${value}`);
+  }
+});
+
+// Add a form submit handler to debug and ensure HTMX takes over
+document.getElementById('edit-diary-form').addEventListener('submit', function(event) {
+  console.log('Form submit event triggered');
+  console.log('Event default prevented?', event.defaultPrevented);
+  
+  // Prevent default form submission to ensure HTMX takes over
+  if (!event.defaultPrevented) {
+    console.log('Preventing default form submission for HTMX');
+    event.preventDefault();
+  }
+  
+  const formData = new FormData(this);
+  console.log('Form data on submit:');
+  for (let [key, value] of formData.entries()) {
+    console.log(`  ${key}: ${value}`);
+  }
+});
+</script>

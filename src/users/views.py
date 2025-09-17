@@ -12,8 +12,12 @@ from django.template.defaultfilters import pluralize
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
-from app.models import Item, MediaTypes
-from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
+from app.models import DiaryEntry, Item, MediaTypes
+from users.forms import (
+    NotificationSettingsForm,
+    PasswordChangeForm,
+    UserUpdateForm,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +25,14 @@ logger = logging.getLogger(__name__)
 @require_GET
 def profile(request):
     """Render the user's profile page."""
+    # Get recent diary entries for the preview
+    recent_diary_entries = DiaryEntry.objects.filter(
+        user=request.user
+    ).select_related('item').order_by('-consumed_at')[:12]
+    
     return render(request, "users/profile.html", {
         "user": request.user,
+        "recent_diary_entries": recent_diary_entries,
     })
 
 

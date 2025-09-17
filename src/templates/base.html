@@ -48,7 +48,7 @@
     <meta name="theme-color" content="#181a1b">
 
     <style>
-      @media (min-width: 1024px) {
+      @media (min-width: 768px) {
         .desktop-nav {
           display: flex !important;
         }
@@ -128,6 +128,15 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% icon 'lists' is_active=request.path|str_equals:lists_url %}
                     <span>Lists</span>
+                  </a>
+                </li>
+
+                {% url 'diary_list' as diary_url %}
+                <li>
+                  <a href="{{ diary_url }}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == diary_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'diary' is_active=request.path|str_equals:diary_url %}
+                    <span>Diary</span>
                   </a>
                 </li>
 
@@ -319,6 +328,9 @@
                   {% url 'lists' as lists_url %}
                   <a href="{{ lists_url }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white {% if request.path == lists_url %}text-white{% endif %}">Lists</a>
 
+                  {% url 'diary_list' as diary_url %}
+                  <a href="{{ diary_url }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white {% if request.path == diary_url %}text-white{% endif %}">Diary</a>
+
                   {% url 'calendar' as calendar_url %}
                   <a href="{{ calendar_url }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white {% if request.path == calendar_url %}text-white{% endif %}">Calendar</a>
 
@@ -493,3 +505,4 @@
   </body>
 </html>
 
+<!-- UNIQUE_MARKER_TEST_123 -->

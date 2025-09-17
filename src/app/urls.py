@@ -110,5 +110,11 @@ urlpatterns = [
     path('media/<str:source>/<str:media_type>/<str:media_id>/poster/', views.poster_selection_modal, name='poster_selection_modal'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/log/', views.log_modal, name='log_modal'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/mark-watched/', views.mark_movie_watched, name='mark_movie_watched'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/unmark-watched/', views.unmark_movie_watched, name='unmark_movie_watched'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/diary-log/', views.add_movie_diary_entry, name='add_movie_diary_entry'),
+    
+    # Diary entry edit/delete URLs
+    path('diary/entry/<int:entry_id>/edit/', views.edit_diary_entry, name='edit_diary_entry'),
+    path('diary/entry/<int:entry_id>/update/', views.update_diary_entry, name='update_diary_entry'),
+    path('diary/entry/<int:entry_id>/delete/', views.delete_diary_entry, name='delete_diary_entry'),
 ]

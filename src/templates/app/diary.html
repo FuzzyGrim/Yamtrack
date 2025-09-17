@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_tags %}
+
+{% block title %}
+  Diary - Yamtrack
+{% endblock title %}
+
+{% block content %}
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold mb-2">Diary</h1>
+    <p class="text-gray-400">Your movie watching log</p>
+  </div>
+
+
+  <!-- Diary Entries -->
+  <div id="diary-entries">
+    {% include "app/components/diary_entries.html" %}
+  </div>
+
+  <!-- Edit Modal Container -->
+  <div id="edit-modal-container"></div>
+
+{% endblock content %}
