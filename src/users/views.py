@@ -4,6 +4,8 @@ import apprise
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
+from django.urls import reverse
+from django.utils.html import format_html
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import Q
@@ -51,7 +53,12 @@ def account(request):
                 user_form.save()
                 # Refresh the user instance to get the updated data
                 request.user.refresh_from_db()
-                messages.success(request, "Your profile information has been updated!")
+                profile_url = reverse("profile")
+                message_html = format_html(
+                    'Your <a href="{}" class="underline text-current hover:text-indigo-300">profile</a> information has been updated!',
+                    profile_url,
+                )
+                messages.success(request, message_html)
                 logger.info(
                     "Successful profile update for user: %s",
                     request.user.username,

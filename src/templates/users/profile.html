@@ -14,7 +14,7 @@
           {% if user.profile_picture %}
             <img src="{{ user.profile_picture.url }}" 
                  alt="{{ user.username }}'s profile picture" 
-                 class="w-16 h-16 rounded-full object-cover mr-4 border-2 border-gray-600 shadow-lg">
+                 class="w-20 h-20 rounded-full object-cover mr-4 border-2 border-gray-600 shadow-lg">
           {% else %}
             <div class="w-16 h-16 rounded-full bg-[#39404b] border-2 border-gray-600 flex items-center justify-center mr-4 shadow-lg">
               <svg xmlns="http://www.w3.org/2000/svg"
@@ -32,7 +32,12 @@
               </svg>
             </div>
           {% endif %}
-          <h2 class="text-xl font-semibold mr-3">{{ user.username }}</h2>
+          <h2 class="text-xl font-semibold mr-3 flex items-baseline gap-2">
+            <span>{{ user.username }}</span>
+            {% if user.pronouns %}
+              <span class="text-sm text-gray-400">{{ user.pronouns }}</span>
+            {% endif %}
+          </h2>
           <a href="{% url 'account' %}" 
              class="p-1 text-gray-400 hover:text-indigo-400 transition-colors self-end"
              title="Account Settings">
@@ -56,6 +61,16 @@
           <p class="text-white">{{ user.date_joined|date:"F j, Y" }}</p>
         </div>
       </div>
+
+      {% if user.location %}
+        <div class="-mt-2 mb-2 flex items-center text-gray-400 text-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span>{{ user.location }}</span>
+        </div>
+      {% endif %}
 
       {% if user.bio %}
         <div class="mt-4 mb-4">

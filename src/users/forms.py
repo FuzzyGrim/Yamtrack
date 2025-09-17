@@ -66,16 +66,26 @@ class UserUpdateForm(forms.ModelForm):
         return instance
 
     class Meta:
-        """Allow updating username, bio, and profile picture."""
+        """Allow updating username, bio, pronouns, location and profile picture."""
 
         model = User
-        fields = ["username", "bio", "profile_picture"]
+        fields = ["username", "bio", "pronouns", "location", "profile_picture"]
         widgets = {
             "bio": forms.Textarea(
                 attrs={
                     "rows": 4,
                     "placeholder": "Tell us about yourself...",
                     "maxlength": 500,
+                },
+            ),
+            "pronouns": forms.TextInput(
+                attrs={
+                    "placeholder": "she/her, he/him, they/them",
+                },
+            ),
+            "location": forms.TextInput(
+                attrs={
+                    "placeholder": "City, Country",
                 },
             ),
             "profile_picture": forms.FileInput(

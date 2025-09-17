@@ -295,6 +295,18 @@ class User(AbstractUser):
         help_text="User bio/description (max 500 characters)",
     )
 
+    pronouns = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="User preferred pronouns (e.g. she/her, he/him, they/them)",
+    )
+
+    location = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="User location (city, country)",
+    )
+
     profile_picture = models.ImageField(
         upload_to='profile_pictures/',
         blank=True,

@@ -103,6 +103,35 @@
           {% endif %}
           <p class="mt-1 text-xs text-gray-400">Maximum 500 characters</p>
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="{{ user_form.pronouns.id_for_label }}"
+                   class="block text-sm font-medium mb-2 text-gray-300">Pronouns</label>
+            <input id="{{ user_form.pronouns.id_for_label }}"
+                   name="{{ user_form.pronouns.html_name }}"
+                   class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.pronouns.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="text"
+                   value="{{ user_form.pronouns.value|default:user.pronouns }}"
+                   placeholder="she/her, he/him, they/them">
+            {% if user_form.pronouns.errors %}
+              <p class="mt-1 text-sm text-red-400">{{ user_form.pronouns.errors.0 }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label for="{{ user_form.location.id_for_label }}"
+                   class="block text-sm font-medium mb-2 text-gray-300">Location</label>
+            <input id="{{ user_form.location.id_for_label }}"
+                   name="{{ user_form.location.html_name }}"
+                   class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.location.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                   type="text"
+                   value="{{ user_form.location.value|default:user.location }}"
+                   placeholder="City, Country">
+            {% if user_form.location.errors %}
+              <p class="mt-1 text-sm text-red-400">{{ user_form.location.errors.0 }}</p>
+            {% endif %}
+          </div>
+        </div>
         <div class="pt-2">
           <button type="submit"
                   class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
