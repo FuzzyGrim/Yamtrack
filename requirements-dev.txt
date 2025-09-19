@@ -3,7 +3,7 @@ djlint==1.36.4
 fakeredis==2.31.1
 pytest-django==4.11.1
 pytest-playwright==0.7.1
-ruff==0.13.0
+ruff==0.13.1
 tblib==3.1.0
 
 -r requirements.txt
