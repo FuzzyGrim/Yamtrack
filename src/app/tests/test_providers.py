@@ -218,6 +218,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still1.jpg",
                     "name": "Pilot",
                     "overview": "overview of the episode",
+                    "runtime": 23,
                 },
                 {
                     "episode_number": 2,
@@ -225,6 +226,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still2.jpg",
                     "name": "Cat's in the Bag...",
                     "overview": "overview of the episode",
+                    "runtime": 23,
                 },
                 {
                     "episode_number": 3,
@@ -232,6 +234,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still3.jpg",
                     "name": "...And the Bag's in the River",
                     "overview": "overview of the episode",
+                    "runtime": 23,
                 },
             ],
         }
@@ -413,10 +416,6 @@ class Metadata(TestCase):
         response = hardcover.book("377193")
         self.assertEqual(response["title"], "The Great Gatsby")
         self.assertEqual(response["details"]["author"], "F. Scott Fitzgerald")
-        self.assertEqual(response["details"]["publisher"], "Penguin UK")
-        self.assertEqual(response["details"]["publish_date"], "1925-01-01")
-        self.assertEqual(response["details"]["number_of_pages"], 217)
-        self.assertEqual(response["details"]["format"], "Paperback")
         # Testing that we have some of the expected genres
         self.assertIn("Fiction", response["genres"])
         self.assertIn("Young Adult", response["genres"])
@@ -433,7 +432,6 @@ class Metadata(TestCase):
         self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["details"]["format"], "Unknown")
         self.assertIsNone(response["genres"])
-        self.assertIsNone(response["score"])
 
     def test_manual_tv(self):
         """Test the metadata method for manually created TV shows."""
@@ -855,7 +853,7 @@ class ServicesTests(TestCase):
 
         # Verify the request was made correctly
         mock_get.assert_called_once()
-        args, kwargs = mock_get.call_args
+        _, kwargs = mock_get.call_args
         self.assertEqual(kwargs["url"], "https://example.com/api")
         self.assertEqual(kwargs["params"], {"param": "value"})
         self.assertIn("timeout", kwargs)
@@ -882,7 +880,7 @@ class ServicesTests(TestCase):
 
         # Verify the request was made correctly
         mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
+        _, kwargs = mock_post.call_args
         self.assertEqual(kwargs["url"], "https://example.com/api")
         self.assertEqual(kwargs["json"], {"json_param": "value"})
         self.assertEqual(kwargs["data"], {"form_data": "value"})

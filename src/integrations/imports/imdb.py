@@ -23,6 +23,7 @@ IMDB_TYPE_MAPPING = {
     "TV Mini Series": MediaTypes.TV,
     "TV Movie": MediaTypes.MOVIE,
     "TV Special": MediaTypes.MOVIE,
+    "Video": MediaTypes.MOVIE,
 }
 
 # IMDB title types we don't support
@@ -30,7 +31,6 @@ UNSUPPORTED_TYPES = {
     "TV Episode",
     "TV Short",
     "Video Game",
-    "Video",
     "Music Video",
     "Podcast Series",
     "Podcast Episode",
@@ -232,7 +232,7 @@ class IMDBImporter:
 
         media_type = IMDB_TYPE_MAPPING.get(title_type, "")
 
-        if media_type == MediaTypes.MOVIE.value and "movie_results" in response:
+        if media_type == MediaTypes.MOVIE.value and response.get("movie_results"):
             movie = response["movie_results"][0]
             return {
                 "media_id": movie["id"],
@@ -241,7 +241,7 @@ class IMDBImporter:
                 "media_type": MediaTypes.MOVIE.value,
             }
 
-        if media_type == MediaTypes.TV.value and "tv_results" in response:
+        if media_type == MediaTypes.TV.value and response.get("tv_results"):
             tv_show = response["tv_results"][0]
             return {
                 "media_id": tv_show["id"],
