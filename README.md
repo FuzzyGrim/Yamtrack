@@ -24,6 +24,8 @@ I’m not the main developer of Yamtrack. Prefer the upstream repository for cor
 * Cast & Crew Strips on Media Details:
   * Horizontally scrollable strips under the description to surface actors, roles/characters, and crew for quick scanning.
 
+!! All features ^^^ are currently in the refactoring stage. I have reset the repo to initial state, to align the project better with the existing structure
+
 **Focus**: I’m prioritizing TV shows and movies.
 
 ### Planned changes
@@ -41,11 +43,7 @@ If you have a feature request you’d like to see in this fork, feel free to ope
 
 ## Screenshots
 
-* Global Time-Spent Statistics:
-<img width="1251" height="213" alt="image" src="https://github.com/user-attachments/assets/2d3db468-ef50-4ff5-adef-d6ae75813f34" />
-
-* Cast & Crew Strips:
-<img width="1182" height="924" alt="image" src="https://github.com/user-attachments/assets/842817fa-fba0-4bd0-9c20-8bd397c919c0" />
+All features are currently in the refactoring stage. I have reset the repo to initial state, to align the project better with the existing structure
 
 ## Demo
 
