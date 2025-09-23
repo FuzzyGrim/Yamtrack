@@ -12,20 +12,7 @@
     {# Import settings #}
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <path d="M20 7h-9" />
-          <path d="M14 17H5" />
-          <circle cx="17" cy="17" r="3" /><circle cx="7" cy="7" r="3" />
-        </svg>
+        {% include "app/icons/horizontal-sliders.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
         <h2 class="text-xl font-semibold">Import Settings</h2>
       </div>
       <p class="text-gray-400 mb-5 text-sm">Configure your import preferences.</p>
@@ -40,18 +27,7 @@
                 <option value="daily">Every Day</option>
                 <option value="2days">Every 2 Days</option>
               </select>
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none">
-                <path d="m6 9 6 6 6-6"></path>
-              </svg>
+              {% include "app/icons/chevron-down.svg" with classes="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" %}
             </div>
             <div x-cloak class="mt-4" x-show="importFrequency !== 'once'">
               <label class="block text-sm text-gray-400 mb-2">Import Time</label>
@@ -68,18 +44,7 @@
                 <option value="new">Only Sync New Items</option>
                 <option value="overwrite">Sync New Items and Overwrite Existing</option>
               </select>
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none">
-                <path d="m6 9 6 6 6-6"></path>
-              </svg>
+              {% include "app/icons/chevron-down.svg" with classes="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" %}
             </div>
           </div>
         </div>
@@ -89,20 +54,7 @@
     {# Import Sources #}
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-          <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
-          <path d="M3 12A9 3 0 0 0 21 12"></path>
-        </svg>
+        {% include "app/icons/database.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
         <h2 class="text-xl font-semibold">Import Sources</h2>
       </div>
       <p class="text-gray-400 mb-5 text-sm">Import your media data from external services.</p>
@@ -207,20 +159,7 @@
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
               <div class="group absolute right-2 top-1/2 -translate-y-1/2">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4 text-gray-400">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 16v-4" />
-                  <path d="M12 8h.01" />
-                </svg>
+                {% include "app/icons/info.svg" with classes="w-4 h-4 text-gray-400" %}
                 <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
                   Find it on your Kitsu profile URL:
                   <br>
@@ -243,20 +182,7 @@
                target="_blank"
                class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
                title="View CSV format documentation">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-              </svg>
+              {% include "app/icons/info.svg"  with classes="w-4 h-4" %}
             </a>
           </div>
           <p class="text-sm text-gray-400 mb-3"
@@ -327,20 +253,7 @@
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
               <div class="group absolute right-2 top-1/2 -translate-y-1/2">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4 text-gray-400">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 16v-4" />
-                  <path d="M12 8h.01" />
-                </svg>
+                {% include "app/icons/info.svg" with classes="w-4 h-4 text-gray-400" %}
                 <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
                   Find it on your Steam account details page under your username.
                   <br>
@@ -418,18 +331,7 @@
     {# Active Periodic Imports #}
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
+        {% include "app/icons/clock.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
         <h2 class="text-xl font-semibold">Active Periodic Imports</h2>
       </div>
       <p class="text-gray-400 mb-5 text-sm">
@@ -449,21 +351,7 @@
                        name="task_name"
                        value="{{ periodic_import.task.name }}">
                 <button class="text-red-400 hover:text-white p-2 rounded-md transition-all duration-200 hover:bg-red-500 cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       width="24"
-                       height="24"
-                       viewBox="0 0 24 24"
-                       fill="none"
-                       stroke="currentColor"
-                       stroke-width="2"
-                       stroke-linecap="round"
-                       stroke-linejoin="round"
-                       class="w-4 h-4">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    <line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line>
-                  </svg>
+                  {% include "app/icons/trashcan.svg" with classes="w-4 h-4" %}
                 </button>
               </form>
             </div>
@@ -486,20 +374,7 @@
     {# Import History #}
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-          <path d="M3 3v5h5"></path>
-          <path d="M12 7v5l4 2"></path>
-        </svg>
+        {% include "app/icons/clock-reversing.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
         <h2 class="text-xl font-semibold">Import History</h2>
       </div>
 

@@ -5,18 +5,7 @@
     <h2 class="text-2xl font-bold text-white line-clamp-1">{{ title }}</h2>
     <button class="text-gray-400 hover:text-white cursor-pointer"
             @click="trackOpen = false">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round">
-        <path d="M18 6 6 18"></path>
-        <path d="m6 6 12 12"></path>
-      </svg>
+      {% include "app/icons/x.svg" with classes="w-6 h-6" %}
     </button>
   </div>
 
@@ -40,17 +29,7 @@
                 {% if field.name == "status" %}
                   {{ field|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none" }}
                   <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         width="16"
-                         height="16"
-                         viewBox="0 0 24 24"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2"
-                         stroke-linecap="round"
-                         stroke-linejoin="round">
-                      <path d="m6 9 6 6 6-6"></path>
-                    </svg>
+                    {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
                   </div>
                 {% elif field.field.widget.input_type == 'number' %}
                   {{ field|add_class:"w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
@@ -58,32 +37,12 @@
                     <button type="button"
                             class="flex-1 px-2 hover:bg-gray-700 transition-colors rounded-tr-md border-t border-r border-gray-600"
                             onclick="this.parentElement.previousElementSibling.stepUp()">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="14"
-                           height="14"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round">
-                        <path d="m18 15-6-6-6 6"></path>
-                      </svg>
+                      {% include "app/icons/chevron-up.svg" with classes="w-3.5 h-3.5" %}
                     </button>
                     <button type="button"
                             class="flex-1 px-2 hover:bg-gray-700 transition-colors rounded-br-md border-b border-r border-gray-600"
                             onclick="this.parentElement.previousElementSibling.stepDown()">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="14"
-                           height="14"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round">
-                        <path d="m6 9 6 6 6-6"></path>
-                      </svg>
+                      {% include "app/icons/chevron-down.svg" with classes="w-3.5 h-3.5" %}
                     </button>
                   </div>
                 {% else %}

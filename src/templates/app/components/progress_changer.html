@@ -8,18 +8,7 @@
           hx-vals='{"operation": "decrease"}'
           hx-swap="innerHTML"
           hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
-    <svg xmlns="http://www.w3.org/2000/svg"
-         width="24"
-         height="24"
-         viewBox="0 0 24 24"
-         fill="none"
-         stroke="currentColor"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         class="w-3 h-3">
-      <path d="M5 12h14"></path>
-    </svg>
+    {% include "app/icons/minus.svg" with classes="w-3 h-3" %}
   </button>
 
   <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
@@ -41,18 +30,6 @@
           hx-vals='{"operation": "increase"}'
           hx-swap="innerHTML"
           hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
-    <svg xmlns="http://www.w3.org/2000/svg"
-         width="24"
-         height="24"
-         viewBox="0 0 24 24"
-         fill="none"
-         stroke="currentColor"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         class="w-3 h-3">
-      <path d="M5 12h14"></path>
-      <path d="M12 5v14"></path>
-    </svg>
+    {% include "app/icons/plus.svg" with classes="w-3 h-3" %}
   </button>
 </div>

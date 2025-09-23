@@ -32,19 +32,7 @@
           </div>
 
           <div class="h-5 mx-2 border-l border-white/30"></div>
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-5 h-5 flex-shrink-0">
-            <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
-          </svg>
+          {% include "app/icons/edit.svg" with classes="w-5 h-5" %}
         </button>
 
         {# Track Modal #}
@@ -79,18 +67,9 @@
             <button @click="open = !open"
                     class="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors duration-200 cursor-pointer">
               <span class="text-sm font-medium">{{ media.season_title }}</span>
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="16"
-                   height="16"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   :class="{ 'rotate-180': open }">
-                <path d="m6 9 6 6 6-6"></path>
-              </svg>
+              <div class="w-4 h-4" :class="{ 'rotate-180': open }">
+                {% include "app/icons/chevron-down.svg" %}
+              </div>
             </button>
             <div x-show="open"
                  x-transition:enter="transition ease-out duration-200"
@@ -149,19 +128,7 @@
           <div class="my-3 border-t border-gray-700"></div>
 
           <div class="flex items-start mt-2">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-5 h-5 mr-2 text-yellow-400 flex-shrink-0 mt-0.5">
-              <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path>
-              <path d="M15 3v4a2 2 0 0 0 2 2h4"></path>
-            </svg>
+            {% include "app/icons/page-empty.svg" with classes="w-5 h-5 mr-2 text-yellow-400 flex-shrink-0 mt-0.5" %}
             <div class="font-medium text-gray-400 mb-1">YOUR NOTES</div>
           </div>
 
@@ -185,18 +152,7 @@
           <div class="bg-[#2a2f35] p-3 rounded-lg w-[120px]">
             <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{{ media.source|upper }} SCORE</h3>
             <div class="flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
+              {% include "app/icons/star.svg" with classes="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400" %}
               {% if media.score is not None %}
                 <span class="text-lg font-bold text-white">{{ media.score }}</span><span class="text-gray-400 ml-0.5 text-sm">/10</span>
               {% else %}
@@ -218,18 +174,7 @@
                  class="bg-[#2a2f35] p-3 rounded-lg w-[120px] cursor-pointer">
               <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">YOUR SCORE</h3>
               <div class="flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
+                {% include "app/icons/star.svg" with classes="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400" %}
                 <template x-if="rating">
                   <div class="flex items-baseline">
                     <span class="text-lg font-bold text-white" x-text="rating"></span>
@@ -303,19 +248,7 @@
                       hx-trigger="click once"
                       @click="trackOpen = true"
                       title="Add new consumption">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4">
-                  <path d="M5 12h14"></path>
-                  <path d="M12 5v14"></path>
-                </svg>
+                {% include "app/icons/plus.svg" with classes="w-4 h-4" %}
               </button>
 
               {# Track Modal #}
@@ -364,19 +297,9 @@
             <div x-data="{ showRepeats: false }">
               <button @click="showRepeats = !showRepeats"
                       class="group flex items-center justify-center w-full px-3 py-2 text-sm text-white bg-gray-600 hover:bg-gray-700 transition-all duration-200 rounded-lg tracking-wide cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="lucide lucide-chevron-down w-4 h-4 mr-2 transition-transform"
-                     :class="{ 'rotate-180': showRepeats }">
-                  <path d="m6 9 6 6 6-6"></path>
-                </svg>
+                <div class="lucide lucide-chevron-down w-4 h-4 mr-2 transition-transform" :class="{ 'rotate-180': showRepeats }">
+                  {% include "app/icons/chevron-down.svg" %}
+                </div>
                 Show Repeats ({{ user_medias|length|add:"-1" }})
               </button>
 
@@ -385,18 +308,11 @@
                   <div class="bg-[#2a2f35] p-4 rounded-lg">
                     <div class="flex items-center justify-between mb-2">
                       <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             width="24"
-                             height="24"
-                             viewBox="0 0 24 24"
-                             fill="none"
-                             stroke="currentColor"
-                             stroke-width="2"
-                             stroke-linecap="round"
-                             stroke-linejoin="round"
-                             class="w-4 h-4 {% if user_media.score %} text-yellow-400 fill-yellow-400 {% else %}text-gray-400 fill-gray-400{% endif %} mr-2">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                        </svg>
+                        {% if user_media.score %}
+                          {% include "app/icons/star.svg" with classes="w-4 h-4 mr-2 text-yellow-400 fill-yellow-400" %}
+                        {% else %}
+                          {% include "app/icons/star.svg" with classes="w-4 h-4 mr-2 text-gray-400 fill-gray-400" %}
+                        {% endif %}
                         {% if user_media.score %}
                           <span class="text-sm font-medium text-gray-300">{{ user_media.score }}</span>
                         {% else %}
@@ -411,19 +327,7 @@
                                 hx-target="#{% component_id 'track' media user_media.id %}"
                                 hx-trigger="click once"
                                 @click="trackOpen = true">
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                               width="24"
-                               height="24"
-                               viewBox="0 0 24 24"
-                               fill="none"
-                               stroke="currentColor"
-                               stroke-width="2"
-                               stroke-linecap="round"
-                               stroke-linejoin="round"
-                               class="w-4 h-4">
-                            <path d="M12 20h9"></path>
-                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                          </svg>
+                          {% include "app/icons/edit-flat.svg" with classes="w-4 h-4" %}
                         </button>
 
                         <div x-show="trackOpen"
@@ -461,20 +365,7 @@
                         <div class="flex items-start mt-3"
                              x-data="{ isExpanded:false, isClamped:false, measure(){ const el = this.$refs.notesText; this.isClamped = el.scrollHeight > el.clientHeight }, rafMeasure(){ requestAnimationFrame(() => this.measure()) }, reset(){ this.isExpanded = false; this.$nextTick(() => this.rafMeasure()) } }"
                              x-init="rafMeasure(); $watch('showRepeats', v => { if (v) reset() })">
-
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                               width="24"
-                               height="24"
-                               viewBox="0 0 24 24"
-                               fill="none"
-                               stroke="currentColor"
-                               stroke-width="2"
-                               stroke-linecap="round"
-                               stroke-linejoin="round"
-                               class="w-3 h-3 mr-1 text-yellow-400 flex-shrink-0 mt-0.5">
-                            <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path>
-                            <path d="M15 3v4a2 2 0 0 0 2 2h4"></path>
-                          </svg>
+                          {% include "app/icons/page-empty.svg" with classes="w-3 h-3 mr-1 text-yellow-400 flex-shrink-0 mt-0.5" %}
                           <div class="flex-1">
                             <p x-ref="notesText"
                                :class="isExpanded ? '' : 'line-clamp-2'"
@@ -508,22 +399,7 @@
                   hx-target="#{% component_id 'lists' media %}"
                   hx-trigger="click once"
                   @click="listsOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-4 h-4">
-              <path d="M11 12H3"></path>
-              <path d="M16 6H3"></path>
-              <path d="M16 18H3"></path>
-              <path d="M18 9v6"></path>
-              <path d="M21 12h-6"></path>
-            </svg>
+            {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
           </button>
 
           <div x-show="listsOpen"
@@ -545,23 +421,7 @@
                   hx-target="#{% component_id 'history' media %}"
                   hx-trigger="click once"
                   @click="historyOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-4 h-4">
-              <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"></path>
-              <path d="M16 2v4"></path>
-              <path d="M8 2v4"></path>
-              <path d="M3 10h5"></path>
-              <path d="M17.5 17.5 16 16.3V14"></path>
-              <circle cx="16" cy="16" r="6"></circle>
-            </svg>
+            {% include "app/icons/history.svg" with classes="w-4 h-4" %}
           </button>
 
           <div x-show="historyOpen"
@@ -586,22 +446,9 @@
                 x-data="{ loading: false }"
                 @click="loading = true"
                 :disabled="loading">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4"
-               :class="{ 'animate-spin': loading }">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-            <path d="M21 3v5h-5"></path>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-            <path d="M8 16H3v5"></path>
-          </svg>
+          <div :class="{ 'animate-spin': loading }">
+            {% include "app/icons/circle-spinning-clockwise.svg" with classes="w-4 h-4" %}
+          </div>
         </button>
       </div>
 
@@ -679,33 +526,9 @@
                                   title="Track Episode"
                                   class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
                             {% if episode.history %}
-                              <svg xmlns="http://www.w3.org/2000/svg"
-                                   width="16"
-                                   height="16"
-                                   viewBox="0 0 24 24"
-                                   fill="none"
-                                   stroke="currentColor"
-                                   stroke-width="2"
-                                   stroke-linecap="round"
-                                   stroke-linejoin="round">
-                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                              </svg>
+                              {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
                             {% else %}
-                              <svg xmlns="http://www.w3.org/2000/svg"
-                                   width="16"
-                                   height="16"
-                                   viewBox="0 0 24 24"
-                                   fill="none"
-                                   stroke="currentColor"
-                                   stroke-width="2"
-                                   stroke-linecap="round"
-                                   stroke-linejoin="round">
-                                <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path>
-                                <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path>
-                                <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path>
-                                <path d="m2 2 20 20"></path>
-                              </svg>
+                              {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
                             {% endif %}
                           </button>
 
@@ -722,21 +545,7 @@
                                   hx-target="#{% component_id 'lists' episode %}"
                                   hx-trigger="click once"
                                   @click="listsOpen = true">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 width="16"
-                                 height="16"
-                                 viewBox="0 0 24 24"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 stroke-width="2"
-                                 stroke-linecap="round"
-                                 stroke-linejoin="round">
-                              <path d="M11 12H3"></path>
-                              <path d="M16 6H3"></path>
-                              <path d="M16 18H3"></path>
-                              <path d="M18 9v6"></path>
-                              <path d="M21 12h-6"></path>
-                            </svg>
+                            {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
                           </button>
 
                           <div x-show="listsOpen"
@@ -758,22 +567,7 @@
                                   hx-target="#{% component_id 'history' episode %}"
                                   hx-trigger="click once"
                                   @click="historyOpen = true">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 width="16"
-                                 height="16"
-                                 viewBox="0 0 24 24"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 stroke-width="2"
-                                 stroke-linecap="round"
-                                 stroke-linejoin="round">
-                              <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"></path>
-                              <path d="M16 2v4"></path>
-                              <path d="M8 2v4"></path>
-                              <path d="M3 10h5"></path>
-                              <path d="M17.5 17.5 16 16.3V14"></path>
-                              <circle cx="16" cy="16" r="6"></circle>
-                            </svg>
+                            {% include "app/icons/history.svg" with classes="w-4 h-4" %}
                           </button>
                           <div x-show="historyOpen"
                                @keydown.escape.window="historyOpen = false"

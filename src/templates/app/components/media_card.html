@@ -11,78 +11,29 @@
     {% if media.status %}
       <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         {% if media.status == Status.COMPLETED.value %}
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.TV.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-            <path d="M21.801 10A10 10 0 1 1 17 3.335" />
-            <path d="m9 11 3 3L22 4" />
-          </svg>
+          <div class="w-4 h-4 {{ MediaTypes.TV.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
+            {% include "app/icons/states/completed.svg" %}
+          </div>
 
         {% elif media.status == Status.IN_PROGRESS.value %}
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.EPISODE.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-            <polygon points="6 3 20 12 6 21 6 3" />
-          </svg>
+          <div class="w-4 h-4 {{ MediaTypes.EPISODE.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
+            {% include "app/icons/states/in-progress.svg" %}
+          </div>
 
         {% elif media.status == Status.PAUSED.value %}
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.MOVIE.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-            <rect x="14" y="4" width="4" height="16" rx="1" /><rect x="6" y="4" width="4" height="16" rx="1" />
-          </svg>
+          <div class="w-4 h-4 {{ MediaTypes.MOVIE.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
+            {% include "app/icons/states/paused.svg" %}
+          </div>
 
         {% elif media.status == Status.PLANNING.value %}
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.ANIME.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-            <line x1="12" x2="12" y1="7" y2="13" /><line x1="15" x2="9" y1="10" y2="10" />
-          </svg>
+          <div class="w-4 h-4 {{ MediaTypes.ANIME.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
+            {% include "app/icons/states/planning.svg" %}
+          </div>
 
         {% elif media.status == Status.DROPPED.value %}
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 {{ MediaTypes.MANGA.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
-            <path d="m15 9-6 6" />
-            <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
-            <path d="m9 9 6 6" />
-          </svg>
+          <div class="w-4 h-4 {{ MediaTypes.MANGA.value|media_color }} {% if media.start_date or media.end_date %}mr-1.5{% endif %}">
+            {% include "app/icons/states/dropped.svg" %}
+          </div>
         {% endif %}
 
         {% if media.end_date is not None %}
@@ -95,18 +46,7 @@
 
     {% if media.score is not None %}
       <div class="absolute sm:top-2 sm:right-2 sm:left-auto top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-4 h-4 text-yellow-400 mr-1 fill-current">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-        </svg>
+        {% include "app/icons/star.svg" with classes="w-4 h-4 text-yellow-400 mr-1 fill-current" %}
         <span class="text-sm text-white">{{ media.formatted_score }}</span>
       </div>
     {% endif %}
@@ -122,21 +62,7 @@
 
     {% if media.repeats > 1 %}
       <div class="absolute sm:bottom-2 sm:right-2 sm:left-auto bottom-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-4 h-4 text-slate-200 mr-1">
-          <path d="m17 2 4 4-4 4" />
-          <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
-          <path d="m7 22-4-4 4-4" />
-          <path d="M21 13v1a4 4 0 0 1-4 4H3" />
-        </svg>
+        {% include "app/icons/repeat.svg" with classes="w-4 h-4 text-slate-200 mr-1" %}
         <span class="text-sm text-white">{{ media.repeats }}</span>
       </div>
     {% endif %}
@@ -147,35 +73,11 @@
       <div class="relative flex items-center justify-center space-x-2.5">
         {% if item.media_type == MediaTypes.EPISODE.value %}
           <button @click="trackOpen = true"
-                  class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
+                  class="p-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer">
             {% if media %}
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="16"
-                   height="16"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round">
-                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
+              {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
             {% else %}
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="16"
-                   height="16"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round">
-                <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path>
-                <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path>
-                <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path>
-                <path d="m2 2 20 20"></path>
-              </svg>
+              {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
             {% endif %}
           </button>
         {% else %}
@@ -187,18 +89,7 @@
                   hx-target="#{% component_id 'track' item media.id %}"
                   hx-trigger="click once"
                   @click="trackOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="16"
-                 height="16"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round">
-              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
-            </svg>
+            {% include "app/icons/edit.svg" with classes="w-4 h-4" %}
           </button>
         {% endif %}
 
@@ -210,21 +101,7 @@
                 hx-target="#{% component_id 'lists' item %}"
                 hx-trigger="click once"
                 @click="listsOpen = true">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="16"
-               height="16"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round">
-            <path d="M11 12H3"></path>
-            <path d="M16 6H3"></path>
-            <path d="M16 18H3"></path>
-            <path d="M18 9v6"></path>
-            <path d="M21 12h-6"></path>
-          </svg>
+          {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
         </button>
 
         {# History Button #}
@@ -235,22 +112,7 @@
                 hx-target="#{% component_id 'history' item %}"
                 hx-trigger="click once"
                 @click="historyOpen = true">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="16"
-               height="16"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round">
-            <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"></path>
-            <path d="M16 2v4"></path>
-            <path d="M8 2v4"></path>
-            <path d="M3 10h5"></path>
-            <path d="M17.5 17.5 16 16.3V14"></path>
-            <circle cx="16" cy="16" r="6"></circle>
-          </svg>
+          {% include "app/icons/history.svg" with classes="w-4 h-4" %}
         </button>
       </div>
     </div>

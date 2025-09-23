@@ -45,19 +45,7 @@
                          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
 
                   <div class="ml-4 flex items-center flex-1">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         width="24"
-                         height="24"
-                         viewBox="0 0 24 24"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2"
-                         stroke-linecap="round"
-                         stroke-linejoin="round"
-                         class="w-5 h-5 mr-3 text-purple-400">
-                      <path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"></path>
-                      <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
-                    </svg>
+                    {% include "app/icons/key.svg" with classes="w-5 h-5 mr-3 text-purple-400" %}
                     <div>
                       <p class="font-medium">{{ account }}</p>
                       <p class="text-sm text-gray-400">{{ account.get_brand.name }}</p>
@@ -73,21 +61,7 @@
                     :disabled="selectedAccount === null"
                     class="flex items-center px-3 py-1.5 rounded-md text-sm transition-colors"
                     :class="selectedAccount !== null ? 'bg-red-600 text-white hover:bg-red-700 cursor-pointer' : 'bg-red-600/50 text-white/70 cursor-not-allowed'">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4 mr-2">
-                <path d="M3 6h18"></path>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                <line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line>
-              </svg>
+              {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
               Remove Selected
             </button>
           </div>
@@ -116,19 +90,7 @@
   <div class="flex mt-8">
     <a href="{% url 'home' %}"
        class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="w-5 h-5">
-        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-      </svg>
+      {% include "app/icons/house.svg" with classes="w-5 h-5" %}
       <span>Back to Home</span></a>
   </div>
 {% endblock content %}

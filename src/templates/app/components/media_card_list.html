@@ -27,21 +27,7 @@
             </span>
 
             <span class="flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4">
-                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z">
-                </path>
-                <path d="m3.3 7 8.7 5 8.7-5"></path>
-                <path d="M12 22V12"></path>
-              </svg>
+              {% include "app/icons/cube.svg" with classes="w-4 h-4" %}
               {{ item.media_type|default_source }}
             </span>
           </div>
@@ -56,18 +42,7 @@
                   hx-target="#{% component_id 'track' item media.id %}"
                   hx-trigger="click once"
                   @click="trackOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="16"
-                 height="16"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round">
-              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
-            </svg>
+            {% include "app/icons/edit.svg" with classes="w-4 h-4" %}
           </button>
 
           {# Lists Button #}
@@ -78,21 +53,7 @@
                   hx-target="#{% component_id 'lists' item %}"
                   hx-trigger="click once"
                   @click="listsOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="16"
-                 height="16"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round">
-              <path d="M11 12H3"></path>
-              <path d="M16 6H3"></path>
-              <path d="M16 18H3"></path>
-              <path d="M18 9v6"></path>
-              <path d="M21 12h-6"></path>
-            </svg>
+            {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
           </button>
 
           {# History Button #}
@@ -103,22 +64,7 @@
                   hx-target="#{% component_id 'history' item %}"
                   hx-trigger="click once"
                   @click="historyOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="16"
-                 height="16"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round">
-              <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"></path>
-              <path d="M16 2v4"></path>
-              <path d="M8 2v4"></path>
-              <path d="M3 10h5"></path>
-              <path d="M17.5 17.5 16 16.3V14"></path>
-              <circle cx="16" cy="16" r="6"></circle>
-            </svg>
+            {% include "app/icons/history.svg" with classes="w-4 h-4" %}
           </button>
         </div>
       </div>

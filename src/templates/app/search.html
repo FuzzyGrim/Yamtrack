@@ -23,34 +23,12 @@
           <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=grid"
              {% if layout == 'grid' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
              title="Grid View">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-5 h-5">
-              <rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect>
-            </svg>
+            {% include "app/icons/four-square.svg" with classes="w-5 h-5" %}
           </a>
           <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=list"
              {% if layout == 'list' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
              title="List View">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-5 h-5">
-              <line x1="8" x2="21" y1="6" y2="6"></line><line x1="8" x2="21" y1="12" y2="12"></line><line x1="8" x2="21" y1="18" y2="18"></line><line x1="3" x2="3.01" y1="6" y2="6"></line><line x1="3" x2="3.01" y1="12" y2="12"></line><line x1="3" x2="3.01" y1="18" y2="18"></line>
-            </svg>
+            {% include "app/icons/list.svg" with classes="w-5 h-5" %}
           </a>
         </div>
       </div>
@@ -77,34 +55,12 @@
       {% if data.page > 1 %}
         <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'-1' }}&layout={{ layout }}"
            class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-5 h-5">
-            <path d="m15 18-6-6 6-6"></path>
-          </svg>
+          {% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}
         </a>
       {% else %}
         <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
                 disabled>
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-5 h-5">
-            <path d="m15 18-6-6 6-6"></path>
-          </svg>
+          {% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}
         </button>
       {% endif %}
 
@@ -119,20 +75,7 @@
         {% else %}
           {# Ellipsis #}
           <span class="flex items-center justify-center w-10 h-10 text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-5 h-5">
-              <circle cx="12" cy="12" r="1"></circle>
-              <circle cx="19" cy="12" r="1"></circle>
-              <circle cx="5" cy="12" r="1"></circle>
-            </svg>
+            {% include "app/icons/ellipsis.svg" with classes="w-5 h-5" %}
           </span>
         {% endif %}
       {% endfor %}
@@ -141,34 +84,12 @@
       {% if data.page < data.total_pages %}
         <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'1' }}&layout={{ layout }}"
            class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-5 h-5">
-            <path d="m9 18 6-6-6-6"></path>
-          </svg>
+          {% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}
         </a>
       {% else %}
         <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
                 disabled>
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-5 h-5">
-            <path d="m9 18 6-6-6-6"></path>
-          </svg>
+          {% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}
         </button>
       {% endif %}
     </div>
@@ -181,19 +102,7 @@
 {% else %}
   <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
     <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="w-8 h-8 text-gray-400">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.3-4.3"></path>
-      </svg>
+      {% include "app/icons/magnifying-glass.svg" with classes="w-8 h-8 text-gray-400" %}
     </div>
     <h3 class="text-xl font-semibold mb-2">No results found</h3>
     <p class="text-gray-400 text-center max-w-md mb-8">

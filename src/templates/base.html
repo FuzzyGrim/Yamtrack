@@ -71,7 +71,11 @@
               <li>
                 <a href="{% url 'home' %}"
                    class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                  {% icon 'home' is_active=request.path|str_equals:"/" %}
+                  {% if request.path|str_equals:"/" %}
+                    {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
+                  {% else %}
+                    {% include "app/icons/house.svg" with classes="w-5 h-5" %}
+                  {% endif %}
                   <span>Home</span>
                 </a>
               </li>
@@ -94,7 +98,11 @@
                 <li>
                   <a href="{{ create_entry_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'create' is_active=request.path|str_equals:create_entry_url %}
+                    {% if request.path|str_equals:create_entry_url %}
+                      {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+                    {% else %}
+                      {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
+                    {% endif %}
                     <span>Create Custom</span>
                   </a>
                 </li>
@@ -103,7 +111,11 @@
                 <li>
                   <a href="{{ statistics_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'statistics' is_active=request.path|str_equals:statistics_url %}
+                    {% if request.path|str_equals:statistics_url %}
+                      {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
+                    {% else %}
+                      {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
+                    {% endif %}
                     <span>Statistics</span>
                   </a>
                 </li>
@@ -112,7 +124,11 @@
                 <li>
                   <a href="{{ lists_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'lists' is_active=request.path|str_equals:lists_url %}
+                    {% if request.path|str_equals:lists_url %}
+                      {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+                    {% else %}
+                      {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
+                    {% endif %}
                     <span>Lists</span>
                   </a>
                 </li>
@@ -121,7 +137,11 @@
                 <li>
                   <a href="{{ calendar_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'calendar' is_active=request.path|str_equals:calendar_url %}
+                    {% if request.path|str_equals:calendar_url %}
+                      {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
+                    {% else %}
+                      {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
+                    {% endif %}
                     <span>Calendar</span>
                   </a>
                 </li>
@@ -140,9 +160,9 @@
               <a href="{{ account_url }}"
                  class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                 {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
-                  {% icon 'settings' is_active=True %}
+                  {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
                 {% else %}
-                  {% icon 'settings' is_active=False %}
+                  {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
                 {% endif %}
                 <span>Settings</span>
               </a>
@@ -151,7 +171,7 @@
                 {% csrf_token %}
                 <button type="submit"
                         class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
-                  {% icon 'logout' is_active=False %}
+                  {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
                   <span>Logout</span>
                 </button>
               </form>
@@ -168,20 +188,7 @@
                 {# Mobile: sidebar toggle button #}
                 <button @click="isMobileMenuOpen = !isMobileMenuOpen"
                         class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       width="24"
-                       height="24"
-                       viewBox="0 0 24 24"
-                       fill="none"
-                       stroke="currentColor"
-                       stroke-width="2"
-                       stroke-linecap="round"
-                       stroke-linejoin="round"
-                       class="w-6 h-6">
-                    <line x1="4" x2="20" y1="12" y2="12"></line>
-                    <line x1="4" x2="20" y1="6" y2="6"></line>
-                    <line x1="4" x2="20" y1="18" y2="18"></line>
-                  </svg>
+                  {% include "app/icons/hamburger.svg" with classes="w-6 h-6" %}
                 </button>
 
                 {# Define search type from current media type (if it exists) or last search type #}
@@ -206,19 +213,7 @@
                                class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
                         <button type="submit"
                                 class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                               width="24"
-                               height="24"
-                               viewBox="0 0 24 24"
-                               fill="none"
-                               stroke="currentColor"
-                               stroke-width="2"
-                               stroke-linecap="round"
-                               stroke-linejoin="round"
-                               class="w-5 h-5">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.3-4.3"></path>
-                          </svg>
+                          {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
                         </button>
                       </div>
 
@@ -230,13 +225,7 @@
                               @click.away="isOpen = false"
                               class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
                         <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
-                        <svg class="w-4 h-4 ml-2"
-                             fill="none"
-                             stroke="currentColor"
-                             viewBox="0 0 24 24"
-                             xmlns="http://www.w3.org/2000/svg">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
+                        {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
                       </button>
                       <ul x-cloak
                           x-show="isOpen"
@@ -291,82 +280,19 @@
               }">
 
               {% if message.tags == 'success' %}
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="w-4 h-4 text-emerald-300 flex-shrink-0">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <path d="m9 11 3 3L22 4"></path>
-                </svg>
+                {% include "app/icons/states/completed.svg" with classes="w-4 h-4 text-emerald-300 flex-shrink-0" %}
               {% elif message.tags == 'warning' %}
-                <!-- Warning SVG -->
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="w-4 h-4 text-amber-300 flex-shrink-0">
-                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path>
-                  <path d="M12 9v4"></path>
-                  <path d="M12 17h.01"></path>
-                </svg>
+                {% include "app/icons/warning.svg" with classes="w-4 h-4 text-amber-300 flex-shrink-0" %}
               {% elif message.tags == 'error' %}
-                <!-- Error SVG -->
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="w-4 h-4 text-red-300 flex-shrink-0">
-                  <circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line>
-                </svg>
+                {% include "app/icons/warning.svg" with classes="w-4 h-4 text-red-300 flex-shrink-0" %}
               {% elif message.tags == "info" %}
-                <!-- Info SVG -->
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="w-4 h-4 text-indigo-300 flex-shrink-0">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <path d="M12 16v-4"></path>
-                  <path d="M12 8h.01"></path>
-                </svg>
+                {% include "app/icons/info.svg" with classes="w-4 h-4 text-indigo-300 flex-shrink-0" %}
               {% endif %}
 
               <p class="text-sm font-medium flex-1">{{ message }}</p>
               <button class="text-current opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
                       @click="$el.parentElement.remove()">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round">
-                  <path d="M18 6 6 18"></path>
-                  <path d="m6 6 12 12"></path>
-                </svg>
+                {% include "app/icons/x.svg" with classes="w-4 h-4" %}
               </button>
             </div>
             {# djlint:on #}
