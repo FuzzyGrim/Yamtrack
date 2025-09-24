@@ -9,357 +9,52 @@
 {% endblock title %}
 
 {% block content %}
-  {# Futuristic Media Page Layout #}
-  <div class="min-h-screen bg-[#0D0D0F] text-text-primary">
-    {# Subtle vignette overlay #}
-    <div class="fixed inset-0 bg-gradient-radial from-transparent via-transparent to-black/20 pointer-events-none"></div>
-    
-    {# Main Content #}
-    <div class="relative z-10">
-      {# Hero Section - Above the fold #}
-      <div class="flex flex-col lg:flex-row gap-6 lg:gap-10 max-w-[1280px] mx-auto px-4 sm:px-8 pt-8 lg:pt-12">
-        {# Left: Poster Card #}
-        {% include "app/components/media/poster_card.html" %}
-        
-        {# Right: Media Essentials Stack #}
-        <div class="flex-1 space-y-8">
-          {# Title and Meta #}
+  {# New Movie Page Design #}
+  <div id="media-detail-root" class="min-h-screen bg-black" style="--poster-accent: {{ poster_accent_color|default:'#6F8FFF' }}; --poster-accent-contrast: {{ poster_accent_contrast|default:'#FFFFFF' }};">
+    <main class="max-w-7xl mx-auto px-6 py-12">
+      <div style="display: flex; flex-direction: column; gap: 3rem;">
+        <div style="display: flex; flex-direction: row; gap: 3rem; align-items: flex-start;">
+          {# Left Column - Poster #}
+          <div style="flex: 0 0 300px;">
+            {% include "app/components/media/poster_card.html" with poster_accent_color=poster_accent_color|default:'#6F8FFF' poster_accent_contrast=poster_accent_contrast|default:'#FFFFFF' %}
+          </div>
+
+          {# Right Column - Content #}
+          <div style="flex: 1; min-width: 0;">
+            <div class="space-y-8">
+          {# Title Section #}
           {% include "app/components/media/title_meta.html" %}
           
-          {# Rating Panel #}
-          {% include "app/components/media/rating_panel.html" %}
+          {# Stats #}
+          {% include "app/components/media/stats_panel.html" %}
           
           {# Synopsis #}
           {% include "app/components/media/synopsis.html" %}
-
+          
           {# Cast #}
           {% include "app/components/media/cast_grid.html" %}
-        </div>
-      </div>
-      
-      {# Mid Section: Community #}
-      <div class="max-w-[1280px] mx-auto px-4 sm:px-8 mt-10 lg:mt-14 space-y-10 lg:space-y-14">
-        {# Stats and Social Proof #}
-        {% include "app/components/media/stats_strip.html" %}
-        
-        {# Reviews #}
-        {% include "app/components/media/reviews_feed.html" %}
-      </div>
-      
-      {# Bottom Section: Release Details and Legacy Content #}
-      <div class="max-w-[1280px] mx-auto px-4 sm:px-8 mt-10 lg:mt-14 grid grid-cols-1 lg:grid-cols-[1fr,300px] gap-6 lg:gap-10">
-        {# Left: Legacy content (episodes, related media, etc.) #}
-        <div class="space-y-10">
-          {# Season Dropdown for TV Shows #}
-          {% if media.media_type == MediaTypes.SEASON.value %}
-            <div class="flex flex-col md:flex-row gap-y-4 md:gap-y-0 items-center justify-between">
-              <h2 class="text-xl font-semibold cursor-pointer hover:text-brand-teal transition-colors">
-                <a href="{% url 'media_details' source=media.source media_type=MediaTypes.TV.value media_id=media.media_id title=media.title|slug %}">
-                  {{ media.title }}
-                </a>
-              </h2>
-              
-              {# Season dropdown #}
-              <div class="relative"
-                   x-data="{ open: false }"
-                   @click.away="open = false"
-                   @keydown.escape.window="open = false">
-                <button @click="open = !open"
-                        class="flex items-center space-x-2 px-4 py-2 glass-card rounded-lg transition-colors cursor-pointer">
-                  <span class="text-sm font-medium">{{ media.season_title }}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       width="16"
-                       height="16"
-                       viewBox="0 0 24 24"
-                       fill="none"
-                       stroke="currentColor"
-                       stroke-width="2"
-                       stroke-linecap="round"
-                       stroke-linejoin="round"
-                       :class="{ 'rotate-180': open }"
-                       class="transition-transform">
-                    <path d="m6 9 6 6 6-6"></path>
-                  </svg>
-                </button>
-                <div x-show="open"
-                     x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0 transform scale-95"
-                     x-transition:enter-end="opacity-100 transform scale-100"
-                     x-transition:leave="transition ease-in duration-150"
-                     x-transition:leave-start="opacity-100 transform scale-100"
-                     x-transition:leave-end="opacity-0 transform scale-95"
-                     class="absolute right-1/2 md:right-0 translate-x-1/2 md:translate-x-0 mt-2 w-64 glass-card-strong rounded-lg shadow-elev overflow-hidden z-10">
-                  <div class="max-h-[300px] overflow-y-auto">
-                    {% for tv_season in tv.related.seasons %}
-                      <a href="{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=tv_season.season_number %}"
-                         class="w-full px-4 py-3 flex items-center space-x-3 hover:bg-white/10 transition-colors cursor-pointer {% if tv_season.season_number == media.season_number %}bg-white/5{% endif %}">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-brand-teal text-black font-semibold">
-                          {{ tv_season.season_number }}
-                        </div>
-                        <div class="flex-1 text-left">
-                          <div class="text-sm font-medium text-text-primary">{{ tv_season.season_title }}</div>
-                          <div class="text-xs text-text-muted">
-                            {{ tv_season.max_progress }} Episode{{ tv_season.max_progress|pluralize }}
-                            {% if tv_season.first_air_date %}• {{ tv_season.first_air_date }}{% endif %}
-                          </div>
-                        </div>
-                      </a>
-                    {% endfor %}
-                  </div>
-                </div>
-              </div>
-            </div>
-          {% endif %}
           
-          {# Episodes List #}
-          {% if media.episodes %}
-            <section class="space-y-6">
-              <h2 class="text-xl font-semibold text-text-primary">Episodes</h2>
-              <div class="space-y-4">
-                {% for episode in media.episodes %}
-                  <div class="glass-card rounded-2xl overflow-hidden shadow-elev">
-                    <div class="flex flex-col md:flex-row">
-                      <div class="md:w-64 md:h-36 bg-white/5 flex-shrink-0">
-                        {% if episode.image and episode.image != IMG_NONE %}
-                          <img src="{{ episode.image }}"
-                               alt="E{{ episode.episode_number }}"
-                               class="w-full h-full object-cover"
-                               loading="lazy">
-                        {% else %}
-                          <div class="w-full h-full flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted">
-                              <polygon points="6 3 20 12 6 21 6 3"/>
-                            </svg>
-                          </div>
-                        {% endif %}
-                      </div>
-                      <div class="flex-1 p-4 space-y-3">
-                        <div class="flex justify-between items-start">
-                          <div class="flex-1">
-                            <h3 class="text-lg font-semibold text-text-primary line-clamp-1">{{ episode.title }}</h3>
-                            <p class="text-sm text-text-muted">
-                              Episode {{ episode.episode_number }}
-                              {% if episode.air_date %}• {{ episode.air_date }}{% endif %}
-                              {% if episode.runtime %}• {{ episode.runtime }}{% endif %}
-                            </p>
-                          </div>
-                          <div class="flex space-x-2 ml-4">
-                            {# Episode action buttons - simplified for new design #}
-                            <button class="p-2 glass-card rounded-full hover:bg-white/10 text-text-muted hover:text-brand-teal transition-colors"
-                                    title="Track Episode">
-                              {% if episode.history %}
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                                  <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                              {% else %}
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path>
-                                  <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path>
-                                  <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path>
-                                  <path d="m2 2 20 20"></path>
-                                </svg>
-                              {% endif %}
-                            </button>
-                          </div>
-                        </div>
-                        {% if episode.overview %}
-                          <p class="text-sm text-text-muted line-clamp-2">{{ episode.overview }}</p>
-                        {% endif %}
-                        {% if episode.history %}
-                          <p class="text-xs text-text-muted">
-                            Last watched: {{ episode.history.0.end_date|date_tracker_format|default_if_none:"No date provided" }}
-                            {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
-                          </p>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-            </section>
-          {% endif %}
-          
-          {# Related Media #}
-          {% if media.related %}
-            {% for name, related_items in media.related.items %}
-              {% if related_items %}
-                <section class="space-y-6" x-data="{ isOpen: false }">
-                  <div class="flex items-center cursor-pointer" @click="isOpen = !isOpen">
-                    <h2 class="text-xl font-semibold text-text-primary">{{ name|no_underscore|title }}</h2>
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         width="20"
-                         height="20"
-                         viewBox="0 0 24 24"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2"
-                         stroke-linecap="round"
-                         stroke-linejoin="round"
-                         class="ml-2 transition-transform text-text-muted"
-                         :class="{ 'rotate-180': isOpen }">
-                      <path d="m6 9 6 6 6-6"/>
-                    </svg>
-                  </div>
-                  <div x-show="isOpen"
-                       x-transition:enter="transition ease-out duration-200"
-                       x-transition:enter-start="opacity-0 transform -translate-y-2"
-                       x-transition:enter-end="opacity-100 transform translate-y-0">
-                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {% for item in related_items %}
-                        <div class="glass-card rounded-lg overflow-hidden hover:bg-white/10 transition-colors">
-                          {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None from_grid=True hof_display=True %}
-                        </div>
-                      {% endfor %}
-                    </div>
-                  </div>
-                </section>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-          
-          {# Movie diary entries #}
-          {% if media.media_type == MediaTypes.MOVIE.value and diary_entries %}
-            <section class="space-y-6">
-              <h2 class="text-xl font-semibold text-text-primary">Your Logs</h2>
-              <div class="space-y-3">
-                {% for entry in diary_entries %}
-                  <div class="glass-card rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                      <div>
-                        <p class="text-text-primary">Logged {{ entry.consumed_at|date:"M d, Y" }}</p>
-                        <div class="flex items-center gap-2 mt-1">
-                          {% if entry.rating %}
-                            <span class="text-brand-teal">★ {{ entry.rating }}</span>
-                          {% endif %}
-                          {% if entry.liked %}
-                            <span class="text-red-400">❤️</span>
-                          {% endif %}
-                          {% if entry.is_rewatch %}
-                            <span class="text-xs px-2 py-1 rounded bg-white/10 text-text-muted">Rewatch</span>
-                          {% endif %}
-                        </div>
-                      </div>
-                    </div>
-                    {% if entry.review %}
-                      <p class="text-sm text-text-muted mt-2">{{ entry.review }}</p>
-                    {% endif %}
-                  </div>
-                {% endfor %}
-              </div>
-            </section>
-          {% endif %}
-        </div>
-        
-        {# Right: Release Info #}
-        <div class="lg:sticky lg:top-8 h-fit">
-          {% include "app/components/media/release_info.html" %}
-        </div>
-      </div>
-      
-      {# Track Modal for non-movies #}
-      {% if media.media_type != MediaTypes.MOVIE.value %}
-        <div x-data="{ trackOpen: false }">
-          <div class="fixed bottom-8 right-8 z-50">
-            <button class="glass-card-strong rounded-full p-4 shadow-elev hover:scale-105 transition-all text-text-primary hover:text-brand-teal"
-                    hx-get="{% media_view_url 'track_modal' media %}"
-                    hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
-                    hx-target="#track-modal-content"
-                    hx-trigger="click"
-                    @click="trackOpen = true"
-                    title="{% if media.media_type == MediaTypes.BOOK.value or media.media_type == MediaTypes.MANGA.value %}Track Reading{% elif media.media_type == MediaTypes.GAME.value %}Track Playing{% else %}Track Watching{% endif %}">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
-              </svg>
-            </button>
-          </div>
-          
-          {# Track Modal #}
-          <div x-show="trackOpen"
-               @keydown.escape.window="trackOpen = false"
-               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-               x-transition:enter="transition ease-out duration-200"
-               x-transition:enter-start="opacity-0"
-               x-transition:enter-end="opacity-100">
-            <div class="w-[38rem] max-h-[90vh] px-4 md:px-0 relative"
-                 @click.outside="trackOpen = false">
-              <div id="track-modal-content"></div>
+          {# Popular Reviews #}
+          {% include "app/components/media/reviews_feed.html" %}
             </div>
           </div>
         </div>
-      {% endif %}
-    </div>
+        
+        {# Related Films - Full width below the two-column layout #}
+        {% include "app/components/media/related_media.html" %}
+      </div>
+    </main>
   </div>
-
+  
   {# Modal Containers #}
   <div id="poster-modal-container"></div>
   <div id="log-modal-container"></div>
-  
-  {# Movie Log Script (preserved from original) #}
-  <script>
-  function submitDiaryLog(button) {
-      console.log('Log button clicked');
-      
-      const modal = button.closest('.fixed');
-      
-      // Get form data
-      const watchDate = modal.querySelector('[name="watch_date"]').value;
-      const rating = modal.querySelector('[name="rating"]').value || '';
-      const review = modal.querySelector('[name="review"]').value || '';
-      const isRewatch = modal.querySelector('[name="is_rewatch"]').checked;
-      const liked = modal.querySelector('[name="liked"]').value === 'true';
-      
-      console.log('Form data:', { watchDate, rating, review, isRewatch, liked });
-      
-      const formData = new FormData();
-      formData.append('watch_date', watchDate);
-      formData.append('rating', rating);
-      formData.append('review', review);
-      formData.append('is_rewatch', isRewatch);
-      formData.append('liked', liked);
-      formData.append('auto_mark_consumed', 'true');
-      formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-      
-      // Disable button
-      button.disabled = true;
-      button.textContent = 'Logging...';
-      
-      const url = '{% url "add_movie_diary_entry" media.source media.media_type media.media_id %}';
-      console.log('Submitting to:', url);
-      
-      // Submit via fetch
-      fetch(url, {
-          method: 'POST',
-          body: formData,
-          headers: {
-              'X-CSRFToken': '{{ csrf_token }}'
-          }
-      })
-      .then(response => {
-          console.log('Response status:', response.status);
-          if (response.ok) {
-              return response.json();
-          } else {
-              return response.text().then(text => {
-                  console.error('Error response:', text);
-                  throw new Error('Server error: ' + response.status);
-              });
-          }
-      })
-      .then(data => {
-          console.log('Success:', data);
-          // Success - close modal and reload page to show changes
-          modal.remove();
-          window.location.reload();
-      })
-      .catch(error => {
-          console.error('Error:', error);
-          // Re-enable button on error
-          button.disabled = false;
-          button.textContent = 'Log';
-          alert('Error logging movie: ' + error.message);
-      });
-  }
-  </script>
 {% endblock content %}
+
+
+
+
+
+
+
+

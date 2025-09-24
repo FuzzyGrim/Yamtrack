@@ -19,11 +19,17 @@ from app import helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie
+
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 from app.forms import DiaryEntryForm
 from app.models import DiaryEntry
+from app.utils.color import (
+    build_accent_palette,
+    compute_and_store_poster_accent,
+    get_poster_accent_from_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -186,9 +192,28 @@ def media_search(request):
 
 
 @require_GET
-def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
+def media_details(request, source, media_type, media_id, title):
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
+
+    poster_accent = None
+    accent_item = Item.objects.filter(
+        media_id=media_id,
+        source=source,
+        media_type=media_type,
+    ).first()
+    if accent_item:
+        poster_accent = compute_and_store_poster_accent(
+            accent_item,
+            poster_url=media_metadata.get("image"),
+        )
+    else:
+        poster_accent = get_poster_accent_from_url(media_metadata.get("image"))
+
+    accent_palette = build_accent_palette(poster_accent)
+    poster_accent = accent_palette["accent"]
+    poster_accent_contrast = accent_palette["contrast"]
+
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
@@ -212,6 +237,8 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "user_medias": user_medias,
         "current_instance": current_instance,
         "diary_entries": diary_entries,
+        "poster_accent_color": poster_accent,
+        "poster_accent_contrast": poster_accent_contrast,
     }
     return render(request, "app/media_details.html", context)
 
@@ -226,6 +253,24 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         [season_number],
     )
     season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
+
+    poster_accent = None
+    accent_item = Item.objects.filter(
+        media_id=media_id,
+        source=source,
+        media_type=MediaTypes.TV.value,
+    ).first()
+    if accent_item:
+        poster_accent = compute_and_store_poster_accent(
+            accent_item,
+            poster_url=season_metadata.get("image"),
+        )
+    else:
+        poster_accent = get_poster_accent_from_url(season_metadata.get("image"))
+
+    accent_palette = build_accent_palette(poster_accent)
+    poster_accent = accent_palette["accent"]
+    poster_accent_contrast = accent_palette["contrast"]
 
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
@@ -255,6 +300,9 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "media_type": MediaTypes.SEASON.value,
         "user_medias": user_medias,
         "current_instance": current_instance,
+        "episodes_in_db": episodes_in_db,
+        "poster_accent_color": poster_accent,
+        "poster_accent_contrast": poster_accent_contrast,
     }
     return render(request, "app/media_details.html", context)
 
@@ -990,13 +1038,14 @@ def poster_selection_modal(request, media_type, media_id, source):
         # Create the original poster entry
         original_poster = {
             "url": item.image,
+            "thumbnail_url": item.image,
             "width": 0,
             "height": 0,
             "aspect_ratio": 0.667,
             "vote_average": 0,
             "vote_count": 0,
             "language": None,
-            "is_original": True
+            "is_current": True
         }
         
         # Combine original with TMDB posters, ensuring original is first
@@ -1052,13 +1101,32 @@ def save_poster_preference(request):
         
         # Update or create the preference
         from app.models import CustomPosterPreference
+
+        accent = compute_and_store_poster_accent(
+            item,
+            poster_url=custom_image_url,
+            force=True,
+        )
+        palette = build_accent_palette(accent)
+
         CustomPosterPreference.objects.update_or_create(
             user=request.user,
             item=item,
             defaults={"custom_image_url": custom_image_url}
         )
-        
-        return JsonResponse({"success": True})
+
+        item.image = custom_image_url
+        item.poster_accent_color = palette["accent"]
+        item.save(update_fields=["image", "poster_accent_color"])
+
+        return JsonResponse(
+            {
+                "success": True,
+                "poster_url": custom_image_url,
+                "accent": palette["accent"],
+                "contrast": palette["contrast"],
+            }
+        )
         
     except Item.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)

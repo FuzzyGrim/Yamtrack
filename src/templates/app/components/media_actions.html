@@ -1,61 +1,67 @@
 {% load app_tags %}
 
-{# Action buttons for movies #}
-{% if media.media_type == MediaTypes.MOVIE.value %}
-  {% if current_instance and current_instance.status == "Completed" %}
-    {# Movie is already marked as watched #}
-    <div class="mt-4 flex gap-2 w-full">
-      <button class="flex-1 px-4 py-2 rounded text-white transition duration-300 cursor-pointer bg-gray-600 hover:bg-gray-700 text-sm flex items-center justify-center gap-1"
-              hx-post="{% url 'unmark_movie_watched' media.source media.media_type media.media_id %}"
-              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-              hx-target="#media-actions"
-              hx-swap="innerHTML">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        Watched
-      </button>
-      <button class="flex-1 px-4 py-2 rounded text-white transition duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-sm flex items-center justify-center gap-1"
-              onclick="fetch('{% url 'log_modal' media.source media.media_type media.media_id %}')
+{# Action Buttons - New design based on React component #}
+<div class="mt-6">
+  {% if media.media_type == MediaTypes.MOVIE.value %}
+    <div class="flex gap-2">
+      {# Mark as Watched Button #}
+      {% if current_instance and current_instance.status == "Completed" %}
+        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                hx-post="{% url 'unmark_movie_watched' media.source media.media_type media.media_id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#media-actions"
+                hx-swap="innerHTML">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+          </svg>
+          Watched
+        </button>
+      {% else %}
+        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                hx-post="{% url 'mark_movie_watched' media.source media.media_type media.media_id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#media-actions"
+                hx-swap="innerHTML">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+          </svg>
+          Watched
+        </button>
+      {% endif %}
+
+      {# Log Button #}
+      <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+              data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
+              onclick="fetch(this.dataset.logUrl)
                 .then(response => response.text())
                 .then(html => {
                   document.getElementById('log-modal-container').innerHTML = html;
                 })">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
         </svg>
-        Log
+        Log Movie
       </button>
     </div>
   {% else %}
-    {# Movie not watched yet #}
-    <div class="mt-4 flex gap-2 w-full">
-      <button class="flex-1 px-4 py-2 rounded text-white transition duration-300 cursor-pointer bg-green-600 hover:bg-green-700 text-sm flex items-center justify-center gap-1"
-              style="background-color: #059669;"
-              hx-post="{% url 'mark_movie_watched' media.source media.media_type media.media_id %}"
-              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-              hx-target="#media-actions"
-              hx-swap="innerHTML">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        Watched
-      </button>
-      <button class="flex-1 px-4 py-2 rounded text-white transition duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-sm flex items-center justify-center gap-1"
-              onclick="fetch('{% url 'log_modal' media.source media.media_type media.media_id %}')
-                .then(response => response.text())
-                .then(html => {
-                  document.getElementById('log-modal-container').innerHTML = html;
-                })">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-        </svg>
-        Log
-      </button>
-    </div>
+    {# Non-movie media types - show track button #}
+    <button class="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            hx-get="{% media_view_url 'track_modal' media %}"
+            hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id|default:'' }}"}'
+            hx-target="#track-modal-content"
+            hx-trigger="click">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+      </svg>
+      {% if media.media_type == MediaTypes.BOOK.value or media.media_type == MediaTypes.MANGA.value %}
+        Track Reading
+      {% elif media.media_type == MediaTypes.GAME.value %}
+        Track Playing
+      {% else %}
+        Track Watching
+      {% endif %}
+    </button>
   {% endif %}
-{% else %}
-  {# Non-movie media actions are handled elsewhere on the page (track button/modal). Nothing to render here. #}
-{% endif %}
+</div>

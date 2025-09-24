@@ -137,6 +137,30 @@ def get_cast(credits, limit=15):
     return cast
 
 
+def get_crew(credits, limit=15):
+    """Return the top crew members."""
+    if not credits or "crew" not in credits:
+        return None
+
+    crew = []
+    seen = set()
+    for member in credits["crew"]:
+        identifier = (member.get("name"), member.get("job"))
+        if identifier in seen:
+            continue
+        seen.add(identifier)
+        crew.append(
+            {
+                "name": member.get("name"),
+                "job": member.get("job"),
+            }
+        )
+        if len(crew) >= limit:
+            break
+
+    return crew
+
+
 def get_director(credits):
     """Return the director's name from crew."""
     if not credits or "crew" not in credits:
@@ -194,6 +218,7 @@ def movie(media_id):
                 "director": get_director(response.get("credits")),
             },
             "cast": get_cast(response.get("credits")),
+            "crew": get_crew(response.get("credits")),
             "related": {
                 "recommendations": get_related(
                     response.get("recommendations", {}).get("results", [])[:15],
@@ -354,6 +379,7 @@ def process_tv(response):
             "creator": get_creator(response.get("created_by")),
         },
         "cast": get_cast(response.get("credits")),
+        "crew": get_crew(response.get("credits")),
         "related": {
             "seasons": get_related(
                 response["seasons"],
@@ -426,6 +452,23 @@ def get_image_url(path):
     if path:
         return f"https://image.tmdb.org/t/p/w500{path}"
     return settings.IMG_NONE
+
+
+def fetch_image(path, size="original"):
+    """Fetch TMDB image bytes for a given poster path.
+
+    Args:
+        path: TMDB file path beginning with a leading slash.
+        size: Image size key (e.g. ``original``, ``w342``) supported by TMDB CDN.
+    """
+
+    if not path:
+        raise ValueError("Cannot fetch TMDB image without a path")
+
+    url = f"https://image.tmdb.org/t/p/{size}{path}"
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
+    return response.content
 
 
 def get_title(response):
@@ -678,8 +721,10 @@ def get_poster_images(media_id, media_type):
         # Extract and format poster data
         posters = []
         for poster in response.get("posters", []):
+            file_path = poster["file_path"]
             posters.append({
-                "url": f"https://image.tmdb.org/t/p/original{poster['file_path']}",
+                "url": f"https://image.tmdb.org/t/p/original{file_path}",
+                "thumbnail_url": f"https://image.tmdb.org/t/p/w342{file_path}",
                 "width": poster["width"],
                 "height": poster["height"],
                 "aspect_ratio": poster["aspect_ratio"],

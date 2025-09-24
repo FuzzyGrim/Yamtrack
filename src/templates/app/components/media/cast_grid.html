@@ -1,187 +1,42 @@
 {% load app_tags %}
 
-{# Cast/Crew Grid Component - allows toggling between people groups #}
-{% if media.cast or media.crew or media.details.director or media.details.creator or media.details.writer or media.details.composer or media.details.production_companies %}
-  <section
-    x-data="{ tab: '{% if media.cast %}cast{% else %}crew{% endif %}' }"
-    x-init="console.log('Cast/Crew tabs initialised', { hasCast: {% if media.cast %}true{% else %}false{% endif %}, hasCrew: {% if media.crew or media.details.director or media.details.creator or media.details.writer or media.details.composer or media.details.production_companies %}true{% else %}false{% endif %} });"
-    class="space-y-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4 text-lg font-semibold">
-          {% if media.cast %}
-            <button type="button"
-                    @click="tab = 'cast'"
-                    :style="tab === 'cast' ? 'color:#f5f6f8;' : 'color:rgba(245,246,248,0.55);'"
-                    class="transition-colors focus:outline-none">
-              Cast
-            </button>
-          {% endif %}
-          {% if media.crew or media.details.director or media.details.creator or media.details.writer or media.details.composer or media.details.production_companies %}
-            <button type="button"
-                    @click="tab = 'crew'"
-                    :style="tab === 'crew' ? 'color:#f5f6f8;' : 'color:rgba(245,246,248,0.55);'"
-                    class="transition-colors focus:outline-none">
-              Crew
-            </button>
-          {% endif %}
-        </div>
-        {% if media.cast and media.cast|length > 8 %}
-          <a href="#"
-             x-show="tab === 'cast'"
-             x-cloak
-             class="text-xs text-brand-teal hover:text-brand-purple transition-colors">
-            See all
-          </a>
-        {% endif %}
-      </div>
-
-      {% if media.cast %}
-        <div x-show="tab === 'cast'" x-cloak class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {% for actor in media.cast|slice:":8" %}
-            <div class="flex items-center gap-3 rounded-xl transition-all px-3 py-2"
-                 style="background-color: #1c1f24; box-shadow: 0 6px 18px rgba(5,8,15,0.35);">
-              <div class="rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
-                   style="width:48px;height:48px;background-color:#1f2024;">
-                {% if actor.profile_image or actor.image %}
-                  <img src="{{ actor.profile_image|default:actor.image }}"
-                       alt="{{ actor.name }}"
-                       style="width:100%;height:100%;object-fit:cover;"
-                       loading="lazy">
-                {% else %}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                  </svg>
-                {% endif %}
-              </div>
-              <div class="min-w-0">
-                <p class="text-[13px] font-medium text-text-primary truncate">{{ actor.name }}</p>
-                {% if actor.character %}
-                  <p class="text-[10px] italic text-text-muted truncate">{{ actor.character }}</p>
-                {% endif %}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
+{# Cast list with optional crew toggle #}
+{% if media.cast or media.crew %}
+  <div x-data="{ tab: '{{ media.cast|length|yesno:"cast,crew" }}' }" x-cloak class="space-y-4">
+    <h2 class="text-xl font-semibold">
+      <button type="button"
+              class="transition-colors"
+              :class="tab === 'cast' ? 'text-white' : 'text-gray-500 hover:text-white'"
+              @click="tab = 'cast'">
+        Cast
+      </button>
+      {% if media.crew %}
+        <span class="mx-2 text-gray-600">/</span>
+        <button type="button"
+                class="transition-colors"
+                :class="tab === 'crew' ? 'text-white' : 'text-gray-500 hover:text-white'"
+                @click="tab = 'crew'">
+          Crew
+        </button>
       {% endif %}
+    </h2>
 
-      {% if media.crew or media.details.director or media.details.creator or media.details.writer or media.details.composer or media.details.production_companies %}
-        <div x-show="tab === 'crew'" x-cloak class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {% if media.crew %}
-            {% for crew_member in media.crew|slice:":8" %}
-              <div class="flex items-center gap-3 rounded-xl transition-all px-3 py-2"
-                   style="background-color: #1c1f24; box-shadow: 0 6px 18px rgba(5,8,15,0.35);">
-                <div class="rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
-                     style="width:48px;height:48px;background-color:#1f2024;">
-                  {% if crew_member.profile_image or crew_member.image %}
-                    <img src="{{ crew_member.profile_image|default:crew_member.image }}"
-                         alt="{{ crew_member.name }}"
-                         style="width:100%;height:100%;object-fit:cover;"
-                         loading="lazy">
-                  {% else %}
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted">
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4 -4 1.79-4 4 1.79 4 4 4Z"/>
-                      <path d="M6 20c0-2.21 2.686-4 6-4s6 1.79 6 4"/>
-                    </svg>
-                  {% endif %}
-                </div>
-                <div class="min-w-0">
-                  <p class="text-[13px] font-medium text-text-primary truncate">{{ crew_member.name }}</p>
-                  {% if crew_member.job %}
-                    <p class="text-[10px] italic text-text-muted truncate">{{ crew_member.job }}</p>
-                  {% endif %}
-                </div>
-              </div>
-            {% endfor %}
-          {% endif %}
-
-          {% if media.details.director %}
-            <div class="flex items-center gap-3 rounded-xl transition-all px-3 py-2"
-                 style="background-color: #1c1f24; box-shadow: 0 6px 18px rgba(5,8,15,0.35);">
-              <div class="rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
-                   style="width:48px;height:48px;background-color:#1f2024;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4 -4 1.79-4 4 1.79 4 4 4Z"/>
-                  <path d="M6 20c0-2.21 2.686-4 6-4s6 1.79 6 4"/>
-                </svg>
-              </div>
-              <div class="min-w-0">
-                <p class="text-[13px] font-medium text-text-primary truncate">{{ media.details.director }}</p>
-                <p class="text-[10px] italic text-text-muted truncate">Director</p>
-              </div>
-            </div>
-          {% endif %}
-
-          {% if media.details.creator %}
-            <div class="flex items-center gap-3 rounded-xl transition-all px-3 py-2"
-                 style="background-color: #1c1f24; box-shadow: 0 6px 18px rgba(5,8,15,0.35);">
-              <div class="rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
-                   style="width:48px;height:48px;background-color:#1f2024;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4 -4 1.79-4 4 1.79 4 4 4Z"/>
-                  <path d="M6 20c0-2.21 2.686-4 6-4s6 1.79 6 4"/>
-                </svg>
-              </div>
-              <div class="min-w-0">
-                <p class="text-[13px] font-medium text-text-primary truncate">{{ media.details.creator }}</p>
-                <p class="text-[10px] italic text-text-muted truncate">Creator</p>
-              </div>
-            </div>
-          {% endif %}
-
-          {% if media.details.writer %}
-            <div class="flex items-center gap-3 rounded-xl transition-all px-3 py-2"
-                 style="background-color: #1c1f24; box-shadow: 0 6px 18px rgba(5,8,15,0.35);">
-              <div class="rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
-                   style="width:48px;height:48px;background-color:#1f2024;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4 -4 1.79-4 4 1.79 4 4 4Z"/>
-                  <path d="M6 20c0-2.21 2.686-4 6-4s6 1.79 6 4"/>
-                </svg>
-              </div>
-              <div class="min-w-0">
-                <p class="text-[13px] font-medium text-text-primary truncate">{{ media.details.writer }}</p>
-                <p class="text-[10px] italic text-text-muted truncate">Writer</p>
-              </div>
-            </div>
-          {% endif %}
-
-          {% if media.details.composer %}
-            <div class="flex items-center gap-3 rounded-xl transition-all px-3 py-2"
-                 style="background-color: #1c1f24; box-shadow: 0 6px 18px rgba(5,8,15,0.35);">
-              <div class="rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
-                   style="width:48px;height:48px;background-color:#1f2024;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4 -4 1.79-4 4 1.79 4 4 4Z"/>
-                  <path d="M6 20c0-2.21 2.686-4 6-4s6 1.79 6 4"/>
-                </svg>
-              </div>
-              <div class="min-w-0">
-                <p class="text-[13px] font-medium text-text-primary truncate">{{ media.details.composer }}</p>
-                <p class="text-[10px] italic text-text-muted truncate">Composer</p>
-              </div>
-            </div>
-          {% endif %}
-
-          {% if media.details.production_companies %}
-            {% for company in media.details.production_companies|slice:":3" %}
-              <div class="flex items-center gap-3 rounded-xl transition-all px-3 py-2"
-                   style="background-color: #1c1f24; box-shadow: 0 6px 18px rgba(5,8,15,0.35);">
-                <div class="rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
-                     style="width:48px;height:48px;background-color:#1f2024;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4 -4 1.79-4 4 1.79 4 4 4Z"/>
-                    <path d="M6 20c0-2.21 2.686-4 6-4s6 1.79 6 4"/>
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-[13px] font-medium text-text-primary truncate">{{ company }}</p>
-                  <p class="text-[10px] italic text-text-muted truncate">Production</p>
-                </div>
-              </div>
-            {% endfor %}
-          {% endif %}
+    <div class="flex flex-wrap gap-2">
+      {% for actor in media.cast|slice:":15" %}
+        <div x-show="tab === 'cast'"
+             class="bg-525252 text-white px-3 py-1 rounded">
+          {{ actor.name }}
         </div>
+      {% endfor %}
+
+      {% if media.crew %}
+        {% for crew_member in media.crew|slice:":15" %}
+          <div x-show="tab === 'crew'"
+               class="bg-525252 text-white px-3 py-1 rounded">
+            {{ crew_member.name }}
+          </div>
+        {% endfor %}
       {% endif %}
-  </section>
+    </div>
+  </div>
 {% endif %}

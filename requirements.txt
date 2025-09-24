@@ -23,4 +23,5 @@ python-decouple==3.8
 redis[hiredis]==6.4.0
 requests==2.32.5
 requests-ratelimiter==0.7.0
+colorthief==0.2.1
 unidecode==1.4.0

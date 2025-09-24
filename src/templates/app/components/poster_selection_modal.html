@@ -10,6 +10,7 @@
          x-data="{ 
             selectedPoster: '{{ current_poster }}',
             selectedLanguage: 'all',
+            isSaving: false,
             languageNames: {
                 'en': 'English',
                 'es': 'Spanish',
@@ -63,6 +64,11 @@
                 );
             },
             savePoster() {
+                if (this.isSaving) {
+                    return;
+                }
+
+                this.isSaving = true;
                 fetch('{% url 'save_poster_preference' %}', {
                     method: 'POST',
                     headers: {
@@ -79,12 +85,38 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.reload();
+                        const posterCardImage = document.getElementById('poster-card-image');
+                        if (posterCardImage && data.poster_url) {
+                            posterCardImage.src = data.poster_url;
+                        }
+
+                        const accentTargets = [
+                            document.getElementById('media-detail-root'),
+                            document.getElementById('poster-card'),
+                        ].filter(Boolean);
+
+                        accentTargets.forEach(el => {
+                            if (data.accent) {
+                                el.style.setProperty('--poster-accent', data.accent);
+                            }
+                            if (data.contrast) {
+                                el.style.setProperty('--poster-accent-contrast', data.contrast);
+                            }
+                        });
+
+                        this.selectedPoster = data.poster_url;
+                        this.isSaving = false;
+                        const modalHost = document.getElementById('poster-modal-container');
+                        if (modalHost) {
+                            modalHost.innerHTML = '';
+                        }
                     } else {
+                        this.isSaving = false;
                         alert('Failed to save poster preference.');
                     }
                 })
                 .catch(() => {
+                    this.isSaving = false;
                     alert('Failed to save poster preference.');
                 });
             }
@@ -192,11 +224,11 @@
                                  style="aspect-ratio: 2/3;"
                                  :class="selectedPoster === poster.url ? 'ring-2 ring-indigo-500' : ''"
                                  @click="selectedPoster = poster.url">
-                                <img :src="poster.url" 
+                                <img :src="poster.thumbnail_url || poster.url" 
                                      alt="Poster option" 
                                      class="w-full h-full object-cover">
-                                <div x-show="poster.is_original" class="absolute top-1 left-1 bg-green-600 text-xs text-white px-1.5 py-0.5 rounded">
-                                    Original
+                                <div x-show="poster.is_current" class="absolute top-1 left-1 bg-green-600 text-xs text-white px-1.5 py-0.5 rounded">
+                                    Current
                                 </div>
                                 <div x-show="poster.language && !poster.is_original" class="absolute bottom-1 right-1 bg-black/75 text-xs text-white px-1 py-0.5 rounded" x-text="poster.language ? getLanguageName(poster.language) : ''">
                                 </div>
@@ -215,8 +247,14 @@
                     Cancel
                 </button>
                 <button @click="savePoster()"
-                        class="ml-3 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
-                    Confirm
+                        :disabled="isSaving"
+                        class="ml-3 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-2 justify-center"
+                        :class="isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:bg-indigo-700'">
+                    <svg x-show="isSaving" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    <span x-text="isSaving ? 'Saving…' : 'Confirm'"></span>
                 </button>
             </div>
         </div>

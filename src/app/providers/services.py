@@ -8,7 +8,7 @@ from redis import ConnectionPool
 from requests.adapters import HTTPAdapter
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
-from app.models import MediaTypes, Sources
+from app.models import Item, MediaTypes, Sources
 from app.providers import (
     comicvine,
     hardcover,
