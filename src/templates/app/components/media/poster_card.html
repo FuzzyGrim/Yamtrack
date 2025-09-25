@@ -1,7 +1,7 @@
 {% load app_tags %}
 
 {# PosterCard Component - Restored with working buttons #}
-<div id="poster-card" class="sticky top-32" style="--poster-accent: {{ poster_accent_color|default:'#6F8FFF' }}; --poster-accent-contrast: {{ poster_accent_contrast|default:'#FFFFFF' }};">
+<div id="poster-card" class="poster-card sticky top-32" style="--poster-accent: {{ poster_accent_color|default:'#6F8FFF' }}; --poster-accent-contrast: {{ poster_accent_contrast|default:'#FFFFFF' }};">
   <div class="overflow-hidden bg-111111 rounded-lg">
     <div class="aspect-[2/3] relative group hover:opacity-100">
       <img
@@ -16,12 +16,11 @@
       {% can_customize_poster media as can_customize %}
       {% if can_customize and user.is_authenticated %}
         <button
-          style="position: absolute; top: 16px; left: 16px; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(4px); border: 1px solid var(--poster-accent); padding: 8px; border-radius: 50%; opacity: 0.85; transition: all 0.3s ease; z-index: 50;"
-          onmouseover="this.style.opacity='1'; this.style.transform='scale(1.08)'"
-          onmouseout="this.style.opacity='0.85'; this.style.transform='scale(1)'"
+          class="poster-customize-btn"
+          style="position:absolute;top:16px;left:16px;border-radius:50%;padding:8px;background:rgba(0,0,0,0.7);border:1px solid var(--poster-accent);color:var(--poster-accent);opacity:0;pointer-events:none;transform:scale(0.9);transition:opacity 0.25s ease,transform 0.25s ease;z-index:50;"
           onclick="fetch('{% url 'poster_selection_modal' media.source media.media_type media.media_id %}').then(function(response) { return response.text(); }).then(function(html) { document.getElementById('poster-modal-container').innerHTML = html; })"
           title="Customize poster">
-          <svg style="width: 16px; height: 16px; color: var(--poster-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
@@ -33,3 +32,12 @@
   {# Action Buttons #}
   {% include "app/components/media_actions.html" %}
 </div>
+
+<style>
+  .poster-card .aspect-\[2\/3\]:hover .poster-customize-btn,
+  .poster-card .poster-customize-btn:focus-visible {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: scale(1.05) !important;
+  }
+</style>

@@ -235,16 +235,11 @@
                       this.isExpanded = true;
                       this.$nextTick(() => this.$refs.searchInput.focus());
                     },
-                    collapseSearch() {
-                      if (!this.isClicked && !this.isOpen) {
-                        this.isExpanded = false;
-                      }
-                    },
                     clickSearch() {
                       this.isClicked = true;
                       this.expandSearch();
                     }
-                  }" @mouseleave="collapseSearch()" @click.outside="isClicked = false; if (!isOpen) isExpanded = false">
+                  }" @click.outside="isClicked = false; isOpen = false; isExpanded = false">
                     <form method="get" action="{% url 'search' %}" class="flex items-center">
                       <button type="button" @click="clickSearch()" @mouseenter="expandSearch()" class="p-2 text-gray-400 hover:text-white transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">

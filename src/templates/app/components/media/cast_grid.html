@@ -24,7 +24,7 @@
     <div class="flex flex-wrap gap-2">
       {% for actor in media.cast|slice:":15" %}
         <div x-show="tab === 'cast'"
-             class="bg-525252 text-white px-3 py-1 rounded">
+             class="cast-chip">
           {{ actor.name }}
         </div>
       {% endfor %}
@@ -32,7 +32,7 @@
       {% if media.crew %}
         {% for crew_member in media.crew|slice:":15" %}
           <div x-show="tab === 'crew'"
-               class="bg-525252 text-white px-3 py-1 rounded">
+               class="cast-chip">
             {{ crew_member.name }}
           </div>
         {% endfor %}
@@ -40,3 +40,16 @@
     </div>
   </div>
 {% endif %}
+
+<style>
+  .cast-chip {
+    background-color: rgba(82, 82, 82, 0.6);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+  }
+
+  .cast-chip + .cast-chip {
+    margin-left: 0.5rem;
+  }
+</style>

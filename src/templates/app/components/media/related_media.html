@@ -2,14 +2,14 @@
 
 {# Related Films - New design based on React component #}
 {% if media.related %}
-  <div x-data="{ open: true }" class="space-y-4">
+  <div x-data="{ open: false }" class="space-y-4">
     <button type="button"
             class="flex items-center gap-3 text-left"
             @click="open = !open">
       <svg :class="open ? 'rotate-90' : ''" class="h-4 w-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
       </svg>
-      <h2 class="text-xl font-semibold">Related Films</h2>
+      <h2 class="text-xl font-semibold">Related</h2>
     </button>
 
     <div x-show="open"

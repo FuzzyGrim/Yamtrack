@@ -627,3 +627,15 @@ def money_compact(value):
         formatted = formatted.replace(".0", "")
 
     return formatted
+
+
+@register.filter
+def to_five_scale(value):
+    """Convert a 10-point score into a 5-point scale."""
+
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return value
+
+    return score / 2
