@@ -138,27 +138,48 @@ def get_cast(credits, limit=15):
 
 
 def get_crew(credits, limit=15):
-    """Return the top crew members."""
+    """Return curated crew list prioritising director, producer, writer, cinematography."""
     if not credits or "crew" not in credits:
         return None
 
-    crew = []
+    priority = {
+        "director": 0,
+        "executive producer": 1,
+        "producer": 1,
+        "co-producer": 1,
+        "associate producer": 1,
+        "writer": 2,
+        "screenplay": 2,
+        "story": 2,
+        "teleplay": 2,
+        "cinematography": 3,
+        "director of photography": 3,
+        "photography": 3,
+    }
+
+    ranked = []
     seen = set()
     for member in credits["crew"]:
-        identifier = (member.get("name"), member.get("job"))
-        if identifier in seen:
+        key = (member.get("name"), member.get("job"))
+        if key in seen:
             continue
-        seen.add(identifier)
-        crew.append(
-            {
-                "name": member.get("name"),
-                "job": member.get("job"),
-            }
+        seen.add(key)
+        job = (member.get("job") or "").lower()
+        rank = priority.get(job, 4)
+        ranked.append(
+            (
+                rank,
+                member.get("order", 999),
+                {
+                    "name": member.get("name"),
+                    "job": member.get("job"),
+                },
+            )
         )
-        if len(crew) >= limit:
-            break
 
-    return crew
+    ranked.sort(key=lambda item: (item[0], item[1]))
+
+    return [entry[2] for entry in ranked[:limit]]
 
 
 def get_director(credits):
@@ -207,6 +228,8 @@ def movie(media_id):
             "genres": get_genres(response["genres"]),
             "score": get_score(response["vote_average"]),
             "score_count": response["vote_count"],
+            "revenue": response.get("revenue"),
+            "popularity": response.get("popularity"),
             "details": {
                 "format": "Movie",
                 "release_date": get_start_date(response["release_date"]),
@@ -365,6 +388,8 @@ def process_tv(response):
         "genres": get_genres(response["genres"]),
         "score": get_score(response["vote_average"]),
         "score_count": response["vote_count"],
+        "revenue": None,
+        "popularity": response.get("popularity"),
         "details": {
             "format": "TV",
             "first_air_date": get_start_date(response["first_air_date"]),

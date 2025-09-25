@@ -572,3 +572,58 @@ def can_customize_poster(item):
     # Only TMDB movies and TV shows can have custom posters
     return (source == Sources.TMDB.value and 
             media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value])
+
+
+@register.filter
+def compact_number(value):
+    """Return a shortened representation for large integers (e.g. 3.2k)."""
+
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return value
+
+    absolute = abs(number)
+
+    if absolute >= 1_000_000_000:
+        short = f"{number / 1_000_000_000:.1f}b"
+    elif absolute >= 1_000_000:
+        short = f"{number / 1_000_000:.1f}m"
+    elif absolute >= 1_000:
+        short = f"{number / 1_000:.1f}k"
+    else:
+        return str(number)
+
+    if short.endswith(".0b") or short.endswith(".0m") or short.endswith(".0k"):
+        short = short.replace(".0", "")
+
+    return short
+
+
+@register.filter
+def money_compact(value):
+    """Format large currency values into compact strings (e.g. $300M)."""
+
+    try:
+        amount = int(value)
+    except (TypeError, ValueError):
+        return "-"
+
+    if amount <= 0:
+        return "-"
+
+    absolute = abs(amount)
+
+    if absolute >= 1_000_000_000:
+        formatted = f"${amount / 1_000_000_000:.1f}B"
+    elif absolute >= 1_000_000:
+        formatted = f"${amount / 1_000_000:.1f}M"
+    elif absolute >= 1_000:
+        formatted = f"${amount / 1_000:.1f}K"
+    else:
+        formatted = f"${amount}"
+
+    if formatted.endswith(".0B") or formatted.endswith(".0M") or formatted.endswith(".0K"):
+        formatted = formatted.replace(".0", "")
+
+    return formatted
