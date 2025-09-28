@@ -343,6 +343,8 @@ MAL_API = config(
 )
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
 
+MAL_PREFER_EN_TITLE = config("MAL_PREFER_EN_TITLE", default=False, cast=bool)
+
 MU_NSFW = config("MU_NSFW", default=False, cast=bool)
 
 IGDB_ID = config(

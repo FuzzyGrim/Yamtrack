@@ -12,7 +12,7 @@ from app.providers import services
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.myanimelist.net/v2"
-base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status,genres,mean,num_scoring_users,recommendations"  # noqa: E501
+base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status,genres,mean,num_scoring_users,recommendations,alternative_titles"  # noqa: E501
 
 
 def handle_error(error):
@@ -49,7 +49,7 @@ def search(media_type, query, page):
         url = f"{base_url}/{media_type}"
         params = {
             "q": query,
-            "fields": "media_type",
+            "fields": "media_type,alternative_titles",
             "limit": settings.PER_PAGE,
         }
         if settings.MAL_NSFW:
@@ -72,7 +72,7 @@ def search(media_type, query, page):
                 "media_id": media["node"]["id"],
                 "source": Sources.MAL.value,
                 "media_type": media_type,
-                "title": media["node"]["title"],
+                "title": get_english_title_if_available(media["node"]),
                 "image": get_image_url(media["node"]),
             }
             for media in response
@@ -119,7 +119,7 @@ def anime(media_id):
             "source": Sources.MAL.value,
             "source_url": f"https://myanimelist.net/anime/{media_id}",
             "media_type": MediaTypes.ANIME.value,
-            "title": response["title"],
+            "title": get_english_title_if_available(response),
             "max_progress": num_episodes,
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
@@ -149,7 +149,6 @@ def anime(media_id):
                 ),
             },
         }
-
         cache.set(cache_key, data)
 
     return data
@@ -386,10 +385,18 @@ def get_related(related_medias, media_type):
             {
                 "media_id": media["node"]["id"],
                 "source": Sources.MAL.value,
-                "title": media["node"]["title"],
+                "title": get_english_title_if_available(media["node"], media["node"]["id"]),
                 "media_type": media_type,
                 "image": get_image_url(media["node"]),
             }
             for media in related_medias
         ]
     return []
+
+
+def get_english_title_if_available(media, media_id = None):
+    """Return the English title if available, otherwise return the main title."""
+    if settings.MAL_PREFER_EN_TITLE:
+        alternative_titles = media.get("alternative_titles", {})
+        return alternative_titles.get("en") or media.get("title")
+    return media.get("title")
