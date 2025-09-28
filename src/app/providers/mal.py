@@ -72,7 +72,7 @@ def search(media_type, query, page):
                 "media_id": media["node"]["id"],
                 "source": Sources.MAL.value,
                 "media_type": media_type,
-                "title": get_english_title_if_available(media["node"]),
+                "title": get_title(media["node"]),
                 "image": get_image_url(media["node"]),
             }
             for media in response
@@ -119,7 +119,7 @@ def anime(media_id):
             "source": Sources.MAL.value,
             "source_url": f"https://myanimelist.net/anime/{media_id}",
             "media_type": MediaTypes.ANIME.value,
-            "title": get_english_title_if_available(response),
+            "title": get_title(response),
             "max_progress": num_episodes,
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
@@ -183,7 +183,7 @@ def manga(media_id):
             "source": Sources.MAL.value,
             "source_url": f"https://myanimelist.net/manga/{media_id}",
             "media_type": MediaTypes.MANGA.value,
-            "title": response["title"],
+            "title": get_title(response),
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
             "max_progress": num_chapters,
@@ -385,7 +385,7 @@ def get_related(related_medias, media_type):
             {
                 "media_id": media["node"]["id"],
                 "source": Sources.MAL.value,
-                "title": get_english_title_if_available(media["node"], media["node"]["id"]),
+                "title": get_title(media["node"]),
                 "media_type": media_type,
                 "image": get_image_url(media["node"]),
             }
@@ -394,7 +394,7 @@ def get_related(related_medias, media_type):
     return []
 
 
-def get_english_title_if_available(media, media_id = None):
+def get_title(media):
     """Return the English title if available, otherwise return the main title."""
     if settings.MAL_PREFER_EN_TITLE:
         alternative_titles = media.get("alternative_titles", {})
