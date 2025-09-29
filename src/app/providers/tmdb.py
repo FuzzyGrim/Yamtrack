@@ -157,29 +157,51 @@ def get_crew(credits, limit=15):
         "photography": 3,
     }
 
-    ranked = []
-    seen = set()
+    crew_map: dict[str, dict[str, object]] = {}
+
     for member in credits["crew"]:
-        key = (member.get("name"), member.get("job"))
-        if key in seen:
+        name = (member.get("name") or "").strip()
+        if not name:
             continue
-        seen.add(key)
-        job = (member.get("job") or "").lower()
-        rank = priority.get(job, 4)
-        ranked.append(
-            (
-                rank,
-                member.get("order", 999),
-                {
-                    "name": member.get("name"),
-                    "job": member.get("job"),
-                },
-            )
+
+        job = (member.get("job") or "").strip()
+        priority_key = job.lower()
+        rank = priority.get(priority_key, 4)
+        order = member.get("order", 999)
+
+        entry = crew_map.setdefault(
+            name,
+            {
+                "name": name,
+                "roles": [],
+                "rank": rank,
+                "order": order,
+            },
         )
 
-    ranked.sort(key=lambda item: (item[0], item[1]))
+        entry["rank"] = min(entry["rank"], rank)
+        entry["order"] = min(entry["order"], order)
 
-    return [entry[2] for entry in ranked[:limit]]
+        if job and job not in entry["roles"]:
+            entry["roles"].append(job)
+
+    grouped = sorted(
+        crew_map.values(),
+        key=lambda item: (item["rank"], item["order"]),
+    )
+
+    trimmed = []
+    for entry in grouped[:limit]:
+        roles = entry.get("roles", [])
+        entry["roles"] = roles
+        trimmed.append(
+            {
+                "name": entry["name"],
+                "roles": roles,
+            }
+        )
+
+    return trimmed
 
 
 def get_director(credits):

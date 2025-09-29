@@ -21,19 +21,51 @@
       {% endif %}
     </h2>
 
-    <div class="flex flex-wrap gap-2">
+    <div class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));">
       {% for actor in media.cast|slice:":15" %}
         <div x-show="tab === 'cast'"
-             class="cast-chip">
-          {{ actor.name }}
+             class="cast-chip"
+             tabindex="0">
+          <span class="cast-name">{{ actor.name }}</span>
+          {% if actor.character %}
+            <span class="cast-role">as {{ actor.character }}</span>
+          {% endif %}
         </div>
       {% endfor %}
 
       {% if media.crew %}
         {% for crew_member in media.crew|slice:":15" %}
           <div x-show="tab === 'crew'"
-               class="cast-chip">
-            {{ crew_member.name }}
+               class="cast-chip crew-chip"
+               x-data="{ open: false }"
+               @click.stop="open = !open"
+               @keyup.enter.stop="open = !open"
+               @keyup.space.stop.prevent="open = !open"
+               @click.outside="open = false"
+               tabindex="0"
+               role="button"
+               :aria-expanded="open">
+            <div class="crew-content">
+              <span class="cast-name">{{ crew_member.name }}</span>
+              {% if crew_member.roles %}
+                <span class="cast-role">{{ crew_member.roles.0 }}</span>
+                {% if crew_member.roles|length > 1 %}
+                  <span class="cast-more">+{{ crew_member.roles|length|add:"-1" }}</span>
+                {% endif %}
+              {% endif %}
+            </div>
+            {% if crew_member.roles|length > 1 %}
+              <div x-show="open"
+                   x-transition
+                   class="crew-popover">
+                <strong class="block text-xs uppercase tracking-wide text-gray-300 mb-1">Roles</strong>
+                <ul class="text-sm text-gray-100 space-y-1">
+                  {% for role in crew_member.roles %}
+                    <li>{{ role }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
           </div>
         {% endfor %}
       {% endif %}
@@ -43,13 +75,80 @@
 
 <style>
   .cast-chip {
-    background-color: rgba(82, 82, 82, 0.6);
-    color: rgba(255, 255, 255, 0.9);
-    padding: 0.25rem 0.75rem;
+    background-color: rgba(82, 82, 82, 0.55);
+    color: rgba(255, 255, 255, 0.92);
+    padding: 0.4rem 0.75rem;
     border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+    overflow: visible;
+    transition: background-color 0.2s ease;
   }
 
-  .cast-chip + .cast-chip {
-    margin-left: 0.5rem;
+  .cast-chip:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.45);
+    outline-offset: 2px;
+  }
+
+  .cast-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cast-role {
+    flex: 0 0 auto;
+    max-width: 0;
+    opacity: 0;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.75);
+    transition: max-width 0.25s ease, opacity 0.2s ease;
+    padding-left: 0.5rem;
+  }
+
+  .cast-chip:hover .cast-role,
+  .cast-chip:focus-visible .cast-role {
+    max-width: 10rem;
+    opacity: 0.85;
+  }
+
+  .cast-more {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 9999px;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .crew-chip {
+    position: relative;
+    cursor: pointer;
+    overflow: visible;
+  }
+
+  .crew-content {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .crew-popover {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 0.5rem);
+    background: rgba(0, 0, 0, 0.92);
+    border-radius: 0.6rem;
+    padding: 0.75rem 0.9rem;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    width: max-content;
+    max-width: 18rem;
+    z-index: 20;
   }
 </style>
