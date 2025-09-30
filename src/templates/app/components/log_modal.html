@@ -1,13 +1,15 @@
 {% load app_tags %}
 
 <!-- Modal backdrop -->
-
 <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
     <!-- Modal content -->
     <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative max-w-2xl w-full mx-4"
-         @click.stop>
+         @click.stop
+         data-log-url="{% url 'log_modal' item.source item.media_type item.media_id %}">
          
-        <div class="p-6">
+        <form>
+            {% csrf_token %}
+            <div class="p-6">
             <!-- Header -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">{{ item.title }}</h2>
@@ -32,7 +34,7 @@
                                value="{{ today|date:'Y-m-d' }}">
                         
                         <!-- Stars Rating -->
-                        <div class="rating flex items-center" x-data="{ rating: 0, temp: 0, isRewatch: false }">
+                        <div class="rating flex items-center" x-data="{ rating: 0, temp: 0, isRewatch: false, liked: false }">
                             <button type="button" 
                                     class="text-gray-400 hover:text-yellow-400"
                                     :class="{ 'text-yellow-400': rating >= 1 || temp >= 1 }"
@@ -94,7 +96,7 @@
                                     <span class="ml-2 text-sm font-medium text-gray-300">Rewatch</span>
                                 </label>
                                 
-                                <div x-data="{ liked: false }" class="flex items-center">
+                                <div class="flex items-center">
                                     <button type="button" 
                                             @click="liked = !liked"
                                             class="flex items-center gap-1 px-2 py-1 rounded transition-colors duration-200"
@@ -137,5 +139,6 @@
                 </button>
             </div>
         </div>
+        </form>
     </div>
 </div> 

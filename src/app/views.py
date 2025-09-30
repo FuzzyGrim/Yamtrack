@@ -1213,6 +1213,7 @@ def diary_list(request):
     # Get filters from query params
     media_type = request.GET.get("media_type", "")
     year = request.GET.get("year")
+    item_id = request.GET.get("item_id")
     page = request.GET.get("page", 1)
     
     # Base queryset
@@ -1221,6 +1222,13 @@ def diary_list(request):
     # Apply filters
     if media_type:
         entries = entries.filter(item__media_type=media_type)
+    
+    if item_id:
+        try:
+            item_id = int(item_id)
+            entries = entries.filter(item__id=item_id)
+        except ValueError:
+            pass
     
     if year:
         try:

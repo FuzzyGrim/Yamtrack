@@ -9,6 +9,7 @@ from unidecode import unidecode
 
 from app import media_type_config
 from app.models import MediaTypes, Sources, Status
+from django.db.models import Avg
 
 register = template.Library()
 
@@ -627,6 +628,25 @@ def money_compact(value):
         formatted = formatted.replace(".0", "")
 
     return formatted
+
+
+@register.filter
+def personal_average_rating(diary_entries):
+    """Calculate the average rating from a user's diary entries."""
+    if not diary_entries:
+        return None
+    
+    # Filter entries that have ratings
+    rated_entries = [entry for entry in diary_entries if entry.rating is not None]
+    
+    if not rated_entries:
+        return None
+    
+    # Calculate average rating
+    total_rating = sum(float(entry.rating) for entry in rated_entries)
+    avg_rating = total_rating / len(rated_entries)
+    
+    return avg_rating
 
 
 @register.filter
