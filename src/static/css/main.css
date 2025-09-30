@@ -4435,3 +4435,58 @@
 .hover\:text-white:hover {
   color: white !important;
 }
+
+
+.episode-card {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+}
+
+.episode-card__image {
+  flex: 0 0 320px;
+  max-width: 320px;
+  aspect-ratio: 16 / 9;
+  background-color: #1f2933;
+  overflow: hidden;
+}
+
+.episode-card__image-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.episode-card__image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4b5563;
+}
+
+.episode-card__body {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (max-width: 767px) {
+  .episode-card {
+    flex-direction: column !important;
+  }
+
+  .episode-card__image {
+    flex: none !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .episode-card__body {
+    padding: 1.25rem !important;
+  }
+}

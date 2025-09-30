@@ -1,0 +1,190 @@
+<!-- TV Show Logging Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+     x-data="{ 
+        rating: 0, 
+        temp: 0, 
+        liked: false, 
+        isRewatch: false,
+        showType: '{{ log_type }}',
+        selectedSeason: null
+     }" 
+     @click.self="$el.remove()">
+    
+    <div class="bg-[#1a1d23] rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold text-white">
+                {% if log_type == 'season' %}
+                    Log Season {{ season_number }}
+                {% else %}
+                    Log TV Show
+                {% endif %}
+            </h2>
+            <button @click="$el.closest('.fixed').remove()" class="text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        
+        {% if log_type == 'season' %}
+            <!-- Season Logging Form -->
+            <div class="flex gap-6">
+                <img src="{% load app_tags %}{% get_user_poster_image season_item user %}" 
+                     alt="{{ tv_item.title }} Season {{ season_number }}" 
+                     class="w-32 h-48 object-cover rounded flex-shrink-0">
+                
+                <div class="flex-1">
+                    <div class="mb-4">
+                        <h3 class="text-xl text-white font-medium">{{ tv_item.title }}</h3>
+                        <p class="text-gray-400">Season {{ season_number }}</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Date -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Watch Date</label>
+                            <input type="date" 
+                                   id="watch-date" 
+                                   name="watch_date"
+                                   class="bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400"
+                                   value="{{ today|date:'Y-m-d' }}">
+                        </div>
+                        
+                        <!-- Rating -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Rating</label>
+                            <div class="flex items-center gap-1">
+                                <template x-for="star in [1,2,3,4,5,6,7,8,9,10]" :key="star">
+                                    <button type="button" 
+                                            class="text-gray-400 hover:text-yellow-400 transition-colors"
+                                            :class="{ 'text-yellow-400': rating >= star || temp >= star }"
+                                            @click="rating = rating === star ? 0 : star"
+                                            @mouseenter="temp = star"
+                                            @mouseleave="temp = 0">
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                    </button>
+                                </template>
+                                <span class="text-gray-400 text-sm ml-2" x-text="rating > 0 ? rating + '/10' : 'No rating'"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Review -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Review (optional)</label>
+                            <textarea name="review" 
+                                      placeholder="What did you think of this season?"
+                                      class="bg-[#1f2329] text-white p-3 rounded border border-gray-600 focus:outline-none focus:border-gray-400 w-full resize-none"
+                                      rows="3"></textarea>
+                        </div>
+                        
+                        <!-- Options -->
+                        <div class="flex items-center gap-6">
+                            <!-- Like Button -->
+                            <button type="button" 
+                                    @click="liked = !liked"
+                                    class="flex items-center gap-2"
+                                    :class="liked ? 'text-red-400' : 'text-gray-400 hover:text-red-400'">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                                </svg>
+                                <span x-text="liked ? 'Liked' : 'Like'"></span>
+                            </button>
+                            
+                            <!-- Rewatch Checkbox -->
+                            <label class="flex items-center gap-2 text-gray-400">
+                                <input type="checkbox" 
+                                       name="is_rewatch"
+                                       x-model="isRewatch"
+                                       class="rounded bg-[#1f2329] border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0">
+                                <span>This is a rewatch</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex gap-3 pt-4">
+                            <button type="button" 
+                                    onclick="submitTVDiaryLog(this, '{{ season_item.source }}', '{{ season_item.media_type }}', '{{ season_item.media_id }}', {{ season_number }})"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                Create Diary Entry
+                            </button>
+                            <button type="button" 
+                                    onclick="markSeasonWatched('{{ season_item.source }}', '{{ season_item.media_type }}', '{{ season_item.media_id }}', {{ season_number }})"
+                                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                Just Mark Watched
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        {% else %}
+            <!-- TV Show Overview -->
+            <div class="flex gap-6">
+                <img src="{% load app_tags %}{% get_user_poster_image tv_item user %}" 
+                     alt="{{ tv_item.title }}" 
+                     class="w-32 h-48 object-cover rounded flex-shrink-0">
+                
+                <div class="flex-1">
+                    <div class="mb-6">
+                        <h3 class="text-xl text-white font-medium mb-2">{{ tv_item.title }}</h3>
+                        <p class="text-gray-400 mb-4">Choose how to handle this TV show:</p>
+                        
+                        <!-- Bulk Action -->
+                        <button type="button" 
+                                onclick="markTVShowWatched('{{ tv_item.source }}', '{{ tv_item.media_type }}', '{{ tv_item.media_id }}')"
+                                class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium mb-6 transition-colors">
+                            Mark Entire Show as Watched
+                        </button>
+                    </div>
+                    
+                    <!-- Season List -->
+                    {% if seasons %}
+                        <div>
+                            <h4 class="text-lg text-white font-medium mb-4">Or log individual seasons:</h4>
+                            <div class="grid gap-3">
+                                {% for season in seasons %}
+                                    <div class="bg-[#2a2f35] p-4 rounded-lg flex items-center justify-between">
+                                        <div>
+                                            <h5 class="text-white font-medium">Season {{ season.item.season_number }}</h5>
+                                            {% if season.status == "Completed" %}
+                                                <span class="text-green-400 text-sm">✓ Already watched</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="flex gap-2">
+                                            <button type="button" 
+                                                    onclick="openTVSeasonLogModal('{{ season.item.source }}', '{{ season.item.media_type }}', '{{ season.item.media_id }}', {{ season.item.season_number }}); $el.closest('.fixed').remove();"
+                                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors">
+                                                Log with Review
+                                            </button>
+                                            <button type="button" 
+                                                    onclick="markSeasonWatched('{{ season.item.source }}', '{{ season.item.media_type }}', '{{ season.item.media_id }}', {{ season.item.season_number }})"
+                                                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded font-medium transition-colors">
+                                                Mark Watched
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Hidden inputs for form data -->
+        <input type="hidden" name="rating" :value="rating">
+        <input type="hidden" name="liked" :value="liked">
+        <input type="hidden" name="is_rewatch" :value="isRewatch">
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+        
+        {% if log_type == 'season' %}
+            <input type="hidden" name="auto_mark_consumed" value="true">
+            <div data-log-url="{% url 'tv_log_season' season_item.source season_item.media_type season_item.media_id season_number %}"></div>
+        {% endif %}
+    </div>
+</div>

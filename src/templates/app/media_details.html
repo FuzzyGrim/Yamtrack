@@ -30,6 +30,10 @@
           
           {# Synopsis #}
           {% include "app/components/media/synopsis.html" %}
+
+          {% if media.media_type == MediaTypes.SEASON.value %}
+            {% include "app/components/media/episodes_list.html" %}
+          {% endif %}
           
           {# Cast #}
           {% include "app/components/media/cast_grid.html" %}
@@ -40,6 +44,8 @@
           </div>
         </div>
         
+        {% include "app/components/media/seasons_media.html" %}
+
         {# Related Films - Full width below the two-column layout #}
         {% include "app/components/media/related_media.html" %}
       </div>
@@ -50,8 +56,6 @@
   <div id="poster-modal-container"></div>
   <div id="log-modal-container"></div>
 {% endblock content %}
-
-
 
 
 

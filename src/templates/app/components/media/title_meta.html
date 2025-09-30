@@ -10,10 +10,21 @@
         {{ media.title }}
       {% endif %}
     </h1>
-    {% if media.details.release_date or media.details.first_air_date or media.details.start_date or media.details.end_date or media.details.published_date %}
+    {% if media.details.release_date or media.details.first_air_date or media.details.start_date or media.details.end_date or media.details.published_date or media.details.last_air_date %}
             <div class="bg-525252 text-white px-2 py-1 rounded text-sm">
         {% if media.media_type == MediaTypes.TV.value and media.details.first_air_date %}
-          {{ media.details.first_air_date|slice:":4" }}
+          {% with start_year=media.details.first_air_date|slice:":4" end_year=media.details.last_air_date|slice:":4" status=media.details.status %}
+            {{ start_year }}
+            {% if status == "Ended" or status == "Canceled" %}
+              {% if end_year %}
+                - {{ end_year }}
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          {% endwith %}
+        {% elif media.media_type == MediaTypes.TV.value and media.details.last_air_date %}
+          {{ media.details.last_air_date|slice:":4" }}
         {% elif media.media_type == MediaTypes.MOVIE.value and media.details.release_date %}
           {{ media.details.release_date|slice:":4" }}
         {% elif media.media_type == MediaTypes.ANIME.value and media.details.start_date %}

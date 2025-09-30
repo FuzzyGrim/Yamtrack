@@ -1,0 +1,73 @@
+{% load app_tags %}
+
+{% if media.media_type == MediaTypes.SEASON.value and media.episodes %}
+  <section class="space-y-6">
+    <div class="flex items-center justify-between">
+      <h2 class="text-2xl font-semibold">Episodes</h2>
+      <p class="text-sm text-gray-400">Season {{ media.season_number }} • {{ media.episodes|length }} episodes</p>
+    </div>
+
+    <div class="space-y-6">
+      {% for episode in media.episodes %}
+        <article class="episode-card bg-111111 rounded-2xl overflow-hidden border border-white/5"
+                 style="display: flex; flex-wrap: nowrap; gap: 0;">
+          <div class="episode-card__image"
+               style="flex: 0 0 320px; max-width: 320px; width: 100%; background-color: #1f2933; overflow: hidden;">
+            {% if episode.image and episode.image != IMG_NONE %}
+              <img
+                src="{{ episode.image }}"
+                alt="{{ episode.title }} still"
+                style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            {% else %}
+              <div class="episode-card__image-placeholder"
+                   style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: #4b5563;">
+                <svg class="h-8 w-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21,15 16,10 5,21"></polyline>
+                </svg>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="episode-card__body"
+               style="flex: 1; min-width: 0; padding: 1.5rem 1.75rem; display: flex; flex-direction: column; gap: 0.5rem; justify-content: center;">
+            <div class="space-y-1">
+              <h3 class="text-xl font-semibold text-white">{{ episode.title|default:"Untitled Episode" }}</h3>
+              {% with air_date_display=episode.air_date|date:"Y-m-d" %}
+                <p class="text-sm text-gray-400">
+                  Episode {{ episode.episode_number }}
+                  {% if air_date_display %}
+                    • {{ air_date_display }}
+                  {% endif %}
+                  {% if episode.runtime %}
+                    • {{ episode.runtime }}
+                  {% endif %}
+                </p>
+              {% endwith %}
+            </div>
+
+            {% if episode.overview %}
+              <p class="text-sm text-gray-300 leading-relaxed">{{ episode.overview }}</p>
+            {% endif %}
+
+            {% if episode.history %}
+              {% with latest_watch=episode.history|first %}
+                <p class="text-xs text-gray-400">
+                  Last watched: {{ latest_watch.end_date|date_tracker_format|default:"Unknown" }}
+                  {% if episode.history|length == 1 %}
+                    • Watched once
+                  {% else %}
+                    • Watched {{ episode.history|length }} times
+                  {% endif %}
+                </p>
+              {% endwith %}
+            {% else %}
+              <p class="text-xs text-gray-500">Not watched yet</p>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

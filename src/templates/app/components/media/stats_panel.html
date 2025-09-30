@@ -28,13 +28,31 @@
     </div>
     <div class="text-center">
       <div class="text-2xl font-bold mb-2">
-        {% if media.media_type == 'movie' and media.revenue %}
-          {{ media.revenue|money_compact }}
+        {% if media.media_type == 'movie' %}
+          {% if media.revenue %}
+            {{ media.revenue|money_compact }}
+          {% else %}
+            -
+          {% endif %}
+        {% elif media.media_type == 'tv' or media.media_type == 'season' %}
+          {% if media.media_type == 'season' and media.details.episodes %}
+            {{ media.details.episodes }}
+          {% elif media.details.episodes %}
+            {{ media.details.episodes }}
+          {% else %}
+            -
+          {% endif %}
         {% else %}
           -
         {% endif %}
       </div>
-      <p class="text-sm text-gray-400">Box Office</p>
+      <p class="text-sm text-gray-400">
+        {% if media.media_type == 'tv' or media.media_type == 'season' %}
+          Episodes
+        {% else %}
+          Box Office
+        {% endif %}
+      </p>
     </div>
   </div>
 </div>
