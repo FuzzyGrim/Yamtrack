@@ -1,9 +1,9 @@
 aiohttp==3.12.15
 apprise==1.9.4
-beautifulsoup4==4.13.5
+beautifulsoup4==4.14.0
 celery==5.5.3
 croniter==6.0.0
-Django==5.2.2
+Django==5.2.6
 django-allauth[socialaccount]==65.11.2
 django-celery-beat==2.8.1
 django-celery-results==2.6.0
