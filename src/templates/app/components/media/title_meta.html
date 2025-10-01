@@ -2,6 +2,14 @@
 
 {# Title Section - New design based on React component #}
 <div class="space-y-4">
+  {% if media.media_type == MediaTypes.SEASON.value %}
+    {% url 'media_details' media.source MediaTypes.TV.value media.media_id media.title|slugify as tv_url %}
+    <a href="{{ tv_url }}"
+       class="text-2xl font-semibold text-gray-300 hover:text-white transition-colors">
+      {{ media.title }}
+    </a>
+  {% endif %}
+
   <div class="flex items-center gap-4">
     <h1 class="text-3xl font-bold text-balance" style="font-size: 3rem; line-height: 1.1;">
       {% if media.media_type == MediaTypes.SEASON.value %}
