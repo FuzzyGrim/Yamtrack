@@ -222,9 +222,9 @@ def media_details(request, source, media_type, media_id, title):
     )
     current_instance = user_medias[0] if user_medias else None
 
-    # Get diary entries for this media if it's a movie
+    # Get diary entries for this media if it's a movie or TV show
     diary_entries = []
-    if media_type == MediaTypes.MOVIE.value:
+    if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
         try:
             item = Item.objects.get(source=source, media_type=media_type, media_id=media_id)
             diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
@@ -236,8 +236,9 @@ def media_details(request, source, media_type, media_id, title):
     if source == Sources.TMDB.value and media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
         try:
             mdblist_ratings = mdblist.get_media_ratings(media_id, media_type)
+            logging.getLogger(__name__).info(f"MDBList ratings for {media_type} {media_id}: {mdblist_ratings}")
         except Exception as e:
-            logging.getLogger(__name__).warning(f"Failed to fetch MDBList ratings: {e}")
+            logging.getLogger(__name__).warning(f"Failed to fetch MDBList ratings for {media_type} {media_id}: {e}")
 
     context = {
         "media": media_metadata,

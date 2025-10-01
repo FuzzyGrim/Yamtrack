@@ -35,7 +35,9 @@ def get_media_ratings(tmdb_id, media_type):
     data = cache.get(cache_key)
 
     if data is None:
-        url = f"{base_url}/tmdb/{media_type}/{tmdb_id}"
+        # MDBList API expects 'show' for TV shows, not 'tv'
+        mdblist_media_type = "show" if media_type == "tv" else media_type
+        url = f"{base_url}/tmdb/{mdblist_media_type}/{tmdb_id}"
         params = {
             "apikey": settings.MDBLIST_API,
             "append_to_response": "keyword",
