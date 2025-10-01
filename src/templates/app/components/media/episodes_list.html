@@ -9,18 +9,15 @@
 
     <div class="space-y-6">
       {% for episode in media.episodes %}
-        <article class="episode-card bg-111111 rounded-2xl overflow-hidden border border-white/5"
-                 style="display: flex; align-items: stretch; gap: 0; height: 200px;">
-          <div class="episode-card__image"
-               style="flex: 0 0 320px; max-width: 320px; width: 100%; background-color: #1f2933; overflow: hidden;">
+        <article class="episode-card bg-111111 rounded-2xl overflow-hidden border border-white/5">
+          <div class="episode-card__image">
             {% if episode.image and episode.image != IMG_NONE %}
               <img
                 src="{{ episode.image }}"
                 alt="{{ episode.title }} still"
-                style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                class="episode-card__image-media">
             {% else %}
-              <div class="episode-card__image-placeholder"
-                   style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: #4b5563;">
+              <div class="episode-card__image-placeholder">
                 <svg class="h-8 w-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                   <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -30,28 +27,38 @@
             {% endif %}
           </div>
 
-          <div class="episode-card__body"
-               style="flex: 1; min-width: 0; padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+          <div class="episode-card__body">
             <div class="episode-card__header space-y-1">
               <h3 class="text-xl font-semibold text-white">{{ episode.title|default:"Untitled Episode" }}</h3>
               {% with air_date_display=episode.air_date|date:"Y-m-d" %}
-                <p class="text-sm text-gray-400">
-                  Episode {{ episode.episode_number }}
+                <div class="episode-card__meta text-sm text-gray-400">
+                  <span>Episode {{ episode.episode_number }}</span>
                   {% if air_date_display %}
-                    • {{ air_date_display }}
+                    <span>• {{ air_date_display }}</span>
                   {% endif %}
                   {% if episode.runtime %}
-                    • {{ episode.runtime }}
+                    <span>• {{ episode.runtime }}</span>
                   {% endif %}
-                </p>
+                  {% if episode.vote_average_out_of_5 %}
+                    <span>•</span>
+                    <span class="episode-rating-pill"
+                          style="background-color: var(--poster-accent, #4b5563); color: var(--poster-accent-contrast, #FFFFFF);">
+                      {{ episode.vote_average_out_of_5|floatformat:1 }} / 5
+                    </span>
+                  {% endif %}
+                </div>
               {% endwith %}
             </div>
 
-          {% if episode.overview %}
-            <div class="episode-card__synopsis-container">
-              <p class="episode-card__synopsis text-sm text-gray-300 leading-relaxed">{{ episode.overview }}</p>
-            </div>
-          {% endif %}
+            {% if episode.overview %}
+              <div class="episode-card__synopsis-container">
+                <p class="episode-card__synopsis text-sm text-gray-300 leading-relaxed">{{ episode.overview }}</p>
+              </div>
+            {% else %}
+              <div class="episode-card__synopsis-container">
+                <p class="episode-card__synopsis text-sm text-gray-500 italic">No synopsis available.</p>
+              </div>
+            {% endif %}
 
             <div class="episode-card__footer text-xs text-gray-400">
               {% if episode.history %}

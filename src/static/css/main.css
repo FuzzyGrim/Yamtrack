@@ -4432,22 +4432,45 @@
   color: var(--poster-accent-contrast, #FFFFFF);
 }
 
+.episode-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1;
+  background-color: var(--poster-accent, #4b5563);
+  color: var(--poster-accent-contrast, #FFFFFF);
+}
+
+.poster-accent-chip--filled {
+  background-color: var(--poster-accent);
+  color: var(--poster-accent-contrast, #FFFFFF);
+  border-color: transparent;
+}
+
+.poster-accent-chip--filled:hover {
+  background-color: var(--poster-accent);
+  color: var(--poster-accent-contrast, #FFFFFF);
+}
+
 .hover\:text-white:hover {
   color: white !important;
 }
 
 
 .episode-card {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  height: 175px;
   align-items: stretch;
-  gap: 0;
 }
 
 .episode-card__image {
-  flex: 0 0 320px;
-  max-width: 320px;
-  height: 200px;
+  position: relative;
   background-color: #1f2933;
   overflow: hidden;
 }
@@ -4470,12 +4493,18 @@
 
 
 .episode-card__body {
-  flex: 1;
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  height: 100%;
+  min-height: 0;
+}
+
+.episode-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .episode-card__header {
@@ -4488,21 +4517,6 @@
   overflow-y: auto;
   padding-right: 0.25rem;
   margin-right: -0.25rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
-}
-
-.episode-card__synopsis-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.episode-card__synopsis-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 9999px;
-}
-
-.episode-card__synopsis-container::-webkit-scrollbar-track {
-  background: transparent;
 }
 
 .episode-card__synopsis {
@@ -4511,25 +4525,22 @@
 
 .episode-card__footer {
   margin-top: auto;
-  flex-shrink: 0;
 }
+
+
 
 @media (max-width: 767px) {
   .episode-card {
-    flex-direction: column !important;
-    height: auto !important;
+    grid-template-columns: 1fr;
+    height: auto;
   }
 
   .episode-card__image {
-    flex: none !important;
-    max-width: none !important;
-    width: 100% !important;
-    height: 200px !important;
+    height: 175px;
   }
 
   .episode-card__body {
-    padding: 1.25rem !important;
-    height: auto;
+    padding: 1.25rem;
   }
 
   .episode-card__synopsis-container {

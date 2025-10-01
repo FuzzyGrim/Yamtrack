@@ -658,6 +658,18 @@ def process_episodes(season_metadata, episodes_in_db):
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]
 
+        vote_average = episode.get("vote_average")
+        vote_average_percent = (
+            round(vote_average * 10)
+            if isinstance(vote_average, (int, float))
+            else None
+        )
+        vote_average_out_of_5 = (
+            round(vote_average / 2, 1)
+            if isinstance(vote_average, (int, float))
+            else None
+        )
+
         episodes_metadata.append(
             {
                 "media_id": season_metadata["media_id"],
@@ -671,6 +683,10 @@ def process_episodes(season_metadata, episodes_in_db):
                 "overview": episode["overview"],
                 "history": tracked_episodes.get(episode_number, []),
                 "runtime": get_readable_duration(episode["runtime"]),
+                "vote_average": vote_average,
+                "vote_average_out_of_5": vote_average_out_of_5,
+                "vote_average_percent": vote_average_percent,
+                "vote_count": episode.get("vote_count"),
             },
         )
     return episodes_metadata
