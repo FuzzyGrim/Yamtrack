@@ -15,10 +15,15 @@
       {# Customize Poster Button - EXACTLY as it was before redesign #}
       {% can_customize_poster media as can_customize %}
       {% if can_customize and user.is_authenticated %}
+        {% if media.media_type == MediaTypes.SEASON.value %}
+          {% url 'season_poster_selection_modal' media.source media.media_id media.season_number as poster_url %}
+        {% else %}
+          {% url 'poster_selection_modal' media.source media.media_type media.media_id as poster_url %}
+        {% endif %}
         <button
           class="poster-customize-btn"
           style="position:absolute;top:16px;left:16px;border-radius:50%;padding:8px;background:rgba(0,0,0,0.7);border:1px solid var(--poster-accent);color:var(--poster-accent);opacity:0;pointer-events:none;transform:scale(0.9);transition:opacity 0.25s ease,transform 0.25s ease;z-index:50;"
-          data-poster-url="{% url 'poster_selection_modal' media.source media.media_type media.media_id %}"
+          data-poster-url="{{ poster_url }}"
           onclick="openPosterModal(this.dataset.posterUrl)"
           title="Customize poster">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

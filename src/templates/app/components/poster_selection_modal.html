@@ -69,18 +69,27 @@
                 }
 
                 this.isSaving = true;
+                
+                // Prepare form data
+                const formData = new URLSearchParams({
+                    'media_type': '{{ item.media_type }}',
+                    'media_id': '{{ item.media_id }}',
+                    'source': '{{ item.source }}',
+                    'poster_url': this.selectedPoster
+                });
+                
+                // Add season number if this is a season
+                {% if item.media_type == MediaTypes.SEASON.value %}
+                formData.append('season_number', '{{ item.season_number }}');
+                {% endif %}
+                
                 fetch('{% url 'save_poster_preference' %}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRFToken': '{{ csrf_token }}'
                     },
-                    body: new URLSearchParams({
-                        'media_type': '{{ item.media_type }}',
-                        'media_id': '{{ item.media_id }}',
-                        'source': '{{ item.source }}',
-                        'poster_url': this.selectedPoster
-                    })
+                    body: formData
                 })
                 .then(response => response.json())
                 .then(data => {

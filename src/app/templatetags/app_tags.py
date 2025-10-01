@@ -576,12 +576,10 @@ def can_customize_poster(item):
     # Handle both model instances and dictionaries
     source = item.source if hasattr(item, 'source') else item.get('source')
     media_type = item.media_type if hasattr(item, 'media_type') else item.get('media_type')
-    if media_type == MediaTypes.SEASON.value:
-        media_type = MediaTypes.TV.value
 
-    # Only TMDB movies and TV shows can have custom posters
+    # Only TMDB movies, TV shows, and seasons can have custom posters
     return (source == Sources.TMDB.value and 
-            media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value])
+            media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value])
 
 
 @register.filter

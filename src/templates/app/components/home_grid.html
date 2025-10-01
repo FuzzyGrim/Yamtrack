@@ -6,7 +6,7 @@
     <div class="relative">
       <img alt="{{ media }}"
            class="lazyload w-full aspect-[2/3] {% if media.item.image != IMG_NONE %}object-cover{% endif %}"
-           data-src="{{ media.item.image }}"
+           data-src="{% get_user_poster_image media.item user %}"
            src="{{ IMG_NONE }}">
 
       {% if media.next_event and not media.next_event.is_max_datetime %}

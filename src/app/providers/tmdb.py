@@ -749,21 +749,31 @@ def get_creator(creators):
     return None
 
 
-def get_poster_images(media_id, media_type):
-    """Get all available poster images for a movie or TV show from TMDB.
+def get_poster_images(media_id, media_type, season_number=None):
+    """Get all available poster images for a movie, TV show, or season from TMDB.
     
     Args:
         media_id: TMDB ID of the media
-        media_type: Either 'movie' or 'tv'
+        media_type: Either 'movie', 'tv', or 'season'
+        season_number: Season number (required if media_type is 'season')
         
     Returns:
         List of poster image URLs and metadata
     """
-    cache_key = f"{Sources.TMDB.value}_{media_type}_posters_{media_id}"
+    if media_type == 'season' and season_number is None:
+        raise ValueError("season_number is required when media_type is 'season'")
+    
+    # Create cache key based on media type
+    if media_type == 'season':
+        cache_key = f"{Sources.TMDB.value}_season_posters_{media_id}_{season_number}"
+        url = f"{base_url}/tv/{media_id}/season/{season_number}/images"
+    else:
+        cache_key = f"{Sources.TMDB.value}_{media_type}_posters_{media_id}"
+        url = f"{base_url}/{media_type}/{media_id}/images"
+    
     data = cache.get(cache_key)
     
     if data is None:
-        url = f"{base_url}/{media_type}/{media_id}/images"
         params = {
             **base_params,
             # Remove language filtering to get ALL posters

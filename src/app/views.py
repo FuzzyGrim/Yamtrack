@@ -255,22 +255,42 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
     poster_accent = None
-    accent_item = Item.objects.filter(
+    # First check if there's a season item with custom poster
+    season_item = Item.objects.filter(
         media_id=media_id,
         source=source,
-        media_type=MediaTypes.TV.value,
+        media_type=MediaTypes.SEASON.value,
+        season_number=season_number,
     ).first()
-    if accent_item:
+    
+    if season_item:
+        # Use the season item's image (which may be custom) for accent color
         poster_accent = compute_and_store_poster_accent(
-            accent_item,
-            poster_url=season_metadata.get("image"),
+            season_item,
+            poster_url=season_item.image,
         )
     else:
-        poster_accent = get_poster_accent_from_url(season_metadata.get("image"))
+        # Fall back to TV show item
+        accent_item = Item.objects.filter(
+            media_id=media_id,
+            source=source,
+            media_type=MediaTypes.TV.value,
+        ).first()
+        if accent_item:
+            poster_accent = compute_and_store_poster_accent(
+                accent_item,
+                poster_url=season_metadata.get("image"),
+            )
+        else:
+            poster_accent = get_poster_accent_from_url(season_metadata.get("image"))
 
     accent_palette = build_accent_palette(poster_accent)
     poster_accent = accent_palette["accent"]
     poster_accent_contrast = accent_palette["contrast"]
+
+    # Update season metadata with custom poster if available
+    if season_item:
+        season_metadata["image"] = season_item.image
 
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
@@ -1083,6 +1103,93 @@ def poster_selection_modal(request, media_type, media_id, source):
         return HttpResponseBadRequest("Error loading posters")
 
 
+@require_GET
+def season_poster_selection_modal(request, source, media_id, season_number):
+    """Return the poster selection modal with available posters for a season."""
+    if source != Sources.TMDB.value:
+        return HttpResponseBadRequest("Poster selection only available for TMDB seasons")
+        
+    try:
+        # Get or create the season item
+        try:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.SEASON.value,
+                season_number=season_number,
+            )
+        except Item.DoesNotExist:
+            # Item doesn't exist, so we need to create it
+            # First get the metadata from TMDB
+            from app.providers import services
+            metadata = services.get_media_metadata(
+                "tv_with_seasons", 
+                media_id, 
+                source, 
+                season_numbers=[season_number]
+            )
+            season_metadata = metadata[f"season/{season_number}"]
+            
+            item = Item.objects.create(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.SEASON.value,
+                title=season_metadata["title"],
+                image=season_metadata["image"],
+                season_number=season_number,
+            )
+        
+        # Get available posters from TMDB for the season
+        tmdb_posters = tmdb.get_poster_images(media_id, "season", season_number)
+        
+        # Create the original poster entry
+        original_poster = {
+            "url": item.image,
+            "thumbnail_url": item.image,
+            "width": 0,
+            "height": 0,
+            "aspect_ratio": 0.667,
+            "vote_average": 0,
+            "vote_count": 0,
+            "language": None,
+            "is_current": True
+        }
+        
+        # Combine original with TMDB posters, ensuring original is first
+        # and not duplicated if it's already in the TMDB results
+        posters = [original_poster]
+        for poster in tmdb_posters:
+            if poster["url"] != item.image:
+                # Ensure language is None instead of undefined for consistency
+                poster_copy = poster.copy()
+                if poster_copy.get("language") is None:
+                    poster_copy["language"] = None
+                posters.append(poster_copy)
+        
+        # Get current custom poster if exists
+        from app.models import CustomPosterPreference
+        try:
+            current_preference = CustomPosterPreference.objects.get(
+                user=request.user,
+                item=item
+            )
+            current_poster = current_preference.custom_image_url
+        except CustomPosterPreference.DoesNotExist:
+            current_poster = item.image
+            
+        context = {
+            "item": item,
+            "posters": posters,
+            "current_poster": current_poster,
+        }
+        
+        return render(request, "app/components/poster_selection_modal.html", context)
+        
+    except Exception as e:
+        logger.error("Error in season poster selection modal: %s", e)
+        return HttpResponseBadRequest("Error loading season posters")
+
+
 @require_POST
 def save_poster_preference(request):
     """Save the user's poster preference for an item."""
@@ -1092,12 +1199,26 @@ def save_poster_preference(request):
         source = request.POST["source"]
         custom_image_url = request.POST["poster_url"]
         
-        # Get or create the item
-        item = Item.objects.get(
-            media_id=media_id,
-            source=source,
-            media_type=media_type,
-        )
+        # Handle season items differently
+        if media_type == MediaTypes.SEASON.value:
+            season_number = request.POST.get("season_number")
+            if not season_number:
+                return JsonResponse({"error": "Season number required for season items"}, status=400)
+            
+            # Get or create the season item
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                season_number=season_number,
+            )
+        else:
+            # Get or create the item
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+            )
         
         # Update or create the preference
         from app.models import CustomPosterPreference

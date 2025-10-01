@@ -24,9 +24,10 @@
           <a href="{{ item_url }}"
              class="bg-111111 rounded-xl overflow-hidden group hover-bg-222222 transition-colors flex flex-col">
             <div class="aspect-[2/3] relative">
-              {% if item.image and item.image != IMG_NONE %}
+              {% get_user_poster_image item user as season_poster_url %}
+              {% if season_poster_url and season_poster_url != IMG_NONE %}
                 <img
-                  src="{{ item.image }}"
+                  src="{{ season_poster_url }}"
                   alt="{{ item.season_title|default:item.title }} poster"
                   class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   loading="lazy">
