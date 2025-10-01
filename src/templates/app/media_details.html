@@ -25,8 +25,12 @@
           {# Title Section #}
           {% include "app/components/media/title_meta.html" %}
           
-          {# Stats #}
-          {% include "app/components/media/stats_panel.html" %}
+          {# Stats/Ratings #}
+          {% if media.media_type == 'movie' %}
+            {% include "app/components/media/ratings_panel.html" %}
+          {% else %}
+            {% include "app/components/media/stats_panel.html" %}
+          {% endif %}
           
           {# Synopsis #}
           {% include "app/components/media/synopsis.html" %}

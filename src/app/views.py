@@ -20,7 +20,7 @@ from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie
 
-from app.providers import manual, services, tmdb
+from app.providers import manual, mdblist, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 from app.forms import DiaryEntryForm
@@ -231,12 +231,21 @@ def media_details(request, source, media_type, media_id, title):
         except Item.DoesNotExist:
             pass
 
+    # Get MDBList ratings for movies and TV shows from TMDB
+    mdblist_ratings = None
+    if source == Sources.TMDB.value and media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        try:
+            mdblist_ratings = mdblist.get_media_ratings(media_id, media_type)
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Failed to fetch MDBList ratings: {e}")
+
     context = {
         "media": media_metadata,
         "media_type": media_type,
         "user_medias": user_medias,
         "current_instance": current_instance,
         "diary_entries": diary_entries,
+        "mdblist_ratings": mdblist_ratings,
         "poster_accent_color": poster_accent,
         "poster_accent_contrast": poster_accent_contrast,
     }

@@ -378,6 +378,52 @@ class MediaDetailsViewTests(TestCase):
             Sources.TMDB.value,
         )
 
+    @patch("app.providers.mdblist.get_media_ratings")
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_details_view_with_mdblist_ratings(self, mock_get_metadata, mock_get_ratings):
+        """Test the media details view with MDBList ratings."""
+        # Mock the metadata
+        mock_get_metadata.return_value = {
+            "media_id": "238",
+            "title": "Test Movie",
+            "media_type": MediaTypes.MOVIE.value,
+            "source": Sources.TMDB.value,
+            "image": "http://example.com/image.jpg",
+            "overview": "Test overview",
+            "release_date": "2023-01-01",
+        }
+
+        # Mock MDBList ratings
+        mock_get_ratings.return_value = {
+            "imdb": {"value": 8.1, "score": 81, "votes": 673852, "url": "99"},
+            "tomatoes": {"value": 97, "score": 97, "votes": 102, "url": "/m/jaws"},
+            "letterboxd": {"value": 8.0, "score": 80, "votes": 876082, "url": "/film/jaws/"},
+        }
+
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "238",
+                    "title": "test-movie",
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/media_details.html")
+
+        # Check that MDBList ratings are in the context
+        self.assertIn("mdblist_ratings", response.context)
+        self.assertIsNotNone(response.context["mdblist_ratings"])
+        self.assertIn("imdb", response.context["mdblist_ratings"])
+        self.assertEqual(response.context["mdblist_ratings"]["imdb"]["value"], 8.1)
+
+        # Verify MDBList was called for TMDB movies
+        mock_get_ratings.assert_called_once_with("238", MediaTypes.MOVIE.value)
+
     @patch("app.providers.services.get_media_metadata")
     @patch("app.providers.tmdb.process_episodes")
     def test_season_details_view(self, mock_process_episodes, mock_get_metadata):
@@ -1679,3 +1725,58 @@ class SeasonPosterSelectionTests(TestCase):
             
             # Verify that the season item exists and has the custom poster
             self.assertEqual(season_item.image, "http://example.com/custom_season_poster.jpg")
+
+    def test_search_results_use_custom_posters(self):
+        """Test that search results display custom posters correctly."""
+        # Create a movie item with custom poster
+        movie_item = Item.objects.create(
+            media_id="12345",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="One Battle After Another",
+            image="http://example.com/original_poster.jpg",
+        )
+        
+        # Create custom poster preference
+        from app.models import CustomPosterPreference
+        CustomPosterPreference.objects.create(
+            user=self.user,
+            item=movie_item,
+            custom_image_url="http://example.com/custom_poster.jpg"
+        )
+        
+        # Mock the search results
+        with patch('app.providers.services.search') as mock_search:
+            mock_search.return_value = {
+                "results": [
+                    {
+                        "media_id": "12345",
+                        "source": Sources.TMDB.value,
+                        "media_type": MediaTypes.MOVIE.value,
+                        "title": "One Battle After Another",
+                        "image": "http://example.com/original_poster.jpg",
+                    }
+                ],
+                "page": 1,
+                "total_pages": 1,
+                "total_results": 1
+            }
+            
+            # Test the search page
+            url = reverse('search') + "?q=One+Battle+After+Another&media_type=movie&source=tmdb"
+            response = self.client.get(url)
+            
+            self.assertEqual(response.status_code, 200)
+            
+            # Check that the template uses get_user_poster_image for search results
+            self.assertContains(response, "get_user_poster_image")
+            
+            # Verify that the movie item exists and has the custom poster
+            self.assertEqual(movie_item.image, "http://example.com/original_poster.jpg")
+            
+            # Verify custom poster preference was created
+            preference = CustomPosterPreference.objects.get(
+                user=self.user,
+                item=movie_item
+            )
+            self.assertEqual(preference.custom_image_url, "http://example.com/custom_poster.jpg")

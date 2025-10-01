@@ -439,6 +439,14 @@ SIMKL_SECRET = config(
     ),
 )
 
+MDBLIST_API = config(
+    "MDBLIST_API",
+    default=secret(
+        "MDBLIST_API_FILE",
+        "amflpjg68ju7wcqf5n2ugd315",
+    ),
+)
+
 TESTING = False
 
 HEALTHCHECK_CELERY_PING_TIMEOUT = config(

@@ -15,9 +15,10 @@
         {% for release in releases %}
           <a href="{{ release.item|media_url }}" class="block">
             <div class="flex items-center gap-3 p-2 rounded-md hover:bg-[#454d5a] transition-colors">
+              {% get_user_poster_image release.item user as calendar_poster_url %}
               <img alt="{{ release }}"
                    class="w-10 h-10 object-cover rounded-md flex-shrink-0"
-                   src="{{ release.item.image }}">
+                   src="{{ calendar_poster_url }}">
               <div class="flex-1 min-w-0">
                 <h4 class="font-medium text-sm line-clamp-1">{{ release.item }}</h4>
                 <div class="flex items-center">
