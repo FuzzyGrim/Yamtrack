@@ -3,7 +3,7 @@
 
 {# Ratings Panel - Display IMDb, Rotten Tomatoes, and Letterboxd ratings with user rating #}
 <div class="p-6 bg-111111 rounded-lg">
-  {% if mdblist_ratings.imdb or mdblist_ratings.tomatoes or mdblist_ratings.letterboxd %}
+  {% if mdblist_ratings.imdb or mdblist_ratings.letterboxd or mdblist_ratings.tomatoes.value %}
     <div class="flex justify-between items-center">
       {# Left side - External ratings #}
       <div class="flex gap-8">
@@ -24,22 +24,20 @@
           {% endif %}
         </div>
 
-        {# Rotten Tomatoes Rating #}
+        {# Rotten Tomatoes Rating - Only show if rating exists #}
+        {% if mdblist_ratings.tomatoes and mdblist_ratings.tomatoes.value %}
         <div class="text-left">
           <div class="flex items-center gap-1 mb-1">
-            {% if mdblist_ratings.tomatoes %}
-              <span class="text-2xl font-bold text-red-500">
-                {{ mdblist_ratings.tomatoes.value }}%
-              </span>
-            {% else %}
-              <span class="text-2xl font-bold text-gray-500">N/A</span>
-            {% endif %}
+            <span class="text-2xl font-bold text-red-500">
+              {{ mdblist_ratings.tomatoes.value }}%
+            </span>
           </div>
           <p class="text-sm text-gray-400">Rotten Tomatoes</p>
           {% if mdblist_ratings.tomatoes.votes %}
             <p class="text-xs text-gray-500">{{ mdblist_ratings.tomatoes.votes }} reviews</p>
           {% endif %}
         </div>
+        {% endif %}
 
         {# Letterboxd Rating - Only for movies #}
         {% if media.media_type == 'movie' %}

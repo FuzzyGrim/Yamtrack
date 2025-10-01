@@ -225,7 +225,7 @@ def movie(media_id):
         url = f"{base_url}/movie/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations,credits",
+            "append_to_response": "recommendations,credits,release_dates",
         }
 
         try:
@@ -257,6 +257,7 @@ def movie(media_id):
                 "release_date": get_start_date(response["release_date"]),
                 "status": response["status"],
                 "runtime": get_readable_duration(response["runtime"]),
+                "rating": get_movie_rating(response.get("release_dates")),
                 "studios": get_companies(response["production_companies"]),
                 "country": get_country(response["production_countries"]),
                 "languages": get_languages(response["spoken_languages"]),
@@ -374,7 +375,7 @@ def tv(media_id):
         url = f"{base_url}/tv/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations,external_ids,credits",
+            "append_to_response": "recommendations,external_ids,credits,content_ratings",
         }
 
         try:
@@ -420,6 +421,7 @@ def process_tv(response):
             "seasons": response["number_of_seasons"],
             "episodes": num_episodes,
             "runtime": get_runtime_tv(response["episode_run_time"]),
+            "rating": get_tv_rating(response.get("content_ratings")),
             "studios": get_companies(response["production_companies"]),
             "country": get_country(response["production_countries"]),
             "languages": get_languages(response["spoken_languages"]),
@@ -746,6 +748,36 @@ def get_creator(creators):
     """Return the creator's name from the list."""
     if creators:
         return creators[0]["name"]
+    return None
+
+
+def get_movie_rating(release_dates):
+    """Extract US MPAA rating from movie release dates."""
+    if not release_dates or "results" not in release_dates:
+        return None
+    
+    for result in release_dates["results"]:
+        if result.get("iso_3166_1") == "US":
+            release_dates_list = result.get("release_dates", [])
+            if release_dates_list:
+                # Get the first US release date with a certification
+                for release_date in release_dates_list:
+                    certification = release_date.get("certification")
+                    if certification:
+                        return certification
+    return None
+
+
+def get_tv_rating(content_ratings):
+    """Extract US TV rating from content ratings."""
+    if not content_ratings or "results" not in content_ratings:
+        return None
+    
+    for result in content_ratings["results"]:
+        if result.get("iso_3166_1") == "US":
+            rating = result.get("rating")
+            if rating:
+                return rating
     return None
 
 

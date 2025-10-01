@@ -79,6 +79,12 @@
           <polyline points="12,6 12,12 16,14"></polyline>
         </svg>
         <span>{{ media.details.runtime }}</span>
+        {% if media.details.rating %}
+          <span class="text-gray-500">•</span>
+          <span class="rating-icon rating-{{ media.details.rating|lower|cut:'-'|cut:' ' }}">
+            {{ media.details.rating }}
+          </span>
+        {% endif %}
       </div>
     {% endif %}
   </div>
