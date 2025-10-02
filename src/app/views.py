@@ -1976,7 +1976,11 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
         # Parse form data
         consumed_at = parse_date(request.POST.get('watch_date'))
         if not consumed_at:
-            consumed_at = timezone.now().date()
+            # Use current datetime to allow multiple entries per day (rewatches)
+            consumed_at = timezone.now()
+        else:
+            # Convert date to datetime at end of day to allow multiple entries per day
+            consumed_at = timezone.datetime.combine(consumed_at, timezone.datetime.max.time())
             
         rating = request.POST.get('rating')
         if rating and rating.strip():
@@ -2150,7 +2154,11 @@ def update_diary_entry(request, entry_id):
         # Parse form data
         consumed_at = parse_date(request.POST.get('watch_date'))
         if not consumed_at:
-            consumed_at = timezone.now().date()
+            # Keep the original datetime to preserve ordering
+            consumed_at = entry.consumed_at
+        else:
+            # Convert date to datetime at end of day to allow multiple entries per day
+            consumed_at = timezone.datetime.combine(consumed_at, timezone.datetime.max.time())
             
         rating = request.POST.get('rating')
         if rating and rating.strip():
