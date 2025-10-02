@@ -1385,6 +1385,24 @@ class Season(Media):
 
     def get_remaining_eps(self, season_metadata):
         """Return episodes needed to complete a season."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"get_remaining_eps called with season_metadata keys: {list(season_metadata.keys())}")
+        logger.info(f"season_metadata['episodes'] type: {type(season_metadata.get('episodes'))}")
+        logger.info(f"season_metadata['episodes'] value: {season_metadata.get('episodes')}")
+        
+        episodes_list = season_metadata.get("episodes")
+        if episodes_list is None:
+            logger.error("episodes_list is None!")
+            return []
+        
+        if not isinstance(episodes_list, (list, tuple)):
+            logger.error(f"episodes_list is not iterable, type: {type(episodes_list)}")
+            return []
+        
+        logger.info(f"Processing {len(episodes_list)} episodes")
+        
         latest_watched_ep_num = Episode.objects.filter(related_season=self).aggregate(
             latest_watched_ep_num=Max("item__episode_number"),
         )["latest_watched_ep_num"]
@@ -1396,11 +1414,21 @@ class Season(Media):
         now = timezone.now().replace(second=0, microsecond=0)
 
         # Create Episode objects for the remaining episodes
-        for episode in reversed(season_metadata["episodes"]):
-            if episode["episode_number"] <= latest_watched_ep_num:
+        for i, episode in enumerate(reversed(episodes_list)):
+            logger.info(f"Processing episode {i}: {episode}")
+            if not isinstance(episode, dict):
+                logger.error(f"Episode {i} is not a dict: {type(episode)}")
+                continue
+                
+            episode_number = episode.get("episode_number")
+            if episode_number is None:
+                logger.error(f"Episode {i} has no episode_number: {episode}")
+                continue
+                
+            if episode_number <= latest_watched_ep_num:
                 break
 
-            item = self.get_episode_item(episode["episode_number"], season_metadata)
+            item = self.get_episode_item(episode_number, season_metadata)
 
             episode_db = Episode(
                 related_season=self,
@@ -1409,6 +1437,7 @@ class Season(Media):
             )
             episodes_to_create.append(episode_db)
 
+        logger.info(f"Returning {len(episodes_to_create)} episodes to create")
         return episodes_to_create
 
     def get_episode_item(self, episode_number, season_metadata=None):
@@ -1661,16 +1690,16 @@ class DiaryEntry(models.Model):
         indexes = [
             models.Index(fields=["user", "-consumed_at"]),
         ]
-        ordering = ["-consumed_at"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         """Return string representation of the diary entry."""
         return f"{self.user.username}'s entry for {self.item} on {self.consumed_at}"
 
     def clean(self):
-        """Validate that the item is a movie."""
-        if self.item.media_type != MediaTypes.MOVIE.value:
-            raise ValidationError("Diary entries can only be created for movies.")
+        """Validate that the item is a movie or TV show."""
+        if self.item.media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value]:
+            raise ValidationError("Diary entries can only be created for movies, TV shows, and seasons.")
         super().clean()
 
     def save(self, *args, **kwargs):

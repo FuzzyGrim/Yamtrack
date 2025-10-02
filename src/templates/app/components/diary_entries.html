@@ -25,7 +25,11 @@
                 <h3 class="font-medium text-lg mb-1">
                   <a href="{{ entry.item|media_url }}" 
                      class="hover:text-indigo-400 transition-colors line-clamp-2">
-                    {{ entry.item.title }}
+                    {% if entry.item.media_type == 'season' %}
+                      {{ entry.item.title }} S{{ entry.item.season_number }}
+                    {% else %}
+                      {{ entry.item.title }}
+                    {% endif %}
                   </a>
                 </h3>
                 

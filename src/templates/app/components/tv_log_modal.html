@@ -131,14 +131,121 @@
                 <div class="flex-1">
                     <div class="mb-6">
                         <h3 class="text-xl text-white font-medium mb-2">{{ tv_item.title }}</h3>
-                        <p class="text-gray-400 mb-4">Choose how to handle this TV show:</p>
+                        <p class="text-gray-400 mb-4">Log this TV show with a review:</p>
                         
-                        <!-- Bulk Action -->
-                        <button type="button" 
-                                onclick="markTVShowWatched('{{ tv_item.source }}', '{{ tv_item.media_type }}', '{{ tv_item.media_id }}')"
-                                class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-medium mb-6 transition-colors">
-                            Mark Entire Show as Watched
-                        </button>
+                        <!-- Date -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Watch Date</label>
+                            <input type="date" 
+                                   id="watch-date" 
+                                   name="watch_date"
+                                   class="w-full bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400"
+                                   value="{{ today|date:'Y-m-d' }}">
+                        </div>
+                        
+                        <!-- Rating -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Rating</label>
+                            <div class="rating flex items-center" x-data="{ rating: 0, temp: 0 }">
+                                <button type="button" 
+                                        class="text-gray-400 hover:text-yellow-400"
+                                        :class="{ 'text-yellow-400': rating >= 1 || temp >= 1 }"
+                                        @click="rating = rating === 1 ? 0 : 1"
+                                        @mouseenter="temp = 1"
+                                        @mouseleave="temp = 0">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                </button>
+                                <button type="button" 
+                                        class="text-gray-400 hover:text-yellow-400"
+                                        :class="{ 'text-yellow-400': rating >= 2 || temp >= 2 }"
+                                        @click="rating = rating === 2 ? 0 : 2"
+                                        @mouseenter="temp = 2"
+                                        @mouseleave="temp = 0">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                </button>
+                                <button type="button" 
+                                        class="text-gray-400 hover:text-yellow-400"
+                                        :class="{ 'text-yellow-400': rating >= 3 || temp >= 3 }"
+                                        @click="rating = rating === 3 ? 0 : 3"
+                                        @mouseenter="temp = 3"
+                                        @mouseleave="temp = 0">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                </button>
+                                <button type="button" 
+                                        class="text-gray-400 hover:text-yellow-400"
+                                        :class="{ 'text-yellow-400': rating >= 4 || temp >= 4 }"
+                                        @click="rating = rating === 4 ? 0 : 4"
+                                        @mouseenter="temp = 4"
+                                        @mouseleave="temp = 0">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                </button>
+                                <button type="button" 
+                                        class="text-gray-400 hover:text-yellow-400"
+                                        :class="{ 'text-yellow-400': rating >= 5 || temp >= 5 }"
+                                        @click="rating = rating === 5 ? 0 : 5"
+                                        @mouseenter="temp = 5"
+                                        @mouseleave="temp = 0">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Review -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Review</label>
+                            <textarea 
+                                name="review" 
+                                placeholder="Add a review..."
+                                class="w-full bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400 resize-none"
+                                rows="4"
+                            ></textarea>
+                        </div>
+                        
+                        <!-- Like Button -->
+                        <div class="mb-4">
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" 
+                                       name="liked"
+                                       x-model="liked"
+                                       class="rounded bg-[#1f2329] border-gray-600 text-red-500 focus:ring-red-500 focus:ring-offset-0">
+                                <span class="text-sm text-gray-300">Like this show</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Rewatch Checkbox -->
+                        <div class="mb-6">
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" 
+                                       name="is_rewatch"
+                                       x-model="isRewatch"
+                                       class="rounded bg-[#1f2329] border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0">
+                                <span class="text-sm text-gray-300">This is a rewatch</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex gap-3">
+                            <button type="button" 
+                                    onclick="submitTVDiaryLog(this, '{{ tv_item.source }}', '{{ tv_item.media_type }}', '{{ tv_item.media_id }}')"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                Log Show
+                            </button>
+                            <button type="button" 
+                                    onclick="markTVShowWatched('{{ tv_item.source }}', '{{ tv_item.media_type }}', '{{ tv_item.media_id }}')"
+                                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                Just Mark Watched
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Season List -->

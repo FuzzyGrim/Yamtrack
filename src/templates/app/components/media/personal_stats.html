@@ -1,6 +1,6 @@
 {% load app_tags %}
 
-{# Personal Stats Section - Shows user's diary engagement with this movie #}
+{# Personal Stats Section - Shows user's diary engagement with this media #}
 {% if diary_entries %}
 <div class="mt-6 p-4 bg-[#1a1a1a] rounded-lg border border-[#333333]">
   <div class="flex items-center gap-2 mb-3">
@@ -33,9 +33,9 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
       </div>
-      <div>
+      <div class="min-w-0">
         <div class="text-sm font-medium text-gray-300">Last</div>
-        <div class="text-sm font-medium text-white">{{ diary_entries.0.consumed_at|date:"M d, Y" }}</div>
+        <div class="text-sm font-medium text-white whitespace-nowrap">{{ diary_entries.0.consumed_at|date:"M d, Y" }}</div>
       </div>
     </div>
 
@@ -49,9 +49,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
           </svg>
         </div>
-        <div>
+        <div class="min-w-0">
           <div class="text-sm font-medium text-gray-300">First Watched</div>
-          <div class="text-sm font-medium text-white">{{ entry.consumed_at|date:"M d, Y" }}</div>
+          <div class="text-sm font-medium text-white whitespace-nowrap">{{ entry.consumed_at|date:"M d, Y" }}</div>
         </div>
       </div>
       {% endif %}
@@ -62,7 +62,7 @@
   {# Quick Actions #}
   <div class="mt-4 pt-3 border-t border-[#333333]">
     <div class="flex gap-2">
-      <a href="{% url 'diary_list' %}?media_type=movie&item_id={{ diary_entries.0.item.id }}" 
+      <a href="{% url 'diary_list' %}?media_type={{ media.media_type }}&item_id={{ diary_entries.0.item.id }}" 
          class="flex-1 text-center px-3 py-2 text-sm font-medium text-[var(--poster-accent)] hover:text-white hover:bg-[var(--poster-accent)]/10 rounded-md transition-colors">
         View All Entries
       </a>

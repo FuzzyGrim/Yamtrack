@@ -62,7 +62,14 @@ function submitDiaryLog(button) {
     }
     
     // Convert to diary-log URL
-    const diaryLogUrl = logUrl.replace('/log/', '/diary-log/');
+    let diaryLogUrl;
+    if (logUrl.includes('/season/')) {
+        // For seasons, use the season-specific diary-log URL
+        diaryLogUrl = logUrl.replace('/log/season/', '/diary-log/season/');
+    } else {
+        // For movies and TV shows, use the regular diary-log URL
+        diaryLogUrl = logUrl.replace('/log/', '/diary-log/');
+    }
     
     console.log('Submitting diary entry to:', diaryLogUrl);
     console.log('Form data:', Object.fromEntries(formData));
@@ -96,3 +103,4 @@ function submitDiaryLog(button) {
         alert('Network error occurred while creating diary entry');
     });
 }
+
