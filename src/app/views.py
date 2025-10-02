@@ -313,6 +313,14 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     current_instance = user_medias[0] if user_medias else None
     episodes_in_db = current_instance.episodes.all() if current_instance else []
 
+    # Get diary entries for this season
+    diary_entries = []
+    try:
+        item = Item.objects.get(source=source, media_type=MediaTypes.SEASON.value, media_id=media_id, season_number=season_number)
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+    except Item.DoesNotExist:
+        pass
+
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(
             season_metadata,
@@ -324,6 +332,16 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             episodes_in_db,
         )
 
+    # Get MDBList ratings for seasons from TMDB (use TV show ratings)
+    mdblist_ratings = None
+    if source == Sources.TMDB.value:
+        try:
+            # Get TV show ratings for seasons (seasons don't have separate ratings)
+            mdblist_ratings = mdblist.get_media_ratings(media_id, "tv")
+            logging.getLogger(__name__).info(f"MDBList TV ratings for season {media_id}: {mdblist_ratings}")
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Failed to fetch MDBList ratings for season {media_id}: {e}")
+
     context = {
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
@@ -331,6 +349,8 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "user_medias": user_medias,
         "current_instance": current_instance,
         "episodes_in_db": episodes_in_db,
+        "diary_entries": diary_entries,
+        "mdblist_ratings": mdblist_ratings,
         "poster_accent_color": poster_accent,
         "poster_accent_contrast": poster_accent_contrast,
     }
