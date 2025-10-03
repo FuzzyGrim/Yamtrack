@@ -7,11 +7,133 @@
 {% endblock title %}
 
 {% block content %}
-  <div class="mb-8">
+  <div class="mb-8" style="margin-top: -24px;">
     <h1 class="text-3xl font-bold mb-2">Diary</h1>
-    <p class="text-gray-400">Your movie watching log</p>
+    <p class="text-gray-400">Your media consumption log</p>
   </div>
 
+  <!-- Filter and Search -->
+  <div class="mb-6 bg-[#2a2f35] rounded-lg p-3" x-data="diaryFilters()">
+    <div class="flex items-center gap-3">
+      <!-- Search Input -->
+      <div class="flex-1 relative">
+        <input type="text" 
+               x-model="searchTerm"
+               @input="applyFilters()"
+               placeholder="Search diary entries..." 
+               class="w-full px-3 py-2 pl-9 bg-[#39404b] border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+      </div>
+      
+      <!-- Date Filter Button -->
+      <div class="relative" @click.away="datePickerOpen = false">
+        <button @click="datePickerOpen = !datePickerOpen" 
+                class="w-10 h-10 bg-[#39404b] border border-gray-600 rounded-lg text-white hover:bg-[#454d5a] transition-colors flex items-center justify-center"
+                :class="{'bg-indigo-600 border-indigo-500': selectedDate}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </button>
+        
+        <div x-show="datePickerOpen" 
+             x-transition:enter="transition ease-out duration-100"
+             x-transition:enter-start="transform opacity-0 scale-95"
+             x-transition:enter-end="transform opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-75"
+             x-transition:leave-start="transform opacity-100 scale-100"
+             x-transition:leave-end="transform opacity-0 scale-95"
+             class="absolute left-0 mt-1 w-80 bg-[#2a2e33] rounded-lg shadow-lg z-50 border border-gray-600 p-4"
+             style="display: none;">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-medium text-white">Filter by Date</h3>
+              <button @click="clearDateFilter()" 
+                      class="text-xs text-gray-400 hover:text-white transition-colors">
+                Clear
+              </button>
+            </div>
+            
+            <div class="space-y-2">
+              <label class="text-xs text-gray-400">From Date</label>
+              <input type="date" 
+                     x-model="fromDate"
+                     @change="applyFilters()"
+                     class="w-full px-3 py-2 bg-[#39404b] border border-gray-600 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            </div>
+            
+            <div class="space-y-2">
+              <label class="text-xs text-gray-400">To Date</label>
+              <input type="date" 
+                     x-model="toDate"
+                     @change="applyFilters()"
+                     class="w-full px-3 py-2 bg-[#39404b] border border-gray-600 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            </div>
+            
+            <div class="flex gap-2 pt-2">
+              <button @click="selectDateRange('today')" 
+                      class="flex-1 px-3 py-1 bg-[#39404b] hover:bg-[#454d5a] text-white rounded text-xs transition-colors">
+                Today
+              </button>
+              <button @click="selectDateRange('week')" 
+                      class="flex-1 px-3 py-1 bg-[#39404b] hover:bg-[#454d5a] text-white rounded text-xs transition-colors">
+                This Week
+              </button>
+              <button @click="selectDateRange('month')" 
+                      class="flex-1 px-3 py-1 bg-[#39404b] hover:bg-[#454d5a] text-white rounded text-xs transition-colors">
+                This Month
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Media Type Filter -->
+      <div class="relative" @click.away="mediaTypeOpen = false">
+        <button @click="mediaTypeOpen = !mediaTypeOpen" 
+                class="flex items-center justify-between px-3 py-2 bg-[#39404b] border border-gray-600 rounded-lg text-white hover:bg-[#454d5a] transition-colors text-sm min-w-[140px]">
+          <span x-text="selectedMediaTypeLabel"></span>
+          <svg class="w-4 h-4 ml-2 transition-transform" :class="{'rotate-180': mediaTypeOpen}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+        
+        <div x-show="mediaTypeOpen" 
+             x-transition:enter="transition ease-out duration-100"
+             x-transition:enter-start="transform opacity-0 scale-95"
+             x-transition:enter-end="transform opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-75"
+             x-transition:leave-start="transform opacity-100 scale-100"
+             x-transition:leave-end="transform opacity-0 scale-95"
+             class="absolute right-0 mt-1 w-48 bg-[#2a2e33] rounded-lg shadow-lg z-50 border border-gray-600"
+             style="display: none;">
+          <div class="py-1">
+            <button @click="selectMediaType('', 'All Media Types'); mediaTypeOpen = false" 
+                    class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white transition-colors">
+              All Media Types
+            </button>
+            {% for value, label in media_type_choices %}
+              <button @click="selectMediaType('{{ value }}', '{{ label }}'); mediaTypeOpen = false" 
+                      class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white transition-colors">
+                {{ label }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Clear Filters -->
+      <button @click="clearFilters()" 
+              class="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors text-sm whitespace-nowrap">
+        Clear
+      </button>
+    </div>
+  </div>
 
   <!-- Diary Entries -->
   <div id="diary-entries">
@@ -20,5 +142,263 @@
 
   <!-- Edit Modal Container -->
   <div id="edit-modal-container"></div>
+
+  <script>
+    function diaryFilters() {
+      return {
+        searchTerm: '',
+        selectedMediaType: '{{ current_media_type|default:"" }}',
+        selectedMediaTypeLabel: '{{ current_media_type|default:"All Media Types" }}',
+        mediaTypeOpen: false,
+        datePickerOpen: false,
+        fromDate: '',
+        toDate: '',
+        allEntries: [],
+        
+        get selectedDate() {
+          return this.fromDate || this.toDate;
+        },
+        
+        init() {
+          this.initializeEntries();
+          this.applyFilters();
+          
+          // Re-initialize entries when HTMX updates the content
+          document.body.addEventListener('htmx:afterSwap', (event) => {
+            if (event.target.id === 'diary-entries') {
+              this.initializeEntries();
+              this.applyFilters();
+            }
+          });
+        },
+        
+        initializeEntries() {
+          const diaryEntries = document.getElementById('diary-entries');
+          this.allEntries = Array.from(diaryEntries.querySelectorAll('.diary-entry'));
+        },
+        
+        selectMediaType(value, label) {
+          this.selectedMediaType = value;
+          this.selectedMediaTypeLabel = label;
+          this.applyFilters();
+        },
+        
+        selectDateRange(range) {
+          console.log(`=== SELECTING DATE RANGE: ${range} ===`);
+          const today = new Date();
+          const startOfWeek = new Date(today);
+          startOfWeek.setDate(today.getDate() - today.getDay());
+          const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+          
+          console.log('Date calculations:', {
+            today: today.toISOString().split('T')[0],
+            startOfWeek: startOfWeek.toISOString().split('T')[0],
+            startOfMonth: startOfMonth.toISOString().split('T')[0]
+          });
+          
+          switch(range) {
+            case 'today':
+              this.fromDate = this.toDate = today.toISOString().split('T')[0];
+              break;
+            case 'week':
+              this.fromDate = startOfWeek.toISOString().split('T')[0];
+              this.toDate = today.toISOString().split('T')[0];
+              break;
+            case 'month':
+              this.fromDate = startOfMonth.toISOString().split('T')[0];
+              this.toDate = today.toISOString().split('T')[0];
+              break;
+          }
+          
+          console.log('Set date range:', {
+            fromDate: this.fromDate,
+            toDate: this.toDate
+          });
+          
+          this.applyFilters();
+        },
+        
+        clearDateFilter() {
+          this.fromDate = '';
+          this.toDate = '';
+          this.datePickerOpen = false;
+          this.applyFilters();
+        },
+        
+        applyFilters() {
+          console.log('=== APPLYING FILTERS ===');
+          const searchTerm = this.searchTerm.toLowerCase().trim();
+          const selectedMediaType = this.selectedMediaType;
+          const fromDate = this.fromDate;
+          const toDate = this.toDate;
+          
+          console.log('Filter values:', {
+            searchTerm,
+            selectedMediaType,
+            fromDate,
+            toDate,
+            totalEntries: this.allEntries.length
+          });
+          
+          this.allEntries.forEach((entry, index) => {
+            let showEntry = true;
+            const titleElement = entry.querySelector('h3 a');
+            const title = titleElement ? titleElement.textContent : 'NO TITLE';
+            
+            console.log(`\n--- Entry ${index + 1}: "${title}" ---`);
+            
+            // Apply search filter
+            if (searchTerm) {
+              const titleLower = title.toLowerCase();
+              const matchesSearch = titleLower.includes(searchTerm);
+              console.log(`Search filter: "${titleLower}" includes "${searchTerm}"? ${matchesSearch}`);
+              if (!matchesSearch) {
+                showEntry = false;
+              }
+            }
+            
+            // Apply media type filter
+            if (selectedMediaType) {
+              const mediaType = entry.getAttribute('data-media-type');
+              const matchesMediaType = mediaType === selectedMediaType;
+              console.log(`Media type filter: "${mediaType}" === "${selectedMediaType}"? ${matchesMediaType}`);
+              if (!matchesMediaType) {
+                showEntry = false;
+              }
+            }
+            
+            // Apply date filter
+            if (fromDate || toDate) {
+              console.log(`Date filter active: fromDate="${fromDate}", toDate="${toDate}"`);
+              
+              // Try multiple selectors to find the date
+              const selectors = [
+                '.flex.items-center.text-sm.text-gray-400 span',
+                '.text-sm.text-gray-400 span',
+                'span'
+              ];
+              
+              let dateElement = null;
+              let dateText = null;
+              
+              for (const selector of selectors) {
+                const elements = entry.querySelectorAll(selector);
+                console.log(`Trying selector "${selector}": found ${elements.length} elements`);
+                
+                for (const el of elements) {
+                  const text = el.textContent.trim();
+                  console.log(`  Element text: "${text}"`);
+                  
+                  // Check if this looks like a date (contains month name)
+                  if (text.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d+,\s+\d{4}$/)) {
+                    dateElement = el;
+                    dateText = text;
+                    console.log(`  ✓ Found date element: "${text}"`);
+                    break;
+                  }
+                }
+                if (dateElement) break;
+              }
+              
+              if (dateElement && dateText) {
+                console.log(`Parsing date: "${dateText}"`);
+                const entryDate = this.parseDiaryDate(dateText);
+                console.log(`Parsed date:`, entryDate);
+                
+                if (entryDate) {
+                  // Normalize dates to start of day for accurate comparison
+                  const entryDateStart = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate());
+                  const fromDateStart = fromDate ? new Date(fromDate) : null;
+                  const toDateStart = toDate ? new Date(toDate) : null;
+                  
+                  console.log(`Date comparison:`);
+                  console.log(`  Entry date: ${entryDateStart.toISOString().split('T')[0]}`);
+                  console.log(`  From date: ${fromDateStart ? fromDateStart.toISOString().split('T')[0] : 'null'}`);
+                  console.log(`  To date: ${toDateStart ? toDateStart.toISOString().split('T')[0] : 'null'}`);
+                  
+                  if (fromDateStart && entryDateStart < fromDateStart) {
+                    console.log(`  ❌ Entry date is before from date`);
+                    showEntry = false;
+                  }
+                  if (toDateStart && entryDateStart > toDateStart) {
+                    console.log(`  ❌ Entry date is after to date`);
+                    showEntry = false;
+                  }
+                  
+                  if (showEntry) {
+                    console.log(`  ✓ Entry date is within range`);
+                  }
+                } else {
+                  console.log(`  ❌ Failed to parse date`);
+                  showEntry = false;
+                }
+              } else {
+                console.log(`  ❌ No date element found`);
+                showEntry = false;
+              }
+            }
+            
+            console.log(`Final decision: ${showEntry ? 'SHOW' : 'HIDE'}`);
+            
+            // Show/hide entry
+            if (showEntry) {
+              entry.style.display = 'block';
+              entry.classList.remove('hidden');
+            } else {
+              entry.style.display = 'none';
+              entry.classList.add('hidden');
+            }
+          });
+          
+          // Show/hide pagination based on visible entries
+          const visibleEntries = this.allEntries.filter(entry => !entry.classList.contains('hidden'));
+          console.log(`\n=== FILTER RESULTS ===`);
+          console.log(`Visible entries: ${visibleEntries.length}/${this.allEntries.length}`);
+          
+          const pagination = document.getElementById('diary-entries').querySelector('.flex.justify-center.mt-8');
+          if (pagination) {
+            pagination.style.display = visibleEntries.length > 0 ? 'flex' : 'none';
+          }
+          
+          // Show/hide empty state
+          const emptyState = document.getElementById('diary-entries').querySelector('.bg-\\[\\#2a2f35\\]');
+          if (emptyState && emptyState.textContent.includes('No diary entries')) {
+            emptyState.style.display = visibleEntries.length === 0 ? 'block' : 'none';
+          }
+        },
+        
+        parseDiaryDate(dateString) {
+          // Parse dates like "Oct 3, 2025" or "Dec 15, 2024"
+          const months = {
+            'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+            'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+          };
+          
+          const parts = dateString.split(' ');
+          if (parts.length === 3) {
+            const month = months[parts[0]];
+            const day = parseInt(parts[1].replace(',', ''));
+            const year = parseInt(parts[2]);
+            
+            if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+              return new Date(year, month, day);
+            }
+          }
+          return null;
+        },
+        
+        clearFilters() {
+          this.searchTerm = '';
+          this.selectedMediaType = '';
+          this.selectedMediaTypeLabel = 'All Media Types';
+          this.mediaTypeOpen = false;
+          this.datePickerOpen = false;
+          this.fromDate = '';
+          this.toDate = '';
+          this.applyFilters();
+        }
+      }
+    }
+  </script>
 
 {% endblock content %}
