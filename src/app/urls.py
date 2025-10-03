@@ -119,6 +119,7 @@ urlpatterns = [
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/unmark-watched/', views.unmark_movie_watched, name='unmark_movie_watched'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/mark-tv-watched/', views.mark_tv_watched, name='mark_tv_watched'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/unmark-tv-watched/', views.unmark_tv_watched, name='unmark_tv_watched'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/start-tracking/', views.start_tracking_tv, name='start_tracking_tv'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/season/<int:season_number>/mark-watched/', views.mark_season_watched, name='mark_season_watched'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/season/<int:season_number>/unmark-watched/', views.unmark_season_watched, name='unmark_season_watched'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/season/<int:season_number>/episode/<int:episode_number>/watch/', views.watch_episode, name='watch_episode'),

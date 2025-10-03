@@ -240,6 +240,11 @@ def media_details(request, source, media_type, media_id, title):
         except Exception as e:
             logging.getLogger(__name__).warning(f"Failed to fetch MDBList ratings for {media_type} {media_id}: {e}")
 
+    # Check if there are any seasons in progress for TV shows
+    has_seasons_in_progress = False
+    if media_type == MediaTypes.TV.value and current_instance:
+        has_seasons_in_progress = current_instance.seasons.filter(status=Status.IN_PROGRESS.value).exists()
+
     context = {
         "media": media_metadata,
         "media_type": media_type,
@@ -249,6 +254,7 @@ def media_details(request, source, media_type, media_id, title):
         "mdblist_ratings": mdblist_ratings,
         "poster_accent_color": poster_accent,
         "poster_accent_contrast": poster_accent_contrast,
+        "has_seasons_in_progress": has_seasons_in_progress,
     }
     return render(request, "app/media_details.html", context)
 
@@ -424,7 +430,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
-            },
+        },
         )
         title = metadata["title"]
         if season_number:
@@ -487,7 +493,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             status=204,
             headers={
                 "HX-Redirect": request.POST["next"],
-            },
+        },
         )
     return helpers.redirect_back(request)
 
@@ -589,7 +595,7 @@ def media_save(request):
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
-            },
+        },
         )
         model = apps.get_model(app_label="app", model_name=media_type)
         instance = model(item=item, user=request.user)
@@ -670,7 +676,7 @@ def episode_save(request):
             defaults={
                 "title": tv_with_seasons_metadata["title"],
                 "image": season_metadata["image"],
-            },
+        },
         )
         related_season = Season.objects.create(
             item=item,
@@ -1021,7 +1027,7 @@ def toggle_hof(request):
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
-            },
+        },
         )
         
         # Toggle the HOF status
@@ -1276,7 +1282,7 @@ def save_poster_preference(request):
                 "poster_url": custom_image_url,
                 "accent": palette["accent"],
                 "contrast": palette["contrast"],
-            }
+        }
         )
         
     except Item.DoesNotExist:
@@ -1344,7 +1350,7 @@ def add_diary_entry(request, media_type, instance_id):
                 "media": media,
                 "media_type": media_type,
                 "entry": entry,
-            }
+        }
             return render(request, "app/components/media_actions.html", context)
         
         return redirect("diary_item", media_type=media_type, instance_id=instance_id)
@@ -1467,7 +1473,7 @@ def log_modal(request, source, media_type, media_id, season_number=None):
                 defaults={
                     "title": season_metadata["title"],
                     "image": season_metadata["image"],
-                },
+        },
             )
         else:
             metadata = services.get_media_metadata(media_type, media_id, source)
@@ -1478,7 +1484,7 @@ def log_modal(request, source, media_type, media_id, season_number=None):
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
-            },
+        },
         )
         
     # Use the same template for both movies and TV shows
@@ -1610,7 +1616,8 @@ def mark_tv_watched(request, source, media_type, media_id):
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
-            },
+                
+        },
         )
         
         # Get or create the TV instance
@@ -1620,7 +1627,8 @@ def mark_tv_watched(request, source, media_type, media_id):
             user=request.user,
             defaults={
                 "status": Status.COMPLETED.value,
-            }
+                
+        }
         )
         
         if not created:
@@ -1640,6 +1648,11 @@ def mark_tv_watched(request, source, media_type, media_id):
         # Get diary entries for this media
         diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
         
+        # Check if there are any seasons in progress
+        has_seasons_in_progress = False
+        if tv_instance:
+            has_seasons_in_progress = tv_instance.seasons.filter(status=Status.IN_PROGRESS.value).exists()
+        
         # Return updated action buttons for HTMX to swap  
         # Add required fields to metadata for template compatibility
         metadata["media_type"] = media_type
@@ -1650,6 +1663,8 @@ def mark_tv_watched(request, source, media_type, media_id):
             "media_type": media_type,
             "current_instance": tv_instance,
             "diary_entries": diary_entries,
+            "has_seasons_in_progress": has_seasons_in_progress,
+            
         }
         return render(request, "app/components/media_actions.html", context)
         
@@ -1707,6 +1722,7 @@ def unmark_tv_watched(request, source, media_type, media_id):
             "media_type": media_type,
             "current_instance": None,  # No instance after unwatching
             "diary_entries": diary_entries,
+            
         }
         return render(request, "app/components/media_actions.html", context)
         
@@ -1721,8 +1737,100 @@ def unmark_tv_watched(request, source, media_type, media_id):
             "media": metadata,
             "media_type": media_type,
             "current_instance": None,
+            
         }
         return render(request, "app/components/media_actions.html", context)
+
+
+@require_POST
+def start_tracking_tv(request, source, media_type, media_id):
+    """Start tracking a TV show by creating Season 1 with 'In Progress' status."""
+    try:
+        if media_type != MediaTypes.TV.value:
+            raise Http404("Start tracking is only available for TV shows")
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+                
+        },
+        )
+        
+        # Get or create the TV instance (but don't set it to In Progress)
+        from app.models import TV
+        tv_instance, created = TV.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.PLANNING.value,  # Set to Planning initially
+            }
+        )
+        
+        # Create Season 1 with 'In Progress' status
+        from app.models import Season
+        season_item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=MediaTypes.SEASON.value,
+            season_number=1,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
+        
+        season_instance, season_created = Season.objects.get_or_create(
+            item=season_item,
+            user=request.user,
+            related_tv=tv_instance,
+            defaults={
+                "status": Status.IN_PROGRESS.value,
+            }
+        )
+        
+        if not season_created:
+            # If season already exists, update it to In Progress
+            season_instance.status = Status.IN_PROGRESS.value
+            season_instance.save()
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Check if there are any seasons in progress
+        has_seasons_in_progress = False
+        if tv_instance:
+            has_seasons_in_progress = tv_instance.seasons.filter(status=Status.IN_PROGRESS.value).exists()
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": tv_instance,
+            "diary_entries": diary_entries,
+            "has_seasons_in_progress": has_seasons_in_progress,
+            
+        }
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in start_tracking_tv for {media_id}: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Return a simple error response
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @require_POST
@@ -1758,7 +1866,7 @@ def watch_episode(request, source, media_type, media_id, season_number, episode_
             related_season=season_instance,
             defaults={
                 "end_date": timezone.now(),
-            }
+        }
         )
         
         if not created and not episode_instance.end_date:
@@ -1864,7 +1972,7 @@ def mark_season_watched(request, source, media_type, media_id, season_number):
             user=request.user,
             defaults={
                 "status": Status.COMPLETED.value,
-            }
+        }
         )
         
         if not created:
@@ -1999,7 +2107,7 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
                 defaults={
                     "title": season_metadata["title"],
                     "image": season_metadata["image"],
-                },
+        },
             )
             logger.info(f"Season item {'created' if created else 'found'}: {item}")
         else:
@@ -2011,7 +2119,7 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
-            },
+        },
         )
         logger.info(f"Item {'created' if created else 'found'}: {item}")
         
@@ -2067,7 +2175,7 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
                         user=request.user,
                         defaults={
                             "status": Status.COMPLETED.value,
-                        }
+        }
                     )
                     
                     if not created:
@@ -2091,7 +2199,7 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
                         user=request.user,
                         defaults={
                             "status": Status.COMPLETED.value,
-                        }
+        }
                     )
                     logger.info(f"Season instance {'created' if created else 'found'}: {season_instance}")
                     

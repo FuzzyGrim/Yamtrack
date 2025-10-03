@@ -87,39 +87,51 @@
           Logged ({{ diary_entries|length }})
         </button>
       </div>
+    {% elif current_instance and has_seasons_in_progress %}
+      {# If any season is currently tracking, show update status button #}
+      <div class="flex">
+        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                onclick="alert('Update Status functionality coming soon!')">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Update Status
+        </button>
+      </div>
+    {% elif current_instance and current_instance.status == "Completed" %}
+      {# If completed, show unwatch button #}
+      <div class="flex">
+        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
+                hx-post="{% url 'unmark_tv_watched' media.source media.media_type media.media_id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#media-actions"
+                hx-swap="innerHTML"
+                onclick="console.log('Unwatch TV button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
+          <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
+          </svg>
+          Unwatch
+        </button>
+      </div>
     {% else %}
-      {# If not logged, show both watched and log buttons #}
+      {# If not started, show watched and log buttons #}
       <div class="flex gap-2">
         {# Mark as Watched Button #}
-        {% if current_instance and current_instance.status == "Completed" %}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
-                  hx-post="{% url 'unmark_tv_watched' media.source media.media_type media.media_id %}"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-target="#media-actions"
-                  hx-swap="innerHTML"
-                  onclick="console.log('Unwatch TV button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
-            <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
-            </svg>
-            Unwatch
-          </button>
-        {% else %}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  hx-post="{% url 'mark_tv_watched' media.source media.media_type media.media_id %}"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-target="#media-actions"
-                  hx-swap="innerHTML"
-                  onclick="console.log('Watched TV button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-            </svg>
-            Watched
-          </button>
-        {% endif %}
+        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                hx-post="{% url 'mark_tv_watched' media.source media.media_type media.media_id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#media-actions"
+                hx-swap="innerHTML"
+                onclick="console.log('Watched TV button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+          </svg>
+          Watched
+        </button>
 
         {# Log Button #}
         <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
@@ -133,6 +145,21 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
           </svg>
           Log Show
+        </button>
+      </div>
+      
+      {# Currently Watching Button - Full width underneath #}
+      <div class="mt-2">
+        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                hx-post="{% url 'start_tracking_tv' media.source media.media_type media.media_id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#media-actions"
+                hx-swap="innerHTML"
+                onclick="console.log('Start tracking TV button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Currently Watching
         </button>
       </div>
     {% endif %}
