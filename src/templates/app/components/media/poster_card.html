@@ -36,7 +36,9 @@
   </div>
 
   {# Action Buttons #}
-  {% include "app/components/media_actions.html" with diary_entries=diary_entries %}
+  <div id="media-actions">
+    {% include "app/components/media_actions.html" with diary_entries=diary_entries %}
+  </div>
 </div>
 
 <style>

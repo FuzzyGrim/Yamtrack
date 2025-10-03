@@ -979,6 +979,10 @@ class TV(Media):
 
     def _completed(self):
         """Create remaining seasons and episodes for a TV show."""
+        from datetime import datetime
+        import logging
+        logger = logging.getLogger(__name__)
+        
         tv_metadata = providers.services.get_media_metadata(
             self.item.media_type,
             self.item.media_id,
@@ -1004,8 +1008,25 @@ class TV(Media):
             self.item.source,
             season_numbers,
         )
+        
+        now = timezone.now()
+        
         for season_number in season_numbers:
             season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
+            
+            # Debug logging for season metadata structure
+            logger.info(f"Season {season_number} metadata keys: {list(season_metadata.keys())}")
+            logger.info(f"Season {season_number} details keys: {list(season_metadata.get('details', {}).keys())}")
+            
+            # Check if season has episodes (skip seasons with 0 episodes)
+            episode_count = season_metadata.get("details", {}).get("episodes", 0)
+            logger.info(f"Season {season_number} episode_count: {episode_count}")
+            
+            if episode_count == 0:
+                logger.info(f"Skipping season {season_number} with 0 episodes")
+                continue
+            else:
+                logger.info(f"Season {season_number} has {episode_count} episodes, processing")
 
             item, _ = Item.objects.get_or_create(
                 media_id=self.item.media_id,
@@ -1385,23 +1406,14 @@ class Season(Media):
 
     def get_remaining_eps(self, season_metadata):
         """Return episodes needed to complete a season."""
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        logger.info(f"get_remaining_eps called with season_metadata keys: {list(season_metadata.keys())}")
-        logger.info(f"season_metadata['episodes'] type: {type(season_metadata.get('episodes'))}")
-        logger.info(f"season_metadata['episodes'] value: {season_metadata.get('episodes')}")
+        from datetime import datetime
         
         episodes_list = season_metadata.get("episodes")
         if episodes_list is None:
-            logger.error("episodes_list is None!")
             return []
         
         if not isinstance(episodes_list, (list, tuple)):
-            logger.error(f"episodes_list is not iterable, type: {type(episodes_list)}")
             return []
-        
-        logger.info(f"Processing {len(episodes_list)} episodes")
         
         latest_watched_ep_num = Episode.objects.filter(related_season=self).aggregate(
             latest_watched_ep_num=Max("item__episode_number"),
@@ -1415,18 +1427,32 @@ class Season(Media):
 
         # Create Episode objects for the remaining episodes
         for i, episode in enumerate(reversed(episodes_list)):
-            logger.info(f"Processing episode {i}: {episode}")
             if not isinstance(episode, dict):
-                logger.error(f"Episode {i} is not a dict: {type(episode)}")
                 continue
                 
             episode_number = episode.get("episode_number")
             if episode_number is None:
-                logger.error(f"Episode {i} has no episode_number: {episode}")
                 continue
                 
             if episode_number <= latest_watched_ep_num:
                 break
+
+            # Check if episode has aired (skip unreleased episodes)
+            air_date = episode.get("air_date")
+            if air_date:
+                try:
+                    # Parse air_date string to datetime
+                    if isinstance(air_date, str):
+                        episode_air_date = datetime.strptime(air_date, "%Y-%m-%d").date()
+                    else:
+                        episode_air_date = air_date
+                    
+                    # Skip if episode hasn't aired yet
+                    if episode_air_date > now.date():
+                        continue
+                except (ValueError, TypeError):
+                    # If we can't parse the date, assume it's released to be safe
+                    pass
 
             item = self.get_episode_item(episode_number, season_metadata)
 
@@ -1437,7 +1463,6 @@ class Season(Media):
             )
             episodes_to_create.append(episode_db)
 
-        logger.info(f"Returning {len(episodes_to_create)} episodes to create")
         return episodes_to_create
 
     def get_episode_item(self, episode_number, season_metadata=None):
