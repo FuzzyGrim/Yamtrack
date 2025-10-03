@@ -115,20 +115,22 @@
             <div class="relative">
               <div class="relative group">
                 <!-- Custom diary card using Hall of Fame structure -->
-                <div class="bg-[#39404b] rounded-lg overflow-hidden shadow-lg relative group">
-                  <div class="relative">
-                    {% get_user_poster_image entry.item user as poster_url %}
-                    <img alt="{{ entry.item.title }}"
-                         class="lazyload w-full aspect-[2/3] bg-[#3e454d] {% if poster_url != IMG_NONE %}object-cover{% endif %}"
-                         data-src="{{ poster_url }}"
-                         src="{{ IMG_NONE }}">
+                <div class="bg-[#39404b] rounded-lg shadow-lg relative group">
+                  <div class="relative overflow-hidden rounded-t-lg">
+                    <div class="aspect-[2/3] relative">
+                      {% get_user_poster_image entry.item user as poster_url %}
+                      <img alt="{{ entry.item.title }}"
+                           class="lazyload w-full h-full bg-[#3e454d] {% if poster_url != IMG_NONE %}object-cover object-bottom{% endif %}"
+                           data-src="{{ poster_url }}"
+                           src="{{ IMG_NONE }}">
 
-                    <!-- Link overlay -->
-                    <a href="{{ entry.item|media_url }}" class="absolute inset-0"></a>
+                      <!-- Link overlay -->
+                      <a href="{{ entry.item|media_url }}" class="absolute inset-0"></a>
+                    </div>
                   </div>
 
                   <!-- Title and date section -->
-                  <div class="p-3">
+                  <div class="p-3 rounded-b-lg">
                     <a href="{{ entry.item|media_url }}"
                        class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
                        title="{{ entry.item.title }}">{{ entry.item.title }}</a>

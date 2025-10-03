@@ -2021,8 +2021,16 @@
     fill: var(--color-yellow-400);
   }
 
-  .object-cover {
-    object-fit: cover;
+  .object-contain {
+    object-fit: contain;
+  }
+
+  .h-\[150px\] {
+    height: 150px;
+  }
+
+  .object-bottom {
+    object-position: center bottom;
   }
 
   .p-1 {

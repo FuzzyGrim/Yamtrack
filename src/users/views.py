@@ -30,7 +30,7 @@ def profile(request):
     # Get recent diary entries for the preview
     recent_diary_entries = DiaryEntry.objects.filter(
         user=request.user
-    ).select_related('item').order_by('-consumed_at')[:12]
+    ).select_related('item').order_by('-created_at')[:7]
     
     return render(request, "users/profile.html", {
         "user": request.user,
