@@ -169,7 +169,7 @@
       <div class="flex">
         <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
-                data-log-url="{% url 'log_modal_season' media.source media.media_type media.media_id media.season_number %}"
+                data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
                   .then(html => {
@@ -188,7 +188,7 @@
         {% if current_instance and current_instance.status == "Completed" %}
           <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                   style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
-                  hx-post="{% url 'unmark_season_watched' media.source media.media_type media.media_id media.season_number %}"
+                  hx-post="{% url 'unmark_season_watched' media.source 'tv' media.media_id media.season_number %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
                   hx-swap="innerHTML"
@@ -202,7 +202,7 @@
           </button>
         {% else %}
           <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  hx-post="{% url 'mark_season_watched' media.source media.media_type media.media_id media.season_number %}"
+                  hx-post="{% url 'mark_season_watched' media.source 'tv' media.media_id media.season_number %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
                   hx-swap="innerHTML"
@@ -217,7 +217,7 @@
 
         {# Log Button #}
         <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                data-log-url="{% url 'log_modal_season' media.source media.media_type media.media_id media.season_number %}"
+                data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
                   .then(html => {

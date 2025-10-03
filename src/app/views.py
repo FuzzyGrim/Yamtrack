@@ -243,7 +243,8 @@ def media_details(request, source, media_type, media_id, title):
     # Check if there are any seasons in progress for TV shows
     has_seasons_in_progress = False
     if media_type == MediaTypes.TV.value and current_instance:
-        has_seasons_in_progress = current_instance.seasons.filter(status=Status.IN_PROGRESS.value).exists()
+        # Use prefetched seasons to avoid N+1 query
+        has_seasons_in_progress = any(season.status == Status.IN_PROGRESS.value for season in current_instance.seasons.all())
 
     context = {
         "media": media_metadata,
@@ -1496,10 +1497,9 @@ def log_modal(request, source, media_type, media_id, season_number=None):
 
 
 @require_POST
-def mark_movie_watched(request, source, media_type, media_id):
+def mark_movie_watched(request, source, media_id):
     """Mark a movie as watched by creating a tracking instance and marking it as consumed."""
-    if media_type != MediaTypes.MOVIE.value:
-        raise Http404("Mark as watched is only available for movies")
+    media_type = MediaTypes.MOVIE.value
         
     # Get or create the item
     metadata = services.get_media_metadata(media_type, media_id, source)
@@ -1545,10 +1545,9 @@ def mark_movie_watched(request, source, media_type, media_id):
 
 
 @require_POST
-def unmark_movie_watched(request, source, media_type, media_id):
+def unmark_movie_watched(request, source, media_id):
     """Unmark a movie as watched by removing the tracking instance."""
-    if media_type != MediaTypes.MOVIE.value:
-        raise Http404("Unwatch is only available for movies")
+    media_type = MediaTypes.MOVIE.value
         
     try:
         # Get the item
@@ -1622,6 +1621,8 @@ def mark_tv_watched(request, source, media_type, media_id):
         
         # Get or create the TV instance
         from app.models import TV
+        # Temporarily disable calendar triggers to avoid events.tasks error
+        item._disable_calendar_triggers = True
         tv_instance, created = TV.objects.get_or_create(
             item=item,
             user=request.user,
@@ -1632,8 +1633,9 @@ def mark_tv_watched(request, source, media_type, media_id):
         )
         
         if not created:
-            # If it already exists, mark it as consumed
-            tv_instance.mark_consumed()
+            # If it already exists, just update the status (TV shows don't have direct end_date)
+            tv_instance.status = Status.COMPLETED.value
+            tv_instance.save()
         
         # Mark all episodes and seasons as watched
         try:
@@ -1651,7 +1653,8 @@ def mark_tv_watched(request, source, media_type, media_id):
         # Check if there are any seasons in progress
         has_seasons_in_progress = False
         if tv_instance:
-            has_seasons_in_progress = tv_instance.seasons.filter(status=Status.IN_PROGRESS.value).exists()
+            # Use prefetched seasons to avoid N+1 query
+            has_seasons_in_progress = any(season.status == Status.IN_PROGRESS.value for season in tv_instance.seasons.all())
         
         # Return updated action buttons for HTMX to swap  
         # Add required fields to metadata for template compatibility
@@ -1722,7 +1725,7 @@ def unmark_tv_watched(request, source, media_type, media_id):
             "media_type": media_type,
             "current_instance": None,  # No instance after unwatching
             "diary_entries": diary_entries,
-            
+            "has_seasons_in_progress": False,  # No seasons after unwatching
         }
         return render(request, "app/components/media_actions.html", context)
         
@@ -1737,7 +1740,7 @@ def unmark_tv_watched(request, source, media_type, media_id):
             "media": metadata,
             "media_type": media_type,
             "current_instance": None,
-            
+            "has_seasons_in_progress": False,  # No seasons if instance doesn't exist
         }
         return render(request, "app/components/media_actions.html", context)
 
@@ -1805,7 +1808,8 @@ def start_tracking_tv(request, source, media_type, media_id):
         # Check if there are any seasons in progress
         has_seasons_in_progress = False
         if tv_instance:
-            has_seasons_in_progress = tv_instance.seasons.filter(status=Status.IN_PROGRESS.value).exists()
+            # Use prefetched seasons to avoid N+1 query
+            has_seasons_in_progress = any(season.status == Status.IN_PROGRESS.value for season in tv_instance.seasons.all())
         
         # Return updated action buttons for HTMX to swap  
         # Add required fields to metadata for template compatibility
@@ -1953,20 +1957,22 @@ def render_episode_card(request, episode):
 @require_POST
 def mark_season_watched(request, source, media_type, media_id, season_number):
     """Mark a season as watched by creating a tracking instance and marking all episodes as consumed."""
-    if media_type != MediaTypes.SEASON.value:
-        raise Http404("Mark as watched is only available for seasons")
+    # The URL passes media_type='tv' but we need to work with seasons
+    season_media_type = MediaTypes.SEASON.value
         
     try:
         # Get the season item
         season_item = Item.objects.get(
             media_id=media_id,
             source=source,
-            media_type=media_type,
+            media_type=season_media_type,
             season_number=season_number
         )
         
         # Get or create the season instance
         from app.models import Season
+        # Temporarily disable calendar triggers to avoid events.tasks error
+        season_item._disable_calendar_triggers = True
         season_instance, created = Season.objects.get_or_create(
             item=season_item,
             user=request.user,
@@ -1990,9 +1996,10 @@ def mark_season_watched(request, source, media_type, media_id, season_number):
             # Continue without marking episodes as watched
         
         # Get metadata for template
-        metadata = services.get_media_metadata(media_type, media_id, source, season_numbers=[season_number])
-        season_metadata = metadata[f"season/{season_number}"]
-        season_metadata["media_type"] = media_type
+        metadata = services.get_media_metadata(season_media_type, media_id, source, season_numbers=[season_number])
+        # For seasons, the metadata is already the season data, not a dict with season/{number} key
+        season_metadata = metadata
+        season_metadata["media_type"] = season_media_type
         season_metadata["source"] = source
         season_metadata["media_id"] = media_id
         
@@ -2011,7 +2018,7 @@ def mark_season_watched(request, source, media_type, media_id, season_number):
         
         context = {
             "media": season_metadata,
-            "media_type": media_type,
+            "media_type": season_media_type,
             "current_instance": current_instance,
             "diary_entries": diary_entries,
         }
@@ -2024,15 +2031,15 @@ def mark_season_watched(request, source, media_type, media_id, season_number):
 @require_POST
 def unmark_season_watched(request, source, media_type, media_id, season_number):
     """Unmark a season as watched by removing the tracking instance and all episodes."""
-    if media_type != MediaTypes.SEASON.value:
-        raise Http404("Unwatch is only available for seasons")
+    # The URL passes media_type='tv' but we need to work with seasons
+    season_media_type = MediaTypes.SEASON.value
         
     try:
         # Get the season item
         season_item = Item.objects.get(
             media_id=media_id,
             source=source,
-            media_type=media_type,
+            media_type=season_media_type,
             season_number=season_number
         )
         
@@ -2050,9 +2057,10 @@ def unmark_season_watched(request, source, media_type, media_id, season_number):
         season_instance.delete()
         
         # Get metadata for template
-        metadata = services.get_media_metadata(media_type, media_id, source, season_numbers=[season_number])
-        season_metadata = metadata[f"season/{season_number}"]
-        season_metadata["media_type"] = media_type
+        metadata = services.get_media_metadata(season_media_type, media_id, source, season_numbers=[season_number])
+        # For seasons, the metadata is already the season data, not a dict with season/{number} key
+        season_metadata = metadata
+        season_metadata["media_type"] = season_media_type
         season_metadata["source"] = source
         season_metadata["media_id"] = media_id
         
@@ -2061,7 +2069,7 @@ def unmark_season_watched(request, source, media_type, media_id, season_number):
         
         context = {
             "media": season_metadata,
-            "media_type": media_type,
+            "media_type": season_media_type,
             "current_instance": None,  # No instance after unwatching
             "diary_entries": diary_entries,
         }
@@ -2179,8 +2187,9 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
                     )
                     
                     if not created:
-                        # If it already exists, mark it as consumed
-                        tv_instance.mark_consumed()
+                        # If it already exists, just update the status (TV shows don't have direct end_date)
+                        tv_instance.status = Status.COMPLETED.value
+                        tv_instance.save()
                     
                     # Mark all episodes and seasons as watched (no diary entries for episodes)
                     try:
