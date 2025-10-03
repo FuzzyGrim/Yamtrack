@@ -9,7 +9,7 @@
       <svg :class="open ? 'rotate-90' : ''" class="h-4 w-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
       </svg>
-      <h2 class="text-xl font-semibold">Related Films</h2>
+      <h2 class="text-xl font-semibold">Related</h2>
     </button>
 
     <div x-show="open"
@@ -18,7 +18,7 @@
          x-transition:enter-end="opacity-100 translate-y-0"
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100 translate-y-0"
-         x-transition:leave-end="opacity-0 -translate-y-1">image.png
+         x-transition:leave-end="opacity-0 -translate-y-1">
       <div class="grid gap-6 grid-cols-7" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
         {% for name, related_items in media.related.items %}
           {% for item in related_items|slice:":7" %}

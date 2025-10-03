@@ -1,71 +1,42 @@
 {% load app_tags %}
 
-{# Personal Stats Section - Shows user's diary engagement with this media #}
+{# Personal Stats Section - Minimal and clean design #}
 {% if diary_entries %}
-<div class="mt-6 p-4 bg-[#1a1a1a] rounded-lg border border-[#333333]">
-  <div class="flex items-center gap-2 mb-3">
-    <svg class="h-5 w-5 text-[var(--poster-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-    </svg>
-    <h3 class="text-lg font-semibold text-white">Your Stats</h3>
-  </div>
-  
-  <div class="grid grid-cols-2 gap-4">
+<div class="mt-6 border rounded-lg p-3" style="border-color: var(--poster-accent)">
+  <div class="space-y-2">
     {# Watch Count #}
-    <div class="flex items-center gap-3">
-      <div class="flex-shrink-0 w-8 h-8 bg-[var(--poster-accent)]/20 rounded-full flex items-center justify-center">
-        <svg class="h-4 w-4 text-[var(--poster-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-        </svg>
-      </div>
-      <div>
-        <div class="text-sm font-medium text-gray-300">Watched</div>
-        <div class="text-lg font-bold text-white">{{ diary_entries|length }} time{{ diary_entries|length|pluralize }}</div>
-      </div>
+    <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md">
+      <span class="text-sm text-gray-300">Watched</span>
+      <span class="text-sm font-medium text-white">{{ diary_entries|length }} time{{ diary_entries|length|pluralize }}</span>
     </div>
-
 
     {# Last Watched #}
-    <div class="flex items-center gap-3">
-      <div class="flex-shrink-0 w-8 h-8 bg-[var(--poster-accent)]/20 rounded-full flex items-center justify-center">
-        <svg class="h-4 w-4 text-[var(--poster-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-      </div>
-      <div class="min-w-0">
-        <div class="text-sm font-medium text-gray-300">Last</div>
-        <div class="text-sm font-medium text-white whitespace-nowrap">{{ diary_entries.0.consumed_at|date:"M d, Y" }}</div>
-      </div>
+    <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md">
+      <span class="text-sm text-gray-300">Last</span>
+      <span class="text-sm font-medium text-white">{{ diary_entries.0.consumed_at|date:"M d, Y" }}</span>
     </div>
 
-    {# First Watched #}
+    {# First Watched - only show if multiple entries #}
     {% if diary_entries|length > 1 %}
-    {% for entry in diary_entries reversed %}
-      {% if forloop.first %}
-      <div class="flex items-center gap-3">
-        <div class="flex-shrink-0 w-8 h-8 bg-[var(--poster-accent)]/20 rounded-full flex items-center justify-center">
-          <svg class="h-4 w-4 text-[var(--poster-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
+      {% for entry in diary_entries reversed %}
+        {% if forloop.first %}
+        <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md">
+          <span class="text-sm text-gray-300">First</span>
+          <span class="text-sm font-medium text-white">{{ entry.consumed_at|date:"M d, Y" }}</span>
         </div>
-        <div class="min-w-0">
-          <div class="text-sm font-medium text-gray-300">First Watched</div>
-          <div class="text-sm font-medium text-white whitespace-nowrap">{{ entry.consumed_at|date:"M d, Y" }}</div>
-        </div>
-      </div>
-      {% endif %}
-    {% endfor %}
+        {% endif %}
+      {% endfor %}
     {% endif %}
-  </div>
 
-  {# Quick Actions #}
-  <div class="mt-4 pt-3 border-t border-[#333333]">
-    <div class="flex gap-2">
+    {# View All Entries #}
+    <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md hover:bg-gray-700/50 transition-colors">
       <a href="{% url 'diary_list' %}?media_type={{ media.media_type }}&item_id={{ diary_entries.0.item.id }}" 
-         class="w-full text-center px-3 py-2 text-sm font-medium text-[var(--poster-accent)] hover:text-white hover:bg-[var(--poster-accent)]/10 rounded-md transition-colors">
+         class="text-sm text-gray-300 hover:text-white transition-colors">
         View All Entries
       </a>
+      <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+      </svg>
     </div>
   </div>
 </div>
