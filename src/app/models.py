@@ -1582,6 +1582,42 @@ class Episode(models.Model):
                     TV,
                     fields=["status"],
                 )
+            else:
+                # Not the last season - start the next season automatically
+                next_season_number = season_number + 1
+                # Check if next season exists in metadata
+                if any(s["season_number"] == next_season_number for s in tv_with_seasons_metadata["related"]["seasons"]):
+                    # Get or create the next season and mark it as in progress
+                    from app.models import Item
+                    next_season_item, _ = Item.objects.get_or_create(
+                        media_id=self.item.media_id,
+                        source=self.item.source,
+                        media_type=MediaTypes.SEASON.value,
+                        season_number=next_season_number,
+                        defaults={
+                            "title": tv_with_seasons_metadata["title"],
+                            "image": tv_with_seasons_metadata["image"],
+                        }
+                    )
+                    
+                    next_season, created = Season.objects.get_or_create(
+                        item=next_season_item,
+                        user=self.related_season.user,
+                        defaults={
+                            "status": Status.IN_PROGRESS.value,
+                            "score": None,
+                            "notes": "",
+                        }
+                    )
+                    
+                    if not created and next_season.status == Status.PLANNING.value:
+                        # If it exists but is in planning, move it to in progress
+                        next_season.status = Status.IN_PROGRESS.value
+                        bulk_update_with_history(
+                            [next_season],
+                            Season,
+                            fields=["status"],
+                        )
         elif self.related_season.related_tv.status != Status.IN_PROGRESS.value:
             self.related_season.related_tv.status = Status.IN_PROGRESS.value
             bulk_update_with_history(

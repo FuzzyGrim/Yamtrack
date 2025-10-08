@@ -27,7 +27,7 @@
         {% if current_instance and current_instance.status == "Completed" %}
           <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                   style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
-                  hx-post="{% url 'unmark_movie_watched' media.source media.media_type media.media_id %}"
+                  hx-post="{% url 'unmark_movie_watched' media.source media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
                   hx-swap="innerHTML"
@@ -37,11 +37,11 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
             </svg>
-            Unwatch
+            Watched
           </button>
         {% else %}
           <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  hx-post="{% url 'mark_movie_watched' media.source media.media_type media.media_id %}"
+                  hx-post="{% url 'mark_movie_watched' media.source media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
                   hx-swap="innerHTML"
@@ -80,7 +80,8 @@
                   .then(response => response.text())
                   .then(html => {
                     document.getElementById('log-modal-container').innerHTML = html;
-                  })">
+                  })"
+                title="View and manage your diary entries for this show">
           <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
@@ -88,33 +89,51 @@
         </button>
       </div>
     {% elif current_instance and has_seasons_in_progress %}
-      {# If any season is currently tracking, show update status button #}
-      <div class="flex">
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                onclick="alert('Update Status functionality coming soon!')">
+      {# If any season is currently tracking, show watching indicator with options #}
+      <div class="flex flex-col gap-2">
+        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+             style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          Update Status
+          Watching
+        </div>
+        
+        {# Stop Watching Button #}
+        <button class="w-full border border-gray-600 hover:border-red-500 px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:bg-red-900/20"
+                hx-post="{% url 'unmark_tv_watched' media.source media.media_type media.media_id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#media-actions"
+                hx-swap="innerHTML"
+                hx-confirm="Stop tracking this show? All season progress will be removed."
+                title="Remove all tracking data for this show">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+          <span class="text-sm text-gray-300">Stop Watching</span>
         </button>
+        
+        <p class="text-xs text-center text-gray-400">Track progress in individual seasons below</p>
       </div>
     {% elif current_instance and current_instance.status == "Completed" %}
       {# If completed, show unwatch button #}
-      <div class="flex">
+      <div class="flex flex-col gap-2">
         <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                 hx-post="{% url 'unmark_tv_watched' media.source media.media_type media.media_id %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
                 hx-swap="innerHTML"
-                onclick="console.log('Unwatch TV button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
+                title="Remove completion status from all seasons and episodes">
           <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
           </svg>
-          Unwatch
+          Unwatch Entire Show
         </button>
+        <p class="text-xs text-center text-gray-400">This will remove all completed seasons and episodes</p>
       </div>
     {% else %}
       {# If not started, show watched and log buttons #}
@@ -125,7 +144,7 @@
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
                 hx-swap="innerHTML"
-                onclick="console.log('Watched TV button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
+                title="Mark all seasons and episodes as watched">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -140,7 +159,8 @@
                   .then(response => response.text())
                   .then(html => {
                     document.getElementById('log-modal-container').innerHTML = html;
-                  })">
+                  })"
+                title="Log this show to your diary with a date and optional review">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
           </svg>
@@ -155,13 +175,15 @@
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
                 hx-swap="innerHTML"
-                onclick="console.log('Start tracking TV button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
+                title="Start tracking from Season 1">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          Currently Watching
+          Start Watching
         </button>
       </div>
+      <p class="text-xs text-center text-gray-400 mt-2">Track individual seasons or mark the entire show as watched</p>
     {% endif %}
   {% elif media.media_type == MediaTypes.SEASON.value %}
     {% if diary_entries %}
@@ -174,60 +196,129 @@
                   .then(response => response.text())
                   .then(html => {
                     document.getElementById('log-modal-container').innerHTML = html;
-                  })">
+                  })"
+                title="View and manage your diary entries for this season">
           <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
           Logged ({{ diary_entries|length }})
         </button>
       </div>
-    {% else %}
-      {# If not logged, show both watched and log buttons #}
-      <div class="flex gap-2">
-        {# Mark as Watched Button #}
-        {% if current_instance and current_instance.status == "Completed" %}
+    {% elif current_instance and current_instance.status == "In progress" %}
+      {# If in progress, show watching indicator with options #}
+      <div class="flex flex-col gap-2">
+        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+             style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Watching
+        </div>
+        
+        <div class="flex gap-2">
+          {# Mark as Watched Button #}
+          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                  hx-post="{% url 'mark_season_watched' media.source 'tv' media.media_id media.season_number %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-target="#media-actions"
+                  hx-swap="innerHTML"
+                  title="Mark all episodes in this season as watched">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+            Complete
+          </button>
+
+          {# Log Button #}
+          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                  data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                  onclick="fetch(this.dataset.logUrl)
+                    .then(response => response.text())
+                    .then(html => {
+                      document.getElementById('log-modal-container').innerHTML = html;
+                    })"
+                  title="Log this season to your diary with a date and optional review">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Log Season
+          </button>
+        </div>
+        
+        <p class="text-xs text-center text-gray-400">Track individual episodes below</p>
+      </div>
+    {% elif current_instance and current_instance.status == "Completed" %}
+      {# If completed, show unwatch button #}
+      <div class="flex flex-col gap-2">
+        <div class="flex gap-2">
           <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                   style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                   hx-post="{% url 'unmark_season_watched' media.source 'tv' media.media_id media.season_number %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
                   hx-swap="innerHTML"
-                  onclick="console.log('Unwatch Season button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
+                  title="Remove completion status from this season and all episodes">
             <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
             </svg>
-            Unwatch
+            Unwatch Season
           </button>
-        {% else %}
+          
+          {# Log Button #}
+          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                  data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                  onclick="fetch(this.dataset.logUrl)
+                    .then(response => response.text())
+                    .then(html => {
+                      document.getElementById('log-modal-container').innerHTML = html;
+                    })"
+                  title="Log this season to your diary with a date and optional review">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Log Season
+          </button>
+        </div>
+        <p class="text-xs text-center text-gray-400">Season completed - all episodes marked as watched</p>
+      </div>
+    {% else %}
+      {# If not started, show both watched and log buttons #}
+      <div class="flex flex-col gap-2">
+        <div class="flex gap-2">
+          {# Mark as Watched Button #}
           <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                   hx-post="{% url 'mark_season_watched' media.source 'tv' media.media_id media.season_number %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
                   hx-swap="innerHTML"
-                  onclick="console.log('Watched Season button clicked!'); console.log('HTMX available:', typeof htmx !== 'undefined');">
+                  title="Mark all episodes in this season as watched">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
             </svg>
             Watched
           </button>
-        {% endif %}
 
-        {# Log Button #}
-        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
-                onclick="fetch(this.dataset.logUrl)
-                  .then(response => response.text())
-                  .then(html => {
-                    document.getElementById('log-modal-container').innerHTML = html;
-                  })">
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-          </svg>
-          Log Season
-        </button>
+          {# Log Button #}
+          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                  data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                  onclick="fetch(this.dataset.logUrl)
+                    .then(response => response.text())
+                    .then(html => {
+                      document.getElementById('log-modal-container').innerHTML = html;
+                    })"
+                  title="Log this season to your diary with a date and optional review">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Log Season
+          </button>
+        </div>
+        <p class="text-xs text-center text-gray-400">Only this season will be affected - other seasons remain unchanged</p>
       </div>
     {% endif %}
   {% else %}

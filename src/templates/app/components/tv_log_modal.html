@@ -13,15 +13,24 @@
     <div class="bg-[#1a1d23] rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
         
         <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold text-white">
-                {% if log_type == 'season' %}
-                    Log Season {{ season_number }}
-                {% else %}
-                    Log TV Show
-                {% endif %}
-            </h2>
-            <button @click="$el.closest('.fixed').remove()" class="text-gray-400 hover:text-white">
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h2 class="text-2xl font-semibold text-white">
+                    {% if log_type == 'season' %}
+                        Log Season {{ season_number }}
+                    {% else %}
+                        Log TV Show
+                    {% endif %}
+                </h2>
+                <p class="text-sm text-gray-400 mt-2">
+                    {% if log_type == 'season' %}
+                        This will log only Season {{ season_number }} to your diary. Other seasons won't be affected.
+                    {% else %}
+                        This will log the entire show to your diary. You can also log individual seasons separately.
+                    {% endif %}
+                </p>
+            </div>
+            <button @click="$el.closest('.fixed').remove()" class="text-gray-400 hover:text-white flex-shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -105,17 +114,23 @@
                         </div>
                         
                         <!-- Action Buttons -->
-                        <div class="flex gap-3 pt-4">
-                            <button type="button" 
-                                    onclick="submitTVDiaryLog(this, '{{ season_item.source }}', '{{ season_item.media_type }}', '{{ season_item.media_id }}', {{ season_number }})"
-                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                                Create Diary Entry
-                            </button>
-                            <button type="button" 
-                                    onclick="markSeasonWatched('{{ season_item.source }}', '{{ season_item.media_type }}', '{{ season_item.media_id }}', {{ season_number }})"
-                                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                                Just Mark Watched
-                            </button>
+                        <div class="space-y-3 pt-4">
+                            <div class="flex gap-3">
+                                <button type="button" 
+                                        onclick="submitTVDiaryLog(this, '{{ season_item.source }}', '{{ season_item.media_type }}', '{{ season_item.media_id }}', {{ season_number }})"
+                                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                    Create Diary Entry
+                                </button>
+                                <button type="button" 
+                                        onclick="markSeasonWatched('{{ season_item.source }}', '{{ season_item.media_type }}', '{{ season_item.media_id }}', {{ season_number }})"
+                                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                                        title="Mark all episodes in this season as watched">
+                                    Just Mark Watched
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 text-center">
+                                Only affects Season {{ season_number }}. Other seasons remain unchanged.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -234,17 +249,23 @@
                         </div>
                         
                         <!-- Action Buttons -->
-                        <div class="flex gap-3">
-                            <button type="button" 
-                                    onclick="submitTVDiaryLog(this, '{{ tv_item.source }}', '{{ tv_item.media_type }}', '{{ tv_item.media_id }}')"
-                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                                Log Show
-                            </button>
-                            <button type="button" 
-                                    onclick="markTVShowWatched('{{ tv_item.source }}', '{{ tv_item.media_type }}', '{{ tv_item.media_id }}')"
-                                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                                Just Mark Watched
-                            </button>
+                        <div class="space-y-3">
+                            <div class="flex gap-3">
+                                <button type="button" 
+                                        onclick="submitTVDiaryLog(this, '{{ tv_item.source }}', '{{ tv_item.media_type }}', '{{ tv_item.media_id }}')"
+                                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                    Log Show
+                                </button>
+                                <button type="button" 
+                                        onclick="markTVShowWatched('{{ tv_item.source }}', '{{ tv_item.media_type }}', '{{ tv_item.media_id }}')"
+                                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                                        title="Mark all seasons and episodes as watched without logging">
+                                    Just Mark Watched
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 text-center">
+                                "Log Show" adds to your diary with review. "Just Mark Watched" updates tracking status only.
+                            </p>
                         </div>
                     </div>
                     

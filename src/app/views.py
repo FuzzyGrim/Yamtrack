@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie
+from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie, Episode
 
 from app.providers import manual, mdblist, services, tmdb
 from app.templatetags import app_tags
@@ -1669,7 +1669,13 @@ def mark_tv_watched(request, source, media_type, media_id):
             "has_seasons_in_progress": has_seasons_in_progress,
             
         }
-        return render(request, "app/components/media_actions.html", context)
+        
+        # Add notification headers
+        response = render(request, "app/components/media_actions.html", context)
+        season_count = len(metadata.get("related", {}).get("seasons", []))
+        response["X-Notification-Message"] = f"Entire show marked as watched (all {season_count} seasons and episodes)"
+        response["X-Notification-Type"] = "success"
+        return response
         
     except Exception as e:
         import logging
@@ -1727,7 +1733,13 @@ def unmark_tv_watched(request, source, media_type, media_id):
             "diary_entries": diary_entries,
             "has_seasons_in_progress": False,  # No seasons after unwatching
         }
-        return render(request, "app/components/media_actions.html", context)
+        
+        # Add notification headers
+        response = render(request, "app/components/media_actions.html", context)
+        season_count = len(metadata.get("related", {}).get("seasons", []))
+        response["X-Notification-Message"] = f"Show unmarked - all {season_count} seasons and episodes removed"
+        response["X-Notification-Type"] = "info"
+        return response
         
     except (Item.DoesNotExist, TV.DoesNotExist):
         # If the item or TV instance doesn't exist, return the unwatched state
@@ -1824,7 +1836,12 @@ def start_tracking_tv(request, source, media_type, media_id):
             "has_seasons_in_progress": has_seasons_in_progress,
             
         }
-        return render(request, "app/components/media_actions.html", context)
+        
+        # Add notification headers
+        response = render(request, "app/components/media_actions.html", context)
+        response["X-Notification-Message"] = "Started watching - Season 1 is now in progress"
+        response["X-Notification-Type"] = "success"
+        return response
         
     except Exception as e:
         import logging
@@ -1844,27 +1861,57 @@ def watch_episode(request, source, media_type, media_id, season_number, episode_
         raise Http404("Watch episode is only available for episodes")
         
     try:
-        # Get the episode item
-        episode_item = Item.objects.get(
+        # Get or create the episode item
+        episode_item, created = Item.objects.get_or_create(
             media_id=media_id,
             source=source,
             media_type=media_type,
             season_number=season_number,
-            episode_number=episode_number
+            episode_number=episode_number,
+            defaults={
+                "title": f"Episode {episode_number}",  # Will be updated with real title
+                "image": settings.IMG_NONE,
+            }
         )
         
+        # Update episode item with real metadata (whether created or existing)
+        try:
+            # Get the season metadata to find the episode details
+            season_metadata = services.get_media_metadata(
+                "tv_with_seasons",
+                media_id,
+                source,
+                [season_number]
+            )[f"season/{season_number}"]
+            
+            # Find the episode in the metadata
+            for episode_data in season_metadata["episodes"]:
+                if episode_data["episode_number"] == episode_number:
+                    # Update the episode item with real data
+                    episode_item.title = episode_data["name"]
+                    if episode_data.get("still_path"):
+                        episode_item.image = f"https://image.tmdb.org/t/p/original{episode_data['still_path']}"
+                    episode_item.overview = episode_data.get("overview")
+                    episode_item.save()
+                    break
+        except Exception as e:
+            # If we can't get metadata, keep the defaults
+            logging.getLogger(__name__).warning(f"Could not update episode metadata: {e}")
+        
         # Get the season instance for this user
-        from app.models import Season
         season_instance = Season.objects.get(
             item__media_id=media_id,
             item__source=source,
-            item__media_type=MediaTypes.TV.value,
+            item__media_type=MediaTypes.SEASON.value,
             item__season_number=season_number,
             user=request.user
         )
         
+        # Store season and TV status before marking episode as watched
+        season_status_before = season_instance.status
+        tv_status_before = season_instance.related_tv.status
+        
         # Get or create the episode instance
-        from app.models import Episode
         episode_instance, created = Episode.objects.get_or_create(
             item=episode_item,
             related_season=season_instance,
@@ -1878,8 +1925,25 @@ def watch_episode(request, source, media_type, media_id, season_number, episode_
             episode_instance.end_date = timezone.now()
             episode_instance.save()
         
-        # Return the updated episode card
-        return render_episode_card(request, episode_instance)
+        # Refresh to get updated status
+        season_instance.refresh_from_db()
+        season_instance.related_tv.refresh_from_db()
+        
+        # Check if season or show was just completed
+        response = render_episode_card(request, episode_instance)
+        
+        if season_status_before != Status.COMPLETED.value and season_instance.status == Status.COMPLETED.value:
+            # Season was just completed
+            if tv_status_before != Status.COMPLETED.value and season_instance.related_tv.status == Status.COMPLETED.value:
+                # Show was just completed!
+                response['X-Notification-Message'] = f'Congratulations! You completed {season_instance.related_tv.item.title}!'
+                response['X-Notification-Type'] = 'success'
+            else:
+                # Just season completed, next season started
+                response['X-Notification-Message'] = f'Season {season_number} completed! Starting Season {season_number + 1}...'
+                response['X-Notification-Type'] = 'success'
+        
+        return response
         
     except (Item.DoesNotExist, Season.DoesNotExist):
         raise Http404("Episode or season not found")
@@ -1892,47 +1956,100 @@ def unwatch_episode(request, source, media_type, media_id, season_number, episod
         raise Http404("Unwatch episode is only available for episodes")
         
     try:
-        # Get the episode item
-        episode_item = Item.objects.get(
+        # Get or create the episode item
+        episode_item, created = Item.objects.get_or_create(
             media_id=media_id,
             source=source,
             media_type=media_type,
             season_number=season_number,
-            episode_number=episode_number
+            episode_number=episode_number,
+            defaults={
+                "title": f"Episode {episode_number}",  # Will be updated with real title
+                "image": settings.IMG_NONE,
+            }
         )
         
+        # Update episode item with real metadata (whether created or existing)
+        try:
+            # Get the season metadata to find the episode details
+            season_metadata = services.get_media_metadata(
+                "tv_with_seasons",
+                media_id,
+                source,
+                [season_number]
+            )[f"season/{season_number}"]
+            
+            # Find the episode in the metadata
+            for episode_data in season_metadata["episodes"]:
+                if episode_data["episode_number"] == episode_number:
+                    # Update the episode item with real data
+                    episode_item.title = episode_data["name"]
+                    if episode_data.get("still_path"):
+                        episode_item.image = f"https://image.tmdb.org/t/p/original{episode_data['still_path']}"
+                    episode_item.overview = episode_data.get("overview")
+                    episode_item.save()
+                    break
+        except Exception as e:
+            # If we can't get metadata, keep the defaults
+            logging.getLogger(__name__).warning(f"Could not update episode metadata: {e}")
+        
         # Get the season instance for this user
-        from app.models import Season
         season_instance = Season.objects.get(
             item__media_id=media_id,
             item__source=source,
-            item__media_type=MediaTypes.TV.value,
+            item__media_type=MediaTypes.SEASON.value,
             item__season_number=season_number,
             user=request.user
         )
         
         # Get and delete the episode instance
-        from app.models import Episode
         episode_instance = Episode.objects.get(
             item=episode_item,
             related_season=season_instance
         )
         
-        # Create a mock episode object for the template
+        # Delete the episode instance (unwatch it)
+        episode_instance.delete()
+        
+        # Create a mock episode object with all metadata from the API
         class MockEpisode:
-            def __init__(self, item):
+            def __init__(self, item, metadata):
                 self.item = item
                 self.history = []
                 self.image = item.image
                 self.title = item.title
                 self.episode_number = item.episode_number
-                self.air_date = None
-                self.runtime = None
-                self.vote_average_out_of_5 = None
-                self.overview = None
+                # Get episode data from metadata
+                self.air_date = metadata.get("air_date")
+                # Format runtime using the same function as tmdb.process_episodes
+                from app.providers.tmdb import get_readable_duration
+                self.runtime = get_readable_duration(metadata.get("runtime"))
+                self.vote_average_out_of_5 = metadata.get("vote_average", 0) / 2 if metadata.get("vote_average") else None
+                self.overview = metadata.get("overview", "No synopsis available.")
+                # Add fields needed for URL generation
+                self.source = item.source
+                self.media_type = item.media_type
+                self.media_id = item.media_id
+                self.season_number = item.season_number
         
-        mock_episode = MockEpisode(episode_item)
-        episode_instance.delete()
+        # Get episode metadata from API
+        try:
+            season_metadata = services.get_media_metadata(
+                "tv_with_seasons",
+                media_id,
+                source,
+                [season_number]
+            )[f"season/{season_number}"]
+            
+            episode_metadata = {}
+            for ep_data in season_metadata["episodes"]:
+                if ep_data["episode_number"] == episode_number:
+                    episode_metadata = ep_data
+                    break
+        except Exception:
+            episode_metadata = {}
+        
+        mock_episode = MockEpisode(episode_item, episode_metadata)
         
         # Return the updated episode card
         return render_episode_card(request, mock_episode)
@@ -1943,11 +2060,79 @@ def unwatch_episode(request, source, media_type, media_id, season_number, episod
 
 def render_episode_card(request, episode):
     """Helper function to render an episode card."""
+    # Create a mock episode object that matches the template's expectations
+    class MockEpisode:
+        def __init__(self, episode_instance):
+            # Handle both Episode model instances and existing MockEpisode objects
+            if hasattr(episode_instance, 'end_date'):
+                # It's an Episode model instance
+                self.item = episode_instance.item
+                self.history = [episode_instance] if episode_instance.end_date else []
+                self.image = episode_instance.item.image
+                self.title = episode_instance.item.title
+                self.episode_number = episode_instance.item.episode_number
+                
+                # Get episode metadata for additional fields
+                try:
+                    season_metadata = services.get_media_metadata(
+                        "tv_with_seasons",
+                        episode_instance.item.media_id,
+                        episode_instance.item.source,
+                        [episode_instance.item.season_number]
+                    )[f"season/{episode_instance.item.season_number}"]
+                    
+                    # Find the episode in the metadata
+                    for episode_data in season_metadata["episodes"]:
+                        if episode_data["episode_number"] == episode_instance.item.episode_number:
+                            self.air_date = episode_data.get("air_date")
+                            # Format runtime using the same function as tmdb.process_episodes
+                            from app.providers.tmdb import get_readable_duration
+                            self.runtime = get_readable_duration(episode_data.get("runtime"))
+                            self.vote_average_out_of_5 = episode_data.get("vote_average", 0) / 2 if episode_data.get("vote_average") else None
+                            self.overview = episode_data.get("overview", "No synopsis available.")
+                            break
+                    else:
+                        # Episode not found in metadata
+                        self.air_date = None
+                        self.runtime = None
+                        self.vote_average_out_of_5 = None
+                        self.overview = "No synopsis available."
+                except Exception:
+                    # If we can't get metadata, use defaults
+                    self.air_date = None
+                    self.runtime = None
+                    self.vote_average_out_of_5 = None
+                    self.overview = "No synopsis available."
+                
+                # Add fields needed for URL generation
+                self.source = episode_instance.item.source
+                self.media_type = episode_instance.item.media_type
+                self.media_id = episode_instance.item.media_id
+                self.season_number = episode_instance.item.season_number
+            else:
+                # It's already a MockEpisode object, copy its attributes
+                # Make sure we have all the attributes
+                self.item = episode_instance.item if hasattr(episode_instance, 'item') else None
+                self.history = episode_instance.history if hasattr(episode_instance, 'history') else []
+                self.image = episode_instance.image if hasattr(episode_instance, 'image') else None
+                self.title = episode_instance.title if hasattr(episode_instance, 'title') else None
+                self.episode_number = episode_instance.episode_number if hasattr(episode_instance, 'episode_number') else None
+                self.air_date = episode_instance.air_date if hasattr(episode_instance, 'air_date') else None
+                self.runtime = episode_instance.runtime if hasattr(episode_instance, 'runtime') else None
+                self.vote_average_out_of_5 = episode_instance.vote_average_out_of_5 if hasattr(episode_instance, 'vote_average_out_of_5') else None
+                self.overview = episode_instance.overview if hasattr(episode_instance, 'overview') else "No synopsis available."
+                self.source = episode_instance.source if hasattr(episode_instance, 'source') else None
+                self.media_type = episode_instance.media_type if hasattr(episode_instance, 'media_type') else None
+                self.media_id = episode_instance.media_id if hasattr(episode_instance, 'media_id') else None
+                self.season_number = episode_instance.season_number if hasattr(episode_instance, 'season_number') else None
+    
+    mock_episode = MockEpisode(episode)
+    
     context = {
-        "episode": episode,
+        "episode": mock_episode,
         "media": {
             "media_type": MediaTypes.SEASON.value,
-            "season_number": episode.season_number if hasattr(episode, 'season_number') else (episode.item.season_number if hasattr(episode, 'item') else None),
+            "season_number": episode.item.season_number if hasattr(episode, 'item') else episode.season_number,
         },
         "csrf_token": request.META.get('CSRF_COOKIE', ''),
     }
@@ -2022,7 +2207,13 @@ def mark_season_watched(request, source, media_type, media_id, season_number):
             "current_instance": current_instance,
             "diary_entries": diary_entries,
         }
-        return render(request, "app/components/media_actions.html", context)
+        
+        # Add notification headers
+        response = render(request, "app/components/media_actions.html", context)
+        episode_count = len(season_metadata.get("episodes", []))
+        response["X-Notification-Message"] = f"Season {season_number} marked as watched ({episode_count} episodes)"
+        response["X-Notification-Type"] = "success"
+        return response
         
     except Item.DoesNotExist:
         raise Http404("Season not found")
@@ -2073,7 +2264,12 @@ def unmark_season_watched(request, source, media_type, media_id, season_number):
             "current_instance": None,  # No instance after unwatching
             "diary_entries": diary_entries,
         }
-        return render(request, "app/components/media_actions.html", context)
+        
+        # Add notification headers
+        response = render(request, "app/components/media_actions.html", context)
+        response["X-Notification-Message"] = f"Season {season_number} unmarked - all episodes removed"
+        response["X-Notification-Type"] = "info"
+        return response
         
     except (Item.DoesNotExist, Season.DoesNotExist):
         raise Http404("Season not found")

@@ -39,6 +39,12 @@
   <div id="media-actions">
     {% include "app/components/media_actions.html" with diary_entries=diary_entries %}
   </div>
+  
+  {# TV Season Progress - Show tracking status for TV shows #}
+  {% include "app/components/media/tv_season_progress.html" %}
+  
+  {# Season Parent Show Context - Show relationship to parent TV show on season pages #}
+  {% include "app/components/media/season_parent_show.html" %}
 </div>
 
 <style>

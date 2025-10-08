@@ -1,0 +1,80 @@
+{% load app_tags %}
+
+{# TV Season Progress Indicator - Shows season tracking status #}
+{% if media.media_type == 'tv' and user.is_authenticated %}
+  {% if current_instance %}
+    <div class="mt-6 p-4 bg-111111 rounded-lg border border-gray-700">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-gray-200">Season Progress</h3>
+        {% if current_instance.seasons.all %}
+          <span class="text-xs text-gray-400">
+            {{ current_instance.seasons.all|length }} season{{ current_instance.seasons.all|length|pluralize }} tracked
+          </span>
+        {% endif %}
+      </div>
+      
+      {% if current_instance.seasons.all %}
+        <div class="space-y-2">
+          {% for season in current_instance.seasons.all %}
+            {% if season.item.season_number > 0 %}
+              <div class="flex items-center gap-3 p-2 rounded-md hover:bg-gray-800/50 transition-colors">
+                <div class="flex-shrink-0">
+                  {% if season.status == "Completed" %}
+                    <div class="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                  {% elif season.status == "In progress" %}
+                    <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                  {% elif season.status == "Dropped" %}
+                    <div class="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                  {% else %}
+                    <div class="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+                      </svg>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                  <a href="{% url 'season_details' season.item.source season.item.media_id media.title|slugify season.item.season_number %}" 
+                     class="text-sm text-gray-200 hover:text-white transition-colors">
+                    Season {{ season.item.season_number }}
+                  </a>
+                  {% if season.progress > 0 %}
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="text-xs text-gray-400">
+                        {{ season.progress }} episode{{ season.progress|pluralize }} watched
+                      </span>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="flex-shrink-0">
+                  <span class="text-xs px-2 py-1 rounded-md {% if season.status == 'Completed' %}bg-green-900/30 text-green-400{% elif season.status == 'In Progress' %}bg-blue-900/30 text-blue-400{% elif season.status == 'Dropped' %}bg-red-900/30 text-red-400{% else %}bg-gray-800 text-gray-400{% endif %}">
+                    {{ season.status }}
+                  </span>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-gray-400 text-center py-4">
+          Click "Start Watching" to begin tracking seasons
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endif %}
+
