@@ -5,9 +5,9 @@
     <!-- Modal content -->
     <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative max-w-2xl w-full mx-4"
          @click.stop
-         data-log-url="{% url 'log_modal' item.source item.media_type item.media_id %}">
+         data-log-url="{% if item.media_type == 'season' %}{% url 'log_modal_season' item.source item.media_type item.media_id item.season_number %}{% else %}{% url 'log_modal' item.source item.media_type item.media_id %}{% endif %}">
          
-        <form>
+        <form action="{% if item.media_type == 'season' %}{% url 'add_season_diary_entry' item.source item.media_type item.media_id item.season_number %}{% else %}{% url 'add_movie_diary_entry' item.source item.media_type item.media_id %}{% endif %}">
             {% csrf_token %}
             <div class="p-6">
             <!-- Header -->
@@ -135,7 +135,7 @@
                 <button type="button" 
                         onclick="submitDiaryLog(this)"
                         class="bg-gray-700 hover:bg-gray-600 px-8 py-2.5 text-sm font-medium text-white rounded transition-colors duration-200 ease-in-out">
-                    Log
+                    {% if item.media_type == 'tv' %}Log Show{% elif item.media_type == 'season' %}Log Season{% else %}Log Movie{% endif %}
                 </button>
             </div>
         </div>

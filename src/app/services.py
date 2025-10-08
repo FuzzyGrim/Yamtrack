@@ -66,7 +66,8 @@ def create_diary_entry(
                     movie_instance.mark_consumed()
             else:
                 # For other media types, try to find existing instance
-                media_instance = Media.objects.filter(user=user, item=item).first()
+                from app.models import BasicMedia
+                media_instance = BasicMedia.objects.filter(user=user, item=item).first()
                 if media_instance:
                     media_instance.mark_consumed()
             

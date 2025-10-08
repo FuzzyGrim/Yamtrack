@@ -25,11 +25,19 @@
           {# Title Section #}
           {% include "app/components/media/title_meta.html" %}
           
-          {# Stats #}
-          {% include "app/components/media/stats_panel.html" %}
+          {# Stats/Ratings #}
+          {% if media.media_type == 'movie' or media.media_type == 'tv' or media.media_type == 'season' %}
+            {% include "app/components/media/ratings_panel.html" %}
+          {% else %}
+            {% include "app/components/media/stats_panel.html" %}
+          {% endif %}
           
           {# Synopsis #}
           {% include "app/components/media/synopsis.html" %}
+
+          {% if media.media_type == MediaTypes.SEASON.value %}
+            {% include "app/components/media/episodes_list.html" %}
+          {% endif %}
           
           {# Cast #}
           {% include "app/components/media/cast_grid.html" %}
@@ -40,6 +48,8 @@
           </div>
         </div>
         
+        {% include "app/components/media/seasons_media.html" %}
+
         {# Related Films - Full width below the two-column layout #}
         {% include "app/components/media/related_media.html" %}
       </div>
@@ -50,8 +60,6 @@
   <div id="poster-modal-container"></div>
   <div id="log-modal-container"></div>
 {% endblock content %}
-
-
 
 
 

@@ -460,7 +460,7 @@ class MediaManager(models.Manager):
         if specific_media_type:
             return [specific_media_type]
 
-        # Get active types excluding TV
+        # Get active types excluding TV (TV shows are tracked at season level)
         return [
             media_type
             for media_type in user.get_active_media_types()
@@ -979,6 +979,10 @@ class TV(Media):
 
     def _completed(self):
         """Create remaining seasons and episodes for a TV show."""
+        from datetime import datetime
+        import logging
+        logger = logging.getLogger(__name__)
+        
         tv_metadata = providers.services.get_media_metadata(
             self.item.media_type,
             self.item.media_id,
@@ -1004,8 +1008,25 @@ class TV(Media):
             self.item.source,
             season_numbers,
         )
+        
+        now = timezone.now()
+        
         for season_number in season_numbers:
             season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
+            
+            # Debug logging for season metadata structure
+            logger.info(f"Season {season_number} metadata keys: {list(season_metadata.keys())}")
+            logger.info(f"Season {season_number} details keys: {list(season_metadata.get('details', {}).keys())}")
+            
+            # Check if season has episodes (skip seasons with 0 episodes)
+            episode_count = season_metadata.get("details", {}).get("episodes", 0)
+            logger.info(f"Season {season_number} episode_count: {episode_count}")
+            
+            if episode_count == 0:
+                logger.info(f"Skipping season {season_number} with 0 episodes")
+                continue
+            else:
+                logger.info(f"Season {season_number} has {episode_count} episodes, processing")
 
             item, _ = Item.objects.get_or_create(
                 media_id=self.item.media_id,
@@ -1385,6 +1406,15 @@ class Season(Media):
 
     def get_remaining_eps(self, season_metadata):
         """Return episodes needed to complete a season."""
+        from datetime import datetime
+        
+        episodes_list = season_metadata.get("episodes")
+        if episodes_list is None:
+            return []
+        
+        if not isinstance(episodes_list, (list, tuple)):
+            return []
+        
         latest_watched_ep_num = Episode.objects.filter(related_season=self).aggregate(
             latest_watched_ep_num=Max("item__episode_number"),
         )["latest_watched_ep_num"]
@@ -1396,11 +1426,35 @@ class Season(Media):
         now = timezone.now().replace(second=0, microsecond=0)
 
         # Create Episode objects for the remaining episodes
-        for episode in reversed(season_metadata["episodes"]):
-            if episode["episode_number"] <= latest_watched_ep_num:
+        for i, episode in enumerate(reversed(episodes_list)):
+            if not isinstance(episode, dict):
+                continue
+                
+            episode_number = episode.get("episode_number")
+            if episode_number is None:
+                continue
+                
+            if episode_number <= latest_watched_ep_num:
                 break
 
-            item = self.get_episode_item(episode["episode_number"], season_metadata)
+            # Check if episode has aired (skip unreleased episodes)
+            air_date = episode.get("air_date")
+            if air_date:
+                try:
+                    # Parse air_date string to datetime
+                    if isinstance(air_date, str):
+                        episode_air_date = datetime.strptime(air_date, "%Y-%m-%d").date()
+                    else:
+                        episode_air_date = air_date
+                    
+                    # Skip if episode hasn't aired yet
+                    if episode_air_date > now.date():
+                        continue
+                except (ValueError, TypeError):
+                    # If we can't parse the date, assume it's released to be safe
+                    pass
+
+            item = self.get_episode_item(episode_number, season_metadata)
 
             episode_db = Episode(
                 related_season=self,
@@ -1528,6 +1582,42 @@ class Episode(models.Model):
                     TV,
                     fields=["status"],
                 )
+            else:
+                # Not the last season - start the next season automatically
+                next_season_number = season_number + 1
+                # Check if next season exists in metadata
+                if any(s["season_number"] == next_season_number for s in tv_with_seasons_metadata["related"]["seasons"]):
+                    # Get or create the next season and mark it as in progress
+                    from app.models import Item
+                    next_season_item, _ = Item.objects.get_or_create(
+                        media_id=self.item.media_id,
+                        source=self.item.source,
+                        media_type=MediaTypes.SEASON.value,
+                        season_number=next_season_number,
+                        defaults={
+                            "title": tv_with_seasons_metadata["title"],
+                            "image": tv_with_seasons_metadata["image"],
+                        }
+                    )
+                    
+                    next_season, created = Season.objects.get_or_create(
+                        item=next_season_item,
+                        user=self.related_season.user,
+                        defaults={
+                            "status": Status.IN_PROGRESS.value,
+                            "score": None,
+                            "notes": "",
+                        }
+                    )
+                    
+                    if not created and next_season.status == Status.PLANNING.value:
+                        # If it exists but is in planning, move it to in progress
+                        next_season.status = Status.IN_PROGRESS.value
+                        bulk_update_with_history(
+                            [next_season],
+                            Season,
+                            fields=["status"],
+                        )
         elif self.related_season.related_tv.status != Status.IN_PROGRESS.value:
             self.related_season.related_tv.status = Status.IN_PROGRESS.value
             bulk_update_with_history(
@@ -1661,16 +1751,16 @@ class DiaryEntry(models.Model):
         indexes = [
             models.Index(fields=["user", "-consumed_at"]),
         ]
-        ordering = ["-consumed_at"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         """Return string representation of the diary entry."""
         return f"{self.user.username}'s entry for {self.item} on {self.consumed_at}"
 
     def clean(self):
-        """Validate that the item is a movie."""
-        if self.item.media_type != MediaTypes.MOVIE.value:
-            raise ValidationError("Diary entries can only be created for movies.")
+        """Validate that the item is a movie or TV show."""
+        if self.item.media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value]:
+            raise ValidationError("Diary entries can only be created for movies, TV shows, and seasons.")
         super().clean()
 
     def save(self, *args, **kwargs):

@@ -542,15 +542,22 @@ def get_user_poster_image(item, user):
     from app.models import CustomPosterPreference, Item
     try:
         # First try to get the Item instance
-        db_item = Item.objects.get(
-            source=source,
-            media_type=media_type,
-            media_id=media_id
-        )
+        filters = {
+            'source': source,
+            'media_type': media_type,
+            'media_id': media_id,
+        }
+        if media_type == 'season':
+            season_number = item.season_number if hasattr(item, 'season_number') else item.get('season_number')
+            filters['season_number'] = season_number
+
+        db_item = Item.objects.filter(**filters).first()
+        if db_item is None:
+            return default_image
         # Then get the custom preference
         pref = CustomPosterPreference.objects.get(user=user, item=db_item)
         return pref.custom_image_url
-    except (Item.DoesNotExist, CustomPosterPreference.DoesNotExist):
+    except (CustomPosterPreference.DoesNotExist, AttributeError):
         return default_image
 
 
@@ -569,10 +576,10 @@ def can_customize_poster(item):
     # Handle both model instances and dictionaries
     source = item.source if hasattr(item, 'source') else item.get('source')
     media_type = item.media_type if hasattr(item, 'media_type') else item.get('media_type')
-    
-    # Only TMDB movies and TV shows can have custom posters
+
+    # Only TMDB movies, TV shows, and seasons can have custom posters
     return (source == Sources.TMDB.value and 
-            media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value])
+            media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value])
 
 
 @register.filter

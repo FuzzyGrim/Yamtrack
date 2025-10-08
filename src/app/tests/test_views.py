@@ -378,6 +378,52 @@ class MediaDetailsViewTests(TestCase):
             Sources.TMDB.value,
         )
 
+    @patch("app.providers.mdblist.get_media_ratings")
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_details_view_with_mdblist_ratings(self, mock_get_metadata, mock_get_ratings):
+        """Test the media details view with MDBList ratings."""
+        # Mock the metadata
+        mock_get_metadata.return_value = {
+            "media_id": "238",
+            "title": "Test Movie",
+            "media_type": MediaTypes.MOVIE.value,
+            "source": Sources.TMDB.value,
+            "image": "http://example.com/image.jpg",
+            "overview": "Test overview",
+            "release_date": "2023-01-01",
+        }
+
+        # Mock MDBList ratings
+        mock_get_ratings.return_value = {
+            "imdb": {"value": 8.1, "score": 81, "votes": 673852, "url": "99"},
+            "tomatoes": {"value": 97, "score": 97, "votes": 102, "url": "/m/jaws"},
+            "letterboxd": {"value": 8.0, "score": 80, "votes": 876082, "url": "/film/jaws/"},
+        }
+
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "238",
+                    "title": "test-movie",
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/media_details.html")
+
+        # Check that MDBList ratings are in the context
+        self.assertIn("mdblist_ratings", response.context)
+        self.assertIsNotNone(response.context["mdblist_ratings"])
+        self.assertIn("imdb", response.context["mdblist_ratings"])
+        self.assertEqual(response.context["mdblist_ratings"]["imdb"]["value"], 8.1)
+
+        # Verify MDBList was called for TMDB movies
+        mock_get_ratings.assert_called_once_with("238", MediaTypes.MOVIE.value)
+
     @patch("app.providers.services.get_media_metadata")
     @patch("app.providers.tmdb.process_episodes")
     def test_season_details_view(self, mock_process_episodes, mock_get_metadata):
@@ -1470,3 +1516,267 @@ class SearchParentViewTests(TestCase):
 
         # Should find no results
         self.assertEqual(len(response.context["results"]), 0)
+
+
+class SeasonPosterSelectionTests(TestCase):
+    """Test season poster selection functionality."""
+
+    def setUp(self):
+        """Create a user and season item."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+        # Create a season item
+        self.season_item = Item.objects.create(
+            media_id="1399",  # Game of Thrones TMDB ID
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Game of Thrones",
+            image="http://example.com/season1.jpg",
+            season_number=1,
+        )
+
+    @patch('app.providers.tmdb.get_poster_images')
+    def test_season_poster_selection_modal(self, mock_get_poster_images):
+        """Test that season poster selection modal works correctly."""
+        # Mock the TMDB poster images response
+        mock_posters = [
+            {
+                "url": "https://image.tmdb.org/t/p/original/poster1.jpg",
+                "thumbnail_url": "https://image.tmdb.org/t/p/w342/poster1.jpg",
+                "width": 1000,
+                "height": 1500,
+                "aspect_ratio": 0.667,
+                "vote_average": 8.5,
+                "vote_count": 100,
+                "language": "en"
+            },
+            {
+                "url": "https://image.tmdb.org/t/p/original/poster2.jpg",
+                "thumbnail_url": "https://image.tmdb.org/t/p/w342/poster2.jpg",
+                "width": 1000,
+                "height": 1500,
+                "aspect_ratio": 0.667,
+                "vote_average": 7.8,
+                "vote_count": 50,
+                "language": None
+            }
+        ]
+        mock_get_poster_images.return_value = mock_posters
+
+        # Test the season poster selection modal
+        url = reverse('season_poster_selection_modal', kwargs={
+            'source': Sources.TMDB.value,
+            'media_id': '1399',
+            'season_number': 1
+        })
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "poster_selection_modal.html")
+        
+        # Check that the context contains the expected data
+        self.assertIn('item', response.context)
+        self.assertIn('posters', response.context)
+        self.assertIn('current_poster', response.context)
+        
+        # Verify the item is correct
+        self.assertEqual(response.context['item'], self.season_item)
+        
+        # Verify posters include the original plus TMDB posters
+        posters = response.context['posters']
+        self.assertGreaterEqual(len(posters), 2)  # At least original + TMDB posters
+        
+        # Check that original poster is marked as current
+        original_poster = posters[0]
+        self.assertTrue(original_poster['is_current'])
+        self.assertEqual(original_poster['url'], self.season_item.image)
+
+    def test_season_poster_selection_modal_nonexistent_season(self):
+        """Test season poster selection modal for non-existent season."""
+        url = reverse('season_poster_selection_modal', kwargs={
+            'source': Sources.TMDB.value,
+            'media_id': '999999',  # Non-existent TMDB ID
+            'season_number': 1
+        })
+        
+        with patch('app.providers.services.get_media_metadata') as mock_get_metadata:
+            mock_get_metadata.side_effect = Exception("Season not found")
+            response = self.client.get(url)
+            
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "Error loading season posters")
+
+    def test_season_poster_selection_non_tmdb_source(self):
+        """Test that season poster selection only works for TMDB sources."""
+        url = reverse('season_poster_selection_modal', kwargs={
+            'source': Sources.MANUAL.value,
+            'media_id': '1399',
+            'season_number': 1
+        })
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "Poster selection only available for TMDB seasons")
+
+    @patch('app.providers.tmdb.get_poster_images')
+    def test_save_season_poster_preference(self, mock_get_poster_images):
+        """Test saving season poster preference."""
+        mock_get_poster_images.return_value = []
+        
+        # Test saving poster preference
+        url = reverse('save_poster_preference')
+        data = {
+            'media_type': MediaTypes.SEASON.value,
+            'media_id': '1399',
+            'source': Sources.TMDB.value,
+            'season_number': '1',
+            'poster_url': 'https://example.com/custom_poster.jpg'
+        }
+        
+        with patch('app.utils.color.compute_and_store_poster_accent') as mock_compute_accent:
+            mock_compute_accent.return_value = {'r': 100, 'g': 150, 'b': 200}
+            with patch('app.utils.color.build_accent_palette') as mock_build_palette:
+                mock_build_palette.return_value = {
+                    'accent': '#6496C8',
+                    'contrast': '#FFFFFF'
+                }
+                response = self.client.post(url, data)
+        
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertTrue(response_data['success'])
+        self.assertEqual(response_data['poster_url'], 'https://example.com/custom_poster.jpg')
+        
+        # Verify the season item was updated
+        self.season_item.refresh_from_db()
+        self.assertEqual(self.season_item.image, 'https://example.com/custom_poster.jpg')
+        
+        # Verify custom poster preference was created
+        from app.models import CustomPosterPreference
+        preference = CustomPosterPreference.objects.get(
+            user=self.user,
+            item=self.season_item
+        )
+        self.assertEqual(preference.custom_image_url, 'https://example.com/custom_poster.jpg')
+
+    def test_seasons_dropdown_uses_custom_posters(self):
+        """Test that seasons dropdown displays custom posters correctly."""
+        # Create a TV show item
+        tv_item = Item.objects.create(
+            media_id="1399",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Game of Thrones",
+            image="http://example.com/tv_poster.jpg",
+        )
+        
+        # Create a season item with custom poster
+        season_item = Item.objects.create(
+            media_id="1399",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Game of Thrones",
+            image="http://example.com/custom_season_poster.jpg",
+            season_number=1,
+        )
+        
+        # Create custom poster preference
+        from app.models import CustomPosterPreference
+        CustomPosterPreference.objects.create(
+            user=self.user,
+            item=season_item,
+            custom_image_url="http://example.com/custom_season_poster.jpg"
+        )
+        
+        # Mock the TV show metadata with seasons
+        with patch('app.providers.services.get_media_metadata') as mock_get_metadata:
+            mock_metadata = {
+                "title": "Game of Thrones",
+                "image": "http://example.com/tv_poster.jpg",
+                "related": {
+                    "seasons": [
+                        {
+                            "season_number": 1,
+                            "title": "Game of Thrones",
+                            "season_title": "Season 1",
+                            "image": "http://example.com/original_season_poster.jpg",
+                            "first_air_date": "2011-04-17"
+                        }
+                    ]
+                }
+            }
+            mock_get_metadata.return_value = mock_metadata
+            
+            # Test the TV show details page
+            url = reverse('media_details', kwargs={
+                'source': Sources.TMDB.value,
+                'media_type': MediaTypes.TV.value,
+                'media_id': '1399',
+                'title': 'game-of-thrones'
+            })
+            response = self.client.get(url)
+            
+            self.assertEqual(response.status_code, 200)
+            
+            # Check that the template uses get_user_poster_image for seasons
+            self.assertContains(response, "get_user_poster_image")
+            
+            # Verify that the season item exists and has the custom poster
+            self.assertEqual(season_item.image, "http://example.com/custom_season_poster.jpg")
+
+    def test_search_results_use_custom_posters(self):
+        """Test that search results display custom posters correctly."""
+        # Create a movie item with custom poster
+        movie_item = Item.objects.create(
+            media_id="12345",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="One Battle After Another",
+            image="http://example.com/original_poster.jpg",
+        )
+        
+        # Create custom poster preference
+        from app.models import CustomPosterPreference
+        CustomPosterPreference.objects.create(
+            user=self.user,
+            item=movie_item,
+            custom_image_url="http://example.com/custom_poster.jpg"
+        )
+        
+        # Mock the search results
+        with patch('app.providers.services.search') as mock_search:
+            mock_search.return_value = {
+                "results": [
+                    {
+                        "media_id": "12345",
+                        "source": Sources.TMDB.value,
+                        "media_type": MediaTypes.MOVIE.value,
+                        "title": "One Battle After Another",
+                        "image": "http://example.com/original_poster.jpg",
+                    }
+                ],
+                "page": 1,
+                "total_pages": 1,
+                "total_results": 1
+            }
+            
+            # Test the search page
+            url = reverse('search') + "?q=One+Battle+After+Another&media_type=movie&source=tmdb"
+            response = self.client.get(url)
+            
+            self.assertEqual(response.status_code, 200)
+            
+            # Check that the template uses get_user_poster_image for search results
+            self.assertContains(response, "get_user_poster_image")
+            
+            # Verify that the movie item exists and has the custom poster
+            self.assertEqual(movie_item.image, "http://example.com/original_poster.jpg")
+            
+            # Verify custom poster preference was created
+            preference = CustomPosterPreference.objects.get(
+                user=self.user,
+                item=movie_item
+            )
+            self.assertEqual(preference.custom_image_url, "http://example.com/custom_poster.jpg")

@@ -1,0 +1,183 @@
+{% load app_tags %}
+{% load humanize %}
+
+{# Ratings Panel - Display IMDb, Rotten Tomatoes, and Letterboxd ratings with user rating #}
+<div class="p-6 bg-111111 rounded-lg">
+  {% if mdblist_ratings.imdb or mdblist_ratings.letterboxd or mdblist_ratings.tomatoes.value or media.media_type == 'season' %}
+    <div class="flex justify-between items-center">
+      {# Left side - External ratings #}
+      <div class="flex gap-8">
+        {# IMDb Rating - Hide for seasons #}
+        {% if media.media_type != 'season' %}
+        <div class="text-left">
+          <div class="flex items-center gap-1 mb-1">
+            {% if mdblist_ratings.imdb %}
+              <span class="text-2xl font-bold text-white">
+                {{ mdblist_ratings.imdb.value|floatformat:1 }}
+              </span>
+            {% else %}
+              <span class="text-2xl font-bold text-gray-500">N/A</span>
+            {% endif %}
+          </div>
+          <p class="text-sm text-yellow-400">IMDb</p>
+          {% if mdblist_ratings.imdb.votes %}
+            <p class="text-xs text-gray-500">{{ mdblist_ratings.imdb.votes|compact_number }} votes</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# Rotten Tomatoes Rating - Only show if rating exists #}
+        {% if mdblist_ratings.tomatoes and mdblist_ratings.tomatoes.value %}
+        <div class="text-left">
+          <div class="flex items-center gap-1 mb-1">
+            <span class="text-2xl font-bold text-white">
+              {{ mdblist_ratings.tomatoes.value }}%
+            </span>
+          </div>
+          <p class="text-sm text-red-500">Rotten Tomatoes</p>
+          {% if mdblist_ratings.tomatoes.votes %}
+            <p class="text-xs text-gray-500">{{ mdblist_ratings.tomatoes.votes }} reviews</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# TMDB Rating - Show for seasons or when no other ratings available #}
+        {% if media.media_type == 'season' or not mdblist_ratings.imdb and not mdblist_ratings.tomatoes.value %}
+        <div class="text-left">
+          <div class="flex items-center gap-1 mb-1">
+            <span class="text-2xl font-bold text-white">
+              {% if media.score is not None %}
+                {{ media.score|to_five_scale|floatformat:1 }}
+              {% else %}
+                N/A
+              {% endif %}
+            </span>
+          </div>
+          <p class="text-sm text-blue-400">TMDB</p>
+          {% if media.score_count %}
+            <p class="text-xs text-gray-500">{{ media.score_count|compact_number }} votes</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# Letterboxd Rating - Only for movies #}
+        {% if media.media_type == 'movie' %}
+        <div class="text-left">
+          <div class="flex items-center gap-1 mb-1">
+            {% if mdblist_ratings.letterboxd %}
+              <span class="text-2xl font-bold text-white">
+                {{ mdblist_ratings.letterboxd.value|floatformat:1 }}
+              </span>
+            {% else %}
+              <span class="text-2xl font-bold text-gray-500">N/A</span>
+            {% endif %}
+          </div>
+          <p class="text-sm text-green-400">Letterboxd</p>
+          {% if mdblist_ratings.letterboxd.votes %}
+            <p class="text-xs text-gray-500">{{ mdblist_ratings.letterboxd.votes|compact_number }} ratings</p>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      {# Right side - User rating #}
+      {% with avg_rating=diary_entries|personal_average_rating %}
+      <div class="text-right">
+        <div class="flex items-center justify-end gap-1 mb-1">
+          {% if avg_rating %}
+            <span class="text-2xl font-bold text-white">
+              {{ avg_rating|floatformat:1 }}
+            </span>
+          {% else %}
+            <span class="text-2xl font-bold text-gray-500">-</span>
+          {% endif %}
+        </div>
+        <p class="text-sm text-blue-400">Your Rating</p>
+        {% if avg_rating %}
+          <p class="text-xs text-gray-500">{{ diary_entries|length }} watch{{ diary_entries|length|pluralize:"es" }}</p>
+        {% else %}
+          <p class="text-xs text-gray-500">Not rated</p>
+        {% endif %}
+      </div>
+      {% endwith %}
+    </div>
+  {% else %}
+    {# Fallback to original stats panel if no MDBList ratings #}
+    <div class="flex justify-between items-center">
+      {# Left side - Original stats in horizontal layout #}
+      <div class="flex gap-8">
+        <div class="text-left">
+          <div class="flex items-center gap-1 mb-1">
+            <span class="text-2xl font-bold">
+              {% if media.score is not None %}
+                {{ media.score|to_five_scale|floatformat:1 }}
+              {% else %}
+                N/A
+              {% endif %}
+            </span>
+          </div>
+          <p class="text-sm text-gray-400">Average Rating</p>
+        </div>
+        <div class="text-left">
+          <div class="text-2xl font-bold mb-1">
+            {% if media.score_count is not None %}
+              {{ media.score_count|compact_number }}
+            {% else %}
+              0
+            {% endif %}
+          </div>
+          <p class="text-sm text-gray-400">Reviews</p>
+        </div>
+        <div class="text-left">
+          <div class="text-2xl font-bold mb-1">
+            {% if media.media_type == 'movie' %}
+              {% if media.revenue %}
+                {{ media.revenue|money_compact }}
+              {% else %}
+                -
+              {% endif %}
+            {% elif media.media_type == 'tv' or media.media_type == 'season' %}
+              {% if media.media_type == 'season' and media.details.episodes %}
+                {{ media.details.episodes }}
+              {% elif media.details.episodes %}
+                {{ media.details.episodes }}
+              {% else %}
+                -
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </div>
+          <p class="text-sm text-gray-400">
+            {% if media.media_type == 'tv' or media.media_type == 'season' %}
+              Episodes
+            {% else %}
+              Box Office
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      {# Right side - User rating (same as above) #}
+      {% with avg_rating=diary_entries|personal_average_rating %}
+      <div class="text-right">
+        <div class="flex items-center justify-end gap-1 mb-1">
+          {% if avg_rating %}
+            <span class="text-2xl font-bold text-white">
+              {{ avg_rating|floatformat:1 }}
+            </span>
+          {% else %}
+            <span class="text-2xl font-bold text-gray-500">-</span>
+          {% endif %}
+        </div>
+        <p class="text-sm text-blue-400">Your Rating</p>
+        {% if avg_rating %}
+          <p class="text-xs text-gray-500">{{ diary_entries|length }} watch{{ diary_entries|length|pluralize:"es" }}</p>
+        {% else %}
+          <p class="text-xs text-gray-500">Not rated</p>
+        {% endif %}
+      </div>
+      {% endwith %}
+    </div>
+  {% endif %}
+</div>

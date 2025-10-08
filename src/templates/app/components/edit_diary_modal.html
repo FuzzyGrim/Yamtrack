@@ -75,11 +75,11 @@
               <div>
                 <label class="inline-flex items-center cursor-pointer">
                   <input type="checkbox" 
-                         name="is_rewatch"
                          class="w-4 h-4 rounded bg-[#39404b] border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 focus:ring-1 cursor-pointer"
                          x-model="isRewatch">
                   <span class="ml-2 text-sm font-medium text-gray-300">This is a rewatch</span>
                 </label>
+                <input type="hidden" name="is_rewatch" :value="isRewatch ? 'on' : ''">
               </div>
             </div>
 

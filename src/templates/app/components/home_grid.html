@@ -1,13 +1,14 @@
 {% load app_tags %}
 
 {% for media in media_list.items %}
-  <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg transition-all duration-300"
+  <div class="bg-[#2a2f35] rounded-lg shadow-lg transition-all duration-300"
        x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
-    <div class="relative">
-      <img alt="{{ media }}"
-           class="lazyload w-full aspect-[2/3] {% if media.item.image != IMG_NONE %}object-cover{% endif %}"
-           data-src="{{ media.item.image }}"
-           src="{{ IMG_NONE }}">
+    <div class="relative overflow-hidden rounded-t-lg">
+      <div class="aspect-[2/3] relative">
+        <img alt="{{ media }}"
+             class="lazyload w-full h-full {% if media.item.image != IMG_NONE %}object-cover object-bottom{% endif %}"
+             data-src="{% get_user_poster_image media.item user %}"
+             src="{{ IMG_NONE }}">
 
       {% if media.next_event and not media.next_event.is_max_datetime %}
         <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/80 px-2 py-1.5 rounded-md shadow-md whitespace-nowrap max-w-[98%]">
@@ -113,9 +114,10 @@
           </button>
         </div>
       </div>
+      </div>
     </div>
 
-    <div class="p-3 space-y-3">
+    <div class="p-3 space-y-3 rounded-b-lg">
       <a href="{{ media.item|media_url }}"
          class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
          title="{{ media }}">{{ media }}</a>

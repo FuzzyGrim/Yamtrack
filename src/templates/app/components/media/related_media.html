@@ -26,9 +26,10 @@
             <a href="{{ item_url }}"
                class="bg-111111 rounded-xl overflow-hidden group hover-bg-222222 transition-colors flex flex-col">
               <div class="aspect-[2/3] relative">
-                {% if item.image and item.image != IMG_NONE %}
+                {% get_user_poster_image item user as related_poster_url %}
+                {% if related_poster_url and related_poster_url != IMG_NONE %}
                   <img
-                    src="{{ item.image }}"
+                    src="{{ related_poster_url }}"
                     alt="{{ item.title }} poster"
                     class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy">
@@ -43,7 +44,7 @@
                 {% endif %}
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
-              <div class="p-3 space-y-1">
+              <div class="p-3 space-y-1 h-[64px] flex flex-col justify-start">
                 <h3 class="font-medium text-sm text-white text-balance line-clamp-2">{{ item.season_title|default:item.title }}</h3>
                 {% if item.details.release_date or item.details.first_air_date %}
                   <p class="text-xs text-gray-400">

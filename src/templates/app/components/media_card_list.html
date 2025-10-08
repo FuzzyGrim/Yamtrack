@@ -7,7 +7,7 @@
       <a href="{{ item|media_url }}">
         <img alt="{{ title }}"
              class="lazyload w-16 h-24 object-cover rounded shadow-md bg-[#3e454d]"
-             data-src="{{ item.image }}"
+             data-src="{% get_user_poster_image item user %}"
              src="{{ IMG_NONE }}">
       </a>
     </div>

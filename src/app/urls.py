@@ -17,6 +17,11 @@ urlpatterns = [
         views.poster_selection_modal,
         name="poster_selection_modal",
     ),
+    path(
+        "poster_modal/<source:source>/season/<str:media_id>/<int:season_number>",
+        views.season_poster_selection_modal,
+        name="season_poster_selection_modal",
+    ),
     path("save_poster", views.save_poster_preference, name="save_poster_preference"),
     path(
         "details/<source:source>/<media_type:media_type>/<str:media_id>/<str:title>",
@@ -109,9 +114,18 @@ urlpatterns = [
     ),
     path('media/<str:source>/<str:media_type>/<str:media_id>/poster/', views.poster_selection_modal, name='poster_selection_modal'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/log/', views.log_modal, name='log_modal'),
-    path('media/<source:source>/<media_type:media_type>/<str:media_id>/mark-watched/', views.mark_movie_watched, name='mark_movie_watched'),
-    path('media/<source:source>/<media_type:media_type>/<str:media_id>/unmark-watched/', views.unmark_movie_watched, name='unmark_movie_watched'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/log/season/<int:season_number>/', views.log_modal, name='log_modal_season'),
+    path('media/<source:source>/movie/<str:media_id>/mark-watched/', views.mark_movie_watched, name='mark_movie_watched'),
+    path('media/<source:source>/movie/<str:media_id>/unmark-watched/', views.unmark_movie_watched, name='unmark_movie_watched'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/mark-tv-watched/', views.mark_tv_watched, name='mark_tv_watched'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/unmark-tv-watched/', views.unmark_tv_watched, name='unmark_tv_watched'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/start-tracking/', views.start_tracking_tv, name='start_tracking_tv'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/season/<int:season_number>/mark-watched/', views.mark_season_watched, name='mark_season_watched'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/season/<int:season_number>/unmark-watched/', views.unmark_season_watched, name='unmark_season_watched'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/season/<int:season_number>/episode/<int:episode_number>/watch/', views.watch_episode, name='watch_episode'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/season/<int:season_number>/episode/<int:episode_number>/unwatch/', views.unwatch_episode, name='unwatch_episode'),
     path('media/<source:source>/<media_type:media_type>/<str:media_id>/diary-log/', views.add_movie_diary_entry, name='add_movie_diary_entry'),
+    path('media/<source:source>/<media_type:media_type>/<str:media_id>/diary-log/season/<int:season_number>/', views.add_movie_diary_entry, name='add_season_diary_entry'),
     
     # Diary entry edit/delete URLs
     path('diary/entry/<int:entry_id>/edit/', views.edit_diary_entry, name='edit_diary_entry'),
