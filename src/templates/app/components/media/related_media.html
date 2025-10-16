@@ -21,8 +21,15 @@
          x-transition:leave-end="opacity-0 -translate-y-1">
       <div class="grid gap-6 grid-cols-7" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
         {% for name, related_items in media.related.items %}
-          {% for item in related_items|slice:":7" %}
-            {% url 'media_details' item.source item.media_type item.media_id item.title|slugify as item_url %}
+          {# Skip seasons as they are displayed in the dedicated seasons section #}
+          {% if name != "seasons" %}
+            {% for item in related_items|slice:":7" %}
+            {# Use season_details for seasons to include season_number #}
+            {% if item.media_type == MediaTypes.SEASON.value %}
+              {% url 'season_details' item.source item.media_id item.title|slugify item.season_number as item_url %}
+            {% else %}
+              {% url 'media_details' item.source item.media_type item.media_id item.title|slugify as item_url %}
+            {% endif %}
             <a href="{{ item_url }}"
                class="bg-111111 rounded-xl overflow-hidden group hover-bg-222222 transition-colors flex flex-col">
               <div class="aspect-[2/3] relative">
@@ -57,7 +64,8 @@
                 {% endif %}
               </div>
             </a>
-          {% endfor %}
+            {% endfor %}
+          {% endif %}
         {% endfor %}
       </div>
     </div>

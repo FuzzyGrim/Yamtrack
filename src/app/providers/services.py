@@ -154,6 +154,10 @@ def get_media_metadata(
             media_type = MediaTypes.TV.value
         return manual.metadata(media_id, media_type)
 
+    # Defensive handling: if a season is requested without season_numbers, fall back to TV
+    if media_type == MediaTypes.SEASON.value and not season_numbers:
+        return tmdb.tv(media_id)
+
     metadata_retrievers = {
         MediaTypes.ANIME.value: lambda: mal.anime(media_id),
         MediaTypes.MANGA.value: lambda: mangaupdates.manga(media_id)
@@ -161,9 +165,11 @@ def get_media_metadata(
         else mal.manga(media_id),
         MediaTypes.TV.value: lambda: tmdb.tv(media_id),
         "tv_with_seasons": lambda: tmdb.tv_with_seasons(media_id, season_numbers),
-        MediaTypes.SEASON.value: lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
-            f"season/{season_numbers[0]}"
-        ],
+        MediaTypes.SEASON.value: (
+            lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
+                f"season/{season_numbers[0]}"
+            ]
+        ),
         MediaTypes.EPISODE.value: lambda: tmdb.episode(
             media_id,
             season_numbers[0],

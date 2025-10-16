@@ -280,7 +280,8 @@ def movie(media_id):
 
 def tv_with_seasons(media_id, season_numbers):
     """Return the metadata for the tv show with a season appended to the response."""
-    if season_numbers == []:
+    # Treat None or empty as requesting only the base TV metadata
+    if not season_numbers:
         return tv(media_id)
 
     url = f"{base_url}/tv/{media_id}"
