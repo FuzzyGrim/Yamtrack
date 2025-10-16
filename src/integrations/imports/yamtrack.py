@@ -172,7 +172,7 @@ class YamtrackImporter:
                 media_type,
                 row["media_id"],
                 row["source"],
-                season_number,
+                [season_number],
                 episode_number,
             )
             row["title"] = metadata["title"]

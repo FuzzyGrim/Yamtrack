@@ -96,22 +96,40 @@ class BaseWebhookProcessor:
         self._handle_tv_episode(media_id, season_number, episode_number, payload, user)
 
     def _process_movie(self, payload, user, ids):
-        if ids["tmdb_id"]:
-            tmdb_id = int(ids["tmdb_id"])
-            mapping_data = self._fetch_mapping_data()
-            mal_id = self._get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
+        tmdb_id = ids["tmdb_id"]
+        imdb_id = ids["imdb_id"]
 
-            if mal_id and user.anime_enabled:
-                logger.info("Detected anime movie with MAL ID: %s", mal_id)
+        # Try to detect anime first if user has anime enabled
+        if user.anime_enabled:
+            mapping_data = self._fetch_mapping_data()
+            mal_id = None
+            source = None
+
+            if tmdb_id:
+                mal_id = self._get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
+                source = "TMDB"
+
+            if not mal_id and imdb_id:
+                mal_id = self._get_mal_id_from_imdb(mapping_data, imdb_id)
+                source = "IMDB"
+
+            if mal_id:
+                logger.info(
+                    "Detected anime movie with MAL ID: %s (via %s)",
+                    mal_id,
+                    source,
+                )
                 self._handle_anime(mal_id, 1, payload, user)
                 return
 
+        # Handle as regular movie
+        if tmdb_id:
             logger.info("Detected movie via TMDB ID: %s", tmdb_id)
             self._handle_movie(tmdb_id, payload, user)
-        elif ids["imdb_id"]:
-            logger.debug("No TMDB ID found, looking up via IMDB ID: %s", ids["imdb_id"])
+        elif imdb_id:
+            logger.debug("No TMDB ID found, looking up via IMDB ID: %s", imdb_id)
+            response = app.providers.tmdb.find(imdb_id, "imdb_id")
 
-            response = app.providers.tmdb.find(ids["imdb_id"], "imdb_id")
             if response.get("movie_results"):
                 media_id = response["movie_results"][0]["id"]
                 logger.info("Found matching TMDB ID: %s", media_id)
@@ -119,11 +137,10 @@ class BaseWebhookProcessor:
             else:
                 logger.warning(
                     "No matching TMDB ID found for IMDB ID: %s",
-                    ids["imdb_id"],
+                    imdb_id,
                 )
         else:
             logger.warning("No TMDB or IMDB ID found for movie, skipping processing")
-            return
 
     def _find_tv_media_id(self, ids):
         """Find TV media ID from external IDs."""
@@ -188,6 +205,13 @@ class BaseWebhookProcessor:
         """Find MAL ID from TMDB movie mapping."""
         for entry in mapping_data.values():
             if entry.get("tmdb_movie_id") == tmdb_movie_id and "mal_id" in entry:
+                return self._parse_mal_id(entry["mal_id"])
+        return None
+
+    def _get_mal_id_from_imdb(self, mapping_data, imdb_id):
+        """Find MAL ID from IMDB ID mapping."""
+        for entry in mapping_data.values():
+            if entry.get("imdb_id") == imdb_id and "mal_id" in entry:
                 return self._parse_mal_id(entry["mal_id"])
         return None
 

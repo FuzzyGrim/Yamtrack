@@ -278,39 +278,53 @@ def movie(media_id):
     return data
 
 
-def tv_with_seasons(media_id, season_numbers):
-    """Return the metadata for the tv show with a season appended to the response."""
-    # Treat None or empty as requesting only the base TV metadata
-    if not season_numbers:
-        return tv(media_id)
-
-    url = f"{base_url}/tv/{media_id}"
-    base_append = "recommendations,external_ids"
-    tv_cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
-    data = cache.get(tv_cache_key, {})
-
+def get_cached_seasons(media_id, season_numbers):
+    """Check cache for seasons and return cached data and list of uncached seasons."""
+    cached_data = {}
     uncached_seasons = []
+
     for season_number in season_numbers:
         season_cache_key = (
             f"{Sources.TMDB.value}_{MediaTypes.SEASON.value}_{media_id}_{season_number}"
         )
         season_data = cache.get(season_cache_key)
         if season_data:
-            data[f"season/{season_number}"] = season_data
+            cached_data[f"season/{season_number}"] = season_data
         else:
             uncached_seasons.append(season_number)
 
-    # tmdb max remote request is 20 but we have recommendations and external_ids
+    return cached_data, uncached_seasons
+
+
+def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
+    """Add TV show metadata to season metadata."""
+    season_data["media_id"] = media_id
+    season_data["source_url"] = (
+        f"https://www.themoviedb.org/tv/{media_id}/season/{season_number}"
+    )
+    season_data["title"] = tv_data["title"]
+    season_data["tvdb_id"] = tv_data["tvdb_id"]
+    season_data["genres"] = tv_data["genres"]
+    if season_data["synopsis"] == "No synopsis available.":
+        season_data["synopsis"] = tv_data["synopsis"]
+    return season_data
+
+
+def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
+    """Fetch uncached seasons from API and cache them."""
+    url = f"{base_url}/tv/{media_id}"
+    base_append = "recommendations,external_ids"
     max_seasons_per_request = 18
-    for i in range(0, len(uncached_seasons), max_seasons_per_request):
-        season_subset = uncached_seasons[i : i + max_seasons_per_request]
+    fetched_tv_data = tv_data
+    result_data = {}
+
+    for i in range(0, len(season_numbers), max_seasons_per_request):
+        season_subset = season_numbers[i : i + max_seasons_per_request]
         append_text = ",".join([f"season/{season}" for season in season_subset])
 
         params = {
             **base_params,
-            "append_to_response": f"{base_append},{append_text}"
-            if append_text
-            else base_append,
+            "append_to_response": f"{base_append},{append_text}",
         }
 
         try:
@@ -323,48 +337,68 @@ def tv_with_seasons(media_id, season_numbers):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        # tv show metadata is not in the response
-        if "media_id" not in data:
-            tv_data = process_tv(response)
-            cache.set(tv_cache_key, tv_data)
+        # Cache TV metadata if we haven't fetched it yet
+        if fetched_tv_data is None:
+            fetched_tv_data = process_tv(response)
+            tv_cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+            cache.set(tv_cache_key, fetched_tv_data)
 
-            # merge tv show metadata with seasons metadata
-            data = tv_data | data
-
-        # add seasons metadata to the response
+        # Process and cache each season
         for season_number in season_subset:
             season_key = f"season/{season_number}"
             if season_key not in response:
                 msg = (
                     f"Season {season_number} not found in {Sources.TMDB.label} "
-                    f"with ID {media_id}."
+                    f"with ID {media_id}"
                 )
-                # Create a new response object with 404 status
                 not_found_response = requests.Response()
                 not_found_response.status_code = 404
-                # Set the error attribute to match what ProviderAPIError expects
                 not_found_error = type("Error", (), {"response": not_found_response})
                 raise services.ProviderAPIError(msg, error=not_found_error, details=msg)
 
             season_data = process_season(response[season_key])
-
-            # add from tv show metadata to the season metadata
-            season_data["media_id"] = media_id
-            season_data["source_url"] = (
-                f"https://www.themoviedb.org/tv/{media_id}/season/{season_number}"
+            season_data = enrich_season_with_tv_data(
+                season_data,
+                fetched_tv_data,
+                media_id,
+                season_number,
             )
-            season_data["title"] = data["title"]
-            season_data["tvdb_id"] = data["tvdb_id"]
-            season_data["genres"] = data["genres"]
-            if season_data["synopsis"] == "No synopsis available.":
-                season_data["synopsis"] = data["synopsis"]
+
             cache.set(
                 f"{Sources.TMDB.value}_{MediaTypes.SEASON.value}_{media_id}_{season_number}",
                 season_data,
             )
-            data[season_key] = season_data
+            result_data[season_key] = season_data
 
-    return data
+    return result_data, fetched_tv_data
+
+
+def tv_with_seasons(media_id, season_numbers):
+    """Return the metadata for the tv show with seasons appended to the response."""
+    if not season_numbers:
+        return tv(media_id)
+
+    tv_cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+    tv_data = cache.get(tv_cache_key)
+
+    cached_seasons, uncached_seasons = get_cached_seasons(media_id, season_numbers)
+
+    if tv_data is None and not uncached_seasons:
+        tv_data = tv(media_id)
+
+    if uncached_seasons:
+        fetched_seasons, fetched_tv_data = fetch_and_cache_seasons(
+            media_id,
+            uncached_seasons,
+            tv_data,
+        )
+
+        if tv_data is None:
+            tv_data = fetched_tv_data
+
+        cached_seasons.update(fetched_seasons)
+
+    return tv_data | cached_seasons
 
 
 def tv(media_id):

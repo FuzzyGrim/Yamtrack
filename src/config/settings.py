@@ -428,14 +428,14 @@ SIMKL_ID = config(
     "SIMKL_ID",
     default=secret(
         "SIMKL_ID_FILE",
-        "f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e",
+        "a973e57e85d94068315d5ac29669d85da8abc0fb7aff1d22e00e04bdf1882578",
     ),
 )
 SIMKL_SECRET = config(
     "SIMKL_SECRET",
     default=secret(
         "SIMKL_SECRET_FILE",
-        "9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5",
+        "1b548a88ac7884a757cc58a552842913a9337f3cab3a4905836c6dc305dda316",
     ),
 )
 

@@ -107,7 +107,7 @@ class JellyfinWebhookTests(TestCase):
                 "Name": "Perfect Blue",
                 "ProductionYear": 1997,
                 "Type": "Movie",
-                "ProviderIds": {"Tmdb": "10494"},
+                "ProviderIds": {"Imdb": "tt0156887"},
                 "UserData": {"Played": True},
             },
         }
