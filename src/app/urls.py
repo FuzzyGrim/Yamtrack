@@ -131,4 +131,7 @@ urlpatterns = [
     path('diary/entry/<int:entry_id>/edit/', views.edit_diary_entry, name='edit_diary_entry'),
     path('diary/entry/<int:entry_id>/update/', views.update_diary_entry, name='update_diary_entry'),
     path('diary/entry/<int:entry_id>/delete/', views.delete_diary_entry, name='delete_diary_entry'),
+    
+    # Tag URLs
+    path('api/tags/autocomplete/', views.tag_autocomplete, name='tag_autocomplete'),
 ]

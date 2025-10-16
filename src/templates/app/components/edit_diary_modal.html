@@ -108,6 +108,50 @@
                       rows="4"
                       placeholder="Write your review..."
                       class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm resize-none">{{ entry.review }}</textarea>
+            
+            <!-- Tags -->
+            <div class="mt-4">
+              <label class="block text-sm font-medium mb-2 text-gray-300">Tags</label>
+              <div x-data="tagInput()" x-init="setTimeout(() => { $el.querySelector('input[name=tags]').value = '{% for tag in entry.tags.all %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% endfor %}'; init(); }, 50)" class="space-y-2">
+                <div class="flex flex-wrap gap-1 mb-2" id="tag-chips">
+                  <!-- Tag chips will be inserted here -->
+                </div>
+                <input type="hidden" 
+                       name="tags"
+                       value="{% for tag in entry.tags.all %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                <input type="text" 
+                       x-model="tagInputValue"
+                       @keydown.tab.prevent="completeTag()"
+                       @keydown.enter.prevent="addTag()"
+                       @keydown.comma.prevent="addTag()"
+                       @input="updateSuggestions()"
+                       placeholder="eg. netflix"
+                       class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm">
+                <p class="text-xs text-gray-400">Press Tab to complete, Enter to create</p>
+                
+                <!-- Autocomplete suggestions -->
+                <div x-show="suggestions.length > 0" 
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="transform opacity-0 scale-95"
+                     x-transition:enter-end="transform opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="transform opacity-100 scale-100"
+                     x-transition:leave-end="transform opacity-0 scale-95"
+                     class="absolute z-10 mt-1 w-full bg-[#2a2e33] rounded-md shadow-lg border border-gray-600"
+                     style="display: none;">
+                  <div class="py-1">
+                    <template x-for="suggestion in suggestions" :key="suggestion.name">
+                      <button type="button"
+                              @click="selectSuggestion(suggestion.name)"
+                              class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white transition-colors">
+                        <span x-text="suggestion.name"></span>
+                        <span class="text-xs text-gray-500 ml-2" x-text="'(' + suggestion.usage_count + ')'"></span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

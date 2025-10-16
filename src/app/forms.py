@@ -367,10 +367,22 @@ class EpisodeForm(forms.ModelForm):
 class DiaryEntryForm(forms.ModelForm):
     """Form for creating and editing diary entries."""
     
+    tags = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "eg. netflix",
+                "id": "tags-input",
+            }
+        ),
+        help_text="Press Tab to complete, Enter to create. Separate multiple tags with commas."
+    )
+    
     class Meta:
         """Bind form to model."""
         model = DiaryEntry
-        fields = ["consumed_at", "rating", "review"]
+        fields = ["consumed_at", "rating", "review", "tags"]
         widgets = {
             "consumed_at": forms.DateTimeInput(
                 attrs={
@@ -410,6 +422,37 @@ class DiaryEntryForm(forms.ModelForm):
         if not settings.TRACK_TIME and "consumed_at" in self.initial:
             # If not tracking time, only show the date part
             self.initial["consumed_at"] = self.initial["consumed_at"].date()
+        
+        # Initialize tags field with existing tags
+        if self.instance and self.instance.pk:
+            existing_tags = self.instance.tags.all()
+            self.initial["tags"] = ", ".join([tag.name for tag in existing_tags])
+
+    def clean_tags(self):
+        """Clean and validate tags."""
+        tags_data = self.cleaned_data.get('tags', '')
+        if not tags_data:
+            return []
+        
+        # Split by comma and clean each tag
+        tag_names = [tag.strip().lower() for tag in tags_data.split(',') if tag.strip()]
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_tags = []
+        for tag in tag_names:
+            if tag not in seen:
+                seen.add(tag)
+                unique_tags.append(tag)
+        
+        # Validate tag length
+        for tag in unique_tags:
+            if len(tag) > 100:
+                raise forms.ValidationError(f"Tag '{tag}' is too long. Maximum length is 100 characters.")
+            if len(tag) < 1:
+                raise forms.ValidationError("Tags cannot be empty.")
+        
+        return unique_tags
 
     def clean(self):
         """Validate the form data."""

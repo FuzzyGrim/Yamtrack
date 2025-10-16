@@ -227,7 +227,7 @@ def media_details(request, source, media_type, media_id, title):
     if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
         try:
             item = Item.objects.get(source=source, media_type=media_type, media_id=media_id)
-            diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+            diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).prefetch_related('tags').order_by('-consumed_at')
         except Item.DoesNotExist:
             pass
 
@@ -324,7 +324,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     diary_entries = []
     try:
         item = Item.objects.get(source=source, media_type=MediaTypes.SEASON.value, media_id=media_id, season_number=season_number)
-        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).prefetch_related('tags').order_by('-consumed_at')
     except Item.DoesNotExist:
         pass
 
@@ -1343,6 +1343,7 @@ def add_diary_entry(request, media_type, instance_id):
             rating=form.cleaned_data["rating"],
             review=form.cleaned_data["review"],
             auto_mark_consumed=request.POST.get("auto_mark_consumed") == "true",
+            tags=form.cleaned_data.get("tags", []),
         )
         
         if request.headers.get("HX-Request"):
@@ -1375,7 +1376,7 @@ def diary_list(request):
     page = request.GET.get("page", 1)
     
     # Base queryset - order by created_at descending (newest first) to reflect actual logging order
-    entries = DiaryEntry.objects.filter(user=request.user).order_by('-created_at')
+    entries = DiaryEntry.objects.filter(user=request.user).select_related('item').prefetch_related('tags').order_by('-created_at')
     
     # Apply filters
     if media_type:
@@ -1428,7 +1429,7 @@ def diary_item(request, media_type, instance_id):
     entries = DiaryEntry.objects.filter(
         user=request.user,
         item=media.item,
-    ).order_by("-consumed_at")
+    ).prefetch_related('tags').order_by("-consumed_at")
     
     context = {
         "media": media,
@@ -2284,6 +2285,8 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
             
         logger.info(f"Creating diary entry for {media_type} {media_id} from {source}")
         logger.info(f"POST data: {dict(request.POST)}")
+        logger.info(f"Tags in POST: {request.POST.get('tags', 'NOT_FOUND')}")
+        logger.info(f"All POST keys: {list(request.POST.keys())}")
         logger.info(f"Season number parameter: {season_number}")
         
         # Get or create the item
@@ -2351,7 +2354,13 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
         is_rewatch = request.POST.get('is_rewatch') == 'on'
         auto_mark_consumed = request.POST.get('auto_mark_consumed') == 'true'
         
-        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: {len(review)} chars, Liked: {liked}, Rewatch: {is_rewatch}, Auto-consume: {auto_mark_consumed}")
+        # Parse tags
+        tags_data = request.POST.get('tags', '').strip()
+        tag_names = []
+        if tags_data:
+            tag_names = [tag.strip().lower() for tag in tags_data.split(',') if tag.strip()]
+        
+        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: {len(review)} chars, Liked: {liked}, Rewatch: {is_rewatch}, Auto-consume: {auto_mark_consumed}, Tags: {tag_names}")
         
         # Create the diary entry
         logger.info(f"About to create diary entry with auto_mark_consumed={auto_mark_consumed}")
@@ -2364,6 +2373,7 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
             liked=liked,
             is_rewatch=is_rewatch,
             auto_mark_consumed=auto_mark_consumed,
+            tags=tag_names,
         )
         
         logger.info(f"Diary entry created successfully: {entry}")
@@ -2484,13 +2494,14 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
 @require_GET
 def edit_diary_entry(request, entry_id):
     """Show edit modal for a diary entry."""
-    entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
+    entry = get_object_or_404(DiaryEntry.objects.prefetch_related('tags'), id=entry_id, user=request.user)
     
     # Pre-populate form with existing data
     form = DiaryEntryForm(initial={
         'consumed_at': entry.consumed_at,
         'rating': entry.rating,
         'review': entry.review,
+        'tags': ', '.join([tag.name for tag in entry.tags.all()]),
     })
     
     context = {
@@ -2530,7 +2541,13 @@ def update_diary_entry(request, entry_id):
         liked = request.POST.get('liked', '').lower() == 'true'
         is_rewatch = request.POST.get('is_rewatch') == 'on'  # Checkbox value
         
-        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: '{review}', Liked: {liked}, Rewatch: {is_rewatch}")
+        # Parse tags
+        tags_data = request.POST.get('tags', '').strip()
+        tag_names = []
+        if tags_data:
+            tag_names = [tag.strip().lower() for tag in tags_data.split(',') if tag.strip()]
+        
+        logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: '{review}', Liked: {liked}, Rewatch: {is_rewatch}, Tags: {tag_names}")
         
         # Update the entry
         entry.consumed_at = consumed_at
@@ -2539,6 +2556,10 @@ def update_diary_entry(request, entry_id):
         entry.liked = liked
         entry.is_rewatch = is_rewatch
         entry.save()
+        
+        # Update tags
+        from app.services import update_diary_entry_tags
+        update_diary_entry_tags(entry, tag_names)
         
         logger.info(f"Diary entry updated successfully: {entry}")
         logger.info(f"Updated values - Date: {entry.consumed_at}, Rating: {entry.rating}, Review: '{entry.review}', Liked: {entry.liked}")
@@ -2632,3 +2653,22 @@ def delete_diary_entry(request, entry_id):
     except Exception as e:
         logger.error(f"Error deleting diary entry: {str(e)}", exc_info=True)
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@require_GET
+def tag_autocomplete(request):
+    """Return tag suggestions for autocomplete."""
+    query = request.GET.get('q', '').strip().lower()
+    if len(query) < 1:
+        return JsonResponse({'tags': []})
+    
+    try:
+        from app.models import Tag
+        tags = Tag.objects.filter(name__icontains=query).order_by('-usage_count', 'name')[:10]
+        
+        return JsonResponse({
+            'tags': [{'name': tag.name, 'usage_count': tag.usage_count} for tag in tags]
+        })
+    except Exception as e:
+        # If Tag model doesn't exist yet, return empty results
+        return JsonResponse({'tags': []})

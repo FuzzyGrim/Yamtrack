@@ -498,6 +498,119 @@
     {% block js %}
     {% endblock js %}
 
+    <script>
+    // Global tag input functionality
+    function tagInput() {
+      return {
+        tagInputValue: '',
+        tags: [],
+        suggestions: [],
+        debounceTimer: null,
+        
+        init() {
+          // Initialize with existing tags if any
+          const existingTags = this.getExistingTags();
+          if (existingTags) {
+            this.tags = existingTags.split(',').map(tag => tag.trim()).filter(tag => tag);
+            this.renderTagChips();
+          } else {
+            this.tags = [];
+            this.renderTagChips();
+          }
+        },
+        
+        getExistingTags() {
+          // Try to get existing tags from the form field
+          const hiddenInput = document.querySelector('input[name="tags"]');
+          return hiddenInput ? hiddenInput.value : '';
+        },
+        
+        addTag() {
+          const tag = this.tagInputValue.trim().toLowerCase();
+          if (tag && !this.tags.includes(tag)) {
+            this.tags.push(tag);
+            this.tagInputValue = '';
+            this.suggestions = [];
+            this.renderTagChips();
+          }
+        },
+        
+        removeTag(tagToRemove) {
+          this.tags = this.tags.filter(tag => tag !== tagToRemove);
+          this.renderTagChips();
+        },
+        
+        completeTag() {
+          if (this.suggestions.length > 0) {
+            this.selectSuggestion(this.suggestions[0].name);
+          } else {
+            this.addTag();
+          }
+        },
+        
+        selectSuggestion(tagName) {
+          if (!this.tags.includes(tagName)) {
+            this.tags.push(tagName);
+            this.tagInputValue = '';
+            this.suggestions = [];
+            this.renderTagChips();
+          }
+        },
+        
+        updateSuggestions() {
+          clearTimeout(this.debounceTimer);
+          this.debounceTimer = setTimeout(() => {
+            const query = this.tagInputValue.trim().toLowerCase();
+            if (query.length < 1) {
+              this.suggestions = [];
+              return;
+            }
+            
+            fetch(`/api/tags/autocomplete/?q=${encodeURIComponent(query)}`)
+              .then(response => response.json())
+              .then(data => {
+                this.suggestions = data.tags.filter(tag => !this.tags.includes(tag.name));
+              })
+              .catch(error => {
+                console.error('Error fetching tag suggestions:', error);
+                this.suggestions = [];
+              });
+          }, 300);
+        },
+        
+        renderTagChips() {
+          const container = document.getElementById('tag-chips');
+          if (!container) return;
+          
+          container.innerHTML = this.tags.map(tag => `
+            <span class="tag-chip text-xs px-2 py-0.5 rounded-full 
+              ${this.getTagColor(tag)}">
+              ${tag}
+              <button type="button" 
+                      @click="removeTag('${tag}')"
+                      class="ml-1 hover:text-red-300">×</button>
+            </span>
+          `).join('');
+          
+          // Update hidden input with comma-separated tags
+          const hiddenInput = document.querySelector('input[name="tags"]');
+          if (hiddenInput) {
+            hiddenInput.value = this.tags.join(', ');
+          }
+        },
+        
+        getTagColor(tag) {
+          if (tag.includes('w/')) return 'bg-blue-600 text-white';
+          if (tag.includes('in theater') || tag.includes('cinemark') || tag.includes('amc') || tag.includes('regal')) return 'bg-green-600 text-white';
+          if (tag.includes('high') || tag.includes('plane')) return 'bg-purple-600 text-white';
+          if (tag.includes('opening weekend') || tag.includes('thursday preview') || tag.includes('imax')) return 'bg-orange-600 text-white';
+          if (tag.includes('alternate version') || tag.includes('extended version')) return 'bg-gray-600 text-white';
+          return 'bg-indigo-600 text-white';
+        }
+      };
+    }
+    </script>
+
     <script src="{% static 'js/mediaStatusDateHandler.js' %}{% get_static_file_mtime 'js/mediaStatusDateHandler.js' %}"></script>
   </body>
 </html>

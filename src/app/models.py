@@ -1739,15 +1739,10 @@ class DiaryEntry(models.Model):
     progress_snapshot = models.JSONField(null=True, blank=True)
     liked = models.BooleanField(default=False)
     is_rewatch = models.BooleanField(default=False)
+    tags = models.ManyToManyField('Tag', through='DiaryEntryTag', blank=True, related_name='diary_entries')
 
     class Meta:
         """Meta options for the model."""
-        constraints = [
-            UniqueConstraint(
-                fields=["user", "item", "consumed_at"],
-                name="unique_diary_entry"
-            )
-        ]
         indexes = [
             models.Index(fields=["user", "-consumed_at"]),
         ]
@@ -1776,3 +1771,78 @@ class DiaryEntry(models.Model):
             item=self.item,
             consumed_at__lt=self.consumed_at
         ).count()
+
+
+class Tag(models.Model):
+    """Model to store tags that can be attached to diary entries."""
+    
+    name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    usage_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        """Meta options for the model."""
+        ordering = ["-usage_count", "name"]
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["-usage_count"]),
+        ]
+    
+    def __str__(self):
+        """Return string representation of the tag."""
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        """Save the tag with normalized name."""
+        self.name = self.name.lower().strip()
+        super().save(*args, **kwargs)
+    
+    def increment_usage(self):
+        """Increment the usage count for this tag."""
+        self.usage_count += 1
+        self.save(update_fields=['usage_count'])
+    
+    def decrement_usage(self):
+        """Decrement the usage count for this tag."""
+        if self.usage_count > 0:
+            self.usage_count -= 1
+            self.save(update_fields=['usage_count'])
+
+
+class DiaryEntryTag(models.Model):
+    """Model to store the many-to-many relationship between diary entries and tags."""
+    
+    diary_entry = models.ForeignKey(DiaryEntry, on_delete=models.CASCADE, related_name='diary_entry_tags')
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name='diary_entry_tags')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        """Meta options for the model."""
+        constraints = [
+            UniqueConstraint(
+                fields=["diary_entry", "tag"],
+                name="unique_diary_entry_tag"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["diary_entry"]),
+            models.Index(fields=["tag"]),
+        ]
+        ordering = ["created_at"]
+    
+    def __str__(self):
+        """Return string representation of the diary entry tag."""
+        return f"{self.diary_entry} - {self.tag}"
+    
+    def save(self, *args, **kwargs):
+        """Save the diary entry tag and update tag usage count."""
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            self.tag.increment_usage()
+    
+    def delete(self, *args, **kwargs):
+        """Delete the diary entry tag and update tag usage count."""
+        tag = self.tag
+        super().delete(*args, **kwargs)
+        tag.decrement_usage()

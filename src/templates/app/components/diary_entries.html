@@ -106,6 +106,23 @@
                     </span>
                   {% endif %}
                 </div>
+                
+                <!-- Tags -->
+                {% if entry.tags.exists %}
+                  <div class="flex flex-wrap gap-1 mb-1">
+                    {% for tag in entry.tags.all %}
+                      <span class="tag-chip text-xs px-2 py-0.5 rounded-full 
+                        {% if 'w/' in tag.name %}bg-blue-600 text-white
+                        {% elif 'in theater' in tag.name or 'cinemark' in tag.name or 'amc' in tag.name or 'regal' in tag.name %}bg-green-600 text-white
+                        {% elif 'high' in tag.name or 'plane' in tag.name %}bg-purple-600 text-white
+                        {% elif 'opening weekend' in tag.name or 'thursday preview' in tag.name or 'imax' in tag.name %}bg-orange-600 text-white
+                        {% elif 'alternate version' in tag.name or 'extended version' in tag.name %}bg-gray-600 text-white
+                        {% else %}bg-indigo-600 text-white{% endif %}">
+                        {{ tag.name }}
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
               </div>
 
               <!-- Entry Actions -->

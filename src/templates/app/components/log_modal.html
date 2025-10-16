@@ -7,7 +7,9 @@
          @click.stop
          data-log-url="{% if item.media_type == 'season' %}{% url 'log_modal_season' item.source item.media_type item.media_id item.season_number %}{% else %}{% url 'log_modal' item.source item.media_type item.media_id %}{% endif %}">
          
-        <form action="{% if item.media_type == 'season' %}{% url 'add_season_diary_entry' item.source item.media_type item.media_id item.season_number %}{% else %}{% url 'add_movie_diary_entry' item.source item.media_type item.media_id %}{% endif %}">
+        <form action="{% if item.media_type == 'season' %}{% url 'add_season_diary_entry' item.source item.media_type item.media_id item.season_number %}{% else %}{% url 'add_movie_diary_entry' item.source item.media_type item.media_id %}{% endif %}" 
+              method="post"
+              @submit="updateTagsBeforeSubmit()">
             {% csrf_token %}
             <div class="p-6">
             <!-- Header -->
@@ -34,7 +36,19 @@
                                value="{{ today|date:'Y-m-d' }}">
                         
                         <!-- Stars Rating -->
-                        <div class="rating flex items-center" x-data="{ rating: 0, temp: 0, isRewatch: false, liked: false }">
+                        <div class="rating flex items-center" x-data="{ 
+                            rating: 0, 
+                            temp: 0, 
+                            isRewatch: false, 
+                            liked: false,
+                            updateTagsBeforeSubmit() {
+                                // Force update tags before form submission
+                                const tagInputComponent = this.$refs.tagInput;
+                                if (tagInputComponent && tagInputComponent.renderTagChips) {
+                                    tagInputComponent.renderTagChips();
+                                }
+                            }
+                        }">
                             <button type="button" 
                                     class="text-gray-400 hover:text-yellow-400"
                                     :class="{ 'text-yellow-400': rating >= 1 || temp >= 1 }"
@@ -127,13 +141,55 @@
                         class="w-full flex-1 bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400 resize-none text-sm"
                         rows="4"
                     ></textarea>
+                    
+                    <!-- Tags -->
+                    <div class="mt-3">
+                        <label class="block text-sm font-medium mb-2 text-gray-300">Tags</label>
+                        <div x-data="tagInput()" x-ref="tagInput" class="space-y-2">
+                            <div class="flex flex-wrap gap-1 mb-2" id="tag-chips">
+                                <!-- Tag chips will be inserted here -->
+                            </div>
+                            <input type="hidden" name="tags" value="">
+                            <input type="text" 
+                                   x-model="tagInputValue"
+                                   @keydown.tab.prevent="completeTag()"
+                                   @keydown.enter.prevent="addTag()"
+                                   @keydown.comma.prevent="addTag()"
+                                   @input="updateSuggestions()"
+                                   placeholder="eg. netflix"
+                                   class="w-full p-2 bg-[#1f2329] rounded-md text-white border border-gray-600 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-sm">
+                            <p class="text-xs text-gray-400">Press Tab to complete, Enter to create</p>
+                            
+                            <!-- Autocomplete suggestions -->
+                            <div x-show="suggestions.length > 0" 
+                                 x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-75"
+                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                 class="absolute z-10 mt-1 w-full bg-[#2a2e33] rounded-md shadow-lg border border-gray-600"
+                                 style="display: none;">
+                                <div class="py-1">
+                                    <template x-for="suggestion in suggestions" :key="suggestion.name">
+                                        <button type="button"
+                                                @click="selectSuggestion(suggestion.name)"
+                                                class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white transition-colors">
+                                            <span x-text="suggestion.name"></span>
+                                            <span class="text-xs text-gray-500 ml-2" x-text="'(' + suggestion.usage_count + ')'"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Footer with Log button -->
             <div class="flex justify-end mt-6 pt-4 border-t border-gray-600">
-                <button type="button" 
-                        onclick="submitDiaryLog(this)"
+                <button type="submit" 
+                        onclick="updateTagsBeforeSubmit()"
                         class="bg-gray-700 hover:bg-gray-600 px-8 py-2.5 text-sm font-medium text-white rounded transition-colors duration-200 ease-in-out">
                     {% if item.media_type == 'tv' %}Log Show{% elif item.media_type == 'season' %}Log Season{% else %}Log Movie{% endif %}
                 </button>
@@ -141,4 +197,6 @@
         </div>
         </form>
     </div>
+</div>
+
 </div> 

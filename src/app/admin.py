@@ -9,6 +9,8 @@ from app.models import (
     Item,
     CustomPosterPreference,
     DiaryEntry,
+    Tag,
+    DiaryEntryTag,
 )
 
 
@@ -59,16 +61,35 @@ class DiaryEntryAdmin(admin.ModelAdmin):
     list_filter = ["user", "consumed_at"]
 
 
+class TagAdmin(admin.ModelAdmin):
+    """Custom admin for Tag model with search and filter options."""
+    
+    search_fields = ["name"]
+    list_display = ["name", "usage_count", "created_at"]
+    list_filter = ["created_at"]
+    ordering = ["-usage_count", "name"]
+
+
+class DiaryEntryTagAdmin(admin.ModelAdmin):
+    """Custom admin for DiaryEntryTag model with search and filter options."""
+    
+    search_fields = ["diary_entry__item__title", "tag__name", "diary_entry__user__username"]
+    list_display = ["__str__", "diary_entry", "tag", "created_at"]
+    list_filter = ["tag", "created_at"]
+
+
 # Register models with custom admin classes
 admin.site.register(Item, ItemAdmin)
 admin.site.register(Episode, EpisodeAdmin)
 admin.site.register(CustomPosterPreference, CustomPosterPreferenceAdmin)
 admin.site.register(DiaryEntry, DiaryEntryAdmin)
+admin.site.register(Tag, TagAdmin)
+admin.site.register(DiaryEntryTag, DiaryEntryTagAdmin)
 
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia", "CustomPosterPreference", "DiaryEntry"]
+SpecialModels = ["Item", "Episode", "BasicMedia", "CustomPosterPreference", "DiaryEntry", "Tag", "DiaryEntryTag"]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

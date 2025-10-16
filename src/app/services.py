@@ -9,6 +9,35 @@ from app.tasks import update_daily_statistics
 logger = logging.getLogger(__name__)
 
 
+def _add_tags_to_entry(entry, tag_names):
+    """Add tags to a diary entry."""
+    from app.models import Tag, DiaryEntryTag
+    
+    for tag_name in tag_names:
+        tag_name = tag_name.strip().lower()
+        if not tag_name:
+            continue
+            
+        # Get or create the tag
+        tag, created = Tag.objects.get_or_create(name=tag_name)
+        
+        # Create the relationship if it doesn't exist
+        DiaryEntryTag.objects.get_or_create(
+            diary_entry=entry,
+            tag=tag
+        )
+
+
+def update_diary_entry_tags(entry, tag_names):
+    """Update tags for a diary entry."""
+    # Clear existing tags
+    entry.tags.clear()
+    
+    # Add new tags
+    if tag_names:
+        _add_tags_to_entry(entry, tag_names)
+
+
 def create_diary_entry(
     user,
     item: Item,
@@ -19,6 +48,7 @@ def create_diary_entry(
     liked=False,
     is_rewatch=False,
     auto_mark_consumed=False,
+    tags=None,
 ) -> DiaryEntry:
     """
     Create a diary entry for a media item.
@@ -29,13 +59,19 @@ def create_diary_entry(
         consumed_at: When the item was consumed (defaults to now)
         rating: Optional rating (0-10)
         review: Optional review text
+        liked: Whether the user liked the item
+        is_rewatch: Whether this is a rewatch
         auto_mark_consumed: Whether to also mark the media as consumed
+        tags: List of tag names to attach to the entry
     
     Returns:
         The created DiaryEntry instance
     """
     if consumed_at is None:
         consumed_at = timezone.now()
+    
+    if tags is None:
+        tags = []
 
     with transaction.atomic():
         # Create the diary entry
@@ -48,6 +84,10 @@ def create_diary_entry(
             liked=liked,
             is_rewatch=is_rewatch,
         )
+        
+        # Add tags to the entry
+        if tags:
+            _add_tags_to_entry(entry, tags)
         
         # Optionally mark as consumed
         if auto_mark_consumed:
@@ -78,10 +118,11 @@ def create_diary_entry(
         ))
         
     logger.info(
-        "Created diary entry for %s by %s (auto_mark_consumed=%s)",
+        "Created diary entry for %s by %s (auto_mark_consumed=%s, tags=%s)",
         item,
         user,
         auto_mark_consumed,
+        tags,
     )
     return entry
 

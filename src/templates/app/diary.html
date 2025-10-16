@@ -127,6 +127,41 @@
         </div>
       </div>
       
+      <!-- Tag Filter -->
+      <div class="relative" @click.away="tagFilterOpen = false">
+        <button @click="tagFilterOpen = !tagFilterOpen" 
+                class="flex items-center justify-between px-3 py-2 bg-[#39404b] border border-gray-600 rounded-lg text-white hover:bg-[#454d5a] transition-colors text-sm min-w-[120px]">
+          <span x-text="selectedTagLabel"></span>
+          <svg class="w-4 h-4 ml-2 transition-transform" :class="{'rotate-180': tagFilterOpen}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+        
+        <div x-show="tagFilterOpen" 
+             x-transition:enter="transition ease-out duration-100"
+             x-transition:enter-start="transform opacity-0 scale-95"
+             x-transition:enter-end="transform opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-75"
+             x-transition:leave-start="transform opacity-100 scale-100"
+             x-transition:leave-end="transform opacity-0 scale-95"
+             class="absolute right-0 mt-1 w-64 bg-[#2a2e33] rounded-lg shadow-lg z-50 border border-gray-600 max-h-60 overflow-y-auto"
+             style="display: none;">
+          <div class="py-1">
+            <button @click="selectTag('', 'All Tags'); tagFilterOpen = false" 
+                    class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white transition-colors">
+              All Tags
+            </button>
+            <template x-for="tag in availableTags" :key="tag.name">
+              <button @click="selectTag(tag.name, tag.name); tagFilterOpen = false" 
+                      class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white transition-colors flex items-center justify-between">
+                <span x-text="tag.name"></span>
+                <span class="text-xs text-gray-500" x-text="'(' + tag.usage_count + ')'"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+      </div>
+      
       <!-- Clear Filters -->
       <button @click="clearFilters()" 
               class="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors text-sm whitespace-nowrap">
@@ -149,11 +184,15 @@
         searchTerm: '',
         selectedMediaType: '{{ current_media_type|default:"" }}',
         selectedMediaTypeLabel: '{{ current_media_type|default:"All Media Types" }}',
+        selectedTag: '',
+        selectedTagLabel: 'All Tags',
         mediaTypeOpen: false,
+        tagFilterOpen: false,
         datePickerOpen: false,
         fromDate: '',
         toDate: '',
         allEntries: [],
+        availableTags: [],
         
         get selectedDate() {
           return this.fromDate || this.toDate;
@@ -161,12 +200,14 @@
         
         init() {
           this.initializeEntries();
+          this.loadAvailableTags();
           this.applyFilters();
           
           // Re-initialize entries when HTMX updates the content
           document.body.addEventListener('htmx:afterSwap', (event) => {
             if (event.target.id === 'diary-entries') {
               this.initializeEntries();
+              this.loadAvailableTags();
               this.applyFilters();
             }
           });
@@ -181,6 +222,32 @@
           this.selectedMediaType = value;
           this.selectedMediaTypeLabel = label;
           this.applyFilters();
+        },
+        
+        selectTag(value, label) {
+          this.selectedTag = value;
+          this.selectedTagLabel = label;
+          this.applyFilters();
+        },
+        
+        loadAvailableTags() {
+          // Load available tags from the diary entries
+          const tagSet = new Set();
+          this.allEntries.forEach(entry => {
+            const tagChips = entry.querySelectorAll('.tag-chip');
+            tagChips.forEach(chip => {
+              const tagName = chip.textContent.trim().replace('×', '').trim();
+              if (tagName) {
+                tagSet.add(tagName);
+              }
+            });
+          });
+          
+          // Convert to array and sort by usage count (simplified)
+          this.availableTags = Array.from(tagSet).map(name => ({
+            name: name,
+            usage_count: 1 // Simplified - could be enhanced to count actual usage
+          })).sort((a, b) => b.usage_count - a.usage_count);
         },
         
         selectDateRange(range) {
@@ -263,6 +330,22 @@
               const matchesMediaType = mediaType === selectedMediaType;
               console.log(`Media type filter: "${mediaType}" === "${selectedMediaType}"? ${matchesMediaType}`);
               if (!matchesMediaType) {
+                showEntry = false;
+              }
+            }
+            
+            // Apply tag filter
+            if (this.selectedTag) {
+              const tagChips = entry.querySelectorAll('.tag-chip');
+              let hasMatchingTag = false;
+              tagChips.forEach(chip => {
+                const tagName = chip.textContent.trim().replace('×', '').trim();
+                if (tagName === this.selectedTag) {
+                  hasMatchingTag = true;
+                }
+              });
+              console.log(`Tag filter: "${this.selectedTag}" found? ${hasMatchingTag}`);
+              if (!hasMatchingTag) {
                 showEntry = false;
               }
             }
@@ -391,7 +474,10 @@
           this.searchTerm = '';
           this.selectedMediaType = '';
           this.selectedMediaTypeLabel = 'All Media Types';
+          this.selectedTag = '';
+          this.selectedTagLabel = 'All Tags';
           this.mediaTypeOpen = false;
+          this.tagFilterOpen = false;
           this.datePickerOpen = false;
           this.fromDate = '';
           this.toDate = '';
