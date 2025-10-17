@@ -18,7 +18,7 @@
         {{ media.title }}
       {% endif %}
     </h1>
-    {% if media.details.release_date or media.details.first_air_date or media.details.start_date or media.details.end_date or media.details.published_date or media.details.last_air_date %}
+    {% if media.details.release_date or media.details.first_air_date or media.details.start_date or media.details.end_date or media.details.publish_date or media.details.published_date or media.details.last_air_date %}
             <div class="bg-525252 text-white px-2 py-1 rounded text-sm">
         {% if media.media_type == MediaTypes.TV.value and media.details.first_air_date %}
           {% with start_year=media.details.first_air_date|slice:":4" end_year=media.details.last_air_date|slice:":4" status=media.details.status %}
@@ -39,6 +39,8 @@
           {{ media.details.start_date|slice:":4" }}
         {% elif media.media_type == MediaTypes.MANGA.value and media.details.start_date %}
           {{ media.details.start_date|slice:":4" }}
+        {% elif media.media_type == MediaTypes.BOOK.value and media.details.publish_date %}
+          {{ media.details.publish_date|slice:":4" }}
         {% elif media.media_type == MediaTypes.BOOK.value and media.details.published_date %}
           {{ media.details.published_date|slice:":4" }}
         {% elif media.media_type == MediaTypes.GAME.value and media.details.release_date %}
@@ -49,6 +51,8 @@
           {{ media.details.release_date|slice:":4" }}
         {% elif media.details.start_date %}
           {{ media.details.start_date|slice:":4" }}
+        {% elif media.details.publish_date %}
+          {{ media.details.publish_date|slice:":4" }}
         {% elif media.details.published_date %}
           {{ media.details.published_date|slice:":4" }}
         {% endif %}
@@ -57,35 +61,55 @@
   </div>
 
   <div class="flex items-center gap-6 text-gray-400">
-    {% if media.details.director or media.details.creator %}
-      <div class="flex items-center gap-2">
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-        </svg>
-        <span>
-          {% if media.details.director %}
-            Directed by {{ media.details.director }}
-          {% elif media.details.creator %}
-            Created by {{ media.details.creator }}
-          {% endif %}
-        </span>
-      </div>
-    {% endif %}
-    {% if media.details.runtime %}
-      <div class="flex items-center gap-2">
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12,6 12,12 16,14"></polyline>
-        </svg>
-        <span>{{ media.details.runtime }}</span>
-        {% if media.details.rating %}
-          <span class="text-gray-500">•</span>
-          <span class="bg-525252 text-gray-300 px-2 py-1 rounded text-xs font-medium">
-            {{ media.details.rating }}
+    {% if media.media_type == MediaTypes.BOOK.value %}
+      {% if media.details.author %}
+        <div class="flex items-center gap-2">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          <span>By {{ media.details.author }}</span>
+        </div>
+      {% endif %}
+      {% if media.details.number_of_pages %}
+        <div class="flex items-center gap-2">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+          </svg>
+          <span>{{ media.details.number_of_pages }} pages</span>
+        </div>
+      {% endif %}
+    {% else %}
+      {% if media.details.director or media.details.creator %}
+        <div class="flex items-center gap-2">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          <span>
+            {% if media.details.director %}
+              Directed by {{ media.details.director }}
+            {% elif media.details.creator %}
+              Created by {{ media.details.creator }}
+            {% endif %}
           </span>
-        {% endif %}
-      </div>
+        </div>
+      {% endif %}
+      {% if media.details.runtime %}
+        <div class="flex items-center gap-2">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12,6 12,12 16,14"></polyline>
+          </svg>
+          <span>{{ media.details.runtime }}</span>
+          {% if media.details.rating %}
+            <span class="text-gray-500">•</span>
+            <span class="bg-525252 text-gray-300 px-2 py-1 rounded text-xs font-medium">
+              {{ media.details.rating }}
+            </span>
+          {% endif %}
+        </div>
+      {% endif %}
     {% endif %}
   </div>
 

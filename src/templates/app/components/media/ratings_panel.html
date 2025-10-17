@@ -1,9 +1,51 @@
 {% load app_tags %}
 {% load humanize %}
 
-{# Ratings Panel - Display IMDb, Rotten Tomatoes, and Letterboxd ratings with user rating #}
+{# Ratings Panel - Display external ratings with user rating #}
 <div class="p-6 bg-111111 rounded-lg">
-  {% if mdblist_ratings.imdb or mdblist_ratings.letterboxd or mdblist_ratings.tomatoes.value or media.media_type == 'season' %}
+  {# BOOKS: Use Hardcover rating + Your Rating #}
+  {% if media.media_type == 'book' %}
+    <div class="flex justify-between items-center">
+      <div class="flex gap-8">
+        <div class="text-left">
+          <div class="flex items-center gap-1 mb-1">
+            <span class="text-2xl font-bold text-white">
+              {% if media.score is not None %}
+                {{ media.score|to_five_scale|floatformat:1 }}
+              {% else %}
+                N/A
+              {% endif %}
+            </span>
+          </div>
+          <p class="text-sm text-fuchsia-400">Hardcover</p>
+          {% if media.score_count %}
+            <p class="text-xs text-gray-500">{{ media.score_count|compact_number }} reviews</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Right side - User rating #}
+      {% with avg_rating=diary_entries|personal_average_rating %}
+      <div class="text-right">
+        <div class="flex items-center justify-end gap-1 mb-1">
+          {% if avg_rating %}
+            <span class="text-2xl font-bold text-white">
+              {{ avg_rating|floatformat:1 }}
+            </span>
+          {% else %}
+            <span class="text-2xl font-bold text-gray-500">-</span>
+          {% endif %}
+        </div>
+        <p class="text-sm text-blue-400">Your Rating</p>
+        {% if avg_rating %}
+          <p class="text-xs text-gray-500">{{ diary_entries|length }} read{{ diary_entries|length|pluralize:"s" }}</p>
+        {% else %}
+          <p class="text-xs text-gray-500">Not rated</p>
+        {% endif %}
+      </div>
+      {% endwith %}
+    </div>
+  {% elif mdblist_ratings.imdb or mdblist_ratings.letterboxd or mdblist_ratings.tomatoes.value or media.media_type == 'season' %}
     <div class="flex justify-between items-center">
       {# Left side - External ratings #}
       <div class="flex gap-8">

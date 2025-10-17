@@ -98,10 +98,12 @@ def book(media_id):
     """Get metadata for a book from Hardcover."""
     cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}"
     data = cache.get(cache_key)
+    
+    logger.info(f"Cache lookup for book {media_id}: {'HIT' if data else 'MISS'}")
 
     if data is None:
         book_query = """
-        query GetBookDetails($book_id: Int!, $rec_id: bigint!) {
+        query GetBookDetails($book_id: Int!) {
           books_by_pk(id: $book_id) {
             id
             title
@@ -113,6 +115,7 @@ def book(media_id):
             pages
             release_date
             slug
+            canonical_id
             cached_contributors(path: "[0]['author']['name']")
             default_cover_edition {
               edition_format
@@ -123,26 +126,11 @@ def book(media_id):
               }
             }
           }
-          recommendations(
-            where: {
-              subject_id: {_eq: $rec_id},
-              subject_type: {_eq: "Book"},
-              item_type: {_eq: "Book"}
-            }
-            limit: 10
-          ) {
-            item_book {
-              id
-              title
-              cached_image(path: "url")
-            }
-          }
         }
         """
 
         variables = {
             "book_id": int(media_id),
-            "rec_id": str(media_id),
         }
 
         try:
@@ -162,7 +150,157 @@ def book(media_id):
 
         book_data = response["data"]["books_by_pk"]
         edition_details = get_edition_details(book_data.get("default_cover_edition"))
-        recommendations = response["data"]["recommendations"]
+        recommendations = None
+        
+        # Debug logging
+        logger.info(f"Hardcover API response for book {media_id}:")
+        logger.info(f"Book data keys: {list(book_data.keys()) if book_data else 'None'}")
+        logger.info(f"Recommendations raw: {recommendations}")
+        logger.info(f"Recommendations type: {type(recommendations)}")
+        if recommendations:
+            logger.info(f"Recommendations count: {len(recommendations)}")
+            logger.info(f"First recommendation: {recommendations[0] if recommendations else 'None'}")
+
+        # Try multiple approaches to get recommendations
+        recommendations = []
+        book_id = int(media_id)
+        canonical_id = book_data.get("canonical_id")
+        
+        # Approach 1: Try nested recommendations on the book itself
+        try:
+            nested_query = """
+            query GetBookWithRecommendations($book_id: Int!) {
+              books_by_pk(id: $book_id) {
+                recommendations(limit: 10) {
+                  item_book {
+                    id
+                    title
+                    cached_image(path: "url")
+                  }
+                }
+              }
+            }
+            """
+            nested_resp = services.api_request(
+                Sources.HARDCOVER.value,
+                "POST",
+                base_url,
+                params={"query": nested_query, "variables": {"book_id": book_id}},
+                headers={"Authorization": settings.HARDCOVER_API},
+            )
+            nested_recs = nested_resp["data"]["books_by_pk"].get("recommendations", [])
+            logger.info(f"Nested recommendations count for book {book_id}: {len(nested_recs)}")
+            if nested_recs:
+                recommendations = nested_recs
+        except Exception as e:
+            logger.warning(f"Nested recommendations failed: {e}")
+        
+        # Approach 2: Try top-level recommendations with canonical_id
+        if not recommendations and canonical_id:
+            try:
+                top_level_query = """
+                query GetRecommendationsByCanonicalId($rec_id: bigint!) {
+                  recommendations(
+                    where: {
+                      subject_id: {_eq: $rec_id},
+                      subject_type: {_eq: "Book"},
+                      item_type: {_eq: "Book"}
+                    },
+                    limit: 10
+                  ) {
+                    item_book {
+                      id
+                      title
+                      cached_image(path: "url")
+                    }
+                  }
+                }
+                """
+                top_resp = services.api_request(
+                    Sources.HARDCOVER.value,
+                    "POST",
+                    base_url,
+                    params={"query": top_level_query, "variables": {"rec_id": int(canonical_id)}},
+                    headers={"Authorization": settings.HARDCOVER_API},
+                )
+                top_recs = top_resp["data"].get("recommendations", [])
+                logger.info(f"Top-level recommendations count for canonical_id {canonical_id}: {len(top_recs)}")
+                if top_recs:
+                    recommendations = top_recs
+            except Exception as e:
+                logger.warning(f"Top-level recommendations failed: {e}")
+        
+        # Approach 3: Try with book_id instead of canonical_id
+        if not recommendations:
+            try:
+                book_id_query = """
+                query GetRecommendationsByBookId($rec_id: bigint!) {
+                  recommendations(
+                    where: {
+                      subject_id: {_eq: $rec_id},
+                      subject_type: {_eq: "Book"},
+                      item_type: {_eq: "Book"}
+                    },
+                    limit: 10
+                  ) {
+                    item_book {
+                      id
+                      title
+                      cached_image(path: "url")
+                    }
+                  }
+                }
+                """
+                book_id_resp = services.api_request(
+                    Sources.HARDCOVER.value,
+                    "POST",
+                    base_url,
+                    params={"query": book_id_query, "variables": {"rec_id": book_id}},
+                    headers={"Authorization": settings.HARDCOVER_API},
+                )
+                book_id_recs = book_id_resp["data"].get("recommendations", [])
+                logger.info(f"Book ID recommendations count for {book_id}: {len(book_id_recs)}")
+                if book_id_recs:
+                    recommendations = book_id_recs
+            except Exception as e:
+                logger.warning(f"Book ID recommendations failed: {e}")
+        
+        logger.info(f"Final recommendations count: {len(recommendations)}")
+        
+        # Fallback: If no recommendations, get books by same author
+        if not recommendations:
+            author_name = book_data.get("cached_contributors")
+            if author_name:
+                try:
+                    author_query = """
+                    query BooksByAuthor($author: String!, $exclude_id: Int!) {
+                      books(
+                        where: {
+                          id: {_neq: $exclude_id},
+                          contributions: {author: {name: {_eq: $author}}}
+                        },
+                        limit: 10,
+                        order_by: {users_count: desc}
+                      ) {
+                        id
+                        title
+                        cached_image(path: "url")
+                      }
+                    }
+                    """
+                    author_resp = services.api_request(
+                        Sources.HARDCOVER.value,
+                        "POST",
+                        base_url,
+                        params={"query": author_query, "variables": {"author": author_name, "exclude_id": book_id}},
+                        headers={"Authorization": settings.HARDCOVER_API},
+                    )
+                    author_books = author_resp["data"].get("books", [])
+                    logger.info(f"Author fallback found {len(author_books)} books by {author_name}")
+                    # Convert to recommendations format
+                    recommendations = [{"item_book": book} for book in author_books]
+                except Exception as e:
+                    logger.warning(f"Author fallback failed: {e}")
 
         data = {
             "media_id": book_data["id"],
@@ -232,20 +370,30 @@ def get_edition_details(edition_data):
 
 def get_recommendations(recommendations_data):
     """Get processed recommendations from API data."""
+    logger.info(f"get_recommendations called with: {recommendations_data}")
+    logger.info(f"get_recommendations type: {type(recommendations_data)}")
+    
     if not recommendations_data:
+        logger.info("No recommendations data, returning empty list")
         return []
 
-    return [
-        {
-            "media_id": rec["item_book"]["id"],
-            "source": Sources.HARDCOVER.value,
-            "title": rec["item_book"]["title"],
-            "media_type": MediaTypes.BOOK.value,
-            "image": rec["item_book"].get("cached_image") or settings.IMG_NONE,
-        }
-        for rec in recommendations_data
-        if rec.get("item_book")
-    ]
+    logger.info(f"Processing {len(recommendations_data)} recommendations")
+    processed = []
+    for i, rec in enumerate(recommendations_data):
+        logger.info(f"Recommendation {i}: {rec}")
+        if rec.get("item_book"):
+            processed.append({
+                "media_id": rec["item_book"]["id"],
+                "source": Sources.HARDCOVER.value,
+                "title": rec["item_book"]["title"],
+                "media_type": MediaTypes.BOOK.value,
+                "image": rec["item_book"].get("cached_image") or settings.IMG_NONE,
+            })
+        else:
+            logger.warning(f"Recommendation {i} missing item_book: {rec}")
+    
+    logger.info(f"Returning {len(processed)} processed recommendations")
+    return processed
 
 
 def get_image_url(response):

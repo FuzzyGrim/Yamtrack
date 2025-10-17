@@ -42,6 +42,12 @@
           {% else %}
             -
           {% endif %}
+        {% elif media.media_type == 'book' %}
+          {% if media.details.number_of_pages %}
+            {{ media.details.number_of_pages|intcomma }}
+          {% else %}
+            -
+          {% endif %}
         {% else %}
           -
         {% endif %}
@@ -49,6 +55,8 @@
       <p class="text-sm text-gray-400">
         {% if media.media_type == 'tv' or media.media_type == 'season' %}
           Episodes
+        {% elif media.media_type == 'book' %}
+          Pages
         {% else %}
           Box Office
         {% endif %}
