@@ -98,8 +98,6 @@ def book(media_id):
     """Get metadata for a book from Hardcover."""
     cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}"
     data = cache.get(cache_key)
-    
-    logger.info(f"Cache lookup for book {media_id}: {'HIT' if data else 'MISS'}")
 
     if data is None:
         book_query = """
@@ -151,15 +149,6 @@ def book(media_id):
         book_data = response["data"]["books_by_pk"]
         edition_details = get_edition_details(book_data.get("default_cover_edition"))
         recommendations = None
-        
-        # Debug logging
-        logger.info(f"Hardcover API response for book {media_id}:")
-        logger.info(f"Book data keys: {list(book_data.keys()) if book_data else 'None'}")
-        logger.info(f"Recommendations raw: {recommendations}")
-        logger.info(f"Recommendations type: {type(recommendations)}")
-        if recommendations:
-            logger.info(f"Recommendations count: {len(recommendations)}")
-            logger.info(f"First recommendation: {recommendations[0] if recommendations else 'None'}")
 
         # Try multiple approaches to get recommendations
         recommendations = []
@@ -189,7 +178,6 @@ def book(media_id):
                 headers={"Authorization": settings.HARDCOVER_API},
             )
             nested_recs = nested_resp["data"]["books_by_pk"].get("recommendations", [])
-            logger.info(f"Nested recommendations count for book {book_id}: {len(nested_recs)}")
             if nested_recs:
                 recommendations = nested_recs
         except Exception as e:
@@ -224,7 +212,6 @@ def book(media_id):
                     headers={"Authorization": settings.HARDCOVER_API},
                 )
                 top_recs = top_resp["data"].get("recommendations", [])
-                logger.info(f"Top-level recommendations count for canonical_id {canonical_id}: {len(top_recs)}")
                 if top_recs:
                     recommendations = top_recs
             except Exception as e:
@@ -259,13 +246,10 @@ def book(media_id):
                     headers={"Authorization": settings.HARDCOVER_API},
                 )
                 book_id_recs = book_id_resp["data"].get("recommendations", [])
-                logger.info(f"Book ID recommendations count for {book_id}: {len(book_id_recs)}")
                 if book_id_recs:
                     recommendations = book_id_recs
             except Exception as e:
                 logger.warning(f"Book ID recommendations failed: {e}")
-        
-        logger.info(f"Final recommendations count: {len(recommendations)}")
         
         # Fallback: If no recommendations, get books by same author
         if not recommendations:
@@ -296,7 +280,6 @@ def book(media_id):
                         headers={"Authorization": settings.HARDCOVER_API},
                     )
                     author_books = author_resp["data"].get("books", [])
-                    logger.info(f"Author fallback found {len(author_books)} books by {author_name}")
                     # Convert to recommendations format
                     recommendations = [{"item_book": book} for book in author_books]
                 except Exception as e:
@@ -370,30 +353,20 @@ def get_edition_details(edition_data):
 
 def get_recommendations(recommendations_data):
     """Get processed recommendations from API data."""
-    logger.info(f"get_recommendations called with: {recommendations_data}")
-    logger.info(f"get_recommendations type: {type(recommendations_data)}")
-    
     if not recommendations_data:
-        logger.info("No recommendations data, returning empty list")
         return []
 
-    logger.info(f"Processing {len(recommendations_data)} recommendations")
-    processed = []
-    for i, rec in enumerate(recommendations_data):
-        logger.info(f"Recommendation {i}: {rec}")
-        if rec.get("item_book"):
-            processed.append({
-                "media_id": rec["item_book"]["id"],
-                "source": Sources.HARDCOVER.value,
-                "title": rec["item_book"]["title"],
-                "media_type": MediaTypes.BOOK.value,
-                "image": rec["item_book"].get("cached_image") or settings.IMG_NONE,
-            })
-        else:
-            logger.warning(f"Recommendation {i} missing item_book: {rec}")
-    
-    logger.info(f"Returning {len(processed)} processed recommendations")
-    return processed
+    return [
+        {
+            "media_id": rec["item_book"]["id"],
+            "source": Sources.HARDCOVER.value,
+            "title": rec["item_book"]["title"],
+            "media_type": MediaTypes.BOOK.value,
+            "image": rec["item_book"].get("cached_image") or settings.IMG_NONE,
+        }
+        for rec in recommendations_data
+        if rec.get("item_book")
+    ]
 
 
 def get_image_url(response):
@@ -401,3 +374,69 @@ def get_image_url(response):
     if response.get("image") and response["image"].get("url"):
         return response["image"]["url"]
     return settings.IMG_NONE
+
+
+def get_book_isbns(media_id):
+    """
+    Get ISBNs for a book from Hardcover, including editions.
+    
+    Args:
+        media_id: Hardcover book ID
+        
+    Returns:
+        List of ISBN-10 and ISBN-13 numbers
+    """
+    query = """
+    query GetBookISBNs($book_id: Int!) {
+      books_by_pk(id: $book_id) {
+        editions {
+          isbn_10
+          isbn_13
+        }
+        default_cover_edition {
+          isbn_10
+          isbn_13
+        }
+      }
+    }
+    """
+    
+    variables = {"book_id": int(media_id)}
+    
+    try:
+        response = services.api_request(
+            Sources.HARDCOVER.value,
+            "POST",
+            base_url,
+            params={"query": query, "variables": variables},
+            headers={"Authorization": settings.HARDCOVER_API},
+        )
+        
+        if "errors" in response:
+            logger.error("GraphQL errors fetching ISBNs: %s", response["errors"])
+            return []
+        
+        book_data = response["data"]["books_by_pk"]
+        isbns = []
+        
+        # Get ISBNs from default cover edition first
+        default_edition = book_data.get("default_cover_edition")
+        if default_edition:
+            if default_edition.get("isbn_13"):
+                isbns.append(default_edition["isbn_13"])
+            if default_edition.get("isbn_10"):
+                isbns.append(default_edition["isbn_10"])
+        
+        # Get ISBNs from other editions
+        editions = book_data.get("editions", [])
+        for edition in editions:
+            if edition.get("isbn_13") and edition["isbn_13"] not in isbns:
+                isbns.append(edition["isbn_13"])
+            if edition.get("isbn_10") and edition["isbn_10"] not in isbns:
+                isbns.append(edition["isbn_10"])
+        
+        return isbns
+        
+    except Exception as e:
+        logger.error(f"Error fetching ISBNs for book {media_id}: {e}")
+        return []

@@ -22,6 +22,11 @@ urlpatterns = [
         views.season_poster_selection_modal,
         name="season_poster_selection_modal",
     ),
+    path(
+        "cover_modal/<source:source>/book/<str:media_id>",
+        views.book_cover_selection_modal,
+        name="book_cover_selection_modal",
+    ),
     path("save_poster", views.save_poster_preference, name="save_poster_preference"),
     path(
         "details/<source:source>/<media_type:media_type>/<str:media_id>/<str:title>",

@@ -1062,6 +1062,94 @@ def toggle_hof(request):
 
 
 @require_GET
+def book_cover_selection_modal(request, source, media_id):
+    """Return the cover selection modal with available book covers."""
+    media_type = MediaTypes.BOOK.value
+    
+    try:
+        # Get or create the item
+        try:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+            )
+        except Item.DoesNotExist:
+            # Item doesn't exist, so we need to create it
+            from app.providers import services
+            metadata = services.get_media_metadata(media_type, media_id, source)
+            
+            item = Item.objects.create(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                title=metadata["title"],
+                image=metadata["image"],
+            )
+        
+        # Get ISBNs from the appropriate provider
+        if source == Sources.HARDCOVER.value:
+            from app.providers import hardcover
+            isbns = hardcover.get_book_isbns(media_id)
+        elif source == Sources.OPENLIBRARY.value:
+            from app.providers import openlibrary
+            # Get book metadata to extract ISBNs
+            metadata = services.get_media_metadata(media_type, media_id, source)
+            isbns = metadata.get("details", {}).get("isbn", []) or []
+        else:
+            isbns = []
+        
+        # Get covers from Open Library using ISBNs
+        import asyncio
+        from app.providers import openlibrary
+        covers_list = asyncio.run(openlibrary.get_editions_covers(isbns))
+        
+        # Create the original cover entry
+        original_cover = {
+            "url": item.image,
+            "thumbnail_url": item.image,
+            "isbn": isbns[0] if isbns else "N/A",
+            "width": 0,
+            "height": 0,
+            "aspect_ratio": 0.667,
+            "language": None,
+            "is_current": True,
+            "is_original": True
+        }
+        
+        # Combine original with fetched covers, ensuring original is first
+        # and not duplicated if it's already in the results
+        covers = [original_cover]
+        for cover in covers_list:
+            if cover["url"] != item.image:
+                covers.append(cover)
+        
+        # Get current custom cover if exists
+        from app.models import CustomPosterPreference
+        try:
+            current_preference = CustomPosterPreference.objects.get(
+                user=request.user,
+                item=item
+            )
+            current_cover = current_preference.custom_image_url
+        except CustomPosterPreference.DoesNotExist:
+            current_cover = item.image
+            
+        context = {
+            "item": item,
+            "posters": covers,  # Reuse 'posters' variable name for template compatibility
+            "current_poster": current_cover,
+            "is_book": True,
+        }
+        
+        return render(request, "app/components/poster_selection_modal.html", context)
+        
+    except Exception as e:
+        logger.error("Error in book cover selection modal: %s", e)
+        return HttpResponseBadRequest("Error loading book covers")
+
+
+@require_GET
 def poster_selection_modal(request, media_type, media_id, source):
     """Return the poster selection modal with available posters."""
     if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:

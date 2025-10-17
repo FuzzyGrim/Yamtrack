@@ -54,6 +54,10 @@
                 return this.languageNames[code] || code?.toUpperCase() || 'Unknown';
             },
             getFilteredPosters() {
+                {% if is_book %}
+                // For books, always show all covers (no language filtering)
+                return this.allPosters;
+                {% else %}
                 if (this.selectedLanguage === 'all') {
                     return this.allPosters;
                 }
@@ -62,6 +66,7 @@
                         (!poster.language || poster.language === null) : 
                         poster.language === this.selectedLanguage
                 );
+                {% endif %}
             },
             savePoster() {
                 if (this.isSaving) {
@@ -135,6 +140,7 @@
         <div class="p-6 h-full flex flex-col">
             <!-- Header with Language Filter -->
             <div class="flex items-center justify-between mb-4 flex-shrink-0">
+                {% if not is_book %}
                 <div class="relative" x-data="{ open: false }">
                     <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
                             @click="open = !open"
@@ -215,6 +221,11 @@
                         </div>
                     </div>
                 </div>
+                {% else %}
+                <div>
+                    <h2 class="text-xl font-semibold text-white">Select Book Cover</h2>
+                </div>
+                {% endif %}
                 <button onclick="this.closest('.fixed').remove()" 
                         class="text-gray-400 hover:text-white transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
@@ -232,10 +243,20 @@
                             <div class="relative bg-[#39404b] rounded-lg overflow-hidden shadow-lg cursor-pointer transition-all hover:ring-2 hover:ring-gray-400" 
                                  style="aspect-ratio: 2/3;"
                                  :class="selectedPoster === poster.url ? 'ring-2 ring-indigo-500' : ''"
-                                 @click="selectedPoster = poster.url">
+                                 @click="selectedPoster = poster.url"
+                                 x-data="{ imageLoaded: false, imageError: false }">
                                 <img :src="poster.thumbnail_url || poster.url" 
                                      alt="Poster option" 
-                                     class="w-full h-full object-cover">
+                                     class="w-full h-full object-cover"
+                                     loading="lazy"
+                                     @load="imageLoaded = true"
+                                     @error="imageError = true; $el.style.display = 'none'">
+                                <div x-show="!imageLoaded && !imageError" class="absolute inset-0 flex items-center justify-center bg-[#39404b]">
+                                    <svg class="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
                                 <div x-show="poster.is_current" class="absolute top-1 left-1 bg-green-600 text-xs text-white px-1.5 py-0.5 rounded">
                                     Current
                                 </div>

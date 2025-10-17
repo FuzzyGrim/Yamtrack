@@ -365,3 +365,71 @@ async def get_ratings(response_work):
                 return score, score_count
 
     return None, 0
+
+
+def get_book_cover_images(isbns):
+    """
+    Get book cover images from Open Library using ISBNs.
+    
+    Args:
+        isbns: List of ISBN-10 and ISBN-13 numbers
+        
+    Returns:
+        List of cover image dictionaries with url, thumbnail_url, isbn, and is_original
+    """
+    if not isbns:
+        return []
+    
+    covers = []
+    seen_isbns = set()
+    
+    # Limit to first 6 ISBNs to avoid rate limiting and improve performance
+    # 6 covers per book = ~16 books can be browsed before hitting 100 req/5min limit
+    for i, isbn in enumerate(isbns[:6]):
+        # Remove dashes and spaces from ISBN
+        clean_isbn = isbn.replace("-", "").replace(" ", "")
+        
+        # Skip duplicates
+        if clean_isbn in seen_isbns:
+            continue
+            
+        seen_isbns.add(clean_isbn)
+        
+        # Build Open Library cover URL with ?default=false to detect missing covers
+        cover_url = f"https://covers.openlibrary.org/b/isbn/{clean_isbn}-L.jpg"
+        thumbnail_url = f"https://covers.openlibrary.org/b/isbn/{clean_isbn}-M.jpg"
+        
+        covers.append({
+            "url": cover_url,
+            "thumbnail_url": thumbnail_url,
+            "isbn": isbn,
+            "is_original": i == 0,  # First ISBN is considered the original
+            "width": 0,
+            "height": 0,
+            "aspect_ratio": 0.667,
+            "language": None,
+        })
+    
+    return covers
+
+
+async def get_editions_covers(isbns):
+    """
+    Get book cover images from multiple editions asynchronously.
+    
+    Args:
+        isbns: List of ISBN numbers from the primary edition
+        
+    Returns:
+        List of cover dictionaries from various editions
+    """
+    if not isbns:
+        return []
+    
+    # Start with covers from the provided ISBNs (limited to 10)
+    covers = get_book_cover_images(isbns)
+    
+    # Don't fetch additional editions to avoid rate limiting and slow response
+    # The primary ISBNs should provide enough cover options
+    
+    return covers
