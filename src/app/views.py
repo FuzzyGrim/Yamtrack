@@ -222,9 +222,9 @@ def media_details(request, source, media_type, media_id, title):
     )
     current_instance = user_medias[0] if user_medias else None
 
-    # Get diary entries for this media if it's a movie or TV show
+    # Get diary entries for this media (movies, TV, and books)
     diary_entries = []
-    if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+    if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.BOOK.value]:
         try:
             item = Item.objects.get(source=source, media_type=media_type, media_id=media_id)
             diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).prefetch_related('tags').order_by('-consumed_at')
@@ -1099,10 +1099,24 @@ def book_cover_selection_modal(request, source, media_id):
         else:
             isbns = []
         
-        # Get covers from Open Library using ISBNs
+        # Get reliable covers (editions with cover ids; backfill via Books API)
         import asyncio
         from app.providers import openlibrary
-        covers_list = asyncio.run(openlibrary.get_editions_covers(isbns))
+        covers_list = []
+        if source == Sources.OPENLIBRARY.value:
+            try:
+                covers_list = asyncio.run(openlibrary.get_reliable_covers_for_book(media_id, isbns, cap=20))
+            except Exception as e:
+                logger.warning("Reliable cover fetch failed, falling back to ISBN covers: %s", e)
+                # Fallback to basic ISBN-based covers
+                covers_list = openlibrary.get_book_cover_images(isbns)
+        else:
+            # For non-Open Library sources, resolve work from ISBNs to fetch editions covers
+            try:
+                covers_list = asyncio.run(openlibrary.get_reliable_covers_by_isbns(isbns, cap=20))
+            except Exception as e:
+                logger.warning("ISBN->work reliable cover fetch failed, falling back to ISBN covers: %s", e)
+                covers_list = openlibrary.get_book_cover_images(isbns)
         
         # Create the original cover entry
         original_cover = {
@@ -1123,6 +1137,18 @@ def book_cover_selection_modal(request, source, media_id):
         for cover in covers_list:
             if cover["url"] != item.image:
                 covers.append(cover)
+
+        try:
+            # Telemetry: sizes
+            logger.info(
+                "Book cover modal: isbns=%d final_covers=%d source=%s media_id=%s",
+                len(isbns),
+                len(covers),
+                source,
+                media_id,
+            )
+        except Exception:
+            pass
         
         # Get current custom cover if exists
         from app.models import CustomPosterPreference

@@ -434,3 +434,230 @@ async def get_editions_covers(isbns):
     
     return covers
 
+
+async def _fetch_json(session, url):
+    async with session.get(url) as response:
+        if response.status == requests.codes.ok:
+            return await response.json()
+    return None
+
+
+def _build_cover_from_id(cover_id, isbn_hint=None):
+    return {
+        "url": f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg",
+        "thumbnail_url": f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg",
+        "isbn": isbn_hint or "N/A",
+        "width": 0,
+        "height": 0,
+        "aspect_ratio": 0.667,
+        "language": None,
+        "is_original": False,
+    }
+
+
+def _dedupe_covers_by_url(covers):
+    seen = set()
+    deduped = []
+    for c in covers:
+        url = c.get("url")
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        deduped.append(c)
+    return deduped
+
+
+async def get_reliable_covers_for_book(book_id, isbns=None, cap=16):
+    """
+    Deterministically fetch reliable alternate covers for an Open Library book.
+    - Prefer editions with cover_i/covers via Works editions API.
+    - Optionally backfill via Books API for given ISBNs.
+    - Deduplicate and cap results.
+    - Cache per work id for stability.
+    """
+    cache_key = f"ol_reliable_covers:{book_id}:{cap}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    editions_covers = []
+    work_id = None
+    async with aiohttp.ClientSession() as session:
+        # Fetch book to resolve work id
+        book_url = f"https://openlibrary.org/books/{book_id}.json"
+        book_json = await _fetch_json(session, book_url)
+        if book_json:
+            works = book_json.get("works", [])
+            if works:
+                work_id = extract_openlibrary_id(works[0].get("key"))
+            # Fallback to book id if no work
+            if not work_id:
+                work_id = extract_openlibrary_id(book_json.get("key", ""))
+
+        if work_id:
+            editions_url = f"https://openlibrary.org/works/{work_id}/editions.json?limit=500"
+            editions_json = await _fetch_json(session, editions_url)
+            if editions_json and isinstance(editions_json.get("entries"), list):
+                for ed in editions_json["entries"]:
+                    covers_list = ed.get("covers") or []
+                    if not covers_list:
+                        continue
+                    cover_id = covers_list[0]
+                    if not cover_id:
+                        continue
+                    editions_covers.append(_build_cover_from_id(cover_id))
+
+        # Deduplicate and cap
+        editions_covers = _dedupe_covers_by_url(editions_covers)[:cap]
+
+        # Optional backfill via Books API if under cap and ISBNs provided
+        remaining = max(0, cap - len(editions_covers))
+        backfill_covers = []
+        if remaining > 0 and isbns:
+            # Clean and limit ISBNs
+            clean_isbns = []
+            seen_isbn = set()
+            for raw in isbns:
+                cleaned = raw.replace("-", "").replace(" ", "")
+                if cleaned and cleaned not in seen_isbn:
+                    seen_isbn.add(cleaned)
+                    clean_isbns.append(cleaned)
+            if clean_isbns:
+                # Batch in chunks to avoid very long URLs
+                chunk_size = 20
+                for i in range(0, len(clean_isbns), chunk_size):
+                    chunk = clean_isbns[i : i + chunk_size]
+                    bibkeys = ",".join([f"ISBN:{x}" for x in chunk])
+                    books_url = (
+                        f"https://openlibrary.org/api/books?bibkeys={bibkeys}&format=json&jscmd=data"
+                    )
+                    data = await _fetch_json(session, books_url)
+                    if not data:
+                        continue
+                    for key, val in data.items():
+                        cover = val.get("cover")
+                        if not cover:
+                            continue
+                        # Prefer large then medium
+                        url_l = cover.get("large") or cover.get("medium") or cover.get("small")
+                        if not url_l:
+                            continue
+                        thumb = cover.get("medium") or cover.get("small") or url_l
+                        backfill_covers.append(
+                            {
+                                "url": url_l,
+                                "thumbnail_url": thumb,
+                                "isbn": key.replace("ISBN:", ""),
+                                "width": 0,
+                                "height": 0,
+                                "aspect_ratio": 0.667,
+                                "language": None,
+                                "is_original": False,
+                            }
+                        )
+
+        combined = _dedupe_covers_by_url(editions_covers + backfill_covers)[:cap]
+
+    # Cache ~30 days
+    cache.set(cache_key, combined, timeout=30 * 24 * 60 * 60)
+    return combined
+
+
+async def resolve_work_id_from_isbns(isbns):
+    """Resolve an Open Library work id from a list of ISBNs.
+    Tries the fast /isbn/{isbn}.json endpoint first.
+    Returns the first work id found, or None.
+    """
+    if not isbns:
+        return None
+    async with aiohttp.ClientSession() as session:
+        seen = set()
+        for raw in isbns:
+            cleaned = raw.replace("-", "").replace(" ", "")
+            if not cleaned or cleaned in seen:
+                continue
+            seen.add(cleaned)
+            book_url = f"https://openlibrary.org/isbn/{cleaned}.json"
+            data = await _fetch_json(session, book_url)
+            if not data:
+                continue
+            works = data.get("works") or []
+            if works:
+                return extract_openlibrary_id((works[0] or {}).get("key"))
+    return None
+
+
+async def get_reliable_covers_by_isbns(isbns, cap=20):
+    """Fetch reliable covers using ISBNs by resolving to a work id, then
+    retrieving editions with cover ids. Falls back to Books API covers.
+    Caches by a normalized ISBN set fingerprint.
+    """
+    if not isbns:
+        return []
+    norm = sorted({x.replace("-", "").replace(" ", "") for x in isbns if x})
+    cache_key = f"ol_reliable_covers:isbn:{','.join(norm)}:{cap}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    covers = []
+    work_id = await resolve_work_id_from_isbns(norm)
+    if work_id:
+        # Reuse editions logic by fabricating a book id == work id for cache keying
+        # Fetch editions directly against the work id
+        async with aiohttp.ClientSession() as session:
+            editions_url = f"https://openlibrary.org/works/{work_id}/editions.json?limit=500"
+            editions_json = await _fetch_json(session, editions_url)
+            if editions_json and isinstance(editions_json.get("entries"), list):
+                for ed in editions_json["entries"]:
+                    covers_list = ed.get("covers") or []
+                    if not covers_list:
+                        continue
+                    cover_id = covers_list[0]
+                    if not cover_id:
+                        continue
+                    covers.append(_build_cover_from_id(cover_id))
+
+    covers = _dedupe_covers_by_url(covers)[:cap]
+
+    # Backfill via Books API if needed
+    remaining = max(0, cap - len(covers))
+    if remaining > 0:
+        async with aiohttp.ClientSession() as session:
+            chunk_size = 20
+            for i in range(0, len(norm), chunk_size):
+                chunk = norm[i : i + chunk_size]
+                bibkeys = ",".join([f"ISBN:{x}" for x in chunk])
+                books_url = (
+                    f"https://openlibrary.org/api/books?bibkeys={bibkeys}&format=json&jscmd=data"
+                )
+                data = await _fetch_json(session, books_url)
+                if not data:
+                    continue
+                for key, val in data.items():
+                    cover = val.get("cover")
+                    if not cover:
+                        continue
+                    url_l = cover.get("large") or cover.get("medium") or cover.get("small")
+                    if not url_l:
+                        continue
+                    thumb = cover.get("medium") or cover.get("small") or url_l
+                    covers.append(
+                        {
+                            "url": url_l,
+                            "thumbnail_url": thumb,
+                            "isbn": key.replace("ISBN:", ""),
+                            "width": 0,
+                            "height": 0,
+                            "aspect_ratio": 0.667,
+                            "language": None,
+                            "is_original": False,
+                        }
+                    )
+                if len(covers) >= cap:
+                    break
+
+    covers = _dedupe_covers_by_url(covers)[:cap]
+    cache.set(cache_key, covers, timeout=30 * 24 * 60 * 60)
+    return covers
+

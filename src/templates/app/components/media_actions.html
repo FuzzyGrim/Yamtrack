@@ -335,7 +335,8 @@
       </div>
     {% endif %}
   {% elif media.media_type == MediaTypes.BOOK.value %}
-    {% if diary_entries %}
+    {# If there are diary entries but the book is currently in progress or completed, show the appropriate state instead of collapsing to Logged #}
+    {% if diary_entries and not current_instance or diary_entries and current_instance and current_instance.status != "In progress" and current_instance.status != "Completed" %}
       {# If logged, show enhanced logged button #}
       <div class="flex">
         <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
@@ -385,7 +386,7 @@
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            Mark &amp; Log
+          Log Book
           </button>
         </div>
         
