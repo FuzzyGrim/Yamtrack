@@ -4,9 +4,17 @@
 {% if diary_entries %}
 <div class="mt-6 border rounded-lg p-3" style="border-color: var(--poster-accent)">
   <div class="space-y-2">
-    {# Watch Count #}
+    {# Consumption Count (media-specific label) #}
     <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md">
-      <span class="text-sm text-gray-300">Watched</span>
+      <span class="text-sm text-gray-300">
+        {% if media.media_type == MediaTypes.BOOK.value %}
+          Read
+        {% elif media.media_type == MediaTypes.GAME.value %}
+          Played
+        {% else %}
+          Watched
+        {% endif %}
+      </span>
       <span class="text-sm font-medium text-white">{{ diary_entries|length }} time{{ diary_entries|length|pluralize }}</span>
     </div>
 
@@ -16,12 +24,20 @@
       <span class="text-sm font-medium text-white">{{ diary_entries.0.consumed_at|date:"M d, Y" }}</span>
     </div>
 
-    {# First Watched - only show if multiple entries #}
+    {# First consumption - only show if multiple entries #}
     {% if diary_entries|length > 1 %}
       {% for entry in diary_entries reversed %}
         {% if forloop.first %}
         <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md">
-          <span class="text-sm text-gray-300">First</span>
+          <span class="text-sm text-gray-300">
+            {% if media.media_type == MediaTypes.BOOK.value %}
+              First Read
+            {% elif media.media_type == MediaTypes.GAME.value %}
+              First Played
+            {% else %}
+              First Watched
+            {% endif %}
+          </span>
           <span class="text-sm font-medium text-white">{{ entry.consumed_at|date:"M d, Y" }}</span>
         </div>
         {% endif %}

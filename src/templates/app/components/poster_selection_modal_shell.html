@@ -1,0 +1,36 @@
+{% load app_tags %}
+
+<!-- Instant shell: backdrop and lightweight container; content lazy-loads -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
+  <div id="poster-modal-lazy-root"
+       data-content-url="{% url 'book_cover_selection_content' source media_id %}"
+       @click.stop>
+    <!-- Lightweight placeholder while covers load -->
+    <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative"
+         style="width: 60vw; max-width: 765px; height: 90vh;">
+      <div class="p-6 h-full flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-xl font-semibold text-white">Select Book Cover</h2>
+          </div>
+          <button onclick="this.closest('.fixed').remove()" 
+                  class="text-gray-400 hover:text-white transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+              <path d="M18 6 6 18"/>
+              <path d="m6 6 12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div id="poster-content-container" class="flex-1 overflow-y-auto">
+          <div class="flex items-center gap-3 py-4 text-sm text-gray-400">
+            <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Loading covers…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

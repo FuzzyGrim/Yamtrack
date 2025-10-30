@@ -1,10 +1,81 @@
 // Main application JavaScript functions
 
 function openPosterModal(url) {
+    console.log('=== openPosterModal START ===');
+    console.log('openPosterModal called with URL:', url);
+    if (!url) {
+        console.error('No URL provided to openPosterModal!');
+        return;
+    }
     fetch(url)
-        .then(response => response.text())
+        .then(response => {
+            console.log('Shell fetch response status:', response.status);
+            return response.text();
+        })
         .then(html => {
-            document.getElementById('poster-modal-container').innerHTML = html;
+            console.log('Shell HTML received, length:', html.length);
+            const container = document.getElementById('poster-modal-container');
+            if (!container) {
+                console.error('poster-modal-container not found!');
+                return;
+            }
+            
+            container.innerHTML = html;
+            console.log('Shell HTML inserted into container');
+            
+            // Wait a moment for DOM to settle
+            setTimeout(() => {
+                const lazyRoot = document.getElementById('poster-modal-lazy-root');
+                console.log('lazyRoot element:', lazyRoot);
+                if (lazyRoot) {
+                    const contentUrl = lazyRoot.getAttribute('data-content-url');
+                    console.log('Content URL from data attribute:', contentUrl);
+                    if (contentUrl) {
+                        console.log('Fetching content from:', contentUrl);
+                        fetch(contentUrl)
+                            .then(response => {
+                                console.log('Content fetch response status:', response.status);
+                                if (!response.ok) {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                }
+                                return response.text();
+                            })
+                            .then(contentHtml => {
+                                console.log('Content HTML received, length:', contentHtml.length);
+                                console.log('Content HTML preview:', contentHtml.substring(0, 200));
+                                // Replace the placeholder content inside lazyRoot
+                                lazyRoot.innerHTML = contentHtml.trim();
+                                console.log('Content HTML inserted into lazyRoot');
+                                // Initialize Alpine.js on the new content
+                                if (window.Alpine) {
+                                    if (window.Alpine.initTree) {
+                                        window.Alpine.initTree(lazyRoot);
+                                        console.log('Alpine.js initialized with initTree');
+                                    } else if (window.Alpine.data) {
+                                        // Try alternative initialization
+                                        console.log('Alpine.js available but initTree not found');
+                                    }
+                                } else {
+                                    console.warn('Alpine.js not available at all');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error loading book covers:', error);
+                                const placeholder = lazyRoot.querySelector('#poster-content-container');
+                                if (placeholder) {
+                                    placeholder.innerHTML = '<div class="text-red-400">Error loading covers. Please try again.</div>';
+                                }
+                            });
+                    } else {
+                        console.error('No data-content-url attribute found on lazyRoot');
+                    }
+                } else {
+                    console.warn('poster-modal-lazy-root not found - may not be a book cover modal');
+                }
+            }, 50);
+        })
+        .catch(error => {
+            console.error('Error loading modal shell:', error);
         });
 }
 

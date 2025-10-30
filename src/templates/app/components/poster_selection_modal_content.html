@@ -1,0 +1,106 @@
+{% load app_tags %}
+
+{{ posters|json_script:"posters-data" }}
+
+<!-- Modal content (no backdrop) -->
+<div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative"
+     style="width: 60vw; max-width: 765px; height: 90vh;"
+     x-data="{ 
+        selectedPoster: '{{ current_poster }}',
+        selectedLanguage: 'en',
+        isSaving: false,
+        languageNames: {
+            'en': 'English','es': 'Spanish','fr': 'French','de': 'German','it': 'Italian','pt': 'Portuguese','ru': 'Russian','ja': 'Japanese','ko': 'Korean','zh': 'Chinese','cn': 'Chinese','ar': 'Arabic','hi': 'Hindi','th': 'Thai','vi': 'Vietnamese','tr': 'Turkish','pl': 'Polish','nl': 'Dutch','sv': 'Swedish','da': 'Danish','no': 'Norwegian','fi': 'Finnish','hu': 'Hungarian','cs': 'Czech','sk': 'Slovak','sl': 'Slovenian','hr': 'Croatian','bg': 'Bulgarian','ro': 'Romanian','uk': 'Ukrainian','he': 'Hebrew','ca': 'Catalan','be': 'Belarusian','ms': 'Malay'
+        },
+        get allPosters() { return JSON.parse(document.getElementById('posters-data').textContent); },
+        getLanguageName(code) { return this.languageNames[code] || code?.toUpperCase() || 'Unknown'; },
+        getFilteredPosters() { return this.allPosters; },
+        savePoster() {
+            if (this.isSaving) return;
+            this.isSaving = true;
+            const formData = new URLSearchParams({
+                'media_type': '{{ item.media_type }}',
+                'media_id': '{{ item.media_id }}',
+                'source': '{{ item.source }}',
+                'poster_url': this.selectedPoster
+            });
+            fetch('{% url 'save_poster_preference' %}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const posterCardImage = document.getElementById('poster-card-image');
+                    if (posterCardImage && data.poster_url) posterCardImage.src = data.poster_url;
+                    const accentTargets = [document.getElementById('media-detail-root'), document.getElementById('poster-card')].filter(Boolean);
+                    accentTargets.forEach(el => { if (data.accent) el.style.setProperty('--poster-accent', data.accent); if (data.contrast) el.style.setProperty('--poster-accent-contrast', data.contrast); });
+                    this.selectedPoster = data.poster_url;
+                    this.isSaving = false;
+                    const modalHost = document.getElementById('poster-modal-container');
+                    if (modalHost) { modalHost.innerHTML = ''; }
+                    const fixed = this.$el.closest('.fixed');
+                    if (fixed) fixed.remove();
+                } else { this.isSaving = false; alert('Failed to save poster preference.'); }
+            })
+            .catch(() => { this.isSaving = false; alert('Failed to save poster preference.'); });
+        }
+     }"
+     @click.stop>
+  <div class="p-6 h-full flex flex-col">
+    <div class="flex items-center justify-between mb-4 flex-shrink-0">
+      <div>
+        <h2 class="text-xl font-semibold text-white">Select Book Cover</h2>
+      </div>
+      <button onclick="this.closest('.fixed').remove()" 
+              class="text-gray-400 hover:text-white transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+          <path d="M18 6 6 18"/>
+          <path d="m6 6 12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto">
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 4px;">
+        <template x-for="poster in getFilteredPosters()" :key="poster.url">
+          <div class="relative bg-[#39404b] rounded-lg overflow-hidden shadow-lg cursor-pointer transition-all hover:ring-2 hover:ring-gray-400" 
+               style="aspect-ratio: 2/3;"
+               :class="selectedPoster === poster.url ? 'ring-2 ring-indigo-500' : ''"
+               @click="selectedPoster = poster.url"
+               x-data="{ imageLoaded: false, imageError: false }">
+            <img :src="poster.thumbnail_url || poster.url" 
+                 alt="Poster option" 
+                 class="w-full h-full object-cover"
+                 loading="lazy"
+                 @load="imageLoaded = true"
+                 @error="imageError = true; $el.style.display = 'none'">
+            <div x-show="!imageLoaded && !imageError" class="absolute inset-0 flex items-center justify-center bg-[#39404b]">
+              <svg class="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <div x-show="poster.is_current" class="absolute top-1 left-1 bg-green-600 text-xs text-white px-1.5 py-0.5 rounded">Current</div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div class="flex justify-end items-center pt-4 mt-4 border-t border-gray-700">
+      <button onclick="this.closest('.fixed').remove()" 
+              class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors">Cancel</button>
+      <button @click="savePoster()"
+              :disabled="isSaving"
+              class="ml-3 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-2 justify-center"
+              :class="isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:bg-indigo-700'">
+        <svg x-show="isSaving" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <span x-text="isSaving ? 'Saving…' : 'Confirm'"></span>
+      </button>
+    </div>
+  </div>
+</div>

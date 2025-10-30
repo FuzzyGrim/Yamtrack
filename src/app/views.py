@@ -1063,9 +1063,42 @@ def toggle_hof(request):
 
 @require_GET
 def book_cover_selection_modal(request, source, media_id):
-    """Return the cover selection modal with available book covers."""
+    """Return a fast-loading modal shell; covers load asynchronously."""
     media_type = MediaTypes.BOOK.value
-    
+    try:
+        # Fetch or create minimal item for the shell
+        try:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+            )
+        except Item.DoesNotExist:
+            from app.providers import services
+            metadata = services.get_media_metadata(media_type, media_id, source)
+            item = Item.objects.create(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                title=metadata["title"],
+                image=metadata["image"],
+            )
+
+        context = {
+            "item": item,
+            "source": source,
+            "media_id": media_id,
+        }
+        return render(request, "app/components/poster_selection_modal_shell.html", context)
+    except Exception as e:
+        logger.error("Error preparing book cover modal shell: %s", e)
+        return HttpResponseBadRequest("Error opening book covers")
+
+
+@require_GET
+def book_cover_selection_content(request, source, media_id):
+    """Return the heavy content for the book cover modal (covers grid)."""
+    media_type = MediaTypes.BOOK.value
     try:
         # Get or create the item
         try:
@@ -1075,10 +1108,8 @@ def book_cover_selection_modal(request, source, media_id):
                 media_type=media_type,
             )
         except Item.DoesNotExist:
-            # Item doesn't exist, so we need to create it
             from app.providers import services
             metadata = services.get_media_metadata(media_type, media_id, source)
-            
             item = Item.objects.create(
                 media_id=media_id,
                 source=source,
@@ -1086,39 +1117,31 @@ def book_cover_selection_modal(request, source, media_id):
                 title=metadata["title"],
                 image=metadata["image"],
             )
-        
-        # Get ISBNs from the appropriate provider
+
+        # Gather ISBNs
         if source == Sources.HARDCOVER.value:
             from app.providers import hardcover
             isbns = hardcover.get_book_isbns(media_id)
         elif source == Sources.OPENLIBRARY.value:
-            from app.providers import openlibrary
-            # Get book metadata to extract ISBNs
-            metadata = services.get_media_metadata(media_type, media_id, source)
+            from app.providers import services as svc
+            metadata = svc.get_media_metadata(media_type, media_id, source)
             isbns = metadata.get("details", {}).get("isbn", []) or []
         else:
             isbns = []
-        
-        # Get reliable covers (editions with cover ids; backfill via Books API)
+
+        # Fetch covers (may be slow)
         import asyncio
         from app.providers import openlibrary
         covers_list = []
-        if source == Sources.OPENLIBRARY.value:
-            try:
+        try:
+            if source == Sources.OPENLIBRARY.value:
                 covers_list = asyncio.run(openlibrary.get_reliable_covers_for_book(media_id, isbns, cap=20))
-            except Exception as e:
-                logger.warning("Reliable cover fetch failed, falling back to ISBN covers: %s", e)
-                # Fallback to basic ISBN-based covers
-                covers_list = openlibrary.get_book_cover_images(isbns)
-        else:
-            # For non-Open Library sources, resolve work from ISBNs to fetch editions covers
-            try:
+            else:
                 covers_list = asyncio.run(openlibrary.get_reliable_covers_by_isbns(isbns, cap=20))
-            except Exception as e:
-                logger.warning("ISBN->work reliable cover fetch failed, falling back to ISBN covers: %s", e)
-                covers_list = openlibrary.get_book_cover_images(isbns)
-        
-        # Create the original cover entry
+        except Exception as e:
+            logger.warning("Reliable cover fetch failed, falling back to ISBN covers: %s", e)
+            covers_list = openlibrary.get_book_cover_images(isbns)
+
         original_cover = {
             "url": item.image,
             "thumbnail_url": item.image,
@@ -1128,50 +1151,29 @@ def book_cover_selection_modal(request, source, media_id):
             "aspect_ratio": 0.667,
             "language": None,
             "is_current": True,
-            "is_original": True
+            "is_original": True,
         }
-        
-        # Combine original with fetched covers, ensuring original is first
-        # and not duplicated if it's already in the results
-        covers = [original_cover]
+        posters = [original_cover]
         for cover in covers_list:
             if cover["url"] != item.image:
-                covers.append(cover)
+                posters.append(cover)
 
-        try:
-            # Telemetry: sizes
-            logger.info(
-                "Book cover modal: isbns=%d final_covers=%d source=%s media_id=%s",
-                len(isbns),
-                len(covers),
-                source,
-                media_id,
-            )
-        except Exception:
-            pass
-        
-        # Get current custom cover if exists
         from app.models import CustomPosterPreference
         try:
-            current_preference = CustomPosterPreference.objects.get(
-                user=request.user,
-                item=item
-            )
-            current_cover = current_preference.custom_image_url
+            current_preference = CustomPosterPreference.objects.get(user=request.user, item=item)
+            current_poster = current_preference.custom_image_url
         except CustomPosterPreference.DoesNotExist:
-            current_cover = item.image
-            
+            current_poster = item.image
+
         context = {
             "item": item,
-            "posters": covers,  # Reuse 'posters' variable name for template compatibility
-            "current_poster": current_cover,
+            "posters": posters,
+            "current_poster": current_poster,
             "is_book": True,
         }
-        
-        return render(request, "app/components/poster_selection_modal.html", context)
-        
+        return render(request, "app/components/poster_selection_modal_content.html", context)
     except Exception as e:
-        logger.error("Error in book cover selection modal: %s", e)
+        logger.error("Error loading book cover content: %s", e)
         return HttpResponseBadRequest("Error loading book covers")
 
 

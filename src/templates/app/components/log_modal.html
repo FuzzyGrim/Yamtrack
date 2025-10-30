@@ -201,7 +201,15 @@
                 <button type="submit" 
                         onclick="updateTagsBeforeSubmit()"
                         class="bg-gray-700 hover:bg-gray-600 px-8 py-2.5 text-sm font-medium text-white rounded transition-colors duration-200 ease-in-out">
-                    {% if item.media_type == 'tv' %}Log Show{% elif item.media_type == 'season' %}Log Season{% else %}Log Movie{% endif %}
+                    {% if item.media_type == 'tv' %}
+                      Log Show
+                    {% elif item.media_type == 'season' %}
+                      Log Season
+                    {% elif item.media_type == 'book' %}
+                      Log Book
+                    {% else %}
+                      Log Movie
+                    {% endif %}
                 </button>
             </div>
         </div>

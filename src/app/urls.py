@@ -117,6 +117,11 @@ urlpatterns = [
         views.book_cover_selection_modal,
         name="book_cover_selection_modal",
     ),
+    path(
+        "book_cover_selection/content/<source:source>/<str:media_id>",
+        views.book_cover_selection_content,
+        name="book_cover_selection_content",
+    ),
 
     # Movie watch/unwatch
     path(
