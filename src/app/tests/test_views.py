@@ -8,6 +8,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from app.models import (
+    Book,
+    DiaryEntry,
     TV,
     Anime,
     Episode,
@@ -1780,3 +1782,148 @@ class SeasonPosterSelectionTests(TestCase):
                 item=movie_item
             )
             self.assertEqual(preference.custom_image_url, "http://example.com/custom_poster.jpg")
+
+
+class BookDiaryEntryTests(TestCase):
+    """Tests for creating diary entries for books."""
+
+    def setUp(self):
+        self.credentials = {"username": "reader", "password": "password123"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+        self.book_item = Item.objects.create(
+            media_id="book-1",
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Example Book",
+            image="http://example.com/book.jpg",
+            total_pages=350,
+        )
+
+    def test_log_modal_allows_book(self):
+        url = reverse(
+            "log_modal",
+            kwargs={
+                "source": self.book_item.source,
+                "media_type": self.book_item.media_type,
+                "media_id": self.book_item.media_id,
+            },
+        )
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Mark Book Complete &amp; Log")
+        self.assertContains(response, "Finish Date")
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_book_diary_entry_marks_book_completed(self, mock_metadata):
+        mock_metadata.return_value = {
+            "title": "Example Book",
+            "image": "http://example.com/book.jpg",
+            "total_pages": 350,
+        }
+
+        Book.objects.create(
+            item=self.book_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            start_date=timezone.now(),
+            progress=50,
+        )
+
+        url = reverse(
+            "add_movie_diary_entry",
+            kwargs={
+                "source": self.book_item.source,
+                "media_type": self.book_item.media_type,
+                "media_id": self.book_item.media_id,
+            },
+        )
+        payload = {
+            "watch_date": "2025-01-01",
+            "rating": "8.5",
+            "review": "Great read!",
+            "liked": "true",
+            "is_rewatch": "on",
+            "tags": "fantasy, magic",
+            "book_complete": "true",
+        }
+
+        response = self.client.post(url, payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["success"])
+
+        entries = DiaryEntry.objects.filter(user=self.user, item=self.book_item)
+        self.assertEqual(entries.count(), 1)
+
+        book_instance = Book.objects.get(item=self.book_item, user=self.user)
+        self.assertEqual(book_instance.status, Status.COMPLETED.value)
+        self.assertEqual(book_instance.progress, self.book_item.total_pages)
+        self.assertEqual(book_instance.notes, "Great read!")
+        self.assertIsNotNone(book_instance.end_date)
+        entry = entries.first()
+        self.assertEqual(book_instance.completion_diary_entry, entry)
+
+        completed_session = book_instance.reading_sessions.filter(
+            status=Status.COMPLETED.value
+        ).first()
+        self.assertIsNotNone(completed_session)
+        self.assertEqual(completed_session.pages_read, self.book_item.total_pages)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_delete_diary_entry_resets_book_when_linked(self, mock_metadata):
+        mock_metadata.return_value = {
+            "title": "Example Book",
+            "image": "http://example.com/book.jpg",
+            "total_pages": 350,
+        }
+
+        url = reverse(
+            "add_movie_diary_entry",
+            kwargs={
+                "source": self.book_item.source,
+                "media_type": self.book_item.media_type,
+                "media_id": self.book_item.media_id,
+            },
+        )
+        payload = {
+            "watch_date": "2025-01-01",
+            "book_complete": "true",
+        }
+
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, 200)
+
+        entry = DiaryEntry.objects.get(user=self.user, item=self.book_item)
+        book_instance = Book.objects.get(item=self.book_item, user=self.user)
+        self.assertEqual(book_instance.completion_diary_entry, entry)
+
+        delete_url = reverse("delete_diary_entry", args=[entry.id])
+        delete_response = self.client.post(delete_url)
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertFalse(Book.objects.filter(item=self.book_item, user=self.user).exists())
+
+    def test_delete_diary_entry_keeps_manual_book_completion(self):
+        book_instance = Book.objects.create(
+            item=self.book_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+            progress=350,
+        )
+
+        entry = DiaryEntry.objects.create(
+            user=self.user,
+            item=self.book_item,
+            consumed_at=timezone.now(),
+        )
+
+        delete_url = reverse("delete_diary_entry", args=[entry.id])
+        response = self.client.post(delete_url)
+        self.assertEqual(response.status_code, 200)
+        book_instance.refresh_from_db()
+        self.assertIsNone(book_instance.completion_diary_entry)
+        self.assertEqual(book_instance.status, Status.COMPLETED.value)

@@ -109,17 +109,21 @@
                 
                 <!-- Tags -->
                 {% if entry.tags.exists %}
-                  <div class="flex flex-wrap gap-1 mb-1">
+                  <div class="flex flex-wrap gap-2 mb-1">
                     {% for tag in entry.tags.all %}
-                      <span class="tag-chip text-xs px-2 py-0.5 rounded-full 
-                        {% if 'w/' in tag.name %}bg-blue-600 text-white
-                        {% elif 'in theater' in tag.name or 'cinemark' in tag.name or 'amc' in tag.name or 'regal' in tag.name %}bg-green-600 text-white
-                        {% elif 'high' in tag.name or 'plane' in tag.name %}bg-purple-600 text-white
-                        {% elif 'opening weekend' in tag.name or 'thursday preview' in tag.name or 'imax' in tag.name %}bg-orange-600 text-white
-                        {% elif 'alternate version' in tag.name or 'extended version' in tag.name %}bg-gray-600 text-white
-                        {% else %}bg-indigo-600 text-white{% endif %}">
-                        {{ tag.name }}
-                      </span>
+                      {% if 'w/' in tag.name %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-blue-300" style="background-color: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4);">{{ tag.name }}</span>
+                      {% elif 'in theater' in tag.name or 'cinemark' in tag.name or 'amc' in tag.name or 'regal' in tag.name %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-green-300" style="background-color: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4);">{{ tag.name }}</span>
+                      {% elif 'high' in tag.name or 'plane' in tag.name %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-purple-300" style="background-color: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4);">{{ tag.name }}</span>
+                      {% elif 'opening weekend' in tag.name or 'thursday preview' in tag.name or 'imax' in tag.name %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-orange-300" style="background-color: rgba(251, 146, 60, 0.15); border: 1px solid rgba(251, 146, 60, 0.4);">{{ tag.name }}</span>
+                      {% elif 'alternate version' in tag.name or 'extended version' in tag.name %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-gray-300" style="background-color: rgba(107, 114, 128, 0.15); border: 1px solid rgba(107, 114, 128, 0.4);">{{ tag.name }}</span>
+                      {% else %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-indigo-300" style="background-color: rgba(129, 140, 248, 0.15); border: 1px solid rgba(129, 140, 248, 0.4);">{{ tag.name }}</span>
+                      {% endif %}
                     {% endfor %}
                   </div>
                 {% endif %}

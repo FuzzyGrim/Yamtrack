@@ -11,6 +11,7 @@ from app.models import (
     DiaryEntry,
     Tag,
     DiaryEntryTag,
+    BookSession,
 )
 
 
@@ -78,6 +79,15 @@ class DiaryEntryTagAdmin(admin.ModelAdmin):
     list_filter = ["tag", "created_at"]
 
 
+class BookSessionAdmin(admin.ModelAdmin):
+    """Custom admin for BookSession model with search and filter options."""
+    
+    search_fields = ["related_book__item__title", "related_book__user__username", "notes"]
+    list_display = ["__str__", "related_book__user", "status", "pages_read", "percentage_read", "created_at"]
+    list_filter = ["status", "created_at"]
+    readonly_fields = ["created_at"]
+
+
 # Register models with custom admin classes
 admin.site.register(Item, ItemAdmin)
 admin.site.register(Episode, EpisodeAdmin)
@@ -85,11 +95,12 @@ admin.site.register(CustomPosterPreference, CustomPosterPreferenceAdmin)
 admin.site.register(DiaryEntry, DiaryEntryAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(DiaryEntryTag, DiaryEntryTagAdmin)
+admin.site.register(BookSession, BookSessionAdmin)
 
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia", "CustomPosterPreference", "DiaryEntry", "Tag", "DiaryEntryTag"]
+SpecialModels = ["Item", "Episode", "BasicMedia", "CustomPosterPreference", "DiaryEntry", "Tag", "DiaryEntryTag", "BookSession"]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

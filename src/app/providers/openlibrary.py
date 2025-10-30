@@ -433,3 +433,4 @@ async def get_editions_covers(isbns):
     # The primary ISBNs should provide enough cover options
     
     return covers
+

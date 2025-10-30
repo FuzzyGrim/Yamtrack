@@ -1,4 +1,5 @@
 import logging
+from types import SimpleNamespace
 
 from django.apps import apps
 from django.conf import settings
@@ -81,6 +82,7 @@ class Item(CalendarTriggerMixin, models.Model):
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
     poster_accent_color = models.CharField(max_length=8, blank=True, default="")
+    total_pages = models.PositiveIntegerField(null=True, blank=True)  # For books
 
     class Meta:
         """Meta options for the model."""
@@ -534,6 +536,11 @@ class MediaManager(models.Manager):
 
         if media_type == MediaTypes.TV.value:
             self._annotate_tv_released_episodes(media_list, current_datetime)
+            return
+
+        if media_type == MediaTypes.BOOK.value:
+            for media in media_list:
+                media.max_progress = media.item.total_pages
             return
 
         # For other media types, calculate max_progress from events
@@ -1672,6 +1679,278 @@ class Book(Media):
     """Model for books."""
 
     tracker = FieldTracker()
+    completion_diary_entry = models.OneToOneField(
+        'DiaryEntry',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='completed_book',
+    )
+    completed_manually = models.BooleanField(default=False)
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["user", "item"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "item"],
+                name="%(app_label)s_%(class)s_unique_item_user",
+            ),
+        ]
+
+    @tracker  # postpone field reset until after the save
+    def save(self, *args, **kwargs):
+        """Save the media instance."""
+        super(Media, self).save(*args, **kwargs)
+
+        if self.tracker.has_changed("status"):
+            if self.status == Status.COMPLETED.value:
+                self._completed()
+
+            elif self.status == Status.DROPPED.value:
+                self._mark_in_progress_sessions_as_dropped()
+
+            elif (
+                self.status == Status.IN_PROGRESS.value
+                and not self.reading_sessions.filter(status=Status.IN_PROGRESS.value).exists()
+            ):
+                self._start_reading()
+
+            self.item.fetch_releases(delay=True)
+
+    def _invalidate_progress_cache(self):
+        """Clear any cached progress snapshot."""
+        if hasattr(self, "_progress_snapshot"):
+            delattr(self, "_progress_snapshot")
+
+    def _completed(self):
+        """Mark the book as completed and create a final reading session."""
+        total_pages = self.get_max_progress()
+        if not self.reading_sessions.filter(status=Status.COMPLETED.value).exists():
+            session_kwargs = {
+                "related_book": self,
+                "status": Status.COMPLETED.value,
+                "end_date": timezone.now(),
+            }
+            if total_pages:
+                session_kwargs.update(
+                    {
+                        "pages_read": total_pages,
+                        "percentage_read": 100,
+                    }
+                )
+            # Create a final reading session if none exists
+            BookSession.objects.create(**session_kwargs)
+        elif total_pages:
+            self.reading_sessions.filter(
+                status=Status.COMPLETED.value,
+                pages_read__isnull=True,
+            ).update(pages_read=total_pages, percentage_read=100)
+        if total_pages:
+            self.__class__.objects.filter(pk=self.pk).update(progress=total_pages)
+            self.progress = total_pages
+        self._invalidate_progress_cache()
+
+    def _mark_in_progress_sessions_as_dropped(self):
+        """Mark all in-progress reading sessions as dropped."""
+        self.reading_sessions.filter(status=Status.IN_PROGRESS.value).update(
+            status=Status.DROPPED.value
+        )
+        self._invalidate_progress_cache()
+
+    def _start_reading(self):
+        """Start reading the book by creating a reading session."""
+        if not self.reading_sessions.filter(status=Status.IN_PROGRESS.value).exists():
+            BookSession.objects.create(
+                related_book=self,
+                status=Status.IN_PROGRESS.value,
+            )
+        self._invalidate_progress_cache()
+
+    def log_reading_session(self, progress_type, progress_value, notes=""):
+        """Log a reading session with progress."""
+        total_pages = getattr(self.item, "total_pages", None)
+        pages_read = None
+        percentage = None
+
+        if progress_type == "percentage":
+            # Convert percentage to pages if total pages available
+            percentage = float(progress_value)
+            if total_pages:
+                pages_read = int(round((percentage / 100) * total_pages))
+        else:  # pages
+            pages_read = progress_value
+            if total_pages:
+                percentage = (progress_value / total_pages) * 100
+
+        if percentage is not None:
+            percentage = max(0.0, min(float(percentage), 100.0))
+        if pages_read is not None and total_pages:
+            pages_read = min(pages_read, total_pages)
+
+        # Create or update reading session
+        session, created = BookSession.objects.get_or_create(
+            related_book=self,
+            status=Status.IN_PROGRESS.value,
+            defaults={
+                'pages_read': pages_read,
+                'percentage_read': percentage,
+                'notes': notes,
+            }
+        )
+
+        if not created:
+            session.pages_read = pages_read
+            session.percentage_read = percentage
+            session.notes = notes
+            session.save()
+
+        if pages_read is not None and self.progress != pages_read:
+            self.progress = pages_read
+            self.save(update_fields=["progress"])
+
+        self._invalidate_progress_cache()
+        return session
+
+    def get_max_progress(self):
+        """Return total pages for the book."""
+        return self.item.total_pages
+
+    def _get_progress_snapshot(self):
+        """Return the latest reading progress snapshot."""
+        if hasattr(self, "_progress_snapshot"):
+            return self._progress_snapshot
+
+        session = (
+            self.reading_sessions.filter(status=Status.IN_PROGRESS.value)
+            .order_by("-created_at")
+            .first()
+        )
+
+        if session is None:
+            session = (
+                self.reading_sessions.filter(status=Status.COMPLETED.value)
+                .order_by("-created_at")
+                .first()
+            )
+
+        if session is None:
+            session = self.reading_sessions.order_by("-created_at").first()
+
+        if session is None:
+            snapshot = None
+        else:
+            total_pages = self.item.total_pages or None
+            pages = session.pages_read
+            percentage = session.percentage_read
+
+            if percentage is not None:
+                percentage = float(percentage)
+                percentage = max(0.0, min(percentage, 100.0))
+
+            if pages is None and percentage is not None and total_pages:
+                pages = int(round((percentage / 100) * total_pages))
+
+            stored_progress = self.progress or 0
+            if stored_progress and (pages is None or stored_progress > pages):
+                pages = stored_progress
+                if total_pages:
+                    percentage = (pages / total_pages) * 100
+                    percentage = max(0.0, min(percentage, 100.0))
+
+            if percentage is None and pages is not None and total_pages:
+                percentage = (pages / total_pages) * 100
+                percentage = max(0.0, min(percentage, 100.0))
+
+            snapshot = SimpleNamespace(
+                session=session,
+                pages=pages,
+                total_pages=total_pages,
+                percentage=percentage,
+                has_pages=pages is not None,
+                has_percentage=percentage is not None,
+            )
+
+        self._progress_snapshot = snapshot
+        return snapshot
+
+    @property
+    def progress_snapshot(self):
+        """Cached snapshot of the latest reading progress."""
+        return self._get_progress_snapshot()
+
+    @property
+    def has_progress(self):
+        """Return whether any progress data is available."""
+        snapshot = self.progress_snapshot
+        return bool(snapshot and (snapshot.has_pages or snapshot.has_percentage))
+
+
+class BookSession(models.Model):
+    """Model for reading sessions of a book."""
+
+    history = HistoricalRecords(
+        cascade_delete_history=True,
+        excluded_fields=["related_book", "created_at"],
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    related_book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="reading_sessions",
+    )
+    pages_read = models.PositiveIntegerField(null=True, blank=True)
+    percentage_read = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100),
+        ],
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.IN_PROGRESS.value,
+    )
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = [
+            "related_book",
+            "-end_date",
+            "-created_at",
+        ]
+
+    def __str__(self):
+        """Return the book title and session info."""
+        return f"{self.related_book.item.title} - Session {self.id}"
+
+    def save(self, *args, **kwargs):
+        """Save the reading session instance."""
+        self.related_book._invalidate_progress_cache()
+        super().save(*args, **kwargs)
+
+        # Update book status based on session status
+        if self.status == Status.COMPLETED.value:
+            self.related_book.status = Status.COMPLETED.value
+            self.related_book.end_date = self.end_date or timezone.now()
+            self.related_book.save()
+        elif self.status == Status.IN_PROGRESS.value:
+            if self.related_book.status != Status.IN_PROGRESS.value:
+                self.related_book.status = Status.IN_PROGRESS.value
+                if not self.related_book.start_date:
+                    self.related_book.start_date = self.start_date or timezone.now()
+                self.related_book.save()
+        self.related_book._invalidate_progress_cache()
 
 
 class Comic(Media):
@@ -1718,9 +1997,16 @@ class DiaryEntry(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     item = models.ForeignKey(
-        Item, 
+        Item,
         on_delete=models.CASCADE,
-        limit_choices_to={'media_type': MediaTypes.MOVIE.value}
+        limit_choices_to={
+            "media_type__in": [
+                MediaTypes.MOVIE.value,
+                MediaTypes.TV.value,
+                MediaTypes.SEASON.value,
+                MediaTypes.BOOK.value,
+            ]
+        },
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     consumed_at = models.DateTimeField()
@@ -1754,8 +2040,15 @@ class DiaryEntry(models.Model):
 
     def clean(self):
         """Validate that the item is a movie or TV show."""
-        if self.item.media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value]:
-            raise ValidationError("Diary entries can only be created for movies, TV shows, and seasons.")
+        if self.item.media_type not in [
+            MediaTypes.MOVIE.value,
+            MediaTypes.TV.value,
+            MediaTypes.SEASON.value,
+            MediaTypes.BOOK.value,
+        ]:
+            raise ValidationError(
+                "Diary entries can only be created for movies, TV shows, seasons, and books."
+            )
         super().clean()
 
     def save(self, *args, **kwargs):

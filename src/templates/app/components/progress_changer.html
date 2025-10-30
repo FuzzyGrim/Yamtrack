@@ -23,13 +23,42 @@
   </button>
 
   <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
-    {{ media.formatted_progress }}
+    {% if media.item.media_type == MediaTypes.BOOK.value %}
+      {% with snapshot=media.progress_snapshot %}
+        {% if snapshot %}
+          {% if snapshot.has_percentage %}
+            {{ snapshot.percentage|floatformat:0 }}%
+            {% if snapshot.has_pages %}
+              ({{ snapshot.pages }}{% if snapshot.total_pages %}/{{ snapshot.total_pages }}{% endif %} pages)
+            {% endif %}
+          {% elif snapshot.has_pages %}
+            {{ snapshot.pages }}{% if snapshot.total_pages %}/{{ snapshot.total_pages }}{% endif %} pages
+          {% else %}
+            {{ media.formatted_progress }}
+            {% if media.max_progress %}
+              / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
+            {% else %}
+              {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
+            {% endif %}
+          {% endif %}
+        {% else %}
+          {{ media.formatted_progress }}
+          {% if media.max_progress %}
+            / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
+          {% else %}
+            {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
+          {% endif %}
+        {% endif %}
+      {% endwith %}
+    {% else %}
+      {{ media.formatted_progress }}
 
-    {% if media.item.media_type != MediaTypes.GAME.value and media.item.media_type != MediaTypes.MOVIE.value %}
-      {% if media.max_progress %}
-        / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
-      {% else %}
-        {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
+      {% if media.item.media_type != MediaTypes.GAME.value and media.item.media_type != MediaTypes.MOVIE.value %}
+        {% if media.max_progress %}
+          / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
+        {% else %}
+          {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
+        {% endif %}
       {% endif %}
     {% endif %}
   </div>

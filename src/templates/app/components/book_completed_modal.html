@@ -1,0 +1,105 @@
+{% load app_tags %}
+
+<!-- Modal backdrop -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
+    <!-- Modal content -->
+    <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative max-w-2xl w-full sm:w-auto mx-4" style="max-width: 46rem;"
+         @click.stop>
+         
+        <form id="book-completed-form" method="post" action="{% url 'log_book_completed' media.source media.media_id %}">
+            {% csrf_token %}
+            <div class="p-6">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">{{ media.title }}</h2>
+                    <button onclick="this.closest('.fixed').remove()" 
+                            class="text-gray-400 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Content -->
+                <div class="flex gap-6">
+                    <img src="{% get_user_poster_image media user %}" alt="{{ media.title }}" width="156" class="rounded flex-shrink-0" style="height: auto;">
+                    <div class="flex-1 flex flex-col">
+                        <div class="mb-4">
+                            <label for="score" class="block text-sm font-medium text-gray-300 mb-2">
+                                Rating (Optional)
+                            </label>
+                            <input type="number" 
+                                   id="score" 
+                                   name="score" 
+                                   min="0" 
+                                   max="10" 
+                                   step="0.1"
+                                   class="w-full bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400"
+                                   placeholder="Rate 0-10">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="end_date" class="block text-sm font-medium text-gray-300 mb-2">
+                                Finish Date (Optional)
+                            </label>
+                            <input type="datetime-local" 
+                                   id="end_date" 
+                                   name="end_date"
+                                   class="w-full bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="notes" class="block text-sm font-medium text-gray-300 mb-2">
+                                Review (Optional)
+                            </label>
+                            <textarea id="notes" 
+                                      name="notes" 
+                                      rows="3"
+                                      class="w-full bg-[#1f2329] text-white px-3 py-2 rounded border border-gray-600 focus:outline-none focus:border-gray-400 resize-none"
+                                      placeholder="Add a review..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer with Log button -->
+                <div class="flex justify-end mt-6 pt-4 border-t border-gray-600">
+                    <button type="submit" 
+                            class="bg-gray-700 hover:bg-gray-600 px-8 py-2.5 text-sm font-medium text-white rounded transition-colors duration-200 ease-in-out">
+                        Log Book
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Handle form submission
+document.getElementById('book-completed-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // Submit form
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('media-actions').innerHTML = html;
+        document.querySelector('.fixed').remove();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error logging book. Please try again.');
+    });
+});
+
+// Set default end date to now
+document.getElementById('end_date').value = new Date().toISOString().slice(0, 16);
+</script>

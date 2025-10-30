@@ -90,6 +90,19 @@
       </div>
     {% elif current_instance and has_seasons_in_progress %}
       {# If any season is currently tracking, show watching indicator with options #}
+      <style>
+        .book-accent-hover {
+          background: transparent;
+          color: inherit;
+          transition: transform 0.2s ease;
+        }
+        .book-accent-hover:hover {
+          background: var(--poster-accent) !important;
+          color: var(--poster-accent-contrast, #FFFFFF) !important;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+          transform: translateY(-1px);
+        }
+      </style>
       <div class="flex flex-col gap-2">
         <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
              style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
@@ -320,6 +333,204 @@
         </div>
         <p class="text-xs text-center text-gray-400">Only this season will be affected - other seasons remain unchanged</p>
       </div>
+    {% endif %}
+  {% elif media.media_type == MediaTypes.BOOK.value %}
+    {% if diary_entries %}
+      {# If logged, show enhanced logged button #}
+      <div class="flex">
+        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
+                data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
+                onclick="fetch(this.dataset.logUrl)
+                  .then(response => response.text())
+                  .then(html => {
+                    document.getElementById('log-modal-container').innerHTML = html;
+                  })"
+                title="View and manage your diary entries for this book">
+          <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Logged ({{ diary_entries|length }})
+        </button>
+      </div>
+    {% elif current_instance and current_instance.status == "In progress" %}
+      {# If in progress, show reading indicator with options #}
+      <div class="flex flex-col gap-2">
+        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+             style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          Reading
+        </div>
+        
+        <div class="flex gap-2">
+          {# Log Progress Button #}
+          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg whitespace-nowrap"
+                  hx-get="{% url 'book_progress_modal' media.source media.media_id %}"
+                  hx-target="#log-modal-container"
+                  hx-swap="innerHTML"
+                  title="Log your reading progress">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            Log Progress
+          </button>
+
+          {# Mark as Read Button #}
+          <button type="button"
+                  class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover"
+                  onclick="loadBookLogModal('{% url 'log_modal' media.source media.media_type media.media_id %}?book_complete=1')"
+                  title="Mark this book as completed and log a diary entry">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Mark &amp; Log
+          </button>
+        </div>
+        
+        <p class="text-xs text-center text-gray-400">Track your reading progress or mark as completed</p>
+
+        {% with progress=current_instance.progress_snapshot %}
+          {% if progress %}
+            {% if progress.has_pages or progress.has_percentage %}
+              <div class="w-full bg-[#1f2329] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-200">
+                {% if progress.has_percentage %}
+                  <div class="w-full h-2 bg-gray-700/60 rounded-full overflow-hidden mb-2">
+                    <div class="h-full" style="width: {{ progress.percentage|floatformat:0 }}%; background-color: var(--poster-accent);"></div>
+                  </div>
+                {% endif %}
+                <div class="flex flex-wrap items-center justify-center gap-1 text-center">
+                  <span>Current progress:</span>
+                  {% if progress.has_pages %}
+                    <span>{{ progress.pages }}{% if progress.total_pages %} / {{ progress.total_pages }}{% endif %} pages</span>
+                  {% endif %}
+                  {% if progress.has_percentage %}
+                    <span>
+                      {% if progress.has_pages %}({{ progress.percentage|floatformat:0 }}%){% else %}{{ progress.percentage|floatformat:0 }}%{% endif %}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+          {% endif %}
+        {% endwith %}
+      </div>
+    {% elif current_instance and current_instance.status == "Completed" %}
+      {# If completed, show completed indicator with options #}
+      <div class="flex flex-col gap-2">
+        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+             style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
+          <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Completed
+        </div>
+        
+        <div class="flex gap-2">
+          {# Start Reading Button #}
+          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg whitespace-nowrap"
+                  hx-post="{% url 'start_reading_book' media.source media.media_id %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-target="#media-actions"
+                  hx-swap="innerHTML"
+                  title="Start reading this book again">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Start Reading
+          </button>
+
+          {# Log Button #}
+          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                  data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
+                  onclick="fetch(this.dataset.logUrl)
+                    .then(response => response.text())
+                    .then(html => {
+                      document.getElementById('log-modal-container').innerHTML = html;
+                    })"
+                  title="Log this book to your diary with a date and optional review">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Log Book
+          </button>
+        </div>
+        
+        <p class="text-xs text-center text-gray-400">Start reading again or log to diary</p>
+
+        {% with progress=current_instance.progress_snapshot %}
+          {% if progress %}
+            {% if progress.has_pages or progress.has_percentage %}
+              <div class="w-full bg-[#1f2329] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-200">
+                {% if progress.has_percentage %}
+                  <div class="w-full h-2 bg-gray-700/60 rounded-full overflow-hidden mb-2">
+                    <div class="h-full" style="width: {{ progress.percentage|floatformat:0 }}%; background-color: var(--poster-accent);"></div>
+                  </div>
+                {% endif %}
+                <div class="flex flex-wrap items-center justify-center gap-1 text-center">
+                  <span>Latest progress:</span>
+                  {% if progress.has_pages %}
+                    <span>{{ progress.pages }}{% if progress.total_pages %} / {{ progress.total_pages }}{% endif %} pages</span>
+                  {% endif %}
+                  {% if progress.has_percentage %}
+                    <span>
+                      {% if progress.has_pages %}({{ progress.percentage|floatformat:0 }}%){% else %}{{ progress.percentage|floatformat:0 }}%{% endif %}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+          {% endif %}
+        {% endwith %}
+      </div>
+    {% else %}
+      {# If not started, show mark as read and log buttons #}
+      <div class="flex gap-2">
+        {# Mark as Read Button #}
+        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                hx-post="{% url 'mark_book_read' media.source media.media_id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#media-actions"
+                hx-swap="innerHTML"
+                title="Mark this book as completed">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Mark Read
+        </button>
+
+        {# Log Button #}
+        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
+                onclick="fetch(this.dataset.logUrl)
+                  .then(response => response.text())
+                  .then(html => {
+                    document.getElementById('log-modal-container').innerHTML = html;
+                  })"
+                title="Log this book to your diary with a date and optional review">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          Log Book
+        </button>
+      </div>
+      
+      {# Start Reading Button - Full width underneath #}
+      <div class="mt-2">
+        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg whitespace-nowrap"
+                hx-post="{% url 'start_reading_book' media.source media.media_id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="#media-actions"
+                hx-swap="innerHTML"
+                title="Start reading this book">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          Start Reading
+        </button>
+      </div>
+      <p class="text-xs text-center text-gray-400 mt-2">Start reading to track progress, or mark as completed</p>
     {% endif %}
   {% else %}
     {# Non-movie media types - show track button #}

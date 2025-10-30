@@ -3,14 +3,19 @@
 <!-- Modal backdrop -->
 <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
     <!-- Modal content -->
-    <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative max-w-2xl w-full mx-4"
+    <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative max-w-2xl w-full sm:w-auto mx-4" style="max-width: 46rem;"
          @click.stop
          data-log-url="{% if item.media_type == 'season' %}{% url 'log_modal_season' item.source item.media_type item.media_id item.season_number %}{% else %}{% url 'log_modal' item.source item.media_type item.media_id %}{% endif %}">
          
         <form action="{% if item.media_type == 'season' %}{% url 'add_season_diary_entry' item.source item.media_type item.media_id item.season_number %}{% else %}{% url 'add_movie_diary_entry' item.source item.media_type item.media_id %}{% endif %}" 
               method="post"
+              data-diary-log-form
               @submit="updateTagsBeforeSubmit()">
             {% csrf_token %}
+            {% if item.media_type == 'book' and book_completion %}
+              <input type="hidden" name="book_complete" value="true">
+            {% endif %}
+            <input type="hidden" name="auto_mark_consumed" value="true">
             <div class="p-6">
             <!-- Header -->
             <div class="flex justify-between items-center mb-6">
@@ -26,14 +31,19 @@
             
             <!-- Content -->
             <div class="flex gap-4">
-                <img src="{% get_user_poster_image item user %}" alt="{{ item.title }}" class="w-20 h-32 object-cover rounded flex-shrink-0">
+                <img src="{% get_user_poster_image item user %}" alt="{{ item.title }}" width="176" class="rounded flex-shrink-0" style="height: auto;">
                 <div class="flex-1 flex flex-col">
                     <div class="flex items-center gap-4 mb-3">
-                        <input type="date" 
-                               id="watch-date" 
-                               name="watch_date"
-                               class="bg-[#1f2329] text-white px-2 py-1 rounded border border-gray-600 focus:outline-none focus:border-gray-400 w-40 text-sm"
-                               value="{{ today|date:'Y-m-d' }}">
+                        <div class="flex flex-col">
+                            <label for="watch-date" class="text-xs text-gray-400 mb-1 uppercase tracking-wide">
+                                {% if item.media_type == 'book' %}Finish Date{% else %}Watch Date{% endif %}
+                            </label>
+                            <input type="date" 
+                                   id="watch-date" 
+                                   name="watch_date"
+                                   class="bg-[#1f2329] text-white px-2 py-1 rounded border border-gray-600 focus:outline-none focus:border-gray-400 w-40 text-sm"
+                                   value="{{ today|date:'Y-m-d' }}">
+                        </div>
                         
                         <!-- Stars Rating -->
                         <div class="rating flex items-center" x-data="{ 

@@ -484,3 +484,70 @@ class QuickConsumeForm(forms.Form):
     
     # No visible fields, just CSRF protection
     pass
+
+
+class BookProgressForm(forms.Form):
+    """Form for tracking book reading progress."""
+
+    PROGRESS_TYPE_CHOICES = [
+        ('pages', 'Pages'),
+        ('percentage', 'Percentage'),
+    ]
+
+    progress_type = forms.ChoiceField(
+        choices=PROGRESS_TYPE_CHOICES,
+        widget=forms.RadioSelect,
+        initial='pages'
+    )
+    progress_value = forms.IntegerField(
+        min_value=0,
+        help_text="Enter pages read or percentage (0-100)"
+    )
+
+    def clean_progress_value(self):
+        """Validate progress value based on type."""
+        progress_type = self.cleaned_data.get('progress_type')
+        progress_value = self.cleaned_data.get('progress_value')
+
+        if progress_type == 'percentage' and progress_value > 100:
+            raise forms.ValidationError("Percentage cannot exceed 100%")
+
+        return progress_value
+
+
+class BookLogForm(forms.Form):
+    """Form for logging a completed book."""
+    
+    score = forms.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        min_value=0,
+        max_value=10,
+        required=False,
+        help_text="Rate the book (0-10)"
+    )
+    notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3}),
+        required=False,
+        help_text="Optional review or notes"
+    )
+    end_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        required=False,
+        help_text="When did you finish reading? (optional)"
+    )
+
+
+class BookStartReadingForm(forms.Form):
+    """Form for starting to read a book."""
+    
+    start_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        required=False,
+        help_text="When did you start reading? (optional)"
+    )
+    notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3}),
+        required=False,
+        help_text="Optional notes"
+    )

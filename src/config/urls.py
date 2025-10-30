@@ -13,7 +13,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.decorators import login_not_required
-from django.urls import include, path
+from django.urls import include, path, register_converter
+from app.converters import MediaTypeChecker, SourceChecker
+
+# Register custom URL path converters used across included apps
+register_converter(SourceChecker, "source")
+register_converter(MediaTypeChecker, "media_type")
 
 urlpatterns = [
     path("", include("app.urls")),

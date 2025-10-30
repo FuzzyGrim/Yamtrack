@@ -17,8 +17,8 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from app import helpers, history_processor
 from app import statistics as stats
-from app.forms import EpisodeForm, ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie, Episode
+from app.forms import EpisodeForm, ManualItemForm, get_form_class, BookProgressForm, BookLogForm, BookStartReadingForm
+from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie, Episode, Book, BookSession
 
 from app.providers import manual, mdblist, services, tmdb
 from app.templatetags import app_tags
@@ -1535,8 +1535,13 @@ from datetime import date
 
 def log_modal(request, source, media_type, media_id, season_number=None):
     """Show the log entry modal."""
-    if media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value]:
-        raise Http404("Logging is only available for movies, TV shows, and seasons")
+    if media_type not in [
+        MediaTypes.MOVIE.value,
+        MediaTypes.TV.value,
+        MediaTypes.SEASON.value,
+        MediaTypes.BOOK.value,
+    ]:
+        raise Http404("Logging is only available for movies, TV shows, seasons, and books")
         
     # Get or create the item - fetch metadata if it doesn't exist
     try:
@@ -1567,21 +1572,33 @@ def log_modal(request, source, media_type, media_id, season_number=None):
             )
         else:
             metadata = services.get_media_metadata(media_type, media_id, source)
-        item, _ = Item.objects.get_or_create(
-            media_id=media_id,
-            source=source,
-            media_type=media_type,
-            defaults={
+            defaults = {
                 "title": metadata["title"],
                 "image": metadata["image"],
-        },
-        )
+            }
+            if media_type == MediaTypes.BOOK.value:
+                defaults["total_pages"] = metadata.get("total_pages") or metadata.get("max_progress")
+            item, created = Item.objects.get_or_create(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                defaults=defaults,
+            )
+            if (
+                media_type == MediaTypes.BOOK.value
+                and not created
+                and defaults.get("total_pages")
+                and item.total_pages != defaults["total_pages"]
+            ):
+                item.total_pages = defaults["total_pages"]
+                item.save(update_fields=["total_pages"])
         
     # Use the same template for both movies and TV shows
     return render(request, 'app/components/log_modal.html', {
         'item': item,
         'user': request.user,
         'today': date.today(),
+        'book_completion': request.GET.get('book_complete') == '1',
     })
 
 
@@ -2368,8 +2385,14 @@ def unmark_season_watched(request, source, media_type, media_id, season_number):
 def add_movie_diary_entry(request, source, media_type, media_id, season_number=None):
     """Create a diary entry for a movie, TV show, or season using media metadata."""
     try:
-        if media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value]:
-            raise Http404("Diary entries are only available for movies, TV shows, and seasons")
+        book_instance = None
+        if media_type not in [
+            MediaTypes.MOVIE.value,
+            MediaTypes.TV.value,
+            MediaTypes.SEASON.value,
+            MediaTypes.BOOK.value,
+        ]:
+            raise Http404("Diary entries are only available for movies, TV shows, seasons, and books")
             
         logger.info(f"Creating diary entry for {media_type} {media_id} from {source}")
         logger.info(f"POST data: {dict(request.POST)}")
@@ -2407,15 +2430,26 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
             logger.info(f"Season item {'created' if created else 'found'}: {item}")
         else:
             metadata = services.get_media_metadata(media_type, media_id, source)
-        item, created = Item.objects.get_or_create(
-            media_id=media_id,
-            source=source,
-            media_type=media_type,
-            defaults={
+            defaults = {
                 "title": metadata["title"],
                 "image": metadata["image"],
-        },
-        )
+            }
+            if media_type == MediaTypes.BOOK.value:
+                defaults["total_pages"] = metadata.get("total_pages") or metadata.get("max_progress")
+            item, created = Item.objects.get_or_create(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                defaults=defaults,
+            )
+            if (
+                media_type == MediaTypes.BOOK.value
+                and not created
+                and defaults.get("total_pages")
+                and item.total_pages != defaults["total_pages"]
+            ):
+                item.total_pages = defaults["total_pages"]
+                item.save(update_fields=["total_pages"])
         logger.info(f"Item {'created' if created else 'found'}: {item}")
         
         # Create diary entry using the services function
@@ -2569,8 +2603,41 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
                         # Continue without marking episodes as watched
                     
             except Exception as e:
-                logger.warning(f"Failed to mark {media_type} as completed: {e}")
-        
+                    logger.warning(f"Failed to mark {media_type} as completed: {e}")
+
+        if media_type == MediaTypes.BOOK.value:
+            completion_datetime = consumed_at or timezone.now()
+            from decimal import Decimal
+
+            book_defaults = {
+                "status": Status.COMPLETED.value,
+                "end_date": completion_datetime,
+            }
+            book_instance, created_book = Book.objects.get_or_create(
+                item=item,
+                user=request.user,
+                defaults=book_defaults,
+            )
+            logger.info(f"Book instance {'created' if created_book else 'found'}: {book_instance}")
+
+            book_instance.status = Status.COMPLETED.value
+            if not book_instance.start_date:
+                book_instance.start_date = completion_datetime
+            book_instance.end_date = completion_datetime
+
+            if rating is not None:
+                book_instance.score = Decimal(str(rating))
+            if review:
+                book_instance.notes = review
+
+            book_instance.completed_manually = False
+            book_instance.save(update_fields=["status", "end_date", "completed_manually"])
+            logger.info(f"Book {book_instance} marked as completed for diary entry")
+            if request.POST.get('book_complete', '').lower() in ('true', '1', 'yes', 'on'):
+                book_instance.completion_diary_entry = entry
+                book_instance.completed_manually = False
+                book_instance.save(update_fields=['completion_diary_entry', 'completed_manually'])
+
         # Return success response
         return JsonResponse({"success": True, "entry_id": entry.id})
         
@@ -2680,6 +2747,17 @@ def delete_diary_entry(request, entry_id):
         entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
         item = entry.item
         user = entry.user
+        book_instance = None
+        book_completion_entry = False
+
+        if item.media_type == MediaTypes.BOOK.value:
+            try:
+                book_instance = Book.objects.get(user=user, item=item)
+                book_completion_entry = (
+                    book_instance.completion_diary_entry_id == entry.id
+                )
+            except Book.DoesNotExist:
+                book_instance = None
         
         logger.info(f"Deleting diary entry {entry_id} for {item} by {user}")
         
@@ -2734,6 +2812,18 @@ def delete_diary_entry(request, entry_id):
                     logger.info(f"Successfully unwatched season {item} and all episodes for {user}")
                 except Season.DoesNotExist:
                     logger.info(f"No Season instance found for {item} - already unwatched")
+            elif item.media_type == MediaTypes.BOOK.value and book_instance:
+                if not book_instance.completed_manually:
+                    logger.info("Deleting Book instance created via diary completion")
+                    book_instance.delete()
+                else:
+                    logger.info("Book instance retained (manual tracking)")
+            elif item.media_type == MediaTypes.BOOK.value and not book_instance:
+                logger.info(f"No Book instance found for {item} - already untracked")
+        elif item.media_type == MediaTypes.BOOK.value and book_instance and book_completion_entry:
+            logger.info("Clearing diary completion link from Book instance")
+            book_instance.completion_diary_entry = None
+            book_instance.save(update_fields=['completion_diary_entry'])
         
         # Return success response
         return JsonResponse({"success": True})
@@ -2760,3 +2850,362 @@ def tag_autocomplete(request):
     except Exception as e:
         # If Tag model doesn't exist yet, return empty results
         return JsonResponse({'tags': []})
+
+
+@require_POST
+def mark_book_read(request, source, media_id):
+    """Mark a book as read by creating a Book instance with completed status."""
+    try:
+        media_type = MediaTypes.BOOK.value  # Set media_type to BOOK since this is book-specific
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        total_pages = metadata.get("total_pages") or metadata.get("max_progress")
+        item, created_item = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+                "total_pages": total_pages,
+            },
+        )
+        if not created_item and total_pages and item.total_pages != total_pages:
+            item.total_pages = total_pages
+            item.save(update_fields=["total_pages"])
+        
+        # Get or create the Book instance
+        book_instance, created = Book.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.COMPLETED.value,
+                "end_date": timezone.now(),
+                "completed_manually": True,
+            }
+        )
+
+        if not created:
+            # If it already exists, update the status only if it's not already completed
+            book_instance.end_date = timezone.now()
+            book_instance.completed_manually = True
+            book_instance.completion_diary_entry = None
+            
+            # Only update status if it's not already completed
+            if book_instance.status != Status.COMPLETED.value:
+                book_instance.status = Status.COMPLETED.value
+                book_instance.save(update_fields=["status", "end_date", "completed_manually", "completion_diary_entry"])
+            else:
+                book_instance.save(update_fields=["end_date", "completed_manually", "completion_diary_entry"])
+        
+        # Create a completed reading session
+        session, _ = BookSession.objects.get_or_create(
+            related_book=book_instance,
+            status=Status.COMPLETED.value,
+            defaults={
+                "end_date": timezone.now(),
+            }
+        )
+        # Ensure end_date is set if it wasn't already
+        if not session.end_date:
+            session.end_date = timezone.now()
+            session.save(update_fields=['end_date'])
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": book_instance,
+            "diary_entries": diary_entries,
+        }
+        
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error marking book as read: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def start_reading_book(request, source, media_id):
+    """Start reading a book by creating a Book instance with in-progress status."""
+    try:
+        media_type = MediaTypes.BOOK.value  # Set media_type to BOOK since this is book-specific
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        total_pages = metadata.get("total_pages") or metadata.get("max_progress")
+        item, created_item = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+                "total_pages": total_pages,
+            },
+        )
+        if not created_item and total_pages and item.total_pages != total_pages:
+            item.total_pages = total_pages
+            item.save(update_fields=["total_pages"])
+        
+        # Get or create the Book instance
+        book_instance, created = Book.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.IN_PROGRESS.value,
+                "start_date": timezone.now(),
+            }
+        )
+        
+        if not created:
+            # If it already exists, update the status
+            book_instance.status = Status.IN_PROGRESS.value
+            if not book_instance.start_date:
+                book_instance.start_date = timezone.now()
+            book_instance.save()
+        
+        # Create an in-progress reading session
+        BookSession.objects.get_or_create(
+            related_book=book_instance,
+            status=Status.IN_PROGRESS.value,
+            defaults={
+                "start_date": timezone.now(),
+            }
+        )
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": book_instance,
+            "diary_entries": diary_entries,
+        }
+        
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error starting to read book: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def log_book_progress(request, source, media_id):
+    """Log reading progress for a book."""
+    try:
+        media_type = MediaTypes.BOOK.value  # Set media_type to BOOK since this is book-specific
+            
+        form = BookProgressForm(request.POST)
+        if not form.is_valid():
+            return JsonResponse({"error": "Invalid form data", "details": form.errors}, status=400)
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        total_pages = metadata.get("total_pages") or metadata.get("max_progress")
+        item, created_item = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+                "total_pages": total_pages,
+            },
+        )
+        if not created_item and total_pages and item.total_pages != total_pages:
+            item.total_pages = total_pages
+            item.save(update_fields=["total_pages"])
+        
+        # Get or create the Book instance
+        book_instance, created = Book.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.IN_PROGRESS.value,
+                "start_date": timezone.now(),
+                "completed_manually": False,
+            }
+        )
+
+        if not created and book_instance.status != Status.IN_PROGRESS.value:
+            book_instance.status = Status.IN_PROGRESS.value
+            if not book_instance.start_date:
+                book_instance.start_date = timezone.now()
+            book_instance.completed_manually = False
+            book_instance.save(update_fields=["status", "start_date", "completed_manually"])
+        
+        # Log the reading session
+        session = book_instance.log_reading_session(
+            progress_type=form.cleaned_data['progress_type'],
+            progress_value=form.cleaned_data['progress_value']
+        )
+        
+        # Check if book is completed
+        if form.cleaned_data['progress_type'] == 'percentage' and form.cleaned_data['progress_value'] >= 100:
+            book_instance.status = Status.COMPLETED.value
+            book_instance.end_date = timezone.now()
+            book_instance.completed_manually = True
+            book_instance.completion_diary_entry = None
+            book_instance.save(update_fields=["status", "end_date", "completed_manually", "completion_diary_entry"])
+            session.status = Status.COMPLETED.value
+            session.end_date = timezone.now()
+            session.save()
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": book_instance,
+            "diary_entries": diary_entries,
+        }
+        
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error logging book progress: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def log_book_completed(request, source, media_id):
+    """Log a completed book with rating and review."""
+    try:
+        media_type = MediaTypes.BOOK.value  # Set media_type to BOOK since this is book-specific
+            
+        form = BookLogForm(request.POST)
+        if not form.is_valid():
+            return JsonResponse({"error": "Invalid form data", "details": form.errors}, status=400)
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        total_pages = metadata.get("total_pages") or metadata.get("max_progress")
+        item, created_item = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+                "total_pages": total_pages,
+            },
+        )
+        if not created_item and total_pages and item.total_pages != total_pages:
+            item.total_pages = total_pages
+            item.save(update_fields=["total_pages"])
+        
+        # Get or create the Book instance
+        book_instance, created = Book.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.COMPLETED.value,
+                "end_date": form.cleaned_data.get('end_date') or timezone.now(),
+                "completed_manually": True,
+            }
+        )
+
+        if not created:
+            book_instance.status = Status.COMPLETED.value
+            book_instance.end_date = form.cleaned_data.get('end_date') or timezone.now()
+            book_instance.completed_manually = True
+            book_instance.completion_diary_entry = None
+            book_instance.save(update_fields=["status", "end_date", "completed_manually", "completion_diary_entry"])
+        
+        # Update score and notes if provided
+        if form.cleaned_data.get('score'):
+            book_instance.score = form.cleaned_data['score']
+        if form.cleaned_data.get('notes'):
+            book_instance.notes = form.cleaned_data['notes']
+        book_instance.save()
+        
+        # Create a completed reading session
+        BookSession.objects.get_or_create(
+            related_book=book_instance,
+            status=Status.COMPLETED.value,
+            defaults={
+                "end_date": form.cleaned_data.get('end_date') or timezone.now(),
+                "notes": form.cleaned_data.get('notes', ''),
+            }
+        )
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": book_instance,
+            "diary_entries": diary_entries,
+        }
+        
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error logging completed book: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_GET
+def book_progress_modal(request, source, media_id):
+    """Return the book progress modal template."""
+    try:
+        media_type = MediaTypes.BOOK.value  # Set media_type to BOOK since this is book-specific
+        # Get the item for context
+        item = Item.objects.get(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+        )
+        context = {
+            'media': item,
+        }
+        return render(request, "app/components/book_progress_modal.html", context)
+    except Item.DoesNotExist:
+        raise Http404("Book not found")
+
+
+@require_GET
+def book_completed_modal(request, source, media_id):
+    """Return the book completed modal template."""
+    try:
+        media_type = MediaTypes.BOOK.value  # Set media_type to BOOK since this is book-specific
+        # Get the item for context
+        item = Item.objects.get(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+        )
+        context = {
+            'media': item,
+        }
+        return render(request, "app/components/book_completed_modal.html", context)
+    except Item.DoesNotExist:
+        raise Http404("Book not found")
