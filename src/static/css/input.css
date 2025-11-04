@@ -193,3 +193,67 @@
   font-size: 15px;
   margin-top: 3px;
 }
+
+@layer base {
+  /* Custom background colors for media detail components */
+  .bg-525252 {
+    background-color: #525252;
+  }
+  
+  .bg-111111 {
+    background-color: #111111;
+  }
+
+  /* Material Background Layers for Media Details Page */
+  /* Remove base template's black background for media detail pages */
+  main:has(#media-detail-root) {
+    background: transparent !important;
+  }
+
+  #media-detail-root {
+    /* Uniform circular gradient - behind poster, compact spread */
+    background: #000000;
+    background-image: radial-gradient(
+      circle 500px at calc(1.5rem + 150px) 35%,
+      var(--poster-accent) 0%,
+      transparent 70%
+    );
+    position: relative;
+  }
+
+  /* Enhanced gradient for browsers that support color-mix */
+  @supports (color: color-mix(in srgb, red, blue)) {
+    #media-detail-root {
+      background-image: radial-gradient(
+        circle 500px at calc(1.5rem + 150px) 35%,
+        color-mix(in srgb, var(--poster-accent) 52%, transparent) 0%,
+        color-mix(in srgb, var(--poster-accent) 42%, transparent) 20%,
+        color-mix(in srgb, var(--poster-accent) 32%, transparent) 35%,
+        color-mix(in srgb, var(--poster-accent) 22%, transparent) 50%,
+        color-mix(in srgb, var(--poster-accent) 13%, transparent) 62%,
+        color-mix(in srgb, var(--poster-accent) 6%, transparent) 72%,
+        color-mix(in srgb, var(--poster-accent) 2%, transparent) 82%,
+        transparent 95%
+      );
+    }
+  }
+
+  #media-detail-root::before {
+    /* Material blur overlay - between regular and heavy */
+    /* Regular is ~20-30px, Heavy is ~40-50px, so 32px is a good middle */
+    content: '';
+    position: fixed;
+    inset: 0;
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    background: rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Ensure content appears above material layer but below navbar */
+  #media-detail-root main {
+    position: relative;
+    z-index: 1;
+  }
+}

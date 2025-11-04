@@ -115,11 +115,19 @@
 
   {% if media.genres %}
     <div class="flex flex-wrap gap-2">
-      {% for genre in media.genres %}
-        <div class="poster-accent-chip px-2 py-1 rounded text-sm">
-          {{ genre.name|default:genre }}
-        </div>
-      {% endfor %}
+      {% if media.media_type == MediaTypes.BOOK.value %}
+        {% for genre in media.genres|slice:":5" %}
+          <div class="poster-accent-chip px-2 py-1 rounded-full text-sm">
+            {{ genre.name|default:genre }}
+          </div>
+        {% endfor %}
+      {% else %}
+        {% for genre in media.genres %}
+          <div class="poster-accent-chip px-2 py-1 rounded-full text-sm">
+            {{ genre.name|default:genre }}
+          </div>
+        {% endfor %}
+      {% endif %}
     </div>
   {% endif %}
 </div>

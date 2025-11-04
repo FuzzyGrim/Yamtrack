@@ -3,7 +3,7 @@
 {# Related - works without JS using details/summary #}
 {# Always show a Related section for books; for others, only if media.related exists #}
 {% if media.media_type == 'book' or media.related %}
-  <details class="space-y-4">
+  <details {% if media.media_type == 'book' %}open{% endif %} class="space-y-4">
     <summary class="flex items-center gap-3 cursor-pointer select-none">
       <h2 class="text-xl font-semibold">Related</h2>
     </summary>

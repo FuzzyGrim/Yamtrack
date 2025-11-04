@@ -1,0 +1,58 @@
+/* DEBUG: Force override all poster accent colors for genre chips and buttons */
+
+/* Genre Chips - Force white */
+.poster-accent-chip,
+#media-detail-root .poster-accent-chip,
+#media-detail-root .poster-accent-chip *,
+.poster-accent-chip * {
+  border: none !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.poster-accent-chip:hover,
+#media-detail-root .poster-accent-chip:hover {
+  border: none !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Buttons - Force white border and text */
+.poster-accent-button,
+#media-detail-root .poster-accent-button,
+.poster-accent-button *,
+#media-detail-root .poster-accent-button * {
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+.poster-accent-button:hover,
+.poster-accent-button:focus,
+.poster-accent-button:focus-visible,
+#media-detail-root .poster-accent-button:hover {
+  border-color: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.poster-accent-button svg,
+.poster-accent-button svg * {
+  color: currentColor !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Force override inline styles */
+div[style*="--poster-accent"] .poster-accent-chip,
+div[style*="--poster-accent"] .poster-accent-button {
+  border: none !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+

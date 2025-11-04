@@ -10,8 +10,8 @@
 
 {% block content %}
   {# New Movie Page Design #}
-  <div id="media-detail-root" class="min-h-screen bg-black" style="--poster-accent: {{ poster_accent_color|default:'#6F8FFF' }}; --poster-accent-contrast: {{ poster_accent_contrast|default:'#FFFFFF' }};">
-    <main class="max-w-7xl mx-auto px-6 py-12">
+  <div id="media-detail-root" class="min-h-screen relative" style="--poster-accent: {{ poster_accent_color|default:'#6F8FFF' }}; --poster-accent-contrast: {{ poster_accent_contrast|default:'#FFFFFF' }};">
+    <main class="max-w-7xl mx-auto px-6 py-12 relative">
       <div style="display: flex; flex-direction: column; gap: 3rem;">
         <div style="display: flex; flex-direction: row; gap: 3rem; align-items: flex-start;">
           {# Left Column - Poster #}
@@ -60,9 +60,3 @@
   <div id="poster-modal-container"></div>
   <div id="log-modal-container"></div>
 {% endblock content %}
-
-
-
-
-
-

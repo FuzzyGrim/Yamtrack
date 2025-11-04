@@ -41,8 +41,7 @@
                   {% endif %}
                   {% if episode.vote_average_out_of_5 %}
                     <span>•</span>
-                    <span class="episode-rating-pill"
-                          style="background-color: var(--poster-accent, #4b5563); color: var(--poster-accent-contrast, #FFFFFF);">
+                    <span class="episode-rating-pill">
                       {{ episode.vote_average_out_of_5|floatformat:1 }} / 5
                     </span>
                   {% endif %}

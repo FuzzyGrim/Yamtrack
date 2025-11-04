@@ -7,7 +7,6 @@
       {# If logged, show enhanced logged button #}
       <div class="flex">
         <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                 data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -26,7 +25,6 @@
         {# Mark as Watched Button #}
         {% if current_instance and current_instance.status == "Completed" %}
           <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                   hx-post="{% url 'unmark_movie_watched' media.source media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -74,7 +72,6 @@
       {# If logged, show enhanced logged button #}
       <div class="flex">
         <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                 data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -97,15 +94,14 @@
           transition: transform 0.2s ease;
         }
         .book-accent-hover:hover {
-          background: var(--poster-accent) !important;
-          color: var(--poster-accent-contrast, #FFFFFF) !important;
+          background: #ffffff !important;
+          color: #000000 !important;
           box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
           transform: translateY(-1px);
         }
       </style>
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
-             style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
+        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -133,7 +129,6 @@
       {# If completed, show unwatch button #}
       <div class="flex flex-col gap-2">
         <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                 hx-post="{% url 'unmark_tv_watched' media.source media.media_type media.media_id %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
@@ -203,7 +198,6 @@
       {# If logged, show enhanced logged button #}
       <div class="flex">
         <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                 data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -220,8 +214,7 @@
     {% elif current_instance and current_instance.status == "In progress" %}
       {# If in progress, show watching indicator with options #}
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
-             style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
+        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -267,7 +260,6 @@
       <div class="flex flex-col gap-2">
         <div class="flex gap-2">
           <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                   hx-post="{% url 'unmark_season_watched' media.source 'tv' media.media_id media.season_number %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -340,7 +332,6 @@
       {# If logged, show enhanced logged button #}
       <div class="flex">
         <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);"
                 data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -356,9 +347,105 @@
       </div>
     {% elif current_instance and current_instance.status == "In progress" %}
       {# If in progress, show reading indicator with options #}
-      <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
-             style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
+      <script>
+        console.log('[DEBUG] RENDERING BOOK "In progress" SECTION');
+        console.log('[DEBUG] current_instance:', {{ current_instance.id|default:"null" }});
+        console.log('[DEBUG] current_instance.status:', "{{ current_instance.status|default:'none' }}");
+      </script>
+      <style>
+        /* DEBUG: Book accent hover styles */
+        .book-accent-hover {
+          background: transparent !important;
+          color: inherit !important;
+          border: none !important;
+          border-width: 0 !important;
+          outline: none !important;
+          opacity: 1 !important;
+          transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+        .book-accent-hover:hover,
+        .book-accent-hover:focus,
+        .book-accent-hover:focus-visible {
+          background: #ffffff !important;
+          color: #000000 !important;
+          border: none !important;
+          border-width: 0 !important;
+          border-color: transparent !important;
+          outline: none !important;
+          opacity: 1 !important;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+          transform: translateY(-1px) !important;
+        }
+        /* Override any inline styles that might be set by JavaScript */
+        .poster-accent-button.book-accent-hover,
+        .poster-accent-button.book-accent-hover:hover,
+        .poster-accent-button.book-accent-hover:focus,
+        .poster-accent-button.book-accent-hover:focus-visible {
+          border: none !important;
+          border-width: 0 !important;
+          border-color: transparent !important;
+        }
+      </style>
+      <script>
+        // DEBUG: Log when buttons are created
+        console.log('[DEBUG] Book actions template loaded - "In progress" section');
+        
+        // Force the fix-poster-colors script to re-run after these buttons are created
+        function notifyButtonsCreated() {
+          const bookButtons = document.querySelectorAll('.book-accent-hover');
+          console.log(`[DEBUG] Found ${bookButtons.length} elements with .book-accent-hover class`);
+          
+          if (bookButtons.length > 0) {
+            // Trigger the fix-poster-colors script to run
+            if (window.forceWhiteColors) {
+              window.forceWhiteColors();
+            } else {
+              // Dispatch a custom event that the script can listen for
+              document.dispatchEvent(new CustomEvent('bookButtonsCreated'));
+            }
+            
+            bookButtons.forEach((btn, i) => {
+              const classes = Array.from(btn.classList).join(', ');
+              const styles = window.getComputedStyle(btn);
+              console.log(`[DEBUG] Button ${i}:`, {
+                classes,
+                border: styles.border,
+                borderWidth: styles.borderWidth,
+                borderColor: styles.borderColor,
+                backgroundColor: styles.backgroundColor,
+                color: styles.color,
+                hasInlineBorder: btn.style.border || btn.style.borderColor || btn.style.borderWidth
+              });
+            });
+            
+            // Monitor hover events
+            bookButtons.forEach((btn, i) => {
+              btn.addEventListener('mouseenter', function() {
+                const styles = window.getComputedStyle(this);
+                console.log(`[DEBUG] HOVER ENTER on button ${i}:`, {
+                  border: styles.border,
+                  borderWidth: styles.borderWidth,
+                  borderColor: styles.borderColor,
+                  backgroundColor: styles.backgroundColor,
+                  color: styles.color,
+                  inlineStyle: this.style.cssText
+                });
+              });
+              btn.addEventListener('mouseleave', function() {
+                console.log(`[DEBUG] HOVER LEAVE on button ${i}`);
+              });
+            });
+          }
+        }
+        
+        // Run immediately and after delays
+        notifyButtonsCreated();
+        setTimeout(notifyButtonsCreated, 100);
+        setTimeout(notifyButtonsCreated, 500);
+        setTimeout(notifyButtonsCreated, 1000);
+      </script>
+      <div class="flex flex-col gap-4">
+        <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
           </svg>
@@ -367,7 +454,7 @@
         
         <div class="flex gap-2">
           {# Log Progress Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg whitespace-nowrap"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 whitespace-nowrap font-medium book-accent-hover"
                   hx-get="{% url 'book_progress_modal' media.source media.media_id %}"
                   hx-target="#log-modal-container"
                   hx-swap="innerHTML"
@@ -380,7 +467,7 @@
 
           {# Mark as Read Button #}
           <button type="button"
-                  class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover"
+                  class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   onclick="loadBookLogModal('{% url 'log_modal' media.source media.media_type media.media_id %}?book_complete=1')"
                   title="Mark this book as completed and log a diary entry">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -398,17 +485,17 @@
               <div class="w-full bg-[#1f2329] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-200">
                 {% if progress.has_percentage %}
                   <div class="w-full h-2 bg-gray-700/60 rounded-full overflow-hidden mb-2">
-                    <div class="h-full" style="width: {{ progress.percentage|floatformat:0 }}%; background-color: var(--poster-accent);"></div>
+                    <div class="h-full bg-gray-400" style="width: {{ progress.percentage|floatformat:0 }}%;"></div>
                   </div>
                 {% endif %}
-                <div class="flex flex-wrap items-center justify-center gap-1 text-center">
+                <div class="text-center">
                   <span>Current progress:</span>
                   {% if progress.has_pages %}
-                    <span>{{ progress.pages }}{% if progress.total_pages %} / {{ progress.total_pages }}{% endif %} pages</span>
+                    <span> {{ progress.pages }}{% if progress.total_pages %} / {{ progress.total_pages }}{% endif %} pages</span>
                   {% endif %}
                   {% if progress.has_percentage %}
                     <span>
-                      {% if progress.has_pages %}({{ progress.percentage|floatformat:0 }}%){% else %}{{ progress.percentage|floatformat:0 }}%{% endif %}
+                      {% if progress.has_pages %} ({{ progress.percentage|floatformat:0 }}%){% else %} {{ progress.percentage|floatformat:0 }}%{% endif %}
                     </span>
                   {% endif %}
                 </div>
@@ -419,9 +506,41 @@
       </div>
     {% elif current_instance and current_instance.status == "Completed" %}
       {# If completed, show completed indicator with options #}
-      <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2"
-             style="background-color: var(--poster-accent) !important; color: var(--poster-accent-contrast, #FFFFFF) !important; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);">
+      <style>
+        /* DEBUG: Book accent hover styles - also for "Completed" section */
+        .book-accent-hover {
+          background: transparent !important;
+          color: inherit !important;
+          border: none !important;
+          border-width: 0 !important;
+          outline: none !important;
+          opacity: 1 !important;
+          transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+        .book-accent-hover:hover,
+        .book-accent-hover:focus,
+        .book-accent-hover:focus-visible {
+          background: #ffffff !important;
+          color: #000000 !important;
+          border: none !important;
+          border-width: 0 !important;
+          border-color: transparent !important;
+          outline: none !important;
+          opacity: 1 !important;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+          transform: translateY(-1px) !important;
+        }
+        .poster-accent-button.book-accent-hover,
+        .poster-accent-button.book-accent-hover:hover,
+        .poster-accent-button.book-accent-hover:focus,
+        .poster-accent-button.book-accent-hover:focus-visible {
+          border: none !important;
+          border-width: 0 !important;
+          border-color: transparent !important;
+        }
+      </style>
+      <div class="flex flex-col gap-4">
+        <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover">
           <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
@@ -430,7 +549,7 @@
         
         <div class="flex gap-2">
           {# Start Reading Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg whitespace-nowrap"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover whitespace-nowrap"
                   hx-post="{% url 'start_reading_book' media.source media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -443,7 +562,7 @@
           </button>
 
           {# Log Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
                   data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                   onclick="fetch(this.dataset.logUrl)
                     .then(response => response.text())
@@ -466,17 +585,17 @@
               <div class="w-full bg-[#1f2329] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-200">
                 {% if progress.has_percentage %}
                   <div class="w-full h-2 bg-gray-700/60 rounded-full overflow-hidden mb-2">
-                    <div class="h-full" style="width: {{ progress.percentage|floatformat:0 }}%; background-color: var(--poster-accent);"></div>
+                    <div class="h-full bg-gray-400" style="width: {{ progress.percentage|floatformat:0 }}%;"></div>
                   </div>
                 {% endif %}
-                <div class="flex flex-wrap items-center justify-center gap-1 text-center">
+                <div class="text-center">
                   <span>Latest progress:</span>
                   {% if progress.has_pages %}
-                    <span>{{ progress.pages }}{% if progress.total_pages %} / {{ progress.total_pages }}{% endif %} pages</span>
+                    <span> {{ progress.pages }}{% if progress.total_pages %} / {{ progress.total_pages }}{% endif %} pages</span>
                   {% endif %}
                   {% if progress.has_percentage %}
                     <span>
-                      {% if progress.has_pages %}({{ progress.percentage|floatformat:0 }}%){% else %}{{ progress.percentage|floatformat:0 }}%{% endif %}
+                      {% if progress.has_pages %} ({{ progress.percentage|floatformat:0 }}%){% else %} {{ progress.percentage|floatformat:0 }}%{% endif %}
                     </span>
                   {% endif %}
                 </div>
@@ -487,9 +606,47 @@
       </div>
     {% else %}
       {# If not started, show mark as read and log buttons #}
+      <script>
+        console.log('[DEBUG] RENDERING BOOK "else" SECTION (not started)');
+        console.log('[DEBUG] current_instance:', {% if current_instance %}{{ current_instance.id }}{% else %}null{% endif %});
+        console.log('[DEBUG] current_instance.status:', "{% if current_instance %}{{ current_instance.status }}{% else %}no instance{% endif %}");
+      </script>
+      <style>
+        /* DEBUG: Book accent hover styles - also for "not started" section */
+        .book-accent-hover {
+          background: transparent !important;
+          color: inherit !important;
+          border: none !important;
+          border-width: 0 !important;
+          outline: none !important;
+          opacity: 1 !important;
+          transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+        .book-accent-hover:hover,
+        .book-accent-hover:focus,
+        .book-accent-hover:focus-visible {
+          background: #ffffff !important;
+          color: #000000 !important;
+          border: none !important;
+          border-width: 0 !important;
+          border-color: transparent !important;
+          outline: none !important;
+          opacity: 1 !important;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+          transform: translateY(-1px) !important;
+        }
+        .poster-accent-button.book-accent-hover,
+        .poster-accent-button.book-accent-hover:hover,
+        .poster-accent-button.book-accent-hover:focus,
+        .poster-accent-button.book-accent-hover:focus-visible {
+          border: none !important;
+          border-width: 0 !important;
+          border-color: transparent !important;
+        }
+      </style>
       <div class="flex gap-2">
         {# Mark as Read Button #}
-        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
                 hx-post="{% url 'mark_book_read' media.source media.media_id %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
@@ -502,7 +659,7 @@
         </button>
 
         {# Log Button #}
-        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
                 data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -519,7 +676,7 @@
       
       {# Start Reading Button - Full width underneath #}
       <div class="mt-2">
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg whitespace-nowrap"
+        <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover whitespace-nowrap"
                 hx-post="{% url 'start_reading_book' media.source media.media_id %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
