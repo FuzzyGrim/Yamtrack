@@ -2,11 +2,11 @@
 
 {# Personal Stats Section - Minimal and clean design #}
 {% if diary_entries %}
-<div class="mt-4 border border-gray-600 rounded-lg p-3">
+<div class="mt-4 bg-white/50 opacity-80 border border-white rounded-lg p-3">
   <div class="space-y-2">
     {# Consumption Count (media-specific label) #}
-    <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md">
-      <span class="text-sm text-gray-300">
+    <div class="flex items-center justify-between py-2 px-3 bg-white/20 rounded-md">
+      <span class="text-sm text-white">
         {% if media.media_type == MediaTypes.BOOK.value %}
           Read
         {% elif media.media_type == MediaTypes.GAME.value %}
@@ -19,8 +19,8 @@
     </div>
 
     {# Last Watched #}
-    <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md">
-      <span class="text-sm text-gray-300">Last</span>
+    <div class="flex items-center justify-between py-2 px-3 bg-white/20 rounded-md">
+      <span class="text-sm text-white">Last</span>
       <span class="text-sm font-medium text-white">{{ diary_entries.0.consumed_at|date:"M d, Y" }}</span>
     </div>
 
@@ -28,8 +28,8 @@
     {% if diary_entries|length > 1 %}
       {% for entry in diary_entries reversed %}
         {% if forloop.first %}
-        <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md">
-          <span class="text-sm text-gray-300">
+        <div class="flex items-center justify-between py-2 px-3 bg-white/20 rounded-md">
+          <span class="text-sm text-white">
             {% if media.media_type == MediaTypes.BOOK.value %}
               First Read
             {% elif media.media_type == MediaTypes.GAME.value %}
@@ -45,12 +45,12 @@
     {% endif %}
 
     {# View All Entries #}
-    <div class="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-md hover:bg-gray-700/50 transition-colors">
+    <div class="flex items-center justify-between py-2 px-3 bg-white/20 rounded-md hover:bg-white/30 transition-colors">
       <a href="{% url 'diary_list' %}?media_type={{ media.media_type }}&item_id={{ diary_entries.0.item.id }}" 
-         class="text-sm text-gray-300 hover:text-white transition-colors">
+         class="text-sm text-white hover:text-white transition-colors">
         View All Entries
       </a>
-      <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
       </svg>
     </div>

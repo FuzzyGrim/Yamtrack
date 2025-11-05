@@ -3,10 +3,43 @@
 {# Action Buttons - New design based on React component #}
 <div class="mt-6">
   {% if media.media_type == MediaTypes.MOVIE.value %}
+    <style>
+      /* Movie accent hover styles - matching book buttons */
+      .book-accent-hover {
+        background: transparent !important;
+        color: inherit !important;
+        border: none !important;
+        border-width: 0 !important;
+        outline: none !important;
+        opacity: 1 !important;
+        transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+      }
+      .book-accent-hover:hover,
+      .book-accent-hover:focus,
+      .book-accent-hover:focus-visible {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: none !important;
+        border-width: 0 !important;
+        border-color: transparent !important;
+        outline: none !important;
+        opacity: 1 !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+        transform: translateY(-1px) !important;
+      }
+      .poster-accent-button.book-accent-hover,
+      .poster-accent-button.book-accent-hover:hover,
+      .poster-accent-button.book-accent-hover:focus,
+      .poster-accent-button.book-accent-hover:focus-visible {
+        border: none !important;
+        border-width: 0 !important;
+        border-color: transparent !important;
+      }
+    </style>
     {% if diary_entries %}
       {# If logged, show enhanced logged button #}
       <div class="flex">
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
                 data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -24,7 +57,7 @@
       <div class="flex gap-2">
         {# Mark as Watched Button #}
         {% if current_instance and current_instance.status == "Completed" %}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
                   hx-post="{% url 'unmark_movie_watched' media.source media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -38,7 +71,7 @@
             Watched
           </button>
         {% else %}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
                   hx-post="{% url 'mark_movie_watched' media.source media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -53,7 +86,7 @@
         {% endif %}
 
         {# Log Button #}
-        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
                 data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -482,10 +515,10 @@
         {% with progress=current_instance.progress_snapshot %}
           {% if progress %}
             {% if progress.has_pages or progress.has_percentage %}
-              <div class="w-full bg-[#1f2329] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-200">
+              <div class="w-full bg-white/50 opacity-80 border border-white rounded-lg px-3 py-2 text-xs text-white">
                 {% if progress.has_percentage %}
-                  <div class="w-full h-2 bg-gray-700/60 rounded-full overflow-hidden mb-2">
-                    <div class="h-full bg-gray-400" style="width: {{ progress.percentage|floatformat:0 }}%;"></div>
+                  <div class="w-full h-2 bg-white/20 rounded-full overflow-hidden mb-2">
+                    <div class="h-full bg-white rounded-full" style="width: {{ progress.percentage|floatformat:0 }}%;"></div>
                   </div>
                 {% endif %}
                 <div class="text-center">
@@ -582,10 +615,10 @@
         {% with progress=current_instance.progress_snapshot %}
           {% if progress %}
             {% if progress.has_pages or progress.has_percentage %}
-              <div class="w-full bg-[#1f2329] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-200">
+              <div class="w-full bg-white/50 opacity-80 border border-white rounded-lg px-3 py-2 text-xs text-white">
                 {% if progress.has_percentage %}
-                  <div class="w-full h-2 bg-gray-700/60 rounded-full overflow-hidden mb-2">
-                    <div class="h-full bg-gray-400" style="width: {{ progress.percentage|floatformat:0 }}%;"></div>
+                  <div class="w-full h-2 bg-white/20 rounded-full overflow-hidden mb-2">
+                    <div class="h-full bg-white rounded-full" style="width: {{ progress.percentage|floatformat:0 }}%;"></div>
                   </div>
                 {% endif %}
                 <div class="text-center">

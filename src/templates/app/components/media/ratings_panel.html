@@ -17,7 +17,7 @@
               {% endif %}
             </span>
           </div>
-          <p class="text-sm text-fuchsia-400">Hardcover</p>
+          <p class="text-sm text-white">Hardcover</p>
           {% if media.score_count %}
             <p class="text-xs text-gray-500">{{ media.score_count|compact_number }} reviews</p>
           {% endif %}
@@ -36,7 +36,7 @@
             <span class="text-2xl font-bold text-gray-500">-</span>
           {% endif %}
         </div>
-        <p class="text-sm text-blue-400">Your Rating</p>
+        <p class="text-sm text-white">Your Rating</p>
         {% if avg_rating %}
           <p class="text-xs text-gray-500">{{ diary_entries|length }} read{{ diary_entries|length|pluralize:"s" }}</p>
         {% else %}
@@ -61,7 +61,7 @@
               <span class="text-2xl font-bold text-gray-500">N/A</span>
             {% endif %}
           </div>
-          <p class="text-sm text-yellow-400">IMDb</p>
+          <p class="text-sm text-white">IMDb</p>
           {% if mdblist_ratings.imdb.votes %}
             <p class="text-xs text-gray-500">{{ mdblist_ratings.imdb.votes|compact_number }} votes</p>
           {% endif %}
@@ -76,7 +76,7 @@
               {{ mdblist_ratings.tomatoes.value }}%
             </span>
           </div>
-          <p class="text-sm text-red-500">Rotten Tomatoes</p>
+          <p class="text-sm text-white">Rotten Tomatoes</p>
           {% if mdblist_ratings.tomatoes.votes %}
             <p class="text-xs text-gray-500">{{ mdblist_ratings.tomatoes.votes }} reviews</p>
           {% endif %}
@@ -95,7 +95,7 @@
               {% endif %}
             </span>
           </div>
-          <p class="text-sm text-blue-400">TMDB</p>
+          <p class="text-sm text-white">TMDB</p>
           {% if media.score_count %}
             <p class="text-xs text-gray-500">{{ media.score_count|compact_number }} votes</p>
           {% endif %}
@@ -114,7 +114,7 @@
               <span class="text-2xl font-bold text-gray-500">N/A</span>
             {% endif %}
           </div>
-          <p class="text-sm text-green-400">Letterboxd</p>
+          <p class="text-sm text-white">Letterboxd</p>
           {% if mdblist_ratings.letterboxd.votes %}
             <p class="text-xs text-gray-500">{{ mdblist_ratings.letterboxd.votes|compact_number }} ratings</p>
           {% endif %}
@@ -134,7 +134,7 @@
             <span class="text-2xl font-bold text-gray-500">-</span>
           {% endif %}
         </div>
-        <p class="text-sm text-blue-400">Your Rating</p>
+        <p class="text-sm text-white">Your Rating</p>
         {% if avg_rating %}
           <p class="text-xs text-gray-500">{{ diary_entries|length }} watch{{ diary_entries|length|pluralize:"es" }}</p>
         {% else %}
@@ -212,7 +212,7 @@
             <span class="text-2xl font-bold text-gray-500">-</span>
           {% endif %}
         </div>
-        <p class="text-sm text-blue-400">Your Rating</p>
+        <p class="text-sm text-white">Your Rating</p>
         {% if avg_rating %}
           <p class="text-xs text-gray-500">{{ diary_entries|length }} watch{{ diary_entries|length|pluralize:"es" }}</p>
         {% else %}
