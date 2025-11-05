@@ -193,6 +193,7 @@
                    :type="showCurrentPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
+                    tabindex="-1"
                     @click="showCurrentPassword = !showCurrentPassword"
                     class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
               <!-- Show when password is hidden -->
@@ -244,6 +245,7 @@
                    :type="showNewPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
+                    tabindex="-1"
                     @click="showNewPassword = !showNewPassword"
                     class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
               <!-- Show when password is hidden -->
@@ -295,6 +297,7 @@
                    :type="showConfirmPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
+                    tabindex="-1"
                     @click="showConfirmPassword = !showConfirmPassword"
                     class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
               <!-- Show when password is hidden -->

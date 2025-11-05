@@ -4,37 +4,111 @@ from datetime import UTC
 
 import requests
 from django.apps import apps
+from django.conf import settings
 from django.utils import timezone
 
 import app
 from app.models import MediaTypes, Sources, Status
+from app.providers import services
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
 logger = logging.getLogger(__name__)
 
 
-def importer(username, user, mode):
+def get_token(request):
+    """View for getting the AniList OAuth2 token."""
+    domain = request.get_host()
+    scheme = request.scheme
+    code = request.GET["code"]
+
+    url = "https://anilist.co/api/v2/oauth/token"
+
+    params = {
+        "client_id": settings.ANILIST_ID,
+        "client_secret": settings.ANILIST_SECRET,
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": f"{scheme}://{domain}/import/anilist/private",
+    }
+
+    try:
+        token_response = app.providers.services.api_request(
+            "ANILIST",
+            "POST",
+            url,
+            params=params,
+        )
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
+            msg = "Invalid Anilist secret key."
+            raise MediaImportError(msg) from error
+        raise
+
+    return {
+        "access_token": token_response["access_token"],
+        "username": get_username_from_oauth(token_response["access_token"]),
+    }
+
+
+def get_username_from_oauth(access_token):
+    """Get AniList username from access token."""
+    query = """
+    query {
+        Viewer {
+            name
+        }
+    }
+    """
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = app.providers.services.api_request(
+            "ANILIST",
+            "POST",
+            "https://graphql.anilist.co",
+            headers=headers,
+            params={"query": query},
+        )
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
+            msg = "Invalid AniList access token."
+            raise MediaImportError(msg) from error
+        raise
+
+    return response["data"]["Viewer"]["name"]
+
+
+def importer(token, user, mode, username):
     """Import anime and manga ratings from Anilist."""
-    anilist_importer = AniListImporter(username, user, mode)
+    anilist_importer = AniListImporter(token, user, mode, username)
     return anilist_importer.import_data()
 
 
 class AniListImporter:
     """Class to handle importing user data from AniList."""
 
-    def __init__(self, username, user, mode):
+    def __init__(self, token, user, mode, username):
         """Initialize the importer with username, user, and mode.
 
         Args:
             username (str): AniList username to import from
+            token (str): Encrypted access token for private imports (optional)
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
         """
         self.username = username
+        self.token = token
         self.user = user
         self.mode = mode
         self.warnings = []
+
+        if self.token is not None:
+            self.token = helpers.decrypt(self.token)
 
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
@@ -126,6 +200,14 @@ class AniListImporter:
         variables = {"userName": self.username}
         url = "https://graphql.anilist.co"
 
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+
         logger.info("Fetching anime and manga from AniList account")
 
         try:
@@ -134,6 +216,7 @@ class AniListImporter:
                 "POST",
                 url,
                 params={"query": query, "variables": variables},
+                headers=headers,
             )
         except requests.exceptions.HTTPError as error:
             error_message = error.response.json()["errors"][0].get("message")

@@ -167,29 +167,57 @@
         </div>
 
         {# AniList #}
-        <div class="bg-[#39404b] p-4 rounded-lg">
+        <div class="bg-[#39404b] p-4 rounded-lg" x-data="{ usePrivateImport: false }">
           <div class="flex items-center mb-3">{% source_display "anilist" %}</div>
           <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
+
+          <div class="mb-3">
+            <label class="flex items-center text-sm text-gray-300">
+              <input type="checkbox" 
+                    x-model="usePrivateImport"
+                    class="mr-2 rounded bg-[#2a2f35] border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0">
+              Import private profile (requires authentication)
+            </label>
+          </div>
+
           <form class="flex items-center"
                 method="post"
-                action="{% url 'import_anilist' %}">
+                x-show="!usePrivateImport"
+                action="{% url 'import_anilist_public' %}">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
+
             <div class="flex w-full">
-              <input placeholder="AniList username"
-                     name="user"
-                     class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                     type="text">
+              <input placeholder="Public AniList username"
+                    name="user"
+                    class="relative w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                    type="text"
+                    required>
               <button type="submit"
                       class="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition-colors text-sm border border-indigo-600 cursor-pointer">
                 Import
               </button>
             </div>
           </form>
+          
+          <form class="flex items-center"
+                method="post"
+                x-show="usePrivateImport"
+                action="{% url 'import_anilist_oauth' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="importFrequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            
+            <button type="submit"
+                  class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700">
+              Connect with AniList & Import
+            </button>
+          </form>
         </div>
-
+        
         {# Kitsu #}
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "kitsu" %}</div>

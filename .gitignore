@@ -7,8 +7,13 @@ src/staticfiles
 src/db/db.sqlite3
 db.sqlite3-shm
 db.sqlite3-wal
+<<<<<<< HEAD
 
 # Media files (user uploads)
 src/media/
 profile_pictures/
 tailwindcss
+||||||| 88e152f7
+=======
+.vscode/launch.json
+>>>>>>> upstream-dev

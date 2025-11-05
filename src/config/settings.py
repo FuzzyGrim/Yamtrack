@@ -382,7 +382,9 @@ IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
 STEAM_API_KEY = config(
     "STEAM_API_KEY",
-    default=secret("STEAM_API_KEY_FILE", ""), # Generate default key https://steamcommunity.com/dev/apikey
+    default=secret(
+        "STEAM_API_KEY_FILE", "",
+    ),  # Generate default key https://steamcommunity.com/dev/apikey
 )
 
 HARDCOVER_API = config(
@@ -420,6 +422,22 @@ TRAKT_API_SECRET = config(
     "TRAKT_API_SECRET",
     default=secret(
         "TRAKT_API_SECRET_FILE",
+        "",
+    ),
+)
+
+ANILIST_ID = config(
+    "ANILIST_ID",
+    default=secret(
+        "ANILIST_ID_FILE",
+        "",
+    ),
+)
+
+ANILIST_SECRET = config(
+    "ANILIST_SECRET",
+    default=secret(
+        "ANILIST_SECRET_FILE",
         "",
     ),
 )
