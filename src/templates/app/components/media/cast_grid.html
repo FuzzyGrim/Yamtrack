@@ -1,17 +1,21 @@
 {% load app_tags %}
 
 {# Cast list with optional crew toggle #}
-{% if media.cast or media.crew %}
-  <div x-data="{ tab: '{{ media.cast|length|yesno:"cast,crew" }}' }" x-cloak class="space-y-4">
+{% if media.cast or media.crew or media.media_type == 'movie' or media.media_type == 'tv' %}
+  <div x-data="{ tab: '{% if media.cast %}cast{% elif media.crew %}crew{% elif media.media_type == 'movie' or media.media_type == 'tv' %}details{% else %}cast{% endif %}' }" x-cloak class="space-y-4">
     <h2 class="text-xl font-semibold">
-      <button type="button"
-              class="transition-colors"
-              :class="tab === 'cast' ? 'text-white' : 'text-gray-500 hover:text-white'"
-              @click="tab = 'cast'">
-        Cast
-      </button>
+      {% if media.cast %}
+        <button type="button"
+                class="transition-colors"
+                :class="tab === 'cast' ? 'text-white' : 'text-gray-500 hover:text-white'"
+                @click="tab = 'cast'">
+          Cast
+        </button>
+      {% endif %}
       {% if media.crew %}
-        <span class="mx-2 text-gray-600">/</span>
+        {% if media.cast %}
+          <span class="mx-2 text-gray-600">/</span>
+        {% endif %}
         <button type="button"
                 class="transition-colors"
                 :class="tab === 'crew' ? 'text-white' : 'text-gray-500 hover:text-white'"
@@ -19,57 +23,77 @@
           Crew
         </button>
       {% endif %}
+      {% if media.media_type == 'movie' or media.media_type == 'tv' %}
+        {% if media.cast or media.crew %}
+          <span class="mx-2 text-gray-600">/</span>
+        {% endif %}
+        <button type="button"
+                class="transition-colors"
+                :class="tab === 'details' ? 'text-white' : 'text-gray-500 hover:text-white'"
+                @click="tab = 'details'">
+          Details
+        </button>
+      {% endif %}
     </h2>
 
-    <div class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));">
-      {% for actor in media.cast|slice:":15" %}
-        <div x-show="tab === 'cast'"
-             class="cast-chip"
-             tabindex="0">
-          <span class="cast-name">{{ actor.name }}</span>
-          {% if actor.character %}
-            <span class="cast-role">as {{ actor.character }}</span>
-          {% endif %}
-        </div>
-      {% endfor %}
-
-      {% if media.crew %}
-        {% for crew_member in media.crew|slice:":15" %}
-          <div x-show="tab === 'crew'"
-               class="cast-chip crew-chip"
-               x-data="{ open: false }"
-               @click.stop="open = !open"
-               @keyup.enter.stop="open = !open"
-               @keyup.space.stop.prevent="open = !open"
-               @click.outside="open = false"
-               tabindex="0"
-               role="button"
-               :aria-expanded="open">
-            <div class="crew-content">
-              <span class="cast-name">{{ crew_member.name }}</span>
-              {% if crew_member.roles %}
-                <span class="cast-role">{{ crew_member.roles.0 }}</span>
-                {% if crew_member.roles|length > 1 %}
-                  <span class="cast-more">+{{ crew_member.roles|length|add:"-1" }}</span>
-                {% endif %}
-              {% endif %}
-            </div>
-            {% if crew_member.roles|length > 1 %}
-              <div x-show="open"
-                   x-transition
-                   class="crew-popover">
-                <strong class="block text-xs uppercase tracking-wide text-gray-300 mb-1">Roles</strong>
-                <ul class="text-sm text-gray-100 space-y-1">
-                  {% for role in crew_member.roles %}
-                    <li>{{ role }}</li>
-                  {% endfor %}
-                </ul>
-              </div>
+    {% if media.cast or media.crew %}
+      <div class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));">
+        {% for actor in media.cast|slice:":15" %}
+          <div x-show="tab === 'cast'"
+               class="cast-chip"
+               tabindex="0">
+            <span class="cast-name">{{ actor.name }}</span>
+            {% if actor.character %}
+              <span class="cast-role">as {{ actor.character }}</span>
             {% endif %}
           </div>
         {% endfor %}
-      {% endif %}
-    </div>
+
+        {% if media.crew %}
+          {% for crew_member in media.crew|slice:":15" %}
+            <div x-show="tab === 'crew'"
+                 class="cast-chip crew-chip"
+                 x-data="{ open: false }"
+                 @click.stop="open = !open"
+                 @keyup.enter.stop="open = !open"
+                 @keyup.space.stop.prevent="open = !open"
+                 @click.outside="open = false"
+                 tabindex="0"
+                 role="button"
+                 :aria-expanded="open">
+              <div class="crew-content">
+                <span class="cast-name">{{ crew_member.name }}</span>
+                {% if crew_member.roles %}
+                  <span class="cast-role">{{ crew_member.roles.0 }}</span>
+                  {% if crew_member.roles|length > 1 %}
+                    <span class="cast-more">+{{ crew_member.roles|length|add:"-1" }}</span>
+                  {% endif %}
+                {% endif %}
+              </div>
+              {% if crew_member.roles|length > 1 %}
+                <div x-show="open"
+                     x-transition
+                     class="crew-popover">
+                  <strong class="block text-xs uppercase tracking-wide text-gray-300 mb-1">Roles</strong>
+                  <ul class="text-sm text-gray-100 space-y-1">
+                    {% for role in crew_member.roles %}
+                      <li>{{ role }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# Details tab content for movies and TV shows #}
+    {% if media.media_type == 'movie' or media.media_type == 'tv' %}
+      <div x-show="tab === 'details'">
+        {% include "app/components/media/details.html" %}
+      </div>
+    {% endif %}
   </div>
 {% endif %}
 

@@ -275,7 +275,7 @@ def game(media_id):
         data = (
             "fields name,cover.image_id,artworks.image_id,"
             "url,summary,game_type,first_release_date,total_rating,total_rating_count,"
-            "genres.name,themes.name,platforms.name,involved_companies.company.name,"
+            "genres.name,themes.name,platforms.name,involved_companies.company.name,involved_companies.developer,"
             "parent_game.name,parent_game.cover.image_id,"
             "remasters.name,remasters.cover.image_id,"
             "remakes.name,remakes.cover.image_id,"
@@ -330,6 +330,7 @@ def game(media_id):
                 "themes": get_list(response, "themes"),
                 "platforms": get_list(response, "platforms"),
                 "companies": get_companies(response),
+                "developer": get_developer(response),
             },
             "related": {
                 "parent_game": get_parent(response.get("parent_game")),
@@ -411,6 +412,23 @@ def get_companies(response):
             company["company"]["name"] for company in response["involved_companies"]
         )
     except KeyError:
+        return None
+
+
+def get_developer(response):
+    """Return the primary developer(s) of the game."""
+    # when no companies, involved_companies is not present in the response
+    try:
+        developers = [
+            company["company"]["name"]
+            for company in response.get("involved_companies", [])
+            if company.get("developer", False)
+        ]
+        if developers:
+            # Return first developer, or join multiple with comma
+            return developers[0] if len(developers) == 1 else ", ".join(developers)
+        return None
+    except (KeyError, TypeError):
         return None
 
 

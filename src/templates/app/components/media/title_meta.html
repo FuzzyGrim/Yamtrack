@@ -79,6 +79,18 @@
           <span>{{ media.details.number_of_pages }} pages</span>
         </div>
       {% endif %}
+    {% elif media.media_type == MediaTypes.GAME.value %}
+      {% if media.details.developer %}
+        <div class="flex items-center gap-2">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h12"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 16h12"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 20h12"></path>
+          </svg>
+          <span>Developed by {{ media.details.developer }}</span>
+        </div>
+      {% endif %}
     {% else %}
       {% if media.details.director or media.details.creator %}
         <div class="flex items-center gap-2">

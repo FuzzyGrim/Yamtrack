@@ -516,6 +516,14 @@ def get_item(dictionary, key):
     return dictionary.get(key)
 
 
+@register.filter
+def split_string(value, delimiter):
+    """Split a string by delimiter and return a list."""
+    if not value:
+        return []
+    return value.split(delimiter)
+
+
 @register.simple_tag
 def get_user_poster_image(item, user):
     """Get the user's preferred poster image for an item.

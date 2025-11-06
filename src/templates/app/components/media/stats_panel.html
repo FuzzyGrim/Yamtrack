@@ -2,65 +2,82 @@
 {% load humanize %}
 
 {# Stats Panel - New design based on React component #}
-  <div class="p-6 bg-111111 rounded-lg">
-  <div class="flex justify-between gap-6">
-    <div class="text-center">
-      <div class="inline-flex items-center justify-center gap-1 mb-2">
-        <span class="text-2xl font-bold">
-          {% if media.score is not None %}
-            {{ media.score|to_five_scale|floatformat:1 }}
-          {% else %}
-            N/A
-          {% endif %}
-        </span>
-      </div>
-      <p class="text-sm text-gray-400">Average Rating</p>
-    </div>
-    <div class="text-center">
-      <div class="text-2xl font-bold mb-2">
-        {% if media.score_count is not None %}
-          {{ media.score_count|compact_number }}
-        {% else %}
-          0
+<div class="p-6 bg-111111 rounded-lg">
+  <div class="flex justify-between items-center">
+    {# Left side - External ratings/stats #}
+    <div class="flex gap-8">
+      <div class="text-left">
+        <div class="flex items-center gap-1 mb-1">
+          <span class="text-2xl font-bold text-white">
+            {% if media.score is not None %}
+              {{ media.score|to_five_scale|floatformat:1 }}
+            {% else %}
+              N/A
+            {% endif %}
+          </span>
+        </div>
+        <p class="text-sm text-white">IGDB</p>
+        {% if media.score_count %}
+          <p class="text-xs text-gray-500">{{ media.score_count|compact_number }} reviews</p>
         {% endif %}
       </div>
-      <p class="text-sm text-gray-400">Reviews</p>
+      {% if media.media_type != 'game' %}
+      <div class="text-left">
+        <div class="text-2xl font-bold mb-1 text-white">
+          {% if media.media_type == 'movie' %}
+            {% if media.revenue %}
+              {{ media.revenue|money_compact }}
+            {% else %}
+              -
+            {% endif %}
+          {% elif media.media_type == 'tv' or media.media_type == 'season' %}
+            {% if media.media_type == 'season' and media.details.episodes %}
+              {{ media.details.episodes }}
+            {% elif media.details.episodes %}
+              {{ media.details.episodes }}
+            {% else %}
+              -
+            {% endif %}
+          {% elif media.media_type == 'book' %}
+            {% if media.details.number_of_pages %}
+              {{ media.details.number_of_pages|intcomma }}
+            {% else %}
+              -
+            {% endif %}
+          {% endif %}
+        </div>
+        <p class="text-sm text-white">
+          {% if media.media_type == 'tv' or media.media_type == 'season' %}
+            Episodes
+          {% elif media.media_type == 'book' %}
+            Pages
+          {% elif media.media_type == 'movie' %}
+            Box Office
+          {% endif %}
+        </p>
+      </div>
+      {% endif %}
     </div>
-    <div class="text-center">
-      <div class="text-2xl font-bold mb-2">
-        {% if media.media_type == 'movie' %}
-          {% if media.revenue %}
-            {{ media.revenue|money_compact }}
+
+    {# Right side - User rating (for games) #}
+    {% if media.media_type == 'game' %}
+      <div class="text-right">
+        <div class="flex items-center justify-end gap-1 mb-1">
+          {% if current_instance and current_instance.score is not None %}
+            <span class="text-2xl font-bold text-white">
+              {{ current_instance.score|floatformat:1 }}
+            </span>
           {% else %}
-            -
+            <span class="text-2xl font-bold text-gray-500">-</span>
           {% endif %}
-        {% elif media.media_type == 'tv' or media.media_type == 'season' %}
-          {% if media.media_type == 'season' and media.details.episodes %}
-            {{ media.details.episodes }}
-          {% elif media.details.episodes %}
-            {{ media.details.episodes }}
-          {% else %}
-            -
-          {% endif %}
-        {% elif media.media_type == 'book' %}
-          {% if media.details.number_of_pages %}
-            {{ media.details.number_of_pages|intcomma }}
-          {% else %}
-            -
-          {% endif %}
+        </div>
+        <p class="text-sm text-white">Your Rating</p>
+        {% if current_instance and current_instance.score is not None %}
+          <p class="text-xs text-gray-500">Rated</p>
         {% else %}
-          -
+          <p class="text-xs text-gray-500">Not rated</p>
         {% endif %}
       </div>
-      <p class="text-sm text-gray-400">
-        {% if media.media_type == 'tv' or media.media_type == 'season' %}
-          Episodes
-        {% elif media.media_type == 'book' %}
-          Pages
-        {% else %}
-          Box Office
-        {% endif %}
-      </p>
-    </div>
+    {% endif %}
   </div>
 </div>
