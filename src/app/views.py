@@ -228,9 +228,9 @@ def media_details(request, source, media_type, media_id, title):
     )
     current_instance = user_medias[0] if user_medias else None
 
-    # Get diary entries for this media (movies, TV, and books)
+    # Get diary entries for this media (movies, TV, books, and games)
     diary_entries = []
-    if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.BOOK.value]:
+    if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.BOOK.value, MediaTypes.GAME.value]:
         try:
             item = Item.objects.get(source=source, media_type=media_type, media_id=media_id)
             diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).prefetch_related('tags').order_by('-consumed_at')
@@ -1714,8 +1714,9 @@ def log_modal(request, source, media_type, media_id, season_number=None):
         MediaTypes.TV.value,
         MediaTypes.SEASON.value,
         MediaTypes.BOOK.value,
+        MediaTypes.GAME.value,
     ]:
-        raise Http404("Logging is only available for movies, TV shows, seasons, and books")
+        raise Http404("Logging is only available for movies, TV shows, seasons, books, and games")
         
     # Get or create the item - fetch metadata if it doesn't exist
     try:
@@ -1866,6 +1867,109 @@ def unmark_movie_watched(request, source, media_id):
         
     except (Item.DoesNotExist, Movie.DoesNotExist):
         # If the item or media instance doesn't exist, return the unwatched state
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": None,
+        }
+        return render(request, "app/components/media_actions.html", context)
+
+
+@require_POST
+def mark_game_completed(request, source, media_id):
+    """Mark a game as completed by creating a tracking instance and marking it as consumed."""
+    media_type = MediaTypes.GAME.value
+        
+    # Get or create the item
+    metadata = services.get_media_metadata(media_type, media_id, source)
+    item, _ = Item.objects.get_or_create(
+        media_id=media_id,
+        source=source,
+        media_type=media_type,
+        defaults={
+            "title": metadata["title"],
+            "image": metadata["image"],
+        },
+    )
+    
+    # Get or create the media instance
+    from app.models import Game
+    media_instance, created = Game.objects.get_or_create(
+        item=item,
+        user=request.user,
+        defaults={
+            "status": Status.COMPLETED.value,
+        }
+    )
+    
+    if not created:
+        # If it already exists, mark it as consumed
+        media_instance.mark_consumed()
+    
+    # Get diary entries for this media
+    diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+    
+    # Return updated action buttons for HTMX to swap  
+    # Add required fields to metadata for template compatibility
+    metadata["media_type"] = media_type
+    metadata["source"] = source
+    metadata["media_id"] = media_id
+    context = {
+        "media": metadata,
+        "media_type": media_type,
+        "current_instance": media_instance,
+        "diary_entries": diary_entries,
+    }
+    return render(request, "app/components/media_actions.html", context)
+
+
+@require_POST
+def unmark_game_completed(request, source, media_id):
+    """Unmark a game as completed by removing the tracking instance."""
+    media_type = MediaTypes.GAME.value
+        
+    try:
+        # Get the item
+        item = Item.objects.get(
+            media_id=media_id,
+            source=source,
+            media_type=media_type
+        )
+        
+        # Get the media instance
+        from app.models import Game
+        media_instance = Game.objects.get(
+            item=item,
+            user=request.user
+        )
+        
+        # Delete the media instance to "uncomplete" it
+        media_instance.delete()
+        
+        # Get metadata for template
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": None,  # No instance after uncompleting
+            "diary_entries": diary_entries,
+        }
+        return render(request, "app/components/media_actions.html", context)
+        
+    except (Item.DoesNotExist, Game.DoesNotExist):
+        # If the item or media instance doesn't exist, return the uncompleted state
         metadata = services.get_media_metadata(media_type, media_id, source)
         metadata["media_type"] = media_type
         metadata["source"] = source
@@ -2565,8 +2669,9 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
             MediaTypes.TV.value,
             MediaTypes.SEASON.value,
             MediaTypes.BOOK.value,
+            MediaTypes.GAME.value,
         ]:
-            raise Http404("Diary entries are only available for movies, TV shows, seasons, and books")
+            raise Http404("Diary entries are only available for movies, TV shows, seasons, books, and games")
             
         logger.info(f"Creating diary entry for {media_type} {media_id} from {source}")
         logger.info(f"POST data: {dict(request.POST)}")
@@ -2811,6 +2916,35 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
                 book_instance.completion_diary_entry = entry
                 book_instance.completed_manually = False
                 book_instance.save(update_fields=['completion_diary_entry', 'completed_manually'])
+
+        if media_type == MediaTypes.GAME.value and auto_mark_consumed:
+            completion_datetime = consumed_at or timezone.now()
+            from decimal import Decimal
+            from app.models import Game
+
+            game_defaults = {
+                "status": Status.COMPLETED.value,
+                "end_date": completion_datetime,
+            }
+            game_instance, created_game = Game.objects.get_or_create(
+                item=item,
+                user=request.user,
+                defaults=game_defaults,
+            )
+            logger.info(f"Game instance {'created' if created_game else 'found'}: {game_instance}")
+
+            game_instance.status = Status.COMPLETED.value
+            if not game_instance.start_date:
+                game_instance.start_date = completion_datetime
+            game_instance.end_date = completion_datetime
+
+            if rating is not None:
+                game_instance.score = Decimal(str(rating))
+            if review:
+                game_instance.notes = review
+
+            game_instance.save(update_fields=["status", "end_date", "score", "notes"])
+            logger.info(f"Game {game_instance} marked as completed for diary entry")
 
         # Return success response
         return JsonResponse({"success": True, "entry_id": entry.id})

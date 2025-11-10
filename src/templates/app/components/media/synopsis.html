@@ -9,8 +9,8 @@
     <p class="text-gray-400 leading-relaxed text-pretty italic">No synopsis available.</p>
   {% endif %}
   
-  {# User Notes #}
-  {% if current_instance.notes %}
+  {# User Notes - Don't show for games, they use reviews_feed instead #}
+  {% if current_instance.notes and media.media_type != MediaTypes.GAME.value %}
     <div class="mt-6 p-4 bg-muted/20 rounded-lg border-l-4 border-primary">
       <h3 class="text-sm font-semibold text-primary mb-2">Your Notes</h3>
       <p class="text-sm text-muted-foreground">{{ current_instance.notes|linebreaksbr|safe }}</p>

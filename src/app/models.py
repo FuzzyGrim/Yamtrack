@@ -2005,6 +2005,7 @@ class DiaryEntry(models.Model):
                 MediaTypes.TV.value,
                 MediaTypes.SEASON.value,
                 MediaTypes.BOOK.value,
+                MediaTypes.GAME.value,
             ]
         },
     )
@@ -2039,15 +2040,16 @@ class DiaryEntry(models.Model):
         return f"{self.user.username}'s entry for {self.item} on {self.consumed_at}"
 
     def clean(self):
-        """Validate that the item is a movie or TV show."""
+        """Validate that the item is a movie, TV show, season, book, or game."""
         if self.item.media_type not in [
             MediaTypes.MOVIE.value,
             MediaTypes.TV.value,
             MediaTypes.SEASON.value,
             MediaTypes.BOOK.value,
+            MediaTypes.GAME.value,
         ]:
             raise ValidationError(
-                "Diary entries can only be created for movies, TV shows, seasons, and books."
+                "Diary entries can only be created for movies, TV shows, seasons, books, and games."
             )
         super().clean()
 

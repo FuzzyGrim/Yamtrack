@@ -74,6 +74,18 @@ def create_diary_entry(
         tags = []
 
     with transaction.atomic():
+        # Get progress snapshot for games
+        progress_snapshot = None
+        if item.media_type == 'game':
+            from app.models import Game
+            game_instance = Game.objects.filter(user=user, item=item).first()
+            if game_instance:
+                # Store playtime in minutes in progress_snapshot
+                progress_snapshot = {
+                    "playtime_minutes": game_instance.progress,
+                    "formatted_playtime": game_instance.formatted_progress,
+                }
+        
         # Create the diary entry
         entry = DiaryEntry.objects.create(
             user=user,
@@ -83,6 +95,7 @@ def create_diary_entry(
             review=review,
             liked=liked,
             is_rewatch=is_rewatch,
+            progress_snapshot=progress_snapshot,
         )
         
         # Add tags to the entry
@@ -104,6 +117,19 @@ def create_diary_entry(
                 )
                 if not created:
                     movie_instance.mark_consumed()
+            elif item.media_type == 'game':
+                # For games, get or create a Game tracking instance
+                from app.models import Game, Status
+                game_instance, created = Game.objects.get_or_create(
+                    item=item,
+                    user=user,
+                    defaults={
+                        "status": Status.COMPLETED.value,
+                        "end_date": consumed_at,
+                    }
+                )
+                if not created:
+                    game_instance.mark_consumed()
             else:
                 # For other media types, try to find existing instance
                 from app.models import BasicMedia

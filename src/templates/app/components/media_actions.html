@@ -723,8 +723,104 @@
       </div>
       <p class="text-xs text-center text-gray-400 mt-2">Start reading to track progress, or mark as completed</p>
     {% endif %}
+  {% elif media.media_type == MediaTypes.GAME.value %}
+    <style>
+      /* Game accent hover styles - matching movie buttons */
+      .book-accent-hover {
+        background: transparent !important;
+        color: inherit !important;
+        border: none !important;
+        border-width: 0 !important;
+        outline: none !important;
+        opacity: 1 !important;
+        transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+      }
+      .book-accent-hover:hover,
+      .book-accent-hover:focus,
+      .book-accent-hover:focus-visible {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: none !important;
+        border-width: 0 !important;
+        border-color: transparent !important;
+        outline: none !important;
+        opacity: 1 !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+        transform: translateY(-1px) !important;
+      }
+      .poster-accent-button.book-accent-hover,
+      .poster-accent-button.book-accent-hover:hover,
+      .poster-accent-button.book-accent-hover:focus,
+      .poster-accent-button.book-accent-hover:focus-visible {
+        border: none !important;
+        border-width: 0 !important;
+        border-color: transparent !important;
+      }
+    </style>
+    {% if diary_entries %}
+      {# If logged, show enhanced logged button #}
+      <div class="flex">
+        <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
+                data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
+                onclick="fetch(this.dataset.logUrl)
+                  .then(response => response.text())
+                  .then(html => {
+                    document.getElementById('log-modal-container').innerHTML = html;
+                  })">
+          <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Logged ({{ diary_entries|length }})
+        </button>
+      </div>
+    {% else %}
+      {# If not logged, show both completed and log buttons #}
+      <div class="flex gap-2">
+        {# Mark as Completed Button #}
+        {% if current_instance and current_instance.status == "Completed" %}
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
+                  hx-post="{% url 'unmark_game_completed' media.source media.media_id %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-target="#media-actions"
+                  hx-swap="innerHTML">
+            <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
+            </svg>
+            Completed
+          </button>
+        {% else %}
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
+                  hx-post="{% url 'mark_game_completed' media.source media.media_id %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-target="#media-actions"
+                  hx-swap="innerHTML">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+            Completed
+          </button>
+        {% endif %}
+
+        {# Log Button #}
+        <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover"
+                data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
+                onclick="fetch(this.dataset.logUrl)
+                  .then(response => response.text())
+                  .then(html => {
+                    document.getElementById('log-modal-container').innerHTML = html;
+                  })">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          Log Game
+        </button>
+      </div>
+    {% endif %}
   {% else %}
-    {# Non-movie media types - show track button #}
+    {# Non-movie/game/book media types - show track button #}
     <button class="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
             hx-get="{% media_view_url 'track_modal' media %}"
             hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id|default:'' }}"}'
@@ -735,8 +831,6 @@
       </svg>
       {% if media.media_type == MediaTypes.BOOK.value or media.media_type == MediaTypes.MANGA.value %}
         Track Reading
-      {% elif media.media_type == MediaTypes.GAME.value %}
-        Track Playing
       {% else %}
         Track Watching
       {% endif %}

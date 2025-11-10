@@ -64,18 +64,18 @@ Add a function to detect and format year-only dates:
 ```python
 def format_release_date(release_date):
     """Format release date from Hardcover API.
-    
+
     Hardcover may return:
     - Full date string (YYYY-MM-DD)
     - Just a year (YYYY)
     - None
-    
+
     If it's just a year, return just the year.
     If it's a full date, return it as-is.
     """
     if not release_date:
         return None
-    
+
     # If it's already a string, check the format
     if isinstance(release_date, str):
         # Check if it's just a year (4 digits)
@@ -89,14 +89,14 @@ def format_release_date(release_date):
                 return year
         # Return the date as-is if it's a proper date
         return release_date
-    
+
     # If it's a date object, format it
     if hasattr(release_date, 'year'):
         # If it's January 1st, it's likely just a year
         if release_date.month == 1 and release_date.day == 1:
             return str(release_date.year)
         return release_date.strftime("%Y-%m-%d")
-    
+
     return str(release_date)
 ```
 
@@ -110,6 +110,7 @@ def format_release_date(release_date):
 ## Testing
 
 After applying the fix:
+
 1. Load several book detail pages from Hardcover
 2. Verify release dates display correctly (not all showing "-01-01")
 3. Verify years are accurate
@@ -120,4 +121,3 @@ After applying the fix:
 - The edition-level `release_date` is more accurate because it represents the actual publication date of that specific edition
 - The book-level `release_date` may represent when the book was added to Hardcover's system or a generic date
 - This fix maintains backward compatibility by falling back to book-level date if edition date is unavailable
-
