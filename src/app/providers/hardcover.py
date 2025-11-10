@@ -119,6 +119,7 @@ def book(media_id):
               edition_format
               isbn_13
               isbn_10
+              release_date
               publisher {
                 name
               }
@@ -140,14 +141,47 @@ def book(media_id):
                 headers={"Authorization": settings.HARDCOVER_API},
             )
         except requests.exceptions.HTTPError as error:
+            logger.error("HTTP error fetching book %s: %s", media_id, error)
             handle_error(error)
 
         if "errors" in response:
-            logger.error("GraphQL errors: %s", response["errors"])
+            logger.error("GraphQL errors for book %s: %s", media_id, response["errors"])
+            logger.error("Full response: %s", response)
+            return None
+        
+        if "data" not in response:
+            logger.error("No 'data' key in response for book %s. Full response: %s", media_id, response)
             return None
 
-        book_data = response["data"]["books_by_pk"]
+        book_data = response["data"].get("books_by_pk")
+        if not book_data:
+            logger.error("No book data returned from Hardcover API for ID %s. Response: %s", media_id, response)
+            return None
+            
+        logger.info("Hardcover book data for ID %s: title=%s, has_default_cover_edition=%s, language=%s", 
+                   media_id, 
+                   book_data.get("title"),
+                   bool(book_data.get("default_cover_edition")),
+                   book_data.get("language"))
+        
         edition_details = get_edition_details(book_data.get("default_cover_edition"))
+        publishers = get_publishers(book_data)
+        isbns = get_isbns_from_book(book_data)
+        
+        # Prefer release_date from default_cover_edition if available, otherwise use book's release_date
+        default_edition = book_data.get("default_cover_edition")
+        edition_release_date = default_edition.get("release_date") if default_edition else None
+        book_release_date = book_data.get("release_date")
+        
+        # Use edition date if available, otherwise fall back to book date
+        raw_release_date = edition_release_date or book_release_date
+        release_date = format_release_date(raw_release_date)
+        
+        logger.info("Raw release_date from Hardcover for book %s: book=%s, edition=%s, using=%s", 
+                   media_id, book_release_date, edition_release_date, raw_release_date)
+        logger.info("Extracted details for book %s: publishers=%s, isbns=%s, release_date=%s", 
+                   media_id, publishers, isbns, release_date)
+        
         recommendations = None
 
         # Try multiple approaches to get recommendations
@@ -300,10 +334,11 @@ def book(media_id):
             "details": {
                 "format": edition_details.get("format"),
                 "number_of_pages": book_data.get("pages"),
-                "publish_date": book_data.get("release_date"),
+                "publish_date": release_date,
+                "release_date": release_date,  # Formatted release date for details display
                 "author": book_data.get("cached_contributors"),
-                "publisher": edition_details.get("publisher"),
-                "isbn": edition_details.get("isbn"),
+                "publishers": publishers,
+                "isbn": isbns,
             },
             "related": {
                 "recommendations": get_recommendations(recommendations),
@@ -313,6 +348,44 @@ def book(media_id):
         cache.set(cache_key, data)
 
     return data
+
+
+def format_release_date(release_date):
+    """Format release date from Hardcover API.
+    
+    Hardcover may return:
+    - Full date string (YYYY-MM-DD)
+    - Just a year (YYYY)
+    - None
+    
+    If it's just a year, return just the year.
+    If it's a full date, return it as-is.
+    """
+    if not release_date:
+        return None
+    
+    # If it's already a string, check the format
+    if isinstance(release_date, str):
+        # Check if it's just a year (4 digits)
+        if len(release_date) == 4 and release_date.isdigit():
+            return release_date
+        # Check if it's a date with January 1st (likely just a year stored as date)
+        if release_date.endswith("-01-01"):
+            year = release_date[:4]
+            if year.isdigit():
+                logger.debug("Release date %s appears to be just a year, returning %s", release_date, year)
+                return year
+        # Return the date as-is if it's a proper date
+        return release_date
+    
+    # If it's a date object, format it
+    if hasattr(release_date, 'year'):
+        # If it's January 1st, it's likely just a year
+        if release_date.month == 1 and release_date.day == 1:
+            return str(release_date.year)
+        return release_date.strftime("%Y-%m-%d")
+    
+    return str(release_date)
 
 
 def get_tags(tags_data):
@@ -349,6 +422,100 @@ def get_edition_details(edition_data):
         "publisher": publisher_name,
         "isbn": isbns if isbns else None,
     }
+
+
+def get_publishers(book_data):
+    """Get list of unique publishers from book data."""
+    publishers = set()
+    
+    # Get publisher from default cover edition
+    default_edition = book_data.get("default_cover_edition")
+    if default_edition and default_edition.get("publisher"):
+        publisher_name = default_edition["publisher"].get("name")
+        if publisher_name:
+            publishers.add(publisher_name)
+    
+    # Note: We're only getting publisher from default_cover_edition for now
+    # If we need publishers from all editions, we'd need a separate query
+    
+    result = list(publishers) if publishers else None
+    logger.debug("Extracted publishers: %s", result)
+    return result
+
+
+def get_languages(book_data):
+    """Get list of languages from book data."""
+    language = book_data.get("language")
+    
+    if not language:
+        logger.debug("No language found in book data")
+        return None
+    
+    # Language might be a string or a list
+    if isinstance(language, list):
+        languages = [lang for lang in language if lang]
+    else:
+        languages = [language] if language else []
+    
+    # Convert language codes to readable names if needed
+    language_names = {
+        "en": "English",
+        "es": "Spanish",
+        "fr": "French",
+        "de": "German",
+        "it": "Italian",
+        "pt": "Portuguese",
+        "ru": "Russian",
+        "ja": "Japanese",
+        "zh": "Chinese",
+        "ar": "Arabic",
+        "hi": "Hindi",
+        "ko": "Korean",
+        "nl": "Dutch",
+        "pl": "Polish",
+        "sv": "Swedish",
+        "no": "Norwegian",
+        "da": "Danish",
+        "fi": "Finnish",
+        "el": "Greek",
+        "he": "Hebrew",
+        "tr": "Turkish",
+        "cs": "Czech",
+        "hu": "Hungarian",
+        "ro": "Romanian",
+    }
+    
+    result = []
+    for lang in languages:
+        # If it's already a readable name, use it
+        if len(lang) > 2 or lang not in language_names:
+            result.append(lang)
+        else:
+            # Convert code to name
+            result.append(language_names.get(lang, lang.upper()))
+    
+    logger.debug("Extracted languages: %s (from %s)", result, language)
+    return result if result else None
+
+
+def get_isbns_from_book(book_data):
+    """Get all ISBNs from book data."""
+    isbns = []
+    
+    # Get ISBNs from default cover edition
+    default_edition = book_data.get("default_cover_edition")
+    if default_edition:
+        if default_edition.get("isbn_13"):
+            isbns.append(default_edition["isbn_13"])
+        if default_edition.get("isbn_10"):
+            isbns.append(default_edition["isbn_10"])
+    
+    # Note: For now we only get ISBNs from default_cover_edition
+    # If we need ISBNs from all editions, we can use the existing get_book_isbns function
+    
+    result = isbns if isbns else None
+    logger.debug("Extracted ISBNs: %s", result)
+    return result
 
 
 def get_recommendations(recommendations_data):

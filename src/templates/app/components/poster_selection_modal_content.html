@@ -14,7 +14,21 @@
         },
         get allPosters() { return JSON.parse(document.getElementById('posters-data').textContent); },
         getLanguageName(code) { return this.languageNames[code] || code?.toUpperCase() || 'Unknown'; },
-        getFilteredPosters() { return this.allPosters; },
+        getFilteredPosters() {
+            {% if is_book or is_game %}
+            // For books and games, always show all covers (no language filtering)
+            return this.allPosters;
+            {% else %}
+            if (this.selectedLanguage === 'all') {
+                return this.allPosters;
+            }
+            return this.allPosters.filter(poster => 
+                this.selectedLanguage === 'none' ? 
+                    (!poster.language || poster.language === null) : 
+                    poster.language === this.selectedLanguage
+            );
+            {% endif %}
+        },
         savePoster() {
             if (this.isSaving) return;
             this.isSaving = true;
@@ -51,7 +65,15 @@
   <div class="p-6 h-full flex flex-col">
     <div class="flex items-center justify-between mb-4 flex-shrink-0">
       <div>
-        <h2 class="text-xl font-semibold text-white">Select Book Cover</h2>
+        <h2 class="text-xl font-semibold text-white">
+          {% if is_book %}
+            Select Book Cover
+          {% elif is_game %}
+            Select Game Cover
+          {% else %}
+            Select Poster
+          {% endif %}
+        </h2>
       </div>
       <button onclick="this.closest('.fixed').remove()" 
               class="text-gray-400 hover:text-white transition-colors">

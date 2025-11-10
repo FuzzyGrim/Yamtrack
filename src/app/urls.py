@@ -113,6 +113,16 @@ urlpatterns = [
         name="poster_selection_modal",
     ),
     path(
+        "game_poster_selection/<source:source>/<str:media_id>",
+        views.game_poster_selection_modal,
+        name="game_poster_selection_modal",
+    ),
+    path(
+        "game_cover_selection/content/<source:source>/<str:media_id>",
+        views.game_cover_selection_content,
+        name="game_cover_selection_content",
+    ),
+    path(
         "book_cover_selection/<source:source>/<str:media_id>",
         views.book_cover_selection_modal,
         name="book_cover_selection_modal",

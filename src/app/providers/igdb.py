@@ -312,6 +312,27 @@ def game(media_id):
                 )
 
         response = response[0]  # response is a list with a single element
+        
+        # Get all related items individually
+        remasters = get_related(response.get("remasters"))
+        remakes = get_related(response.get("remakes"))
+        expansions = get_related(response.get("expansions"))
+        standalone_expansions = get_related(
+            response.get("standalone_expansions"),
+        )
+        expanded_games = get_related(response.get("expanded_games"))
+        recommendations = get_related(response.get("similar_games"))
+        
+        # Combine all related items (excluding parent_game) and limit to 7 total
+        all_related = (
+            remasters
+            + remakes
+            + expansions
+            + standalone_expansions
+            + expanded_games
+            + recommendations
+        )[:7]
+        
         data = {
             "media_id": response["id"],
             "source": Sources.IGDB.value,
@@ -334,14 +355,13 @@ def game(media_id):
             },
             "related": {
                 "parent_game": get_parent(response.get("parent_game")),
-                "remasters": get_related(response.get("remasters")),
-                "remakes": get_related(response.get("remakes")),
-                "expansions": get_related(response.get("expansions")),
-                "standalone_expansions": get_related(
-                    response.get("standalone_expansions"),
-                ),
-                "expanded_games": get_related(response.get("expanded_games")),
-                "recommendations": get_related(response.get("similar_games")),
+                "remasters": remasters,
+                "remakes": remakes,
+                "expansions": expansions,
+                "standalone_expansions": standalone_expansions,
+                "expanded_games": expanded_games,
+                "recommendations": recommendations,
+                "all_related": all_related,
             },
         }
         cache.set(cache_key, data)
@@ -430,6 +450,70 @@ def get_developer(response):
         return None
     except (KeyError, TypeError):
         return None
+
+
+def get_game_covers(media_id):
+    """Get all available cover images for a game from IGDB.
+    
+    Args:
+        media_id: IGDB game ID
+        
+    Returns:
+        List of cover image URLs and metadata
+    """
+    cache_key = f"{Sources.IGDB.value}_game_covers_{media_id}"
+    data = cache.get(cache_key)
+    
+    if data is None:
+        access_token = get_access_token()
+        headers = {
+            "Client-ID": settings.IGDB_ID,
+            "Authorization": f"Bearer {access_token}",
+        }
+        
+        images = []
+        
+        # Get covers
+        try:
+            url = f"{base_url}/covers"
+            covers_data = (
+                f"fields image_id,game;"
+                f"where game = {media_id};"
+            )
+            response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                data=covers_data,
+                headers=headers,
+            )
+            logger.info("IGDB covers response for game %s: %s covers found", media_id, len(response) if response else 0)
+            
+            if response:
+                for cover in response:
+                    image_id = cover.get("image_id")
+                    if image_id:
+                        images.append({
+                            "url": f"https://images.igdb.com/igdb/image/upload/t_original/{image_id}.jpg",
+                            "thumbnail_url": f"https://images.igdb.com/igdb/image/upload/t_cover_big/{image_id}.jpg",
+                            "width": 0,
+                            "height": 0,
+                            "aspect_ratio": 0.667,
+                            "vote_average": 0,
+                            "vote_count": 0,
+                            "language": None,
+                            "image_id": image_id,  # Store image_id for comparison
+                        })
+            else:
+                logger.warning("No covers returned from IGDB for game %s", media_id)
+        except Exception as e:
+            logger.error("Error fetching covers for game %s: %s", media_id, e, exc_info=True)
+        
+        # Cache for 24 hours
+        cache.set(cache_key, images, 86400)
+        data = images
+    
+    return data
 
 
 def get_score(response):

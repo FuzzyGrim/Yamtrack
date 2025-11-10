@@ -20,7 +20,7 @@ from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class, BookProgressForm, BookLogForm, BookStartReadingForm
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie, Episode, Book, BookSession
 
-from app.providers import manual, mdblist, services, tmdb
+from app.providers import igdb, manual, mdblist, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 from app.forms import DiaryEntryForm
@@ -195,6 +195,12 @@ def media_search(request):
 def media_details(request, source, media_type, media_id, title):
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
+    
+    if not media_metadata:
+        logger.error("No metadata returned for %s %s from %s", media_type, media_id, source)
+        # Return a 404 or error page
+        from django.http import Http404
+        raise Http404("Media not found")
 
     poster_accent = None
     accent_item = Item.objects.filter(
@@ -205,10 +211,10 @@ def media_details(request, source, media_type, media_id, title):
     if accent_item:
         poster_accent = compute_and_store_poster_accent(
             accent_item,
-            poster_url=media_metadata.get("image"),
+            poster_url=media_metadata.get("image") if media_metadata else None,
         )
     else:
-        poster_accent = get_poster_accent_from_url(media_metadata.get("image"))
+        poster_accent = get_poster_accent_from_url(media_metadata.get("image") if media_metadata else None)
 
     accent_palette = build_accent_palette(poster_accent)
     poster_accent = accent_palette["accent"]
@@ -1254,6 +1260,146 @@ def poster_selection_modal(request, media_type, media_id, source):
     except Exception as e:
         logger.error("Error in poster selection modal: %s", e)
         return HttpResponseBadRequest("Error loading posters")
+
+
+@require_GET
+def game_poster_selection_modal(request, source, media_id):
+    """Return a fast-loading modal shell; covers load asynchronously."""
+    if source != Sources.IGDB.value:
+        return HttpResponseBadRequest("Poster selection only available for IGDB games")
+        
+    try:
+        # Get or create the item
+        try:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.GAME.value,
+            )
+        except Item.DoesNotExist:
+            # Item doesn't exist, so we need to create it
+            # First get the metadata from IGDB
+            from app.providers import services
+            metadata = services.get_media_metadata(MediaTypes.GAME.value, media_id, source)
+            
+            item = Item.objects.create(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.GAME.value,
+                title=metadata["title"],
+                image=metadata["image"],
+            )
+        
+        context = {
+            "item": item,
+            "source": source,
+            "media_id": media_id,
+        }
+        return render(request, "app/components/poster_selection_modal_shell.html", context)
+    except Exception as e:
+        logger.error("Error preparing game cover modal shell: %s", e)
+        return HttpResponseBadRequest("Error loading game cover modal")
+
+
+@require_GET
+def game_cover_selection_content(request, source, media_id):
+    """Return the heavy content for the game cover modal (covers grid)."""
+    if source != Sources.IGDB.value:
+        return HttpResponseBadRequest("Cover selection only available for IGDB games")
+        
+    try:
+        # Get or create the item
+        try:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.GAME.value,
+            )
+        except Item.DoesNotExist:
+            from app.providers import services
+            metadata = services.get_media_metadata(MediaTypes.GAME.value, media_id, source)
+            item = Item.objects.create(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.GAME.value,
+                title=metadata["title"],
+                image=metadata["image"],
+            )
+        
+        # Get available covers from IGDB
+        igdb_covers = igdb.get_game_covers(media_id)
+        logger.info("Retrieved %s covers from IGDB for game %s", len(igdb_covers) if igdb_covers else 0, media_id)
+        
+        # Extract image_id from the original cover URL for comparison
+        # item.image format: https://images.igdb.com/igdb/image/upload/t_original/{image_id}.jpg
+        original_image_id = None
+        if item.image and "t_original/" in item.image:
+            try:
+                # Extract image_id from URL like: .../t_original/co2lbd.jpg
+                original_image_id = item.image.split("t_original/")[1].replace(".jpg", "")
+            except (IndexError, AttributeError):
+                pass
+        
+        # Create the original cover entry
+        original_cover = {
+            "url": item.image,
+            "thumbnail_url": item.image,
+            "width": 0,
+            "height": 0,
+            "aspect_ratio": 0.667,
+            "vote_average": 0,
+            "vote_count": 0,
+            "language": None,
+            "is_current": True,
+            "is_original": True,
+            "image_id": original_image_id,
+        }
+        
+        # Combine original with IGDB covers, ensuring original is first
+        # Include all covers from IGDB, even if they match the original
+        # (IGDB may only have one cover per game, but we still want to show it)
+        posters = [original_cover]
+        seen_image_ids = {original_image_id} if original_image_id else set()
+        
+        if igdb_covers:
+            logger.info("Processing %s covers from IGDB for game %s", len(igdb_covers), media_id)
+            for cover in igdb_covers:
+                cover_image_id = cover.get("image_id")
+                if cover_image_id:
+                    # Add all covers, but mark if it's the same as original
+                    if cover_image_id in seen_image_ids:
+                        logger.debug("Skipping duplicate cover %s for game %s", cover_image_id, media_id)
+                        continue
+                    seen_image_ids.add(cover_image_id)
+                    # Ensure language is None instead of undefined for consistency
+                    cover_copy = cover.copy()
+                    if cover_copy.get("language") is None:
+                        cover_copy["language"] = None
+                    posters.append(cover_copy)
+                    logger.debug("Added cover %s for game %s", cover_image_id, media_id)
+        else:
+            logger.warning("No covers returned from IGDB for game %s", media_id)
+        
+        logger.info("Total posters for game %s: %s (1 original + %s from IGDB)", media_id, len(posters), len(posters) - 1)
+        
+        # Get current custom poster if exists
+        from app.models import CustomPosterPreference
+        try:
+            current_preference = CustomPosterPreference.objects.get(user=request.user, item=item)
+            current_poster = current_preference.custom_image_url
+        except CustomPosterPreference.DoesNotExist:
+            current_poster = item.image
+        
+        context = {
+            "item": item,
+            "posters": posters,
+            "current_poster": current_poster,
+            "is_game": True,  # Use game template which doesn't filter by language
+        }
+        return render(request, "app/components/poster_selection_modal_content.html", context)
+    except Exception as e:
+        logger.error("Error loading game cover content: %s", e)
+        return HttpResponseBadRequest("Error loading game covers")
 
 
 @require_GET

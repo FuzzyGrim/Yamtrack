@@ -585,9 +585,14 @@ def can_customize_poster(item):
     source = item.source if hasattr(item, 'source') else item.get('source')
     media_type = item.media_type if hasattr(item, 'media_type') else item.get('media_type')
 
-    # Only TMDB movies, TV shows, and seasons can have custom posters
-    return (source == Sources.TMDB.value and 
-            media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value])
+    # TMDB movies, TV shows, and seasons can have custom posters
+    # IGDB games only have one cover per game, so no customization available
+    if source == Sources.TMDB.value:
+        return media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value]
+    # Books can have custom covers (OpenLibrary provides multiple covers)
+    elif source == Sources.OPENLIBRARY.value:
+        return media_type == MediaTypes.BOOK.value
+    return False
 
 
 @register.filter

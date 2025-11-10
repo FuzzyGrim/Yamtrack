@@ -83,4 +83,44 @@
       </div>
     </div>
   {% endif %}
+
+  {# Publishers - Books only #}
+  {% if media.media_type == 'book' and media.details.publishers %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Publisher{{ media.details.publishers|length|pluralize }}:</span>
+      <div class="flex flex-wrap gap-2">
+        {% for publisher in media.details.publishers %}
+          <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+            {{ publisher }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Release Date - Books only #}
+  {% if media.media_type == 'book' and media.details.release_date %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Release Date:</span>
+      <div class="flex flex-wrap gap-2">
+        <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+          {{ media.details.release_date }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ISBN - Books only #}
+  {% if media.media_type == 'book' and media.details.isbn %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">ISBN:</span>
+      <div class="flex flex-wrap gap-2">
+        {% for isbn in media.details.isbn %}
+          <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+            {{ isbn }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 </div>

@@ -3,7 +3,7 @@
 <!-- Instant shell: backdrop and lightweight container; content lazy-loads -->
 <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
   <div id="poster-modal-lazy-root"
-       data-content-url="{% url 'book_cover_selection_content' source media_id %}"
+       data-content-url="{% if item.media_type == MediaTypes.BOOK.value %}{% url 'book_cover_selection_content' source media_id %}{% elif item.media_type == MediaTypes.GAME.value %}{% url 'game_cover_selection_content' source media_id %}{% endif %}"
        @click.stop>
     <!-- Lightweight placeholder while covers load -->
     <div class="bg-[#2a2f35] rounded-lg shadow-xl overflow-hidden relative"
@@ -11,7 +11,13 @@
       <div class="p-6 h-full flex flex-col">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-xl font-semibold text-white">Select Book Cover</h2>
+            <h2 class="text-xl font-semibold text-white">
+              {% if item.media_type == MediaTypes.BOOK.value %}
+                Select Book Cover
+              {% elif item.media_type == MediaTypes.GAME.value %}
+                Select Game Cover
+              {% endif %}
+            </h2>
           </div>
           <button onclick="this.closest('.fixed').remove()" 
                   class="text-gray-400 hover:text-white transition-colors">

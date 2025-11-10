@@ -168,6 +168,24 @@ async def async_book(media_id):
         )
         score, score_count = await ratings_task
 
+        # Extract details with debugging
+        publishers = get_publishers(response_book)
+        languages = get_languages(response_book, response_work)
+        isbns = get_isbns(response_book)
+        
+        logger.info("OpenLibrary book data for ID %s: %s", media_id, {
+            "title": response_book.get("title"),
+            "has_publishers_in_response": "publishers" in response_book,
+            "publishers_value": response_book.get("publishers"),
+            "has_languages_in_book": "languages" in response_book,
+            "has_languages_in_work": "languages" in response_work,
+            "languages_book": response_book.get("languages"),
+            "languages_work": response_work.get("languages"),
+        })
+        
+        logger.info("Extracted details for OpenLibrary book %s: publishers=%s, languages=%s, isbns=%s", 
+                   media_id, publishers, languages, isbns)
+
         data = {
             "media_id": media_id,
             "source": Sources.OPENLIBRARY.value,
@@ -184,9 +202,11 @@ async def async_book(media_id):
                 "physical_format": get_physical_format(response_book),
                 "number_of_pages": response_book.get("number_of_pages"),
                 "publish_date": get_publish_date(response_book),
+                "release_date": get_publish_date(response_book),  # Add release_date for details display
                 "author": await authors_task,
-                "publishers": get_publishers(response_book),
-                "isbn": get_isbns(response_book),
+                "publishers": publishers,
+                "isbn": isbns,
+                "languages": languages,
             },
             "related": {
                 "other_editions": await editions_task,
@@ -297,8 +317,14 @@ def get_subjects(response):
 
 def get_publishers(response):
     """Get list of publishers."""
-    if "publishers" in response:
-        return response.get("publishers", [])[:5]
+    publishers = response.get("publishers", [])
+    logger.debug("get_publishers: response has 'publishers' key: %s, value: %s", 
+                "publishers" in response, publishers)
+    if publishers:
+        result = publishers[:5]
+        logger.debug("get_publishers: returning %s", result)
+        return result
+    logger.debug("get_publishers: returning None (no publishers found)")
     return None
 
 
@@ -310,6 +336,81 @@ def get_isbns(response):
     if isbns:
         return isbns
     return None
+
+
+def get_languages(response_book, response_work):
+    """Get list of languages from book or work response."""
+    # Try book first, then work
+    languages_book = response_book.get("languages")
+    languages_work = response_work.get("languages")
+    languages = languages_book or languages_work
+    
+    logger.debug("get_languages: book has 'languages': %s, value: %s", 
+                "languages" in response_book, languages_book)
+    logger.debug("get_languages: work has 'languages': %s, value: %s", 
+                "languages" in response_work, languages_work)
+    logger.debug("get_languages: selected languages: %s", languages)
+    
+    if not languages:
+        logger.debug("get_languages: returning None (no languages found)")
+        return None
+    
+    # Ensure it's a list
+    if not isinstance(languages, list):
+        languages = [languages]
+    
+    # Languages can be stored as:
+    # 1. List of dicts with "key" field: [{"key": "/languages/eng"}]
+    # 2. List of strings: ["eng", "spa"]
+    # 3. List of dicts with "code" field
+    
+    language_names = []
+    language_codes = {
+        "eng": "English",
+        "spa": "Spanish",
+        "fre": "French",
+        "ger": "German",
+        "ita": "Italian",
+        "por": "Portuguese",
+        "rus": "Russian",
+        "jpn": "Japanese",
+        "chi": "Chinese",
+        "ara": "Arabic",
+        "hin": "Hindi",
+        "kor": "Korean",
+        "dut": "Dutch",
+        "pol": "Polish",
+        "swe": "Swedish",
+        "nor": "Norwegian",
+        "dan": "Danish",
+        "fin": "Finnish",
+        "gre": "Greek",
+        "heb": "Hebrew",
+        "tur": "Turkish",
+        "cze": "Czech",
+        "hun": "Hungarian",
+        "rum": "Romanian",
+    }
+    
+    for lang in languages:
+        if isinstance(lang, dict):
+            # Extract code from key like "/languages/eng"
+            key = lang.get("key", "")
+            if key:
+                code = key.split("/")[-1] if "/" in key else key
+            else:
+                code = lang.get("code", "")
+        else:
+            code = lang
+        
+        # Convert code to readable name
+        if code in language_codes:
+            language_names.append(language_codes[code])
+        elif code:
+            # If we don't have a mapping, use the code capitalized
+            language_names.append(code.upper())
+    
+    return language_names if language_names else None
 
 
 async def get_editions(response_book, response_work):
