@@ -129,6 +129,15 @@ def process_episodes(season_metadata, episodes_in_db):
             tracked_episodes[episode_number] = []
         tracked_episodes[episode_number].append(ep)
 
+    # Sort each episode's history list to prioritize incomplete with progress
+    for episode_number in tracked_episodes:
+        tracked_episodes[episode_number].sort(
+            key=lambda e: (
+                0 if (not e.end_date and e.progress is not None) else 1,  # Incomplete with progress first
+                -(e.created_at.timestamp() if e.created_at else 0),  # Then newest first
+            )
+        )
+
     episodes_metadata = []
 
     for episode in season_metadata["episodes"]:

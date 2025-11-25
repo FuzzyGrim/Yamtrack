@@ -2,29 +2,18 @@ import logging
 
 from django.apps import apps
 from django.conf import settings
-from django.core.validators import (
-    DecimalValidator,
-    MaxValueValidator,
-    MinValueValidator,
-)
+from django.core.validators import (DecimalValidator, MaxValueValidator,
+                                    MinValueValidator)
 from django.db import models
-from django.db.models import (
-    CheckConstraint,
-    Count,
-    F,
-    IntegerField,
-    Max,
-    Prefetch,
-    Q,
-    UniqueConstraint,
-    Window,
-)
+from django.db.models import (CheckConstraint, Count, F, IntegerField, Max,
+                              Prefetch, Q, UniqueConstraint, Window)
 from django.db.models.functions import Cast, RowNumber
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
 from simple_history.models import HistoricalRecords
-from simple_history.utils import bulk_create_with_history, bulk_update_with_history
+from simple_history.utils import (bulk_create_with_history,
+                                  bulk_update_with_history)
 
 import app
 import events
@@ -527,7 +516,7 @@ class MediaManager(models.Manager):
 
         if media_type == MediaTypes.MOVIE.value:
             for media in media_list:
-                media.max_progress = 1
+                media.max_progress = 100
             return
 
         if media_type == MediaTypes.TV.value:
@@ -1445,6 +1434,7 @@ class Episode(models.Model):
         on_delete=models.CASCADE,
         related_name="episodes",
     )
+    progress = models.PositiveIntegerField(null=True, blank=True, default=None)
     end_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -1527,6 +1517,7 @@ class Anime(Media):
     """Model for anime."""
 
     tracker = FieldTracker()
+    current_episode_progress = models.PositiveIntegerField(null=True, blank=True, default=None)
 
 
 class Movie(Media):

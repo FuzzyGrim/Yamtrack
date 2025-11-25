@@ -153,7 +153,7 @@
             <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
               {# djlint:off #}
               <li>
-                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL: 
+                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
                   <input readonly
                          id="jellyfin-webhook-url"
                          class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
@@ -181,7 +181,7 @@
               {# djlint:on #}
               <li>Payload format: Default</li>
               <li>Listen to events only for: Your Jellyfin User</li>
-              <li>Events: Play and Stop</li>
+              <li>Events: Play, Pause, Resume, Stop, and Progress (optional, for progress tracking)</li>
             </ul>
           </li>
         </ol>
@@ -317,7 +317,7 @@
             <ul class="list-disc list-inside ml-6 mt-2 space-y-2 text-gray-400">
               {# djlint:off #}
               <li>
-                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL: 
+                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
                   <input readonly
                          id="emby-webhook-url"
                          class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
@@ -344,7 +344,7 @@
               </li>
               {# djlint:on #}
               <li>Request content type: multipart/form-data</li>
-              <li>Events: Play and Stop</li>
+              <li>Events: playback.start, playback.pause, playback.unpause, playback.progress (optional, for progress tracking), playback.stop, and playback.scrobble</li>
               <li>Limit user events to: Your Emby User</li>
               <li>"Limit library events to" and "Limit devices events to" are optional</li>
             </ul>

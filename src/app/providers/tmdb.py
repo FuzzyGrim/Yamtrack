@@ -150,7 +150,7 @@ def movie(media_id):
             "source_url": f"https://www.themoviedb.org/movie/{media_id}",
             "media_type": MediaTypes.MOVIE.value,
             "title": response["title"],
-            "max_progress": 1,
+            "max_progress": 100,
             "image": get_image_url(response["poster_path"]),
             "synopsis": get_synopsis(response["overview"]),
             "genres": get_genres(response["genres"]),
@@ -562,12 +562,22 @@ def process_episodes(season_metadata, episodes_in_db):
     episodes_metadata = []
 
     # Convert the queryset to a dictionary for efficient lookups
+    # Sort episodes: incomplete with progress first, then completed, by created_at desc
     tracked_episodes = {}
     for ep in episodes_in_db:
         episode_number = ep.item.episode_number
         if episode_number not in tracked_episodes:
             tracked_episodes[episode_number] = []
         tracked_episodes[episode_number].append(ep)
+    
+    # Sort each episode's history list to prioritize incomplete with progress
+    for episode_number in tracked_episodes:
+        tracked_episodes[episode_number].sort(
+            key=lambda e: (
+                0 if (not e.end_date and e.progress is not None) else 1,  # Incomplete with progress first
+                -(e.created_at.timestamp() if e.created_at else 0),  # Then newest first
+            )
+        )
 
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]

@@ -348,15 +348,17 @@
                 </div>
               {% endif %}
 
-              {% if media_type != MediaTypes.MOVIE.value %}
-                <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Progress:</span>
-                  <span class="text-gray-200">
+              <div class="flex @max-[210px]:flex-col justify-between text-sm">
+                <span class="text-gray-400">Progress:</span>
+                <span class="text-gray-200">
+                  {% if media_type == MediaTypes.MOVIE.value %}
+                    {{ current_instance.progress }}%
+                  {% else %}
                     {{ current_instance.formatted_progress }}
                     {% if current_instance.max_progress %}/ {{ current_instance.max_progress }}{% endif %}
-                  </span>
-                </div>
-              {% endif %}
+                  {% endif %}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -793,8 +795,16 @@
                   </div>
                   {% if episode.history %}
                     <p class="text-xs text-gray-400 mt-2 px-4">
-                      Last watched: {{ episode.history.0.end_date|date_tracker_format|default_if_none:"No date provided" }}
-                      {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
+                      {% comment %}Find incomplete episode with progress first, otherwise show completed episode{% endcomment %}
+                      {% with latest_episode=episode.history.0 %}
+                        {% if latest_episode.end_date %}
+                          Last watched: {{ latest_episode.end_date|date_tracker_format|default_if_none:"No date provided" }}
+                          {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
+                        {% elif latest_episode.progress is not None %}
+                          Progress: {{ latest_episode.progress }}%
+                          {% if latest_episode.created_at %}• Started: {{ latest_episode.created_at|date_tracker_format }}{% endif %}
+                        {% endif %}
+                      {% endwith %}
                     </p>
                   {% endif %}
                 </div>

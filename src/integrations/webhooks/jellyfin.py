@@ -33,7 +33,7 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
         self._process_media(payload, user, ids)
 
     def _is_supported_event(self, event_type):
-        return event_type in ("Play", "Stop")
+        return event_type in ("Play", "Pause", "Resume", "Stop", "Progress")
 
     def _is_played(self, payload):
         return payload["Item"]["UserData"]["Played"]
@@ -66,3 +66,15 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
             "imdb_id": provider_ids.get("Imdb"),
             "tvdb_id": provider_ids.get("Tvdb"),
         }
+
+    def _extract_position_and_runtime(self, payload):
+        """Extract playback position and runtime from Jellyfin payload."""
+        item = payload.get("Item", {})
+        user_data = item.get("UserData", {})
+
+        # Jellyfin webhook plugin may include PlaybackPositionTicks directly in payload
+        # or in Item.UserData.PlaybackPositionTicks
+        position_ticks = payload.get("PlaybackPositionTicks") or user_data.get("PlaybackPositionTicks")
+        runtime_ticks = item.get("RunTimeTicks")
+
+        return position_ticks, runtime_ticks

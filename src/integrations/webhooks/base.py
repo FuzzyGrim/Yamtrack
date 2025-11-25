@@ -224,6 +224,30 @@ class BaseWebhookProcessor:
             return mal_id.split(",")[0].strip()
         return mal_id
 
+    def _extract_position_and_runtime(self, payload):
+        """Extract playback position and runtime from payload.
+
+        Returns tuple of (position_ticks, runtime_ticks) or (None, None) if not found.
+        Must be implemented by subclasses to handle different payload structures.
+        """
+        raise NotImplementedError
+
+    def _calculate_progress_percent(self, position_ticks, runtime_ticks):
+        """Calculate progress percentage from position and runtime ticks.
+
+        Args:
+            position_ticks: Current playback position in ticks
+            runtime_ticks: Total runtime in ticks
+
+        Returns:
+            Integer percentage (0-100) or None if calculation not possible
+        """
+        if not position_ticks or not runtime_ticks or runtime_ticks == 0:
+            return None
+
+        percent = min(100, round((position_ticks / runtime_ticks) * 100))
+        return int(percent)
+
     def _handle_movie(self, media_id, payload, user):
         """Handle movie playback event."""
         movie_metadata = app.providers.tmdb.movie(media_id)
@@ -241,15 +265,27 @@ class BaseWebhookProcessor:
         current_instance = movie_instances.first()
         movie_played = self._is_played(payload)
 
-        progress = 1 if movie_played else 0
+        # Extract progress percentage from payload
+        position_ticks, runtime_ticks = self._extract_position_and_runtime(payload)
+        progress_percent = self._calculate_progress_percent(position_ticks, runtime_ticks)
+
+        # If explicitly played/scrobbled, mark as complete (100%)
+        if movie_played:
+            progress_percent = 100
+
         now = timezone.now().replace(second=0, microsecond=0)
 
         if current_instance and current_instance.status != Status.COMPLETED.value:
-            current_instance.progress = progress
+            # Update progress if we have a percentage value
+            if progress_percent is not None:
+                current_instance.progress = progress_percent
 
-            if movie_played:
+            # Mark as completed if >= 95% or explicitly played
+            if movie_played or (progress_percent is not None and progress_percent >= 95):
                 current_instance.end_date = now
                 current_instance.status = Status.COMPLETED.value
+                if progress_percent is not None:
+                    current_instance.progress = 100
 
             elif current_instance.status != Status.IN_PROGRESS.value:
                 current_instance.start_date = now
@@ -258,8 +294,9 @@ class BaseWebhookProcessor:
             if current_instance.tracker.changed():
                 current_instance.save()
                 logger.info(
-                    "Updated existing movie instance to status: %s",
+                    "Updated existing movie instance to status: %s, progress: %s%%",
                     current_instance.status,
+                    current_instance.progress,
                 )
             else:
                 logger.debug(
@@ -267,33 +304,30 @@ class BaseWebhookProcessor:
                     current_instance.item,
                 )
         else:
+            # Create new instance
+            is_completed = movie_played or (progress_percent is not None and progress_percent >= 95)
+            initial_progress = 100 if is_completed else (progress_percent if progress_percent is not None else 0)
+
             app.models.Movie.objects.create(
                 item=movie_item,
                 user=user,
-                progress=progress,
-                status=Status.COMPLETED.value
-                if movie_played
-                else Status.IN_PROGRESS.value,
-                start_date=now if not movie_played else None,
-                end_date=now if movie_played else None,
+                progress=initial_progress,
+                status=Status.COMPLETED.value if is_completed else Status.IN_PROGRESS.value,
+                start_date=now if not is_completed else None,
+                end_date=now if is_completed else None,
             )
             logger.info(
-                "Created new movie instance with status: %s",
-                Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value,
+                "Created new movie instance with status: %s, progress: %s%%",
+                Status.COMPLETED.value if is_completed else Status.IN_PROGRESS.value,
+                initial_progress,
             )
 
-    def _handle_tv_episode(
-        self,
-        media_id,
-        season_number,
-        episode_number,
-        payload,
-        user,
-    ):
-        """Handle TV episode playback event."""
-        tv_metadata = app.providers.tmdb.tv_with_seasons(media_id, [season_number])
-        season_metadata = tv_metadata[f"season/{season_number}"]
-
+    def _ensure_tv_instance(self, media_id, tv_metadata, user):
+        """Ensure TV item and instance exist, creating/updating as needed.
+        
+        Returns:
+            tv_instance: The TV instance for the user
+        """
         tv_item, _ = app.models.Item.objects.get_or_create(
             media_id=media_id,
             source=Sources.TMDB.value,
@@ -320,7 +354,15 @@ class BaseWebhookProcessor:
                 Status.IN_PROGRESS.value,
                 tv_metadata["title"],
             )
+        
+        return tv_instance
 
+    def _ensure_season_instance(self, media_id, season_number, tv_metadata, season_metadata, tv_instance, user):
+        """Ensure season item and instance exist, creating/updating as needed.
+        
+        Returns:
+            season_instance: The Season instance for the user
+        """
         season_item, _ = app.models.Item.objects.get_or_create(
             media_id=media_id,
             source=Sources.TMDB.value,
@@ -354,52 +396,142 @@ class BaseWebhookProcessor:
                 tv_metadata["title"],
                 season_number,
             )
+        
+        return season_instance
 
-        episode_item = season_instance.get_episode_item(episode_number, season_metadata)
+    def _should_update_episode(self, latest_episode, episode_played, now):
+        """Determine if episode should be updated based on duplicate detection logic.
+        
+        Returns:
+            bool: True if episode should be updated, False otherwise
+        """
+        if not latest_episode or not latest_episode.end_date:
+            return True
 
-        if self._is_played(payload):
-            now = timezone.now().replace(second=0, microsecond=0)
-            latest_episode = (
-                app.models.Episode.objects.filter(
-                    item=episode_item,
-                    related_season=season_instance,
-                )
-                .order_by("-end_date")
-                .first()
+        # Episode already marked as complete
+        if not episode_played:
+            # Episode complete, don't update progress
+            return False
+
+        # Only update if we got a new play event (to handle duplicates)
+        time_diff = abs((now - latest_episode.end_date).total_seconds())
+        threshold = 5
+        if time_diff < threshold:
+            logger.debug(
+                "Skipping duplicate episode record (time difference: %d seconds)",
+                time_diff,
+            )
+            return False
+
+        return True
+
+    def _update_or_create_episode(
+        self,
+        episode_item,
+        season_instance,
+        latest_episode,
+        progress_percent,
+        episode_played,
+        is_completed,
+        now,
+        tv_title,
+        season_number,
+        episode_number,
+    ):
+        """Update existing episode or create new one based on current state."""
+        if latest_episode and not latest_episode.end_date:
+            # Update existing incomplete episode record
+            if progress_percent is not None:
+                latest_episode.progress = progress_percent
+
+            if is_completed:
+                latest_episode.end_date = now
+                latest_episode.progress = 100
+
+            latest_episode.save()
+            logger.info(
+                "Updated episode progress: %s S%02dE%02d, progress: %s%%, completed: %s",
+                tv_title,
+                season_number,
+                episode_number,
+                latest_episode.progress,
+                is_completed,
+            )
+        else:
+            # Create new episode record
+            app.models.Episode.objects.create(
+                item=episode_item,
+                related_season=season_instance,
+                progress=progress_percent if progress_percent is not None else 0,
+                end_date=now if is_completed else None,
+            )
+            logger.info(
+                "Created episode record: %s S%02dE%02d, progress: %s%%, completed: %s",
+                tv_title,
+                season_number,
+                episode_number,
+                progress_percent if progress_percent is not None else 0,
+                is_completed,
             )
 
-            should_create = True
-            # check for duplicate episode records,
-            # sometimes webhooks are triggered multiple times #689
-            if latest_episode and latest_episode.end_date:
-                time_diff = abs((now - latest_episode.end_date).total_seconds())
-                threshold = 5
-                if time_diff < threshold:
-                    should_create = False
-                    logger.debug(
-                        "Skipping duplicate episode record "
-                        "(time difference: %d seconds): %s S%02dE%02d",
-                        time_diff,
-                        tv_metadata["title"],
-                        season_number,
-                        episode_number,
-                    )
+    def _handle_tv_episode(
+        self,
+        media_id,
+        season_number,
+        episode_number,
+        payload,
+        user,
+    ):
+        """Handle TV episode playback event."""
+        tv_metadata = app.providers.tmdb.tv_with_seasons(media_id, [season_number])
+        season_metadata = tv_metadata[f"season/{season_number}"]
 
-            if should_create:
-                app.models.Episode.objects.create(
-                    item=episode_item,
-                    related_season=season_instance,
-                    end_date=now,
-                )
-                logger.info(
-                    "Marked episode as played: %s S%02dE%02d",
-                    tv_metadata["title"],
-                    season_number,
-                    episode_number,
-                )
+        tv_instance = self._ensure_tv_instance(media_id, tv_metadata, user)
+        season_instance = self._ensure_season_instance(
+            media_id, season_number, tv_metadata, season_metadata, tv_instance, user
+        )
+        episode_item = season_instance.get_episode_item(episode_number, season_metadata)
+
+        # Extract progress percentage from payload
+        position_ticks, runtime_ticks = self._extract_position_and_runtime(payload)
+        progress_percent = self._calculate_progress_percent(position_ticks, runtime_ticks)
+
+        now = timezone.now().replace(second=0, microsecond=0)
+        episode_played = self._is_played(payload)
+
+        # If explicitly played/scrobbled, mark as complete (100%)
+        if episode_played:
+            progress_percent = 100
+
+        # Get latest episode record for duplicate detection
+        latest_episode = (
+            app.models.Episode.objects.filter(
+                item=episode_item,
+                related_season=season_instance,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        should_update = self._should_update_episode(latest_episode, episode_played, now)
+
+        if should_update:
+            is_completed = episode_played or (progress_percent is not None and progress_percent >= 95)
+            self._update_or_create_episode(
+                episode_item,
+                season_instance,
+                latest_episode,
+                progress_percent,
+                episode_played,
+                is_completed,
+                now,
+                tv_metadata["title"],
+                season_number,
+                episode_number,
+            )
         else:
             logger.debug(
-                "Episode not marked as played: %s S%02dE%02d",
+                "Episode not updated: %s S%02dE%02d",
                 tv_metadata["title"],
                 season_number,
                 episode_number,
@@ -421,7 +553,17 @@ class BaseWebhookProcessor:
         anime_instances = app.models.Anime.objects.filter(item=anime_item, user=user)
         current_instance = anime_instances.first()
 
-        if not self._is_played(payload):
+        # Extract progress percentage from payload
+        position_ticks, runtime_ticks = self._extract_position_and_runtime(payload)
+        progress_percent = self._calculate_progress_percent(position_ticks, runtime_ticks)
+
+        episode_played = self._is_played(payload)
+
+        # If explicitly played/scrobbled, mark current episode as complete (100%)
+        if episode_played:
+            progress_percent = 100
+
+        if not episode_played:
             episode_number = max(0, episode_number - 1)
 
         now = timezone.now().replace(second=0, microsecond=0)
@@ -431,9 +573,16 @@ class BaseWebhookProcessor:
         if current_instance and current_instance.status != Status.COMPLETED.value:
             current_instance.progress = episode_number
 
+            # Update current episode progress percentage
+            if progress_percent is not None:
+                current_instance.current_episode_progress = progress_percent
+            elif episode_played:
+                current_instance.current_episode_progress = 100
+
             if is_completed:
                 current_instance.end_date = now
                 current_instance.status = status
+                current_instance.current_episode_progress = 100
 
             elif current_instance.status != Status.IN_PROGRESS.value:
                 current_instance.start_date = now
@@ -442,9 +591,10 @@ class BaseWebhookProcessor:
             if current_instance.tracker.changed():
                 current_instance.save()
                 logger.info(
-                    "Updated existing anime instance to status: %s with progress %d",
+                    "Updated existing anime instance to status: %s with progress %d (episode), current episode: %s%%",
                     current_instance.status,
                     episode_number,
+                    current_instance.current_episode_progress,
                 )
             else:
                 logger.debug(
@@ -452,16 +602,20 @@ class BaseWebhookProcessor:
                     current_instance.item,
                 )
         else:
+            initial_episode_progress = progress_percent if progress_percent is not None else (100 if episode_played else None)
+
             app.models.Anime.objects.create(
                 item=anime_item,
                 user=user,
                 progress=episode_number,
+                current_episode_progress=initial_episode_progress,
                 status=status,
                 start_date=now if not is_completed else None,
                 end_date=now if is_completed else None,
             )
             logger.info(
-                "Created new anime instance with status: %s and progress %d",
+                "Created new anime instance with status: %s, progress %d (episode), current episode: %s%%",
                 status,
                 episode_number,
+                initial_episode_progress,
             )

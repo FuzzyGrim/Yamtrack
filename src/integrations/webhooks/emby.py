@@ -33,9 +33,19 @@ class EmbyWebhookProcessor(BaseWebhookProcessor):
         self._process_media(payload, user, ids)
 
     def _is_supported_event(self, event_type):
-        return event_type in ("playback.start", "playback.stop")
+        return event_type in (
+            "playback.start",
+            "playback.pause",
+            "playback.unpause",
+            "playback.progress",
+            "playback.stop",
+            "playback.scrobble",
+        )
 
     def _is_played(self, payload):
+        # Scrobble events always indicate playback completion
+        if payload.get("Event") == "playback.scrobble":
+            return True
         return payload.get("PlaybackInfo", {}).get("PlayedToCompletion", False) is True
 
     def _get_media_type(self, payload):
@@ -66,3 +76,14 @@ class EmbyWebhookProcessor(BaseWebhookProcessor):
             "imdb_id": provider_ids.get("Imdb"),
             "tvdb_id": provider_ids.get("Tvdb"),
         }
+
+    def _extract_position_and_runtime(self, payload):
+        """Extract playback position and runtime from Emby payload."""
+        item = payload.get("Item", {})
+        playback_info = payload.get("PlaybackInfo", {})
+
+        # Emby uses PlaybackInfo.PlaybackPositionTicks or Item.UserData.PlaybackPositionTicks
+        position_ticks = playback_info.get("PlaybackPositionTicks") or item.get("UserData", {}).get("PlaybackPositionTicks")
+        runtime_ticks = item.get("RunTimeTicks")
+
+        return position_ticks, runtime_ticks
