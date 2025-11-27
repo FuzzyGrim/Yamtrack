@@ -28,6 +28,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 - 🦀 Integration with [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/) and [Emby](https://emby.media/) to automatically track new media watched.
 - 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/) with support for periodic automatic imports.
 - 📊 Export all your tracked media to a CSV file and import it back.
+- 💰 Get current deals and prices for games via [ITAD](https://isthereanydeal.com/).
 
 ## 📱 Screenshots
 
@@ -109,6 +110,8 @@ MAL_API=API_KEY
 IGDB_ID=IGDB_ID
 IGDB_SECRET=IGDB_SECRET
 STEAM_API_KEY=STEAM_API_SECRET
+ITAD_API_KEY=ITAD_API_SECRET
+ITAD_COUNTRY_CODE=ISO_3166_1_ALPHA_2_COUNTRY_CODE
 SECRET=SECRET
 DEBUG=True
 ```

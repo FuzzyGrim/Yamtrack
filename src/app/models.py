@@ -45,6 +45,7 @@ class Sources(models.TextChoices):
     OPENLIBRARY = "openlibrary", "Open Library"
     HARDCOVER = "hardcover", "Hardcover"
     COMICVINE = "comicvine", "Comic Vine"
+    ITAD = "itad", "IsThereAnyDeal"
     MANUAL = "manual", "Manual"
 
 

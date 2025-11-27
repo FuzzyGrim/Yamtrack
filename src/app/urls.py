@@ -36,6 +36,11 @@ urlpatterns = [
         name="sync_metadata",
     ),
     path(
+        "details/price/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.refresh_prices,
+        name="refresh_prices"
+    ),
+    path(
         "track_modal/<source:source>/<media_type:media_type>/<str:media_id>",
         views.track_modal,
         name="track_modal",

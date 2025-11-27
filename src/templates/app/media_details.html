@@ -435,7 +435,7 @@
 
       {# Media Details #}
       <h2 class="text-xl font-bold mb-4">Details</h2>
-      <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
+      <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start mb-6">
         {% if media.details.items %}
           {% for key, value in media.details.items %}
             <div class="mb-4">
@@ -457,6 +457,88 @@
           <div class="text-gray-200">No details available</div>
         {% endif %}
       </div>
+
+      {# Prices #}
+      {% if media.prices %}
+      {# Actions #}
+      <h2 class="text-xl font-bold mb-4">Prices</h2>
+        <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start mb-6">
+          <div class="flex justify-center gap-x-5 md:gap-x-2 lg:gap-x-5 mb-6">
+            {# Deal link #}
+            <a href="https://isthereanydeal.com/game/id:{{media.prices.itad_appid}}/"
+               target="_blank">
+              <button type="button"
+                      title="Go to ITAD website"
+                      class="px-4 py-2 bg-indigo-400 text-white rounded-md hover:bg-indigo-500 transition duration-300 cursor-pointer">
+                      {% include "app/icons/website.svg" with classes="w-4 h-4" %}
+              </button>
+            </a>
+            {# Price refresh #}
+            <button type="button"
+                    title="Sync current prices"
+                    class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer disabled:opacity-75"
+                    hx-post="{% media_view_url 'refresh_prices' media %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-vals='{"next": "{{ request.get_full_path|urlencode }}"}'
+                    hx-target="body"
+                    hx-swap="none"
+                    x-data="{ loading: false }"
+                    @click="loading = true"
+                    :disabled="loading">
+              <div :class="{ 'animate-spin': loading }">
+                {% include "app/icons/circle-spinning-clockwise.svg" with classes="w-4 h-4" %}
+              </div>
+            </button>
+          </div>
+    
+          {% for key, value in media.prices.data.items %}
+          <div class="mb-4">
+            <h3 class="text-sm font-semibold text-gray-400 mb-4">{{ key|no_underscore|upper }}</h3>
+            {% if value|is_list %}
+              {% for item in value %}
+                {% if item.type == "lows" %}
+                  <div class="text-gray-200 grid grid grid-cols-2">
+                    <div class="text-left">{{ item.price.text }}</div>
+                    <div class="text-right">{{item.price.amount}} {{item.price.currency}}</div>
+                  </div>
+                {% else %}
+                <a href={{item.deal.url}} target="_blank">
+                    <div class="rounded-md border-2 border-gray-600 border-solid mb-2 p-2 grid grid-rows-2">
+                      <div>
+                        <span style="float: left" class="text-left">{{item.deal.shop}}</span>
+                        {% if item.deal.drm %}
+                          <div style="float: right;">
+                            {% for value in item.deal.drm %}
+                              <span style="float: right;">
+                                {% with icon_path="app/icons/"|add:value|add:".svg" %}
+                                  {% include icon_path with classes="w-5 h-5 fill-current" %}
+                                {% endwith %}
+                              </span>  
+                            {% endfor %}
+                          </div>
+                        {% endif %}
+                      </div>
+                      <div class="text-gray-200 ">
+                        <div class="text-left">
+                          <span class="{% if item.deal.cut%}text-blue-400{% endif%}">{{item.deal.price}} {{item.deal.currency}}</span>
+                          {% if item.deal.cut %}<span class="rounded-md text-xs lp-1 rp-1 m-1 border-1 bg-red-700 border-red-700 text-black-400">-{{item.deal.cut}}%</span> {% endif %}
+                        </div>
+                        <div>
+                          <span class="text-xs" style="float: left;">{{item.deal.regular}} {{item.deal.currency}}</span>
+                          <span class="text-xs" style="float: right;">{{item.deal.expiry}}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
 
     {# Related Media #}

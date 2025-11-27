@@ -13,6 +13,7 @@ from app.providers import (
     comicvine,
     hardcover,
     igdb,
+    itad,
     mal,
     mangaupdates,
     manual,
@@ -146,6 +147,7 @@ def get_media_metadata(
     source,
     season_numbers=None,
     episode_number=None,
+    request=None
 ):
     """Return the metadata for the selected media."""
     if source == Sources.MANUAL.value:
@@ -179,8 +181,19 @@ def get_media_metadata(
         else openlibrary.book(media_id),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
     }
-    return metadata_retrievers[media_type]()
 
+    """Additional metadata providers"""
+    price_metadata_retrievers = {
+        MediaTypes.GAME.value: lambda: itad.prices(media_id, data, request)
+    }
+
+    data = metadata_retrievers[media_type]()
+
+    """Run additional metadata providers"""
+    if media_type in price_metadata_retrievers:
+        price_metadata_retrievers.get(media_type)()
+
+    return data
 
 def search(media_type, query, page, source=None):
     """Search for media based on the query and return the results."""

@@ -175,6 +175,76 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
     return data
 
 
+def external_game_id(media_id, external_system=ExternalGameSource.STEAM):
+    """Find external ID by IGDB ID using the external_game endpoint.
+
+    Args:
+        media_id (int): The IGDB ID
+        external_system (ExternalGameSource): The external game system (defaults to Steam)
+
+    Returns:
+        int or None: External ID if found, None otherwise
+    """
+    cache_key = f"external_game_id_{Sources.IGDB.value}_{external_system}_{media_id}"
+    data = cache.get(cache_key)
+    if data is None:
+        access_token = get_access_token()
+        url = f"{base_url}/external_games"
+
+        data = (
+            "fields uid;"
+            f'where game = {media_id} & external_game_source = {external_system};'
+        )
+        headers = {
+            "Client-ID": settings.IGDB_ID,
+            "Authorization": f"Bearer {access_token}",
+        }
+
+        try:
+            response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                data=data,
+                headers=headers
+            )
+
+        except requests.exceptions.HTTPError as error:
+            error_resp = handle_error(error)
+            if error_resp and error_resp.get("retry"):
+                # Retry the request with the new access token
+                headers["Authorization"] = f"Bearer {get_access_token()}"
+                response = services.api_request(
+                    Sources.IGDB.value,
+                    "POST",
+                    url,
+                    data=data,
+                    headers=headers
+                )
+        # Return the IGDB game ID if found, None otherwise
+        if response and len(response) > 0:
+            data = response[0].get("uid")
+            logger.debug(
+                "Found external ID for entry %s via IGDB for the external system (Id: %s, name: %s): %s",
+                media_id,
+                external_system,
+                external_system.name,
+                data
+            )
+        else:
+            data = None
+            logger.debug(
+                "No external ID found for entry %s via IGDB for the external system (Id: %s, name: %s)",
+                media_id,
+                external_system,
+                external_system.name
+            )
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def search(query, page):
     """Search for games on IGDB using MultiQuery."""
     cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}_{page}"
