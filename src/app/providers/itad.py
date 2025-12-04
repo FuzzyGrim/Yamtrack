@@ -149,7 +149,7 @@ def get_current_prices(media_id, itad_appid, request):
             )
 
             if response and len(response) > 0:
-                prices = response[0] if response and len(response) > 0  else None
+                prices = response[0] if response and len(response) > 0 else None
             
         except requests.exceptions.HTTPError as error:
             handle_error(error, request)
