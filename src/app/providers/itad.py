@@ -178,8 +178,8 @@ def enrich_items_with_prices(media_metadata, price_data, itad_appid):
                 "price":
                 {
                     "text": range_texts[key],
-                    "amount": deal["amount"],
-                    "currency": deal["currency"]
+                    "amount": deal.get("amount", "-") if deal else "-",
+                    "currency": deal.get("currency", "") if deal else ""
                 }
             }
             lowprices.append(info)
