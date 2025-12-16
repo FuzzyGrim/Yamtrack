@@ -91,11 +91,40 @@ class ProviderAPIError(Exception):
 
         logger.error("%s error: %s", provider, error.response.text)
 
-        message = f"There was an error contacting the {provider} API"
+        message = (
+            f"There was an error contacting the {provider} API "
+            f"(HTTP {self.status_code})"
+        )
         if details:
             message += f": {details}"
         message += ". Check the logs for more details."
         super().__init__(message)
+
+
+def raise_not_found_error(provider, media_id, media_type="item"):
+    """
+    Raise a 404 ProviderAPIError for when a media item is not found.
+
+    Args:
+        provider: The provider source value (e.g., Sources.COMICVINE.value)
+        media_id: The media ID that was not found
+        media_type: The type of media (e.g., "comic", "game", "book")
+    """
+    error_msg = f"{media_type.capitalize()} with ID {media_id} not found"
+    logger.error("%s: %s", provider, error_msg)
+
+    # Create a mock 404 error response
+    mock_response = type(
+        "obj",
+        (object,),
+        {
+            "status_code": 404,
+            "text": error_msg,
+        },
+    )()
+    mock_error = requests.exceptions.HTTPError(response=mock_response)
+
+    raise ProviderAPIError(provider, mock_error, error_msg)
 
 
 def api_request(provider, method, url, params=None, data=None, headers=None):

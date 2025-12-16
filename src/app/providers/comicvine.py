@@ -115,7 +115,14 @@ def comic(media_id):
             handle_error(error)
 
         response = response.get("results", {})
-        publisher_id = response["publisher"]["id"]
+
+        # Check if response is empty (no results found)
+        if not response:
+            services.raise_not_found_error(
+                Sources.COMICVINE.value, media_id, "comic",
+            )
+
+        publisher_id = response.get("publisher", {}).get("id")
         recommendations = []
         if publisher_id:
             recommendations = get_similar_comics(publisher_id, media_id)

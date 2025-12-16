@@ -156,11 +156,13 @@ def book(media_id):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        if "errors" in response:
-            logger.error("GraphQL errors: %s", response["errors"])
-            return None
-
         book_data = response["data"]["books_by_pk"]
+
+        if not book_data:
+            services.raise_not_found_error(
+                Sources.HARDCOVER.value, media_id, "book",
+            )
+
         edition_details = get_edition_details(book_data.get("default_cover_edition"))
         recommendations = response["data"]["recommendations"]
 

@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from app import helpers
@@ -234,8 +234,9 @@ def delete(request):
     if custom_list.user_can_delete(request.user):
         custom_list.delete()
         logger.info("%s list deleted successfully.", custom_list)
-    else:
-        messages.error(request, "You do not have permission to delete this list.")
+        return redirect("lists")
+
+    messages.error(request, "You do not have permission to delete this list.")
     return helpers.redirect_back(request)
 
 

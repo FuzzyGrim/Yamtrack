@@ -381,6 +381,12 @@ def game(media_id):
                     headers=headers,
                 )
 
+        # Check if response is empty (no results found)
+        if not response:
+            services.raise_not_found_error(
+                Sources.IGDB.value, media_id, "game",
+            )
+
         response = response[0]  # response is a list with a single element
         data = {
             "media_id": response["id"],
