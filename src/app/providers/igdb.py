@@ -180,7 +180,7 @@ def external_game_id(media_id, external_system=ExternalGameSource.STEAM):
 
     Args:
         media_id (int): The IGDB ID
-        external_system (ExternalGameSource): The external game system (defaults to Steam)
+        external_system: The external game system (defaults to Steam)
 
     Returns:
         int or None: External ID if found, None otherwise
@@ -193,7 +193,7 @@ def external_game_id(media_id, external_system=ExternalGameSource.STEAM):
 
         data = (
             "fields uid;"
-            f'where game = {media_id} & external_game_source = {external_system};'
+            f"where game = {media_id} & external_game_source = {external_system};"
         )
         headers = {
             "Client-ID": settings.IGDB_ID,
@@ -206,7 +206,7 @@ def external_game_id(media_id, external_system=ExternalGameSource.STEAM):
                 "POST",
                 url,
                 data=data,
-                headers=headers
+                headers=headers,
             )
 
         except requests.exceptions.HTTPError as error:
@@ -219,25 +219,25 @@ def external_game_id(media_id, external_system=ExternalGameSource.STEAM):
                     "POST",
                     url,
                     data=data,
-                    headers=headers
+                    headers=headers,
                 )
         # Return the IGDB game ID if found, None otherwise
         if response and len(response) > 0:
             data = response[0].get("uid")
             logger.debug(
-                "Found external ID for entry %s via IGDB for the external system (Id: %s, name: %s): %s",
+                "Found external ID for entry %s via IGDB for the external system (Id: %s, name: %s): %s", # noqa: E501
                 media_id,
                 external_system,
                 external_system.name,
-                data
+                data,
             )
         else:
             data = None
             logger.debug(
-                "No external ID found for entry %s via IGDB for the external system (Id: %s, name: %s)",
+                "No external ID found for entry %s via IGDB for the external system (Id: %s, name: %s)", # noqa: E501
                 media_id,
                 external_system,
-                external_system.name
+                external_system.name,
             )
 
         cache.set(cache_key, data)

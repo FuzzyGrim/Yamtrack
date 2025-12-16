@@ -194,7 +194,10 @@ def media_search(request):
 @require_GET
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
-    media_metadata = services.get_media_metadata(media_type, media_id, source, request=request)
+    media_metadata = services.get_media_metadata(media_type,
+                                                 media_id,
+                                                 source,
+                                                 request=request)
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
@@ -412,13 +415,23 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
     return helpers.redirect_back(request)
 
 @require_POST
-def refresh_prices(request, source, media_type, media_id):
+def refresh_prices(request, media_type, media_id):
+    """
+    Refresh the prices for the given media.
+
+    Args:
+        request: The http request
+        media_type: The type of the media
+        media_id: The id of the media
+    """
     price_metadata_retrievers = {
-        MediaTypes.GAME.value: { 
+        MediaTypes.GAME.value: {
             "cache_key": f"{itad.price_cache_key}{media_id}",
             "price_source": Sources.ITAD,
-            "method": lambda: itad.prices(media_id, request=request, notify_success=True)
-            }
+            "method": lambda: itad.prices(media_id,
+                                          request=request,
+                                          notify_success=True),
+            },
     }
     if media_type in price_metadata_retrievers:
         cache_key = price_metadata_retrievers[media_type]["cache_key"]

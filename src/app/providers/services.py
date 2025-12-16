@@ -176,7 +176,7 @@ def get_media_metadata(
     source,
     season_numbers=None,
     episode_number=None,
-    request=None
+    request=None,
 ):
     """Return the metadata for the selected media."""
     if source == Sources.MANUAL.value:
@@ -213,7 +213,7 @@ def get_media_metadata(
 
     """Additional metadata providers"""
     price_metadata_retrievers = {
-        MediaTypes.GAME.value: lambda: itad.prices(media_id, data, request)
+        MediaTypes.GAME.value: lambda: itad.prices(media_id, data, request),
     }
 
     data = metadata_retrievers[media_type]()

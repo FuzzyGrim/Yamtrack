@@ -477,7 +477,7 @@
             <button type="button"
                     title="Sync current prices"
                     class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer disabled:opacity-75"
-                    hx-post="{% media_view_url 'refresh_prices' media %}"
+                    hx-post="{% url 'refresh_prices' media_type=media.media_type media_id=media.media_id %}"
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-vals='{"next": "{{ request.get_full_path|urlencode }}"}'
                     hx-target="body"

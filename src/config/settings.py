@@ -375,14 +375,14 @@ STEAM_API_KEY = config(
 ITAD_API_KEY = config(
     "ITAD_API_KEY",
     default=secret(
-        "ITAD_API_KEY_FILE", ""
+        "ITAD_API_KEY_FILE", "",
         # Generate default key https://isthereanydeal.com/apps/
     ),
 )
 
 ITAD_COUNTRY_CODE = config(
     "ITAD_COUNTRY_CODE",
-    default="US"
+    default="US",
 )
 
 HARDCOVER_API = config(
