@@ -42,6 +42,7 @@
               <select x-model="importMode"
                       class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none">
                 <option value="new">Only Sync New Items</option>
+                <option value="update">Sync New Items and Update Existing</option>
                 <option value="overwrite">Sync New Items and Overwrite Existing</option>
               </select>
               {% include "app/icons/chevron-down.svg" with classes="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" %}

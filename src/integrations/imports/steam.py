@@ -10,7 +10,8 @@ from app.models import MediaTypes, Sources, Status
 from app.providers import services
 from app.providers.igdb import ExternalGameSource, external_game
 from integrations.imports import helpers
-from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
+from integrations.imports.helpers import (MediaImportError,
+                                          MediaImportUnexpectedError)
 
 logger = logging.getLogger(__name__)
 
@@ -174,12 +175,25 @@ class SteamImporter:
                 )
                 return
 
+            media_id = str(igdb_game["media_id"])
+            existing_game = self.existing_media[MediaTypes.GAME.value][
+                Sources.IGDB.value
+            ].get(media_id)
+
+            if existing_game and self.mode == "update":
+                self._update_existing_game(
+                    existing_game,
+                    playtime_forever,
+                    playtime_2weeks,
+                )
+                return
+
             if not helpers.should_process_media(
                 self.existing_media,
                 self.to_delete,
                 MediaTypes.GAME.value,
                 Sources.IGDB.value,
-                str(igdb_game["media_id"]),
+                media_id,
                 self.mode,
             ):
                 return
@@ -215,6 +229,32 @@ class SteamImporter:
         except (ValueError, KeyError, TypeError) as e:
             logger.warning("Failed to process Steam game %s (%s): %s", name, appid, e)
             self.warnings.append(f"{name} ({appid}): {e!s}")
+
+    def _update_existing_game(self, game, playtime_forever, playtime_2weeks):
+        """Update an existing game with new Steam data."""
+        changed = False
+
+        # Update progress
+        if game.progress != playtime_forever:
+            game.progress = playtime_forever
+            changed = True
+
+        # Update status
+        new_status = self._determine_game_status(playtime_forever, playtime_2weeks)
+
+        # Only update status if not in a final state (Completed/Dropped)
+        if game.status in [
+            Status.PLANNING.value,
+            Status.IN_PROGRESS.value,
+            Status.PAUSED.value,
+        ]:
+            if game.status != new_status:
+                game.status = new_status
+                changed = True
+
+        if changed:
+            game.save()
+            logger.debug("Updated existing game %s", game)
 
     def _determine_game_status(self, playtime_forever, playtime_2weeks):
         """Determine game status based on Steam playtime data.
@@ -277,4 +317,5 @@ class SteamImporter:
                 e,
             )
 
+        return None
         return None
