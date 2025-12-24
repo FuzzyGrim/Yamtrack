@@ -30,13 +30,16 @@ drm_icons = {
     "EA App": "ea",
     "Ubisoft Store": "ubisoft",
     "Microsoft Store": "ms-store",
+    "Blizzard": "blizzard",
     "Drm Free": "lock-keyhole-unlocked",
 }
 
 price_cache_key = f"{Sources.ITAD.value}_{MediaTypes.GAME.value}_prices_"
 
+
 class ExternalGamePriceSource:
     """External game price source from IsThereAnyDeal (ITAD) API."""
+
 
 def handle_error(error, request):
     """Handle ITAD API errors."""
@@ -44,6 +47,7 @@ def handle_error(error, request):
     if request is not None:
         messages.error(request, msg)
     logger.error("%s error: %s", "ITAD", error.response.text)
+
 
 def check_if_enabled():
     """
@@ -53,6 +57,7 @@ def check_if_enabled():
         True if API key is set, otherwise False
     """
     return bool(apikey)
+
 
 def lookup(media_id, request):
     """Search for ITAD game ID from steam appid.
@@ -87,7 +92,8 @@ def lookup(media_id, request):
 
     return itad_appid
 
-def prices(media_id, media_metadata = None, request = None, notify_success = False):  # noqa: FBT002
+
+def prices(media_id, media_metadata=None, request=None, notify_success=False):  # noqa: FBT002
     """Get the current prices of the game and add them to the game's metadata.
 
     Args:
@@ -132,7 +138,7 @@ def get_current_prices(media_id, itad_appid, request):
                 Sources.ITAD,
                 "POST",
                 url,
-                data = data,
+                data=data,
             )
 
             if response and len(response) > 0:
@@ -143,6 +149,7 @@ def get_current_prices(media_id, itad_appid, request):
 
         cache.set(cache_key, prices)
     return prices
+
 
 def enrich_items_with_prices(media_metadata, price_data, itad_appid):
     """Enrich the game metadata with the prices.
@@ -155,13 +162,12 @@ def enrich_items_with_prices(media_metadata, price_data, itad_appid):
     if price_data is not None:
         data = {}
         data["itad_appid"] = itad_appid
-        data["data"] = { "lowest prices": None, "deals": None }
+        data["data"] = {"lowest prices": None, "deals": None}
         lowprices = []
         for key, deal in price_data["historyLow"].items():
             info = {
                 "type": "lows",
-                "price":
-                {
+                "price": {
                     "text": range_texts[key],
                     "amount": deal.get("amount", "-") if deal else "-",
                     "currency": deal.get("currency", "") if deal else "",
@@ -174,7 +180,10 @@ def enrich_items_with_prices(media_metadata, price_data, itad_appid):
 
         for deal in price_data["deals"]:
             if deal.get("drm", None) and len(deal["drm"]) > 0:
-                drm = [drm_icons[drm_item["name"]] for drm_item in deal["drm"]]
+                drm = [
+                    drm_icons.get(drm_item["name"], "unknown")
+                    for drm_item in deal["drm"]
+                ]
             elif deal["shop"]["id"] == STEAM_SHOP_ID:
                 drm = [drm_icons["Steam"]]
             else:
@@ -186,23 +195,23 @@ def enrich_items_with_prices(media_metadata, price_data, itad_appid):
                 expiry = ""
             info = {
                 "type": "deal",
-                "deal":
-                    {
-                        "shop": deal["shop"]["name"],
-                        "currency": deal["price"]["currency"],
-                        "regular": deal["regular"]["amount"],
-                        "price": deal["price"]["amount"],
-                        "url": deal["url"],
-                        "cut": deal["cut"],
-                        "drm": drm,
-                        "expiry": expiry,
-                    },
-                }
+                "deal": {
+                    "shop": deal["shop"]["name"],
+                    "currency": deal["price"]["currency"],
+                    "regular": deal["regular"]["amount"],
+                    "price": deal["price"]["amount"],
+                    "url": deal["url"],
+                    "cut": deal["cut"],
+                    "drm": drm,
+                    "expiry": expiry,
+                },
+            }
             deals.append(info)
 
         data["data"]["deals"] = deals
 
         media_metadata["prices"] = data
+
 
 def remaing_time(expiry):
     """Format the remaining date from now.
