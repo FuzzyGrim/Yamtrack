@@ -1,7 +1,7 @@
 aiohttp==3.13.2
 apprise==1.9.6
 beautifulsoup4==4.14.3
-celery==5.6.0
+celery==5.6.1
 croniter==6.0.0
 Django==5.2.9
 django-allauth[socialaccount]==65.13.1
