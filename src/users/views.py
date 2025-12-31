@@ -227,6 +227,7 @@ def ui_preferences(request):
 
     # Process form submission
     request.user.clickable_media_cards = "clickable_media_cards" in request.POST
+    request.user.obfuscate_unseen_episodes = "obfuscate_unseen_episodes" in request.POST
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     # Update user preferences for each media type

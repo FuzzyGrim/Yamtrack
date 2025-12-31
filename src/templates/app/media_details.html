@@ -487,7 +487,7 @@
               <div class="flex flex-col md:flex-row">
                 <img src="{{ IMG_NONE }}"
                      alt="E{{ episode.episode_number }}"
-                     data-src="{{ episode.image }}"
+                     data-src="{% if user.obfuscate_unseen_episodes and not episode.history %}{{ media.image }}{% else %}{{ episode.image }}{% endif %}"
                      class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}">
                 <div class="py-3 flex-1 flex flex-col">
                   <div class="flex-1">
@@ -561,7 +561,7 @@
                       </div>
                     </div>
                     <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
-                      <p class="text-sm text-gray-300 leading-relaxed text-pretty">{{ episode.overview }}</p>
+                      <p class="text-sm text-gray-300 leading-relaxed text-pretty {% if user.obfuscate_unseen_episodes and not episode.history %}blur{% endif %}">{{ episode.overview }}</p>
                     </div>
                   </div>
                   {% if episode.history %}

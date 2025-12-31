@@ -249,6 +249,11 @@ class User(AbstractUser):
         help_text="Hide hover overlay on touch devices",
     )
 
+    obfuscate_unseen_episodes = models.BooleanField(
+        default=False,
+        help_text="Hide unseen episode images and descriptions"
+    )
+
     # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,

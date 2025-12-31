@@ -410,6 +410,104 @@ class SidebarViewTests(TestCase):
         self.assertEqual(len(messages), 1)
         self.assertIn("view-only for demo accounts", str(messages[0]))
 
+    def test_obfuscate_unseen_episodes_post_enable(self):
+        """Test enabling obfuscate_unseen_episodes via UI preferences."""
+        # Initial state
+        self.user.obfuscate_unseen_episodes = False
+        self.user.save()
+
+        # Update preferences to enable
+        response = self.client.post(
+            reverse("ui_preferences"),
+            {
+                "obfuscate_unseen_episodes": "on",
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("ui_preferences"))
+
+        # Check that preference was updated
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.obfuscate_unseen_episodes)
+
+        # Check for success message
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Settings updated", str(messages[0]))
+
+    def test_obfuscate_unseen_episodes_post_disable(self):
+        """Test disabling obfuscate_unseen_episodes via UI preferences."""
+        # Initial state
+        self.user.obfuscate_unseen_episodes = True
+        self.user.save()
+
+        # Update preferences to disable (unchecked checkbox)
+        response = self.client.post(
+            reverse("ui_preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("ui_preferences"))
+
+        # Check that preference was updated
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.obfuscate_unseen_episodes)
+
+        # Check for success message
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Settings updated", str(messages[0]))
+
+    def test_clickable_media_cards_and_obfuscate_unseen_episodes(self):
+        """Test updating both clickable_media_cards and obfuscate_unseen_episodes."""
+        # Initial state
+        self.user.clickable_media_cards = False
+        self.user.obfuscate_unseen_episodes = False
+        self.user.save()
+
+        # Update both preferences
+        response = self.client.post(
+            reverse("ui_preferences"),
+            {
+                "clickable_media_cards": "on",
+                "obfuscate_unseen_episodes": "on",
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("ui_preferences"))
+
+        # Check that both preferences were updated
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.clickable_media_cards)
+        self.assertTrue(self.user.obfuscate_unseen_episodes)
+
+    def test_obfuscate_unseen_episodes_post_demo_user(self):
+        """Test that demo users cannot update obfuscate_unseen_episodes."""
+        # Set user as demo
+        self.user.is_demo = True
+        self.user.obfuscate_unseen_episodes = False
+        self.user.save()
+
+        # Try to update preferences
+        response = self.client.post(
+            reverse("ui_preferences"),
+            {
+                "obfuscate_unseen_episodes": "on",
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("ui_preferences"))
+
+        # Check that preference was not updated
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.obfuscate_unseen_episodes)
+
+        # Check for error message
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("view-only for demo accounts", str(messages[0]))
+
 
 class DeleteImportScheduleTests(TestCase):
     """Tests for the delete_import_schedule view."""
