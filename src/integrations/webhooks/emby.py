@@ -21,16 +21,16 @@ class EmbyWebhookProcessor(BaseWebhookProcessor):
         event_type = payload.get("Event")
         if not self._is_supported_event(event_type):
             logger.debug("Ignoring Emby webhook event type: %s", event_type)
-            return
+            return None
 
         ids = self._extract_external_ids(payload)
         logger.info("Extracted IDs from payload: %s", ids)
 
         if not any(ids.values()):
             logger.warning("Ignoring Emby webhook call because no ID was found.")
-            return
+            return None
 
-        self._process_media(payload, user, ids)
+        return self._process_media(payload, user, ids)
 
     def _is_supported_event(self, event_type):
         return event_type in ("playback.start", "playback.stop")

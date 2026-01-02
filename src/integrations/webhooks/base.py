@@ -46,21 +46,22 @@ class BaseWebhookProcessor:
         media_type = self._get_media_type(payload)
         if not media_type:
             logger.debug("Ignoring unsupported media type")
-            return
+            return None
 
         title = self._get_media_title(payload)
         logger.info("Received webhook for %s: %s", media_type, title)
 
         if media_type == MediaTypes.TV.value:
-            self._process_tv(payload, user, ids)
+            return self._process_tv(payload, user, ids)
         elif media_type == MediaTypes.MOVIE.value:
-            self._process_movie(payload, user, ids)
+            return self._process_movie(payload, user, ids)
+        return None
 
     def _process_tv(self, payload, user, ids):
         media_id, season_number, episode_number = self._find_tv_media_id(ids)
         if not media_id:
             logger.warning("No matching TMDB ID found for TV show")
-            return
+            return None
 
         tvdb_id = app.providers.tmdb.tv_with_seasons(media_id, [season_number])[
             "tvdb_id"
@@ -68,7 +69,7 @@ class BaseWebhookProcessor:
 
         if not tvdb_id:
             logger.warning("No TVDB ID found for TMDB ID: %s", media_id)
-            return
+            return None
 
         if user.anime_enabled:
             mapping_data = self._fetch_mapping_data()
@@ -84,8 +85,7 @@ class BaseWebhookProcessor:
                     mal_id,
                     episode_offset,
                 )
-                self._handle_anime(mal_id, episode_offset, payload, user)
-                return
+                return self._handle_anime(mal_id, episode_offset, payload, user)
 
         logger.info(
             "Detected TV episode via TMDB ID: %s, Season: %d, Episode: %d",
@@ -93,7 +93,7 @@ class BaseWebhookProcessor:
             season_number,
             episode_number,
         )
-        self._handle_tv_episode(media_id, season_number, episode_number, payload, user)
+        return self._handle_tv_episode(media_id, season_number, episode_number, payload, user)
 
     def _process_movie(self, payload, user, ids):
         tmdb_id = ids["tmdb_id"]
@@ -119,13 +119,12 @@ class BaseWebhookProcessor:
                     mal_id,
                     source,
                 )
-                self._handle_anime(mal_id, 1, payload, user)
-                return
+                return self._handle_anime(mal_id, 1, payload, user)
 
         # Handle as regular movie
         if tmdb_id:
             logger.info("Detected movie via TMDB ID: %s", tmdb_id)
-            self._handle_movie(tmdb_id, payload, user)
+            return self._handle_movie(tmdb_id, payload, user)
         elif imdb_id:
             logger.debug("No TMDB ID found, looking up via IMDB ID: %s", imdb_id)
             response = app.providers.tmdb.find(imdb_id, "imdb_id")
@@ -133,7 +132,7 @@ class BaseWebhookProcessor:
             if response.get("movie_results"):
                 media_id = response["movie_results"][0]["id"]
                 logger.info("Found matching TMDB ID: %s", media_id)
-                self._handle_movie(media_id, payload, user)
+                return self._handle_movie(media_id, payload, user)
             else:
                 logger.warning(
                     "No matching TMDB ID found for IMDB ID: %s",
@@ -141,6 +140,8 @@ class BaseWebhookProcessor:
                 )
         else:
             logger.warning("No TMDB or IMDB ID found for movie, skipping processing")
+
+        return None
 
     def _find_tv_media_id(self, ids):
         """Find TV media ID from external IDs."""
@@ -282,6 +283,16 @@ class BaseWebhookProcessor:
                 Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value,
             )
 
+        return {
+            "source": movie_metadata.get("source", ""),
+            "source_url": movie_metadata.get("source_url", ""),
+            "media_type": movie_metadata.get("media_type", ""),
+            "movie": {
+                "title": movie_metadata.get("title", ""),
+                "date": movie_metadata.get("details", {}).get("release_date", ""),
+            }
+        }
+
     def _handle_tv_episode(
         self,
         media_id,
@@ -405,6 +416,29 @@ class BaseWebhookProcessor:
                 episode_number,
             )
 
+        name = ""
+        date = ""
+        for episode in season_metadata["episodes"]:
+            if episode["episode_number"] == int(episode_number):
+                name = episode.get("name", "")
+                date = episode.get("air_date", "")
+                break
+                
+        return {
+            "source": tv_metadata.get("source", ""),
+            "source_url": tv_metadata.get("source_url", ""),
+            "media_type": tv_metadata.get("media_type", ""),
+            "show": {
+                "title": tv_metadata.get("title", ""),
+                "date": date,
+            },
+            "episode": {
+                "title": name,
+                "season": season_number,
+                "number": episode_number,
+            },
+        }
+
     def _handle_anime(self, media_id, episode_number, payload, user):
         """Handle anime playback event."""
         anime_metadata = app.providers.mal.anime(media_id)
@@ -465,3 +499,28 @@ class BaseWebhookProcessor:
                 status,
                 episode_number,
             )
+
+        if anime_metadata.get("details", {}).get("episodes", 1) == 1:
+            return {
+                "source": anime_metadata.get("source", ""),
+                "source_url": anime_metadata.get("source_url", ""),
+                "media_type": anime_metadata.get("media_type", ""),
+                "movie": {
+                    "title": anime_metadata.get("title", ""),
+                    "date": anime_metadata.get("details", {}).get("start_date", ""),
+                }
+            }
+        return {
+            "source": anime_metadata.get("source", ""),
+            "source_url": anime_metadata.get("source_url", ""),
+            "media_type": anime_metadata.get("media_type", ""),
+            "show": {
+                "title": anime_metadata.get("details", {}).get("season", "") + " E" + str(episode_number),
+                "date": anime_metadata.get("details", {}).get("start_date", ""),
+            },
+            "episode": {
+                "title": anime_metadata.get("title", ""),
+                "season_str": anime_metadata.get("details", {}).get("season", ""),
+                "number": episode_number,
+            },
+        }

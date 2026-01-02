@@ -508,5 +508,10 @@ def emby_webhook(request, token):
 
     payload = json.loads(data)
     processor = emby.EmbyWebhookProcessor()
-    processor.process_payload(payload, user)
-    return HttpResponse(status=200)
+    response_data = processor.process_payload(payload, user)
+
+    return HttpResponse(
+        json.dumps(response_data or {}),
+        content_type="application/json",
+        status=200,
+    )
