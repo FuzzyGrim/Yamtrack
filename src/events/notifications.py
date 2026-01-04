@@ -130,8 +130,11 @@ def send_notifications(events, users, title):
         Dictionary with results information
     """
     event_count = events.count()
+    logger.info(
+        "Found %s users with this type of notifications enabled",
+        users.count(),
+    )
     logger.info("Found %s events for notification", event_count)
-    logger.info("Found %s eligible users", users.count())
 
     # Create event lookup for quick access
     events_by_item_and_content = {}
@@ -165,7 +168,7 @@ def get_user_releases(users, target_events):
 
     user_enabled_types = {}
     for user in users:
-        user_enabled_types[user.id] = user.get_enabled_media_types()
+        user_enabled_types[user.id] = user.get_active_media_types()
 
     user_tracking_data = get_all_user_tracking_data(
         users,
