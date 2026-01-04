@@ -41,7 +41,7 @@ class BaseWebhookProcessor:
         """Get media title from payload."""
         raise NotImplementedError
 
-    def _process_media(self, payload, user, ids):
+    def _process_media(self, payload, user, ids, tv_info=None):
         """Route processing based on media type."""
         media_type = self._get_media_type(payload)
         if not media_type:
@@ -52,15 +52,23 @@ class BaseWebhookProcessor:
         logger.info("Received webhook for %s: %s", media_type, title)
 
         if media_type == MediaTypes.TV.value:
-            return self._process_tv(payload, user, ids)
+            return self._process_tv(payload, user, ids, tv_info)
         elif media_type == MediaTypes.MOVIE.value:
             return self._process_movie(payload, user, ids)
         return None
 
-    def _process_tv(self, payload, user, ids):
+    def _process_tv(self, payload, user, ids, tv_info=None):
         media_id, season_number, episode_number = self._find_tv_media_id(ids)
         if not media_id:
+            if tv_info:
+                media_id = self._find_tv_by_tv_ids(tv_info.get("ids", {}))
+                season_number = tv_info.get("season_number", -1)
+                episode_number = tv_info.get("episode_number", -1)
+        if not media_id:
             logger.warning("No matching TMDB ID found for TV show")
+            return None
+        if season_number == -1 or episode_number == -1:
+            logger.warning("No matching season_number or episode_number for TV show")
             return None
 
         tvdb_id = app.providers.tmdb.tv_with_seasons(media_id, [season_number])[
@@ -141,6 +149,23 @@ class BaseWebhookProcessor:
         else:
             logger.warning("No TMDB or IMDB ID found for movie, skipping processing")
 
+        return None
+
+    def _find_tv_by_tv_ids(self, ids):
+        if ids.get("tmdb_id"):
+            response = app.providers.tmdb.tv(ids["tmdb_id"])
+            if response.get("media_id"):
+                return response.get("media_id")
+        """Find TV media ID from external IDs."""
+        for ext_id, ext_type in [
+            (ids.get("imdb_id"), "imdb_id"),
+            (ids.get("tvdb_id"), "tvdb_id"),
+        ]:
+            if ext_id:
+                response = app.providers.tmdb.find(ext_id, ext_type)
+                if response.get("tv_results"):
+                    result = response["tv_results"][0]
+                    return result.get("id")
         return None
 
     def _find_tv_media_id(self, ids):
@@ -515,11 +540,11 @@ class BaseWebhookProcessor:
             "source_url": anime_metadata.get("source_url", ""),
             "media_type": anime_metadata.get("media_type", ""),
             "show": {
-                "title": anime_metadata.get("details", {}).get("season", "") + " E" + str(episode_number),
+                "title": anime_metadata.get("title", ""),
                 "date": anime_metadata.get("details", {}).get("start_date", ""),
             },
             "episode": {
-                "title": anime_metadata.get("title", ""),
+                "title": anime_metadata.get("details", {}).get("season", "") + " E" + str(episode_number),
                 "season_str": anime_metadata.get("details", {}).get("season", ""),
                 "number": episode_number,
             },

@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 import users
 from integrations import exports, tasks
 from integrations.imports import anilist, helpers, simkl, trakt
-from integrations.webhooks import emby, jellyfin, plex
+from integrations.webhooks import custom, emby, jellyfin, plex
 
 logger = logging.getLogger(__name__)
 
@@ -508,6 +508,42 @@ def emby_webhook(request, token):
 
     payload = json.loads(data)
     processor = emby.EmbyWebhookProcessor()
+    response_data = processor.process_payload(payload, user)
+
+    return HttpResponse(
+        json.dumps(response_data or {}),
+        content_type="application/json",
+        status=200,
+    )
+
+
+@login_not_required
+@csrf_exempt
+@require_POST
+def custom_webhook(request, token):
+    """Handle Custom webhook notifications for media playback."""
+    try:
+        user = users.models.User.objects.get(token=token)
+    except ObjectDoesNotExist:
+        logger.warning(
+            "Could not process Custom webhook: Invalid token: %s",
+            token,
+        )
+        return HttpResponse(status=401)
+
+    # Attach User instance so history_user_id is populated
+    request.user = user
+
+    # The payload is sent in JSON format
+    # HTTP POST request.
+
+    data = request.body
+    if not data:
+        logger.warning("Missing payload in Custom webhook request")
+        return HttpResponse("Missing payload", status=400)
+
+    payload = json.loads(data)
+    processor = custom.CustomWebhookProcessor()
     response_data = processor.process_payload(payload, user)
 
     return HttpResponse(

@@ -50,4 +50,9 @@ urlpatterns = [
         views.emby_webhook,
         name="emby_webhook",
     ),
+    path(
+        "webhook/custom/<str:token>",
+        views.custom_webhook,
+        name="custom_webhook",
+    ),
 ]
