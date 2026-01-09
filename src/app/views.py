@@ -123,6 +123,7 @@ def media_list(request, media_type):
     items_per_page = 32
     paginator = Paginator(media_queryset, items_per_page)
     media_page = paginator.get_page(page)
+    media_total = paginator.count
 
     BasicMedia.objects.annotate_max_progress(
         media_page.object_list,
@@ -133,6 +134,7 @@ def media_list(request, media_type):
         "media_type": media_type,
         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
         "media_list": media_page,
+        "media_total": media_total,
         "current_layout": layout,
         "layout_class": ".media-grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,
