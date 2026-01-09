@@ -47,8 +47,13 @@ def secret(key, default=undefined, **kwargs):
     path = Path(file)
     try:
         if path.is_absolute():
-            return Config(RepositorySecret(path.parent))(path.stem, default, **kwargs)
-        return Config(RepositorySecret())(file, default, **kwargs)
+            secret_value = Config(RepositorySecret(path.parent))(
+                path.stem,
+                default,
+                **kwargs,
+            )
+        else:
+            secret_value = Config(RepositorySecret())(file, default, **kwargs)
     except (
         FileNotFoundError,
         IsADirectoryError,
@@ -56,6 +61,10 @@ def secret(key, default=undefined, **kwargs):
     ) as err:
         msg = f"File from {key} not found. Please check the path and filename."
         raise UndefinedValueError(msg) from err
+    else:
+        if isinstance(secret_value, str):
+            return secret_value.strip()
+        return secret_value
 
 
 # Quick-start development settings - unsuitable for production
@@ -368,7 +377,8 @@ IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 STEAM_API_KEY = config(
     "STEAM_API_KEY",
     default=secret(
-        "STEAM_API_KEY_FILE", "",
+        "STEAM_API_KEY_FILE",
+        "",
     ),  # Generate default key https://steamcommunity.com/dev/apikey
 )
 

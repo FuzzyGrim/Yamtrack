@@ -16,6 +16,7 @@ convention = "pep257"
 custom_blocks = "element,slot,setvar"
 preserve_blank_lines = true
 ignore = "H006,H021"
+indent = 2
 
 [tool.coverage.run]
 concurrency = ["multiprocessing"]

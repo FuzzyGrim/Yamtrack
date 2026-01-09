@@ -7,3 +7,7 @@ src/staticfiles
 src/db/db.sqlite3
 db.sqlite3-shm
 db.sqlite3-wal
+.vscode/launch.json
+CLAUDE.md
+requests.http
+TODO.txt

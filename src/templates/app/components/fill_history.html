@@ -2,9 +2,7 @@
   <div class="flex items-center justify-between mb-6">
     <h2 class="text-2xl font-bold text-white">Activity History</h2>
     <button class="text-gray-400 hover:text-white cursor-pointer"
-            @click="historyOpen = false">
-      {% include "app/icons/x.svg" with classes="w-6 h-6" %}
-    </button>
+            @click="historyOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
   </div>
   <ul class="space-y-4">
     {% for entry in timeline %}
@@ -20,9 +18,7 @@
                   hx-delete="{% url 'delete_history_record' media_type entry.id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#history-{{ entry.id }}"
-                  hx-swap="outerHTML">
-            {% include "app/icons/trashcan.svg" with classes="w-5 h-5" %}
-          </button>
+                  hx-swap="outerHTML">{% include "app/icons/trashcan.svg" with classes="w-5 h-5" %}</button>
         </div>
         {% for change in entry.changes %}<p class="text-white">{{ change.description }}</p>{% endfor %}
       </li>

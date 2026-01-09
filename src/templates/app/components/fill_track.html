@@ -4,9 +4,7 @@
   <div class="flex items-center justify-between mb-6">
     <h2 class="text-2xl font-bold text-white line-clamp-1">{{ title }}</h2>
     <button class="text-gray-400 hover:text-white cursor-pointer"
-            @click="trackOpen = false">
-      {% include "app/icons/x.svg" with classes="w-6 h-6" %}
-    </button>
+            @click="trackOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
   </div>
 
   <form method="post" x-data="mediaForm" x-init="init">

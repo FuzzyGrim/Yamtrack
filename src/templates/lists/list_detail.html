@@ -66,7 +66,7 @@
                {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
                hx-include="#filter-form"
                hx-indicator="#search-indicator">
-          {% include "app/icons/magnifying-glass.svg" with classes="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" %}
+        {% include "app/icons/magnifying-glass.svg" with classes="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" %}
         <div id="search-indicator"
              class="htmx-indicator absolute right-3 top-1/2 transform -translate-y-1/2">
           <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>

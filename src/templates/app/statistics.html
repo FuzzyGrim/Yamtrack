@@ -17,9 +17,8 @@
             class="flex items-center gap-2 px-4 py-2.5 bg-[#2a2f35] hover:bg-[#343a40] rounded-lg transition-all duration-200 border border-gray-700 shadow-sm cursor-pointer">
       {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400" %}
       <span class="font-medium" x-text="selectedRange"></span>
-      <div class="w-4 h-4 ml-1 transition-transform duration-200" :class="{'rotate-180': isOpen}">
-        {% include "app/icons/chevron-down.svg" %}
-      </div>
+      <div class="w-4 h-4 ml-1 transition-transform duration-200"
+           :class="{'rotate-180': isOpen}">{% include "app/icons/chevron-down.svg" %}</div>
     </button>
 
     <!-- Dropdown -->
@@ -48,9 +47,7 @@
                     :class="{'bg-indigo-600 text-white': selectedRange === range.name, 'hover:bg-[#39404b] text-gray-200': selectedRange !== range.name}"
                     class="flex items-center justify-between p-3 rounded-md text-left text-sm transition-all cursor-pointer">
               <span x-text="range.name"></span>
-              <div x-show="selectedRange === range.name">
-                {% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}
-              </div>
+              <div x-show="selectedRange === range.name">{% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}</div>
             </button>
           </template>
         </div>

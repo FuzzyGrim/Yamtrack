@@ -13,7 +13,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-title" content="Yamtrack">
-    
+
     <title>
       {% block title %}
         Yamtrack
@@ -77,8 +77,10 @@
                    class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                   {% if request.path|str_equals:"/" %}
                     {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                   {% else %}
                     {% include "app/icons/house.svg" with classes="w-5 h-5" %}
+
                   {% endif %}
                   <span>Home</span>
                 </a>
@@ -104,8 +106,10 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% if request.path|str_equals:create_entry_url %}
                       {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                     {% else %}
                       {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
+
                     {% endif %}
                     <span>Create Custom</span>
                   </a>
@@ -117,8 +121,10 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% if request.path|str_equals:statistics_url %}
                       {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                     {% else %}
                       {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
+
                     {% endif %}
                     <span>Statistics</span>
                   </a>
@@ -130,8 +136,10 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% if request.path|str_equals:lists_url %}
                       {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                     {% else %}
                       {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
+
                     {% endif %}
                     <span>Lists</span>
                   </a>
@@ -143,8 +151,10 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% if request.path|str_equals:calendar_url %}
                       {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                     {% else %}
                       {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
+
                     {% endif %}
                     <span>Calendar</span>
                   </a>
@@ -165,8 +175,10 @@
                  class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                 {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
                   {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                 {% else %}
                   {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
+
                 {% endif %}
                 <span>Settings</span>
               </a>
@@ -176,6 +188,7 @@
                 <button type="submit"
                         class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
                   {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
+
                   <span>Logout</span>
                 </button>
               </form>
@@ -193,6 +206,7 @@
                 <button @click="isMobileMenuOpen = !isMobileMenuOpen"
                         class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
                   {% include "app/icons/hamburger.svg" with classes="w-6 h-6" %}
+
                 </button>
 
                 {# Define search type from current media type (if it exists) or last search type #}
@@ -218,6 +232,7 @@
                         <button type="submit"
                                 class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
                           {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
+
                         </button>
                       </div>
 
@@ -230,6 +245,7 @@
                               class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
                         <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
                         {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
+
                       </button>
                       <ul x-cloak
                           x-show="isOpen"

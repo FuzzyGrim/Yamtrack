@@ -4,10 +4,10 @@
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="relative">
     <a href="{{ item|media_url }}">
-    <img alt="{{ title }}"
-         class="lazyload w-full {% if from_grid %}aspect-2/3{% else %}h-48{% endif %} bg-[#3e454d] {% if item.image != IMG_NONE %}object-cover{% endif %}"
-         data-src="{{ item.image }}"
-         src="{{ IMG_NONE }}">
+      <img alt="{{ title }}"
+           class="lazyload w-full {% if from_grid %}aspect-2/3{% else %}h-48{% endif %} bg-[#3e454d] {% if item.image != IMG_NONE %}object-cover{% endif %}"
+           data-src="{{ item.image }}"
+           src="{{ IMG_NONE }}">
     </a>
 
     {% if media.status %}
@@ -47,7 +47,7 @@
     {% endif %}
 
     {% if media.score is not None %}
-      <div class="absolute {% if from_grid %}sm:top-2 sm:right-2 sm:left-auto {% endif %}top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+      <div class="absolute {% if from_grid %}sm:top-2 sm:right-2 sm:left-auto{% endif %} top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         {% include "app/icons/star.svg" with classes="w-4 h-4 text-yellow-400 mr-1 fill-current" %}
         <span class="text-sm text-white">{{ media.formatted_score }}</span>
       </div>
@@ -90,9 +90,7 @@
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
                   hx-target="#{% component_id 'track' item media.id %}"
                   hx-trigger="click once"
-                  @click="trackOpen = true">
-            {% include "app/icons/edit.svg" with classes="w-4 h-4" %}
-          </button>
+                  @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
         {% endif %}
 
         {# Lists Button #}
@@ -102,9 +100,7 @@
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                 hx-target="#{% component_id 'lists' item %}"
                 hx-trigger="click once"
-                @click="listsOpen = true">
-          {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
-        </button>
+                @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
 
         {# History Button #}
         <button class="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-200 cursor-pointer"
@@ -113,9 +109,7 @@
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                 hx-target="#{% component_id 'history' item %}"
                 hx-trigger="click once"
-                @click="historyOpen = true">
-          {% include "app/icons/history.svg" with classes="w-4 h-4" %}
-        </button>
+                @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
       </div>
     </div>
   </div>
