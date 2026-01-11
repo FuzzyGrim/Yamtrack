@@ -68,6 +68,8 @@ services:
       - redis_data:/data
     # Security settings
     cap_drop: [ALL]
+    cap_add:
+      - CAP_DAC_OVERRIDE
     read_only: true
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
