@@ -4,8 +4,8 @@ services:
     image: ghcr.io/fuzzygrim/yamtrack
     restart: unless-stopped
     depends_on:
-      - db
-      - redis
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
     environment:
       - TZ=Europe/Berlin
       - SECRET=longstring
@@ -17,6 +17,22 @@ services:
       - DB_PORT=5432
     ports:
       - "8000:8000"
+    # Security settings
+    cap_drop: [ALL]
+    cap_add:
+      - CAP_DAC_OVERRIDE
+      - CHOWN
+      - SETGID
+      - SETUID
+    networks:
+      - web-to-db
+      - web-to-external
+      - web-to-redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://127.0.0.1:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   db:
     image: postgres:16-alpine
@@ -28,6 +44,21 @@ services:
     volumes:
       - ./db:/var/lib/postgresql/data
     restart: unless-stopped
+    # Security settings
+    cap_drop: [ALL]
+    cap_add:
+      - CAP_DAC_OVERRIDE
+      - CHOWN
+      - SETGID
+      - SETUID
+    read_only: true
+    networks: [web-to-db]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      start_period: 5s
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     container_name: yamtrack-redis
@@ -35,6 +66,24 @@ services:
     restart: unless-stopped
     volumes:
       - redis_data:/data
+    # Security settings
+    cap_drop: [ALL]
+    read_only: true
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   redis_data:
+
+networks:
+  web-to-external:
+    driver: bridge
+  web-to-db:
+    driver: bridge
+    internal: true
+  web-to-redis:
+    driver: bridge
+    internal: true
