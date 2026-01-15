@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
         ('app', '0051_migrate_simkl_periodoc_tasks'),
         ('auth', '0012_alter_user_first_name_max_length'),
         ('users', '0037_remove_user_home_sort_valid_alter_user_home_sort'),
+        ('users', '0039_user_clickable_media_cards'),
     ]
 
     operations = [
