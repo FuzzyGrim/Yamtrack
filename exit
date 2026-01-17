@@ -1,0 +1,43 @@
+[1mdiff --git a/src/app/providers/tmdb.py b/src/app/providers/tmdb.py[m
+[1mindex 12289f03..50172b3e 100644[m
+[1m--- a/src/app/providers/tmdb.py[m
+[1m+++ b/src/app/providers/tmdb.py[m
+[36m@@ -621,6 +621,7 @@[m [mdef episode(media_id, season_number, episode_number):[m
+                 "season_title": season_metadata["season_title"],[m
+                 "episode_title": episode["name"],[m
+                 "image": get_image_url(episode["still_path"]),[m
+[32m+[m[32m                "tmdb_id": episode["id"],[m
+             }[m
+ [m
+     # Episode not found - throw ProviderAPIError[m
+[1mdiff --git a/src/integrations/webhooks/base.py b/src/integrations/webhooks/base.py[m
+[1mindex 79aa8de0..321f0a1f 100644[m
+[1m--- a/src/integrations/webhooks/base.py[m
+[1m+++ b/src/integrations/webhooks/base.py[m
+[36m@@ -57,7 +57,25 @@[m [mclass BaseWebhookProcessor:[m
+             self._process_movie(payload, user, ids)[m
+ [m
+     def _process_tv(self, payload, user, ids):[m
+[31m-        media_id, season_number, episode_number = self._find_tv_media_id(ids)[m
+[32m+[m[32m        if ids["tmdb_id"] and not ids["imdb_id"] and not ids["tvdb_id"]:[m
+[32m+[m[32m            series_name = payload["Metadata"].get("grandparentTitle")[m
+[32m+[m[32m            season_number = payload["Metadata"].get("parentIndex")[m
+[32m+[m[32m            episode_number = payload["Metadata"].get("index")[m
+[32m+[m[32m            logger.warning("Only TMDB episode ID provided.")[m
+[32m+[m[32m            logger.warning("Trying to match episode using TV-show name %s , season %s and episode number %s", series_name, season_number, episode_number)[m[41m [m
+[32m+[m[32m            response = app.providers.tmdb.search(MediaTypes.TV.value, series_name, 1)[m
+[32m+[m[41m            [m
+[32m+[m[32m            for results in response["results"]:[m
+[32m+[m[32m                show_id = results["media_id"][m
+[32m+[m[32m                episode_data = app.providers.tmdb.episode(show_id, season_number, episode_number)[m
+[32m+[m[32m                if episode_data["tmdb_id"] == int(ids["tmdb_id"]):[m
+[32m+[m[32m                    logger.warning("We have matched tmdb_id using search")[m
+[32m+[m[32m                    media_id = results["media_id"][m
+[32m+[m[32m                    break[m
+[32m+[m[32m            logger.warning("Not able to match TV-show using search.")[m
+[32m+[m[32m        else:[m
+[32m+[m[32m            media_id, season_number, episode_number = self._find_tv_media_id(ids)[m
+[32m+[m
+         if not media_id:[m
+             logger.warning("No matching TMDB ID found for TV show")[m
+             return[m

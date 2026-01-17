@@ -621,6 +621,7 @@ def episode(media_id, season_number, episode_number):
                 "season_title": season_metadata["season_title"],
                 "episode_title": episode["name"],
                 "image": get_image_url(episode["still_path"]),
+                "tmdb_id": episode["id"],
             }
 
     # Episode not found - throw ProviderAPIError

@@ -57,7 +57,27 @@ class BaseWebhookProcessor:
             self._process_movie(payload, user, ids)
 
     def _process_tv(self, payload, user, ids):
-        media_id, season_number, episode_number = self._find_tv_media_id(ids)
+        if ids["tmdb_id"] and not ids["imdb_id"] and not ids["tvdb_id"]:
+            # We only have tmdb_id for this TV-show episode.
+            series_name = payload["Metadata"].get("grandparentTitle")
+            season_number = payload["Metadata"].get("parentIndex")
+            episode_number = payload["Metadata"].get("index")
+            logger.warning("Only TMDB episode ID provided.")
+            logger.warning("Trying to match episode using TV-show name %s , season %s and episode number %s", series_name, season_number, episode_number)
+            response = app.providers.tmdb.search(MediaTypes.TV.value, series_name, 1)
+
+            for results in response["results"]:
+                show_id = results["media_id"]
+                episode_data = app.providers.tmdb.episode(show_id, season_number, episode_number)
+                if episode_data["tmdb_id"] == int(ids["tmdb_id"]):
+                    logger.warning("We have matched tmdb_id using search")
+                    media_id = results["media_id"]
+                    break
+            logger.warning("Not able to match TV-show using search.")
+        else:
+            # We have IMDB ID and/or TVDB ID for the episode.
+            media_id, season_number, episode_number = self._find_tv_media_id(ids)
+
         if not media_id:
             logger.warning("No matching TMDB ID found for TV show")
             return
