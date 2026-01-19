@@ -80,5 +80,7 @@
         <span class="text-gray-500">-</span>
       </td>
     {% endif %}
+
+    <td class="p-2 text-center">{{ media.created_at|date:"SHORT_DATE_FORMAT" }}</td>
   </tr>
 {% endfor %}

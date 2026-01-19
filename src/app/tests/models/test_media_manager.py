@@ -458,6 +458,34 @@ class MediaManagerTests(TestCase):
         self.assertEqual(media_list.first(), self.anime)
         self.assertEqual(media_list.last(), anime2)
 
+    def test_get_media_list_sort_by_created_at(self):
+        """Test the get_media_list method with sorting by created_at (date added)."""
+        manager = MediaManager()
+
+        movie_item2 = Item.objects.create(
+            media_id="551",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Pulp Fiction",
+            image="http://example.com/pulpfiction.jpg",
+        )
+
+        movie2 = Movie.objects.create(
+            item=movie_item2,
+            user=self.user,
+            status=Status.COMPLETED.value,
+            score=10,
+        )
+
+        media_list = manager.get_media_list(
+            user=self.user,
+            media_type=MediaTypes.MOVIE.value,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter="created_at",
+        )
+
+        self.assertEqual(list(media_list), [movie2, self.movie])
+
     def test_get_media_types_to_process(self):
         """Test the _get_media_types_to_process method."""
         manager = MediaManager()
@@ -816,5 +844,3 @@ class MediaManagerTests(TestCase):
         ).first()
 
         self.assertIsNone(non_existent)
-
-
