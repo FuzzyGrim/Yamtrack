@@ -375,6 +375,10 @@ class User(AbstractUser):
                 condition=models.Q(movie_sort__in=MediaSortChoices.values),
             ),
             models.CheckConstraint(
+                name="comic_sort_valid",
+                condition=models.Q(comic_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
                 name="anime_sort_valid",
                 condition=models.Q(anime_sort__in=MediaSortChoices.values),
             ),
