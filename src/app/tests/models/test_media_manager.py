@@ -416,6 +416,15 @@ class MediaManagerTests(TestCase):
 
         self.assertEqual(movies[0].item.title, "Fight Club")
 
+        sorted_movies = manager._sort_media_list(
+            movie_queryset,
+            "created_at",
+            MediaTypes.MOVIE.value,
+        )
+        movies = list(sorted_movies)
+
+        self.assertEqual(movies[0].item.title, "Fight Club")
+
     def test_get_media_list_sort_by_item_field(self):
         """Test the get_media_list method with sorting by item field."""
         manager = MediaManager()
