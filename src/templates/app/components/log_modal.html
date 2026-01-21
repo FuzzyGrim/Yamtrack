@@ -117,7 +117,9 @@
                                            name="is_rewatch"
                                            class="w-4 h-4 rounded bg-[#1f2329] border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 focus:ring-1 cursor-pointer"
                                            x-model="isRewatch">
-                                    <span class="ml-2 text-sm font-medium text-gray-300">Rewatch</span>
+                                    <span class="ml-2 text-sm font-medium text-gray-300">
+                                        {% if item.media_type == 'book' %}Reread{% elif item.media_type == 'game' %}Replay{% else %}Rewatch{% endif %}
+                                    </span>
                                 </label>
                                 
                                 <div class="flex items-center">

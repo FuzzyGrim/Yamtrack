@@ -67,6 +67,10 @@ def home(request):
 @require_POST
 def progress_edit(request, media_type, instance_id):
     """Increase or decrease the progress of a media item from home page."""
+    # Games don't support progress updates
+    if media_type == MediaTypes.GAME.value:
+        return HttpResponseBadRequest("Games do not support progress updates")
+    
     operation = request.POST["operation"]
 
     media = BasicMedia.objects.get_media_prefetch(
@@ -1881,51 +1885,132 @@ def unmark_movie_watched(request, source, media_id):
 
 
 @require_POST
-def mark_game_completed(request, source, media_id):
-    """Mark a game as completed by creating a tracking instance and marking it as consumed."""
-    media_type = MediaTypes.GAME.value
+def start_playing_game(request, source, media_id):
+    """Start playing a game by creating a Game instance with in-progress status."""
+    try:
+        media_type = MediaTypes.GAME.value
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
         
-    # Get or create the item
-    metadata = services.get_media_metadata(media_type, media_id, source)
-    item, _ = Item.objects.get_or_create(
-        media_id=media_id,
-        source=source,
-        media_type=media_type,
-        defaults={
-            "title": metadata["title"],
-            "image": metadata["image"],
-        },
-    )
-    
-    # Get or create the media instance
-    from app.models import Game
-    media_instance, created = Game.objects.get_or_create(
-        item=item,
-        user=request.user,
-        defaults={
-            "status": Status.COMPLETED.value,
+        # Get or create the Game instance
+        from app.models import Game
+        game_instance, created = Game.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.IN_PROGRESS.value,
+                "start_date": timezone.now(),
+            }
+        )
+        
+        if not created:
+            # If it already exists, update the status
+            game_instance.status = Status.IN_PROGRESS.value
+            if not game_instance.start_date:
+                game_instance.start_date = timezone.now()
+            game_instance.save()
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": game_instance,
+            "diary_entries": diary_entries,
         }
-    )
+        
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error starting to play game: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def mark_game_played(request, source, media_id):
+    """Mark a game as played by creating a Game instance with completed status."""
+    try:
+        media_type = MediaTypes.GAME.value
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
+        
+        # Get or create the Game instance
+        from app.models import Game
+        game_instance, created = Game.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.COMPLETED.value,
+                "end_date": timezone.now(),
+            }
+        )
+
+        if not created:
+            # If it already exists, update the status only if it's not already completed
+            game_instance.end_date = timezone.now()
+            
+            # Only update status if it's not already completed
+            if game_instance.status != Status.COMPLETED.value:
+                game_instance.status = Status.COMPLETED.value
+                game_instance.save(update_fields=["status", "end_date"])
+            else:
+                game_instance.save(update_fields=["end_date"])
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": game_instance,
+            "diary_entries": diary_entries,
+        }
+        
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error marking game as played: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def mark_game_completed(request, source, media_id):
+    """Mark a game as completed by creating a tracking instance and marking it as consumed.
     
-    if not created:
-        # If it already exists, mark it as consumed
-        media_instance.mark_consumed()
-    
-    # Get diary entries for this media
-    diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
-    
-    # Return updated action buttons for HTMX to swap  
-    # Add required fields to metadata for template compatibility
-    metadata["media_type"] = media_type
-    metadata["source"] = source
-    metadata["media_id"] = media_id
-    context = {
-        "media": metadata,
-        "media_type": media_type,
-        "current_instance": media_instance,
-        "diary_entries": diary_entries,
-    }
-    return render(request, "app/components/media_actions.html", context)
+    Kept for backward compatibility. Redirects to mark_game_played functionality.
+    """
+    return mark_game_played(request, source, media_id)
 
 
 @require_POST

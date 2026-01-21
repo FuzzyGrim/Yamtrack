@@ -1,38 +1,56 @@
 {% load app_tags %}
 
-<div class="flex items-center justify-center space-x-4">
-  <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
-          {% if media.progress == 0 %}disabled{% endif %}
-          hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
-          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-          hx-vals='{"operation": "decrease"}'
-          hx-swap="innerHTML"
-          hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
-    <svg xmlns="http://www.w3.org/2000/svg"
-         width="24"
-         height="24"
-         viewBox="0 0 24 24"
-         fill="none"
-         stroke="currentColor"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         class="w-3 h-3">
-      <path d="M5 12h14"></path>
-    </svg>
-  </button>
-
+{% if media.item.media_type == MediaTypes.GAME.value %}
+  {# Games don't have progress buttons - show status only #}
   <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
-    {% if media.item.media_type == MediaTypes.BOOK.value %}
-      {% with snapshot=media.progress_snapshot %}
-        {% if snapshot %}
-          {% if snapshot.has_percentage %}
-            {{ snapshot.percentage|floatformat:0 }}%
-            {% if snapshot.has_pages %}
-              ({{ snapshot.pages }}{% if snapshot.total_pages %}/{{ snapshot.total_pages }}{% endif %} pages)
+    {% if media.formatted_progress %}
+      {{ media.formatted_progress }}
+    {% else %}
+      {{ media.status }}
+    {% endif %}
+  </div>
+{% else %}
+  <div class="flex items-center justify-center space-x-4">
+    <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
+            {% if media.progress == 0 %}disabled{% endif %}
+            hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-vals='{"operation": "decrease"}'
+            hx-swap="innerHTML"
+            hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="24"
+           height="24"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="2"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           class="w-3 h-3">
+        <path d="M5 12h14"></path>
+      </svg>
+    </button>
+
+    <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
+      {% if media.item.media_type == MediaTypes.BOOK.value %}
+        {% with snapshot=media.progress_snapshot %}
+          {% if snapshot %}
+            {% if snapshot.has_percentage %}
+              {{ snapshot.percentage|floatformat:0 }}%
+              {% if snapshot.has_pages %}
+                ({{ snapshot.pages }}{% if snapshot.total_pages %}/{{ snapshot.total_pages }}{% endif %} pages)
+              {% endif %}
+            {% elif snapshot.has_pages %}
+              {{ snapshot.pages }}{% if snapshot.total_pages %}/{{ snapshot.total_pages }}{% endif %} pages
+            {% else %}
+              {{ media.formatted_progress }}
+              {% if media.max_progress %}
+                / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
+              {% else %}
+                {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
+              {% endif %}
             {% endif %}
-          {% elif snapshot.has_pages %}
-            {{ snapshot.pages }}{% if snapshot.total_pages %}/{{ snapshot.total_pages }}{% endif %} pages
           {% else %}
             {{ media.formatted_progress }}
             {% if media.max_progress %}
@@ -41,47 +59,40 @@
               {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
             {% endif %}
           {% endif %}
-        {% else %}
-          {{ media.formatted_progress }}
+        {% endwith %}
+      {% else %}
+        {{ media.formatted_progress }}
+
+        {% if media.item.media_type != MediaTypes.MOVIE.value %}
           {% if media.max_progress %}
             / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
           {% else %}
             {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
           {% endif %}
         {% endif %}
-      {% endwith %}
-    {% else %}
-      {{ media.formatted_progress }}
-
-      {% if media.item.media_type != MediaTypes.GAME.value and media.item.media_type != MediaTypes.MOVIE.value %}
-        {% if media.max_progress %}
-          / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
-        {% else %}
-          {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
-        {% endif %}
       {% endif %}
-    {% endif %}
-  </div>
+    </div>
 
-  <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
-          {% if media.progress == media.max_progress %}disabled{% endif %}
-          hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
-          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-          hx-vals='{"operation": "increase"}'
-          hx-swap="innerHTML"
-          hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
-    <svg xmlns="http://www.w3.org/2000/svg"
-         width="24"
-         height="24"
-         viewBox="0 0 24 24"
-         fill="none"
-         stroke="currentColor"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         class="w-3 h-3">
-      <path d="M5 12h14"></path>
-      <path d="M12 5v14"></path>
-    </svg>
-  </button>
-</div>
+    <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
+            {% if media.progress == media.max_progress %}disabled{% endif %}
+            hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-vals='{"operation": "increase"}'
+            hx-swap="innerHTML"
+            hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="24"
+           height="24"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="2"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           class="w-3 h-3">
+        <path d="M5 12h14"></path>
+        <path d="M12 5v14"></path>
+      </svg>
+    </button>
+  </div>
+{% endif %}

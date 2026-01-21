@@ -121,3 +121,4 @@ After applying the fix:
 - The edition-level `release_date` is more accurate because it represents the actual publication date of that specific edition
 - The book-level `release_date` may represent when the book was added to Hardcover's system or a generic date
 - This fix maintains backward compatibility by falling back to book-level date if edition date is unavailable
+

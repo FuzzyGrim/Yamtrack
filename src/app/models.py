@@ -1662,17 +1662,31 @@ class Game(Media):
         """Return progress in hours:minutes format."""
         return app.helpers.minutes_to_hhmm(self.progress)
 
-    def increase_progress(self):
-        """Increase the progress of the media by 30 minutes."""
-        self.progress += 30
-        self.save()
-        logger.info("Changed playtime of %s to %s", self, self.formatted_progress)
+    @tracker  # postpone field reset until after the save
+    def save(self, *args, **kwargs):
+        """Save the media instance."""
+        super(Media, self).save(*args, **kwargs)
 
-    def decrease_progress(self):
-        """Decrease the progress of the media by 30 minutes."""
-        self.progress -= 30
-        self.save()
-        logger.info("Changed playtime of %s to %s", self, self.formatted_progress)
+        if self.tracker.has_changed("status"):
+            if self.status == Status.COMPLETED.value:
+                # Ensure end_date is set when completing
+                if not self.end_date:
+                    self.end_date = timezone.now()
+                    self.save(update_fields=["end_date"])
+
+            elif self.status == Status.IN_PROGRESS.value:
+                # Set start_date if not already set
+                if not self.start_date:
+                    self.start_date = timezone.now()
+                    self.save(update_fields=["start_date"])
+
+            elif self.status == Status.DROPPED.value:
+                # Clear end_date if set (game was dropped, not completed)
+                if self.end_date:
+                    self.end_date = None
+                    self.save(update_fields=["end_date"])
+
+            self.item.fetch_releases(delay=True)
 
 
 class Book(Media):

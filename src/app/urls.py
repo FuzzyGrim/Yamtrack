@@ -145,7 +145,17 @@ urlpatterns = [
         name="unmark_movie_watched",
     ),
 
-    # Game complete/uncomplete
+    # Game start/mark/unmark
+    path(
+        "game/start/<source:source>/<str:media_id>",
+        views.start_playing_game,
+        name="start_playing_game",
+    ),
+    path(
+        "game/mark_played/<source:source>/<str:media_id>",
+        views.mark_game_played,
+        name="mark_game_played",
+    ),
     path(
         "game/complete/<source:source>/<str:media_id>",
         views.mark_game_completed,
