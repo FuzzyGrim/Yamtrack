@@ -3074,23 +3074,65 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
 @require_GET
 def edit_diary_entry(request, entry_id):
     """Show edit modal for a diary entry."""
-    entry = get_object_or_404(DiaryEntry.objects.prefetch_related('tags'), id=entry_id, user=request.user)
-    
-    # Pre-populate form with existing data
-    form = DiaryEntryForm(initial={
-        'consumed_at': entry.consumed_at,
-        'rating': entry.rating,
-        'review': entry.review,
-        'tags': ', '.join([tag.name for tag in entry.tags.all()]),
-    })
-    
-    context = {
-        'entry': entry,
-        'form': form,
-        'user': request.user,
-    }
-    
-    return render(request, 'app/components/edit_diary_modal.html', context)
+    try:
+        # Get entry with all necessary relationships
+        entry = get_object_or_404(
+            DiaryEntry.objects.select_related('item', 'user').prefetch_related('tags'),
+            id=entry_id,
+            user=request.user
+        )
+        
+        # Ensure entry.item exists
+        if not entry.item:
+            raise ValueError(f"Diary entry {entry_id} has no associated item")
+        
+        # Prepare initial data
+        initial_data = {
+            'rating': entry.rating,
+            'review': entry.review or '',
+        }
+        
+        # Handle consumed_at based on TRACK_TIME setting
+        if settings.TRACK_TIME:
+            initial_data['consumed_at'] = entry.consumed_at
+        else:
+            # Convert datetime to date if not tracking time
+            if hasattr(entry.consumed_at, 'date'):
+                initial_data['consumed_at'] = entry.consumed_at.date()
+            else:
+                initial_data['consumed_at'] = entry.consumed_at
+        
+        # Create form
+        form = DiaryEntryForm(
+            initial=initial_data,
+            user=request.user,
+            item=entry.item
+        )
+        
+        # Manually set tags initial value
+        existing_tags = list(entry.tags.all())
+        if existing_tags:
+            form.initial["tags"] = ", ".join([tag.name for tag in existing_tags])
+        else:
+            form.initial["tags"] = ""
+        
+        context = {
+            'entry': entry,
+            'form': form,
+            'user': request.user,
+        }
+        
+        return render(request, 'app/components/edit_diary_modal.html', context)
+    except Exception as e:
+        logger.error(f"Error in edit_diary_entry: {str(e)}", exc_info=True)
+        import traceback
+        import json
+        error_details = {
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
+        # Return JSON that JavaScript can parse and display
+        return JsonResponse(error_details, status=500)
 
 
 @require_POST
@@ -3144,17 +3186,38 @@ def update_diary_entry(request, entry_id):
         logger.info(f"Diary entry updated successfully: {entry}")
         logger.info(f"Updated values - Date: {entry.consumed_at}, Rating: {entry.rating}, Review: '{entry.review}', Liked: {entry.liked}")
         
-        # Return updated diary entries HTML
-        from django.core.paginator import Paginator
-        entries = DiaryEntry.objects.filter(user=request.user).order_by('-consumed_at')
-        paginator = Paginator(entries, 25)
-        page_obj = paginator.get_page(1)
+        # Return updated diary entries HTML - use same logic as diary_list to preserve order and filters
+        # Get filters from POST data (form submission) or query params
+        media_type = request.POST.get("current_media_type") or request.GET.get("media_type", "")
+        year = request.POST.get("current_year") or request.GET.get("year")
+        page = request.POST.get("current_page") or request.GET.get("page", 1)
+        
+        # Base queryset - order by created_at descending (newest first) to match diary_list
+        entries = DiaryEntry.objects.filter(user=request.user).select_related('item').prefetch_related('tags').order_by('-created_at')
+        
+        # Apply filters
+        if media_type:
+            entries = entries.filter(item__media_type=media_type)
+        
+        if year:
+            try:
+                year = int(year)
+                entries = entries.filter(consumed_at__year=year)
+            except ValueError:
+                pass
+        
+        # Get unique years for filter dropdown
+        years = entries.dates("consumed_at", "year", order="DESC")
+        
+        # Paginate
+        paginator = Paginator(entries, 25)  # 25 entries per page
+        page_obj = paginator.get_page(page)
         
         context = {
             "entries": page_obj,
-            "years": entries.dates("consumed_at", "year", order="DESC"),
-            "current_year": None,
-            "current_media_type": None,
+            "years": years,
+            "current_year": year,
+            "current_media_type": media_type,
             "media_type_choices": MediaTypes.choices,
         }
         

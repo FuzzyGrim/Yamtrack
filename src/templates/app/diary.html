@@ -175,10 +175,96 @@
     {% include "app/components/diary_entries.html" %}
   </div>
 
-  <!-- Edit Modal Container -->
-  <div id="edit-modal-container"></div>
+  <!-- Edit Modal Container (hidden, used as temporary holder) -->
+  <div id="edit-modal-container" style="display: none;"></div>
 
   <script>
+    function editDiaryEntry(button) {
+      // Close the dropdown menu using Alpine
+      const dropdown = button.closest('[x-data]');
+      if (dropdown && dropdown.__x && dropdown.__x.$data) {
+        dropdown.__x.$data.open = false;
+      }
+      
+      // Remove any existing modal first
+      const existingModal = document.querySelector('body > .fixed.inset-0');
+      if (existingModal && existingModal.querySelector('#edit-diary-form')) {
+        existingModal.remove();
+      }
+      
+      // Get the edit URL from data attribute
+      const editUrl = button.getAttribute('data-edit-url');
+      if (!editUrl) {
+        alert('Error: Edit URL not found');
+        return;
+      }
+      
+      // Fetch and show the modal
+      fetch(editUrl)
+        .then(response => {
+          const contentType = response.headers.get('content-type') || '';
+          
+          // Check if response is JSON (error)
+          if (contentType.includes('application/json')) {
+            return response.json().then(data => {
+              showErrorModal(data.error || 'Unknown error', data.traceback || '');
+              throw new Error(data.error || 'Server error');
+            });
+          }
+          
+          if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.status);
+          }
+          return response.text();
+        })
+        .then(html => {
+          if (typeof html !== 'string') {
+            return;
+          }
+          
+          if (!html || html.trim().length === 0) {
+            throw new Error('Empty response received');
+          }
+          
+          // Use a temporary container to parse the HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html.trim();
+          const modal = tempDiv.querySelector('.fixed');
+          
+          if (modal) {
+            // Append modal directly to body
+            document.body.appendChild(modal);
+            // Process HTMX attributes if available
+            if (typeof htmx !== 'undefined') {
+              htmx.process(modal);
+            }
+          } else {
+            console.error('Modal element not found in response');
+            alert('Error: Could not find modal in response');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading edit modal:', error);
+          if (!document.querySelector('.fixed .text-red-400')) {
+            alert('Error loading edit form: ' + error.message);
+          }
+        });
+    }
+    
+    function showErrorModal(error, traceback) {
+      const errorHtml = '<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">' +
+        '<div class="bg-[#2a2f35] rounded-lg p-6 max-w-2xl mx-4">' +
+        '<h2 class="text-xl font-bold text-red-400 mb-4">Error Loading Edit Form</h2>' +
+        '<p class="text-gray-300 mb-4">' + (error || 'Unknown error') + '</p>' +
+        (traceback ? '<pre class="text-xs text-gray-400 overflow-auto max-h-96 bg-[#1a1d23] p-4 rounded">' + traceback + '</pre>' : '') +
+        '<button onclick="this.closest(\'.fixed\').remove()" class="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md">Close</button>' +
+        '</div></div>';
+      
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = errorHtml;
+      document.body.appendChild(tempDiv.firstElementChild);
+    }
+
     function diaryFilters() {
       return {
         searchTerm: '',

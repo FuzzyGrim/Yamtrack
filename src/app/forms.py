@@ -422,7 +422,12 @@ class DiaryEntryForm(forms.ModelForm):
         
         if not settings.TRACK_TIME and "consumed_at" in self.initial:
             # If not tracking time, only show the date part
-            self.initial["consumed_at"] = self.initial["consumed_at"].date()
+            consumed_at = self.initial["consumed_at"]
+            if consumed_at and hasattr(consumed_at, 'date'):
+                # Only convert if it's a datetime object
+                from django.utils import timezone
+                if isinstance(consumed_at, timezone.datetime):
+                    self.initial["consumed_at"] = consumed_at.date()
         
         # Initialize tags field with existing tags
         if self.instance and self.instance.pk:

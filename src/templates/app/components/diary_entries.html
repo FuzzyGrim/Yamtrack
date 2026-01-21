@@ -130,7 +130,7 @@
               </div>
 
               <!-- Entry Actions -->
-              <div class="flex-shrink-0 ml-2" x-data="{ open: false }">
+              <div class="flex-shrink-0 ml-2" x-data="{ open: false }" x-id="['dropdown']">
                 <div class="relative">
                   <!-- 3-dots menu button -->
                   <button @click="open = !open" 
@@ -155,11 +155,9 @@
                        style="display: none;">
                     <div class="py-1">
                       <!-- Edit Entry -->
-                      <button onclick="fetch('{% url 'edit_diary_entry' entry.id %}')
-                        .then(response => response.text())
-                        .then(html => {
-                          document.getElementById('edit-modal-container').innerHTML = html;
-                        })"
+                      <button type="button"
+                        data-edit-url="{% url 'edit_diary_entry' entry.id %}"
+                        onclick="editDiaryEntry(this)"
                         class="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-[#454d5a] hover:text-white transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>

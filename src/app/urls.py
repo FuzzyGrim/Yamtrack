@@ -223,6 +223,7 @@ urlpatterns = [
     # Diary list and edit
     path("diary", views.diary_list, name="diary_list"),
     path("diary/edit/<int:entry_id>", views.edit_diary_entry, name="edit_diary_entry"),
+    path("diary/update/<int:entry_id>", views.update_diary_entry, name="update_diary_entry"),
 
     # Book logging/progress
     path(

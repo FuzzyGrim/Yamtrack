@@ -26,9 +26,19 @@
 
       <!-- Form -->
       <form id="edit-diary-form" 
-            class="flex-1 flex flex-col">
+            class="flex-1 flex flex-col"
+            hx-post="{% url 'update_diary_entry' entry.id %}"
+            hx-target="#diary-entries"
+            hx-swap="innerHTML"
+            hx-include="[name='current_page'], [name='current_media_type'], [name='current_year']"
+            hx-on::after-request="if(event.detail.xhr.status === 200) { this.closest('.fixed').remove(); }">
         
         {% csrf_token %}
+        
+        <!-- Preserve current page and filters -->
+        <input type="hidden" name="current_page" value="{{ request.GET.page|default:1 }}">
+        <input type="hidden" name="current_media_type" value="{{ request.GET.media_type|default:'' }}">
+        <input type="hidden" name="current_year" value="{{ request.GET.year|default:'' }}">
         
         <div class="flex gap-4 flex-1" x-data="{ 
           rating: {{ entry.rating|default:0 }}, 
@@ -167,60 +177,8 @@
                     class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors">
               Cancel
             </button>
-            <button type="button" 
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors"
-                    hx-post="{% url 'update_diary_entry' entry.id %}"
-                    hx-include="#edit-diary-form"
-                    hx-target="#diary-entries"
-                    hx-swap="innerHTML"
-                    onclick="
-                      console.log('Update button clicked!'); 
-                      console.log('Button element:', this); 
-                      console.log('hx-post attribute:', this.getAttribute('hx-post')); 
-                      console.log('HTMX available:', typeof htmx !== 'undefined');
-                      console.log('Target element exists:', document.querySelector('#diary-entries') !== null);
-                      console.log('Form element exists:', document.querySelector('#edit-diary-form') !== null);
-                      
-                      // Manually trigger HTMX
-                      if (typeof htmx !== 'undefined') {
-                        console.log('Manually triggering HTMX request...');
-                        const formValues = htmx.values(document.querySelector('#edit-diary-form'));
-                        console.log('Form values being sent:', formValues);
-                        
-                        htmx.ajax('POST', this.getAttribute('hx-post'), {
-                          source: this,
-                          target: '#diary-entries',
-                          swap: 'innerHTML',
-                          values: formValues,
-                          headers: {
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                          }
-                        }).then(function(result) {
-                          console.log('HTMX request completed successfully:', result);
-                          // Close modal on success
-                          console.log('Attempting to close modal...');
-                          // Use the button's context to find the modal
-                          const buttonElement = document.querySelector('button[hx-post]');
-                          const modalFromButton = buttonElement.closest('.fixed');
-                          console.log('Modal from button context:', modalFromButton);
-                          
-                          if (modalFromButton) {
-                            console.log('Removing modal from button context...');
-                            modalFromButton.remove();
-                          } else {
-                            console.log('Trying alternative modal removal methods...');
-                            // Clear the edit modal container
-                            const container = document.getElementById('edit-modal-container');
-                            if (container) {
-                              console.log('Clearing edit-modal-container...');
-                              container.innerHTML = '';
-                            }
-                          }
-                        }).catch(function(error) {
-                          console.error('HTMX request failed:', error);
-                        });
-                      }
-                    ">
+            <button type="submit" 
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors">
               Update Entry
             </button>
           </div>
@@ -231,81 +189,8 @@
 </div>
 
 <script>
-// Check if HTMX is available
-if (typeof htmx === 'undefined') {
-  console.error('HTMX is not loaded!');
-} else {
-  console.log('HTMX is available:', htmx);
-  
-  // Process HTMX attributes on the newly loaded modal content
-  console.log('Processing HTMX attributes on modal...');
+// Process HTMX attributes on the newly loaded modal content
+if (typeof htmx !== 'undefined') {
   htmx.process(document.getElementById('edit-diary-form'));
-  
-  // Add manual click handler as fallback
-  const updateButton = document.querySelector('button[hx-post]');
-  if (updateButton) {
-    console.log('Found update button, adding manual click handler');
-    updateButton.addEventListener('click', function(e) {
-      console.log('Manual click handler triggered');
-      console.log('Button attributes:', {
-        'hx-post': this.getAttribute('hx-post'),
-        'hx-include': this.getAttribute('hx-include'),
-        'hx-target': this.getAttribute('hx-target'),
-        'hx-swap': this.getAttribute('hx-swap')
-      });
-    });
-  } else {
-    console.error('Update button not found!');
-  }
 }
-
-// Handle button HTMX response
-document.querySelector('button[hx-post]').addEventListener('htmx:afterRequest', function(event) {
-  console.log('HTMX afterRequest event:', event.detail);
-  console.log('Response status:', event.detail.xhr.status);
-  console.log('Response text:', event.detail.xhr.responseText);
-  
-  if (event.detail.xhr.status === 200) {
-    console.log('Update successful, closing modal');
-    // Close modal on success
-    document.querySelector('.fixed').remove();
-  } else {
-    console.log('Update failed');
-    // Show error if update failed
-    try {
-      const response = JSON.parse(event.detail.xhr.responseText);
-      alert('Error updating entry: ' + (response.error || 'Unknown error'));
-    } catch (e) {
-      alert('Error updating entry: ' + (event.detail.xhr.responseText || 'Unknown error'));
-    }
-  }
-});
-
-// Also listen for beforeRequest to see what's being sent
-document.querySelector('button[hx-post]').addEventListener('htmx:beforeRequest', function(event) {
-  console.log('HTMX beforeRequest event:', event.detail);
-  const formData = new FormData(event.detail.elt);
-  console.log('Form data being sent:');
-  for (let [key, value] of formData.entries()) {
-    console.log(`  ${key}: ${value}`);
-  }
-});
-
-// Add a form submit handler to debug and ensure HTMX takes over
-document.getElementById('edit-diary-form').addEventListener('submit', function(event) {
-  console.log('Form submit event triggered');
-  console.log('Event default prevented?', event.defaultPrevented);
-  
-  // Prevent default form submission to ensure HTMX takes over
-  if (!event.defaultPrevented) {
-    console.log('Preventing default form submission for HTMX');
-    event.preventDefault();
-  }
-  
-  const formData = new FormData(this);
-  console.log('Form data on submit:');
-  for (let [key, value] of formData.entries()) {
-    console.log(`  ${key}: ${value}`);
-  }
-});
 </script>
