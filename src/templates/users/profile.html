@@ -32,14 +32,14 @@
               </svg>
             </div>
           {% endif %}
-          <h2 class="text-xl font-semibold mr-3 flex items-baseline gap-2">
+          <h2 class="text-xl font-semibold mr-3 flex items-center gap-2">
             <span>{{ user.username }}</span>
             {% if user.pronouns %}
               <span class="text-sm text-gray-400">{{ user.pronouns }}</span>
             {% endif %}
           </h2>
           <a href="{% url 'account' %}" 
-             class="p-1 text-gray-400 hover:text-indigo-400 transition-colors self-end"
+             class="p-1 text-gray-400 hover:text-indigo-400 transition-colors"
              title="Account Settings">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="10"
