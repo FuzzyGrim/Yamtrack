@@ -21,6 +21,15 @@
   object-fit: none;
 }
 
+/* Book covers should use object-contain for consistent sizing */
+img[data-book-cover],
+img[data-book-cover].lazyload,
+img[data-book-cover].lazyloading,
+img[data-book-cover].lazyloaded {
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
 .clip-half {
   clip-path: inset(0 50% 0 0);
 }

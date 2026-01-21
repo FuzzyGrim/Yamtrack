@@ -42,6 +42,11 @@
             </div>
           </div>
 
+          <!-- Media Type Icon -->
+          <div class="flex-shrink-0 flex items-center justify-center w-8">
+            {% icon entry.item.media_type is_active=False extra_classes="w-5 h-5 text-gray-400" %}
+          </div>
+
           <!-- Movie Poster -->
           <div class="flex-shrink-0">
             <a href="{{ entry.item|media_url }}">
@@ -55,21 +60,32 @@
 
           <!-- Entry Details -->
           <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <div class="flex-1">
-                <h3 class="font-medium text-base mb-0.5">
-                  <a href="{{ entry.item|media_url }}" 
-                     class="hover:text-indigo-400 transition-colors line-clamp-1">
-                    {% if entry.item.media_type == 'season' %}
-                      {{ entry.item.title }} S{{ entry.item.season_number }}
-                    {% else %}
-                      {{ entry.item.title }}
-                    {% endif %}
-                  </a>
-                </h3>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-1">
+                  <h3 class="font-medium text-base flex-shrink-0">
+                    <a href="{{ entry.item|media_url }}" 
+                       class="hover:text-indigo-400 transition-colors line-clamp-1">
+                      {% if entry.item.media_type == 'season' %}
+                        {{ entry.item.title }} S{{ entry.item.season_number }}
+                      {% else %}
+                        {{ entry.item.title }}
+                      {% endif %}
+                    </a>
+                  </h3>
+                  
+                  <!-- Tags -->
+                  {% if entry.tags.exists %}
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      {% for tag in entry.tags.all %}
+                        <span class="inline-flex items-center px-2 py-0.5 text-xs rounded text-blue-300 whitespace-nowrap" style="background-color: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4);">{{ tag.name }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
                 
                 <!-- Entry Metadata -->
-                <div class="flex items-center text-xs text-gray-400 mb-1 gap-3">
+                <div class="flex items-center text-xs text-gray-400 gap-3">
                   {% if entry.rating %}
                     <div class="flex items-center">
                       <div class="flex items-center space-x-0.5 mr-1">
@@ -106,27 +122,6 @@
                     </span>
                   {% endif %}
                 </div>
-                
-                <!-- Tags -->
-                {% if entry.tags.exists %}
-                  <div class="flex flex-wrap gap-2 mb-1">
-                    {% for tag in entry.tags.all %}
-                      {% if 'w/' in tag.name %}
-                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-blue-300" style="background-color: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4);">{{ tag.name }}</span>
-                      {% elif 'in theater' in tag.name or 'cinemark' in tag.name or 'amc' in tag.name or 'regal' in tag.name %}
-                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-green-300" style="background-color: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4);">{{ tag.name }}</span>
-                      {% elif 'high' in tag.name or 'plane' in tag.name %}
-                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-purple-300" style="background-color: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4);">{{ tag.name }}</span>
-                      {% elif 'opening weekend' in tag.name or 'thursday preview' in tag.name or 'imax' in tag.name %}
-                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-orange-300" style="background-color: rgba(251, 146, 60, 0.15); border: 1px solid rgba(251, 146, 60, 0.4);">{{ tag.name }}</span>
-                      {% elif 'alternate version' in tag.name or 'extended version' in tag.name %}
-                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-gray-300" style="background-color: rgba(107, 114, 128, 0.15); border: 1px solid rgba(107, 114, 128, 0.4);">{{ tag.name }}</span>
-                      {% else %}
-                        <span class="inline-flex items-center px-2 py-1 text-xs rounded text-indigo-300" style="background-color: rgba(129, 140, 248, 0.15); border: 1px solid rgba(129, 140, 248, 0.4);">{{ tag.name }}</span>
-                      {% endif %}
-                    {% endfor %}
-                  </div>
-                {% endif %}
               </div>
 
               <!-- Entry Actions -->
