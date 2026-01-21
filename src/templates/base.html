@@ -328,7 +328,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div x-show="mediaOpen" x-transition class="absolute left-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
+                    <div x-show="mediaOpen" x-transition @mouseenter="mediaOpen = true" class="absolute left-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
                       <div class="py-1">
                         <a href="{% url 'home' %}" class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white {% if request.path == "/" %}text-white bg-[#343a40]{% endif %}">
                           {% icon 'home' is_active=request.path|str_equals:"/" %}
@@ -353,7 +353,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div x-show="createOpen" x-transition class="absolute left-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
+                    <div x-show="createOpen" x-transition @mouseenter="createOpen = true" class="absolute left-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
                       <div class="py-1">
                         {% url 'create_entry' as create_entry_url %}
                         <a href="{{ create_entry_url }}" class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white {% if request.path == create_entry_url %}text-white bg-[#343a40]{% endif %}">
@@ -388,7 +388,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div x-show="userOpen" x-transition class="absolute right-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
+                    <div x-show="userOpen" x-transition @mouseenter="userOpen = true" class="absolute right-0 mt-1 w-48 bg-[#2a2e33] rounded-md shadow-lg z-50">
                       <div class="py-1">
                         {% url 'profile' as profile_url %}
                         <a href="{{ profile_url }}" class="flex items-center space-x-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#343a40] hover:text-white {% if request.path == profile_url %}text-white bg-[#343a40]{% endif %}">
