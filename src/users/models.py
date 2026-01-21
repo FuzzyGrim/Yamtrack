@@ -82,6 +82,14 @@ class ListDetailSortChoices(models.TextChoices):
     MEDIA_TYPE = "media_type", "Media Type"
 
 
+class QuickWatchDateChoices(models.TextChoices):
+    """Choices for quick watch date behavior when bulk-marking media as completed."""
+
+    CURRENT_DATE = "current_date", "Current Date"
+    RELEASE_DATE = "release_date", "Release Date"
+    NO_DATE = "no_date", "No Date"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -99,6 +107,7 @@ class User(AbstractUser):
         choices=HomeSortChoices.choices,
     )
 
+    # Media type preferences: TV Shows
     tv_enabled = models.BooleanField(default=True)
     tv_layout = models.CharField(
         max_length=20,
@@ -116,6 +125,7 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    # Media type preferences: TV Seasons
     season_enabled = models.BooleanField(default=True)
     season_layout = models.CharField(
         max_length=20,
@@ -133,6 +143,7 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    # Media type preferences: Movies
     movie_enabled = models.BooleanField(default=True)
     movie_layout = models.CharField(
         max_length=20,
@@ -150,6 +161,7 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    # Media type preferences: Anime
     anime_enabled = models.BooleanField(default=True)
     anime_layout = models.CharField(
         max_length=20,
@@ -167,6 +179,7 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    # Media type preferences: Manga
     manga_enabled = models.BooleanField(default=True)
     manga_layout = models.CharField(
         max_length=20,
@@ -184,6 +197,7 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    # Media type preferences: Games
     game_enabled = models.BooleanField(default=True)
     game_layout = models.CharField(
         max_length=20,
@@ -201,6 +215,7 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    # Media type preferences: Books
     book_enabled = models.BooleanField(default=True)
     book_layout = models.CharField(
         max_length=20,
@@ -218,6 +233,7 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    # Media type preferences: Comics
     comic_enabled = models.BooleanField(default=True)
     comic_layout = models.CharField(
         max_length=20,
@@ -235,55 +251,70 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
-    hide_from_search = models.BooleanField(default=True)
+    # UI preferences
+    clickable_media_cards = models.BooleanField(
+        default=False,
+        help_text="Hide hover overlay on touch devices",
+    )
 
+    # Tracking settings
+    quick_watch_date = models.CharField(
+        max_length=20,
+        default=QuickWatchDateChoices.CURRENT_DATE,
+        choices=QuickWatchDateChoices.choices,
+        help_text="Date to use when bulk-marking media as completed",
+    )
+    # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,
         default=CalendarLayoutChoices.GRID,
         choices=CalendarLayoutChoices.choices,
     )
 
+    # Lists preferences
     lists_sort = models.CharField(
         max_length=20,
         default=ListSortChoices.LAST_ITEM_ADDED,
         choices=ListSortChoices.choices,
     )
-
     list_detail_sort = models.CharField(
         max_length=20,
         default=ListDetailSortChoices.DATE_ADDED,
         choices=ListDetailSortChoices.choices,
     )
+    list_detail_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
 
+    # Notification settings
     notification_urls = models.TextField(
         blank=True,
         help_text="Apprise URLs for notifications",
     )
-
     notification_excluded_items = models.ManyToManyField(
         Item,
         related_name="excluded_by_users",
         blank=True,
         help_text="Items excluded from notifications",
     )
-
     release_notifications_enabled = models.BooleanField(
         default=True,
         help_text="Receive notifications for recently released media",
     )
-
     daily_digest_enabled = models.BooleanField(
         default=True,
         help_text="Receive a daily digest of upcoming releases",
     )
 
+    # Integration settings
     token = models.CharField(
         max_length=32,
         unique=True,
         default=generate_token,
         help_text="Token for external integrations",
     )
-
     plex_usernames = models.TextField(
         blank=True,
         help_text="Comma-separated list of Plex usernames for webhook matching",
@@ -526,6 +557,10 @@ class User(AbstractUser):
                 condition=models.Q(list_detail_sort__in=ListDetailSortChoices.values),
             ),
             models.CheckConstraint(
+                name="list_detail_status_valid",
+                condition=models.Q(list_detail_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
                 name="tv_status_valid",
                 condition=models.Q(tv_status__in=MediaStatusChoices.values),
             ),
@@ -552,6 +587,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="book_status_valid",
                 condition=models.Q(book_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="quick_watch_date_valid",
+                condition=models.Q(quick_watch_date__in=QuickWatchDateChoices.values),
             ),
         ]
 
@@ -593,6 +632,26 @@ class User(AbstractUser):
             self.save(update_fields=[field_name])
 
         return new_value
+
+    def resolve_watch_date(self, now, release_date):
+        """
+        Resolve the appropriate watch date based on user preference.
+
+        Args:
+            now: Pre-calculated current datetime
+            release_date: The release/air date for the specific media item
+
+        Returns:
+            datetime or None based on user preference
+        """
+        if self.quick_watch_date == QuickWatchDateChoices.NO_DATE:
+            return None
+
+        if self.quick_watch_date == QuickWatchDateChoices.RELEASE_DATE:
+            return release_date  # Will be None if not available in metadata
+
+        # CURRENT_DATE is the default
+        return now
 
     def get_enabled_media_types(self):
         """Return a list of enabled media type values based on user preferences."""

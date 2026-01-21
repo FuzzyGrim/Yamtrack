@@ -3,20 +3,7 @@
   <div class="flex items-center justify-between mb-6">
     <h2 class="text-2xl font-bold text-white">Lists</h2>
     <button class="text-gray-400 hover:text-white cursor-pointer"
-            @click="listsOpen = false">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round">
-        <path d="M18 6 6 18"></path>
-        <path d="m6 6 12 12"></path>
-      </svg>
-    </button>
+            @click="listsOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
   </div>
   <ul class="space-y-3">
     {% for custom_list in custom_lists %}

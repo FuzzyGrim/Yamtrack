@@ -41,6 +41,26 @@ def handle_error(error):
     )
 
 
+def get_external_links(external_ids):
+    """Build external links dictionary from TMDB external_ids response."""
+    links = {}
+
+    if external_ids.get("imdb_id"):
+        links["IMDb"] = f"https://www.imdb.com/title/{external_ids['imdb_id']}/"
+
+    if external_ids.get("tvdb_id"):
+        links["TVDB"] = (
+            f"https://www.thetvdb.com/dereferrer/series/{external_ids['tvdb_id']}"
+        )
+
+    if external_ids.get("wikidata_id"):
+        links["Wikidata"] = (
+            f"https://www.wikidata.org/wiki/{external_ids['wikidata_id']}"
+        )
+
+    return links
+
+
 def search(media_type, query, page):
     """Search for media on TMDB."""
     cache_key = f"search_{Sources.TMDB.value}_{media_type}_{query}_{page}"
@@ -225,7 +245,7 @@ def movie(media_id):
         url = f"{base_url}/movie/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations,credits,release_dates",
+            "append_to_response": "recommendations,credits,release_dates,external_ids",
         }
 
         try:
@@ -271,6 +291,7 @@ def movie(media_id):
                     MediaTypes.MOVIE.value,
                 ),
             },
+            "external_links": get_external_links(response.get("external_ids", {})),
         }
 
         cache.set(cache_key, data)
@@ -304,6 +325,7 @@ def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
     )
     season_data["title"] = tv_data["title"]
     season_data["tvdb_id"] = tv_data["tvdb_id"]
+    season_data["external_links"] = tv_data["external_links"]
     season_data["genres"] = tv_data["genres"]
     if season_data["synopsis"] == "No synopsis available.":
         season_data["synopsis"] = tv_data["synopsis"]
@@ -476,6 +498,7 @@ def process_tv(response):
             ),
         },
         "tvdb_id": response.get("external_ids", {}).get("tvdb_id"),
+        "external_links": get_external_links(response.get("external_ids", {})),
         "last_episode_season": last_episode["season_number"] if last_episode else None,
         "next_episode_season": next_episode["season_number"] if next_episode else None,
     }

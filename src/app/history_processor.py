@@ -1,7 +1,7 @@
 from django.apps import apps
 from django.template.defaultfilters import pluralize
 
-from app import helpers, media_type_config
+from app import config, helpers
 from app.models import MediaTypes, Status
 from app.templatetags import app_tags
 
@@ -204,7 +204,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
     # If old_value is None, treat it as an initial setting
     if old_value is None:
         if field_name == "status":
-            verb = media_type_config.get_verb(media_type, past_tense=False)
+            verb = config.get_verb(media_type, past_tense=False)
             action = "Marked as"
             if new_value == Status.IN_PROGRESS.value:
                 return f"{action} currently {verb}ing"
@@ -221,10 +221,10 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Rated {new_value}/10"
 
         if field_name == "progress" and media_type:
-            verb = media_type_config.get_verb(media_type, past_tense=True).title()
+            verb = config.get_verb(media_type, past_tense=True).title()
             if media_type == MediaTypes.GAME.value:
                 return f"{verb} for {helpers.minutes_to_hhmm(new_value)}"
-            unit = media_type_config.get_unit(media_type, short=False).lower()
+            unit = config.get_unit(media_type, short=False).lower()
             return f"{verb} up to {unit} {new_value}"
 
         if field_name in ["start_date", "end_date"]:
@@ -238,7 +238,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
     # Regular change (old_value to new_value)
     if field_name == "status":
-        verb = media_type_config.get_verb(media_type, past_tense=False)
+        verb = config.get_verb(media_type, past_tense=False)
         # Status transitions
         transitions = {
             (
@@ -282,7 +282,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Removed {helpers.minutes_to_hhmm(diff_abs)} of playtime"
 
         unit = (
-            f"{media_type_config.get_unit(media_type, short=False).lower()}"
+            f"{config.get_unit(media_type, short=False).lower()}"
             f"{pluralize(new_value)}"
         )
 

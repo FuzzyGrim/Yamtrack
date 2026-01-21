@@ -1,19 +1,109 @@
 {
-    "name": "Yamtrack",
+    "name": "Yamtrack - Media Tracker",
     "short_name": "Yamtrack",
+    "description": "Track your movies, TV shows, anime, manga, games and books",
+    "start_url": "/",
+    "id": "/",
+    "display": "standalone",
+    "display_override": [
+        "standalone"
+    ],
+    "theme_color": "#181a1b",
+    "background_color": "#212529",
+    "orientation": "portrait-primary",
+    "scope": "/",
     "icons": [
         {
-            "src": "/static/android-chrome-192x192.png",
+            "src": "/static/favicon/android-chrome-192x192.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/static/android-chrome-512x512.png",
+            "src": "/static/favicon/android-chrome-512x512.png",
             "sizes": "512x512",
             "type": "image/png"
         }
     ],
-    "theme_color": "#181a1b",
-    "background_color": "#181a1b",
-    "display": "standalone"
+    "screenshots": [
+        {
+            "src": "https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/homepage.png?v2",
+            "sizes": "2305x1350",
+            "type": "image/png",
+            "label": "Home screen showing main navigation and featured content"
+        },
+        {
+            "src": "https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/statistics.png",
+            "sizes": "2305x1350",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Dashboard view displaying statistics"
+        }
+    ],
+    "categories": [
+        "entertainment",
+        "productivity"
+    ],
+    "lang": "en",
+    "shortcuts": [
+        {
+            "name": "Home",
+            "short_name": "Home",
+            "description": "Home",
+            "url": "/"
+        },
+        {
+            "name": "TV Shows",
+            "short_name": "TV",
+            "description": "View your TV Shows",
+            "url": "/medialist/tv"
+        },
+        {
+            "name": "Movies",
+            "short_name": "Movies",
+            "description": "View your Movies",
+            "url": "/medialist/movies"
+        },
+        {
+            "name": "Anime",
+            "short_name": "Anime",
+            "description": "View your Anime",
+            "url": "/medialist/anime"
+        },
+        {
+            "name": "Manga",
+            "short_name": "Manga",
+            "description": "View your Mangas",
+            "url": "/medialist/manga"
+        },
+        {
+            "name": "Games",
+            "short_name": "Games",
+            "description": "View your Games",
+            "url": "/medialist/games"
+        },
+        {
+            "name": "Books",
+            "short_name": "Books",
+            "description": "View your Books",
+            "url": "/medialist/books"
+        },
+        {
+            "name": "Comics",
+            "short_name": "Comics",
+            "description": "View your Comics",
+            "url": "/medialist/comics"
+        },
+        {
+            "name": "Statistics",
+            "short_name": "Stats",
+            "description": "View your Statistics",
+            "url": "/statistics"
+        },
+        {
+            "name": "Your Lists",
+            "short_name": "Lists",
+            "description": "View your Lists",
+            "url": "/lists"
+        }
+    ]
 }

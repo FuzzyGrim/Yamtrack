@@ -14,7 +14,7 @@ from django.db.models import (
 )
 from django.utils import timezone
 
-from app import media_type_config
+from app import config
 from app.models import TV, BasicMedia, Episode, MediaManager, MediaTypes, Season, Status
 from app.templatetags import app_tags
 
@@ -148,7 +148,7 @@ def get_media_type_distribution(media_count):
             chart_data["labels"].append(label)
             chart_data["datasets"][0]["data"].append(count)
             chart_data["datasets"][0]["backgroundColor"].append(
-                media_type_config.get_stats_color(media_type),
+                config.get_stats_color(media_type),
             )
     return chart_data
 
@@ -267,7 +267,7 @@ def get_score_distribution(user_media):
             {
                 "label": app_tags.media_type_readable(media_type),
                 "data": [distribution[media_type][score] for score in score_range],
-                "background_color": media_type_config.get_stats_color(media_type),
+                "background_color": config.get_stats_color(media_type),
             }
             for media_type in distribution
         ],
@@ -312,24 +312,10 @@ def _annotate_top_rated_media(top_rated_media):
 
 def get_status_color(status):
     """Get the color for the status of the media."""
-    colors = {
-        Status.IN_PROGRESS.value: media_type_config.get_stats_color(
-            MediaTypes.EPISODE.value,
-        ),
-        Status.COMPLETED.value: media_type_config.get_stats_color(
-            MediaTypes.TV.value,
-        ),
-        Status.PLANNING.value: media_type_config.get_stats_color(
-            MediaTypes.ANIME.value,
-        ),
-        Status.PAUSED.value: media_type_config.get_stats_color(
-            MediaTypes.MOVIE.value,
-        ),
-        Status.DROPPED.value: media_type_config.get_stats_color(
-            MediaTypes.MANGA.value,
-        ),
-    }
-    return colors.get(status, "rgba(201, 203, 207)")
+    try:
+        return config.get_status_stats_color(status)
+    except KeyError:
+        return "rgba(201, 203, 207)"
 
 
 def get_timeline(user_media):

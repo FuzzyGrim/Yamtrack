@@ -44,9 +44,9 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_placeholder("Search tv shows...").fill("breaking bad")
         self.page.get_by_role("button").nth(1).click()
         expect(self.page.locator("h2")).to_contain_text("Search Results")
-        self.page.get_by_role("link", name="Breaking Bad", exact=True).click()
+        self.page.get_by_title("Breaking Bad", exact=True).click()
         expect(self.page.get_by_role("main")).to_contain_text("Breaking Bad")
-        self.page.get_by_role("link", name="Season 1").click()
+        self.page.get_by_title("Season 1").click()
         expect(self.page.get_by_role("main")).to_contain_text("Season 1")
         self.page.locator(".p-2").first.click()
         expect(self.page.get_by_role("main")).to_contain_text("Track Episode")
@@ -60,7 +60,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_text("Breaking Bad S1 1 Episode").get_by_role("button").nth(
             1,
         ).click()
-        self.page.get_by_role("link", name="Breaking Bad S1").click()
+        self.page.get_by_title("Breaking Bad S1").click()
 
         today = formats.date_format(
             timezone.localdate(),
@@ -76,7 +76,7 @@ class IntegrationTest(StaticLiveServerTestCase):
             "button",
         ).first.click()
         expect(self.page.locator("h2")).to_contain_text("Search Results")
-        self.page.get_by_role("link", name="Breaking Bad", exact=True).click()
+        self.page.get_by_title("Breaking Bad", exact=True).click()
         expect(self.page.get_by_role("main")).to_contain_text("Breaking Bad")
         self.page.locator("button").filter(has_text="Add to tracker").click()
         expect(self.page.locator("#track-tv-1396")).to_contain_text("Score")
@@ -91,9 +91,9 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_placeholder("Search tv shows...").fill("breaking bad")
         self.page.get_by_role("button").nth(1).click()
         expect(self.page.locator("h2")).to_contain_text("Search Results")
-        self.page.get_by_role("link", name="Breaking Bad", exact=True).click()
+        self.page.get_by_title("Breaking Bad", exact=True).click()
         expect(self.page.get_by_role("main")).to_contain_text("Breaking Bad")
-        self.page.get_by_role("link", name="Season 1").click()
+        self.page.get_by_title("Season 1").click()
         expect(self.page.get_by_role("main")).to_contain_text("Season 1")
         self.page.get_by_role("button", name="Add to tracker").click()
         expect(self.page.locator("#track-season-1396-1")).to_contain_text("Score")
@@ -162,10 +162,10 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("link", name="Grid View").click()
         expect(self.page.get_by_role("main")).to_contain_text("Friends S1")
         self.page.get_by_role("link", name="TV Shows").click()
-        self.page.get_by_role("link", name="Friends").click()
+        self.page.get_by_title("Friends").click()
         expect(self.page.get_by_role("main")).to_contain_text("Friends")
         expect(self.page.get_by_role("main")).to_contain_text("Season 1")
-        self.page.get_by_role("link", name="Season 1").click()
+        self.page.get_by_title("Season 1").click()
         expect(self.page.get_by_role("main")).to_contain_text("Season 1")
         expect(self.page.get_by_role("main")).to_contain_text(
             "Episode 1 • Unknown air date",

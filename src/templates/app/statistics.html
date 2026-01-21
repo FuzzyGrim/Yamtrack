@@ -15,35 +15,10 @@
     <!-- Trigger Button -->
     <button @click="toggleDropdown()"
             class="flex items-center gap-2 px-4 py-2.5 bg-[#2a2f35] hover:bg-[#343a40] rounded-lg transition-all duration-200 border border-gray-700 shadow-sm cursor-pointer">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="w-5 h-5 text-indigo-400">
-        <path d="M8 2v4"></path>
-        <path d="M16 2v4"></path>
-        <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-        <path d="M3 10h18"></path>
-      </svg>
+      {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400" %}
       <span class="font-medium" x-text="selectedRange"></span>
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="w-4 h-4 ml-1 transition-transform duration-200"
-           :class="{'rotate-180': isOpen}">
-        <path d="m6 9 6 6 6-6"></path>
-      </svg>
+      <div class="w-4 h-4 ml-1 transition-transform duration-200"
+           :class="{'rotate-180': isOpen}">{% include "app/icons/chevron-down.svg" %}</div>
     </button>
 
     <!-- Dropdown -->
@@ -65,26 +40,14 @@
 
       <!-- Predefined Ranges Tab -->
       <div x-show="activeTab === 'predefined'"
-           class="p-2 max-h-[320px] overflow-y-auto">
+           class="p-2 max-h-80 overflow-y-auto">
         <div class="grid grid-cols-2 gap-2">
           <template x-for="range in predefinedRanges" :key="range.name">
             <button @click="selectPredefinedRange(range.name)"
                     :class="{'bg-indigo-600 text-white': selectedRange === range.name, 'hover:bg-[#39404b] text-gray-200': selectedRange !== range.name}"
                     class="flex items-center justify-between p-3 rounded-md text-left text-sm transition-all cursor-pointer">
               <span x-text="range.name"></span>
-              <svg x-show="selectedRange === range.name"
-                   xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4">
-                <path d="M20 6 9 17l-5-5"></path>
-              </svg>
+              <div x-show="selectedRange === range.name">{% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}</div>
             </button>
           </template>
         </div>
@@ -98,33 +61,21 @@
               <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
               <input x-model="startDate"
                      @change="updateDateRange()"
-                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
+                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm scheme-dark"
                      type="date">
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
               <input x-model="endDate"
                      @change="updateDateRange()"
-                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
+                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm scheme-dark"
                      type="date">
             </div>
           </div>
 
           <div class="flex items-center justify-center py-2 px-3 bg-[#343a40] rounded-md">
             <span class="text-sm text-gray-300" x-text="formatDisplayDate(startDate)"></span>
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="mx-2 w-4 h-4 text-gray-500">
-              <path d="M5 12h14"></path>
-              <path d="m12 5 7 7-7 7"></path>
-            </svg>
+            {% include "app/icons/right-arrow.svg" with classes="mx-2 w-4 h-4 text-gray-500" %}
             <span class="text-sm text-gray-300" x-text="formatDisplayDate(endDate)"></span>
           </div>
 
@@ -135,18 +86,7 @@
             </button>
             <button @click="applyCustomRange()"
                     class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-md transition-colors cursor-pointer flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4">
-                <path d="M20 6 9 17l-5-5"></path>
-              </svg>
+              {% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}
               Apply Range
             </button>
           </div>
@@ -160,19 +100,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
         <div class="bg-indigo-600/20 p-4 rounded-full mr-4">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-indigo-400">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <path d="m9 11 3 3L22 4"></path>
-          </svg>
+          {% include "app/icons/states/completed.svg" with classes="w-8 h-8 text-indigo-400" %}
         </div>
         <div>
           <h3 class="text-sm font-medium text-gray-400">Completed Items</h3>
@@ -187,20 +115,7 @@
       </div>
       <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
         <div class="bg-yellow-600/20 p-4 rounded-full mr-4">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-yellow-400">
-            <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526">
-            </path>
-            <circle cx="12" cy="8" r="6"></circle>
-          </svg>
+          {% include "app/icons/ribbon.svg" with classes="w-8 h-8 text-yellow-400" %}
         </div>
         <div>
           <h3 class="text-sm font-medium text-gray-400">Average Rating</h3>
@@ -215,21 +130,7 @@
       </div>
       <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
         <div class="bg-emerald-600/20 p-4 rounded-full mr-4">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-emerald-400">
-            <path d="M8 2v4"></path>
-            <path d="M16 2v4"></path>
-            <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-            <path d="M3 10h18"></path>
-          </svg>
+          {% include "app/icons/calendar.svg" with classes="w-8 h-8 text-emerald-400" %}
         </div>
         <div>
           <h3 class="text-sm font-medium text-gray-400">Most Active Day</h3>
@@ -243,19 +144,7 @@
       </div>
       <div class="bg-[#2a2f35] rounded-lg p-6 flex items-center">
         <div class="bg-red-600/20 p-4 rounded-full mr-4">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-red-400">
-            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z">
-            </path>
-          </svg>
+          {% include "app/icons/flame.svg" with classes="w-8 h-8 text-red-400" %}
         </div>
         <div>
           <h3 class="text-sm font-medium text-gray-400">Current Streak</h3>
@@ -343,19 +232,7 @@
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
             <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-8 h-8 text-gray-400">
-                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-                <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-              </svg>
+              {% include "app/icons/piechart.svg" with classes="w-8 h-8 text-gray-400" %}
             </div>
             <h3 class="text-lg font-medium mb-2">No media types to display</h3>
             <p class="text-gray-400 text-center max-w-md">Add different types of media to see their distribution.</p>
@@ -374,18 +251,7 @@
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
             <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-8 h-8 text-gray-400">
-                <line x1="12" x2="12" y1="20" y2="10"></line><line x1="18" x2="18" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="16"></line>
-              </svg>
+              {% include "app/icons/bars-increasing.svg" with classes="w-8 h-8 text-gray-400" %}
             </div>
             <h3 class="text-lg font-medium mb-2">No status data to display</h3>
             <p class="text-gray-400 text-center max-w-md">Track media items with different statuses to see their distribution.</p>
@@ -404,18 +270,7 @@
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
             <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-8 h-8 text-gray-400">
-                <line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line>
-              </svg>
+              {% include "app/icons/bars-pyramid.svg" with classes="w-8 h-8 text-gray-400" %}
             </div>
             <h3 class="text-lg font-medium mb-2">No data available</h3>
             <p class="text-gray-400 text-center max-w-md">
@@ -436,20 +291,7 @@
         {% else %}
           <div class="flex flex-col items-center justify-center py-16">
             <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-8 h-8 text-gray-400">
-                <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526">
-                </path>
-                <circle cx="12" cy="8" r="6"></circle>
-              </svg>
+              {% include "app/icons/ribbon.svg" with classes="w-8 h-8 text-gray-400" %}
             </div>
             <h3 class="text-lg font-medium mb-2">No ratings yet</h3>
             <p class="text-gray-400 text-center max-w-md">Rate your media items to see score distribution statistics.</p>
@@ -471,20 +313,7 @@
       {% else %}
         <div class="flex flex-col items-center justify-center py-16">
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-8 h-8 text-gray-400">
-              <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526">
-              </path>
-              <circle cx="12" cy="8" r="6"></circle>
-            </svg>
+            {% include "app/icons/ribbon.svg" with classes="w-8 h-8 text-gray-400" %}
           </div>
           <h3 class="text-lg font-medium mb-2">No ratings yet</h3>
           <p class="text-gray-400 text-center max-w-md">Rate your media items to see score distribution statistics.</p>
@@ -530,7 +359,7 @@
                   {% for media in media_list %}
                     <div class="bg-[#39404b] p-4 rounded-lg hover:ring-2 hover:ring-indigo-500 transition-all duration-200">
                       <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 order-0">
+                        <div class="shrink-0 order-0">
                           <a href="{{ media.item|media_url }}">
                             <img alt="{{ media.item }}"
                                  class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.image != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
@@ -552,18 +381,7 @@
                           </div>
                           {% if media.score is not None %}
                             <div class="flex items-center text-sm text-yellow-400 mt-2">
-                              <svg xmlns="http://www.w3.org/2000/svg"
-                                   width="24"
-                                   height="24"
-                                   viewBox="0 0 24 24"
-                                   fill="none"
-                                   stroke="currentColor"
-                                   stroke-width="2"
-                                   stroke-linecap="round"
-                                   stroke-linejoin="round"
-                                   class="w-4 h-4 mr-1 fill-current">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                              </svg>
+                              {% include "app/icons/star.svg" with classes="w-4 h-4 mr-1 fill-current" %}
                               <span>{{ media.formatted_score }}</span>
                             </div>
                           {% endif %}
@@ -579,18 +397,7 @@
       {% else %}
         <div class="flex flex-col items-center justify-center py-16">
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-8 h-8 text-gray-400">
-              <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
+            {% include "app/icons/clock.svg" with classes="w-8 h-8 text-gray-400" %}
           </div>
           <h3 class="text-lg font-medium mb-2">Your timeline is empty</h3>
           <p class="text-gray-400 text-center max-w-md">Consume media items to see them appear on your timeline.</p>

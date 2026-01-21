@@ -13,22 +13,7 @@
 
       <button class="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/75 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 text-white hover:text-indigo-400 cursor-pointer"
               @click="showModal = true"
-              title="Edit list">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-4 h-4">
-          <path d="M20 7h-9"></path>
-          <path d="M14 17H5"></path>
-          <circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle>
-        </svg>
-      </button>
+              title="Edit list">{% include "app/icons/horizontal-sliders.svg" with classes="w-4 h-4" %}</button>
       <div class="absolute bottom-4 left-4 flex flex-col items-start max-w-[calc(100%-2rem)]">
         <h3 class="text-xl font-semibold text-white mb-1 line-clamp-1 w-full">{{ custom_list.name }}</h3>
         <p class="text-sm text-gray-200 line-clamp-2 w-full">{{ custom_list.description }}</p>
@@ -37,21 +22,7 @@
     <div class="p-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 text-gray-400 mr-2">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
+          {% include "app/icons/persons.svg" with classes="w-4 h-4 text-gray-400 mr-2" %}
           <div class="flex -space-x-2">
             <div class="w-6 h-6 rounded-full bg-[#4f46e5] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
                  title="{{ custom_list.owner.username }}">{{ custom_list.owner.username.0|upper }}</div>

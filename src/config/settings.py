@@ -22,6 +22,8 @@ BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
     FORCE_SCRIPT_NAME = BASE_URL
 
+REDIS_PREFIX = config("REDIS_PREFIX", default=None)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -45,8 +47,13 @@ def secret(key, default=undefined, **kwargs):
     path = Path(file)
     try:
         if path.is_absolute():
-            return Config(RepositorySecret(path.parent))(path.stem, default, **kwargs)
-        return Config(RepositorySecret())(file, default, **kwargs)
+            secret_value = Config(RepositorySecret(path.parent))(
+                path.stem,
+                default,
+                **kwargs,
+            )
+        else:
+            secret_value = Config(RepositorySecret())(file, default, **kwargs)
     except (
         FileNotFoundError,
         IsADirectoryError,
@@ -54,6 +61,10 @@ def secret(key, default=undefined, **kwargs):
     ) as err:
         msg = f"File from {key} not found. Please check the path and filename."
         raise UndefinedValueError(msg) from err
+    else:
+        if isinstance(secret_value, str):
+            return secret_value.strip()
+        return secret_value
 
 
 # Quick-start development settings - unsuitable for production
@@ -221,6 +232,7 @@ else:
 # https://docs.djangoproject.com/en/stable/topics/cache/
 CACHE_TIMEOUT = 86400  # 24 hours
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
+KEY_PREFIX = f"{REDIS_PREFIX}" if REDIS_PREFIX else ""
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",
@@ -228,7 +240,8 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 10,
+        "VERSION": 14,
+        "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -383,7 +396,8 @@ IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 STEAM_API_KEY = config(
     "STEAM_API_KEY",
     default=secret(
-        "STEAM_API_KEY_FILE", "",
+        "STEAM_API_KEY_FILE",
+        "",
     ),  # Generate default key https://steamcommunity.com/dev/apikey
 )
 
@@ -498,6 +512,12 @@ SELECT2_THEME = "tailwindcss-4"
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_TIMEZONE = TIME_ZONE
+
+if REDIS_PREFIX:
+    CELERY_BROKER_TRANSPORT_OPTIONS = {
+        "global_keyprefix": f"{REDIS_PREFIX}",
+        "queue_prefix": f"{REDIS_PREFIX}",
+    }
 
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_CONCURRENCY = 1

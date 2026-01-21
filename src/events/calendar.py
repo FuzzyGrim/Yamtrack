@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.db.models import Exists, OuterRef, Q, Subquery
 from django.utils import timezone
 
-from app import media_type_config
+from app import config
 from app.models import Item, MediaTypes, Sources
 from app.providers import comicvine, services, tmdb
 from events.models import Event, SentinelDatetime
@@ -672,7 +672,7 @@ def process_comic(item, events_bulk):
     # get latest event
     latest_event = Event.objects.filter(item=item).order_by("-datetime").first()
     last_issue_event_number = latest_event.content_number if latest_event else 0
-    last_published_issue_number = metadata["max_progress"]
+    last_published_issue_number = metadata["max_issue_number"]
     if last_issue_event_number == last_published_issue_number:
         return
 
@@ -718,7 +718,7 @@ def process_other(item, events_bulk):
         )
         return
 
-    date_key = media_type_config.get_date_key(item.media_type)
+    date_key = config.get_date_key(item.media_type)
 
     if date_key in metadata["details"] and metadata["details"][date_key]:
         try:

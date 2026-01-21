@@ -824,7 +824,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Setup mocks
         mock_get_media_metadata.return_value = {
-            "max_progress": 10,
+            "max_issue_number": 10,
             "last_issue_id": "4000-123456",
             "last_issue": {"issue_number": "10"},
         }
@@ -869,7 +869,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Setup mocks
         mock_get_media_metadata.return_value = {
-            "max_progress": 5,
+            "max_issue_number": 5,
             "last_issue_id": "4000-123457",
             "last_issue": {"issue_number": "5"},
         }
@@ -907,7 +907,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Setup mocks
         mock_get_media_metadata.return_value = {
-            "max_progress": 3,
+            "max_issue_number": 3,
             "last_issue_id": "4000-123458",
             "last_issue": {"issue_number": "3"},
         }

@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import requests
 from django.conf import settings
+from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django_celery_beat.models import PeriodicTask
 
@@ -21,8 +22,6 @@ BULK_PAGE_SIZE = 1000
 
 def handle_oauth_callback(request):
     """View for getting the Trakt OAuth2 token."""
-    domain = request.get_host()
-    scheme = request.scheme
     code = request.GET["code"]
 
     url = "https://api.trakt.tv/oauth/token"
@@ -32,7 +31,7 @@ def handle_oauth_callback(request):
         "client_secret": settings.TRAKT_API_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": f"{scheme}://{domain}/import/trakt",
+        "redirect_uri": request.build_absolute_uri(reverse("import_trakt_private")),
     }
 
     try:
@@ -81,16 +80,18 @@ def get_username_from_oauth(access_token):
     return request["username"]
 
 
-def get_access_token(refresh_token):
-    """View for getting the Trakt OAuth2 access token."""
+def get_access_token(encrypted_refresh_token):
+    """Get access token from encrypted refresh token."""
     url = "https://api.trakt.tv/oauth/token"
+
+    decrypted_token = helpers.decrypt(encrypted_refresh_token)
 
     params = {
         "client_id": settings.TRAKT_API,
         "client_secret": settings.TRAKT_API_SECRET,
-        "refresh_token": helpers.decrypt(refresh_token),
+        "refresh_token": decrypted_token,
         "grant_type": "refresh_token",
-        "redirect_uri": f"{settings.BASE_URL}/import/trakt",
+        "redirect_uri": f"{settings.BASE_URL}/import/trakt/private",
     }
 
     try:
@@ -107,7 +108,7 @@ def get_access_token(refresh_token):
         raise
 
     # refresh tokens are one time use only
-    update_refresh_token(refresh_token, request["refresh_token"])
+    update_refresh_token(encrypted_refresh_token, request["refresh_token"])
     return request["access_token"]
 
 
@@ -125,8 +126,19 @@ def update_refresh_token(old_token, new_token):
         periodic_task.save()
 
 
-def importer(token, user, mode, username=None):
-    """Import the user's data from Trakt using OAuth."""
+def importer(token, user, mode, username):
+    """Import the user's data from Trakt.
+
+    Can import using either OAuth (token provided) or public username.
+    When using OAuth, username should be the authenticated user's username.
+    When using public import, username is the Trakt username and token should be None.
+
+    Args:
+        token (str, optional): Encrypted OAuth2 refresh token if using OAuth else None
+        user: Django user object to import data for
+        mode (str): Import mode ("new" or "overwrite")
+        username (str): Trakt username to import from
+    """
     trakt_importer = TraktImporter(username, user, mode, refresh_token=token)
     return trakt_importer.import_data()
 
@@ -141,7 +153,8 @@ class TraktImporter:
             username (str): Trakt username to import from
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
-            refresh_token (str, optional): OAuth2 refresh token if using OAuth
+            refresh_token (str, optional): Encrypted OAuth2 refresh token if
+                using OAuth, None for public import
         """
         self.username = username
         self.user = user
@@ -223,6 +236,10 @@ class TraktImporter:
                         f"User slug {self.username} not found. "
                         "User slug can be found in your Trakt profile URL."
                     )
+                    raise MediaImportError(msg) from error
+
+                if error.response.status_code == requests.codes.unauthorized:
+                    msg = "This account is set to private, use OAuth import instead."
                     raise MediaImportError(msg) from error
                 raise
 
@@ -440,7 +457,8 @@ class TraktImporter:
         if not episode_exists:
             item_identifier = f"{show['title']} S{season_number}E{episode_number}"
             self.warnings.append(
-                f"{item_identifier}: not found in TMDB with ID {tmdb_id}.",
+                f"{item_identifier}: not found in {Sources.TMDB.label} "
+                f"with ID {tmdb_id}.",
             )
             return
 

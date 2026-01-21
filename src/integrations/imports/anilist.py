@@ -5,6 +5,7 @@ from datetime import UTC
 import requests
 from django.apps import apps
 from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 
 import app
@@ -18,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 def get_token(request):
     """View for getting the AniList OAuth2 token."""
-    domain = request.get_host()
-    scheme = request.scheme
     code = request.GET["code"]
 
     url = "https://anilist.co/api/v2/oauth/token"
@@ -29,7 +28,7 @@ def get_token(request):
         "client_secret": settings.ANILIST_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": f"{scheme}://{domain}/import/anilist/private",
+        "redirect_uri": request.build_absolute_uri(reverse("import_anilist_private")),
     }
 
     try:

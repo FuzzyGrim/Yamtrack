@@ -34,10 +34,13 @@ def get_redis_connection():
 
 redis_pool = get_redis_connection()
 
+REDIS_PREFIX = getattr(settings, "REDIS_PREFIX", None)
+bucket_name = f"{REDIS_PREFIX}_api" if REDIS_PREFIX else "api"
+
 session = LimiterSession(
     per_second=5,
     bucket_class=RedisBucket,
-    bucket_kwargs={"redis_pool": redis_pool, "bucket_name": "api"},
+    bucket_kwargs={"redis_pool": redis_pool, "bucket_name": bucket_name},
 )
 
 session.mount("http://", HTTPAdapter(max_retries=3))
@@ -69,7 +72,7 @@ session.mount(
 )
 session.mount(
     "https://api.hardcover.app/v1/graphql",
-    LimiterAdapter(per_minute=55),
+    LimiterAdapter(per_minute=50),
 )
 
 
@@ -87,11 +90,40 @@ class ProviderAPIError(Exception):
 
         logger.error("%s error: %s", provider, error.response.text)
 
-        message = f"There was an error contacting the {provider} API"
+        message = (
+            f"There was an error contacting the {provider} API "
+            f"(HTTP {self.status_code})"
+        )
         if details:
             message += f": {details}"
         message += ". Check the logs for more details."
         super().__init__(message)
+
+
+def raise_not_found_error(provider, media_id, media_type="item"):
+    """
+    Raise a 404 ProviderAPIError for when a media item is not found.
+
+    Args:
+        provider: The provider source value (e.g., Sources.COMICVINE.value)
+        media_id: The media ID that was not found
+        media_type: The type of media (e.g., "comic", "game", "book")
+    """
+    error_msg = f"{media_type.capitalize()} with ID {media_id} not found"
+    logger.error("%s: %s", provider, error_msg)
+
+    # Create a mock 404 error response
+    mock_response = type(
+        "obj",
+        (object,),
+        {
+            "status_code": 404,
+            "text": error_msg,
+        },
+    )()
+    mock_error = requests.exceptions.HTTPError(response=mock_response)
+
+    raise ProviderAPIError(provider, mock_error, error_msg)
 
 
 def api_request(provider, method, url, params=None, data=None, headers=None):
@@ -121,7 +153,7 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
 
         # handle rate limiting
         if status_code == requests.codes.too_many_requests:
-            seconds_to_wait = int(error_resp.headers["Retry-After"])
+            seconds_to_wait = int(error_resp.headers.get("Retry-After", 5))
             logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
             time.sleep(seconds_to_wait + 3)
             logger.info("Retrying request")

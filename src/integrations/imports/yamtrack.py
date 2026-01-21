@@ -7,7 +7,7 @@ from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 import app
-from app import media_type_config
+from app import config
 from app.models import MediaTypes, Sources
 from app.providers import services
 from app.templatetags import app_tags
@@ -182,7 +182,7 @@ class YamtrackImporter:
         if row.get("title", "") != "":
             source = row.get("source", "")
             if source == "":
-                source = media_type_config.get_default_source_name(media_type)
+                source = config.get_default_source_name(media_type).value
 
             metadata = services.search(
                 media_type,

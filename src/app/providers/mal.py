@@ -292,7 +292,9 @@ def get_runtime(response):
 
 def get_genres(response):
     """Return the genres for the media."""
-    if response["genres"]:
+    # when unknown genres, genres key is not present in the response
+    # e.g manga: 151971
+    if response.get("genres"):
         return [genre["name"] for genre in response["genres"]]
     return None
 

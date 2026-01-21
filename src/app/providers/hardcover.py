@@ -155,8 +155,11 @@ def book(media_id):
 
         book_data = response["data"].get("books_by_pk")
         if not book_data:
-            logger.error("No book data returned from Hardcover API for ID %s. Response: %s", media_id, response)
-            return None
+            services.raise_not_found_error(
+                Sources.HARDCOVER.value,
+                media_id,
+                "book",
+            )
             
         logger.info("Hardcover book data for ID %s: title=%s, has_default_cover_edition=%s, language=%s", 
                    media_id, 
@@ -421,6 +424,7 @@ def get_edition_details(edition_data):
         "format": edition_data.get("edition_format") or "Unknown",
         "publisher": publisher_name,
         "isbn": isbns if isbns else None,
+        "release_date": edition_data.get("release_date"),
     }
 
 

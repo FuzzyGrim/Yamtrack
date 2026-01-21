@@ -4,7 +4,7 @@
      x-cloak
      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
   <div @click.outside="showModal = false"
-       class="bg-[#2a2f35] p-6 rounded-lg w-[38rem] max-h-[90vh] overflow-y-auto">
+       class="bg-[#2a2f35] p-6 rounded-lg w-152 max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-2xl font-bold">
         {% if form.instance.pk %}
@@ -15,18 +15,7 @@
       </h2>
       <button @click="showModal = false"
               class="text-gray-400 hover:text-white transition-colors cursor-pointer">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round">
-          <path d="M18 6 6 18"></path>
-          <path d="m6 6 12 12"></path>
-        </svg>
+        {% include "app/icons/x.svg" with classes="w-6 h-6" %}
       </button>
     </div>
     <form class="space-y-6" method="post">

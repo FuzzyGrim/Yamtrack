@@ -16,6 +16,6 @@ tailwindcss
 
 # IDE files
 .vscode/launch.json
-
-# Node modules
-node_modules/
+CLAUDE.md
+requests.http
+TODO.txt

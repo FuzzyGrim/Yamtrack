@@ -1,7 +1,7 @@
 from django import forms
 from django.conf import settings
 
-from app import media_type_config
+from app import config
 from app.models import (
     TV,
     Anime,
@@ -237,7 +237,7 @@ class MangaForm(MediaForm):
         labels = {
             "progress": (
                 f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.MANGA.value, short=False)}s)"
+                f"({config.get_unit(MediaTypes.MANGA.value, short=False)}s)"
             ),
         }
 
@@ -293,7 +293,7 @@ class BookForm(MediaForm):
         labels = {
             "progress": (
                 f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.BOOK.value, short=False)}s)"
+                f"({config.get_unit(MediaTypes.BOOK.value, short=False)}s)"
             ),
         }
 
@@ -308,7 +308,7 @@ class ComicForm(MediaForm):
         labels = {
             "progress": (
                 f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.COMIC.value, short=False)}s)"
+                f"({config.get_unit(MediaTypes.COMIC.value, short=False)}s)"
             ),
         }
 

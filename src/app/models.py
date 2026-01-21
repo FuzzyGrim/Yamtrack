@@ -77,7 +77,7 @@ class Item(CalendarTriggerMixin, models.Model):
         choices=MediaTypes.choices,
         default=MediaTypes.MOVIE.value,
     )
-    title = models.CharField(max_length=255)
+    title = models.TextField()
     image = models.URLField()  # if add default, custom media entry will show the value
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
@@ -600,6 +600,47 @@ class MediaManager(models.Manager):
             tv_episodes = released_episodes.get(tv.item.media_id, {})
             tv.max_progress = sum(tv_episodes.values()) if tv_episodes else 0
 
+    def fetch_media_for_items(self, media_types, item_ids, user, status_filter=None):
+        """Fetch media objects for given items, optionally filtering by status.
+
+        Args:
+            media_types: Iterable of media type strings to query
+            item_ids: QuerySet or list of item IDs to fetch media for
+            user: User to filter media by
+            status_filter: Optional status value to filter by
+
+        Returns:
+            dict mapping item_id to media object
+        """
+        media_by_item_id = {}
+
+        for media_type in media_types:
+            model = apps.get_model("app", media_type)
+
+            if media_type == MediaTypes.EPISODE.value:
+                filter_kwargs = {
+                    "item__in": item_ids,
+                    "related_season__user": user,
+                }
+                if status_filter:
+                    filter_kwargs["related_season__status"] = status_filter
+            else:
+                filter_kwargs = {
+                    "item__in": item_ids,
+                    "user": user,
+                }
+                if status_filter:
+                    filter_kwargs["status"] = status_filter
+
+            queryset = model.objects.filter(**filter_kwargs).select_related("item")
+            queryset = self._apply_prefetch_related(queryset, media_type)
+            self.annotate_max_progress(queryset, media_type)
+
+            for entry in queryset:
+                media_by_item_id.setdefault(entry.item_id, entry)
+
+        return media_by_item_id
+
     def get_media(
         self,
         user,
@@ -614,10 +655,7 @@ class MediaManager(models.Manager):
             instance_id,
         )
 
-        try:
-            return model.objects.get(**params)
-        except model.DoesNotExist:
-            return None
+        return model.objects.get(**params)
 
     def get_media_prefetch(
         self,
@@ -1430,6 +1468,8 @@ class Season(Media):
             latest_watched_ep_num = 0
 
         episodes_to_create = []
+
+        # Calculate current time once before the loop
         now = timezone.now().replace(second=0, microsecond=0)
 
         # Create Episode objects for the remaining episodes
@@ -1463,10 +1503,13 @@ class Season(Media):
 
             item = self.get_episode_item(episode_number, season_metadata)
 
+            # Resolve end_date based on user preference
+            end_date = self.user.resolve_watch_date(now, episode.get("air_date"))
+
             episode_db = Episode(
                 related_season=self,
                 item=item,
-                end_date=now,
+                end_date=end_date,
             )
             episodes_to_create.append(episode_db)
 

@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from app import media_type_config
+from app import config
 from app.history_processor import format_description
 from app.models import MediaTypes, Status
 
@@ -14,8 +14,8 @@ class HistoryProcessorTests(TestCase):
         for media_type in MediaTypes:
             # Ensure both present and past tense verbs are defined
             try:
-                media_type_config.get_verb(media_type.value, past_tense=False)
-                media_type_config.get_verb(media_type.value, past_tense=True)
+                config.get_verb(media_type.value, past_tense=False)
+                config.get_verb(media_type.value, past_tense=True)
             except KeyError:
                 self.fail(f"Media type {media_type.name} not defined in get_verb")
 

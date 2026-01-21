@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 @require_POST
 def trakt_oauth(request):
     """View for initiating Trakt OAuth2 authorization flow."""
-    redirect_uri = request.build_absolute_uri(reverse("import_trakt"))
+    redirect_uri = request.build_absolute_uri(reverse("import_trakt_private"))
     url = "https://trakt.tv/oauth/authorize"
     state = {
         "mode": request.POST["mode"],
@@ -41,8 +41,8 @@ def trakt_oauth(request):
 
 
 @require_GET
-def import_trakt(request):
-    """View for getting the Trakt OAuth2 token."""
+def import_trakt_private(request):
+    """View for handling Trakt OAuth2 callback and scheduling private import."""
     oauth_callback = trakt.handle_oauth_callback(request)
     enc_token = helpers.encrypt(oauth_callback["refresh_token"])
     state_token = request.GET["state"]
@@ -73,9 +73,40 @@ def import_trakt(request):
 
 
 @require_POST
+def import_trakt_public(request):
+    """View for importing Trakt data using public username."""
+    username = request.POST.get("user")
+    if not username:
+        messages.error(request, "Trakt username is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
+    import_time = request.POST["time"]
+
+    if frequency == "once":
+        tasks.import_trakt.delay(
+            user_id=request.user.id,
+            mode=mode,
+            username=username,
+        )
+        messages.info(request, "The task to import media from Trakt has been queued.")
+    else:
+        helpers.create_import_schedule(
+            username=username,
+            request=request,
+            mode=mode,
+            frequency=frequency,
+            import_time=import_time,
+            source="Trakt",
+        )
+    return redirect("import_data")
+
+
+@require_POST
 def simkl_oauth(request):
     """View for initiating the SIMKL OAuth2 authorization flow."""
-    redirect_uri = request.build_absolute_uri(reverse("import_simkl"))
+    redirect_uri = request.build_absolute_uri(reverse("import_simkl_private"))
     url = "https://simkl.com/oauth/authorize"
 
     state = {
@@ -92,7 +123,7 @@ def simkl_oauth(request):
 
 
 @require_GET
-def import_simkl(request):
+def import_simkl_private(request):
     """View for getting the SIMKL OAuth2 token."""
     oauth_callback = simkl.get_token(request)
     enc_token = helpers.encrypt(oauth_callback["access_token"])
@@ -166,6 +197,7 @@ def anilist_oauth(request):
     return redirect(
         f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={state_token}",
     )
+
 
 @require_GET
 def import_anilist_private(request):

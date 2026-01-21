@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import requests
 from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -17,8 +18,6 @@ logger = logging.getLogger(__name__)
 
 def get_token(request):
     """View for getting the SIMKL OAuth2 token."""
-    domain = request.get_host()
-    scheme = request.scheme
     code = request.GET["code"]
     url = "https://api.simkl.com/oauth/token"
 
@@ -31,7 +30,7 @@ def get_token(request):
         "client_secret": settings.SIMKL_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": f"{scheme}://{domain}",
+        "redirect_uri": request.build_absolute_uri(reverse("import_simkl_private")),
     }
 
     try:

@@ -14,7 +14,7 @@ from django.db.models import (
 )
 from django.utils import timezone
 
-from app import media_type_config
+from app import config
 from app.models import TV, Item, MediaTypes, Season, Status
 
 # Statuses that represent inactive tracking
@@ -202,7 +202,7 @@ class Event(models.Model):
         if self.content_number:
             return (
                 f"{self.item.__str__()} "
-                f"{media_type_config.get_unit(self.item.media_type, short=True)}"
+                f"{config.get_unit(self.item.media_type, short=True)}"
                 f"{self.content_number}"
             )
 
@@ -215,7 +215,7 @@ class Event(models.Model):
             return ""
 
         return (
-            f"{media_type_config.get_unit(self.item.media_type, short=True)}"
+            f"{config.get_unit(self.item.media_type, short=True)}"
             f"{self.content_number}"
         )
 

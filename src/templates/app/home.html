@@ -12,34 +12,9 @@
       <button @click="open = !open"
               @click.outside="open = false"
               class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-4 h-4">
-          <path d="m21 16-4 4-4-4"></path>
-          <path d="M17 20V4"></path>
-          <path d="m3 8 4-4 4 4"></path>
-          <path d="M7 4v16"></path>
-        </svg>
+        {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
         <span class="text-sm font-medium">{{ current_sort|no_underscore|title }}</span>
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-4 h-4 text-gray-400">
-          <path d="m6 9 6 6 6-6"></path>
-        </svg>
+        {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
       </button>
       <div x-show="open"
            x-transition:enter="transition ease-out duration-100"
@@ -62,10 +37,7 @@
     {% for media_type, media_list in list_by_type.items %}
       <div>
         <h2 class="text-xl font-semibold mb-4">{{ media_type|media_type_readable_plural }}</h2>
-        <div id="media-grid-{{ media_type }}"
-             class="media-grid">
-          {% include "app/components/home_grid.html" %}
-        </div>
+        <div id="media-grid-{{ media_type }}" class="media-grid">{% include "app/components/home_grid.html" %}</div>
 
         {% if media_list.total > items_limit %}
           <div class="mt-6 flex justify-center">
@@ -88,18 +60,7 @@
     {% empty %}
       <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
         <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-8 h-8 text-gray-400">
-            <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
-          </svg>
+          {% include "app/icons/pulse.svg" with classes="w-8 h-8 text-gray-400" %}
         </div>
         <h3 class="text-xl font-semibold mb-2">No media in progress</h3>
         <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>

@@ -723,10 +723,6 @@ class StatisticsTests(TestCase):
             self.assertIsNotNone(color)
             self.assertTrue(color.startswith("#"))
 
-        # Test unknown status
-        unknown_color = statistics.get_status_color("unknown")
-        self.assertEqual(unknown_color, "rgba(201, 203, 207)")
-
     def test_get_timeline(self):
         """Test the get_timeline function."""
         # Create user_media dict with our test objects

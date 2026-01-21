@@ -11,19 +11,7 @@
 
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-6 h-6 text-indigo-400 mr-3">
-          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
-          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
-        </svg>
+        {% include "app/icons/bell.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
         <h2 class="text-xl font-semibold">Notifications</h2>
       </div>
 
@@ -38,22 +26,7 @@
             <label for="apprise-urls" class="block text-sm font-medium text-gray-300">Apprise URLs</label>
             <button type="button"
                     class="text-gray-400 hover:text-gray-300 cursor-pointer"
-                    @click="showInfo = !showInfo">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="24"
-                   height="24"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-              </svg>
-            </button>
+                    @click="showInfo = !showInfo">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</button>
           </div>
 
           <div class="mb-4 p-3 bg-[#39404b] rounded-md text-sm text-gray-300"
@@ -97,23 +70,7 @@
               <div>
                 <label for="id_daily_digest_enabled"
                        class="text-sm font-medium text-gray-200 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       width="24"
-                       height="24"
-                       viewBox="0 0 24 24"
-                       fill="none"
-                       stroke="currentColor"
-                       stroke-width="2"
-                       stroke-linecap="round"
-                       stroke-linejoin="round"
-                       class="w-4 h-4 mr-2 text-indigo-400">
-                    <circle cx="12" cy="13" r="8" />
-                    <path d="M12 9v4l2 2" />
-                    <path d="M5 3 2 6" />
-                    <path d="m22 6-3-3" />
-                    <path d="M6.38 18.7 4 21" />
-                    <path d="M17.64 18.67 20 21" />
-                  </svg>
+                  {% include "app/icons/alarm-clock.svg" with classes="w-4 h-4 mr-2 text-indigo-400" %}
                   Enable Daily Digest
                 </label>
                 <p class="text-xs text-gray-400 mt-1 ml-6">
@@ -126,7 +83,7 @@
                        name="daily_digest_enabled"
                        id="id_daily_digest_enabled"
                        {% if form.daily_digest_enabled.value %}checked{% endif %}>
-                <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+                <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
                 </div>
               </label>
             </div>
@@ -135,21 +92,7 @@
               <div>
                 <label for="id_release_notifications_enabled"
                        class="text-sm font-medium text-gray-200 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       width="24"
-                       height="24"
-                       viewBox="0 0 24 24"
-                       fill="none"
-                       stroke="currentColor"
-                       stroke-width="2"
-                       stroke-linecap="round"
-                       stroke-linejoin="round"
-                       class="w-4 h-4 mr-2 text-indigo-400">
-                    <path d="M10.268 21a2 2 0 0 0 3.464 0" />
-                    <path d="M22 8c0-2.3-.8-4.3-2-6" />
-                    <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
-                    <path d="M4 2C2.8 3.7 2 5.7 2 8" />
-                  </svg>
+                  {% include "app/icons/bell-ringing.svg" with classes="w-4 h-4 mr-2 text-indigo-400" %}
                   Receive notifications for recently released media
                 </label>
                 <p class="text-xs text-gray-400 mt-1 ml-6">Get notified when new episodes, chapters, or other media are released</p>
@@ -161,7 +104,7 @@
                        name="release_notifications_enabled"
                        id="id_release_notifications_enabled"
                        {% if form.release_notifications_enabled.value %}checked{% endif %}>
-                <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+                <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
                 </div>
               </label>
             </div>
@@ -171,37 +114,12 @@
         <div class="pt-4 border-t border-gray-700 flex justify-between">
           <a href="{% url 'test_notification' %}"
              class="flex items-center px-4 py-2 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors text-sm cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-4 h-4 mr-2">
-              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
-              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
-            </svg>
+            {% include "app/icons/bell.svg" with classes="w-4 h-4 mr-2" %}
             Test Notifications
           </a>
           <button type="submit"
                   class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-4 h-4 mr-2">
-              <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path>
-              <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path>
-              <path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
-            </svg>
+            {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
             Save Settings
           </button>
         </div>
@@ -211,18 +129,7 @@
     {# Excluded Media Items #}
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-5">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="lucide lucide-user w-6 h-6 text-indigo-400 mr-3">
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-        </svg>
+        {% include "app/icons/funnel.svg" with classes="lucide lucide-user w-6 h-6 text-indigo-400 mr-3" %}
         <h2 class="text-xl font-semibold">Excluded Media Items</h2>
       </div>
 
@@ -237,19 +144,7 @@
                hx-get="{% url 'search_notification_items' %}"
                hx-trigger="keyup changed delay:300ms"
                hx-target="#search-results">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.3-4.3"></path>
-        </svg>
+        {% include "app/icons/magnifying-glass.svg" with classes="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" %}
       </div>
 
       <div id="search-results"></div>

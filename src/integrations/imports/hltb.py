@@ -191,7 +191,6 @@ class HowLongToBeatImporter:
             media_id=game["media_id"],
             source=Sources.IGDB.value,
             media_type=media_type,
-            title=game["title"],
             defaults={
                 "title": game["title"],
                 "image": game["image"],

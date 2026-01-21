@@ -1,9 +1,9 @@
-coverage==7.11.0
+coverage==7.13.0
 djlint==1.36.4
-fakeredis==2.32.0
+fakeredis==2.33.0
 pytest-django==4.11.1
-pytest-playwright==0.7.1
-ruff==0.13.3
-tblib==3.2.0
+pytest-playwright==0.7.2
+ruff==0.14.10
+tblib==3.2.2
 
 -r requirements.txt

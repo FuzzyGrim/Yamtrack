@@ -240,4 +240,5 @@ urlpatterns = [
         views.log_book_completed,
         name="log_book_completed",
     ),
+    path("serviceworker.js", views.service_worker, name="service_worker"),
 ]

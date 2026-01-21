@@ -90,12 +90,13 @@ class GoodReadsImporter:
 
     def _process_row(self, row):
         """Process a single row from the CSV file."""
-        book = self._search_book(row, Sources.HARDCOVER)
+        default_source = Sources.HARDCOVER
+        book = self._search_book(row, default_source)
 
         if not book:
             self.warnings.append(
-                f"{row['Title']}: Couldn't find this book via Title or ISBN in "
-                f"{Sources.HARDCOVER.label}",
+                f"{row['Title']}: Couldn't find this book via Title or ISBN13 in "
+                f"{default_source.label}",
             )
             return
 
@@ -110,7 +111,7 @@ class GoodReadsImporter:
             self.existing_media,
             self.to_delete,
             MediaTypes.BOOK.value,
-            Sources.HARDCOVER.value,
+            default_source.value,
             str(media_id),
             self.mode,
         ):
@@ -120,10 +121,10 @@ class GoodReadsImporter:
         self.bulk_media[MediaTypes.BOOK.value].append(instance)
 
     def _search_book(self, row, source):
-        """Search for game and return result if found."""
+        """Search for book and return result if found."""
         results = services.search(
             MediaTypes.BOOK.value,
-            row["ISBN"],
+            row["ISBN13"],
             1,
             source.value,
         ).get(
@@ -154,7 +155,6 @@ class GoodReadsImporter:
             media_id=book["media_id"],
             source=Sources.HARDCOVER.value,
             media_type=media_type,
-            title=book["title"],
             defaults={
                 "title": book["title"],
                 "image": book["image"],

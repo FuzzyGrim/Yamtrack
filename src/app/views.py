@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from django.apps import apps
 from django.conf import settings
@@ -15,7 +16,7 @@ from django.utils.dateparse import parse_date
 from django.utils.timezone import datetime
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import helpers, history_processor
+from app import config, helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class, BookProgressForm, BookLogForm, BookStartReadingForm
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie, Episode, Book, BookSession
@@ -181,9 +182,16 @@ def media_search(request):
     layout = request.GET.get("layout", "grid")
 
     # only receives source when searching with secondary source
-    source = request.GET.get("source")
+    source = request.GET.get(
+        "source",
+        config.get_default_source_name(media_type).value,
+    )
 
     data = services.search(media_type, query, page, source)
+
+    # Enrich search results with user tracking data
+    if data.get("results"):
+        data["results"] = helpers.enrich_items_with_user_data(request, data["results"])
 
     context = {
         "data": data,
@@ -255,6 +263,17 @@ def media_details(request, source, media_type, media_id, title):
     if media_type == MediaTypes.TV.value and current_instance:
         # Use prefetched seasons to avoid N+1 query
         has_seasons_in_progress = any(season.status == Status.IN_PROGRESS.value for season in current_instance.seasons.all())
+
+    # Enrich related items with user tracking data
+    if media_metadata.get("related"):
+        for section_name, related_items in media_metadata["related"].items():
+            if related_items:
+                media_metadata["related"][section_name] = (
+                    helpers.enrich_items_with_user_data(
+                        request,
+                        related_items,
+                    )
+                )
 
     context = {
         "media": media_metadata,
@@ -348,6 +367,17 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata,
             episodes_in_db,
         )
+
+    # Enrich related items with user tracking data
+    if season_metadata.get("related"):
+        for section_name, related_items in season_metadata["related"].items():
+            if related_items:
+                season_metadata["related"][section_name] = (
+                    helpers.enrich_items_with_user_data(
+                        request,
+                        related_items,
+                    )
+                )
 
     # Get MDBList ratings for seasons from TMDB (use TV show ratings)
     mdblist_ratings = None
@@ -634,16 +664,18 @@ def media_delete(request):
     """Delete media data from the database."""
     instance_id = request.POST["instance_id"]
     media_type = request.POST["media_type"]
+    model = apps.get_model(app_label="app", model_name=media_type)
 
-    media = BasicMedia.objects.get_media(
-        request.user,
-        media_type,
-        instance_id,
-    )
-    if media:
+    try:
+        media = BasicMedia.objects.get_media(
+            request.user,
+            media_type,
+            instance_id,
+        )
         media.delete()
         logger.info("%s deleted successfully.", media)
-    else:
+
+    except model.DoesNotExist:
         logger.warning("The %s was already deleted before.", media_type)
 
     return helpers.redirect_back(request)
@@ -3602,3 +3634,13 @@ def book_completed_modal(request, source, media_id):
         return render(request, "app/components/book_completed_modal.html", context)
     except Item.DoesNotExist:
         raise Http404("Book not found")
+
+
+@require_GET
+def service_worker():
+    """Serve the service worker file."""
+    sw_path = Path(settings.STATICFILES_DIRS[0]) / "js" / "serviceworker.js"
+    with sw_path.open() as f:
+        response = HttpResponse(f.read(), content_type="application/javascript")
+        response["Service-Worker-Allowed"] = "/"
+        return response

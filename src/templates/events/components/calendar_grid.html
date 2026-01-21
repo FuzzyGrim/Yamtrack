@@ -21,12 +21,12 @@
           <div class="text-right text-sm p-1 font-medium {% if day == today.day and month == today.month and year == today.year %}bg-indigo-500 text-white rounded-full w-7 h-7 flex items-center justify-center ml-auto{% endif %}">
             {{ day }}
           </div>
-          <div class="mt-1 space-y-1 max-h-[80px] overflow-y-auto">
+          <div class="mt-1 space-y-1 max-h-20 overflow-y-auto">
             {% for release in release_dict|get_item:day %}
               <a href="{{ release.item|media_url }}" class="block">
                 <div class="flex items-center gap-1 px-1 py-0.5 text-xs rounded hover:bg-[#343a40] transition-colors">
                   {% with color=release.item.media_type|media_color %}
-                    {% icon release.item.media_type is_active=False extra_classes=color|add:" w-4 h-4 flex-shrink-0" %}
+                    {% icon release.item.media_type is_active=False extra_classes=color|add:" w-4 h-4 shrink-0" %}
                   {% endwith %}
                   <span class="truncate" title="{{ release }} {{ release.display_time }}">{{ release }} {{ release.display_time }}</span>
                 </div>
