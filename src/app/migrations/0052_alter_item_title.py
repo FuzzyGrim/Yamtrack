@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0051_migrate_simkl_periodoc_tasks'),
+        ('app', '0008_add_game_to_diary_entry'),
     ]
 
     operations = [

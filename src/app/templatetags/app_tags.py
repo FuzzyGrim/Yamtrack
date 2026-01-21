@@ -157,9 +157,7 @@ def get_search_media_types(user):
     if not user.is_authenticated or not hasattr(user, 'get_enabled_media_types'):
         enabled_types = MediaTypes.values
     else:
-        enabled_types = (
-            user.get_enabled_media_types() if user.hide_from_search else MediaTypes.values
-        )
+        enabled_types = user.get_enabled_media_types()
 
     # Filter and format the types for search
     return [
@@ -399,7 +397,7 @@ def icon(name, is_active, extra_classes="w-5 h-5"):
     }
 
     if name in MediaTypes.values:
-        content = media_type_config.get_svg_icon(name)
+        content = config.get_svg_icon(name)
     else:
         content = other_icons[name]
 

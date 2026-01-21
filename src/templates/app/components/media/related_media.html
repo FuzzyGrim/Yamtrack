@@ -12,7 +12,8 @@
       <div class="grid gap-6 grid-cols-7" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
         {% if media.media_type == 'book' %}
           {% if media.related and media.related.recommendations %}
-          {% for item in media.related.recommendations|slice:":7" %}
+          {% for result in media.related.recommendations|slice:":7" %}
+            {% with item=result.item %}
             {% url 'media_details' item.source item.media_type item.media_id item.title|slugify as item_url %}
             <a href="{{ item_url }}"
                class="bg-111111 rounded-xl overflow-hidden group hover-bg-222222 transition-colors flex flex-col">
@@ -39,13 +40,15 @@
                 <h3 class="font-medium text-sm text-white text-balance line-clamp-2">{{ item.title }}</h3>
               </div>
             </a>
+            {% endwith %}
           {% endfor %}
           {% else %}
             <div class="col-span-7 text-sm text-gray-400 px-1">No related books found.</div>
           {% endif %}
         {% else %}
         {% if media.media_type == 'game' and media.related.all_related %}
-          {% for item in media.related.all_related %}
+          {% for result in media.related.all_related %}
+            {% with item=result.item %}
             {% url 'media_details' item.source item.media_type item.media_id item.title|slugify as item_url %}
             <a href="{{ item_url }}"
                class="bg-111111 rounded-xl overflow-hidden group hover-bg-222222 transition-colors flex flex-col">
@@ -72,11 +75,13 @@
                 <h3 class="font-medium text-sm text-white text-balance line-clamp-2">{{ item.title }}</h3>
               </div>
             </a>
+            {% endwith %}
           {% endfor %}
         {% else %}
         {% for name, related_items in media.related.items %}
           {% if name != "seasons" and name != "all_related" %}
-            {% for item in related_items|slice:":7" %}
+            {% for result in related_items|slice:":7" %}
+              {% with item=result.item %}
               {% if item.media_type == MediaTypes.SEASON.value %}
                 {% url 'season_details' item.source item.media_id item.title|slugify item.season_number as item_url %}
               {% else %}
@@ -116,6 +121,7 @@
                   {% endif %}
                 </div>
               </a>
+              {% endwith %}
             {% endfor %}
           {% endif %}
         {% endfor %}

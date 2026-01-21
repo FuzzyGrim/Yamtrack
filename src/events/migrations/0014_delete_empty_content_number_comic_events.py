@@ -13,7 +13,7 @@ def delete_empty_content_number_comic_events(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('events', '0013_delete_single_anime_events'),
+        ('events', '0001_initial'),
     ]
 
     operations = [

@@ -19,7 +19,8 @@
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 -translate-y-1">
       <div class="grid gap-6 grid-cols-7" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
-        {% for item in media.related.seasons %}
+        {% for result in media.related.seasons %}
+          {% with item=result.item %}
           {% url 'season_details' item.source item.media_id item.title|slugify item.season_number as item_url %}
           <a href="{{ item_url }}"
              class="bg-111111 rounded-xl overflow-hidden group hover-bg-222222 transition-colors flex flex-col">
@@ -51,6 +52,7 @@
               {% endif %}
             </div>
           </a>
+          {% endwith %}
         {% endfor %}
       </div>
     </div>
