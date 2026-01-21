@@ -20,7 +20,7 @@ from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class, BookProgressForm, BookLogForm, BookStartReadingForm
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie, Episode, Book, BookSession
 
-from app.providers import manual, mdblist, services, tmdb
+from app.providers import igdb, manual, mdblist, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 from app.forms import DiaryEntryForm
@@ -67,6 +67,10 @@ def home(request):
 @require_POST
 def progress_edit(request, media_type, instance_id):
     """Increase or decrease the progress of a media item from home page."""
+    # Games don't support progress updates
+    if media_type == MediaTypes.GAME.value:
+        return HttpResponseBadRequest("Games do not support progress updates")
+    
     operation = request.POST["operation"]
 
     media = BasicMedia.objects.get_media_prefetch(
@@ -195,6 +199,12 @@ def media_search(request):
 def media_details(request, source, media_type, media_id, title):
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
+    
+    if not media_metadata:
+        logger.error("No metadata returned for %s %s from %s", media_type, media_id, source)
+        # Return a 404 or error page
+        from django.http import Http404
+        raise Http404("Media not found")
 
     poster_accent = None
     accent_item = Item.objects.filter(
@@ -205,10 +215,10 @@ def media_details(request, source, media_type, media_id, title):
     if accent_item:
         poster_accent = compute_and_store_poster_accent(
             accent_item,
-            poster_url=media_metadata.get("image"),
+            poster_url=media_metadata.get("image") if media_metadata else None,
         )
     else:
-        poster_accent = get_poster_accent_from_url(media_metadata.get("image"))
+        poster_accent = get_poster_accent_from_url(media_metadata.get("image") if media_metadata else None)
 
     accent_palette = build_accent_palette(poster_accent)
     poster_accent = accent_palette["accent"]
@@ -222,9 +232,9 @@ def media_details(request, source, media_type, media_id, title):
     )
     current_instance = user_medias[0] if user_medias else None
 
-    # Get diary entries for this media (movies, TV, and books)
+    # Get diary entries for this media (movies, TV, books, and games)
     diary_entries = []
-    if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.BOOK.value]:
+    if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.BOOK.value, MediaTypes.GAME.value]:
         try:
             item = Item.objects.get(source=source, media_type=media_type, media_id=media_id)
             diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).prefetch_related('tags').order_by('-consumed_at')
@@ -1257,6 +1267,146 @@ def poster_selection_modal(request, media_type, media_id, source):
 
 
 @require_GET
+def game_poster_selection_modal(request, source, media_id):
+    """Return a fast-loading modal shell; covers load asynchronously."""
+    if source != Sources.IGDB.value:
+        return HttpResponseBadRequest("Poster selection only available for IGDB games")
+        
+    try:
+        # Get or create the item
+        try:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.GAME.value,
+            )
+        except Item.DoesNotExist:
+            # Item doesn't exist, so we need to create it
+            # First get the metadata from IGDB
+            from app.providers import services
+            metadata = services.get_media_metadata(MediaTypes.GAME.value, media_id, source)
+            
+            item = Item.objects.create(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.GAME.value,
+                title=metadata["title"],
+                image=metadata["image"],
+            )
+        
+        context = {
+            "item": item,
+            "source": source,
+            "media_id": media_id,
+        }
+        return render(request, "app/components/poster_selection_modal_shell.html", context)
+    except Exception as e:
+        logger.error("Error preparing game cover modal shell: %s", e)
+        return HttpResponseBadRequest("Error loading game cover modal")
+
+
+@require_GET
+def game_cover_selection_content(request, source, media_id):
+    """Return the heavy content for the game cover modal (covers grid)."""
+    if source != Sources.IGDB.value:
+        return HttpResponseBadRequest("Cover selection only available for IGDB games")
+        
+    try:
+        # Get or create the item
+        try:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.GAME.value,
+            )
+        except Item.DoesNotExist:
+            from app.providers import services
+            metadata = services.get_media_metadata(MediaTypes.GAME.value, media_id, source)
+            item = Item.objects.create(
+                media_id=media_id,
+                source=source,
+                media_type=MediaTypes.GAME.value,
+                title=metadata["title"],
+                image=metadata["image"],
+            )
+        
+        # Get available covers from IGDB
+        igdb_covers = igdb.get_game_covers(media_id)
+        logger.info("Retrieved %s covers from IGDB for game %s", len(igdb_covers) if igdb_covers else 0, media_id)
+        
+        # Extract image_id from the original cover URL for comparison
+        # item.image format: https://images.igdb.com/igdb/image/upload/t_original/{image_id}.jpg
+        original_image_id = None
+        if item.image and "t_original/" in item.image:
+            try:
+                # Extract image_id from URL like: .../t_original/co2lbd.jpg
+                original_image_id = item.image.split("t_original/")[1].replace(".jpg", "")
+            except (IndexError, AttributeError):
+                pass
+        
+        # Create the original cover entry
+        original_cover = {
+            "url": item.image,
+            "thumbnail_url": item.image,
+            "width": 0,
+            "height": 0,
+            "aspect_ratio": 0.667,
+            "vote_average": 0,
+            "vote_count": 0,
+            "language": None,
+            "is_current": True,
+            "is_original": True,
+            "image_id": original_image_id,
+        }
+        
+        # Combine original with IGDB covers, ensuring original is first
+        # Include all covers from IGDB, even if they match the original
+        # (IGDB may only have one cover per game, but we still want to show it)
+        posters = [original_cover]
+        seen_image_ids = {original_image_id} if original_image_id else set()
+        
+        if igdb_covers:
+            logger.info("Processing %s covers from IGDB for game %s", len(igdb_covers), media_id)
+            for cover in igdb_covers:
+                cover_image_id = cover.get("image_id")
+                if cover_image_id:
+                    # Add all covers, but mark if it's the same as original
+                    if cover_image_id in seen_image_ids:
+                        logger.debug("Skipping duplicate cover %s for game %s", cover_image_id, media_id)
+                        continue
+                    seen_image_ids.add(cover_image_id)
+                    # Ensure language is None instead of undefined for consistency
+                    cover_copy = cover.copy()
+                    if cover_copy.get("language") is None:
+                        cover_copy["language"] = None
+                    posters.append(cover_copy)
+                    logger.debug("Added cover %s for game %s", cover_image_id, media_id)
+        else:
+            logger.warning("No covers returned from IGDB for game %s", media_id)
+        
+        logger.info("Total posters for game %s: %s (1 original + %s from IGDB)", media_id, len(posters), len(posters) - 1)
+        
+        # Get current custom poster if exists
+        from app.models import CustomPosterPreference
+        try:
+            current_preference = CustomPosterPreference.objects.get(user=request.user, item=item)
+            current_poster = current_preference.custom_image_url
+        except CustomPosterPreference.DoesNotExist:
+            current_poster = item.image
+        
+        context = {
+            "item": item,
+            "posters": posters,
+            "current_poster": current_poster,
+            "is_game": True,  # Use game template which doesn't filter by language
+        }
+        return render(request, "app/components/poster_selection_modal_content.html", context)
+    except Exception as e:
+        logger.error("Error loading game cover content: %s", e)
+        return HttpResponseBadRequest("Error loading game covers")
+
+
+@require_GET
 def season_poster_selection_modal(request, source, media_id, season_number):
     """Return the poster selection modal with available posters for a season."""
     if source != Sources.TMDB.value:
@@ -1568,8 +1718,9 @@ def log_modal(request, source, media_type, media_id, season_number=None):
         MediaTypes.TV.value,
         MediaTypes.SEASON.value,
         MediaTypes.BOOK.value,
+        MediaTypes.GAME.value,
     ]:
-        raise Http404("Logging is only available for movies, TV shows, seasons, and books")
+        raise Http404("Logging is only available for movies, TV shows, seasons, books, and games")
         
     # Get or create the item - fetch metadata if it doesn't exist
     try:
@@ -1720,6 +1871,190 @@ def unmark_movie_watched(request, source, media_id):
         
     except (Item.DoesNotExist, Movie.DoesNotExist):
         # If the item or media instance doesn't exist, return the unwatched state
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": None,
+        }
+        return render(request, "app/components/media_actions.html", context)
+
+
+@require_POST
+def start_playing_game(request, source, media_id):
+    """Start playing a game by creating a Game instance with in-progress status."""
+    try:
+        media_type = MediaTypes.GAME.value
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
+        
+        # Get or create the Game instance
+        from app.models import Game
+        game_instance, created = Game.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.IN_PROGRESS.value,
+                "start_date": timezone.now(),
+            }
+        )
+        
+        if not created:
+            # If it already exists, update the status
+            game_instance.status = Status.IN_PROGRESS.value
+            if not game_instance.start_date:
+                game_instance.start_date = timezone.now()
+            game_instance.save()
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": game_instance,
+            "diary_entries": diary_entries,
+        }
+        
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error starting to play game: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def mark_game_played(request, source, media_id):
+    """Mark a game as played by creating a Game instance with completed status."""
+    try:
+        media_type = MediaTypes.GAME.value
+            
+        # Get or create the item
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
+        
+        # Get or create the Game instance
+        from app.models import Game
+        game_instance, created = Game.objects.get_or_create(
+            item=item,
+            user=request.user,
+            defaults={
+                "status": Status.COMPLETED.value,
+                "end_date": timezone.now(),
+            }
+        )
+
+        if not created:
+            # If it already exists, update the status only if it's not already completed
+            game_instance.end_date = timezone.now()
+            
+            # Only update status if it's not already completed
+            if game_instance.status != Status.COMPLETED.value:
+                game_instance.status = Status.COMPLETED.value
+                game_instance.save(update_fields=["status", "end_date"])
+            else:
+                game_instance.save(update_fields=["end_date"])
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Return updated action buttons for HTMX to swap  
+        # Add required fields to metadata for template compatibility
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": game_instance,
+            "diary_entries": diary_entries,
+        }
+        
+        return render(request, "app/components/media_actions.html", context)
+        
+    except Exception as e:
+        logger.error(f"Error marking game as played: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def mark_game_completed(request, source, media_id):
+    """Mark a game as completed by creating a tracking instance and marking it as consumed.
+    
+    Kept for backward compatibility. Redirects to mark_game_played functionality.
+    """
+    return mark_game_played(request, source, media_id)
+
+
+@require_POST
+def unmark_game_completed(request, source, media_id):
+    """Unmark a game as completed by removing the tracking instance."""
+    media_type = MediaTypes.GAME.value
+        
+    try:
+        # Get the item
+        item = Item.objects.get(
+            media_id=media_id,
+            source=source,
+            media_type=media_type
+        )
+        
+        # Get the media instance
+        from app.models import Game
+        media_instance = Game.objects.get(
+            item=item,
+            user=request.user
+        )
+        
+        # Delete the media instance to "uncomplete" it
+        media_instance.delete()
+        
+        # Get metadata for template
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        # Get diary entries for this media
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": None,  # No instance after uncompleting
+            "diary_entries": diary_entries,
+        }
+        return render(request, "app/components/media_actions.html", context)
+        
+    except (Item.DoesNotExist, Game.DoesNotExist):
+        # If the item or media instance doesn't exist, return the uncompleted state
         metadata = services.get_media_metadata(media_type, media_id, source)
         metadata["media_type"] = media_type
         metadata["source"] = source
@@ -2419,8 +2754,9 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
             MediaTypes.TV.value,
             MediaTypes.SEASON.value,
             MediaTypes.BOOK.value,
+            MediaTypes.GAME.value,
         ]:
-            raise Http404("Diary entries are only available for movies, TV shows, seasons, and books")
+            raise Http404("Diary entries are only available for movies, TV shows, seasons, books, and games")
             
         logger.info(f"Creating diary entry for {media_type} {media_id} from {source}")
         logger.info(f"POST data: {dict(request.POST)}")
@@ -2665,6 +3001,35 @@ def add_movie_diary_entry(request, source, media_type, media_id, season_number=N
                 book_instance.completion_diary_entry = entry
                 book_instance.completed_manually = False
                 book_instance.save(update_fields=['completion_diary_entry', 'completed_manually'])
+
+        if media_type == MediaTypes.GAME.value and auto_mark_consumed:
+            completion_datetime = consumed_at or timezone.now()
+            from decimal import Decimal
+            from app.models import Game
+
+            game_defaults = {
+                "status": Status.COMPLETED.value,
+                "end_date": completion_datetime,
+            }
+            game_instance, created_game = Game.objects.get_or_create(
+                item=item,
+                user=request.user,
+                defaults=game_defaults,
+            )
+            logger.info(f"Game instance {'created' if created_game else 'found'}: {game_instance}")
+
+            game_instance.status = Status.COMPLETED.value
+            if not game_instance.start_date:
+                game_instance.start_date = completion_datetime
+            game_instance.end_date = completion_datetime
+
+            if rating is not None:
+                game_instance.score = Decimal(str(rating))
+            if review:
+                game_instance.notes = review
+
+            game_instance.save(update_fields=["status", "end_date", "score", "notes"])
+            logger.info(f"Game {game_instance} marked as completed for diary entry")
 
         # Return success response
         return JsonResponse({"success": True, "entry_id": entry.id})

@@ -2,7 +2,7 @@
 {% load app_tags %}
 
 <!DOCTYPE html>
-<html lang="en" class="scheme-dark bg-[#212529]">
+<html lang="en" class="scheme-dark bg-black">
   <head>
     {# Required meta tags #}
     <meta charset="UTF-8">
@@ -62,11 +62,16 @@
         outline: none !important;
         box-shadow: none !important;
       }
+      
+      /* Ensure body and html are completely black */
+      body {
+        background-color: #000000 !important;
+      }
     </style>
 
   </head>
 
-  <body>
+  <body class="bg-black">
     {% block body %}
       {# Main container for the layout #}
       <div class="flex min-h-screen bg-black text-gray-100"

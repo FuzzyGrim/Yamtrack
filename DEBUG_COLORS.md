@@ -127,3 +127,6 @@ If colors are still wrong, please copy and paste:
 - `src/static/js/fix-poster-colors.js` - JavaScript color override
 - `src/templates/base.html` - Added script tag for fix-poster-colors.js
 
+
+
+

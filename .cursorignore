@@ -1,0 +1,15 @@
+# Auto-generated files that cause performance issues
+src/static/css/main.css
+
+# Build artifacts
+src/staticfiles/
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+

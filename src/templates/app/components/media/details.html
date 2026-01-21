@@ -1,0 +1,126 @@
+{% load app_tags %}
+
+{# Details Component - Simplified layout with colon-separated labels #}
+<div class="space-y-4">
+  {# Studios / Production Companies #}
+  {% if media.details.studios %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Studios:</span>
+      <div class="flex flex-wrap gap-2">
+        {% for studio in media.details.studios %}
+          <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+            {{ studio }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Country #}
+  {% if media.details.country %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Country:</span>
+      <div class="flex flex-wrap gap-2">
+        <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+          {{ media.details.country }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Languages #}
+  {% if media.details.languages %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Language{{ media.details.languages|length|pluralize }}:</span>
+      <div class="flex flex-wrap gap-2">
+        {% for language in media.details.languages %}
+          <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+            {{ language }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Alternative Titles - Placeholder for when we add this data #}
+  {% if media.details.alternative_titles %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Alternative Titles:</span>
+      <span class="text-white text-sm">
+        {% for title in media.details.alternative_titles %}
+          {{ title }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </span>
+    </div>
+  {% endif %}
+
+  {# Platforms - Games only (max 4) #}
+  {% if media.media_type == 'game' and media.details.platforms %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Platforms:</span>
+      <div class="flex flex-wrap gap-2">
+        {% for platform in media.details.platforms|slice:":4" %}
+          <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+            {{ platform }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Companies - Games only (max 4) #}
+  {% if media.media_type == 'game' and media.details.companies %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Companies:</span>
+      <div class="flex flex-wrap gap-2">
+        {% with companies_list=media.details.companies|split_string:", " %}
+          {% for company in companies_list|slice:":4" %}
+            <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+              {{ company }}
+            </div>
+          {% endfor %}
+        {% endwith %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Publishers - Books only #}
+  {% if media.media_type == 'book' and media.details.publishers %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Publisher{{ media.details.publishers|length|pluralize }}:</span>
+      <div class="flex flex-wrap gap-2">
+        {% for publisher in media.details.publishers %}
+          <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+            {{ publisher }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Release Date - Books only #}
+  {% if media.media_type == 'book' and media.details.release_date %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Release Date:</span>
+      <div class="flex flex-wrap gap-2">
+        <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+          {{ media.details.release_date }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ISBN - Books only #}
+  {% if media.media_type == 'book' and media.details.isbn %}
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">ISBN:</span>
+      <div class="flex flex-wrap gap-2">
+        {% for isbn in media.details.isbn %}
+          <div class="rounded-full bg-white/4 border border-white/10 px-3 py-1 text-sm text-white">
+            {{ isbn }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>

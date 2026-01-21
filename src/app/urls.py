@@ -113,6 +113,16 @@ urlpatterns = [
         name="poster_selection_modal",
     ),
     path(
+        "game_poster_selection/<source:source>/<str:media_id>",
+        views.game_poster_selection_modal,
+        name="game_poster_selection_modal",
+    ),
+    path(
+        "game_cover_selection/content/<source:source>/<str:media_id>",
+        views.game_cover_selection_content,
+        name="game_cover_selection_content",
+    ),
+    path(
         "book_cover_selection/<source:source>/<str:media_id>",
         views.book_cover_selection_modal,
         name="book_cover_selection_modal",
@@ -133,6 +143,28 @@ urlpatterns = [
         "movie/unwatch/<source:source>/<str:media_id>",
         views.unmark_movie_watched,
         name="unmark_movie_watched",
+    ),
+
+    # Game start/mark/unmark
+    path(
+        "game/start/<source:source>/<str:media_id>",
+        views.start_playing_game,
+        name="start_playing_game",
+    ),
+    path(
+        "game/mark_played/<source:source>/<str:media_id>",
+        views.mark_game_played,
+        name="mark_game_played",
+    ),
+    path(
+        "game/complete/<source:source>/<str:media_id>",
+        views.mark_game_completed,
+        name="mark_game_completed",
+    ),
+    path(
+        "game/uncomplete/<source:source>/<str:media_id>",
+        views.unmark_game_completed,
+        name="unmark_game_completed",
     ),
 
     # TV show start/mark/unmark

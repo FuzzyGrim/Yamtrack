@@ -35,6 +35,14 @@
           {# Synopsis #}
           {% include "app/components/media/synopsis.html" %}
 
+          {# Details for books and games #}
+          {% if media.media_type == 'book' or media.media_type == 'game' %}
+            <div class="space-y-4">
+              <h2 class="text-xl font-semibold">Details</h2>
+              {% include "app/components/media/details.html" %}
+            </div>
+          {% endif %}
+
           {% if media.media_type == MediaTypes.SEASON.value %}
             {% include "app/components/media/episodes_list.html" %}
           {% endif %}
