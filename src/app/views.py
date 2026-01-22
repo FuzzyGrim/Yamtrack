@@ -3699,6 +3699,427 @@ def book_completed_modal(request, source, media_id):
         raise Http404("Book not found")
 
 
+@require_POST
+def pause_media(request, source, media_type, media_id):
+    """Pause a media item by setting its status to PAUSED."""
+    try:
+        # Movies don't support pause/drop
+        if media_type == MediaTypes.MOVIE.value:
+            return JsonResponse({"error": "Movies do not support pause/drop"}, status=400)
+        
+        # Get metadata
+        # For seasons, try to get season_number from POST data first
+        season_number = None
+        if media_type == MediaTypes.SEASON.value:
+            season_number = request.POST.get('season_number')
+            if season_number:
+                try:
+                    season_number = int(season_number)
+                except (ValueError, TypeError):
+                    season_number = None
+        
+        if media_type == MediaTypes.SEASON.value and season_number:
+            metadata = services.get_media_metadata(media_type, media_id, source, season_numbers=[season_number])
+        else:
+            metadata = services.get_media_metadata(media_type, media_id, source)
+        
+        # Get or create the item
+        if media_type == MediaTypes.SEASON.value and season_number:
+            item, _ = Item.objects.get_or_create(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                season_number=season_number,
+                defaults={
+                    "title": metadata["title"],
+                    "image": metadata["image"],
+                },
+            )
+        else:
+            item, _ = Item.objects.get_or_create(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                defaults={
+                    "title": metadata["title"],
+                    "image": metadata["image"],
+                },
+            )
+        
+        # Get the media model
+        model = apps.get_model(app_label="app", model_name=media_type)
+        
+        # Get or create the media instance
+        if media_type == MediaTypes.SEASON.value:
+            # Seasons need special handling with related_tv
+            # Get season_number from item if not already set
+            if not season_number:
+                season_number = item.season_number
+            
+            if season_number:
+                user_medias = BasicMedia.objects.filter_media_prefetch(
+                    request.user,
+                    media_type,
+                    media_id,
+                    source,
+                    season_number=season_number,
+                )
+            else:
+                user_medias = BasicMedia.objects.filter_media_prefetch(
+                    request.user,
+                    media_type,
+                    media_id,
+                    source,
+                )
+            if user_medias:
+                media_instance = user_medias[0]
+            else:
+                # Need to create season with related TV
+                raise Http404("Season must be created through TV show tracking")
+        else:
+            try:
+                media_instance = model.objects.get(
+                    item=item,
+                    user=request.user
+                )
+            except model.DoesNotExist:
+                # Can't pause media that hasn't been started
+                return JsonResponse({"error": "Cannot pause media that hasn't been started"}, status=400)
+        
+        # Update status to PAUSED
+        # Only pause if currently in progress
+        if media_instance.status == Status.IN_PROGRESS.value:
+            media_instance.status = Status.PAUSED.value
+            # Preserve start_date and progress
+            media_instance.save()
+        elif media_instance.status == Status.PAUSED.value:
+            # Already paused, no change needed
+            pass
+        else:
+            # Can't pause from other statuses
+            return JsonResponse({"error": f"Cannot pause media with status {media_instance.status}"}, status=400)
+        
+        # Handle book-specific logic
+        if media_type == MediaTypes.BOOK.value:
+            # Keep reading session in IN_PROGRESS (or we could mark it as paused if BookSession supports it)
+            # For now, just keep the session as-is
+            pass
+        
+        # Get diary entries
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Prepare context
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        # For TV shows, check if there are seasons in progress
+        has_seasons_in_progress = False
+        if media_type == MediaTypes.TV.value and hasattr(media_instance, 'seasons'):
+            has_seasons_in_progress = any(season.status == Status.IN_PROGRESS.value for season in media_instance.seasons.all())
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": media_instance,
+            "diary_entries": diary_entries,
+            "has_seasons_in_progress": has_seasons_in_progress,
+        }
+        
+        response = render(request, "app/components/media_actions.html", context)
+        response["X-Notification-Message"] = "Media paused"
+        response["X-Notification-Type"] = "success"
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error pausing media: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def resume_media(request, source, media_type, media_id):
+    """Resume a paused or dropped media item by setting its status to IN_PROGRESS."""
+    try:
+        # Movies don't support pause/drop
+        if media_type == MediaTypes.MOVIE.value:
+            return JsonResponse({"error": "Movies do not support pause/drop"}, status=400)
+        
+        # Get metadata
+        metadata = services.get_media_metadata(media_type, media_id, source)
+        
+        # Get the item
+        item = Item.objects.get(
+            media_id=media_id,
+            source=source,
+            media_type=media_type
+        )
+        
+        # Get the media model
+        model = apps.get_model(app_label="app", model_name=media_type)
+        
+        # Get the media instance
+        if media_type == MediaTypes.SEASON.value:
+            # Get season_number from item if not already set
+            if not season_number:
+                season_number = item.season_number
+            
+            if season_number:
+                user_medias = BasicMedia.objects.filter_media_prefetch(
+                    request.user,
+                    media_id,
+                    media_type,
+                    source,
+                    season_number=season_number,
+                )
+            else:
+                user_medias = BasicMedia.objects.filter_media_prefetch(
+                    request.user,
+                    media_id,
+                    media_type,
+                    source,
+                )
+            if not user_medias:
+                raise Http404("Media instance not found")
+            media_instance = user_medias[0]
+        else:
+            media_instance = model.objects.get(
+                item=item,
+                user=request.user
+            )
+        
+        # Update status to IN_PROGRESS
+        if media_instance.status in [Status.PAUSED.value, Status.DROPPED.value]:
+            media_instance.status = Status.IN_PROGRESS.value
+            # Ensure start_date is set if missing
+            if not media_instance.start_date:
+                media_instance.start_date = timezone.now()
+            media_instance.save()
+        else:
+            return JsonResponse({"error": f"Cannot resume media with status {media_instance.status}"}, status=400)
+        
+        # Handle book-specific logic
+        if media_type == MediaTypes.BOOK.value:
+            # Ensure an IN_PROGRESS reading session exists
+            BookSession.objects.get_or_create(
+                related_book=media_instance,
+                status=Status.IN_PROGRESS.value,
+                defaults={
+                    "start_date": timezone.now(),
+                }
+            )
+        
+        # Handle game-specific logic
+        if media_type == MediaTypes.GAME.value:
+            # Clear end_date if it was set (game was dropped, not completed)
+            if media_instance.end_date:
+                media_instance.end_date = None
+                media_instance.save(update_fields=["end_date"])
+        
+        # Get diary entries
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Prepare context
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        # For TV shows, check if there are seasons in progress
+        has_seasons_in_progress = False
+        if media_type == MediaTypes.TV.value and hasattr(media_instance, 'seasons'):
+            has_seasons_in_progress = any(season.status == Status.IN_PROGRESS.value for season in media_instance.seasons.all())
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": media_instance,
+            "diary_entries": diary_entries,
+            "has_seasons_in_progress": has_seasons_in_progress,
+        }
+        
+        response = render(request, "app/components/media_actions.html", context)
+        response["X-Notification-Message"] = "Media resumed"
+        response["X-Notification-Type"] = "success"
+        return response
+        
+    except Item.DoesNotExist:
+        return JsonResponse({"error": "Media item not found"}, status=404)
+    except Http404:
+        return JsonResponse({"error": "Media instance not found"}, status=404)
+    except Exception as e:
+        logger.error(f"Error resuming media: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def drop_media(request, source, media_type, media_id):
+    """Drop a media item by setting its status to DROPPED."""
+    try:
+        # Movies don't support pause/drop
+        if media_type == MediaTypes.MOVIE.value:
+            return JsonResponse({"error": "Movies do not support pause/drop"}, status=400)
+        
+        # For seasons, try to get season_number from POST data first
+        season_number = None
+        if media_type == MediaTypes.SEASON.value:
+            season_number = request.POST.get('season_number')
+            if season_number:
+                try:
+                    season_number = int(season_number)
+                except (ValueError, TypeError):
+                    season_number = None
+        
+        # Get metadata
+        if media_type == MediaTypes.SEASON.value and season_number:
+            metadata = services.get_media_metadata(media_type, media_id, source, season_numbers=[season_number])
+        else:
+            metadata = services.get_media_metadata(media_type, media_id, source)
+        
+        # Get the item
+        if media_type == MediaTypes.SEASON.value and season_number:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=media_type,
+                season_number=season_number
+            )
+        else:
+            item = Item.objects.get(
+                media_id=media_id,
+                source=source,
+                media_type=media_type
+            )
+        
+        # Get the media model
+        model = apps.get_model(app_label="app", model_name=media_type)
+        
+        # Get the media instance
+        if media_type == MediaTypes.SEASON.value:
+            # Get season_number from item if not already set
+            if not season_number:
+                season_number = item.season_number
+            
+            if season_number:
+                user_medias = BasicMedia.objects.filter_media_prefetch(
+                    request.user,
+                    media_id,
+                    media_type,
+                    source,
+                    season_number=season_number,
+                )
+            else:
+                user_medias = BasicMedia.objects.filter_media_prefetch(
+                    request.user,
+                    media_id,
+                    media_type,
+                    source,
+                )
+            if not user_medias:
+                raise Http404("Media instance not found")
+            media_instance = user_medias[0]
+        else:
+            media_instance = model.objects.get(
+                item=item,
+                user=request.user
+            )
+        
+        # Update status to DROPPED
+        if media_instance.status in [Status.IN_PROGRESS.value, Status.PAUSED.value]:
+            media_instance.status = Status.DROPPED.value
+            media_instance.save()
+        elif media_instance.status == Status.DROPPED.value:
+            # Already dropped, no change needed
+            pass
+        else:
+            return JsonResponse({"error": f"Cannot drop media with status {media_instance.status}"}, status=400)
+        
+        # Handle book-specific logic
+        if media_type == MediaTypes.BOOK.value:
+            # Mark in-progress reading sessions as dropped
+            media_instance.reading_sessions.filter(status=Status.IN_PROGRESS.value).update(
+                status=Status.DROPPED.value
+            )
+        
+        # Handle game-specific logic (already handled in Game.save() but ensure end_date is cleared)
+        if media_type == MediaTypes.GAME.value:
+            if media_instance.end_date:
+                media_instance.end_date = None
+                media_instance.save(update_fields=["end_date"])
+        
+        # Handle TV/Season-specific logic
+        if media_type == MediaTypes.TV.value:
+            # Mark all in-progress seasons as dropped
+            in_progress_seasons = list(
+                media_instance.seasons.filter(status=Status.IN_PROGRESS.value)
+            )
+            for season in in_progress_seasons:
+                season.status = Status.DROPPED.value
+            if in_progress_seasons:
+                from django.db.models import bulk_update_with_history
+                bulk_update_with_history(
+                    in_progress_seasons,
+                    Season,
+                    fields=["status"],
+                )
+        elif media_type == MediaTypes.SEASON.value:
+            # If dropping a season, drop the entire TV show as well
+            if media_instance.related_tv:
+                tv_show = media_instance.related_tv
+                if tv_show.status != Status.DROPPED.value:
+                    tv_show.status = Status.DROPPED.value
+                    tv_show.save()
+                    # Also drop all other in-progress seasons
+                    in_progress_seasons = list(
+                        tv_show.seasons.filter(status=Status.IN_PROGRESS.value).exclude(id=media_instance.id)
+                    )
+                    for season in in_progress_seasons:
+                        season.status = Status.DROPPED.value
+                    if in_progress_seasons:
+                        from django.db.models import bulk_update_with_history
+                        bulk_update_with_history(
+                            in_progress_seasons,
+                            Season,
+                            fields=["status"],
+                        )
+        
+        # Get diary entries
+        diary_entries = DiaryEntry.objects.filter(user=request.user, item=item).order_by('-consumed_at')
+        
+        # Prepare context
+        metadata["media_type"] = media_type
+        metadata["source"] = source
+        metadata["media_id"] = media_id
+        
+        # For TV shows, check if there are seasons in progress
+        has_seasons_in_progress = False
+        if media_type == MediaTypes.TV.value and hasattr(media_instance, 'seasons'):
+            has_seasons_in_progress = any(season.status == Status.IN_PROGRESS.value for season in media_instance.seasons.all())
+        
+        context = {
+            "media": metadata,
+            "media_type": media_type,
+            "current_instance": media_instance,
+            "diary_entries": diary_entries,
+            "has_seasons_in_progress": has_seasons_in_progress,
+        }
+        
+        response = render(request, "app/components/media_actions.html", context)
+        response["X-Notification-Message"] = "Media dropped"
+        response["X-Notification-Type"] = "success"
+        return response
+        
+    except Item.DoesNotExist:
+        return JsonResponse({"error": "Media item not found"}, status=404)
+    except Http404:
+        return JsonResponse({"error": "Media instance not found"}, status=404)
+    except Exception as e:
+        logger.error(f"Error dropping media: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return JsonResponse({"error": str(e)}, status=500)
+
+
 @require_GET
 def service_worker():
     """Serve the service worker file."""

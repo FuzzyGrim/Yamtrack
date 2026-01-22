@@ -241,5 +241,23 @@ urlpatterns = [
         views.log_book_completed,
         name="log_book_completed",
     ),
+
+    # Media pause/resume/drop
+    path(
+        "media/pause/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.pause_media,
+        name="pause_media",
+    ),
+    path(
+        "media/resume/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.resume_media,
+        name="resume_media",
+    ),
+    path(
+        "media/drop/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.drop_media,
+        name="drop_media",
+    ),
+
     path("serviceworker.js", views.service_worker, name="service_worker"),
 ]
