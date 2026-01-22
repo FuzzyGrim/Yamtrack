@@ -1,87 +1,136 @@
-n{% load app_tags %}
+{% load app_tags %}
 
-<article class="episode-card bg-111111 rounded-2xl overflow-hidden border border-white/5">
-  <div class="episode-card__image">
-    {% if episode.image and episode.image != IMG_NONE %}
-      <img
-        src="{{ episode.image }}"
-        alt="{{ episode.title }} still"
-        class="episode-card__image-media">
-    {% else %}
-      <div class="episode-card__image-placeholder">
-        <svg class="h-8 w-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <circle cx="8.5" cy="8.5" r="1.5"></circle>
-          <polyline points="21,15 16,10 5,21"></polyline>
-        </svg>
-      </div>
-    {% endif %}
-  </div> 
-
-  <div class="episode-card__body">
-    <div class="episode-card__header space-y-1">
-      <h3 class="text-xl font-semibold text-white">{{ episode.title|default:"Untitled Episode" }}</h3>
-      {% with air_date_display=episode.air_date|date:"Y-m-d" %}
-        <div class="episode-card__meta text-sm text-gray-400">
-          <span>Episode {{ episode.episode_number }}</span>
-          {% if air_date_display %}
-            <span>• {{ air_date_display }}</span>
-          {% endif %}
-          {% if episode.runtime %}
-            <span>• {{ episode.runtime }}</span>
-          {% endif %}
-          {% if episode.vote_average_out_of_5 %}
-            <span>•</span>
-            <span class="episode-rating-pill">
-              {{ episode.vote_average_out_of_5|floatformat:1 }} / 5
-            </span>
-          {% endif %}
-        </div>
-      {% endwith %}
+<article class="episode-card group bg-111111/50 hover:bg-white/5 transition-colors duration-150 relative" 
+         x-data="{ expanded: false }">
+  <div class="flex items-start p-4 relative">
+    {# Episode Number #}
+    <div class="flex-shrink-0 w-10 text-right self-start pt-0.5 mr-4">
+      <span class="text-xs font-medium text-gray-500 group-hover:text-gray-400 transition-colors">
+        {{ episode.episode_number }}
+      </span>
     </div>
 
-    {% if episode.overview %}
-      <div class="episode-card__synopsis-container">
-        <p class="episode-card__synopsis text-sm text-gray-300 leading-relaxed">{{ episode.overview }}</p>
-      </div>
-    {% else %}
-      <div class="episode-card__synopsis-container">
-        <p class="episode-card__synopsis text-sm text-gray-500 italic">No synopsis available.</p>
-      </div>
-    {% endif %}
+    {# Spacer for image #}
+    <div class="flex-shrink-0 mr-2" style="width: 128px;"></div>
 
-    <div class="episode-card__footer flex items-center justify-between">
-      <div class="text-xs text-gray-400">
-        {% if episode.history %}
-          {% with latest_watch=episode.history|first %}
-            Last watched: {{ latest_watch.end_date|date_tracker_format|default:"Unknown" }}
-            {% if episode.history|length == 1 %}
-              • Watched once
-            {% else %}
-              • Watched {{ episode.history|length }} times
-            {% endif %}
-          {% endwith %}
-        {% else %}
-          <span class="text-gray-500">Not watched yet</span>
-        {% endif %}
+    {# Thumbnail - centered vertically between dividers, maintains aspect ratio #}
+    <div class="absolute top-1/2 -translate-y-1/2 w-32 rounded overflow-hidden bg-gray-800/50 flex items-center justify-center z-10" style="left: 64px; min-width: 128px; max-width: 128px;">
+      {% if episode.image and episode.image != IMG_NONE %}
+        <img
+          src="{{ episode.image }}"
+          alt="{{ episode.title }} still"
+          class="max-w-full max-h-full object-contain rounded"
+          style="width: 128px; height: auto; display: block;"
+          loading="lazy">
+      {% else %}
+        <div class="w-full flex items-center justify-center py-8">
+          <svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="1" stroke-width="1.5"></rect>
+          </svg>
+        </div>
+      {% endif %}
+    </div>
+
+    {# Content #}
+    <div class="flex-1 min-w-0 flex flex-col">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="text-sm font-medium text-white line-clamp-1">
+              {{ episode.title|default:"Untitled Episode" }}
+            </h3>
+            {# Watch Button - Eye Icon #}
+            <button class="episode-watch-btn p-1 rounded transition-all duration-200 hover:bg-white/10 hover:scale-110 flex-shrink-0"
+                    hx-post="{% if episode.history %}{% url 'unwatch_episode' episode.source episode.media_type episode.media_id episode.season_number episode.episode_number %}{% else %}{% url 'watch_episode' episode.source episode.media_type episode.media_id episode.season_number episode.episode_number %}{% endif %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="closest .episode-card"
+                    hx-swap="outerHTML"
+                    title="{% if episode.history %}Mark as unwatched{% else %}Mark as watched{% endif %}">
+              <svg class="h-4 w-4 {% if episode.history %}text-green-400{% else %}text-gray-500 hover:text-gray-300{% endif %} transition-all duration-200" 
+                   fill="{% if episode.history %}currentColor{% else %}none{% endif %}" 
+                   stroke="currentColor" 
+                   stroke-width="{% if episode.history %}0{% else %}1.5{% endif %}"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"></circle>
+              </svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-500 flex-wrap mb-2">
+            {% with air_date_display=episode.air_date|date:"M d, Y" %}
+              {% if air_date_display %}
+                <span>{{ air_date_display }}</span>
+                {% if episode.runtime %}
+                  <span>•</span>
+                {% endif %}
+              {% endif %}
+              {% if episode.runtime %}
+                <span>{{ episode.runtime }}</span>
+              {% endif %}
+              {% if episode.vote_average_out_of_5 %}
+                {% if episode.runtime or air_date_display %}
+                  <span>•</span>
+                {% endif %}
+                <span class="text-gray-400">{{ episode.vote_average_out_of_5|floatformat:1 }}★</span>
+              {% endif %}
+            {% endwith %}
+          </div>
+          {% if episode.overview %}
+            <div class="relative mt-2" 
+                 x-data="{ 
+                   expanded: false,
+                   isTruncated: false,
+                   init() {
+                     this.$nextTick(() => {
+                       const el = this.$refs.synopsisText;
+                       if (!el) return;
+                       
+                       // Remove line-clamp to get true scrollHeight
+                       const hadClamp = el.classList.contains('line-clamp-2');
+                       if (hadClamp) el.classList.remove('line-clamp-2');
+                       const fullHeight = el.scrollHeight;
+                       if (hadClamp) el.classList.add('line-clamp-2');
+                       
+                       // Get visible height (2 lines)
+                       const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+                       const visibleHeight = lineHeight * 2;
+                       
+                       // Check if truncated
+                       this.isTruncated = fullHeight > visibleHeight;
+                     });
+                   }
+                 }"
+                 x-init="init()"
+                 x-effect="if (expanded) isTruncated = true">
+              <p x-ref="synopsisText"
+                 class="text-xs text-gray-500 leading-relaxed transition-all duration-500 ease-in-out"
+                 :class="expanded ? '' : 'line-clamp-2'">
+                {{ episode.overview }}
+              </p>
+              <div x-show="isTruncated"
+                   x-transition:enter="transition ease-out duration-300"
+                   x-transition:enter-start="opacity-0 transform translate-y-1"
+                   x-transition:enter-end="opacity-100 transform translate-y-0"
+                   x-transition:leave="transition ease-in duration-200"
+                   x-transition:leave-start="opacity-100 transform translate-y-0"
+                   x-transition:leave-end="opacity-0 transform translate-y-1">
+                <button @click="expanded = !expanded" 
+                        class="mt-1.5 text-xs text-gray-400 hover:text-gray-300 transition-all duration-200 flex items-center gap-1.5 group/expand">
+                  <span x-text="expanded ? 'Show less' : 'Show more'" class="transition-colors duration-200"></span>
+                  <svg class="w-3 h-3 transition-transform duration-500 ease-in-out" 
+                       :class="expanded ? 'rotate-180' : ''"
+                       fill="none" 
+                       stroke="currentColor" 
+                       stroke-width="2"
+                       viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          {% endif %}
+        </div>
       </div>
-      
-      {# Watch/Unwatch Button #}
-      <button class="episode-watch-btn p-2 rounded-full transition-colors duration-200 hover:bg-gray-700/50"
-              hx-post="{% if episode.history %}{% url 'unwatch_episode' episode.source episode.media_type episode.media_id episode.season_number episode.episode_number %}{% else %}{% url 'watch_episode' episode.source episode.media_type episode.media_id episode.season_number episode.episode_number %}{% endif %}"
-              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-              hx-target="closest .episode-card"
-              hx-swap="outerHTML"
-              title="{% if episode.history %}Mark as unwatched{% else %}Mark as watched{% endif %}">
-        <svg class="h-5 w-5 {% if episode.history %}text-green-400{% else %}text-gray-500 hover:text-gray-300{% endif %}" 
-             fill="{% if episode.history %}currentColor{% else %}none{% endif %}" 
-             stroke="currentColor" 
-             viewBox="0 0 24 24" 
-             xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-        </svg>
-      </button>
     </div>
   </div>
 </article>
