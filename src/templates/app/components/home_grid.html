@@ -29,9 +29,10 @@
       </div>
     </div>
 
-    <div class="p-3 space-y-3 rounded-b-lg">
+    <div class="p-2 space-y-2 rounded-b-lg">
       <a href="{{ media.item|media_url }}"
-         class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
+         class="text-xs font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
+         style="font-size: 0.7rem;"
          title="{{ media }}">{{ media }}</a>
       <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
         {% include "app/components/progress_changer.html" with media=media csrf_token=csrf_token MediaTypes=MediaTypes only %}

@@ -2,16 +2,25 @@
 
 {% if media.item.media_type == MediaTypes.GAME.value %}
   {# Games don't have progress buttons - show status only #}
-  <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
+  <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center text-[11px] whitespace-nowrap">
     {% if media.formatted_progress %}
       {{ media.formatted_progress }}
     {% else %}
       {{ media.status }}
     {% endif %}
   </div>
+{% elif media.item.media_type == MediaTypes.BOOK.value %}
+  {# Books: Show button that opens progress modal #}
+  <button hx-get="{% url 'book_progress_modal' media.item.source media.item.media_id %}"
+          hx-target="body"
+          hx-swap="beforeend"
+          class="w-full px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-indigo-400 hover:text-indigo-300 text-[10px] font-medium rounded transition-all duration-150 cursor-pointer backdrop-blur-sm">
+    Progress
+  </button>
 {% else %}
-  <div class="flex items-center justify-center space-x-4">
-    <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
+  {# Other media types: Keep +/- buttons but remove text #}
+  <div class="flex items-center justify-center gap-1 flex-shrink-0">
+    <button class="p-0.5 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
             {% if media.progress == 0 %}disabled{% endif %}
             hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -27,53 +36,12 @@
            stroke-width="2"
            stroke-linecap="round"
            stroke-linejoin="round"
-           class="w-3 h-3">
+           class="w-2.5 h-2.5">
         <path d="M5 12h14"></path>
       </svg>
     </button>
 
-    <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
-      {% if media.item.media_type == MediaTypes.BOOK.value %}
-        {% with snapshot=media.progress_snapshot %}
-          {% if snapshot %}
-            {% if snapshot.has_percentage %}
-              {{ snapshot.percentage|floatformat:0 }}%
-              {% if snapshot.has_pages %}
-                ({{ snapshot.pages }}{% if snapshot.total_pages %}/{{ snapshot.total_pages }}{% endif %} pages)
-              {% endif %}
-            {% elif snapshot.has_pages %}
-              {{ snapshot.pages }}{% if snapshot.total_pages %}/{{ snapshot.total_pages }}{% endif %} pages
-            {% else %}
-              {{ media.formatted_progress }}
-              {% if media.max_progress %}
-                / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
-              {% else %}
-                {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
-              {% endif %}
-            {% endif %}
-          {% else %}
-            {{ media.formatted_progress }}
-            {% if media.max_progress %}
-              / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
-            {% else %}
-              {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
-            {% endif %}
-          {% endif %}
-        {% endwith %}
-      {% else %}
-        {{ media.formatted_progress }}
-
-        {% if media.item.media_type != MediaTypes.MOVIE.value %}
-          {% if media.max_progress %}
-            / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
-          {% else %}
-            {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
-          {% endif %}
-        {% endif %}
-      {% endif %}
-    </div>
-
-    <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
+    <button class="p-0.5 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
             {% if media.progress == media.max_progress %}disabled{% endif %}
             hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -89,7 +57,7 @@
            stroke-width="2"
            stroke-linecap="round"
            stroke-linejoin="round"
-           class="w-3 h-3">
+           class="w-2.5 h-2.5">
         <path d="M5 12h14"></path>
         <path d="M12 5v14"></path>
       </svg>

@@ -247,6 +247,9 @@ function initBookProgressModal(modalRoot) {
                 const mediaActions = document.getElementById('media-actions');
                 if (mediaActions) {
                     mediaActions.innerHTML = html;
+                } else {
+                    // If we're on home page or media list, reload to show updated progress
+                    window.location.reload();
                 }
                 modalRoot.remove();
             })

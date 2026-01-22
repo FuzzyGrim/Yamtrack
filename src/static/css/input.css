@@ -36,8 +36,15 @@ img[data-book-cover].lazyloaded {
 
 
 .media-grid {
-  @apply grid grid-cols-2 xs:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4;
+  @apply grid grid-cols-2 gap-4;
 }
+
+@media (min-width: 30rem) {
+  .media-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
+
 
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
 @custom-variant hover-tap (&:hover);

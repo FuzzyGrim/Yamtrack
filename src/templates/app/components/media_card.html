@@ -41,7 +41,7 @@
 
     <div class="absolute top-2 left-2 flex flex-col items-start gap-1.5">
       {% if media.status %}
-        <div class="bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+        <div class="bg-gray-900/90 text-white text-xs px-1.5 py-0.5 rounded-md flex items-center shadow-md">
           {% if media.status == Status.COMPLETED.value %}
             <div class="w-4 h-4 {{ Status.COMPLETED.value|status_color }}{% if diary_entries %}{% if media.start_date or media.end_date %} mr-1.5{% endif %}{% endif %}">
               {% include "app/icons/states/completed.svg" %}
@@ -72,18 +72,18 @@
           {% if diary_entries %}
             {# diary_entries is available in context (e.g., on details page) #}
             {% if media.end_date is not None %}
-              <span class="text-sm text-white">{{ media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+              <span class="text-xs text-white">{{ media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
             {% elif media.start_date is not None %}
-              <span class="text-sm text-white">{{ media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+              <span class="text-xs text-white">{{ media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
             {% endif %}
           {% else %}
             {# Check if item has diary entries for current user (fallback for list pages) #}
             {% has_diary_entries item user as item_has_diary %}
             {% if item_has_diary %}
               {% if media.end_date is not None %}
-                <span class="text-sm text-white">{{ media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+                <span class="text-xs text-white">{{ media.end_date|date:"SHORT_DATE_FORMAT" }}</span>
               {% elif media.start_date is not None %}
-                <span class="text-sm text-white">{{ media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+                <span class="text-xs text-white">{{ media.start_date|date:"SHORT_DATE_FORMAT" }}</span>
               {% endif %}
             {% endif %}
           {% endif %}
@@ -93,14 +93,14 @@
       {% if media.score is not None %}
         <div class="bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md shrink-0">
           {% include "app/icons/star.svg" with classes="w-4 h-4 text-yellow-400 mr-1 fill-current shrink-0" %}
-          <span class="text-sm text-white whitespace-nowrap">{{ media.formatted_score }}</span>
+          <span class="text-xs text-white whitespace-nowrap">{{ media.formatted_score }}</span>
         </div>
       {% endif %}
     </div>
 
     {% if media.progress and media_type != MediaTypes.MOVIE.value %}
       <div class="absolute bottom-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
-        <span class="text-sm text-white">
+        <span class="text-xs text-white">
           {{ media.formatted_progress }}
           {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
         </span>
@@ -110,16 +110,17 @@
     {% if media.repeats > 1 %}
       <div class="absolute sm:bottom-2 sm:right-2 sm:left-auto bottom-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         {% include "app/icons/repeat.svg" with classes="w-4 h-4 text-slate-200 mr-1" %}
-        <span class="text-sm text-white">{{ media.repeats }}</span>
+        <span class="text-xs text-white">{{ media.repeats }}</span>
       </div>
     {% endif %}
 
     </div>
   </div>
 
-  <div class="p-3 rounded-b-lg">
+  <div class="p-2 rounded-b-lg">
     <a href="{{ item|media_url }}"
-       class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+       class="text-xs font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+       style="font-size: 0.7rem;"
        title="{{ title }}">{{ title }}</a>
   </div>
 
