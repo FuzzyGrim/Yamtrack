@@ -1,41 +1,58 @@
 {% load app_tags %}
 
 {# Action Buttons - New design based on React component #}
+<style>
+  /* Book accent hover styles - used by books, movies, TV shows, and seasons */
+  .book-accent-hover {
+    background: transparent !important;
+    color: inherit !important;
+    border: none !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    outline: none !important;
+    opacity: 1 !important;
+    transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+  }
+  .book-accent-hover:hover,
+  .book-accent-hover:focus,
+  .book-accent-hover:focus-visible {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    outline: none !important;
+    opacity: 1 !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+    transform: translateY(-1px) !important;
+  }
+  .poster-accent-button.book-accent-hover,
+  .poster-accent-button.book-accent-hover:hover,
+  .poster-accent-button.book-accent-hover:focus,
+  .poster-accent-button.book-accent-hover:focus-visible {
+    border: none !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+  }
+  /* CRITICAL: Override debug-genre-colors.css for status indicators - must be more specific than debug-genre-colors.css */
+  div.poster-accent-button.book-accent-hover:hover,
+  div.poster-accent-button.book-accent-hover:focus,
+  div.poster-accent-button.book-accent-hover:focus-visible,
+  #media-detail-root div.poster-accent-button.book-accent-hover:hover,
+  #media-detail-root div.poster-accent-button.book-accent-hover:focus,
+  #media-detail-root div.poster-accent-button.book-accent-hover:focus-visible {
+    border: none !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    border-image: none !important;
+    outline: none !important;
+  }
+</style>
 <div class="mt-6">
   {% if media.media_type == MediaTypes.MOVIE.value %}
-    <style>
-      /* Movie accent hover styles - matching book buttons */
-      .book-accent-hover {
-        background: transparent !important;
-        color: inherit !important;
-        border: none !important;
-        border-width: 0 !important;
-        outline: none !important;
-        opacity: 1 !important;
-        transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
-      }
-      .book-accent-hover:hover,
-      .book-accent-hover:focus,
-      .book-accent-hover:focus-visible {
-        background: #ffffff !important;
-        color: #000000 !important;
-        border: none !important;
-        border-width: 0 !important;
-        border-color: transparent !important;
-        outline: none !important;
-        opacity: 1 !important;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
-        transform: translateY(-1px) !important;
-      }
-      .poster-accent-button.book-accent-hover,
-      .poster-accent-button.book-accent-hover:hover,
-      .poster-accent-button.book-accent-hover:focus,
-      .poster-accent-button.book-accent-hover:focus-visible {
-        border: none !important;
-        border-width: 0 !important;
-        border-color: transparent !important;
-      }
-    </style>
     {% if diary_entries %}
       {# If logged, show enhanced logged button #}
       <div class="flex">
@@ -104,7 +121,7 @@
     {% if diary_entries %}
       {# If logged, show enhanced logged button #}
       <div class="flex">
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                 data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -120,21 +137,8 @@
       </div>
     {% elif current_instance and has_seasons_in_progress %}
       {# If any season is currently tracking, show watching indicator with options #}
-      <style>
-        .book-accent-hover {
-          background: transparent;
-          color: inherit;
-          transition: transform 0.2s ease;
-        }
-        .book-accent-hover:hover {
-          background: #ffffff !important;
-          color: #000000 !important;
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
-          transform: translateY(-1px);
-        }
-      </style>
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -144,7 +148,7 @@
         
         <div class="flex gap-2">
           {# Pause Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   hx-post="{% url 'pause_media' media.source media.media_type media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -157,7 +161,7 @@
           </button>
 
           {# Drop Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   hx-post="{% url 'drop_media' media.source media.media_type media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -171,44 +175,39 @@
           </button>
         </div>
         
-        {# Stop Watching Button #}
-        <button class="w-full border border-gray-600 hover:border-red-500 px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:bg-red-900/20"
-                hx-post="{% url 'unmark_tv_watched' media.source media.media_type media.media_id %}"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-target="#media-actions"
-                hx-swap="innerHTML"
-                hx-confirm="Stop tracking this show? All season progress will be removed."
-                title="Remove all tracking data for this show">
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-          <span class="text-sm text-gray-300">Stop Watching</span>
-        </button>
-        
         <p class="text-xs text-center text-gray-400">Track progress in individual seasons below</p>
       </div>
     {% elif current_instance and current_instance.status == "Completed" %}
-      {# If completed, show unwatch button #}
-      <div class="flex flex-col gap-2">
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                hx-post="{% url 'unmark_tv_watched' media.source media.media_type media.media_id %}"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-target="#media-actions"
-                hx-swap="innerHTML"
-                title="Remove completion status from all seasons and episodes">
+      {# If completed, show watched status indicator #}
+      <div class="flex flex-col gap-4">
+        <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover">
           <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          Unwatch Entire Show
-        </button>
-        <p class="text-xs text-center text-gray-400">This will remove all completed seasons and episodes</p>
+          Watched
+        </div>
+        
+        <div class="flex gap-2">
+          {# Log Button #}
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                  data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
+                  onclick="fetch(this.dataset.logUrl)
+                    .then(response => response.text())
+                    .then(html => {
+                      document.getElementById('log-modal-container').innerHTML = html;
+                    })"
+                  title="Log this show to your diary with a date and optional review">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Log Show
+          </button>
+        </div>
       </div>
     {% elif current_instance and current_instance.status == "Paused" %}
       {# If paused, show paused indicator with options #}
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
@@ -217,7 +216,7 @@
         
         <div class="flex gap-2">
           {# Resume Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   hx-post="{% url 'resume_media' media.source media.media_type media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -231,7 +230,7 @@
           </button>
 
           {# Log Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                   onclick="fetch(this.dataset.logUrl)
                     .then(response => response.text())
@@ -247,7 +246,7 @@
         </div>
         
         {# Drop Button #}
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                 hx-post="{% url 'drop_media' media.source media.media_type media.media_id %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
@@ -265,7 +264,7 @@
     {% elif current_instance and current_instance.status == "Dropped" %}
       {# If dropped, show dropped indicator with options #}
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <div class="status-indicator w-full px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium text-white">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
@@ -274,7 +273,7 @@
         
         <div class="flex gap-2">
           {# Resume Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   hx-post="{% url 'resume_media' media.source media.media_type media.media_id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#media-actions"
@@ -288,7 +287,7 @@
           </button>
 
           {# Log Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                   onclick="fetch(this.dataset.logUrl)
                     .then(response => response.text())
@@ -309,7 +308,7 @@
       {# If not started, show watched and log buttons #}
       <div class="flex gap-2">
         {# Mark as Watched Button #}
-        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                 hx-post="{% url 'mark_tv_watched' media.source media.media_type media.media_id %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
@@ -323,7 +322,7 @@
         </button>
 
         {# Log Button #}
-        <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                 data-log-url="{% url 'log_modal' media.source media.media_type media.media_id %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -340,7 +339,7 @@
       
       {# Currently Watching Button - Full width underneath #}
       <div class="mt-2">
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                 hx-post="{% url 'start_tracking_tv' media.source media.media_type media.media_id %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-target="#media-actions"
@@ -359,7 +358,7 @@
     {% if diary_entries %}
       {# If logged, show enhanced logged button #}
       <div class="flex">
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                 data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
                 onclick="fetch(this.dataset.logUrl)
                   .then(response => response.text())
@@ -376,7 +375,7 @@
     {% elif current_instance and current_instance.status == "In progress" %}
       {# If in progress, show watching indicator with options #}
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -385,22 +384,8 @@
         </div>
         
         <div class="flex gap-2">
-          {# Mark as Watched Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  hx-post="{% url 'mark_season_watched' media.source 'tv' media.media_id media.season_number %}"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-target="#media-actions"
-                  hx-swap="innerHTML"
-                  title="Mark all episodes in this season as watched">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-            </svg>
-            Complete
-          </button>
-
           {# Log Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
                   onclick="fetch(this.dataset.logUrl)
                     .then(response => response.text())
@@ -418,7 +403,7 @@
         {# Pause and Drop Buttons #}
         <div class="flex gap-2">
           {# Pause Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   hx-post="{% url 'pause_media' media.source media.media_type media.media_id %}"
                   {% if media.media_type == MediaTypes.SEASON.value and media.season_number %}hx-vals='{"season_number": {{ media.season_number }}}'{% endif %}
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -432,7 +417,7 @@
           </button>
 
           {# Drop Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   hx-post="{% url 'drop_media' media.source media.media_type media.media_id %}"
                   {% if media.media_type == MediaTypes.SEASON.value and media.season_number %}hx-vals='{"season_number": {{ media.season_number }}}'{% endif %}
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -447,12 +432,12 @@
           </button>
         </div>
         
-        <p class="text-xs text-center text-gray-400">Track individual episodes below</p>
+        <p class="text-xs text-center text-gray-400">Log the season or drop/pause the entire show</p>
       </div>
     {% elif current_instance and current_instance.status == "Paused" %}
       {# If paused, show paused indicator with options #}
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
@@ -461,7 +446,7 @@
         
         <div class="flex gap-2">
           {# Resume Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   hx-post="{% url 'resume_media' media.source media.media_type media.media_id %}"
                   {% if media.media_type == MediaTypes.SEASON.value and media.season_number %}hx-vals='{"season_number": {{ media.season_number }}}'{% endif %}
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -476,7 +461,7 @@
           </button>
 
           {# Log Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
                   onclick="fetch(this.dataset.logUrl)
                     .then(response => response.text())
@@ -492,7 +477,7 @@
         </div>
         
         {# Drop Button #}
-        <button class="w-full border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+        <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                 hx-post="{% url 'drop_media' media.source media.media_type media.media_id %}"
                 {% if media.media_type == MediaTypes.SEASON.value and media.season_number %}hx-vals='{"season_number": {{ media.season_number }}}'{% endif %}
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -511,7 +496,7 @@
     {% elif current_instance and current_instance.status == "Dropped" %}
       {# If dropped, show dropped indicator with options #}
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <div class="status-indicator w-full px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium text-white">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
@@ -520,7 +505,7 @@
         
         <div class="flex gap-2">
           {# Resume Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   hx-post="{% url 'resume_media' media.source media.media_type media.media_id %}"
                   {% if media.media_type == MediaTypes.SEASON.value and media.season_number %}hx-vals='{"season_number": {{ media.season_number }}}'{% endif %}
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -535,7 +520,7 @@
           </button>
 
           {# Log Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
                   onclick="fetch(this.dataset.logUrl)
                     .then(response => response.text())
@@ -553,75 +538,238 @@
         <p class="text-xs text-center text-gray-400">Resume watching or log to diary</p>
       </div>
     {% elif current_instance and current_instance.status == "Completed" %}
-      {# If completed, show unwatch button #}
-      <div class="flex flex-col gap-2">
-        <div class="flex gap-2">
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  hx-post="{% url 'unmark_season_watched' media.source 'tv' media.media_id media.season_number %}"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-target="#media-actions"
-                  hx-swap="innerHTML"
-                  title="Remove completion status from this season and all episodes">
-            <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
-            </svg>
-            Unwatch Season
-          </button>
-          
-          {# Log Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+      {# If completed, show watched status indicator #}
+      {% if diary_entries %}
+        {# If logged, show logged indicator #}
+        <div class="flex">
+          <button class="w-full poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
                   data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
                   onclick="fetch(this.dataset.logUrl)
                     .then(response => response.text())
                     .then(html => {
                       document.getElementById('log-modal-container').innerHTML = html;
                     })"
-                  title="Log this season to your diary with a date and optional review">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                  title="View and manage your diary entries for this season">
+            <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            Log Season
+            Watched • Logged ({{ diary_entries|length }})
           </button>
         </div>
-        <p class="text-xs text-center text-gray-400">Season completed - all episodes marked as watched</p>
-      </div>
-    {% else %}
-      {# If not started, show both watched and log buttons #}
-      <div class="flex flex-col gap-2">
-        <div class="flex gap-2">
-          {# Mark as Watched Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  hx-post="{% url 'mark_season_watched' media.source 'tv' media.media_id media.season_number %}"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-target="#media-actions"
-                  hx-swap="innerHTML"
-                  title="Mark all episodes in this season as watched">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+      {% else %}
+        {# If not logged, show watched status with log button #}
+        <div class="flex flex-col gap-4">
+          <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium book-accent-hover">
+            <svg class="h-4 w-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             Watched
-          </button>
-
-          {# Log Button #}
-          <button class="flex-1 border poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                  data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
-                  onclick="fetch(this.dataset.logUrl)
-                    .then(response => response.text())
-                    .then(html => {
-                      document.getElementById('log-modal-container').innerHTML = html;
-                    })"
-                  title="Log this season to your diary with a date and optional review">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-            </svg>
-            Log Season
-          </button>
+          </div>
+          
+          <div class="flex gap-2">
+            {# Log Button #}
+            <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                    data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                    onclick="fetch(this.dataset.logUrl)
+                      .then(response => response.text())
+                      .then(html => {
+                        document.getElementById('log-modal-container').innerHTML = html;
+                      })"
+                    title="Log this season to your diary with a date and optional review">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+              </svg>
+              Log Season
+            </button>
+          </div>
         </div>
-        <p class="text-xs text-center text-gray-400">Only this season will be affected - other seasons remain unchanged</p>
-      </div>
+      {% endif %}
+    {% else %}
+      {# If not started, show conditional buttons based on TV show status #}
+      {% if current_instance and current_instance.related_tv %}
+        {% with tv_status=current_instance.related_tv.status %}
+          {% if tv_status == "In progress" or tv_status == "Paused" or tv_status == "Dropped" %}
+        {# TV show is active - show Start Watching button #}
+        <div class="flex flex-col gap-2">
+          <div class="flex gap-2">
+            {# Start Watching Button #}
+            <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                    hx-post="{% url 'start_tracking_season' media.source media.media_type media.media_id media.season_number %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="#media-actions"
+                    hx-swap="innerHTML"
+                    title="Start watching this season">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Start Watching
+            </button>
+
+            {# Log Button #}
+            <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                    data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                    onclick="fetch(this.dataset.logUrl)
+                      .then(response => response.text())
+                      .then(html => {
+                        document.getElementById('log-modal-container').innerHTML = html;
+                      })"
+                    title="Log this season to your diary with a date and optional review">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+              </svg>
+              Log Season
+            </button>
+          </div>
+          <p class="text-xs text-center text-gray-400">Start watching this season or log it to your diary</p>
+        </div>
+          {% else %}
+            {# TV show is passive - show Watched button #}
+            <div class="flex flex-col gap-2">
+              <div class="flex gap-2">
+                {# Mark as Watched Button #}
+                <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                        hx-post="{% url 'mark_season_watched' media.source 'tv' media.media_id media.season_number %}"
+                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                        hx-target="#media-actions"
+                        hx-swap="innerHTML"
+                        title="Mark all episodes in this season as watched (historical data)">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                  Watched
+                </button>
+
+                {# Log Button #}
+                <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                        data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                        onclick="fetch(this.dataset.logUrl)
+                          .then(response => response.text())
+                          .then(html => {
+                            document.getElementById('log-modal-container').innerHTML = html;
+                          })"
+                        title="Log this season to your diary with a date and optional review">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                  </svg>
+                  Log Season
+                </button>
+              </div>
+              <p class="text-xs text-center text-gray-400">Mark as watched if you saw this season before using Spine</p>
+            </div>
+          {% endif %}
+        {% endwith %}
+      {% elif tv_instance %}
+        {% with tv_status=tv_instance.status %}
+          {% if tv_status == "In progress" or tv_status == "Paused" or tv_status == "Dropped" %}
+            {# TV show is active - show Start Watching button #}
+            <div class="flex flex-col gap-2">
+              <div class="flex gap-2">
+                {# Start Watching Button #}
+                <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                        hx-post="{% url 'start_tracking_season' media.source media.media_type media.media_id media.season_number %}"
+                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                        hx-target="#media-actions"
+                        hx-swap="innerHTML"
+                        title="Start watching this season">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Start Watching
+                </button>
+
+                {# Log Button #}
+                <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                        data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                        onclick="fetch(this.dataset.logUrl)
+                          .then(response => response.text())
+                          .then(html => {
+                            document.getElementById('log-modal-container').innerHTML = html;
+                          })"
+                        title="Log this season to your diary with a date and optional review">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                  </svg>
+                  Log Season
+                </button>
+              </div>
+              <p class="text-xs text-center text-gray-400">Start watching this season or log it to your diary</p>
+            </div>
+          {% else %}
+            {# TV show is passive - show Watched button #}
+            <div class="flex flex-col gap-2">
+              <div class="flex gap-2">
+                {# Mark as Watched Button #}
+                <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                        hx-post="{% url 'mark_season_watched' media.source 'tv' media.media_id media.season_number %}"
+                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                        hx-target="#media-actions"
+                        hx-swap="innerHTML"
+                        title="Mark all episodes in this season as watched (historical data)">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                  Watched
+                </button>
+
+                {# Log Button #}
+                <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                        data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                        onclick="fetch(this.dataset.logUrl)
+                          .then(response => response.text())
+                          .then(html => {
+                            document.getElementById('log-modal-container').innerHTML = html;
+                          })"
+                        title="Log this season to your diary with a date and optional review">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                  </svg>
+                  Log Season
+                </button>
+              </div>
+              <p class="text-xs text-center text-gray-400">Mark as watched if you saw this season before using Spine</p>
+            </div>
+          {% endif %}
+        {% endwith %}
+      {% else %}
+        {# No TV instance - default to passive state #}
+        <div class="flex flex-col gap-2">
+          <div class="flex gap-2">
+            {# Mark as Watched Button #}
+            <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                    hx-post="{% url 'mark_season_watched' media.source 'tv' media.media_id media.season_number %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="#media-actions"
+                    hx-swap="innerHTML"
+                    title="Mark all episodes in this season as watched (historical data)">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+              Watched
+            </button>
+
+            {# Log Button #}
+            <button class="flex-1 poster-accent-button px-4 py-1 rounded-lg flex items-center justify-center gap-2 book-accent-hover font-medium"
+                    data-log-url="{% url 'log_modal_season' media.source 'tv' media.media_id media.season_number %}"
+                    onclick="fetch(this.dataset.logUrl)
+                      .then(response => response.text())
+                      .then(html => {
+                        document.getElementById('log-modal-container').innerHTML = html;
+                      })"
+                    title="Log this season to your diary with a date and optional review">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+              </svg>
+              Log Season
+            </button>
+          </div>
+          <p class="text-xs text-center text-gray-400">Mark as watched if you saw this season before using Spine</p>
+        </div>
+      {% endif %}
     {% endif %}
   {% elif media.media_type == MediaTypes.BOOK.value %}
     {# If there are diary entries but the book is currently in progress or completed, show the appropriate state instead of collapsing to Logged #}
@@ -1753,7 +1901,7 @@
     {% elif current_instance and current_instance.status == "Paused" %}
       {# If paused, show paused indicator with resume/drop buttons #}
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <div class="w-full poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
@@ -1793,7 +1941,7 @@
     {% elif current_instance and current_instance.status == "Dropped" %}
       {# If dropped, show dropped indicator with resume button #}
       <div class="flex flex-col gap-2">
-        <div class="w-full border poster-accent-button px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <div class="status-indicator w-full px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium text-white">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>

@@ -174,6 +174,11 @@ urlpatterns = [
         name="start_tracking_tv",
     ),
     path(
+        "tv/start_season/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>",
+        views.start_tracking_season,
+        name="start_tracking_season",
+    ),
+    path(
         "tv/watch/<source:source>/<media_type:media_type>/<str:media_id>",
         views.mark_tv_watched,
         name="mark_tv_watched",
