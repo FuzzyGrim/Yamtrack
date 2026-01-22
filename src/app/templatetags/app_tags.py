@@ -676,8 +676,28 @@ def personal_average_rating(diary_entries):
 @register.simple_tag
 def has_diary_entries(item, user):
     """Check if an item has diary entries for a user."""
-    from app.models import DiaryEntry
-    return DiaryEntry.objects.filter(item=item, user=user).exists()
+    from app.models import DiaryEntry, Item
+    
+    # Handle case where item is a dict (from search results)
+    if isinstance(item, dict):
+        try:
+            lookup_params = {
+                "media_id": str(item["media_id"]),
+                "source": item["source"],
+                "media_type": item["media_type"],
+            }
+            # Only include season_number if it's present and not None
+            if "season_number" in item and item.get("season_number") is not None:
+                lookup_params["season_number"] = item["season_number"]
+            
+            item_instance = Item.objects.get(**lookup_params)
+        except Item.DoesNotExist:
+            return False
+    else:
+        # item is already an Item instance
+        item_instance = item
+    
+    return DiaryEntry.objects.filter(item=item_instance, user=user).exists()
 
 
 @register.filter
