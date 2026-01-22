@@ -10,13 +10,62 @@
     {% endif %}
   </div>
 {% elif media.item.media_type == MediaTypes.BOOK.value %}
-  {# Books: Show button that opens progress modal #}
-  <button hx-get="{% url 'book_progress_modal' media.item.source media.item.media_id %}"
-          hx-target="body"
-          hx-swap="beforeend"
-          class="w-full px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-indigo-400 hover:text-indigo-300 text-[10px] font-medium rounded transition-all duration-150 cursor-pointer backdrop-blur-sm">
-    Progress
-  </button>
+  {# Books: Progress bar with edit button #}
+  {% with snapshot=media.progress_snapshot %}
+    {% if snapshot and snapshot.has_percentage %}
+      {% with percentage=snapshot.percentage|floatformat:0 %}
+        <div class="flex items-center gap-1.5">
+          <div class="flex-1 relative" style="height: 1.25rem; background-color: rgba(55, 65, 81, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 0.375rem; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; height: 100%; width: {{ percentage }}%; background: linear-gradient(90deg, rgba(16, 185, 129, 1) 0%, rgba(16, 185, 129, 0.95) 100%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3); border-radius: 0.375rem; transition: width 0.3s ease; z-index: 1;"></div>
+            <span class="absolute inset-0 flex items-center justify-center font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] z-10 pointer-events-none" style="font-size: 0.5625rem !important; line-height: 1 !important;">{{ percentage }}%</span>
+          </div>
+          <button hx-get="{% url 'book_progress_modal' media.item.source media.item.media_id %}"
+                  hx-target="body"
+                  hx-swap="beforeend"
+                  class="flex-shrink-0 flex items-center justify-center text-gray-400 hover:text-gray-300 hover:bg-white/10 border border-white/10 rounded-md transition-all cursor-pointer backdrop-blur-sm bg-white/5"
+                  style="width: 1.25rem; height: 1.25rem;"
+                  title="Edit progress">
+            {% include "app/icons/edit.svg" with classes="w-3.5 h-3.5" %}
+          </button>
+        </div>
+      {% endwith %}
+    {% else %}
+      {# No progress yet - show button #}
+      <button hx-get="{% url 'book_progress_modal' media.item.source media.item.media_id %}"
+              hx-target="body"
+              hx-swap="beforeend"
+              class="w-full px-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-indigo-400 hover:text-indigo-300 text-[10px] font-medium rounded transition-all duration-150 cursor-pointer backdrop-blur-sm flex items-center justify-center"
+              style="height: 1.25rem;">
+        Progress
+      </button>
+    {% endif %}
+  {% endwith %}
+{% elif media.item.media_type == MediaTypes.SEASON.value %}
+  {# TV Seasons: Progress bar with edit button #}
+  {% if media.max_progress and media.max_progress > 0 %}
+    {% with current_progress=media.progress|default:0 %}
+      {% widthratio current_progress media.max_progress 100 as percentage %}
+      <div class="flex items-center gap-1.5">
+        <div class="flex-1 relative" style="height: 1.25rem; background-color: rgba(55, 65, 81, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 0.375rem; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; height: 100%; width: {{ percentage }}%; background: linear-gradient(90deg, rgba(16, 185, 129, 1) 0%, rgba(16, 185, 129, 0.95) 100%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3); border-radius: 0.375rem; transition: width 0.3s ease; z-index: 1;"></div>
+          <span class="absolute inset-0 flex items-center justify-center font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] z-10 pointer-events-none" style="font-size: 0.5625rem !important; line-height: 1 !important;">{{ percentage }}%</span>
+        </div>
+        <a href="{{ media.item|media_url }}"
+           class="flex-shrink-0 flex items-center justify-center text-gray-400 hover:text-gray-300 hover:bg-white/10 border border-white/10 rounded-md transition-all cursor-pointer backdrop-blur-sm bg-white/5"
+           style="width: 1.25rem; height: 1.25rem;"
+           title="Edit season progress">
+          {% include "app/icons/edit.svg" with classes="w-3.5 h-3.5" %}
+        </a>
+      </div>
+    {% endwith %}
+  {% else %}
+    {# No max progress - show button #}
+    <a href="{{ media.item|media_url }}"
+       class="w-full px-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-indigo-400 hover:text-indigo-300 text-[10px] font-medium rounded transition-all duration-150 cursor-pointer backdrop-blur-sm flex items-center justify-center"
+       style="height: 1.25rem;">
+      Progress
+    </a>
+  {% endif %}
 {% else %}
   {# Other media types: Keep +/- buttons but remove text #}
   <div class="flex items-center justify-center gap-1 flex-shrink-0">
