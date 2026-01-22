@@ -673,6 +673,13 @@ def personal_average_rating(diary_entries):
     return avg_rating
 
 
+@register.simple_tag
+def has_diary_entries(item, user):
+    """Check if an item has diary entries for a user."""
+    from app.models import DiaryEntry
+    return DiaryEntry.objects.filter(item=item, user=user).exists()
+
+
 @register.filter
 def to_five_scale(value):
     """Convert a 10-point score into a 5-point scale."""

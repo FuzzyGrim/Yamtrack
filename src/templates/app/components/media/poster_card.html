@@ -12,6 +12,51 @@
         loading="lazy">
       <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       
+      {# Status Checkmark Overlay #}
+      {% if current_instance and current_instance.status %}
+        <div class="absolute top-2 left-2 flex flex-col items-start gap-1.5 z-40">
+          <div class="bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+            {% if current_instance.status == Status.COMPLETED.value %}
+              <div class="w-4 h-4 {{ Status.COMPLETED.value|status_color }}{% if diary_entries %}{% if current_instance.start_date or current_instance.end_date %} mr-1.5{% endif %}{% endif %}">
+                {% include "app/icons/states/completed.svg" %}
+              </div>
+            {% elif current_instance.status == Status.IN_PROGRESS.value %}
+              <div class="w-4 h-4 {{ Status.IN_PROGRESS.value|status_color }}{% if diary_entries %}{% if current_instance.start_date or current_instance.end_date %} mr-1.5{% endif %}{% endif %}">
+                {% include "app/icons/states/in-progress.svg" %}
+              </div>
+            {% elif current_instance.status == Status.PAUSED.value %}
+              <div class="w-4 h-4 {{ Status.PAUSED.value|status_color }}{% if diary_entries %}{% if current_instance.start_date or current_instance.end_date %} mr-1.5{% endif %}{% endif %}">
+                {% include "app/icons/states/paused.svg" %}
+              </div>
+            {% elif current_instance.status == Status.PLANNING.value %}
+              <div class="w-4 h-4 {{ Status.PLANNING.value|status_color }}{% if diary_entries %}{% if current_instance.start_date or current_instance.end_date %} mr-1.5{% endif %}{% endif %}">
+                {% include "app/icons/states/planning.svg" %}
+              </div>
+            {% elif current_instance.status == Status.DROPPED.value %}
+              <div class="w-4 h-4 {{ Status.DROPPED.value|status_color }}{% if diary_entries %}{% if current_instance.start_date or current_instance.end_date %} mr-1.5{% endif %}{% endif %}">
+                {% include "app/icons/states/dropped.svg" %}
+              </div>
+            {% endif %}
+
+            {# Only show date if there are diary entries (media was logged, not just marked as watched) #}
+            {% if diary_entries %}
+              {% if current_instance.end_date is not None %}
+                <span class="text-sm text-white">{{ current_instance.end_date|date:"SHORT_DATE_FORMAT" }}</span>
+              {% elif current_instance.start_date is not None %}
+                <span class="text-sm text-white">{{ current_instance.start_date|date:"SHORT_DATE_FORMAT" }}</span>
+              {% endif %}
+            {% endif %}
+          </div>
+
+          {% if current_instance.score is not None %}
+            <div class="bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md shrink-0">
+              {% include "app/icons/star.svg" with classes="w-4 h-4 text-yellow-400 mr-1 fill-current shrink-0" %}
+              <span class="text-sm text-white whitespace-nowrap">{{ current_instance.formatted_score }}</span>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+      
       {# Customize Poster/Cover Button #}
       {% if user.is_authenticated %}
         {% if media.media_type == MediaTypes.BOOK.value %}
