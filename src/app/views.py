@@ -38,13 +38,12 @@ logger = logging.getLogger(__name__)
 @require_GET
 def home(request):
     """Home page with media items in progress."""
-    sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
     items_limit = 14
 
     list_by_type = BasicMedia.objects.get_in_progress(
         request.user,
-        sort_by,
+        HomeSortChoices.COMPLETION,
         items_limit,
         media_type_to_load,
     )
@@ -58,8 +57,6 @@ def home(request):
 
     context = {
         "list_by_type": list_by_type,
-        "current_sort": sort_by,
-        "sort_choices": HomeSortChoices.choices,
         "items_limit": items_limit,
     }
     return render(request, "app/home.html", context)

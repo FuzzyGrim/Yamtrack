@@ -6,32 +6,8 @@
 {% endblock title %}
 
 {% block content %}
-  <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-    <h1 class="text-3xl font-bold text-center w-full sm:w-auto">In Progress</h1>
-    <div class="relative" x-data="{ open: false }">
-      <button @click="open = !open"
-              @click.outside="open = false"
-              class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
-        {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
-        <span class="text-sm font-medium">{{ current_sort|no_underscore|title }}</span>
-        {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
-      </button>
-      <div x-show="open"
-           x-transition:enter="transition ease-out duration-100"
-           x-transition:enter-start="transform opacity-0 scale-95"
-           x-transition:enter-end="transform opacity-100 scale-100"
-           x-transition:leave="transition ease-in duration-75"
-           x-transition:leave-start="transform opacity-100 scale-100"
-           x-transition:leave-end="transform opacity-0 scale-95"
-           class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
-        {% for value, label in sort_choices %}
-          <a href="{% url 'home' %}?sort={{ value }}"
-             class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-            {{ label }}
-          </a>
-        {% endfor %}
-      </div>
-    </div>
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-left">In Progress</h1>
   </div>
   <div class="space-y-8">
     {% for media_type, media_list in list_by_type.items %}
@@ -41,7 +17,7 @@
 
         {% if media_list.total > items_limit %}
           <div class="mt-6 flex justify-center">
-            <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_media_type={{ media_type }}"
+            <button hx-get="{% url 'home' %}?load_media_type={{ media_type }}"
                     hx-target="#media-grid-{{ media_type }}"
                     hx-swap="beforeend"
                     hx-indicator="#loading-indicator-{{ media_type }}"
