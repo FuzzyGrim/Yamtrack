@@ -12,7 +12,10 @@
   <div class="space-y-8">
     {% for media_type, media_list in list_by_type.items %}
       <div>
-        <h2 class="text-xl font-semibold mb-4">{{ media_type|media_type_readable_plural }}</h2>
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          {% icon media_type is_active=False extra_classes="w-5 h-5" %}
+          <span>{{ media_type|media_type_readable_plural }}</span>
+        </h2>
         <div id="media-grid-{{ media_type }}" class="media-grid">{% include "app/components/home_grid.html" %}</div>
 
         {% if media_list.total > items_limit %}

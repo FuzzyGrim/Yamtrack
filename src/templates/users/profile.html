@@ -137,6 +137,7 @@
                     
                     <!-- Date with rating and liked indicators -->
                     <div class="flex items-center gap-2 mt-1">
+                      {% icon entry.item.media_type is_active=False extra_classes="w-4 h-4 text-gray-400 flex-shrink-0" %}
                       <p class="text-xs text-gray-400">{{ entry.consumed_at|date:"M d" }}</p>
                       
                       <!-- Rating indicator -->
