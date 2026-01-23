@@ -9,22 +9,37 @@
     {# Director #}
     {% if media.details.director %}
       <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
-        <span class="text-text-primary font-medium">Director:</span> {{ media.details.director }}
+        <span class="text-text-primary font-medium">Director:</span>
+        {% if media.details.director_id and media.source == 'tmdb' %}
+          <a href="{% url 'person_detail' 'tmdb' media.details.director_id media.details.director|slugify %}" class="hover:underline">{{ media.details.director }}</a>
+        {% else %}
+          {{ media.details.director }}
+        {% endif %}
       </div>
     {% endif %}
-    
+
     {# Creator (for TV shows) #}
     {% if media.details.creator %}
       <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
-        <span class="text-text-primary font-medium">Creator:</span> {{ media.details.creator }}
+        <span class="text-text-primary font-medium">Creator:</span>
+        {% if media.details.creator_id and media.source == 'tmdb' %}
+          <a href="{% url 'person_detail' 'tmdb' media.details.creator_id media.details.creator|slugify %}" class="hover:underline">{{ media.details.creator }}</a>
+        {% else %}
+          {{ media.details.creator }}
+        {% endif %}
       </div>
     {% endif %}
-    
+
     {# Additional crew from crew array #}
     {% if media.crew %}
       {% for crew_member in media.crew|slice:":6" %}
         <div class="flex-shrink-0 rounded-full bg-white/4 border border-white/10 px-3 py-1 text-[13px] text-text-muted">
-          <span class="text-text-primary font-medium">{{ crew_member.job }}:</span> {{ crew_member.name }}
+          <span class="text-text-primary font-medium">{{ crew_member.job }}:</span>
+          {% if crew_member.person_id and media.source == 'tmdb' %}
+            <a href="{% url 'person_detail' 'tmdb' crew_member.person_id crew_member.name|slugify %}" class="hover:underline">{{ crew_member.name }}</a>
+          {% else %}
+            {{ crew_member.name }}
+          {% endif %}
         </div>
       {% endfor %}
     {% endif %}

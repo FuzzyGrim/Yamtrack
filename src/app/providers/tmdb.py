@@ -3,6 +3,8 @@ import logging
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.urls import reverse
+from django.utils.text import slugify
 
 from app import helpers
 from app.models import MediaTypes, Sources
@@ -146,13 +148,14 @@ def get_cast(credits, limit=15):
     """Return the top cast members with their images."""
     if not credits or "cast" not in credits:
         return None
-        
+
     cast = []
     for actor in sorted(credits["cast"], key=lambda x: x.get("order", 999))[:limit]:
         cast.append({
             "name": actor["name"],
-            "character": actor["character"],
-            "image": get_image_url(actor.get("profile_path"))
+            "character": actor.get("character"),
+            "image": get_image_url(actor.get("profile_path")),
+            "person_id": actor.get("id"),
         })
     return cast
 
@@ -196,6 +199,7 @@ def get_crew(credits, limit=15):
                 "roles": [],
                 "rank": rank,
                 "order": order,
+                "person_id": member.get("id"),
             },
         )
 
@@ -218,6 +222,8 @@ def get_crew(credits, limit=15):
             {
                 "name": entry["name"],
                 "roles": roles,
+                "person_id": entry.get("person_id"),
+                "job": (roles or [""])[0],
             }
         )
 
@@ -228,12 +234,33 @@ def get_director(credits):
     """Return the director's name from crew."""
     if not credits or "crew" not in credits:
         return None
-        
+
     directors = [
-        crew["name"] for crew in credits["crew"] 
-        if crew["job"].lower() == "director"
+        crew["name"]
+        for crew in credits["crew"]
+        if (crew.get("job") or "").lower() == "director"
     ]
     return directors[0] if directors else None
+
+
+def get_director_id(credits):
+    """Return the director's person ID from crew."""
+    if not credits or "crew" not in credits:
+        return None
+
+    directors = [
+        crew for crew in credits["crew"]
+        if (crew.get("job") or "").lower() == "director"
+    ]
+    return directors[0].get("id") if directors else None
+
+
+def get_creator_id(created_by):
+    """Return the creator's person ID from created_by."""
+    if not created_by:
+        return None
+    first = created_by[0] if isinstance(created_by, list) else None
+    return first.get("id") if first else None
 
 
 def movie(media_id):
@@ -282,6 +309,7 @@ def movie(media_id):
                 "country": get_country(response["production_countries"]),
                 "languages": get_languages(response["spoken_languages"]),
                 "director": get_director(response.get("credits")),
+                "director_id": get_director_id(response.get("credits")),
             },
             "cast": get_cast(response.get("credits")),
             "crew": get_crew(response.get("credits")),
@@ -483,6 +511,7 @@ def process_tv(response):
             "country": get_country(response["production_countries"]),
             "languages": get_languages(response["spoken_languages"]),
             "creator": get_creator(response.get("created_by")),
+            "creator_id": get_creator_id(response.get("created_by")),
         },
         "cast": get_cast(response.get("credits")),
         "crew": get_crew(response.get("credits")),
@@ -837,6 +866,161 @@ def get_tv_rating(content_ratings):
             if rating:
                 return rating
     return None
+
+
+def person_page(person_id):
+    """Return person details and credits for the person page."""
+    cache_key = f"{Sources.TMDB.value}_person_{person_id}_v5"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/person/{person_id}"
+        params = {
+            **base_params,
+            "append_to_response": "movie_credits,tv_credits",
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        credits = []
+
+        for item in response.get("movie_credits", {}).get("cast", []) or []:
+            title = item.get("title") or ""
+            year = (item.get("release_date") or "")[:4] or None
+            slug_val = slugify(title) or "movie"
+            url_path = reverse(
+                "media_details",
+                args=[Sources.TMDB.value, MediaTypes.MOVIE.value, item["id"], slug_val],
+            )
+            credits.append({
+                "media_type": MediaTypes.MOVIE.value,
+                "source": Sources.TMDB.value,
+                "media_id": str(item["id"]),
+                "title": title,
+                "image": get_image_url(item.get("poster_path")),
+                "role": item.get("character"),
+                "year": year,
+                "url": url_path,
+                "popularity": item.get("popularity"),
+                "vote_average": item.get("vote_average"),
+                "vote_count": item.get("vote_count"),
+            })
+
+        for item in response.get("movie_credits", {}).get("crew", []) or []:
+            title = item.get("title") or ""
+            year = (item.get("release_date") or "")[:4] or None
+            slug_val = slugify(title) or "movie"
+            url_path = reverse(
+                "media_details",
+                args=[Sources.TMDB.value, MediaTypes.MOVIE.value, item["id"], slug_val],
+            )
+            credits.append({
+                "media_type": MediaTypes.MOVIE.value,
+                "source": Sources.TMDB.value,
+                "media_id": str(item["id"]),
+                "title": title,
+                "image": get_image_url(item.get("poster_path")),
+                "role": item.get("job"),
+                "year": year,
+                "url": url_path,
+                "popularity": item.get("popularity"),
+                "vote_average": item.get("vote_average"),
+                "vote_count": item.get("vote_count"),
+            })
+
+        for item in response.get("tv_credits", {}).get("cast", []) or []:
+            title = item.get("name") or ""
+            year = (item.get("first_air_date") or "")[:4] or None
+            slug_val = slugify(title) or "tv"
+            url_path = reverse(
+                "media_details",
+                args=[Sources.TMDB.value, MediaTypes.TV.value, item["id"], slug_val],
+            )
+            credits.append({
+                "media_type": MediaTypes.TV.value,
+                "source": Sources.TMDB.value,
+                "media_id": str(item["id"]),
+                "title": title,
+                "image": get_image_url(item.get("poster_path")),
+                "role": item.get("character"),
+                "year": year,
+                "url": url_path,
+                "popularity": item.get("popularity"),
+                "vote_average": item.get("vote_average"),
+                "vote_count": item.get("vote_count"),
+            })
+
+        for item in response.get("tv_credits", {}).get("crew", []) or []:
+            title = item.get("name") or ""
+            year = (item.get("first_air_date") or "")[:4] or None
+            slug_val = slugify(title) or "tv"
+            url_path = reverse(
+                "media_details",
+                args=[Sources.TMDB.value, MediaTypes.TV.value, item["id"], slug_val],
+            )
+            credits.append({
+                "media_type": MediaTypes.TV.value,
+                "source": Sources.TMDB.value,
+                "media_id": str(item["id"]),
+                "title": title,
+                "image": get_image_url(item.get("poster_path")),
+                "role": item.get("job"),
+                "year": year,
+                "url": url_path,
+                "popularity": item.get("popularity"),
+                "vote_average": item.get("vote_average"),
+                "vote_count": item.get("vote_count"),
+            })
+
+        # Consolidate multiple credits for the same title (e.g. actor + producer) into one card
+        by_key = {}
+        for c in credits:
+            key = (c["source"], c["media_type"], c["media_id"])
+            if key not in by_key:
+                by_key[key] = {
+                    "media_type": c["media_type"],
+                    "source": c["source"],
+                    "media_id": c["media_id"],
+                    "title": c["title"],
+                    "image": c["image"],
+                    "year": c["year"],
+                    "url": c["url"],
+                    "popularity": c.get("popularity"),
+                    "vote_average": c.get("vote_average"),
+                    "vote_count": c.get("vote_count"),
+                    "roles": [],
+                }
+            role = c.get("role")
+            if role and role not in by_key[key]["roles"]:
+                by_key[key]["roles"].append(role)
+        credits = list(by_key.values())
+
+        # Sort by vote_count (desc), then title; uses only TMDB data from person credits
+        def _sort_key(x):
+            return (-float(x.get("vote_count") or 0), (x.get("title") or ""))
+
+        credits.sort(key=_sort_key)
+
+        data = {
+            "source": Sources.TMDB.value,
+            "person_id": str(person_id),
+            "name": response.get("name") or "",
+            "image": get_image_url(response.get("profile_path")),
+            "biography": (response.get("biography") or "").strip() or None,
+            "credits": credits,
+        }
+
+        cache.set(cache_key, data)
+
+    return data
 
 
 def get_poster_images(media_id, media_type, season_number=None):

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% load app_tags %}
+
+{% block title %}
+  {{ person.name }} - Yamtrack
+{% endblock title %}
+
+{% block extra_head %}
+<style>
+  /* Alpine: hide until init so x-show has full control */
+  [x-cloak] { display: none !important; }
+
+  /* Layout: column on mobile, row from 640px — profile left, filmography right */
+  .person-page-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+  @media (min-width: 640px) {
+    .person-page-layout {
+      flex-direction: row;
+    }
+  }
+  .person-filmography-wrap {
+    flex: 1 1 0%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Person profile: fixed-width left column, image larger than before */
+  .person-profile-wrap {
+    width: 180px;
+    flex: 0 0 180px;
+  }
+  @media (min-width: 640px) {
+    .person-profile-wrap {
+      width: 220px;
+      flex: 0 0 220px;
+    }
+  }
+  .person-profile-img-box {
+    width: 100%;
+    max-width: 180px;
+    height: 270px;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+  }
+  @media (min-width: 640px) {
+    .person-profile-img-box {
+      max-width: 220px;
+      height: 330px;
+    }
+  }
+  .person-profile-img-box img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    object-fit: cover !important;
+    object-position: top !important;
+  }
+  .person-profile-placeholder {
+    width: 100%;
+    max-width: 180px;
+    height: 270px;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+  }
+  @media (min-width: 640px) {
+    .person-profile-placeholder {
+      max-width: 220px;
+      height: 330px;
+    }
+  }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+  <div class="min-h-screen relative">
+    <main class="max-w-7xl mx-auto px-6 py-12 relative">
+      {# One row: left = name + image + bio, right = filmography. sm: = side-by-side from 640px. #}
+      <div class="person-page-layout">
+        {# Left: profile (name, image, bio) #}
+        <div class="person-profile-wrap flex flex-col gap-3 min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold text-white break-words">{{ person.name }}</h1>
+          {% if person.image %}
+            <div class="person-profile-img-box">
+              <img
+                src="{{ person.image }}"
+                alt="{{ person.name }}"
+                loading="eager">
+            </div>
+          {% else %}
+            <div class="person-profile-placeholder bg-[#3e454d] flex items-center justify-center">
+              <svg class="h-8 w-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+          {% endif %}
+          {% if person.biography %}
+            <div class="text-gray-400 text-sm leading-relaxed" x-data="{ bioExpanded: false }">
+              <p x-show="!bioExpanded">{{ person.biography|truncatewords:30 }}</p>
+              <p x-show="bioExpanded" x-cloak>{{ person.biography }}</p>
+              {% if person.biography|wordcount > 30 %}
+              <button type="button"
+                      @click="bioExpanded = !bioExpanded"
+                      class="text-indigo-400 hover:text-indigo-300 text-xs font-medium mt-1.5">
+                Show <span x-text="bioExpanded ? 'less' : 'more'"></span>
+              </button>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        {# Right: filmography beside the profile #}
+        <div class="person-filmography-wrap space-y-4">
+        {% if person.credits %}
+          {% if person.source == 'tmdb' %}
+            {# Film section (on top) #}
+            <section x-data="{ open: true }">
+              <button type="button" @click="open = !open" class="flex items-center gap-2 w-full py-2 text-left cursor-pointer">
+                <h2 class="text-lg font-semibold text-white">Film</h2>
+                <svg class="w-5 h-5 text-gray-400 transition-transform shrink-0" :class="{ 'rotate-180': !open }" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              <div x-show="open">
+                <div class="pt-1">
+                  <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+                    {% for credit in person.credits|credits_by_type:"movie" %}
+                      {% include "app/components/person_credit_card.html" with credit=credit %}
+                    {% empty %}
+                      <p class="text-gray-400 text-sm col-span-full">No films in this section.</p>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </section>
+            {# Television section #}
+            <section x-data="{ open: true }">
+              <button type="button" @click="open = !open" class="flex items-center gap-2 w-full py-2 text-left cursor-pointer">
+                <h2 class="text-lg font-semibold text-white">Television</h2>
+                <svg class="w-5 h-5 text-gray-400 transition-transform shrink-0" :class="{ 'rotate-180': !open }" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              <div x-show="open">
+                <div class="pt-1">
+                  <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+                    {% for credit in person.credits|credits_by_type:"tv" %}
+                      {% include "app/components/person_credit_card.html" with credit=credit %}
+                    {% empty %}
+                      <p class="text-gray-400 text-sm col-span-full">No television credits in this section.</p>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </section>
+          {% else %}
+            {# OpenLibrary: single Works section #}
+            <section x-data="{ open: true }">
+              <button type="button" @click="open = !open" class="flex items-center gap-2 w-full py-2 text-left cursor-pointer">
+                <h2 class="text-lg font-semibold text-white">Works</h2>
+                <svg class="w-5 h-5 text-gray-400 transition-transform shrink-0" :class="{ 'rotate-180': !open }" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              <div x-show="open">
+                <div class="pt-1">
+                  <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+                    {% for credit in person.credits %}
+                      {% include "app/components/person_credit_card.html" with credit=credit %}
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </section>
+          {% endif %}
+        {% else %}
+          <p class="text-gray-400">No credits found.</p>
+        {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+{% endblock content %}

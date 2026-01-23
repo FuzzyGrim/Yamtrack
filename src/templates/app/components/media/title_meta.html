@@ -62,7 +62,15 @@
 
   <div class="flex items-center gap-6 text-gray-400">
     {% if media.media_type == MediaTypes.BOOK.value %}
-      {% if media.details.author %}
+      {% if media.details.authors %}
+        <div class="flex items-center gap-2">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          <span>By {% for a in media.details.authors %}{% if a.person_id and a.source == 'openlibrary' %}<a href="{% url 'person_detail' 'openlibrary' a.person_id a.name|slugify %}" class="hover:underline">{% endif %}{{ a.name }}{% if a.person_id and a.source == 'openlibrary' %}</a>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+        </div>
+      {% elif media.details.author %}
         <div class="flex items-center gap-2">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -100,9 +108,9 @@
           </svg>
           <span>
             {% if media.details.director %}
-              Directed by {{ media.details.director }}
+              Directed by {% if media.details.director_id and media.source == 'tmdb' %}<a href="{% url 'person_detail' 'tmdb' media.details.director_id media.details.director|slugify %}" class="hover:underline">{{ media.details.director }}</a>{% else %}{{ media.details.director }}{% endif %}
             {% elif media.details.creator %}
-              Created by {{ media.details.creator }}
+              Created by {% if media.details.creator_id and media.source == 'tmdb' %}<a href="{% url 'person_detail' 'tmdb' media.details.creator_id media.details.creator|slugify %}" class="hover:underline">{{ media.details.creator }}</a>{% else %}{{ media.details.creator }}{% endif %}
             {% endif %}
           </span>
         </div>

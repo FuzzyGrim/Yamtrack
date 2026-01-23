@@ -20,6 +20,11 @@ urlpatterns = [
         views.season_details,
         name="season_details",
     ),
+    path(
+        "people/<source:source>/<str:person_id>/<slug:slug>",
+        views.person_detail,
+        name="person_detail",
+    ),
 
     # Track/history modals
     path(

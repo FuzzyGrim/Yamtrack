@@ -287,6 +287,20 @@ def media_details(request, source, media_type, media_id, title):
 
 
 @require_GET
+def person_detail(request, source, person_id, slug):  # noqa: ARG001 slug for URL
+    """Return the person page for an actor, crew member, or author."""
+    if source not in (Sources.TMDB.value, Sources.OPENLIBRARY.value):
+        raise Http404("Person not found")
+
+    try:
+        person = services.get_person_page(source, person_id)
+    except services.ProviderAPIError:
+        raise Http404("Person not found")
+
+    return render(request, "app/person.html", {"person": person})
+
+
+@require_GET
 def season_details(request, source, media_id, title, season_number):  # noqa: ARG001 For URL
     """Return the details page for a season."""
     tv_with_seasons_metadata = services.get_media_metadata(

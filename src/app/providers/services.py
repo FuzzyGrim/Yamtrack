@@ -239,3 +239,12 @@ def search(media_type, query, page, source=None):
         response = comicvine.search(query, page)
 
     return response
+
+
+def get_person_page(source, person_id):
+    """Return person details and credits for the person page."""
+    if source == Sources.TMDB.value:
+        return tmdb.person_page(person_id)
+    if source == Sources.OPENLIBRARY.value:
+        return openlibrary.person_page(person_id)
+    raise_not_found_error(source, person_id, "person")

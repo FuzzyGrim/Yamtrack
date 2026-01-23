@@ -42,7 +42,13 @@
           <div x-show="tab === 'cast'"
                class="cast-chip"
                tabindex="0">
-            <span class="cast-name">{{ actor.name }}</span>
+            <span class="cast-name">
+              {% if actor.person_id and media.source == 'tmdb' %}
+                <a href="{% url 'person_detail' 'tmdb' actor.person_id actor.name|slugify %}" class="hover:underline text-inherit">{{ actor.name }}</a>
+              {% else %}
+                {{ actor.name }}
+              {% endif %}
+            </span>
             {% if actor.character %}
               <span class="cast-role">as {{ actor.character }}</span>
             {% endif %}
@@ -62,7 +68,13 @@
                  role="button"
                  :aria-expanded="open">
               <div class="crew-content">
-                <span class="cast-name">{{ crew_member.name }}</span>
+                <span class="cast-name">
+                  {% if crew_member.person_id and media.source == 'tmdb' %}
+                    <a href="{% url 'person_detail' 'tmdb' crew_member.person_id crew_member.name|slugify %}" class="hover:underline text-inherit" @click.stop>{{ crew_member.name }}</a>
+                  {% else %}
+                    {{ crew_member.name }}
+                  {% endif %}
+                </span>
                 {% if crew_member.roles %}
                   <span class="cast-role">{{ crew_member.roles.0 }}</span>
                   {% if crew_member.roles|length > 1 %}

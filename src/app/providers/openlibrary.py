@@ -168,11 +168,13 @@ async def async_book(media_id):
         )
         score, score_count = await ratings_task
 
+        authors_result = await authors_task
+
         # Extract details with debugging
         publishers = get_publishers(response_book)
         languages = get_languages(response_book, response_work)
         isbns = get_isbns(response_book)
-        
+
         logger.info("OpenLibrary book data for ID %s: %s", media_id, {
             "title": response_book.get("title"),
             "has_publishers_in_response": "publishers" in response_book,
@@ -182,8 +184,8 @@ async def async_book(media_id):
             "languages_book": response_book.get("languages"),
             "languages_work": response_work.get("languages"),
         })
-        
-        logger.info("Extracted details for OpenLibrary book %s: publishers=%s, languages=%s, isbns=%s", 
+
+        logger.info("Extracted details for OpenLibrary book %s: publishers=%s, languages=%s, isbns=%s",
                    media_id, publishers, languages, isbns)
 
         data = {
@@ -203,7 +205,8 @@ async def async_book(media_id):
                 "number_of_pages": response_book.get("number_of_pages"),
                 "publish_date": get_publish_date(response_book),
                 "release_date": get_publish_date(response_book),  # Add release_date for details display
-                "author": await authors_task,
+                "author": ", ".join(a["name"] for a in authors_result) if authors_result else None,
+                "authors": authors_result,
                 "publishers": publishers,
                 "isbn": isbns,
                 "languages": languages,
@@ -279,22 +282,36 @@ def get_publish_date(response):
 
 
 async def get_authors(response):
-    """Get list of author names asynchronously."""
-    authors = []
+    """Get list of author dicts with name, person_id, and source."""
     author_entries = response.get("authors", [])
+    if not author_entries:
+        return None
+
+    to_fetch = []
+    for author in author_entries:
+        if isinstance(author, dict) and "author" in author:
+            author_key = author["author"]["key"]
+            author_url = f"https://openlibrary.org{author_key}.json"
+            to_fetch.append((author_key, author_url))
+
+    if not to_fetch:
+        return None
 
     async with aiohttp.ClientSession() as session:
-        tasks = []
-        for author in author_entries:
-            if isinstance(author, dict) and "author" in author:
-                author_key = author["author"]["key"]
-                author_url = f"https://openlibrary.org{author_key}.json"
-                tasks.append(fetch_author_data(session, author_url))
-
+        tasks = [fetch_author_data(session, url) for (_, url) in to_fetch]
         author_data_list = await asyncio.gather(*tasks)
-        authors = [
-            data.get("name", "Unknown Author") for data in author_data_list if data
-        ]
+
+    authors = []
+    for i, data in enumerate(author_data_list):
+        if i < len(to_fetch) and data:
+            author_key = to_fetch[i][0]
+            person_id = extract_openlibrary_id(author_key)
+            name = data.get("name", "Unknown Author")
+            authors.append({
+                "name": name,
+                "person_id": person_id,
+                "source": Sources.OPENLIBRARY.value,
+            })
 
     return authors if authors else None
 
@@ -306,6 +323,87 @@ async def fetch_author_data(session, url):
             return await response.json()
 
     return None
+
+
+def person_page(person_id):
+    """Return person details and works for the OpenLibrary author page."""
+    cache_key = f"{Sources.OPENLIBRARY.value}_person_{person_id}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        author_url = f"https://openlibrary.org/authors/{person_id}.json"
+        works_url = f"https://openlibrary.org/authors/{person_id}/works.json?limit=500"
+
+        try:
+            author_resp = services.api_request(
+                Sources.OPENLIBRARY.value,
+                "GET",
+                author_url,
+            )
+        except requests.exceptions.RequestException as e:
+            handle_error(e)
+
+        try:
+            works_resp = services.api_request(
+                Sources.OPENLIBRARY.value,
+                "GET",
+                works_url,
+            )
+        except requests.exceptions.RequestException as e:
+            handle_error(e)
+
+        bio = author_resp.get("bio")
+        if isinstance(bio, dict):
+            bio = bio.get("value", "")
+        biography = (bio or "").strip() or None
+
+        image = settings.IMG_NONE
+        if author_resp.get("photos"):
+            image = f"https://covers.openlibrary.org/a/olid/{person_id}-L.jpg"
+
+        credits = []
+        for work in works_resp.get("entries", []) or []:
+            work_key = work.get("key", "")
+            work_id = extract_openlibrary_id(work_key)
+            title = work.get("title") or ""
+            cover_id = work.get("cover_id")
+            work_image = (
+                f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
+                if cover_id
+                else settings.IMG_NONE
+            )
+            fpd = work.get("first_publish_date") or ""
+            year = fpd[:4] if isinstance(fpd, str) and len(fpd) >= 4 else (str(fpd) if fpd else None)
+            work_url = f"https://openlibrary.org/works/{work_id}" if work_id else None
+
+            credits.append({
+                "media_type": MediaTypes.BOOK.value,
+                "source": Sources.OPENLIBRARY.value,
+                "media_id": work_id or "",
+                "title": title,
+                "image": work_image,
+                "roles": ["Author"],
+                "year": year,
+                "url": work_url,
+            })
+
+        credits.sort(
+            key=lambda x: ((x.get("year") or "0000"), (x.get("title") or "")),
+            reverse=True,
+        )
+
+        data = {
+            "source": Sources.OPENLIBRARY.value,
+            "person_id": str(person_id),
+            "name": author_resp.get("name") or "",
+            "image": image,
+            "biography": biography,
+            "credits": credits,
+        }
+
+        cache.set(cache_key, data)
+
+    return data
 
 
 def get_subjects(response):

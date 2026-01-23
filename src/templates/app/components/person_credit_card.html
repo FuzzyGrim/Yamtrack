@@ -1,0 +1,50 @@
+{% load app_tags %}
+{% get_user_poster_image credit user as credit_poster_url %}
+{% if credit.url %}
+  <a href="{{ credit.url }}"
+     {% if person.source == 'openlibrary' and credit.media_type == 'book' %}target="_blank" rel="noopener noreferrer"{% endif %}
+     class="block min-w-0 bg-[#2a2f35] hover:bg-[#343a40] rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 relative group cursor-pointer flex flex-col">
+{% else %}
+  <div class="block min-w-0 bg-[#2a2f35] rounded-lg shadow-lg relative group cursor-default flex flex-col">
+{% endif %}
+  <div class="relative rounded-t-lg overflow-hidden flex-shrink-0">
+    <div class="aspect-[2/3] relative flex items-center justify-center bg-[#3e454d]">
+      {% if credit_poster_url %}
+        <img
+          src="{{ credit_poster_url }}"
+          alt="{{ credit.title }}"
+          class="w-full h-full bg-[#3e454d] {% if credit.media_type == 'book' %}object-contain object-center{% else %}object-cover object-bottom{% endif %}"
+          loading="lazy">
+      {% else %}
+        <div class="w-full h-full flex items-center justify-center">
+          <svg class="h-8 w-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21,15 16,10 5,21"></polyline>
+          </svg>
+        </div>
+      {% endif %}
+      <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 pointer-events-none"></div>
+    </div>
+  </div>
+  <div class="p-2 rounded-b-lg min-w-0 overflow-hidden flex flex-col min-h-12 flex-shrink-0">
+    <span class="text-xs font-semibold text-white {% if credit.url %}group-hover:text-indigo-400 transition duration-300{% endif %} truncate block"
+          style="font-size: 0.7rem;"
+          title="{{ credit.title }}">{{ credit.title }}</span>
+    {% if credit.roles or credit.role %}
+      <div class="text-gray-500 mt-0.5 space-y-0.5" style="font-size: 0.7rem;">
+        {% if credit.roles %}
+          {% for r in credit.roles %}
+            <span class="block truncate">{{ r }}</span>
+          {% endfor %}
+        {% elif credit.role %}
+          <span class="block truncate">{{ credit.role }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% if credit.url %}
+  </a>
+{% else %}
+  </div>
+{% endif %}

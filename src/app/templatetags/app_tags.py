@@ -78,6 +78,14 @@ def is_list(arg1):
 
 
 @register.filter
+def credits_by_type(credits, media_type):
+    """Filter credits (list of dicts) by media_type. For use on person filmography."""
+    if not credits:
+        return []
+    return [c for c in credits if (c.get("media_type") if isinstance(c, dict) else getattr(c, "media_type", None)) == media_type]
+
+
+@register.filter
 def source_readable(source):
     """Return the readable source name."""
     return Sources(source).label
