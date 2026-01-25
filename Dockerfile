@@ -21,15 +21,18 @@ RUN apk add --no-cache nginx shadow \
     && rm -rf /root/.cache /tmp/* \
     && find /usr/local -type d -name __pycache__ -exec rm -rf {} + \
     && chmod +x /entrypoint.sh \
-    # create user abc for later PUID/PGID mapping
-    && useradd -U -M -s /bin/sh abc \
-    # Create required nginx directories and set permissions
-    && mkdir -p /var/log/nginx \
-    && mkdir -p /var/lib/nginx/body
+    # create user abc for rootless execution
+    && useradd -U -M -u 1000 abc \
+    # Create required nginx and app directories and set permissions
+    && mkdir -p /var/log/nginx /var/lib/nginx/body /run/nginx /yamtrack/db /yamtrack/staticfiles \
+    && chown -R abc:abc /yamtrack /var/log/nginx /var/lib/nginx /run/nginx /etc/nginx
 
 # Django app
 COPY src ./
-RUN python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput \
+    && chown -R abc:abc /yamtrack/staticfiles
+
+USER abc
 
 EXPOSE 8000
 
