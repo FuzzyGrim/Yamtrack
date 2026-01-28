@@ -80,7 +80,25 @@
 {% block content %}
   <div class="min-h-screen relative">
     <main class="max-w-7xl mx-auto px-6 py-12 relative">
-      {# One row: left = name + image + bio, right = filmography. sm: = side-by-side from 640px. #}
+      {% if person.source == 'openlibrary' %}
+        {# Book author: name at top, Works grid only (no image or bio) #}
+        <h1 class="text-2xl sm:text-3xl font-bold text-white break-words mb-6">{{ person.name }}</h1>
+        {% if person.credits %}
+          <section>
+            <h2 class="text-lg font-semibold text-white mb-3">Works</h2>
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+              {% for credit in person.credits %}
+                {% include "app/components/person_credit_card.html" with credit=credit %}
+              {% empty %}
+                <p class="text-gray-400 text-sm col-span-full">No works found.</p>
+              {% endfor %}
+            </div>
+          </section>
+        {% else %}
+          <p class="text-gray-400">No works found.</p>
+        {% endif %}
+      {% else %}
+      {# TMDB: left = name + image + bio, right = Film + Television #}
       <div class="person-page-layout">
         {# Left: profile (name, image, bio) #}
         <div class="person-profile-wrap flex flex-col gap-3 min-w-0">
@@ -114,10 +132,9 @@
           {% endif %}
         </div>
 
-        {# Right: filmography beside the profile #}
+        {# Right: filmography #}
         <div class="person-filmography-wrap space-y-4">
         {% if person.credits %}
-          {% if person.source == 'tmdb' %}
             {# Film section (on top) #}
             <section x-data="{ open: true }">
               <button type="button" @click="open = !open" class="flex items-center gap-2 w-full py-2 text-left cursor-pointer">
@@ -158,31 +175,12 @@
                 </div>
               </div>
             </section>
-          {% else %}
-            {# OpenLibrary: single Works section #}
-            <section x-data="{ open: true }">
-              <button type="button" @click="open = !open" class="flex items-center gap-2 w-full py-2 text-left cursor-pointer">
-                <h2 class="text-lg font-semibold text-white">Works</h2>
-                <svg class="w-5 h-5 text-gray-400 transition-transform shrink-0" :class="{ 'rotate-180': !open }" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-              <div x-show="open">
-                <div class="pt-1">
-                  <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
-                    {% for credit in person.credits %}
-                      {% include "app/components/person_credit_card.html" with credit=credit %}
-                    {% endfor %}
-                  </div>
-                </div>
-              </div>
-            </section>
-          {% endif %}
         {% else %}
           <p class="text-gray-400">No credits found.</p>
         {% endif %}
         </div>
       </div>
+      {% endif %}
     </main>
   </div>
 {% endblock content %}

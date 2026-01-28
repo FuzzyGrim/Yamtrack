@@ -11,15 +11,31 @@
   {% endif %}
 
   <div class="flex items-center gap-4">
-    <h1 class="text-3xl font-bold text-balance" style="font-size: 3rem; line-height: 1.1;">
-      {% if media.media_type == MediaTypes.SEASON.value %}
-        {{ media.season_title }}
+    {% with title_text=media.season_title|default:media.title title_length=media.season_title|default:media.title|length %}
+      {% if title_length <= 30 %}
+        {# Short titles: Large font size, normal line-height #}
+        <h1 class="text-3xl font-bold text-balance" style="font-size: 3rem; line-height: 1.1;">
+          {{ title_text }}
+        </h1>
+      {% elif title_length <= 50 %}
+        {# Medium titles: Slightly smaller font, tighter line-height #}
+        <h1 class="text-3xl font-bold text-balance" style="font-size: 2.5rem; line-height: 1.15;">
+          {{ title_text }}
+        </h1>
+      {% elif title_length <= 70 %}
+        {# Long titles: Smaller font, tighter line-height, clamp to 3 lines #}
+        <h1 class="text-2xl font-bold text-balance line-clamp-3" style="font-size: 2rem; line-height: 1.2;" title="{{ title_text }}">
+          {{ title_text }}
+        </h1>
       {% else %}
-        {{ media.title }}
+        {# Very long titles: Even smaller font, tighter line-height, clamp to 3 lines #}
+        <h1 class="text-2xl font-bold text-balance line-clamp-3" style="font-size: 1.75rem; line-height: 1.25;" title="{{ title_text }}">
+          {{ title_text }}
+        </h1>
       {% endif %}
-    </h1>
+    {% endwith %}
     {% if media.details.release_date or media.details.first_air_date or media.details.start_date or media.details.end_date or media.details.publish_date or media.details.published_date or media.details.last_air_date %}
-            <div class="bg-525252 text-white px-2 py-1 rounded text-sm">
+            <div class="bg-525252 text-white px-2 py-1 rounded text-sm" style="margin-top: -0.1em;">
         {% if media.media_type == MediaTypes.TV.value and media.details.first_air_date %}
           {% with start_year=media.details.first_air_date|slice:":4" end_year=media.details.last_air_date|slice:":4" status=media.details.status %}
             {{ start_year }}
@@ -68,7 +84,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
           </svg>
-          <span>By {% for a in media.details.authors %}{% if a.person_id and a.source == 'openlibrary' %}<a href="{% url 'person_detail' 'openlibrary' a.person_id a.name|slugify %}" class="hover:underline">{% endif %}{{ a.name }}{% if a.person_id and a.source == 'openlibrary' %}</a>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+          <span>By {% for a in media.details.authors %}{% if a.person_id and a.source == 'openlibrary' %}<a href="{% url 'person_detail' 'openlibrary' a.person_id a.name|slugify %}" class="hover:underline">{% else %}<a href="https://openlibrary.org/search/authors?q={{ a.name|urlencode }}" class="hover:underline" target="_blank" rel="noopener">{% endif %}{{ a.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</span>
         </div>
       {% elif media.details.author %}
         <div class="flex items-center gap-2">
@@ -76,7 +92,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
           </svg>
-          <span>By {{ media.details.author }}</span>
+          <span>By <a href="https://openlibrary.org/search/authors?q={{ media.details.author|urlencode }}" class="hover:underline" target="_blank" rel="noopener">{{ media.details.author }}</a></span>
         </div>
       {% endif %}
       {% if media.details.number_of_pages %}

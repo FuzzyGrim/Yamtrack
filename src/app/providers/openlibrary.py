@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 import aiohttp
@@ -94,16 +95,169 @@ def extract_openlibrary_id(path):
     Extract the ID from an OpenLibrary path.
 
     Args:
-        path (str): A path like '/works/OL123W'
+        path (str): A path like '/works/OL123W' or 'OL123A'
 
     Returns:
         str: The extracted ID (e.g., 'OL123W')
     """
     if not path:
         return None
+    s = str(path).strip()
+    if "/" in s:
+        return s.rstrip("/").split("/")[-1]
+    return s
 
-    # Handle both full URLs and path fragments
-    return path.rstrip("/").split("/")[-1]
+
+def _author_name_variants(name):
+    """
+    Generate search query variants for an author name to handle spelling,
+    punctuation, and initial formats (e.g. "J.K. Rowling", "J. K. Rowling", "JK Rowling").
+    """
+    s = str(name).strip()
+    if not s:
+        return []
+    variants = [s]
+    parts = s.replace(".", " ").split()
+    if not parts:
+        return variants
+    # Last part is usually surname
+    last = parts[-1] if parts else ""
+    # Build variants for initials + last (e.g. "J. K. Rowling" -> "J K Rowling", "JK Rowling", "Rowling")
+    if len(parts) >= 2 and all(len(p) <= 2 for p in parts[:-1]):
+        initials = "".join(p[0] for p in parts[:-1] if p).upper()
+        with_space = " ".join(parts[:-1]) + " " + last
+        if with_space.strip() and with_space.strip() not in variants:
+            variants.append(with_space.strip())
+        if initials and last:
+            jk_style = initials + " " + last
+            if jk_style not in variants:
+                variants.append(jk_style)
+    if last and len(last) > 2 and last not in variants:
+        variants.append(last)
+    # "J. K. Rowling" style (space after each initial) when we have single-letter parts
+    if len(parts) >= 2 and all(len(p) == 1 and p.isalpha() for p in parts[:-1]):
+        spaced = " ".join(p + "." for p in parts[:-1]) + (" " + last if last else "")
+        if spaced.strip() not in variants:
+            variants.append(spaced.strip())
+    return variants
+
+
+def _extract_person_id_from_author_doc(doc):
+    """
+    Get OpenLibrary person_id from a search/authors.json doc.
+    The API can return key as "/authors/OL123A" or "OL123A".
+    """
+    key = doc.get("key") or doc.get("olid")
+    if not key:
+        return None
+    key = str(key).strip()
+    if not key:
+        return None
+    if key.startswith("/authors/"):
+        return extract_openlibrary_id(key)
+    # Plain OLID e.g. "OL23919A"
+    if key.upper().startswith("OL") and len(key) >= 4:
+        return key
+    return None
+
+
+def _pick_best_author_doc(docs, preferred_name):
+    """
+    From search results, pick the author that best matches the name we searched for.
+    Prefers name/alternate_names match, then highest work_count.
+    """
+
+    def _norm(t):
+        return "".join(c for c in (t or "").lower() if c.isalnum())
+
+    pref = _norm(preferred_name)
+    if not pref:
+        # pick by work_count
+        for d in sorted(docs, key=lambda d: -(d.get("work_count") or 0)):
+            pid = _extract_person_id_from_author_doc(d)
+            if pid:
+                return d, pid
+        return None, None
+
+    best = None
+    best_score = -1
+    best_pid = None
+
+    for d in docs:
+        pid = _extract_person_id_from_author_doc(d)
+        if not pid:
+            continue
+        name = (d.get("name") or "").lower()
+        alts = [a for a in (d.get("alternate_names") or []) if a]
+        nn = _norm(d.get("name"))
+        in_name = pref == nn or pref in nn or nn in pref
+        in_alt = any(pref in _norm(a) or _norm(a) in pref for a in alts)
+        work = d.get("work_count") or 0
+        if in_name:
+            score = 1000 + work
+        elif in_alt:
+            score = 500 + work
+        else:
+            score = work
+        if score > best_score:
+            best_score = score
+            best = d
+            best_pid = pid
+
+    if best is not None:
+        return best, best_pid
+    # fallback: first doc with valid id
+    for d in docs:
+        pid = _extract_person_id_from_author_doc(d)
+        if pid:
+            return d, pid
+    return None, None
+
+
+def search_author_by_name(name):
+    """
+    Search OpenLibrary for an author by name. Tries multiple query variants
+    (punctuation, initials, last-only) and picks the best match. Returns
+    {name, person_id} or None.
+    """
+    if not name or not str(name).strip():
+        return None
+    q = str(name).strip()
+    cache_key = f"{Sources.OPENLIBRARY.value}_author_search_v2_{q}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    variants = _author_name_variants(q)
+    seen = set()
+
+    for v in variants:
+        if not v or v in seen:
+            continue
+        seen.add(v)
+        try:
+            url = f"https://openlibrary.org/search/authors.json?q={quote(v)}&limit=20"
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            docs = data.get("docs") or []
+            if not docs:
+                continue
+            doc, person_id = _pick_best_author_doc(docs, q)
+            if doc and person_id:
+                out = {
+                    "name": doc.get("name") or q,
+                    "person_id": person_id,
+                }
+                cache.set(cache_key, out, timeout=86400)
+                return out
+        except Exception as e:  # noqa: BLE001
+            logger.debug("OpenLibrary author search variant %r failed: %s", v, e)
+            continue
+
+    # only cache failure briefly so format/API changes can be retried
+    cache.set(cache_key, None, timeout=300)
+    return None
 
 
 def get_image_url(doc):
@@ -124,7 +278,7 @@ def book(media_id):
 
 async def async_book(media_id):
     """Asynchronous implementation of book metadata retrieval."""
-    cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{media_id}"
+    cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{media_id}_v2"
     data = cache.get(cache_key)
 
     if data is None:
@@ -169,6 +323,8 @@ async def async_book(media_id):
         score, score_count = await ratings_task
 
         authors_result = await authors_task
+        if not authors_result and response_book:
+            authors_result = await get_authors(response_book)
 
         # Extract details with debugging
         publishers = get_publishers(response_book)
@@ -281,17 +437,31 @@ def get_publish_date(response):
     return None
 
 
+def _extract_author_key(author):
+    """Extract /authors/OL123A key from an author entry. Handles multiple OL JSON shapes."""
+    if not isinstance(author, dict):
+        return None
+    ref = author.get("author")
+    if isinstance(ref, dict) and "key" in ref:
+        return ref["key"]
+    if isinstance(ref, str) and ref.startswith("/authors/"):
+        return ref
+    if "key" in author and str(author["key"]).startswith("/authors/"):
+        return author["key"]
+    return None
+
+
 async def get_authors(response):
     """Get list of author dicts with name, person_id, and source."""
-    author_entries = response.get("authors", [])
+    author_entries = response.get("authors", []) or []
     if not author_entries:
         return None
 
     to_fetch = []
     for author in author_entries:
-        if isinstance(author, dict) and "author" in author:
-            author_key = author["author"]["key"]
-            author_url = f"https://openlibrary.org{author_key}.json"
+        author_key = _extract_author_key(author)
+        if author_key:
+            author_url = f"https://openlibrary.org{author_key.rstrip('/')}.json"
             to_fetch.append((author_key, author_url))
 
     if not to_fetch:
@@ -326,13 +496,20 @@ async def fetch_author_data(session, url):
 
 
 def person_page(person_id):
-    """Return person details and works for the OpenLibrary author page."""
-    cache_key = f"{Sources.OPENLIBRARY.value}_person_{person_id}"
+    """Return person details and works for the OpenLibrary author page.
+    Works are fetched via the search API (author_key) for cover_i. Uses -M
+    (medium) cover size for faster loading in the grid.
+    """
+    cache_key = f"{Sources.OPENLIBRARY.value}_person_{person_id}_v3"
     data = cache.get(cache_key)
 
     if data is None:
         author_url = f"https://openlibrary.org/authors/{person_id}.json"
-        works_url = f"https://openlibrary.org/authors/{person_id}/works.json?limit=500"
+        # Search API returns cover_i; no language filter to match original behaviour
+        search_url = (
+            f"https://openlibrary.org/search.json?author_key={person_id}"
+            f"&limit=500&fields=key,title,first_publish_year,cover_i"
+        )
 
         try:
             author_resp = services.api_request(
@@ -347,7 +524,7 @@ def person_page(person_id):
             works_resp = services.api_request(
                 Sources.OPENLIBRARY.value,
                 "GET",
-                works_url,
+                search_url,
             )
         except requests.exceptions.RequestException as e:
             handle_error(e)
@@ -362,18 +539,18 @@ def person_page(person_id):
             image = f"https://covers.openlibrary.org/a/olid/{person_id}-L.jpg"
 
         credits = []
-        for work in works_resp.get("entries", []) or []:
-            work_key = work.get("key", "")
+        for doc in works_resp.get("docs", []) or []:
+            work_key = doc.get("key", "")
             work_id = extract_openlibrary_id(work_key)
-            title = work.get("title") or ""
-            cover_id = work.get("cover_id")
+            title = doc.get("title") or ""
+            cover_i = doc.get("cover_i")
             work_image = (
-                f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
-                if cover_id
+                f"https://covers.openlibrary.org/b/id/{cover_i}-M.jpg"
+                if cover_i
                 else settings.IMG_NONE
             )
-            fpd = work.get("first_publish_date") or ""
-            year = fpd[:4] if isinstance(fpd, str) and len(fpd) >= 4 else (str(fpd) if fpd else None)
+            fpy = doc.get("first_publish_year")
+            year = str(fpy) if fpy is not None else None
             work_url = f"https://openlibrary.org/works/{work_id}" if work_id else None
 
             credits.append({

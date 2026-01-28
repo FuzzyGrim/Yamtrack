@@ -96,7 +96,7 @@ def search(query, page):
 
 def book(media_id):
     """Get metadata for a book from Hardcover."""
-    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}"
+    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_v3"
     data = cache.get(cache_key)
 
     if data is None:
@@ -170,7 +170,25 @@ def book(media_id):
         edition_details = get_edition_details(book_data.get("default_cover_edition"))
         publishers = get_publishers(book_data)
         isbns = get_isbns_from_book(book_data)
-        
+
+        # Resolve author name to OpenLibrary author so we can link to the author page.
+        # Always set details.authors when we have a name so the template can render
+        # either a person_detail link (if OL resolves) or an OpenLibrary search fallback.
+        authors_for_details = None
+        author_name = book_data.get("cached_contributors")
+        if author_name and isinstance(author_name, str) and author_name.strip():
+            from app.providers import openlibrary
+            an = author_name.strip()
+            ol = openlibrary.search_author_by_name(an)
+            if ol:
+                authors_for_details = [{
+                    "name": ol.get("name") or an,
+                    "person_id": ol["person_id"],
+                    "source": Sources.OPENLIBRARY.value,
+                }]
+            else:
+                authors_for_details = [{"name": an}]
+
         # Prefer release_date from default_cover_edition if available, otherwise use book's release_date
         default_edition = book_data.get("default_cover_edition")
         edition_release_date = default_edition.get("release_date") if default_edition else None
@@ -340,6 +358,7 @@ def book(media_id):
                 "publish_date": release_date,
                 "release_date": release_date,  # Formatted release date for details display
                 "author": book_data.get("cached_contributors"),
+                "authors": authors_for_details,
                 "publishers": publishers,
                 "isbn": isbns,
             },
