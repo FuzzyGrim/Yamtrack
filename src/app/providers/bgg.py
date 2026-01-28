@@ -239,7 +239,7 @@ def metadata(media_id):
     Returns:
         Dict with game details
     """
-    cache_key = f"bgg_metadata_{media_id}"
+    cache_key = f"{Sources.BGG.value}_{MediaTypes.BOARDGAME.value}_{media_id}"
     cached = cache.get(cache_key)
     if cached:
         return cached
@@ -289,26 +289,87 @@ def metadata(media_id):
     minage_elem = item.find("minage")
     minage = minage_elem.get("value", "") if minage_elem is not None else ""
 
-    # Extract BGG rating
+    # Extract BGG rating and vote count
     avg_rating_elem = item.find(".//statistics/ratings/average")
     avg_rating = avg_rating_elem.get("value", "") if avg_rating_elem is not None else ""
+    users_rated_elem = item.find(".//statistics/ratings/usersrated")
+    users_rated = (
+        users_rated_elem.get("value", "") if users_rated_elem is not None else ""
+    )
+
+    # Extract categories (used as genres)
+    categories = [
+        link.get("value")
+        for link in item.findall(".//link[@type='boardgamecategory']")
+        if link.get("value")
+    ]
+
+    # Extract designers
+    designers = [
+        link.get("value")
+        for link in item.findall(".//link[@type='boardgamedesigner']")
+        if link.get("value")
+    ]
+
+    # Extract publishers
+    publishers = [
+        link.get("value")
+        for link in item.findall(".//link[@type='boardgamepublisher']")
+        if link.get("value")
+    ]
 
     result = {
         "media_id": media_id,
         "source": Sources.BGG.value,
+        "source_url": f"https://boardgamegeek.com/boardgame/{media_id}",
         "media_type": MediaTypes.BOARDGAME.value,
         "title": title,
         "image": image,
-        "description": description,
-        "year": year,
-        "players": f"{minplayers}-{maxplayers}" if minplayers and maxplayers else "",
-        "playtime": f"{playtime} min" if playtime else "",
-        "age": f"{minage}+" if minage else "",
-        "bgg_rating": avg_rating,
+        "synopsis": description or "No synopsis available.",
+        "genres": categories,
+        "score": _get_score(avg_rating),
+        "score_count": int(users_rated) if users_rated else None,
         # Board games don't have max progress - tracks plays instead
         "max_progress": None,
+        "details": {
+            "year_published": year if year else None,
+            "players": (
+                f"{minplayers}-{maxplayers}" if minplayers and maxplayers else None
+            ),
+            "playtime": f"{playtime} min" if playtime else None,
+            "minimum_age": f"{minage}+" if minage else None,
+            "designers": designers if designers else None,
+            "publishers": publishers[:5] if publishers else None,  # Limit to first 5
+        },
         "related": {},
     }
 
-    cache.set(cache_key, result, 60 * 60 * 24 * 7)
+    # Remove None values from details
+    result["details"] = {k: v for k, v in result["details"].items() if v is not None}
+
+    cache.set(cache_key, result, settings.CACHE_TIMEOUT)
     return result
+
+
+def _get_score(avg_rating):
+    """Convert BGG rating string to a normalized score.
+
+    BGG uses a 1-10 rating scale. A value of 0 indicates the game
+    has not been rated yet, so we return None in that case.
+
+    Args:
+        avg_rating: BGG average rating as string (0-10 scale)
+
+    Returns:
+        Rounded score (1-10) or None if unrated/invalid
+    """
+    if not avg_rating:
+        return None
+    try:
+        score = float(avg_rating)
+        # BGG returns 0 for unrated games
+        if score <= 0:
+            return None
+        return round(score, 1)
+    except (ValueError, TypeError):
+        return None

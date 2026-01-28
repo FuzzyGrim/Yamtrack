@@ -719,10 +719,12 @@ def process_other(item, events_bulk):
         return
 
     date_key = config.get_date_key(item.media_type)
+    details = metadata.get("details", {})
+    date_value = details.get(date_key)
 
-    if date_key in metadata["details"] and metadata["details"][date_key]:
+    if date_value:
         try:
-            content_datetime = date_parser(metadata["details"][date_key])
+            content_datetime = date_parser(date_value)
         except ValueError:
             pass
         else:
