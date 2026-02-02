@@ -47,9 +47,11 @@ class CustomDurationField(forms.CharField):
 
         try: # hours and minutes as float
             converted_to_float = float(value)
+            if not math.isfinite(converted_to_float):
+                raise ValueError("Value must be finite")
             hour_parts, hours = math.modf(converted_to_float)
             return int(hours), int(hour_parts * 60)
-        except ValueError:
+        except (ValueError, OverflowError):
             pass
 
         if ":" in value:  # hh:mm format
