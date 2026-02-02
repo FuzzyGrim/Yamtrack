@@ -92,7 +92,7 @@ class CustomDurationField(forms.CharField):
             self._validate_minutes(minutes)
             return hours * 60 + minutes
         except ValueError as e:
-            msg = "Invalid time played format. Please use hours (integer), hours (float), hh:mm, [n]h [n]min or [n]h[n]min format."  # noqa: E501
+            msg = "Invalid time format. Provide duration in hours (e.g., '5', '1.5'), hours and minutes (e.g., '5:30', '5h 30min'), or just minutes (e.g., '30min')."  # noqa: E501
             raise forms.ValidationError(msg) from e
 
 
