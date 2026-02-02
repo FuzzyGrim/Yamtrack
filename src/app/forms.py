@@ -1,6 +1,8 @@
 from django import forms
 from django.conf import settings
 
+import math
+
 from app import config
 from app.models import (
     TV,
@@ -33,6 +35,7 @@ class CustomDurationField(forms.CharField):
 
         Supported formats:
         - Plain number (hours only): "5"
+        - Plain float number (hours and minutes): "1.5"
         - HH:MM: "5:30"
         - Nh Nmin: "5h 30min"
         - NhNmin: "5h30min"
@@ -41,6 +44,13 @@ class CustomDurationField(forms.CharField):
         """
         if value.isdigit():  # hours only
             return int(value), 0
+
+        try: # hours and minutes as float
+            converted_to_float = float(value)
+            hour_parts, hours = math.modf(converted_to_float)
+            return int(hours), int(hour_parts * 60)
+        except ValueError:
+            pass
 
         if ":" in value:  # hh:mm format
             hours, minutes = value.split(":")
@@ -80,7 +90,7 @@ class CustomDurationField(forms.CharField):
             self._validate_minutes(minutes)
             return hours * 60 + minutes
         except ValueError as e:
-            msg = "Invalid time played format. Please use hh:mm, [n]h [n]min or [n]h[n]min format."  # noqa: E501
+            msg = "Invalid time played format. Please use hours (integer), hours (float), hh:mm, [n]h [n]min or [n]h[n]min format."  # noqa: E501
             raise forms.ValidationError(msg) from e
 
 
