@@ -41,7 +41,7 @@ def handle_error(error):
     )
 
 
-def get_external_links(external_ids, tmdb_id):
+def get_external_links(external_ids, tmdb_id=None):
     """Build external links dictionary from TMDB external_ids response."""
     links = {}
 
