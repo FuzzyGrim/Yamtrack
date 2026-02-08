@@ -41,6 +41,26 @@ def handle_error(error):
     )
 
 
+def get_external_links(external_ids):
+    """Build external links dictionary from TMDB external_ids response."""
+    links = {}
+
+    if external_ids.get("imdb_id"):
+        links["IMDb"] = f"https://www.imdb.com/title/{external_ids['imdb_id']}/"
+
+    if external_ids.get("tvdb_id"):
+        links["TVDB"] = (
+            f"https://www.thetvdb.com/dereferrer/series/{external_ids['tvdb_id']}"
+        )
+
+    if external_ids.get("wikidata_id"):
+        links["Wikidata"] = (
+            f"https://www.wikidata.org/wiki/{external_ids['wikidata_id']}"
+        )
+
+    return links
+
+
 def search(media_type, query, page):
     """Search for media on TMDB."""
     cache_key = f"search_{Sources.TMDB.value}_{media_type}_{query}_{page}"
@@ -131,7 +151,7 @@ def movie(media_id):
         url = f"{base_url}/movie/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations",
+            "append_to_response": "recommendations,external_ids",
         }
 
         try:
@@ -141,8 +161,32 @@ def movie(media_id):
                 url,
                 params=params,
             )
+
+            if response.get("belongs_to_collection", {}) is not None and (
+                collection_id := response.get("belongs_to_collection", {}).get("id")
+            ):
+                try:
+                    collection_response = services.api_request(
+                        Sources.TMDB.value,
+                        "GET",
+                        f"{base_url}/collection/{collection_id}",
+                        params={**base_params},
+                    )
+                except requests.exceptions.HTTPError as error:
+                    logger.warning("Failed to get collection: %s", error)
+                    collection_response = {}
+            else:
+                collection_response = {}
         except requests.exceptions.HTTPError as error:
             handle_error(error)
+
+        # Filter out collection items from recommendations, to avoid duplicates
+        collection_items = get_collection(collection_response)
+        collection_ids = [item["media_id"] for item in collection_items]
+        recommended_items = response.get("recommendations", {}).get("results", [])
+        filtered_recommendations = [
+            item for item in recommended_items if item["id"] not in collection_ids
+        ]
 
         data = {
             "media_id": media_id,
@@ -166,11 +210,13 @@ def movie(media_id):
                 "languages": get_languages(response["spoken_languages"]),
             },
             "related": {
+                collection_response.get("name", "collection"): collection_items,
                 "recommendations": get_related(
-                    response.get("recommendations", {}).get("results", [])[:15],
+                    filtered_recommendations,
                     MediaTypes.MOVIE.value,
                 ),
             },
+            "external_links": get_external_links(response.get("external_ids", {})),
         }
 
         cache.set(cache_key, data)
@@ -204,6 +250,7 @@ def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
     )
     season_data["title"] = tv_data["title"]
     season_data["tvdb_id"] = tv_data["tvdb_id"]
+    season_data["external_links"] = tv_data["external_links"]
     season_data["genres"] = tv_data["genres"]
     if season_data["synopsis"] == "No synopsis available.":
         season_data["synopsis"] = tv_data["synopsis"]
@@ -365,11 +412,12 @@ def process_tv(response):
                 response,
             ),
             "recommendations": get_related(
-                response.get("recommendations", {}).get("results", [])[:15],
+                response.get("recommendations", {}).get("results", []),
                 MediaTypes.TV.value,
             ),
         },
         "tvdb_id": response.get("external_ids", {}).get("tvdb_id"),
+        "external_links": get_external_links(response.get("external_ids", {})),
         "last_episode_season": last_episode["season_number"] if last_episode else None,
         "next_episode_season": next_episode["season_number"] if next_episode else None,
     }
@@ -555,6 +603,30 @@ def get_related(related_medias, media_type, parent_response=None):
             data["title"] = get_title(media)
         related.append(data)
     return related
+
+
+def get_collection(collection_response):
+    """Format media collection list to match related media."""
+
+    def date_key(media):
+        date = media.get("release_date", "")
+        if date is None or date == "":
+            # If release date is unknown, sort by title after known releases
+            title = get_title(media)
+            date = f"9999-99-99-{title}"
+        return date
+
+    parts = sorted(collection_response.get("parts", []), key=date_key)
+    return [
+        {
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.MOVIE.value,
+            "image": get_image_url(media["poster_path"]),
+            "media_id": media["id"],
+            "title": get_title(media),
+        }
+        for media in parts
+    ]
 
 
 def process_episodes(season_metadata, episodes_in_db):

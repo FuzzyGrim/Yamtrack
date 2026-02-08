@@ -1,6 +1,6 @@
 {% load app_tags %}
 
-<div class="flex items-center justify-center space-x-4">
+<div class="flex items-center justify-center space-x-4 pb-3">
   <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
           {% if media.progress == 0 %}disabled{% endif %}
           hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
@@ -33,3 +33,4 @@
     {% include "app/icons/plus.svg" with classes="w-3 h-3" %}
   </button>
 </div>
+{% include "app/components/progress_bar.html" with media=media user=user %}

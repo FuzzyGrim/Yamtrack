@@ -46,6 +46,7 @@ class Sources(models.TextChoices):
     HARDCOVER = "hardcover", "Hardcover"
     COMICVINE = "comicvine", "Comic Vine"
     ITAD = "itad", "IsThereAnyDeal"
+    BGG = "bgg", "BoardGameGeek"
     MANUAL = "manual", "Manual"
 
 
@@ -61,6 +62,7 @@ class MediaTypes(models.TextChoices):
     GAME = "game", "Game"
     BOOK = "book", "Book"
     COMIC = "comic", "Comic"
+    BOARDGAME = "boardgame", "Boardgame"
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -491,8 +493,10 @@ class MediaManager(models.Manager):
                 x.next_event is None,
                 x.next_event.datetime if x.next_event else None,
             ),
-            users.models.HomeSortChoices.RECENT: lambda x: -timezone.datetime.timestamp(
-                x.progressed_at if x.progressed_at is not None else x.created_at,
+            users.models.HomeSortChoices.RECENT: lambda x: (
+                -timezone.datetime.timestamp(
+                    x.progressed_at if x.progressed_at is not None else x.created_at,
+                )
             ),
             users.models.HomeSortChoices.COMPLETION: lambda x: (
                 x.max_progress is None,
@@ -591,6 +595,47 @@ class MediaManager(models.Manager):
         for tv in tv_list:
             tv_episodes = released_episodes.get(tv.item.media_id, {})
             tv.max_progress = sum(tv_episodes.values()) if tv_episodes else 0
+
+    def fetch_media_for_items(self, media_types, item_ids, user, status_filter=None):
+        """Fetch media objects for given items, optionally filtering by status.
+
+        Args:
+            media_types: Iterable of media type strings to query
+            item_ids: QuerySet or list of item IDs to fetch media for
+            user: User to filter media by
+            status_filter: Optional status value to filter by
+
+        Returns:
+            dict mapping item_id to media object
+        """
+        media_by_item_id = {}
+
+        for media_type in media_types:
+            model = apps.get_model("app", media_type)
+
+            if media_type == MediaTypes.EPISODE.value:
+                filter_kwargs = {
+                    "item__in": item_ids,
+                    "related_season__user": user,
+                }
+                if status_filter:
+                    filter_kwargs["related_season__status"] = status_filter
+            else:
+                filter_kwargs = {
+                    "item__in": item_ids,
+                    "user": user,
+                }
+                if status_filter:
+                    filter_kwargs["status"] = status_filter
+
+            queryset = model.objects.filter(**filter_kwargs).select_related("item")
+            queryset = self._apply_prefetch_related(queryset, media_type)
+            self.annotate_max_progress(queryset, media_type)
+
+            for entry in queryset:
+                media_by_item_id.setdefault(entry.item_id, entry)
+
+        return media_by_item_id
 
     def get_media(
         self,
@@ -793,7 +838,7 @@ class Media(models.Model):
         """Update fields depending on the progress of the media."""
         if self.progress < 0:
             self.progress = 0
-        else:
+        elif self.status == Status.IN_PROGRESS.value:
             max_progress = providers.services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
@@ -1374,6 +1419,8 @@ class Season(Media):
             latest_watched_ep_num = 0
 
         episodes_to_create = []
+
+        # Calculate current time once before the loop
         now = timezone.now().replace(second=0, microsecond=0)
 
         # Create Episode objects for the remaining episodes
@@ -1383,10 +1430,13 @@ class Season(Media):
 
             item = self.get_episode_item(episode["episode_number"], season_metadata)
 
+            # Resolve end_date based on user preference
+            end_date = self.user.resolve_watch_date(now, episode.get("air_date"))
+
             episode_db = Episode(
                 related_season=self,
                 item=item,
-                end_date=now,
+                end_date=end_date,
             )
             episodes_to_create.append(episode_db)
 
@@ -1567,5 +1617,11 @@ class Book(Media):
 
 class Comic(Media):
     """Model for comics."""
+
+    tracker = FieldTracker()
+
+
+class BoardGame(Media):
+    """Model for board games."""
 
     tracker = FieldTracker()

@@ -1,5 +1,6 @@
 {% extends "users/base.html" %}
 {% load user_tags %}
+{% load app_tags %}
 
 {% block title %}
   Import - Yamtrack
@@ -250,9 +251,7 @@
             <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Media-Import-Configuration#yamtrack-csv-format"
                target="_blank"
                class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
-               title="View CSV format documentation">
-              {% include "app/icons/info.svg"  with classes="w-4 h-4" %}
-            </a>
+               title="View CSV format documentation">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
           </div>
           <p class="text-sm text-gray-400 mb-3"
              x-text="importFrequency === 'once' ? 'Import from YamTrack backup' : 'File uploads are not available for periodic imports'">
@@ -427,8 +426,8 @@
             <div class="text-sm text-gray-400 space-y-1">
               <div>Username: {{ periodic_import.username }}</div>
               <div>Mode: {{ periodic_import.mode }}</div>
-              <div>Last Import: {{ periodic_import.last_run|date:"DATETIME_FORMAT" }}</div>
-              <div>Next Import: {{ periodic_import.next_run|date:"DATETIME_FORMAT" }}</div>
+              <div>Last Import: {{ periodic_import.last_run|datetime_format:user }}</div>
+              <div>Next Import: {{ periodic_import.next_run|datetime_format:user }}</div>
             </div>
           </div>
         {% empty %}
@@ -471,7 +470,7 @@
 
                 {% source_display result.source %}
               </div>
-              <span class="text-xs text-gray-400">{{ result.date|date:"DATETIME_FORMAT" }}</span>
+              <span class="text-xs text-gray-400">{{ result.date|datetime_format:user }}</span>
             </div>
 
             {% if result.status %}

@@ -6,13 +6,13 @@ from app.models import MediaTypes, Status
 from app.templatetags import app_tags
 
 
-def process_history_entries(history_records, media_type, media_entry_number):
+def process_history_entries(history_records, media_type, media_entry_number, user):
     """Process all history records into timeline entries."""
     timeline_entries = []
     last = history_records.first()
 
     for _ in range(history_records.count()):
-        entry = process_history_entry((last, last.prev_record), media_type)
+        entry = process_history_entry((last, last.prev_record), media_type, user)
         if entry["changes"]:
             entry["media_entry_number"] = media_entry_number
             timeline_entries.append(entry)
@@ -21,7 +21,7 @@ def process_history_entries(history_records, media_type, media_entry_number):
     return timeline_entries
 
 
-def process_history_entry(entry, media_type):
+def process_history_entry(entry, media_type, user):
     """Process a single history entry to organize and format changes."""
     new_record, old_record = entry
     processed_entry = {
@@ -36,33 +36,34 @@ def process_history_entry(entry, media_type):
             old_record,
             media_type,
             processed_entry,
+            user,
         )
-    return process_creation_entry(new_record, media_type, processed_entry)
+    return process_creation_entry(new_record, media_type, processed_entry, user)
 
 
-def process_changed_entry(new_record, old_record, media_type, processed_entry):
+def process_changed_entry(new_record, old_record, media_type, processed_entry, user):
     """Process an entry representing a change to existing media."""
     delta = new_record.diff_against(old_record)
-    changes = organize_changes(delta.changes, media_type)
-    apply_date_status_integration(changes)
+    changes = organize_changes(delta.changes, media_type, user)
+    apply_date_status_integration(changes, user)
     build_changes_list(changes, processed_entry)
     return processed_entry
 
 
-def process_creation_entry(new_record, media_type, processed_entry):
+def process_creation_entry(new_record, media_type, processed_entry, user):
     """Process an entry representing media creation."""
     history_model = apps.get_model(
         app_label="app",
         model_name=f"historical{media_type}",
     )
 
-    changes = collect_creation_changes(new_record, history_model, media_type)
-    apply_date_status_integration(changes)
+    changes = collect_creation_changes(new_record, history_model, media_type, user)
+    apply_date_status_integration(changes, user)
     build_changes_list(changes, processed_entry)
     return processed_entry
 
 
-def organize_changes(changes, media_type):
+def organize_changes(changes, media_type, user):
     """Organize changes into categories."""
     organized = {
         "date_changes": {"start_date": None, "end_date": None},
@@ -82,6 +83,7 @@ def organize_changes(changes, media_type):
                 change.old,
                 change.new,
                 media_type,
+                user,
             ),
             "field": change.field,
             "old": change.old,
@@ -103,7 +105,7 @@ def organize_changes(changes, media_type):
     return organized
 
 
-def collect_creation_changes(new_record, history_model, media_type):
+def collect_creation_changes(new_record, history_model, media_type, user):
     """Collect changes for a creation entry."""
     organized = {
         "date_changes": {"start_date": None, "end_date": None},
@@ -114,7 +116,7 @@ def collect_creation_changes(new_record, history_model, media_type):
     for field in history_model._meta.get_fields():
         if (
             field.name.startswith("history_")
-            or field.name in ["id"]
+            or field.name == "id"
             or not hasattr(new_record, field.attname)
             or (field.name == "progress" and media_type == MediaTypes.MOVIE.value)
         ):
@@ -132,6 +134,7 @@ def collect_creation_changes(new_record, history_model, media_type):
                 None,
                 value,
                 media_type,
+                user,
             ),
         }
 
@@ -145,7 +148,7 @@ def collect_creation_changes(new_record, history_model, media_type):
     return organized
 
 
-def apply_date_status_integration(changes):
+def apply_date_status_integration(changes, user):
     """Integrate status changes with date changes where appropriate."""
     date_changes = changes["date_changes"]
     status_change = changes["status_change"]
@@ -158,7 +161,7 @@ def apply_date_status_integration(changes):
     ):
         date_changes["start_date"]["description"] = (
             f"Started on "
-            f"{app_tags.date_tracker_format(date_changes['start_date']['new'])}"
+            f"{app_tags.date_format(date_changes['start_date']['new'], user)}"
         )
         changes["status_change"] = None
 
@@ -169,8 +172,7 @@ def apply_date_status_integration(changes):
         and status_change["new"] == Status.COMPLETED.value
     ):
         date_changes["end_date"]["description"] = (
-            f"Finished on "
-            f"{app_tags.date_tracker_format(date_changes['end_date']['new'])}"
+            f"Finished on {app_tags.date_format(date_changes['end_date']['new'], user)}"
         )
         changes["status_change"] = None
 
@@ -191,15 +193,15 @@ def build_changes_list(changes, processed_entry):
     processed_entry["changes"].extend(changes["other_changes"])
 
 
-def format_description(field_name, old_value, new_value, media_type=None):  # noqa: C901, PLR0911, PLR0912
+def format_description(field_name, old_value, new_value, media_type=None, user=None):  # noqa: C901, PLR0911, PLR0912
     """Format change description in a human-readable way.
 
     Provides natural language descriptions for various types of changes,
     taking into account the media type and status transitions.
     """
     if field_name in {"start_date", "end_date"}:
-        new_value = app_tags.date_tracker_format(new_value)
-        old_value = app_tags.date_tracker_format(old_value)
+        new_value = app_tags.date_format(new_value, user)
+        old_value = app_tags.date_format(old_value, user)
 
     # If old_value is None, treat it as an initial setting
     if old_value is None:
@@ -282,8 +284,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Removed {helpers.minutes_to_hhmm(diff_abs)} of playtime"
 
         unit = (
-            f"{config.get_unit(media_type, short=False).lower()}"
-            f"{pluralize(new_value)}"
+            f"{config.get_unit(media_type, short=False).lower()}{pluralize(new_value)}"
         )
 
         return f"Progress set to {new_value} {unit}"

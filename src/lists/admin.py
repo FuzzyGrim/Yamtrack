@@ -22,7 +22,7 @@ class CustomListAdmin(admin.ModelAdmin):
     def get_last_update(self, obj):
         """Return the date of the last item added."""
         last_update = CustomListItem.objects.get_last_added_date(obj)
-        return last_update if last_update else "-"
+        return last_update or "-"
 
     get_last_update.short_description = "Last updated"
 

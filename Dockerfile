@@ -12,6 +12,8 @@ COPY ./requirements.txt /requirements.txt
 COPY ./entrypoint.sh /entrypoint.sh
 COPY ./supervisord.conf /etc/supervisord.conf
 COPY ./nginx.conf /etc/nginx/nginx.conf
+# Generate a copy of the nginx config with IPv6 support.
+RUN sed 's/listen 8000;/listen 8000; listen [::]:8000;/' /etc/nginx/nginx.conf > /etc/nginx/nginx.ipv6.conf
 
 WORKDIR /yamtrack
 

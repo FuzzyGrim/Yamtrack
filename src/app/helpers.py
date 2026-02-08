@@ -8,7 +8,7 @@ from django.shortcuts import redirect
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from app.models import BasicMedia, MediaTypes
+from app.models import BasicMedia, MediaTypes, Status
 
 
 def minutes_to_hhmm(total_minutes):
@@ -29,7 +29,7 @@ def redirect_back(request):
         parsed_url = urlparse(next_url)
 
         # Get the query parameters and remove params we don't want
-        query_params = dict(parse_qsl(parsed_url.query))
+        query_params = dict(parse_qsl(parsed_url.query, keep_blank_values=True))
         query_params.pop("page", None)
         query_params.pop("load_media_type", None)
 
@@ -66,7 +66,7 @@ def format_search_response(page, per_page, total_results, results):
     }
 
 
-def enrich_items_with_user_data(request, items):
+def enrich_items_with_user_data(request, items, section_name):
     """Enrich a list of items with user tracking data."""
     if not items:
         return []
@@ -118,9 +118,18 @@ def enrich_items_with_user_data(request, items):
         else:
             key = (str(item["media_id"]), item["source"])
 
+        media_item = media_lookup.get(key)
+        if (
+            request.user.hide_completed_recommendations
+            and section_name == "recommendations"
+            and media_item
+            and media_item.status == Status.COMPLETED.value
+        ):
+            continue
+
         enriched_item = {
             "item": item,
-            "media": media_lookup.get(key),
+            "media": media_item,
         }
         enriched_items.append(enriched_item)
 

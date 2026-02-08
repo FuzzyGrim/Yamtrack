@@ -47,8 +47,13 @@ def secret(key, default=undefined, **kwargs):
     path = Path(file)
     try:
         if path.is_absolute():
-            return Config(RepositorySecret(path.parent))(path.stem, default, **kwargs)
-        return Config(RepositorySecret())(file, default, **kwargs)
+            secret_value = Config(RepositorySecret(path.parent))(
+                path.stem,
+                default,
+                **kwargs,
+            )
+        else:
+            secret_value = Config(RepositorySecret())(file, default, **kwargs)
     except (
         FileNotFoundError,
         IsADirectoryError,
@@ -56,6 +61,10 @@ def secret(key, default=undefined, **kwargs):
     ) as err:
         msg = f"File from {key} not found. Please check the path and filename."
         raise UndefinedValueError(msg) from err
+    else:
+        if isinstance(secret_value, str):
+            return secret_value.strip()
+        return secret_value
 
 
 # Quick-start development settings - unsuitable for production
@@ -219,7 +228,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 10,
+        "VERSION": 14,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -248,13 +257,19 @@ LOGGING = {
     "disable_existing_loggers": False,
     "loggers": {
         "requests_ratelimiter.requests_ratelimiter": {
-            "level": "DEBUG" if DEBUG else "WARNING",
+            "level": "WARNING",
         },
         "psycopg": {
             "level": "DEBUG" if DEBUG else "WARNING",
         },
         "urllib3": {
-            "level": "DEBUG" if DEBUG else "WARNING",
+            "level": "WARNING",
+        },
+        "celery.utils.functional": {
+            "level": "WARNING",
+        },
+        "fakeredis": {
+            "level": "WARNING",
         },
     },
     "formatters": {
@@ -365,17 +380,28 @@ IGDB_SECRET = config(
 )
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+# BoardGameGeek API Token - Register at https://boardgamegeek.com/using_the_xml_api
+BGG_API_TOKEN = config(
+    "BGG_API_TOKEN",
+    default=secret(
+        "BGG_API_TOKEN_FILE",
+        "92f43ab1-d1d5-4e18-8b82-d1f56dc12927",
+    ),
+)
+
 STEAM_API_KEY = config(
     "STEAM_API_KEY",
     default=secret(
-        "STEAM_API_KEY_FILE", "",
+        "STEAM_API_KEY_FILE",
+        "",
     ),  # Generate default key https://steamcommunity.com/dev/apikey
 )
 
 ITAD_API_KEY = config(
     "ITAD_API_KEY",
     default=secret(
-        "ITAD_API_KEY_FILE", "",
+        "ITAD_API_KEY_FILE",
+        "",
         # Generate default key https://isthereanydeal.com/apps/
     ),
 )
@@ -486,7 +512,7 @@ SELECT2_THEME = "tailwindcss-4"
 
 # Celery settings
 
-CELERY_BROKER_URL = REDIS_URL
+CELERY_BROKER_URL = config("CELERY_REDIS_URL", default=REDIS_URL)
 CELERY_TIMEZONE = TIME_ZONE
 
 if REDIS_PREFIX:

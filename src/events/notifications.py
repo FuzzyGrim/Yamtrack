@@ -5,7 +5,7 @@ import apprise
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from django.utils import formats, timezone
+from django.utils import timezone
 
 from app.models import TV, MediaTypes, Season
 from app.templatetags import app_tags
@@ -102,12 +102,7 @@ def send_daily_digest():
     if not events.exists():
         return "No releases scheduled for today"
 
-    # Format date for display in local timezone
-    message_date = formats.date_format(
-        today_start.date(),
-        "DATE_FORMAT",
-    )
-    title = f"📆 YamTrack: Today's Releases ({message_date}) 📆"
+    title = "📆 YamTrack: Today's Releases 📆"
 
     result = send_notifications(
         events=events,
@@ -130,8 +125,11 @@ def send_notifications(events, users, title):
         Dictionary with results information
     """
     event_count = events.count()
+    logger.info(
+        "Found %s users with this type of notifications enabled",
+        users.count(),
+    )
     logger.info("Found %s events for notification", event_count)
-    logger.info("Found %s eligible users", users.count())
 
     # Create event lookup for quick access
     events_by_item_and_content = {}
@@ -165,7 +163,7 @@ def get_user_releases(users, target_events):
 
     user_enabled_types = {}
     for user in users:
-        user_enabled_types[user.id] = user.get_enabled_media_types()
+        user_enabled_types[user.id] = user.get_active_media_types()
 
     user_tracking_data = get_all_user_tracking_data(
         users,

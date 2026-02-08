@@ -289,10 +289,14 @@ def process_anime_bulk(items, events_bulk):
 
         if episodes:
             for episode in episodes:
-                episode_datetime = datetime.fromtimestamp(
-                    episode["airingAt"],
-                    tz=ZoneInfo("UTC"),
-                )
+                # when schedule less than total episodes and end date is null
+                if episode["airingAt"] is None:
+                    episode_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+                else:
+                    episode_datetime = datetime.fromtimestamp(
+                        episode["airingAt"],
+                        tz=ZoneInfo("UTC"),
+                    )
                 events_bulk.append(
                     Event(
                         item=item,
@@ -302,7 +306,7 @@ def process_anime_bulk(items, events_bulk):
                 )
         else:
             logger.info(
-                "Anime: %s (%s), not found in AniList",
+                "Anime: %s (%s), not proccesed by AniList",
                 item.title,
                 item.media_id,
             )
@@ -353,35 +357,52 @@ def get_anime_schedule_bulk(media_ids):
             total_episodes = media["episodes"]
             mal_id = str(media["idMal"])
 
-            # First check if we know the total episode count
-            if total_episodes:
-                if airing_schedule:
-                    # Filter out episodes beyond the total count
-                    original_length = len(airing_schedule)
-                    airing_schedule = [
-                        episode
-                        for episode in airing_schedule
-                        if episode["episode"] <= total_episodes
-                    ]
+            if not total_episodes:
+                continue
 
-                    # Log if any filtering occurred
-                    if original_length > len(airing_schedule):
-                        logger.info(
-                            "Filtered episodes for MAL ID %s - keep only %s episodes",
-                            mal_id,
-                            total_episodes,
-                        )
+            if airing_schedule:
+                # Filter out episodes beyond the total count
+                original_length = len(airing_schedule)
+                airing_schedule = [
+                    episode
+                    for episode in airing_schedule
+                    if episode["episode"] <= total_episodes
+                ]
 
-                # Add final episode if schedule is missing or incomplete
-                if (
-                    not airing_schedule
-                    or airing_schedule[-1]["episode"] < total_episodes
-                ):
-                    end_date_timestamp = anilist_date_parser(media["endDate"])
-                    if end_date_timestamp:
-                        airing_schedule.append(
-                            {"episode": total_episodes, "airingAt": end_date_timestamp},
-                        )
+                # Log if any filtering occurred
+                if original_length > len(airing_schedule):
+                    logger.info(
+                        "Filtered episodes for MAL ID %s - keep only %s episodes",
+                        mal_id,
+                        total_episodes,
+                    )
+
+            # incomplete data from AniList
+            if not airing_schedule or airing_schedule[-1]["episode"] < total_episodes:
+                mal_metadata = services.get_media_metadata(
+                    media_type=MediaTypes.ANIME.value,
+                    media_id=mal_id,
+                    source=Sources.MAL.value,
+                )
+                mal_total_episodes = mal_metadata["max_progress"]
+                if mal_total_episodes and mal_total_episodes > total_episodes:
+                    logger.info(
+                        "MAL ID %s - MAL has %s episodes, AniList has %s",
+                        mal_id,
+                        mal_total_episodes,
+                        total_episodes,
+                    )
+                    continue
+
+                logger.info(
+                    "Adding final episode for MAL ID %s - Ep %s",
+                    mal_id,
+                    total_episodes,
+                )
+                end_date_timestamp = anilist_date_parser(media["endDate"])
+                airing_schedule.append(
+                    {"episode": total_episodes, "airingAt": end_date_timestamp},
+                )
 
             # Store the processed schedule
             all_data[mal_id] = airing_schedule
@@ -672,7 +693,7 @@ def process_comic(item, events_bulk):
     # get latest event
     latest_event = Event.objects.filter(item=item).order_by("-datetime").first()
     last_issue_event_number = latest_event.content_number if latest_event else 0
-    last_published_issue_number = metadata["max_progress"]
+    last_published_issue_number = metadata["max_issue_number"]
     if last_issue_event_number == last_published_issue_number:
         return
 
@@ -719,33 +740,32 @@ def process_other(item, events_bulk):
         return
 
     date_key = config.get_date_key(item.media_type)
+    content_number = metadata["max_progress"]
 
-    if date_key in metadata["details"] and metadata["details"][date_key]:
-        try:
+    if date_key in metadata["details"] and content_number:
+        if metadata["details"][date_key]:
             content_datetime = date_parser(metadata["details"][date_key])
-        except ValueError:
-            pass
         else:
-            content_number = (
-                None
-                if item.media_type == MediaTypes.MOVIE.value
-                else metadata["max_progress"]
-            )
-            events_bulk.append(
-                Event(
-                    item=item,
-                    content_number=content_number,
-                    datetime=content_datetime,
-                ),
-            )
+            content_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 
-    elif item.source == Sources.MANGAUPDATES.value and metadata["max_progress"]:
+        if item.media_type == MediaTypes.MOVIE.value:
+            content_number = None
+
+        events_bulk.append(
+            Event(
+                item=item,
+                content_number=content_number,
+                datetime=content_datetime,
+            ),
+        )
+
+    elif item.source == Sources.MANGAUPDATES.value and content_number:
         # MangaUpdates doesn't have an end date, so use a placeholder
         content_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
         events_bulk.append(
             Event(
                 item=item,
-                content_number=metadata["max_progress"],
+                content_number=content_number,
                 datetime=content_datetime,
             ),
         )

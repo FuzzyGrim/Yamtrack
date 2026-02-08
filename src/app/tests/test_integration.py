@@ -1,8 +1,9 @@
 import os
+from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.utils import formats, timezone
+from django.utils import timezone
 from playwright.sync_api import expect, sync_playwright
 
 
@@ -52,8 +53,14 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_role("main")).to_contain_text("Track Episode")
         self.page.get_by_role("button", name="Air date").click()
         self.page.get_by_role("button", name="Add watch").click()
+
+        datetime_format = "%Y-%m-%d"
+
+        # Episode 1 air date is 2008-01-20
+        fixed_date = date(2008, 1, 20)
+
         expect(self.page.get_by_role("main")).to_contain_text(
-            "Last watched: Jan. 20, 2008",
+            f"Last watched: {fixed_date.strftime(datetime_format)}",
         )
         self.page.get_by_role("link", name="Home").click()
         expect(self.page.get_by_text("Breaking Bad S1 1 Episode")).to_be_visible()
@@ -62,10 +69,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         ).click()
         self.page.get_by_title("Breaking Bad S1").click()
 
-        today = formats.date_format(
-            timezone.localdate(),
-            "DATE_FORMAT",
-        )
+        today = timezone.localtime().strftime(datetime_format)
         expect(self.page.get_by_role("main")).to_contain_text(f"Last watched: {today}")
 
     def test_tv_completed(self):

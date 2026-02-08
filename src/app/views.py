@@ -179,7 +179,9 @@ def media_search(request):
 
     # Enrich search results with user tracking data
     if data.get("results"):
-        data["results"] = helpers.enrich_items_with_user_data(request, data["results"])
+        data["results"] = helpers.enrich_items_with_user_data(
+            request, data["results"], "search"
+        )
 
     context = {
         "data": data,
@@ -194,10 +196,9 @@ def media_search(request):
 @require_GET
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
-    media_metadata = services.get_media_metadata(media_type,
-                                                 media_id,
-                                                 source,
-                                                 request=request)
+    media_metadata = services.get_media_metadata(
+        media_type, media_id, source, request=request
+    )
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
@@ -212,8 +213,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
             if related_items:
                 media_metadata["related"][section_name] = (
                     helpers.enrich_items_with_user_data(
-                        request,
-                        related_items,
+                        request, related_items, section_name
                     )
                 )
 
@@ -267,6 +267,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
                     helpers.enrich_items_with_user_data(
                         request,
                         related_items,
+                        section_name,
                     )
                 )
 
@@ -414,6 +415,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
         )
     return helpers.redirect_back(request)
 
+
 @require_POST
 def refresh_prices(request, media_type, media_id):
     """
@@ -428,10 +430,10 @@ def refresh_prices(request, media_type, media_id):
         MediaTypes.GAME.value: {
             "cache_key": f"{itad.price_cache_key}{media_id}",
             "price_source": Sources.ITAD,
-            "method": lambda: itad.prices(media_id,
-                                          request=request,
-                                          notify_success=True),
-            },
+            "method": lambda: itad.prices(
+                media_id, request=request, notify_success=True
+            ),
+        },
     }
     if media_type in price_metadata_retrievers:
         cache_key = price_metadata_retrievers[media_type]["cache_key"]
@@ -454,6 +456,7 @@ def refresh_prices(request, media_type, media_id):
             },
         )
     return helpers.redirect_back(request)
+
 
 @require_GET
 def track_modal(
@@ -802,6 +805,7 @@ def history_modal(
                     history,
                     media_type,
                     media_entry_number,
+                    request.user,
                 ),
             )
     return render(

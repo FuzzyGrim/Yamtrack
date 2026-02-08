@@ -236,7 +236,7 @@ class ListDetailViewTests(TestCase):
         mock_update_preference,
     ):
         """Test the list_detail view."""
-        mock_update_preference.return_value = "date_added"
+        mock_update_preference.side_effect = ["date_added", None]
         mock_user_can_view.return_value = True
 
         # Create Movie instance
@@ -279,7 +279,7 @@ class ListDetailViewTests(TestCase):
         mock_update_preference,
     ):
         """Test the list_detail view when user is not authorized."""
-        mock_update_preference.return_value = "date_added"
+        mock_update_preference.side_effect = ["date_added", None]
         mock_user_can_view.return_value = False
 
         response = self.client.get(reverse("list_detail", args=[self.custom_list.id]))
@@ -293,7 +293,7 @@ class ListDetailViewTests(TestCase):
         mock_update_preference,
     ):
         """Test the list_detail view with media type filter."""
-        mock_update_preference.return_value = "date_added"
+        mock_update_preference.side_effect = ["date_added", None]
         mock_user_can_view.return_value = True
 
         # Create model instances
@@ -331,13 +331,62 @@ class ListDetailViewTests(TestCase):
 
     @patch.object(get_user_model(), "update_preference")
     @patch.object(CustomList, "user_can_view")
+    def test_list_detail_view_filter_by_status(
+        self,
+        mock_user_can_view,
+        mock_update_preference,
+    ):
+        """Test the list_detail view with status filter."""
+        mock_update_preference.side_effect = ["date_added", Status.PLANNING.value]
+        mock_user_can_view.return_value = True
+
+        # Create model instances
+        Movie.objects.create(
+            item=self.movie_item,
+            status=Status.COMPLETED.value,
+            user=self.user,
+        )
+
+        TV.objects.create(
+            item=self.tv_item,
+            status=Status.IN_PROGRESS.value,
+            user=self.user,
+        )
+
+        Anime.objects.create(
+            item=self.anime_item,
+            status=Status.PLANNING.value,
+            user=self.user,
+        )
+
+        # Test the view with status filter
+        response = self.client.get(
+            reverse("list_detail", args=[self.custom_list.id])
+            + f"?status={Status.PLANNING.value}",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Check that filters are applied
+        self.assertEqual(
+            response.context["current_status"],
+            Status.PLANNING.value,
+        )
+        # Should only have the PLANNING item of media type ANIME
+        self.assertEqual(len(response.context["items"]), 1)
+        self.assertEqual(
+            response.context["items"][0].media_type,
+            MediaTypes.ANIME.value,
+        )
+
+    @patch.object(get_user_model(), "update_preference")
+    @patch.object(CustomList, "user_can_view")
     def test_list_detail_view_search(
         self,
         mock_user_can_view,
         mock_update_preference,
     ):
         """Test the list_detail view with search filter."""
-        mock_update_preference.return_value = "date_added"
+        mock_update_preference.side_effect = ["date_added", None]
         mock_user_can_view.return_value = True
 
         # Create model instances
@@ -399,7 +448,7 @@ class ListDetailViewTests(TestCase):
         )
 
         # Test title sorting
-        mock_update_preference.return_value = "title"
+        mock_update_preference.side_effect = ["title", None]
         response = self.client.get(
             reverse("list_detail", args=[self.custom_list.id]) + "?sort=title",
         )
@@ -407,7 +456,7 @@ class ListDetailViewTests(TestCase):
         self.assertEqual(response.context["current_sort"], "title")
 
         # Test media_type sorting
-        mock_update_preference.return_value = "media_type"
+        mock_update_preference.side_effect = ["media_type", None]
         response = self.client.get(
             reverse("list_detail", args=[self.custom_list.id]) + "?sort=media_type",
         )
@@ -422,7 +471,7 @@ class ListDetailViewTests(TestCase):
         mock_update_preference,
     ):
         """Test the list_detail view with HTMX request."""
-        mock_update_preference.return_value = "date_added"
+        mock_update_preference.side_effect = ["date_added", None]
         mock_user_can_view.return_value = True
 
         # Create model instances

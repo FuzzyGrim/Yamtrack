@@ -173,6 +173,11 @@ class AppTagsTests(TestCase):
 
     def test_natural_day(self):
         """Test the natural_day filter."""
+        # Create mock user with date_format preference
+        mock_user = MagicMock()
+        mock_user.date_format = "Y-m-d"
+        mock_user.time_format = "H:i"
+
         # Mock current date to March 29, 2025
         with patch("django.utils.timezone.now") as mock_now:
             # Use timezone.datetime to create timezone-aware datetimes
@@ -196,7 +201,7 @@ class AppTagsTests(TestCase):
                 0,
                 tzinfo=timezone.get_current_timezone(),
             )
-            self.assertEqual(app_tags.natural_day(today), "Today")
+            self.assertEqual(app_tags.natural_day(today, mock_user), "Today")
 
             # Test tomorrow
             tomorrow = timezone.datetime(
@@ -208,19 +213,7 @@ class AppTagsTests(TestCase):
                 0,
                 tzinfo=timezone.get_current_timezone(),
             )
-            self.assertEqual(app_tags.natural_day(tomorrow), "Tomorrow")
-
-            # Test in X days
-            in_3_days = timezone.datetime(
-                2025,
-                4,
-                1,
-                15,
-                0,
-                0,
-                tzinfo=timezone.get_current_timezone(),
-            )
-            self.assertEqual(app_tags.natural_day(in_3_days), "In 3 days")
+            self.assertEqual(app_tags.natural_day(tomorrow, mock_user), "Tomorrow")
 
             # Test further away
             further = timezone.datetime(
@@ -232,7 +225,10 @@ class AppTagsTests(TestCase):
                 0,
                 tzinfo=timezone.get_current_timezone(),
             )
-            self.assertEqual(app_tags.natural_day(further), "Apr 10")
+            self.assertEqual(
+                app_tags.natural_day(further, mock_user),
+                "2025-04-10 15:00",
+            )
 
     def test_media_url(self):
         """Test the media_url filter."""

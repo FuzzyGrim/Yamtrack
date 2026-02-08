@@ -13,23 +13,19 @@
       <div class="flex gap-x-2">
         {% with source_options=media_type|sources %}
           {% for source_option in source_options %}
-            <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ media_type }}&source={{ source_option.value }}&layout={{ layout }}"
+            <a href="{% url 'search' %}?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}&source={{ source_option.value }}&layout={{ layout }}"
                class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer flex items-center {% if source == source_option.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
               {{ source_option.label }}
             </a>
           {% endfor %}
         {% endwith %}
         <div class="flex rounded-md overflow-hidden border border-gray-700">
-          <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=grid"
+          <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=grid"
              {% if layout == 'grid' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
-             title="Grid View">
-            {% include "app/icons/four-square.svg" with classes="w-5 h-5" %}
-          </a>
-          <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=list"
+             title="Grid View">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
+          <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=list"
              {% if layout == 'list' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
-             title="List View">
-            {% include "app/icons/list.svg" with classes="w-5 h-5" %}
-          </a>
+             title="List View">{% include "app/icons/list.svg" with classes="w-5 h-5" %}</a>
         </div>
       </div>
     </div>
@@ -53,22 +49,20 @@
     <div class="flex flex-wrap justify-center items-center mt-8 gap-x-2 gap-y-3">
       {# Previous button #}
       {% if data.page > 1 %}
-        <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'-1' }}&layout={{ layout }}"
+        <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'-1' }}&layout={{ layout }}"
            class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
           {% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}
         </a>
       {% else %}
         <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
-                disabled>
-          {% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}
-        </button>
+                disabled>{% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}</button>
       {% endif %}
 
       {# Page numbers with ellipses #}
       {% get_pagination_range data.page data.total_pages 2 as pages %}
       {% for page_num in pages %}
         {% if page_num %}
-          <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ page_num }}&layout={{ layout }}"
+          <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ page_num }}&layout={{ layout }}"
              class="w-10 h-10 rounded-md {% if data.page == page_num %}bg-indigo-600{% else %}bg-[#2a2f35] hover:bg-[#39404b]{% endif %} text-white flex items-center justify-center">
             {{ page_num }}
           </a>
@@ -82,15 +76,13 @@
 
       {# Next button #}
       {% if data.page < data.total_pages %}
-        <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'1' }}&layout={{ layout }}"
+        <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'1' }}&layout={{ layout }}"
            class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
           {% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}
         </a>
       {% else %}
         <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
-                disabled>
-          {% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}
-        </button>
+                disabled>{% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}</button>
       {% endif %}
     </div>
 

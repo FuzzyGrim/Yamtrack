@@ -105,16 +105,14 @@
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
             {% for value, label in sort_choices %}
-              {% if media_type != MediaTypes.MOVIE.value or value != 'progress' %}
-                <button hx-get="{% url 'medialist' media_type %}"
-                        {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
-                        hx-include="#filter-form"
-                        hx-indicator="#loading-indicator"
-                        class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                        :class="sort === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                        @click="sort = '{{ value }}'; open = false"
-                        type="button">{{ label }}</button>
-              {% endif %}
+              <button hx-get="{% url 'medialist' media_type %}"
+                      {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
+                      hx-include="#filter-form"
+                      hx-indicator="#loading-indicator"
+                      class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                      :class="sort === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      @click="sort = '{{ value }}'; open = false"
+                      type="button">{{ label }}</button>
             {% endfor %}
           </div>
         </div>
@@ -125,16 +123,12 @@
              class="p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Grid View"
-             @click="layout = 'grid'">
-            {% include "app/icons/four-square.svg" with classes="w-5 h-5" %}
-          </a>
+             @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
           <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
              class="p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Table View"
-             @click="layout = 'table'">
-            {% include "app/icons/table.svg" with classes="w-5 h-5" %}
-          </a>
+             @click="layout = 'table'">{% include "app/icons/table.svg" with classes="w-5 h-5" %}</a>
         </div>
       </div>
     </div>

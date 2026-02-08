@@ -256,14 +256,14 @@
               {% if current_instance.start_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Started:</span>
-                  <span class="text-gray-200">{{ current_instance.start_date|date_tracker_format }}</span>
+                  <span class="text-gray-200">{{ current_instance.start_date|datetime_format:user }}</span>
                 </div>
               {% endif %}
 
               {% if current_instance.end_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Ended:</span>
-                  <span class="text-gray-200">{{ current_instance.end_date|date_tracker_format }}</span>
+                  <span class="text-gray-200">{{ current_instance.end_date|datetime_format:user }}</span>
                 </div>
               {% endif %}
 
@@ -339,11 +339,11 @@
                       {% endif %}
 
                       {% if user_media.start_date %}
-                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|date_tracker_format }}</div>
+                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|datetime_format:user }}</div>
                       {% endif %}
 
                       {% if user_media.end_date %}
-                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|date_tracker_format }}</div>
+                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|datetime_format:user }}</div>
                       {% endif %}
 
                       {% if user_media.notes %}
@@ -441,9 +441,9 @@
             <div class="mb-4">
               <h3 class="text-sm font-semibold text-gray-400">{{ key|no_underscore|upper }}</h3>
               {% if value|is_list %}
-                {% for item in value %}<p class="text-gray-200">{{ item }}</p>{% endfor %}
+                {% for item in value %}<p class="text-gray-200">{{ item|iso_date_format:request.user }}</p>{% endfor %}
               {% else %}
-                <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
+                <p class="text-gray-200">{{ value|default_if_none:"Unknown"|iso_date_format:request.user }}</p>
               {% endif %}
             </div>
           {% endfor %}
@@ -453,6 +453,16 @@
                class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
                target="_blank">{{ media.source|source_readable }}</a>
           </div>
+          {% if media.external_links %}
+            <div class="mt-4">
+              <h3 class="text-sm font-semibold text-gray-400">EXTERNAL LINKS</h3>
+              {% for name, url in media.external_links.items %}
+                <a href="{{ url }}"
+                   class="text-gray-200 hover:text-indigo-500 transition-colors duration-200 block"
+                   target="_blank">{{ name }}</a>
+              {% endfor %}
+            </div>
+          {% endif %}
         {% else %}
           <div class="text-gray-200">No details available</div>
         {% endif %}
@@ -460,17 +470,17 @@
 
       {# Prices #}
       {% if media.prices %}
-      {# Actions #}
-      <h2 class="text-xl font-bold mb-4">Prices</h2>
+        {# Actions #}
+        <h2 class="text-xl font-bold mb-4">Prices</h2>
         <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start mb-6">
           <div class="flex justify-center gap-x-5 md:gap-x-2 lg:gap-x-5 mb-6">
             {# Deal link #}
-            <a href="https://isthereanydeal.com/game/id:{{media.prices.itad_appid}}/"
+            <a href="https://isthereanydeal.com/game/id:{{ media.prices.itad_appid }}/"
                target="_blank">
               <button type="button"
                       title="Go to ITAD website"
                       class="px-4 py-2 bg-indigo-400 text-white rounded-md hover:bg-indigo-500 transition duration-300 cursor-pointer">
-                      {% include "app/icons/website.svg" with classes="w-4 h-4" %}
+                {% include "app/icons/website.svg" with classes="w-4 h-4" %}
               </button>
             </a>
             {# Price refresh #}
@@ -490,54 +500,56 @@
               </div>
             </button>
           </div>
-    
+
           {% for key, value in media.prices.data.items %}
-          <div class="mb-4">
-            <h3 class="text-sm font-semibold text-gray-400 mb-4">{{ key|no_underscore|upper }}</h3>
-            {% if value|is_list %}
-              {% for item in value %}
-                {% if item.type == "lows" %}
-                  <div class="text-gray-200 grid grid grid-cols-2">
-                    <div class="text-left">{{ item.price.text }}</div>
-                    <div class="text-right">{{item.price.amount}} {{item.price.currency}}</div>
-                  </div>
-                {% else %}
-                <a href={{item.deal.url}} target="_blank">
-                    <div class="rounded-md border-2 border-gray-600 border-solid mb-2 p-2 grid grid-rows-2">
-                      <div>
-                        <span style="float: left" class="text-left">{{item.deal.shop}}</span>
-                        {% if item.deal.drm %}
-                          <div style="float: right;">
-                            {% for value in item.deal.drm %}
-                              <span style="float: right;">
-                                {% with icon_path="app/icons/"|add:value|add:".svg" %}
-                                  {% include icon_path with classes="w-5 h-5 fill-current" %}
-                                {% endwith %}
-                              </span>  
-                            {% endfor %}
-                          </div>
-                        {% endif %}
-                      </div>
-                      <div class="text-gray-200 ">
-                        <div class="text-left">
-                          <span class="{% if item.deal.cut%}text-blue-400{% endif%}">{{item.deal.price}} {{item.deal.currency}}</span>
-                          {% if item.deal.cut %}<span class="rounded-md text-xs lp-1 rp-1 m-1 border-1 bg-red-700 border-red-700 text-black-400">-{{item.deal.cut}}%</span> {% endif %}
-                        </div>
-                        <div>
-                          <span class="text-xs" style="float: left;">{{item.deal.regular}} {{item.deal.currency}}</span>
-                          <span class="text-xs" style="float: right;">{{item.deal.expiry}}</span>
-                        </div>
-                      </div>
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-gray-400 mb-4">{{ key|no_underscore|upper }}</h3>
+              {% if value|is_list %}
+                {% for item in value %}
+                  {% if item.type == "lows" %}
+                    <div class="text-gray-200 grid grid grid-cols-2">
+                      <div class="text-left">{{ item.price.text }}</div>
+                      <div class="text-right">{{ item.price.amount }} {{ item.price.currency }}</div>
                     </div>
-                  </a>
-                {% endif %}
-              {% endfor %}
-            {% else %}
-              <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
+                  {% else %}
+                    <a href={{ item.deal.url }} target="_blank">
+                      <div class="rounded-md border-2 border-gray-600 border-solid mb-2 p-2 grid grid-rows-2">
+                        <div>
+                          <span style="float: left" class="text-left">{{ item.deal.shop }}</span>
+                          {% if item.deal.drm %}
+                            <div style="float: right;">
+                              {% for value in item.deal.drm %}
+                                <span style="float: right;">
+                                  {% with icon_path="app/icons/"|add:value|add:".svg" %}
+                                    {% include icon_path with classes="w-5 h-5 fill-current" %}
+                                  {% endwith %}
+                                </span>
+                              {% endfor %}
+                            </div>
+                          {% endif %}
+                        </div>
+                        <div class="text-gray-200 ">
+                          <div class="text-left">
+                            <span class="{% if item.deal.cut %}text-blue-400{% endif %}">{{ item.deal.price }} {{ item.deal.currency }}</span>
+                            {% if item.deal.cut %}
+                              <span class="rounded-md text-xs lp-1 rp-1 m-1 border-1 bg-red-700 border-red-700 text-black-400">-{{ item.deal.cut }}%</span>
+                            {% endif %}
+                          </div>
+                          <div>
+                            <span class="text-xs" style="float: left;">{{ item.deal.regular }} {{ item.deal.currency }}</span>
+                            <span class="text-xs" style="float: right;">{{ item.deal.expiry }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
       {% endif %}
     </div>
 
@@ -547,10 +559,21 @@
         {% for name, related_items in media.related.items %}
           {% if related_items %}
             <section class="{% if not forloop.last %}mb-8{% endif %}">
-              <h2 class="text-xl font-bold mb-4">{{ name|no_underscore|title }}</h2>
+              <h2 class="text-xl font-bold mb-4">
+                {% if name == "dlcs" %}
+                  DLCs
+                {% else %}
+                  {{ name|no_underscore|title }}
+                {% endif %}
+              </h2>
               <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
                 {% for result in related_items %}
-                  {% include "app/components/media_card.html" with item=result.item title=result.item.season_title|default:result.item.title media=result.media %}
+                  {# Set active to highlight the current movie in a collection. Avoid TV media, since seasons have same ID as the parent show #}
+                  {% if media_type == MediaTypes.MOVIE.value %}
+                    {% include "app/components/media_card.html" with item=result.item title=result.item.season_title|default:result.item.title media=result.media active=media.media_id|str_equals:result.item.media_id %}
+                  {% else %}
+                    {% include "app/components/media_card.html" with item=result.item title=result.item.season_title|default:result.item.title media=result.media %}
+                  {% endif %}
                 {% endfor %}
               </div>
             </section>
@@ -648,7 +671,8 @@
                   </div>
                   {% if episode.history %}
                     <p class="text-xs text-gray-400 mt-2 px-4">
-                      Last watched: {{ episode.history.0.end_date|date_tracker_format|default_if_none:"No date provided" }}
+                      Last watched: {{ episode.history.0.end_date|datetime_format:user }}
+                      {% if not episode.history.0.end_date %}No date provided{% endif %}
                       {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                     </p>
                   {% endif %}
