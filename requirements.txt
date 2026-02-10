@@ -21,7 +21,7 @@ icalendar==6.3.2
 Pillow==12.1.0
 psycopg[binary,pool]==3.3.2
 python-decouple==3.8
-redis[hiredis]==7.1.0
+redis[hiredis]==7.1.1
 requests==2.32.5
 requests-ratelimiter==0.8.0
 unidecode==1.4.0
