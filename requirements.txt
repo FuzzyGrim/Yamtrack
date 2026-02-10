@@ -16,7 +16,7 @@ django-redis==6.0.0
 django-select2==8.4.8
 django-simple-history==3.11.0
 django-widget-tweaks==1.5.1
-gunicorn==25.0.1
+gunicorn==25.0.3
 icalendar==6.3.2
 Pillow==12.1.0
 psycopg[binary,pool]==3.3.2
