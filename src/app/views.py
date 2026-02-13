@@ -32,14 +32,51 @@ def home(request):
     """Home page with media items in progress."""
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
+    show_hidden = request.GET.get("filter") == "hidden"
     items_limit = 14
 
-    list_by_type = BasicMedia.objects.get_in_progress(
-        request.user,
-        sort_by,
-        items_limit,
-        media_type_to_load,
+    hidden_item_ids = set(
+        request.user.home_hidden_items.values_list("id", flat=True),
     )
+
+    if show_hidden:
+        # Show only hidden items: fetch all in-progress, keep only hidden ones
+        list_by_type = BasicMedia.objects.get_in_progress(
+            request.user,
+            sort_by,
+            None,
+            media_type_to_load,
+        )
+
+        for media_type in list(list_by_type.keys()):
+            items = list_by_type[media_type]["items"]
+            hidden_items = [m for m in items if m.item_id in hidden_item_ids]
+            if hidden_items:
+                list_by_type[media_type]["items"] = hidden_items
+                list_by_type[media_type]["total"] = len(hidden_items)
+            else:
+                del list_by_type[media_type]
+
+    else:
+        # Normal in-progress view
+        list_by_type = BasicMedia.objects.get_in_progress(
+            request.user,
+            sort_by,
+            items_limit,
+            media_type_to_load,
+        )
+
+        # Filter out hidden items
+        if hidden_item_ids:
+            for media_type in list(list_by_type.keys()):
+                original_items = list_by_type[media_type]["items"]
+                filtered_items = [
+                    m for m in original_items if m.item_id not in hidden_item_ids
+                ]
+                list_by_type[media_type]["items"] = filtered_items
+                # Remove empty sections
+                if not filtered_items and not media_type_to_load:
+                    del list_by_type[media_type]
 
     # If this is an HTMX request to load more items for a specific media type
     if request.headers.get("HX-Request") and media_type_to_load:
@@ -53,8 +90,26 @@ def home(request):
         "current_sort": sort_by,
         "sort_choices": HomeSortChoices.choices,
         "items_limit": items_limit,
+        "hidden_count": len(hidden_item_ids),
+        "show_hidden": show_hidden,
     }
     return render(request, "app/home.html", context)
+
+
+@require_POST
+def toggle_home_item(request, item_id):
+    """Hide or unhide a single item from the home page."""
+    try:
+        item = Item.objects.get(id=item_id)
+    except Item.DoesNotExist:
+        return HttpResponse(status=404)
+
+    if request.user.home_hidden_items.filter(id=item_id).exists():
+        request.user.home_hidden_items.remove(item)
+    else:
+        request.user.home_hidden_items.add(item)
+
+    return HttpResponse(status=204)
 
 
 @require_POST
@@ -179,9 +234,7 @@ def media_search(request):
 
     # Enrich search results with user tracking data
     if data.get("results"):
-        data["results"] = helpers.enrich_items_with_user_data(
-            request, data["results"], "search"
-        )
+        data["results"] = helpers.enrich_items_with_user_data(request, data["results"])
 
     context = {
         "data": data,
@@ -211,7 +264,8 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
             if related_items:
                 media_metadata["related"][section_name] = (
                     helpers.enrich_items_with_user_data(
-                        request, related_items, section_name
+                        request,
+                        related_items,
                     )
                 )
 
@@ -265,7 +319,6 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
                     helpers.enrich_items_with_user_data(
                         request,
                         related_items,
-                        section_name,
                     )
                 )
 

@@ -318,16 +318,18 @@ class User(AbstractUser):
         help_text="Show progress bar",
     )
 
-    # Hide completed recommendations
-    hide_completed_recommendations = models.BooleanField(
-        default=False,
-        help_text="Hide completed media in recommendations",
+    # Items hidden from home page
+    home_hidden_items = models.ManyToManyField(
+        Item,
+        related_name="hidden_from_home_by",
+        blank=True,
+        help_text="Items hidden from the home page",
     )
 
-    # Hide zero ratings
-    hide_zero_rating = models.BooleanField(
-        default=False,
-        help_text="Hide zero ratings from media cards",
+    # Special Episodes preference
+    show_special_episodes = models.BooleanField(
+        default=True,
+        help_text="Show special episodes in In Progress",
     )
 
     # Calendar preferences

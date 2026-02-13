@@ -1611,9 +1611,6 @@
   .text-pretty {
     text-wrap: pretty;
   }
-  .break-words {
-    overflow-wrap: break-word;
-  }
   .whitespace-nowrap {
     white-space: nowrap;
   }

@@ -434,6 +434,18 @@ class MediaManager(models.Manager):
             if not media_list:
                 continue
 
+            # Filter out special episodes (Season 0) if disabled
+            if (
+                media_type == MediaTypes.SEASON.value
+                and not user.show_special_episodes
+            ):
+                media_list = [
+                    m for m in media_list if m.item.season_number != 0
+                ]
+
+            if not media_list:
+                continue
+
             # Annotate with max_progress and next_event
             self.annotate_max_progress(media_list, media_type)
             self._annotate_next_event(media_list)

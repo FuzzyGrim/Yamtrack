@@ -433,18 +433,3 @@ def get_pagination_range(current_page, total_pages, window):
         result.append(total_pages)
 
     return result
-
-
-@register.filter
-def show_media_score(rating, user):
-    """
-    Return if we should show the rating of a media.
-
-    Args:
-        rating: the rating value of the media
-        user: the user to check preferences for
-
-    Returns:
-        True if we should show the media score
-    """
-    return rating is not None and (not user.hide_zero_rating or rating > 0)

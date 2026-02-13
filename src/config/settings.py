@@ -268,9 +268,6 @@ LOGGING = {
         "celery.utils.functional": {
             "level": "WARNING",
         },
-        "fakeredis": {
-            "level": "WARNING",
-        },
     },
     "formatters": {
         "verbose": {
@@ -466,7 +463,6 @@ SIMKL_SECRET = config(
         "1b548a88ac7884a757cc58a552842913a9337f3cab3a4905836c6dc305dda316",
     ),
 )
-
 
 TESTING = False
 

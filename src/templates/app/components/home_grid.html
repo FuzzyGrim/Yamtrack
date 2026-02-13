@@ -1,7 +1,7 @@
 {% load app_tags %}
 
 {% for media in media_list.items %}
-  <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg transition-all duration-300"
+  <div class="home-card bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg transition-all duration-300"
        x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
     <div class="relative">
       <a href="{{ media.item|media_url }}">
@@ -56,6 +56,24 @@
                   hx-target="#{% component_id 'history' media.item %}"
                   hx-trigger="click once"
                   @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
+
+          {# Hide/Unhide from Home Button #}
+          {% if show_hidden %}
+            <button class="p-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-200 cursor-pointer"
+                    title="Unhide from home page"
+                    hx-post="{% url 'toggle_home_item' media.item.id %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-swap="outerHTML swap:300ms"
+                    hx-target="closest .home-card">{% include "app/icons/eye.svg" with classes="w-4 h-4" %}</button>
+          {% else %}
+            <button class="p-2.5 bg-red-600 text-white rounded-full hover:bg-red-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all duration-200 cursor-pointer"
+                    title="Hide from home page"
+                    hx-post="{% url 'toggle_home_item' media.item.id %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-swap="outerHTML swap:300ms"
+                    hx-target="closest .home-card"
+                    hx-confirm="Hide this item from the home page?">{% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}</button>
+          {% endif %}
         </div>
       </div>
     </div>

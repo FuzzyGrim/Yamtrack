@@ -7,13 +7,13 @@
 
 {% block content %}
   <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-    <h1 class="text-3xl font-bold text-center w-full sm:w-auto">In Progress</h1>
+    <h1 class="text-3xl font-bold text-center w-full sm:w-auto">{% if show_hidden %}Hidden Items{% else %}In Progress{% endif %}</h1>
     <div class="relative" x-data="{ open: false }">
       <button @click="open = !open"
               @click.outside="open = false"
               class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
         {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
-        <span class="text-sm font-medium">{{ current_sort|no_underscore|title }}</span>
+        <span class="text-sm font-medium">{% if show_hidden %}Hidden{% else %}{{ current_sort|no_underscore|title }}{% endif %}</span>
         {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
       </button>
       <div x-show="open"
@@ -26,20 +26,32 @@
            class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
         {% for value, label in sort_choices %}
           <a href="{% url 'home' %}?sort={{ value }}"
-             class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+             class="block w-full px-4 py-2 text-left text-sm transition-colors {% if not show_hidden and current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
             {{ label }}
           </a>
         {% endfor %}
+        {% if hidden_count > 0 %}
+          <div class="border-t border-gray-600 my-1"></div>
+          <a href="{% url 'home' %}?filter=hidden"
+             class="flex items-center justify-between w-full px-4 py-2 text-left text-sm transition-colors {% if show_hidden %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+            <span class="flex items-center gap-2">
+              {% include "app/icons/eye-closed.svg" with classes="w-3.5 h-3.5" %}
+              Hidden
+            </span>
+            <span class="text-xs bg-red-500/80 text-white px-1.5 py-0.5 rounded-full">{{ hidden_count }}</span>
+          </a>
+        {% endif %}
       </div>
     </div>
   </div>
+
   <div class="space-y-8">
     {% for media_type, media_list in list_by_type.items %}
       <div>
         <h2 class="text-xl font-semibold mb-4">{{ media_type|media_type_readable_plural }}</h2>
         <div id="media-grid-{{ media_type }}" class="media-grid">{% include "app/components/home_grid.html" %}</div>
 
-        {% if media_list.total > items_limit %}
+        {% if not show_hidden and media_list.total > items_limit %}
           <div class="mt-6 flex justify-center">
             <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_media_type={{ media_type }}"
                     hx-target="#media-grid-{{ media_type }}"
@@ -60,14 +72,31 @@
     {% empty %}
       <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
         <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-          {% include "app/icons/pulse.svg" with classes="w-8 h-8 text-gray-400" %}
+          {% if show_hidden %}
+            {% include "app/icons/eye-closed.svg" with classes="w-8 h-8 text-gray-400" %}
+          {% else %}
+            {% include "app/icons/pulse.svg" with classes="w-8 h-8 text-gray-400" %}
+          {% endif %}
         </div>
-        <h3 class="text-xl font-semibold mb-2">No media in progress</h3>
-        <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>
-        <div class="pt-4">
-          <a href="{{ 'tv'|sample_search }}"
-             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
-        </div>
+        <h3 class="text-xl font-semibold mb-2">{% if show_hidden %}No hidden items{% else %}No media in progress{% endif %}</h3>
+        <p class="text-gray-400 text-center max-w-md mb-4">
+          {% if show_hidden %}
+            You haven't hidden any items from the home page.
+          {% else %}
+            Start tracking your progress by marking items as "In Progress".
+          {% endif %}
+        </p>
+        {% if show_hidden %}
+          <div class="pt-4">
+            <a href="{% url 'home' %}"
+               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Back to Home</a>
+          </div>
+        {% else %}
+          <div class="pt-4">
+            <a href="{{ 'tv'|sample_search }}"
+               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
+          </div>
+        {% endif %}
       </div>
     {% endfor %}
   </div>

@@ -356,22 +356,3 @@ class AppTagsTests(TestCase):
                 self.assertTrue(len(inactive_result) > 0)
             except KeyError:
                 self.fail(f"icon raised KeyError for {media_type}")
-
-    def test_show_media_score(self):
-        """Test if we should show media rating or not."""
-        # Create mock users
-        mock_user_show = MagicMock()
-        mock_user_show.hide_zero_rating = False
-
-        mock_user_hide = MagicMock()
-        mock_user_hide.hide_zero_rating = True
-
-        # With hide_zero_rating=False, show all non-None scores
-        self.assertTrue(app_tags.show_media_score(1, mock_user_show))
-        self.assertTrue(app_tags.show_media_score(0, mock_user_show))
-        self.assertFalse(app_tags.show_media_score(None, mock_user_show))
-
-        # With hide_zero_rating=True, hide zero scores
-        self.assertTrue(app_tags.show_media_score(1, mock_user_hide))
-        self.assertFalse(app_tags.show_media_score(0, mock_user_hide))
-        self.assertFalse(app_tags.show_media_score(None, mock_user_hide))

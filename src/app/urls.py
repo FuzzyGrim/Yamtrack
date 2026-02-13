@@ -8,6 +8,7 @@ register_converter(converters.SourceChecker, "source")
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("home/hide/<int:item_id>", views.toggle_home_item, name="toggle_home_item"),
     path("medialist/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
     path(

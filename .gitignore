@@ -11,3 +11,13 @@ db.sqlite3-wal
 CLAUDE.md
 requests.http
 TODO.txt
+
+# NodeJS
+node_modules/
+
+# Database
+db/*.sqlite3
+db/db.sqlite3
+
+# Tailwind
+src/static/css/tailwind.css
