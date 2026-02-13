@@ -24,4 +24,6 @@ python-decouple==3.8
 redis[hiredis]==7.1.0
 requests==2.32.5
 requests-ratelimiter==0.8.0
+# https://setuptools.pypa.io/en/stable/history.html#v82-0-0 pkg_resources is removed from version 82.0.0 and onwards
+setuptools==81.0.0
 unidecode==1.4.0
