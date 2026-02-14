@@ -40,43 +40,24 @@ def home(request):
     )
 
     if show_hidden:
-        # Show only hidden items: fetch all in-progress, keep only hidden ones
+        # Show only hidden items — filter at DB level
         list_by_type = BasicMedia.objects.get_in_progress(
             request.user,
             sort_by,
             None,
             media_type_to_load,
+            include_item_ids=hidden_item_ids,
         )
 
-        for media_type in list(list_by_type.keys()):
-            items = list_by_type[media_type]["items"]
-            hidden_items = [m for m in items if m.item_id in hidden_item_ids]
-            if hidden_items:
-                list_by_type[media_type]["items"] = hidden_items
-                list_by_type[media_type]["total"] = len(hidden_items)
-            else:
-                del list_by_type[media_type]
-
     else:
-        # Normal in-progress view
+        # Normal in-progress view — exclude hidden items at DB level
         list_by_type = BasicMedia.objects.get_in_progress(
             request.user,
             sort_by,
             items_limit,
             media_type_to_load,
+            exclude_item_ids=hidden_item_ids if hidden_item_ids else None,
         )
-
-        # Filter out hidden items
-        if hidden_item_ids:
-            for media_type in list(list_by_type.keys()):
-                original_items = list_by_type[media_type]["items"]
-                filtered_items = [
-                    m for m in original_items if m.item_id not in hidden_item_ids
-                ]
-                list_by_type[media_type]["items"] = filtered_items
-                # Remove empty sections
-                if not filtered_items and not media_type_to_load:
-                    del list_by_type[media_type]
 
     # If this is an HTMX request to load more items for a specific media type
     if request.headers.get("HX-Request") and media_type_to_load:

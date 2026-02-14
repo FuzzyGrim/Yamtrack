@@ -268,7 +268,7 @@ class SteamImporter:
                         "image": game_details["image"],
                     }
 
-        except (ValueError, KeyError, TypeError) as e:
+        except (ValueError, KeyError, TypeError, services.ProviderAPIError) as e:
             logger.debug(
                 "Failed to match Steam game %s (appid: %s) with IGDB "
                 "via external_game: %s",

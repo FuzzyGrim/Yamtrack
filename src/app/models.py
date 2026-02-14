@@ -231,7 +231,16 @@ class MediaManager(models.Manager):
         """Return list of historical model names."""
         return [f"historical{media_type}" for media_type in MediaTypes.values]
 
-    def get_media_list(self, user, media_type, status_filter, sort_filter, search=None):
+    def get_media_list(
+        self,
+        user,
+        media_type,
+        status_filter,
+        sort_filter,
+        search=None,
+        exclude_item_ids=None,
+        include_item_ids=None,
+    ):
         """Get media list based on filters, sorting and search."""
         model = apps.get_model(app_label="app", model_name=media_type)
         queryset = model.objects.filter(user=user.id)
@@ -241,6 +250,12 @@ class MediaManager(models.Manager):
 
         if search:
             queryset = queryset.filter(item__title__icontains=search)
+
+        if exclude_item_ids:
+            queryset = queryset.exclude(item_id__in=exclude_item_ids)
+
+        if include_item_ids:
+            queryset = queryset.filter(item_id__in=include_item_ids)
 
         queryset = queryset.annotate(
             repeats=Window(
@@ -417,7 +432,15 @@ class MediaManager(models.Manager):
             models.functions.Lower("item__title"),
         )
 
-    def get_in_progress(self, user, sort_by, items_limit, specific_media_type=None):
+    def get_in_progress(
+        self,
+        user,
+        sort_by,
+        items_limit,
+        specific_media_type=None,
+        exclude_item_ids=None,
+        include_item_ids=None,
+    ):
         """Get a media list of in progress media by type."""
         list_by_type = {}
         media_types = self._get_media_types_to_process(user, specific_media_type)
@@ -429,6 +452,8 @@ class MediaManager(models.Manager):
                 media_type=media_type,
                 status_filter=Status.IN_PROGRESS.value,
                 sort_filter=None,
+                exclude_item_ids=exclude_item_ids,
+                include_item_ids=include_item_ids,
             )
 
             if not media_list:
