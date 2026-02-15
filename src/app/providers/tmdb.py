@@ -224,6 +224,97 @@ def movie(media_id):
     return data
 
 
+def series(media_id):
+    """Return the metadata for the selected series from The Movie Database."""
+    cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/tv/{media_id}"
+        params = {
+            **base_params,
+            "append_to_response": "recommendations,external_ids",
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = {
+            "media_id": media_id,
+            "source": Sources.TMDB.value,
+            "source_url": f"https://www.themoviedb.org/tv/{media_id}",
+            "media_type": MediaTypes.TV.value,
+            "title": response["name"],
+            "image": get_image_url(response["poster_path"]),
+            "genres": get_genres(response["genres"]),
+            "number_of_seasons": response["number_of_seasons"],
+            "score": get_score(response["vote_average"]),
+            "score_count": response["vote_count"],
+            "details": {
+                "status": response["status"],
+                "studios": get_companies(response["production_companies"]),
+                "country": get_country(response["production_countries"]),
+                "languages": get_languages(response["spoken_languages"]),
+            },
+            "external_links": get_external_links(response.get("external_ids", {})),
+        }
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def season(series_id, season_number):
+    """Return the metadata for the selected season from The Movie Database."""
+    cache_key = (
+        f"{Sources.TMDB.value}_{MediaTypes.SEASON.value}_{series_id}_{season_number}"
+    )
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/tv/{series_id}/season/{season_number}"
+
+        params = {
+            **base_params,
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        episodes = [
+            {
+                "episode_name": episode["name"],
+                "episode_number": episode["episode_number"],
+                "image": get_image_url(episode["still_path"]),
+            }
+            for episode in response["episodes"]
+        ]
+
+        data = {
+            "season_id": response["id"],
+            "episodes": episodes,
+            "image": get_image_url(response["poster_path"]),
+        }
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def get_cached_seasons(media_id, season_numbers):
     """Check cache for seasons and return cached data and list of uncached seasons."""
     cached_data = {}
