@@ -93,7 +93,7 @@
                  x-model="inputDateTime">
           {% if episode.air_date %}
             <button type="button"
-                    @click="inputDateTime = inputType === 'datetime-local' ? '{{ episode.air_date }}T{% now "H:i" %}' : '{{ episode.air_date }}'"
+                    @click="inputDateTime = inputType === 'datetime-local' ? '{{ episode.air_date|escapejs }}T{% now "H:i" %}' : '{{ episode.air_date|escapejs }}'"
                     class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors bg-[#2a2f35] px-2 py-1 rounded cursor-pointer focus:outline-none">
               {% include "app/icons/calendar.svg" with classes="w-4 h-4 mr-1" %}
               Air date
@@ -118,7 +118,7 @@
             {# Dropdown Toggle #}
             <button type="button"
                     @click="dropdownOpen = !dropdownOpen"
-                    :style="dropdownOpen ? 'background-color: #3730a3;' : 'background-color: #4f46e5;'"
+                    :style="dropdownOpen ? 'background-color: #4338ca;' : 'background-color: #4f46e5;'"
                     class="px-2 py-2 text-white rounded-r-md border-l border-indigo-500 transition duration-300 cursor-pointer focus:outline-none flex items-center justify-center">
               <svg class="w-4 h-4 transition-transform duration-200"
                    :class="{'rotate-180': dropdownOpen}"
@@ -145,7 +145,7 @@
               {# Option B - Finish Time #}
               <button type="button"
                       @click="dropdownOpen = false"
-                      onclick=" const runtimeMins = parseInt('{{ episode.runtime|default:45 }}') || 45; const d = new Date(); d.setMinutes(d.getMinutes() + runtimeMins); const formatted = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); const form = this.closest('form'); const input = form.querySelector('input[name=\'end_date\']'); if (input) { input.value = input.type === 'date' ? formatted.split('T')[0] : formatted; input.dispatchEvent(new Event('input', { bubbles: true })); } "
+                      onclick=" const runtimeMins = parseInt('{{ episode.runtime|default:45|escapejs }}') || 45; const d = new Date(); d.setMinutes(d.getMinutes() + runtimeMins); const formatted = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); const form = this.closest('form'); const input = form.querySelector('input[name=\'end_date\']'); if (input) { input.value = input.type === 'date' ? formatted.split('T')[0] : formatted; input.dispatchEvent(new Event('input', { bubbles: true })); } "
                       class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                       title="Fills in the date and time the episode will be finished if started now">
                 Fill end time
