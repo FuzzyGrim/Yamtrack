@@ -82,6 +82,7 @@
         <label class="block text-sm font-medium text-gray-300 mb-2">Watch Date</label>
 
         {# djlint:off #}
+        {# Watch Date Input with Inline Clear Button #}
         <div class="relative" x-data="{ 
             inputDateTime: '{% if TRACK_TIME %}{% now "Y-m-d\TH:i" %}{% else %}{% now "Y-m-d" %}{% endif %}',
             inputType: '{% if TRACK_TIME %}datetime-local{% else %}date{% endif %}'
@@ -91,29 +92,24 @@
                  name="end_date"
                  onfocus="this.showPicker?.()"
                  x-model="inputDateTime">
-          {% if episode.air_date %}
-            <button type="button"
-                    @click="inputDateTime = inputType === 'datetime-local' ? '{{ episode.air_date|escapejs }}T{% now "H:i" %}' : '{{ episode.air_date|escapejs }}'"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors bg-[#2a2f35] px-2 py-1 rounded cursor-pointer focus:outline-none">
-              {% include "app/icons/calendar.svg" with classes="w-4 h-4 mr-1" %}
-              Air date
-            </button>
-          {% endif %}
         </div>
         {# djlint:on #}
 
-        {# Submit Area with Split Button #}
-        <div class="mt-6 flex items-center justify-end">
+        {# Submit Area #}
+        <div class="mt-6 flex items-center justify-end gap-3">
+          {# Clear Button #}
+          <button type="reset"
+                  class="px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-colors bg-red-600/10 hover:bg-red-600/20 rounded-md cursor-pointer focus:outline-none border border-red-600/30"
+                  title="Clear date and time">Clear</button>
 
           <div class="relative inline-flex shadow-sm rounded-md"
                x-data="{ dropdownOpen: false }"
                @click.outside="dropdownOpen = false">
 
-            {# Main Button - Standard Manual Add #}
+            {# Main Button #}
             <button type="submit"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-l-md transition duration-300 cursor-pointer font-medium focus:outline-none">
-              Add watch
-            </button>
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-l-md transition duration-300 cursor-pointer font-medium focus:outline-none"
+                    title="Add watched entry with current settings">Add watch</button>
 
             {# Dropdown Toggle #}
             <button type="button"
@@ -138,18 +134,27 @@
               {# Option A - Current Time #}
               <button type="button"
                       @click="dropdownOpen = false"
-                      onclick=" const d = new Date(); const formatted = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); const form = this.closest('form'); const input = form.querySelector('input[name=\'end_date\']'); if (input) { input.value = input.type === 'date' ? formatted.split('T')[0] : formatted; input.dispatchEvent(new Event('input', { bubbles: true })); } "
-                      class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer border-b border-gray-700"
-                      title="Fills in the current date and time">Fill current time</button>
+                      onclick="const d = new Date(); const formatted = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); const form = this.closest('form'); const input = form.querySelector('input[name=\'end_date\']'); if (input) { input.value = input.type === 'date' ? formatted.split('T')[0] : formatted; input.dispatchEvent(new Event('input', { bubbles: true })); }"
+                      class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
+                      title="Fills in the current date and time">Fill in current time</button>
 
               {# Option B - Finish Time #}
               <button type="button"
                       @click="dropdownOpen = false"
-                      onclick=" const runtimeMins = parseInt('{{ episode.runtime|default:45|escapejs }}') || 45; const d = new Date(); d.setMinutes(d.getMinutes() + runtimeMins); const formatted = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); const form = this.closest('form'); const input = form.querySelector('input[name=\'end_date\']'); if (input) { input.value = input.type === 'date' ? formatted.split('T')[0] : formatted; input.dispatchEvent(new Event('input', { bubbles: true })); } "
+                      onclick="const runtimeMins = parseInt('{{ episode.runtime|default:45|escapejs }}') || 45; const d = new Date(); d.setMinutes(d.getMinutes() + runtimeMins); const formatted = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); const form = this.closest('form'); const input = form.querySelector('input[name=\'end_date\']'); if (input) { input.value = input.type === 'date' ? formatted.split('T')[0] : formatted; input.dispatchEvent(new Event('input', { bubbles: true })); }"
                       class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                       title="Fills in the date and time the episode will be finished if started now">
-                Fill end time
+                Fill in end time
               </button>
+
+              {# Option C - Air Date #}
+              {% if episode.air_date %}
+                <button type="button"
+                        @click="dropdownOpen = false"
+                        onclick="const airDate = '{{ episode.air_date|escapejs }}'; const d = new Date(); const formatted = airDate + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); const form = this.closest('form'); const input = form.querySelector('input[name=\'end_date\']'); if (input) { input.value = input.type === 'date' ? airDate : formatted; input.dispatchEvent(new Event('input', { bubbles: true })); }"
+                        class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
+                        title="Fills in the air date of the episode, if available">Fill in air date</button>
+              {% endif %}
             </div>
 
           </div>
