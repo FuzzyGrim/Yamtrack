@@ -196,7 +196,7 @@ def movie(media_id):
                 "character": member.get("character"),
                 "image": get_image_url(member.get("profile_path")),
             }
-            for member in cast[:10]
+            for member in cast[:30]
         ]
 
         data = {
