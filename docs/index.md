@@ -12,6 +12,21 @@ Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, vide
 
 You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) using the username `demo` and password `demo`.
 
+## ✅ Quick start
+
+1. Follow the step-by-step guide in [installation](installation.md).
+2. Review required settings in [env-variables](env-variables.md).
+3. Open the app at `http://localhost:8000`.
+
+## 🧭 Documentation
+
+- [Installation](installation.md)
+- [Environment Variables](env-variables.md)
+- [Administration](administration.md)
+- [Media Imports](media-imports.md)
+- [Social Auth](social-auth.md)
+- [API Overview](api/index.md)
+
 ## ✨ Features
 
 - 🎬 Track movies, tv shows, anime, manga, games, books and comics.
@@ -57,34 +72,9 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 
 ## 🐳 Installing with Docker
 
-Copy the default `docker-compose.yml` file from the repository and set the environment variables. This would use a SQlite database, which is enough for most use cases.
+For the full step-by-step guide, see [installation](installation.md).
 
-To start the containers run:
-
-```bash
-docker-compose up -d
-```
-
-Alternatively, if you need a PostgreSQL database, you can use the `docker-compose.postgres.yml` file.
-
-### 🌊 Reverse Proxy Setup
-
-When using a reverse proxy, if you see a `403 - Forbidden` error, you need to set the `URLS` environment variable to the URL you are using for the app.
-
-```bash
-services:
-  yamtrack:
-    ...
-    environment:
-      - URLS=https://yamtrack.mydomain.com
-    ...
-```
-
-Note that the setting must include the correct protocol (`https` or `http`), and must not include the application `/` context path. Multiple origins can be specified by separating them with a comma (`,`).
-
-### ⚙️ Environment variables
-
-For detailed information on environment variables, please refer to the [Environment Variables wiki page](https://fuzzygrim.github.io/Yamtrack/env-variables).
+You can run Yamtrack with the default `docker-compose.yml` (SQLite) or switch to `docker-compose.postgres.yml` for PostgreSQL. Environment variables are documented in [env-variables](env-variables.md).
 
 ## 💻 Local development
 
@@ -122,7 +112,7 @@ python manage.py migrate
 python manage.py runserver & celery -A config worker --beat --scheduler django --loglevel DEBUG & tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
 ```
 
-Go to: http://localhost:8000
+Go to: <http://localhost:8000>
 
 ## 💪 Support the Project
 

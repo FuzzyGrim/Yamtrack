@@ -20,7 +20,7 @@ This page outlines the environment variables used in the YamTrack project.
 
 ## Media Import
 
-See <https://fuzzygrim.github.io/Yamtrack/media-imports>.
+See [media-imports](media-imports.md).
 
 ## Redis and Django Settings
 
@@ -47,7 +47,7 @@ See <https://fuzzygrim.github.io/Yamtrack/media-imports>.
 | `TZ`                            | Timezone (e.g., `Europe/Berlin`). Default to `UTC`.                                                                                                                   |
 | `WEB_CONCURRENCY`               | Number of web server processes. Default to `1`.                                                                                                                       |
 | `SOCIAL_PROVIDERS`              | Comma-separated list of social authentication providers to enable (e.g., `allauth.socialaccount.providers.openid_connect,allauth.socialaccount.providers.github`).    |
-| `SOCIALACCOUNT_PROVIDERS`       | JSON configuration for social providers. See the [Docs](https://fuzzygrim.github.io/Yamtrack/social-auth) for an OIDC configuration example.                          |
+| `SOCIALACCOUNT_PROVIDERS`       | JSON configuration for social providers. See the [Docs](social-auth.md) for an OIDC configuration example.                                                            |
 | `ACCOUNT_DEFAULT_HTTP_PROTOCOL` | Protocol for social providers. If your `redirect_uri` in OIDC config is `https`, set this to `https`. Default is determined based on your `CSRF` settings.            |
 | `ACCOUNT_LOGOUT_REDIRECT_URL`   | Absolute URL to redirect users after logout. Useful for OpenID Connect providers to ensure complete logout from the external authentication provider.                 |
 | `SOCIALACCOUNT_ONLY`            | Default to `False`. Set to `True` to disable local authentication when using social authentication only.                                                              |

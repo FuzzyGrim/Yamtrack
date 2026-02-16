@@ -8,6 +8,13 @@ repo_name: FuzzyGrim/Yamtrack
 repo_url: https://github.com/FuzzyGrim/Yamtrack
 copyright: Copyright &copy; 2022 - 2026 FuzzyGrim
 edit_uri: edit/main/docs/
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Environment Variables: env-variables.md
+  - Media Imports: media-imports.md
+  - Social Auth: social-auth.md
+  - Administration: administration.md
 theme:
   name: material
   language: en

@@ -10,6 +10,8 @@ To access the admin page of the application, follow these steps:
       ADMIN_ENABLED=True
       ```
 
+      For related settings, see [env-variables](env-variables.md).
+
 2. **Access the Admin Page**: Once enabled, you can access the admin interface at the following URL:
 
       ```bash

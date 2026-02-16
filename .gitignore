@@ -11,3 +11,5 @@ db.sqlite3-wal
 CLAUDE.md
 requests.http
 TODO.txt
+
+.cache

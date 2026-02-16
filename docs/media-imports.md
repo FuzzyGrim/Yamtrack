@@ -3,7 +3,7 @@
 Most media import sources can be used directly by entering your username or importing via CSV without any additional configuration. This guide covers only those services that may require special setup for certain scenarios.
 
 !!! note
-        The import process matches your data with the IDs from the sources that Yamtrack uses. Each media type uses different sources, so make sure to have them properly configured. See [Media Sources](https://fuzzygrim.github.io/Yamtrack/env-variables/#media-sources) for more information.
+    The import process matches your data with the IDs from the sources that Yamtrack uses. Each media type uses different sources, so make sure to have them properly configured. See [Media Sources](env-variables.md#media-sources) for more information.
 
 ## Trakt
 
@@ -55,7 +55,7 @@ If you have a public AniList profile, you can import your media by simply enteri
 
 For private AniList profiles, you'll need to set up OAuth authentication:
 
-1. Go to https://anilist.co/settings/developer and create a new application
+1. Go to <https://anilist.co/settings/developer> and create a new application
 2. Set the **Redirect URI** to: `https://your_domain.com/import/anilist/private`
 3. Configure the following environment variables:
 
