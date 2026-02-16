@@ -60,26 +60,10 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
         return title
 
     def _extract_external_ids(self, payload):
-        # Try to get from item first
         provider_ids = payload["Item"].get("ProviderIds", {})
-    
-        tmdb_id = provider_ids.get("Tmdb")
-        imdb_id = provider_ids.get("Imdb")
-        tvdb_id = provider_ids.get("Tvdb")
-        
-        # Fallback to series provider IDs if not found at item level
-        if not tmdb_id and "Series" in payload:
-            series_provider_ids = payload["Series"].get("ProviderIds", {})
-            tmdb_id = series_provider_ids.get("Tmdb")
-        if not imdb_id and "Series" in payload:
-            series_provider_ids = payload["Series"].get("ProviderIds", {})
-            imdb_id = series_provider_ids.get("Imdb")
-        if not tvdb_id and "Series" in payload:
-            series_provider_ids = payload["Series"].get("ProviderIds", {})
-            tvdb_id = series_provider_ids.get("Tvdb")
-        
+        series_provider_ids = payload.get("Series", {}).get("ProviderIds", {})
         return {
-            "tmdb_id": tmdb_id,
-            "imdb_id": imdb_id,
-            "tvdb_id": tvdb_id,
+            "tmdb_id": provider_ids.get("Tmdb") or series_provider_ids.get("Tmdb"),
+            "imdb_id": provider_ids.get("Imdb") or series_provider_ids.get("Imdb"),
+            "tvdb_id": provider_ids.get("Tvdb") or series_provider_ids.get("Tvdb"),
         }
