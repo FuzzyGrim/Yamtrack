@@ -5,22 +5,22 @@
             min-width: 176px;
             height: 264px"
      role="listitem">
-  <a href="https://www.themoviedb.org/person/{{ cast.id }}"
-     target="_blank"
-     class="relative block w-full"
-     style="height: 78%">
+
+  <div class="relative block w-full bg-[#3e454d]" style="height: 78%">
     <img alt="{{ cast.name }}"
-         class="lazyload absolute inset-0 w-full h-full object-cover bg-[#3e454d]"
+         class="lazyload absolute inset-0 w-full h-full object-cover"
          src="{{ IMG_NONE }}"
          data-src="{{ cast.image }}">
 
     <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-      <div class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 transition-all duration-200"
-           title="Open TMDB page for {{ cast.name }}">
+      <a href="https://www.themoviedb.org/person/{{ cast.id }}"
+         target="_blank"
+         class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 transition-all duration-200"
+         title="Open TMDB page for {{ cast.name }}">
         {% include "app/icons/external-link.svg" with classes="w-5 h-5" %}
-      </div>
+      </a>
     </div>
-  </a>
+  </div>
 
   <div class="px-3 py-2 flex-1 flex flex-col justify-center">
     <div class="text-sm font-semibold text-white line-clamp-1"
