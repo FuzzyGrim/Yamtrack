@@ -1,8 +1,8 @@
 name: build-docs
 on:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - feat/add-docs
   workflow_dispatch:
 permissions:
   contents: write
