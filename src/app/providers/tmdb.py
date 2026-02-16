@@ -221,6 +221,7 @@ def movie(media_id):
                 "languages": get_languages(response["spoken_languages"]),
             },
             "cast": filtered_cast,
+            "total_cast_count": len(cast),
             "related": {
                 collection_response.get("name", "collection"): collection_items,
                 "recommendations": get_related(
