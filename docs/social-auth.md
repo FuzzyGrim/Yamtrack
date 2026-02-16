@@ -12,7 +12,7 @@ Social authentication in YamTrack is configured through environment variables. Y
 
 ## Enabling Social Providers
 
-Use the ```SOCIAL_PROVIDERS``` environment variable to specify which providers you want to enable:
+Use the `SOCIAL_PROVIDERS` environment variable to specify which providers you want to enable:
 
 ```bash
 SOCIAL_PROVIDERS=allauth.socialaccount.providers.openid_connect,allauth.socialaccount.providers.github
@@ -22,7 +22,7 @@ This example enables both OpenID Connect and GitHub authentication.
 
 ## Configuring Providers
 
-Provider configuration is done through the ```SOCIALACCOUNT_PROVIDERS``` environment variable. This should be a JSON string containing all the necessary settings for your providers.
+Provider configuration is done through the `SOCIALACCOUNT_PROVIDERS` environment variable. This should be a JSON string containing all the necessary settings for your providers.
 
 ### Example: OpenID Connect with Authelia
 
@@ -43,9 +43,9 @@ SOCIALACCOUNT_PROVIDERS={"github":{"SCOPE":["user","repo","read:org"]}}
 ### OpenID Connect (Authelia, Authentik, Keycloak, etc.)
 
 1. In your OIDC provider, create a new application/client:
-   - Set the redirect URI to: ```https://yamtrack.yourdomain.com/accounts/oidc/[provider_id]/login/callback/```
-   - Replace ```[provider_id]``` with the value you set in the ```provider_id``` field in your configuration
-   - For example: ```https://yamtrack.yourdomain.com/accounts/oidc/authelia/login/callback/```
+   - Set the redirect URI to: `https://yamtrack.yourdomain.com/accounts/oidc/[provider_id]/login/callback/`
+   - Replace `[provider_id]` with the value you set in the `provider_id` field in your configuration
+   - For example: `https://yamtrack.yourdomain.com/accounts/oidc/authelia/login/callback/`
    - Set `token_endpoint_auth_method` to `client_secret_post`.
 
 2. Configure YamTrack with the client ID and secret from your provider
@@ -56,7 +56,7 @@ In Authentik:
 
 1. Create an OAuth2/OpenID Provider (under Applications/Providers) with these settings:
    - Name: Yamtrack
-   - Redirect URI: ```https://yamtrack.yourdomain.com/accounts/oidc/authentik/login/callback/```
+   - Redirect URI: `https://yamtrack.yourdomain.com/accounts/oidc/authentik/login/callback/`
 
 2. In YamTrack, configure:
 

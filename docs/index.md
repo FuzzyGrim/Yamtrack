@@ -84,7 +84,7 @@ Note that the setting must include the correct protocol (`https` or `http`), and
 
 ### ⚙️ Environment variables
 
-For detailed information on environment variables, please refer to the [Environment Variables wiki page](https://github.com/FuzzyGrim/Yamtrack/wiki/Environment-Variables).
+For detailed information on environment variables, please refer to the [Environment Variables wiki page](https://fuzzygrim.github.io/Yamtrack/env-variables).
 
 ## 💻 Local development
 

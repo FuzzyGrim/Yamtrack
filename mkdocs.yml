@@ -67,7 +67,7 @@ extra:
       link: https://github.com/FuzzyGrim/Yamtrack
 extra_css:
   - stylesheets/extra.css
-  - stylesheets/neoteroi-mkdocs.min.css
+  # - stylesheets/neoteroi-mkdocs.min.css
 markdown_extensions:
   - admonition
   - pymdownx.details
