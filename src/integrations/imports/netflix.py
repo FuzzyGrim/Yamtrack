@@ -8,9 +8,10 @@ from datetime import datetime
 from django.apps import apps
 from django.utils import timezone
 
-import app
+import app.forms
 from app.models import MediaTypes, Sources, Status
 from app.providers.services import ProviderAPIError
+from app.providers.tmdb import get_image_url
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -22,8 +23,6 @@ class TMDBInfo:
     """Data container for hierarchical media information retrieved from TMDB."""
 
     media_id: str
-    show_cover: str
-    season_id: str
     season_cover: str
     num_episodes: int
     episode_number: int
@@ -40,9 +39,9 @@ def _parse_date(date_str):
     if not date_str:
         return None
 
-    date = datetime.strptime(date_str.strip(), "%m/%d/%y").astimezone()
-
-    if not date:
+    try:
+        date = datetime.strptime(date_str.strip(), "%m/%d/%y").astimezone()
+    except ValueError:
         logger.warning("Could not parse date: %s", date_str)
         return None
 
@@ -50,7 +49,6 @@ def _parse_date(date_str):
         hour=0,
         minute=0,
         second=0,
-        tzinfo=timezone.get_current_timezone(),
     )
 
 
@@ -210,7 +208,7 @@ class NetflixImporter:
 
         if info.media_id not in self.identified_media:
             try:
-                series = app.providers.tmdb.series(info.media_id)
+                series = app.providers.tmdb.tv(info.media_id)
             except ProviderAPIError as e:
                 logger.warning("Error looking up %s, in TMDB: %s", title, e)
                 return
@@ -219,17 +217,16 @@ class NetflixImporter:
                 "title": title,
                 "media_type": MediaTypes.TV,
                 "image": series["image"],
-                "number_of_seasons": series["number_of_seasons"],
+                "number_of_seasons": series["details"]["seasons"],
                 "seasons": [],
             }
 
         if not any(
-            season["season_id"] == info.season_id
+            season["season_number"] == season_number
             for season in self.identified_media[info.media_id]["seasons"]
         ):
             self.identified_media[info.media_id]["seasons"].append(
                 {
-                    "season_id": info.season_id,
                     "season_number": season_number,
                     "image": info.season_cover,
                     "number_of_episodes": info.num_episodes,
@@ -238,7 +235,7 @@ class NetflixImporter:
             )
 
         for season in self.identified_media[info.media_id]["seasons"]:
-            if season["season_id"] == info.season_id:
+            if season["season_number"] == season_number:
                 season["watched_episodes"].append(
                     {
                         "episode_name": episode_name,
@@ -272,7 +269,7 @@ class NetflixImporter:
 
         for media_id in self.series_title_id_map[series_title]:
             try:
-                season = app.providers.tmdb.season(media_id, season_number)
+                response = app.providers.tmdb.tv_with_seasons(media_id, [season_number])
             except ProviderAPIError as e:
                 logger.warning(
                     "Error looking up season %s of %s, in TMDB: %s",
@@ -282,16 +279,16 @@ class NetflixImporter:
                 )
                 break
 
+            season = response["season/" + str(season_number)]
+
             for episode in season["episodes"]:
-                if episode["episode_name"] == episode_name:
+                if episode["name"] == episode_name:
                     return TMDBInfo(
                         media_id=media_id,
-                        show_cover=season["image"],
-                        season_id=season["season_id"],
                         season_cover=season["image"],
-                        num_episodes=len(season["episodes"]),
+                        num_episodes=season["details"]["episodes"],
                         episode_number=episode["episode_number"],
-                        episode_cover=episode["image"],
+                        episode_cover=get_image_url(episode["still_path"]),
                     )
 
         self.warnings.append(
