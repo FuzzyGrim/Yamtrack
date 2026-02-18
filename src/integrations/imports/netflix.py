@@ -1,3 +1,4 @@
+import io
 import logging
 import re
 from collections import defaultdict
@@ -10,6 +11,7 @@ from django.utils import timezone
 
 import app.forms
 from app.models import MediaTypes, Sources, Status
+from app.providers import services
 from app.providers.services import ProviderAPIError
 from app.providers.tmdb import get_image_url
 from integrations.imports import helpers
@@ -103,18 +105,21 @@ class NetflixImporter:
     def import_data(self):
         """Import all Netflix watch history data from the CSV file."""
         try:
-            decoded_file = self.file.read().decode("utf-8").splitlines()
+            text_stream = io.TextIOWrapper(self.file, encoding="utf-8", newline="")
         except UnicodeDecodeError as e:
             msg = "Invalid file format. Please upload a CSV file."
             raise MediaImportError(msg) from e
 
-        reader = DictReader(decoded_file)
-        rows = list(reader)
+        reader = DictReader(text_stream)
 
         # match netflix watch history to exact TMDB entries
-        for row in rows:
+        for row in reader:
             try:
                 self._map_title_to_tmdb_id(row)
+            except services.ProviderAPIError as error:
+                error_msg = f"Error processing entry with ID {row['Title']} \n {error}"
+                self.warnings.append(error_msg)
+                continue
             except Exception as error:
                 error_msg = f"Error processing entry: {row}"
                 raise MediaImportUnexpectedError(error_msg) from error
@@ -125,12 +130,13 @@ class NetflixImporter:
                 self._process_identified_media(media_id, media)
             except Exception as error:
                 error_msg = f"Error processing entry: {media}"
-                raise MediaImportUnexpectedError(error_msg) from error
+                logger.exception(error_msg)
+                self.warnings.append(f"{error_msg}. Error: {error}")
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
 
-        deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
+        deduplicated_messages = "\n".join(self.warnings)
 
         imported_counts = {
             media_type: len(media_list)
@@ -158,8 +164,8 @@ class NetflixImporter:
 
         if regex_match:
             # handles the case "show: Season X: episode title"
-            show, season, episode_name = regex_match.groups()
-            self._create_tv_series_entry(show, season, episode_name, date)
+            show, season_number, episode_name = regex_match.groups()
+            self._create_tv_series_entry(show, int(season_number), episode_name, date)
             return
 
         # handles the case "movie title" or "show: episode title"
@@ -221,29 +227,33 @@ class NetflixImporter:
                 "seasons": [],
             }
 
-        if not any(
-            season["season_number"] == season_number
-            for season in self.identified_media[info.media_id]["seasons"]
-        ):
-            self.identified_media[info.media_id]["seasons"].append(
-                {
-                    "season_number": season_number,
-                    "image": info.season_cover,
-                    "number_of_episodes": info.num_episodes,
-                    "watched_episodes": [],
-                }
-            )
+        seasons_list = self.identified_media[info.media_id]["seasons"]
+        season_entry = next(
+            (
+                s
+                for s in self.identified_media[info.media_id]["seasons"]
+                if s["season_number"] == season_number
+            ),
+            None,
+        )
 
-        for season in self.identified_media[info.media_id]["seasons"]:
-            if season["season_number"] == season_number:
-                season["watched_episodes"].append(
-                    {
-                        "episode_name": episode_name,
-                        "episode_number": info.episode_number,
-                        "image": info.episode_cover,
-                        "date": date,
-                    }
-                )
+        if not season_entry:
+            season_entry = {
+                "season_number": season_number,
+                "image": info.season_cover,
+                "number_of_episodes": info.num_episodes,
+                "watched_episodes": [],
+            }
+            seasons_list.append(season_entry)
+
+        season_entry["watched_episodes"].append(
+            {
+                "episode_name": episode_name,
+                "episode_number": info.episode_number,
+                "image": info.episode_cover,
+                "date": date,
+            }
+        )
 
     def _get_series_info_from_tmdb(
         self, series_title, season_number, episode_name
@@ -342,9 +352,7 @@ class NetflixImporter:
                         media_id=media_id,
                         media_type=MediaTypes.EPISODE.value,
                         image=episode["image"],
-                        season_number=int(
-                            season["season_number"]
-                        ),  # important for update_episode_references
+                        season_number=season["season_number"],
                         episode_number=episode["episode_number"],
                         date=_parse_date(episode["date"]),
                     )
@@ -417,6 +425,6 @@ class NetflixImporter:
             form.instance._history_date = date or timezone.now()
             self.bulk_media[media_type].append(form.instance)
         else:
-            error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"
+            error_msg = f"{media_id} ({media_type}): {form.errors.as_json()}"
             self.warnings.append(error_msg)
             logger.error(error_msg)
