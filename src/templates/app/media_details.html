@@ -498,13 +498,9 @@
         <section class="mb-8">
           <h2 class="text-xl font-bold mb-4">Cast</h2>
           <div class="flex overflow-x-auto gap-4 pb-4 snap-x items-stretch">
-
-            {# 1. Removed the redundant slice, assuming backend already limits to 30 #}
             {% for cast in media.cast %}
               {% include "app/components/cast_card.html" with cast=cast %}
             {% endfor %}
-
-            {# 2. Use the new backend variable to check if there are more than 30 total #}
             {% if media.total_cast_count > 30 %}
               <a href="{{ media.source_url }}/cast"
                  target="_blank"
@@ -516,11 +512,9 @@
                   {% include "app/icons/external-link.svg" with classes="w-6 h-6" %}
                 </div>
                 <span class="text-sm font-semibold text-white">View all</span>
-                {# 3. Display the true total count from the backend #}
                 <span class="text-xs text-gray-400 mt-1">{{ media.total_cast_count }} cast members</span>
               </a>
             {% endif %}
-
           </div>
         </section>
       {% endif %}
