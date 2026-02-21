@@ -55,13 +55,21 @@ class BaseWebhookProcessor:
             self._process_tv(payload, user, ids)
         elif media_type == MediaTypes.MOVIE.value:
             self._process_movie(payload, user, ids)
-
+            
     def _process_tv(self, payload, user, ids):
         media_id, season_number, episode_number = self._find_tv_media_id(ids)
         if not media_id:
             logger.warning("No matching TMDB ID found for TV show")
             return
-
+        if season_number is None: # If season/episode weren't resolved from TMDB (series-level ID was used), fall back to the values sent directly in the webhook payload
+            season_number = payload["Item"].get("ParentIndexNumber")
+        if episode_number is None:
+            episode_number = payload["Item"].get("IndexNumber")
+        if season_number is None or episode_number is None:
+            logger.warning(
+                "Could not determine season/episode number for TMDB ID: %s", media_id
+            )
+            return
         tvdb_id = app.providers.tmdb.tv_with_seasons(media_id, [season_number])[
             "tvdb_id"
         ]
@@ -150,14 +158,18 @@ class BaseWebhookProcessor:
         ]:
             if ext_id:
                 response = app.providers.tmdb.find(ext_id, ext_type)
-                if response.get("tv_episode_results"):
+                if response.get("tv_episode_results"): # Episode-level ID: TMDB returns season+episode directly
                     result = response["tv_episode_results"][0]
                     return (
                         result.get("show_id"),
                         result.get("season_number"),
                         result.get("episode_number"),
                     )
+                if response.get("tv_results"): # Series-level ID: TMDB returns the show but not the episode, Season/episode will be taken from the webhook payload instead
+                    return response["tv_results"][0].get("id"), None, None
+                
         return None, None, None
+
 
     def _fetch_mapping_data(self):
         """Fetch anime mapping data with caching."""
