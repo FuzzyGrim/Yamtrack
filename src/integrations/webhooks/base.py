@@ -172,7 +172,7 @@ class BaseWebhookProcessor:
                 if response.get("tv_results"):
                     return response["tv_results"][0].get("id"), None, None
         return None, None, None
-        
+
     def _fetch_mapping_data(self):
         """Fetch anime mapping data with caching."""
         data = cache.get("anime_mapping_data")
