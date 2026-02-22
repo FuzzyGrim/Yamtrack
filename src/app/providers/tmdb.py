@@ -236,7 +236,10 @@ def movie(media_id):
                     MediaTypes.MOVIE.value,
                 ),
             },
-            "external_links": get_external_links(response.get("external_ids", {}), media_id),
+            "external_links": get_external_links(
+                response.get("external_ids", {}),
+                media_id
+            ),
             "providers": response.get("watch/providers", {}).get("results", {}),
         }
 
