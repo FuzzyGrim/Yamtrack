@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -54,6 +54,7 @@ class MediaDetailsViewTests(TestCase):
             MediaTypes.MOVIE.value,
             "238",
             Sources.TMDB.value,
+            request=ANY,
         )
 
     @patch("app.providers.services.get_media_metadata")

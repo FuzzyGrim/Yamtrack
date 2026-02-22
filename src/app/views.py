@@ -20,7 +20,7 @@ from app import config, helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
-from app.providers import manual, services, tmdb
+from app.providers import itad, manual, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 
@@ -196,7 +196,9 @@ def media_search(request):
 @require_GET
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
-    media_metadata = services.get_media_metadata(media_type, media_id, source)
+    media_metadata = services.get_media_metadata(
+        media_type, media_id, source, request=request
+    )
     user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
@@ -416,6 +418,48 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
 
         msg = f"{title} was synced to {Sources(source).label} successfully."
         messages.success(request, msg)
+
+    if request.headers.get("HX-Request"):
+        return HttpResponse(
+            status=204,
+            headers={
+                "HX-Redirect": request.POST["next"],
+            },
+        )
+    return helpers.redirect_back(request)
+
+
+@require_POST
+def refresh_prices(request, media_type, media_id):
+    """
+    Refresh the prices for the given media.
+
+    Args:
+        request: The http request
+        media_type: The type of the media
+        media_id: The id of the media
+    """
+    price_metadata_retrievers = {
+        MediaTypes.GAME.value: {
+            "cache_key": f"{itad.price_cache_key}{media_id}",
+            "price_source": Sources.ITAD,
+            "method": lambda: itad.prices(
+                media_id, request=request, notify_success=True
+            ),
+        },
+    }
+    if media_type in price_metadata_retrievers:
+        cache_key = price_metadata_retrievers[media_type]["cache_key"]
+        ttl = cache.ttl(cache_key)
+        logger.debug("%s - Cache TTL for: %s", cache_key, ttl)
+        if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 3):
+            msg = "The data was recently synced, please wait a few seconds."
+            messages.error(request, msg)
+            logger.error(msg)
+        else:
+            deleted = cache.delete(cache_key)
+            logger.debug("%s - Old cache deleted: %s", cache_key, deleted)
+            price_metadata_retrievers[media_type]["method"]()
 
     if request.headers.get("HX-Request"):
         return HttpResponse(
