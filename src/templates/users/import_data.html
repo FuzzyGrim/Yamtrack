@@ -489,7 +489,7 @@
                             x-text="showDetails ? 'Hide traceback' : 'Show traceback'">Show traceback</button>
                   {% endif %}
 
-                  <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded"
+                  <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded overflow-x-auto break-words"
                        x-show="showDetails">
                     <div class="text-xs space-y-1 text-red-400">
                       {% for error in result.errors.splitlines %}<div>{{ error }}</div>{% endfor %}

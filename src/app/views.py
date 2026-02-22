@@ -179,7 +179,9 @@ def media_search(request):
 
     # Enrich search results with user tracking data
     if data.get("results"):
-        data["results"] = helpers.enrich_items_with_user_data(request, data["results"])
+        data["results"] = helpers.enrich_items_with_user_data(
+            request, data["results"], "search"
+        )
 
     context = {
         "data": data,
@@ -209,16 +211,24 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
             if related_items:
                 media_metadata["related"][section_name] = (
                     helpers.enrich_items_with_user_data(
-                        request,
-                        related_items,
+                        request, related_items, section_name
                     )
                 )
+
+    if media_type in ["tv", "movie"]:
+        watch_providers = tmdb.filter_providers(
+            media_metadata.get("providers"), request.user.watch_provider_region
+        )
+    else:
+        watch_providers = None
 
     context = {
         "media": media_metadata,
         "media_type": media_type,
         "user_medias": user_medias,
         "current_instance": current_instance,
+        "watch_providers": watch_providers,
+        "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
 
@@ -264,6 +274,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
                     helpers.enrich_items_with_user_data(
                         request,
                         related_items,
+                        section_name,
                     )
                 )
 
@@ -273,6 +284,10 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "media_type": MediaTypes.SEASON.value,
         "user_medias": user_medias,
         "current_instance": current_instance,
+        "watch_providers": tmdb.filter_providers(
+            season_metadata.get("providers"), request.user.watch_provider_region
+        ),
+        "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
 

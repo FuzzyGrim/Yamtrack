@@ -379,7 +379,7 @@
                               {% if media.end_date %}{{ media.end_date|datetime_format:user }}{% endif %}
                             </p>
                           </div>
-                          {% if media.score is not None %}
+                          {% if media.score|show_media_score:user %}
                             <div class="flex items-center text-sm text-yellow-400 mt-2">
                               {% include "app/icons/star.svg" with classes="w-4 h-4 mr-1 fill-current" %}
                               <span>{{ media.formatted_score }}</span>

@@ -212,6 +212,23 @@ class SteamImporter:
 
             self.bulk_media[MediaTypes.GAME.value].append(game)
 
+        except services.ProviderAPIError as e:
+            msg = str(e).lower()
+            is_not_found = "game with id" in msg and "not found" in msg
+            if not is_not_found:
+                # still raise all other errors
+                raise
+
+            logger.debug(
+                "Skipping Steam game %s (appid: %s) - IGDB not found: %s",
+                name,
+                appid,
+                e,
+            )
+            self.warnings.append(
+                f"{name} ({appid}): Couldn't find a match in {Sources.IGDB.label}"
+            )
+
         except (ValueError, KeyError, TypeError) as e:
             logger.warning("Failed to process Steam game %s (%s): %s", name, appid, e)
             self.warnings.append(f"{name} ({appid}): {e!s}")
@@ -239,42 +256,30 @@ class SteamImporter:
 
     def _match_with_igdb(self, game_name, steam_appid):
         """Try to match Steam game with IGDB using External Game endpoint."""
-        try:
-            # Try to find IGDB game by Steam App ID using external_game endpoint
+        # Try to find IGDB game by Steam App ID using external_game endpoint
 
-            igdb_game_id = external_game(steam_appid, ExternalGameSource.STEAM)
+        igdb_game_id = external_game(steam_appid, ExternalGameSource.STEAM)
 
-            if igdb_game_id:
-                # Get the game details using the IGDB ID
-                game_details = services.get_media_metadata(
-                    MediaTypes.GAME.value,
-                    str(igdb_game_id),
-                    Sources.IGDB.value,
-                )
+        if not igdb_game_id:
+            return None
 
-                if game_details:
-                    logger.debug(
-                        "Matched Steam game %s (appid: %s) with IGDB ID %s "
-                        "via external_game",
-                        game_name,
-                        steam_appid,
-                        igdb_game_id,
-                    )
-                    return {
-                        "media_id": igdb_game_id,
-                        "source": Sources.IGDB.value,
-                        "media_type": MediaTypes.GAME.value,
-                        "title": game_details.get("title", game_name),
-                        "image": game_details["image"],
-                    }
+        # Get the game details using the IGDB ID
+        game_details = services.get_media_metadata(
+            MediaTypes.GAME.value,
+            str(igdb_game_id),
+            Sources.IGDB.value,
+        )
 
-        except (ValueError, KeyError, TypeError) as e:
-            logger.debug(
-                "Failed to match Steam game %s (appid: %s) with IGDB "
-                "via external_game: %s",
-                game_name,
-                steam_appid,
-                e,
-            )
-
-        return None
+        logger.debug(
+            "Matched Steam game %s (appid: %s) with IGDB ID %s via external_game",
+            game_name,
+            steam_appid,
+            igdb_game_id,
+        )
+        return {
+            "media_id": igdb_game_id,
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "title": game_details.get("title", game_name),
+            "image": game_details["image"],
+        }

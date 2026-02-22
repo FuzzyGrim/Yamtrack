@@ -225,6 +225,7 @@
                       <div class="relative grow">
                         {# Search input #}
                         <input type="search"
+                               id="global-search"
                                name="q"
                                value="{{ request.GET.q }}"
                                :placeholder="getPlaceholder()"
@@ -339,5 +340,6 @@
     </script>
 
     <script src="{% static 'js/mediaStatusDateHandler.js' %}{% get_static_file_mtime 'js/mediaStatusDateHandler.js' %}"></script>
+    <script src="{% static 'js/searchShortcut.js' %}{% get_static_file_mtime 'js/searchShortcut.js' %}"></script>
   </body>
 </html>

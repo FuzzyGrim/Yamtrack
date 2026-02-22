@@ -228,7 +228,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 14,
+        "VERSION": 15,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -266,6 +266,9 @@ LOGGING = {
             "level": "WARNING",
         },
         "celery.utils.functional": {
+            "level": "WARNING",
+        },
+        "fakeredis": {
             "level": "WARNING",
         },
     },
@@ -463,6 +466,7 @@ SIMKL_SECRET = config(
         "1b548a88ac7884a757cc58a552842913a9337f3cab3a4905836c6dc305dda316",
     ),
 )
+
 
 TESTING = False
 

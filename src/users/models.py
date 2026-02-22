@@ -318,6 +318,25 @@ class User(AbstractUser):
         help_text="Show progress bar",
     )
 
+    # Hide completed recommendations
+    hide_completed_recommendations = models.BooleanField(
+        default=False,
+        help_text="Hide completed media in recommendations",
+    )
+
+    # Hide zero ratings
+    hide_zero_rating = models.BooleanField(
+        default=False,
+        help_text="Hide zero ratings from media cards",
+    )
+
+    # Watch provider region
+    watch_provider_region = models.CharField(
+        max_length=5,
+        default="UNSET",
+        help_text="Region to show watch providers for",
+    )
+
     # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,
