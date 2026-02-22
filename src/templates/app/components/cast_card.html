@@ -1,0 +1,28 @@
+{% load app_tags %}
+
+<div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg relative group">
+  <div class="relative">
+    <a href="https://www.themoviedb.org/person/{{ cast.id }}"
+       target="_blank">
+      <img alt="{{ cast.name }}"
+           class="lazyload w-full aspect-2/3 bg-[#3e454d] {% if cast.image != IMG_NONE %}object-cover{% endif %}"
+           data-src="{{ cast.image }}"
+           src="{{ IMG_NONE }}">
+    </a>
+
+    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <a href="https://www.themoviedb.org/person/{{ cast.id }}"
+         target="_blank"
+         class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 transition-all duration-200">
+        {% include "app/icons/external-link.svg" with classes="w-5 h-5" %}
+      </a>
+    </div>
+  </div>
+
+  <div class="p-3">
+    <div class="text-sm font-semibold text-white line-clamp-1"
+         title="{{ cast.name }}">{{ cast.name }}</div>
+    <div class="text-xs text-gray-400 line-clamp-1 mt-1"
+         title="{{ cast.character }}">{{ cast.character }}</div>
+  </div>
+</div>

@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 from app.models import MediaTypes
 
@@ -80,6 +81,7 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
 
     def _extract_external_ids(self, payload):
         guids = payload["Metadata"].get("Guid", [])
+        guid = payload["Metadata"].get("guid", None)
 
         def get_id(prefix):
             return next(
@@ -91,8 +93,20 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
                 None,
             )
 
+        def extract_hama_anidb_id(guid):
+            """Extract the AniDB ID from a Hama agent GUID string.
+
+            e.g., "com.plexapp.agents.hama://anidb-12834/1/2?lang=en" -> "12834"
+            """
+            if guid and "hama://anidb-" in guid:
+                match = re.search(r"anidb-(\d+)", guid)
+                if match:
+                    return match.group(1)
+            return None
+
         return {
             "tmdb_id": get_id("tmdb"),
             "imdb_id": get_id("imdb"),
             "tvdb_id": get_id("tvdb"),
+            "anidb_id": extract_hama_anidb_id(guid),
         }

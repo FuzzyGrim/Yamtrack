@@ -435,6 +435,30 @@
 
       {# Media Details #}
       <h2 class="text-xl font-bold mb-4">Details</h2>
+      {% if watch_provider_region == "UNSET" or watch_providers is not None %}
+        <div class="bg-[#2a2f35] p-4 rounded-lg my-4">
+          <h3 class="text-sm font-semibold text-gray-400 mb-2">STREAMING</h3>
+          <div class="flex flex-wrap items-center gap-2 place-content-evenly">
+            {% if watch_provider_region == "UNSET" %}
+              {% url 'preferences' as preferences_url %}
+              <p class="text-sm">
+                Watch provider region is not configured. Set a region or disable this feature in the
+                <a href="{{ preferences_url }}"
+                   class="hover:text-indigo-500 hover:underline">preferences</a>.
+              </p>
+            {% elif watch_providers %}
+              {% for provider in watch_providers %}
+                <img class="size-10 rounded-md"
+                     src="{{ provider.image }}"
+                     title="{{ provider.provider_name }}"
+                     alt="{{ provider.provider_name }}" />
+              {% endfor %}
+            {% else %}
+              <p>No watch providers</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
       <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start mb-6">
         {% if media.details.items %}
           {% for key, value in media.details.items %}
@@ -553,9 +577,20 @@
       {% endif %}
     </div>
 
-    {# Related Media #}
-    {% if media.related %}
-      <div class="w-full md:w-3/4">
+    <div class="w-full md:w-3/4">
+      {% if media.cast %}
+        <section class="mb-8">
+          <h2 class="text-xl font-bold mb-4">Cast</h2>
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+            {% for cast in media.cast %}
+              {% include "app/components/cast_card.html" with cast=cast %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {# Related Media #}
+      {% if media.related %}
         {% for name, related_items in media.related.items %}
           {% if related_items %}
             <section class="{% if not forloop.last %}mb-8{% endif %}">
@@ -579,109 +614,109 @@
             </section>
           {% endif %}
         {% endfor %}
-      </div>
-    {% endif %}
+      {% endif %}
 
-    {# Episodes List #}
-    {% if media.episodes %}
-      <div class="w-full">
-        <h2 class="text-xl font-bold mb-4">Episodes</h2>
-        <div class="space-y-6">
-          {% for episode in media.episodes %}
-            <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
-              <div class="flex flex-col md:flex-row">
-                <img src="{{ IMG_NONE }}"
-                     alt="E{{ episode.episode_number }}"
-                     data-src="{{ episode.image }}"
-                     class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}">
-                <div class="py-3 flex-1 flex flex-col">
-                  <div class="flex-1">
-                    <div class="flex justify-between items-start mb-2 space-x-2 px-4">
-                      <div>
-                        <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
-                        <p class="text-sm text-gray-400">
-                          Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
-                          {% if episode.runtime %}• {{ episode.runtime }}{% endif %}
-                        </p>
-                      </div>
-                      <div class="flex space-x-2">
-                        {# Track Episode #}
-                        <div x-data="{ trackOpen: false }">
-                          <button @click="trackOpen = true"
-                                  title="Track Episode"
-                                  class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
-                            {% if episode.history %}
-                              {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
-                            {% else %}
-                              {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
-                            {% endif %}
-                          </button>
-
-                          {% include "app/components/fill_track_episode.html" with request=request media=media episode=episode episode_title=episode.title csrf_token=csrf_token TRACK_TIME=TRACK_TIME only %}
-
+      {# Episodes List #}
+      {% if media.episodes %}
+        <div class="w-full">
+          <h2 class="text-xl font-bold mb-4">Episodes</h2>
+          <div class="space-y-6">
+            {% for episode in media.episodes %}
+              <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
+                <div class="flex flex-col md:flex-row">
+                  <img src="{{ IMG_NONE }}"
+                       alt="E{{ episode.episode_number }}"
+                       data-src="{{ episode.image }}"
+                       class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}">
+                  <div class="py-3 flex-1 flex flex-col">
+                    <div class="flex-1">
+                      <div class="flex justify-between items-start mb-2 space-x-2 px-4">
+                        <div>
+                          <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
+                          <p class="text-sm text-gray-400">
+                            Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
+                            {% if episode.runtime %}• {{ episode.runtime }}{% endif %}
+                          </p>
                         </div>
+                        <div class="flex space-x-2">
+                          {# Track Episode #}
+                          <div x-data="{ trackOpen: false }">
+                            <button @click="trackOpen = true"
+                                    title="Track Episode"
+                                    class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
+                              {% if episode.history %}
+                                {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
+                              {% else %}
+                                {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
+                              {% endif %}
+                            </button>
 
-                        {# Lists #}
-                        <div x-data="{ listsOpen: false }">
-                          <button class="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition duration-300 cursor-pointer"
-                                  title="Add to custom lists"
-                                  hx-get="{% media_view_url 'lists_modal' episode %}"
-                                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                                  hx-target="#{% component_id 'lists' episode %}"
-                                  hx-trigger="click once"
-                                  @click="listsOpen = true">
-                            {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
-                          </button>
+                            {% include "app/components/fill_track_episode.html" with request=request media=media episode=episode episode_title=episode.title csrf_token=csrf_token TRACK_TIME=TRACK_TIME only %}
 
-                          <div x-show="listsOpen"
-                               @keydown.escape.window="listsOpen = false"
-                               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
-                                 @click.outside="listsOpen = false">
-                              <div id="{% component_id 'lists' episode %}"></div>
+                          </div>
+
+                          {# Lists #}
+                          <div x-data="{ listsOpen: false }">
+                            <button class="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition duration-300 cursor-pointer"
+                                    title="Add to custom lists"
+                                    hx-get="{% media_view_url 'lists_modal' episode %}"
+                                    hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                                    hx-target="#{% component_id 'lists' episode %}"
+                                    hx-trigger="click once"
+                                    @click="listsOpen = true">
+                              {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
+                            </button>
+
+                            <div x-show="listsOpen"
+                                 @keydown.escape.window="listsOpen = false"
+                                 class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                              <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+                                   @click.outside="listsOpen = false">
+                                <div id="{% component_id 'lists' episode %}"></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {# History #}
+                          <div x-data="{ historyOpen: false }">
+                            <button class="p-2 bg-amber-600 hover:bg-amber-700 text-white rounded-full transition duration-300 cursor-pointer"
+                                    title="View your activity history"
+                                    hx-get="{% media_view_url 'history_modal' episode %}"
+                                    hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                                    hx-target="#{% component_id 'history' episode %}"
+                                    hx-trigger="click once"
+                                    @click="historyOpen = true">
+                              {% include "app/icons/history.svg" with classes="w-4 h-4" %}
+                            </button>
+                            <div x-show="historyOpen"
+                                 @keydown.escape.window="historyOpen = false"
+                                 class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                              <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+                                   @click.outside="historyOpen = false">
+                                <div id="{% component_id 'history' episode %}"></div>
+                              </div>
                             </div>
                           </div>
                         </div>
-
-                        {# History #}
-                        <div x-data="{ historyOpen: false }">
-                          <button class="p-2 bg-amber-600 hover:bg-amber-700 text-white rounded-full transition duration-300 cursor-pointer"
-                                  title="View your activity history"
-                                  hx-get="{% media_view_url 'history_modal' episode %}"
-                                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                                  hx-target="#{% component_id 'history' episode %}"
-                                  hx-trigger="click once"
-                                  @click="historyOpen = true">
-                            {% include "app/icons/history.svg" with classes="w-4 h-4" %}
-                          </button>
-                          <div x-show="historyOpen"
-                               @keydown.escape.window="historyOpen = false"
-                               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
-                                 @click.outside="historyOpen = false">
-                              <div id="{% component_id 'history' episode %}"></div>
-                            </div>
-                          </div>
-                        </div>
+                      </div>
+                      <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
+                        <p class="text-sm text-gray-300 leading-relaxed text-pretty">{{ episode.overview }}</p>
                       </div>
                     </div>
-                    <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
-                      <p class="text-sm text-gray-300 leading-relaxed text-pretty">{{ episode.overview }}</p>
-                    </div>
+                    {% if episode.history %}
+                      <p class="text-xs text-gray-400 mt-2 px-4">
+                        Last watched: {{ episode.history.0.end_date|datetime_format:user }}
+                        {% if not episode.history.0.end_date %}No date provided{% endif %}
+                        {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
+                      </p>
+                    {% endif %}
                   </div>
-                  {% if episode.history %}
-                    <p class="text-xs text-gray-400 mt-2 px-4">
-                      Last watched: {{ episode.history.0.end_date|datetime_format:user }}
-                      {% if not episode.history.0.end_date %}No date provided{% endif %}
-                      {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
-                    </p>
-                  {% endif %}
                 </div>
               </div>
-            </div>
-          {% endfor %}
+            {% endfor %}
+          </div>
         </div>
-      </div>
-    {% endif %}
+      {% endif %}
+    </div>
   </div>
 {% endblock content %}
