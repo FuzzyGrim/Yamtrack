@@ -2,8 +2,17 @@
 
 {% for media in media_list %}
   <tr class="hover:bg-[#39404b] transition-colors cursor-pointer hover-tap"
+      data-bulk-id="{{ media.item.id }}"
       x-data="{ trackOpen: false }"
+      :class="$store.bulk.active && $store.bulk.ids.includes({{ media.item.id }}) ? 'bg-indigo-900/30' : ''"
       {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' media_type %}?page={{ media_list.next_page_number }}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
+    <td x-show="$store.bulk.active" class="p-2">
+      <input type="checkbox"
+             :checked="$store.bulk.ids.includes({{ media.item.id }})"
+             @click.stop
+             @change="$store.bulk.toggle({{ media.item.id }})"
+             class="w-4 h-4 rounded accent-indigo-600 cursor-pointer">
+    </td>
     <td class="p-2 relative">
       <img alt="{{ media.item }}"
            class="lazyload min-w-10 w-10 h-10 object-cover rounded-md parent-hover-tap:hidden"

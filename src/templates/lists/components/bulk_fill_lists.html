@@ -1,0 +1,24 @@
+
+<div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold text-white">
+      Add <span x-text="$store.bulk.ids.length"></span> items to list
+    </h2>
+    <button class="text-gray-400 hover:text-white cursor-pointer"
+            @click="bulkListsOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
+  </div>
+  <ul class="space-y-3">
+    {% for custom_list in custom_lists %}
+      <li class="flex items-center justify-between bg-[#39404b] p-3 rounded-md gap-1">
+        <span class="text-white">{{ custom_list.name }}</span>
+        <button class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-md transition-colors cursor-pointer"
+                hx-post="{% url 'bulk_list_add' %}"
+                hx-include="#bulk-ids-form"
+                hx-vals='{"custom_list_id": "{{ custom_list.id }}"}'
+                hx-swap="none">Add</button>
+      </li>
+    {% empty %}
+      <li class="text-gray-200">You haven't created any lists yet.</li>
+    {% endfor %}
+  </ul>
+</div>
