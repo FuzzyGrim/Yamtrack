@@ -102,6 +102,17 @@
                 hx-trigger="click once"
                 @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
 
+        {# Remove from List Button #}
+        {% if custom_list %}
+          <button class="p-2.5 bg-red-600 text-white rounded-full hover:bg-red-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all duration-200 cursor-pointer"
+                  title="Remove from list"
+                  hx-post="{% url 'list_item_toggle' %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-vals='{"custom_list_id": "{{ custom_list.id }}", "item_id": "{{ item.id }}"}'
+                  hx-target="closest [data-list-item]"
+                  hx-swap="delete">{% include "app/icons/trashcan.svg" with classes="w-4 h-4" %}</button>
+        {% endif %}
+
         {# History Button #}
         <button class="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-200 cursor-pointer"
                 title="View your activity history"
