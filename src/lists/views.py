@@ -3,7 +3,7 @@ import logging
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, F, OuterRef, Q, Subquery
-from django.http import Http404, HttpResponse
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
@@ -350,9 +350,8 @@ def bulk_list_add(request):
         )
         logger.info("%d items bulk added to %s.", len(item_ids), custom_list)
 
-        response = HttpResponse()
-        response["HX-Trigger"] = "bulkAddSuccess"
-        return response
+        logger.info("%d items bulk added to %s.", len(item_ids), custom_list)
+        return render(request, "lists/components/bulk_fill_lists_success.html")
 
     messages.error(request, "You do not have permission to edit this list.")
     return helpers.redirect_back(request)

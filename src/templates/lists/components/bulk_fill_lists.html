@@ -15,7 +15,8 @@
                 hx-post="{% url 'bulk_list_add' %}"
                 hx-include="#bulk-ids-form"
                 hx-vals='{"custom_list_id": "{{ custom_list.id }}"}'
-                hx-swap="none">Add</button>
+                hx-target="#bulk-lists-modal-content"
+                hx-swap="innerHTML">Add</button>
       </li>
     {% empty %}
       <li class="text-gray-200">You haven't created any lists yet.</li>
