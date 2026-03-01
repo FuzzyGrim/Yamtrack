@@ -350,7 +350,6 @@ def bulk_list_add(request):
         )
         logger.info("%d items bulk added to %s.", len(item_ids), custom_list)
 
-        logger.info("%d items bulk added to %s.", len(item_ids), custom_list)
         return render(request, "lists/components/bulk_fill_lists_success.html")
 
     messages.error(request, "You do not have permission to edit this list.")
