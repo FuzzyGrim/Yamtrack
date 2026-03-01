@@ -163,8 +163,9 @@
       </div>
     </div>
 
-    <!-- Hidden form keeping selected IDs in sync for hx-include -->
+    <!-- Hidden form keeping selected IDs and CSRF token in sync for hx-include -->
     <form id="bulk-ids-form" class="hidden">
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
       <template x-for="id in $store.bulk.ids" :key="id">
         <input type="hidden" name="item_ids" :value="id">
       </template>
