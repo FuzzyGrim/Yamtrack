@@ -907,3 +907,132 @@ class ListItemToggleTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["has_item"])  # Item was removed
+
+
+class BulkListsModalTests(TestCase):
+    """Tests for the bulk_lists_modal view."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.client = Client()
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.other_credentials = {"username": "other", "password": "12345"}
+        self.other_user = get_user_model().objects.create_user(**self.other_credentials)
+
+        self.list = CustomList.objects.create(name="My List", owner=self.user)
+
+    def test_returns_user_lists(self):
+        """Modal returns lists owned by the user."""
+        self.client.login(**self.credentials)
+        response = self.client.get(reverse("bulk_lists_modal"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "lists/components/bulk_fill_lists.html")
+        self.assertIn(self.list, response.context["custom_lists"])
+
+    def test_excludes_other_users_lists(self):
+        """Modal does not return lists belonging to other users."""
+        other_list = CustomList.objects.create(name="Other List", owner=self.other_user)
+        self.client.login(**self.credentials)
+        response = self.client.get(reverse("bulk_lists_modal"))
+        self.assertNotIn(other_list, response.context["custom_lists"])
+
+    def test_includes_collaborated_lists(self):
+        """Modal includes lists the user collaborates on."""
+        collab_list = CustomList.objects.create(
+            name="Collab List", owner=self.other_user
+        )
+        collab_list.collaborators.add(self.user)
+        self.client.login(**self.credentials)
+        response = self.client.get(reverse("bulk_lists_modal"))
+        self.assertIn(collab_list, response.context["custom_lists"])
+
+
+class BulkListAddTests(TestCase):
+    """Tests for the bulk_list_add view."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.client = Client()
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.other_credentials = {"username": "other", "password": "12345"}
+        self.other_user = get_user_model().objects.create_user(**self.other_credentials)
+
+        self.list = CustomList.objects.create(name="My List", owner=self.user)
+
+        self.item1 = Item.objects.create(
+            media_id=1,
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie 1",
+            image="http://example.com/1.jpg",
+        )
+        self.item2 = Item.objects.create(
+            media_id=2,
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie 2",
+            image="http://example.com/2.jpg",
+        )
+
+    def test_bulk_add_items(self):
+        """Owner can bulk add multiple items to a list."""
+        self.client.login(**self.credentials)
+        response = self.client.post(
+            reverse("bulk_list_add"),
+            {
+                "item_ids": [self.item1.id, self.item2.id],
+                "custom_list_id": self.list.id,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response, "lists/components/bulk_fill_lists_success.html"
+        )
+        self.assertIn(self.item1, self.list.items.all())
+        self.assertIn(self.item2, self.list.items.all())
+
+    def test_bulk_add_collaborator(self):
+        """Collaborator can bulk add items to a list."""
+        self.list.collaborators.add(self.other_user)
+        self.client.login(**self.other_credentials)
+        response = self.client.post(
+            reverse("bulk_list_add"),
+            {"item_ids": [self.item1.id], "custom_list_id": self.list.id},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.item1, self.list.items.all())
+
+    def test_bulk_add_ignores_duplicates(self):
+        """Adding already-present items does not raise an error."""
+        self.list.items.add(self.item1)
+        self.client.login(**self.credentials)
+        response = self.client.post(
+            reverse("bulk_list_add"),
+            {
+                "item_ids": [self.item1.id, self.item2.id],
+                "custom_list_id": self.list.id,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.list.items.count(), 2)
+
+    def test_bulk_add_unauthorized(self):
+        """User with no access to the list gets a 403."""
+        self.client.login(**self.other_credentials)
+        response = self.client.post(
+            reverse("bulk_list_add"),
+            {"item_ids": [self.item1.id], "custom_list_id": self.list.id},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn(self.item1, self.list.items.all())
+
+    def test_bulk_add_nonexistent_list(self):
+        """Posting to a nonexistent list returns 404."""
+        self.client.login(**self.credentials)
+        response = self.client.post(
+            reverse("bulk_list_add"),
+            {"item_ids": [self.item1.id], "custom_list_id": 99999},
+        )
+        self.assertEqual(response.status_code, 404)
