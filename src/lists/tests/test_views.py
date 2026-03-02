@@ -1025,7 +1025,7 @@ class BulkListAddTests(TestCase):
             reverse("bulk_list_add"),
             {"item_ids": [self.item1.id], "custom_list_id": self.list.id},
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
         self.assertNotIn(self.item1, self.list.items.all())
 
     def test_bulk_add_nonexistent_list(self):
