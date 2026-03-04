@@ -8,7 +8,8 @@ register_converter(converters.SourceChecker, "source")
 
 urlpatterns = [
     path("", views.home, name="home"),
-    path("medialist/<media_type:media_type>", views.media_list, name="medialist"),
+    path("<str:username>/<media_type:media_type>", views.media_list, name="medialist"),
+    # path("<str:username>/<media_type:media_type>", views.public_media_list, name="public_media_list"),
     path("search", views.media_search, name="search"),
     path(
         "details/<source:source>/<media_type:media_type>/<str:media_id>/<str:title>",

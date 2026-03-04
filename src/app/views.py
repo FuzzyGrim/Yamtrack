@@ -4,12 +4,13 @@ from pathlib import Path
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -22,7 +23,7 @@ from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
-from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
+from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices, User
 
 logger = logging.getLogger(__name__)
 
@@ -88,21 +89,35 @@ def progress_edit(request, media_type, instance_id):
     )
 
 
+@login_not_required
 @require_GET
-def media_list(request, media_type):
-    """Return the media list page."""
-    layout = request.user.update_preference(
-        f"{media_type}_layout",
-        request.GET.get("layout"),
-    )
-    sort_filter = request.user.update_preference(
-        f"{media_type}_sort",
-        request.GET.get("sort"),
-    )
-    status_filter = request.user.update_preference(
-        f"{media_type}_status",
-        request.GET.get("status"),
-    )
+def media_list(request, username, media_type):
+    user = get_object_or_404(User, username=username)
+
+    logger.info(user)
+
+    own_page = request.user == user
+
+    if own_page:
+        logger.info("Username matches visited page")
+        """Return the media list page."""
+        layout = user.update_preference(
+            f"{media_type}_layout",
+            request.GET.get("layout"),
+        )
+        sort_filter = user.update_preference(
+            f"{media_type}_sort",
+            request.GET.get("sort"),
+        )
+        status_filter = user.update_preference(
+            f"{media_type}_status",
+            request.GET.get("status"),
+        )
+    else:
+        layout = request.GET.get("layout") or getattr(user, f"{media_type}_layout")
+        sort_filter = request.GET.get("sort") or getattr(user, f"{media_type}_sort")
+        status_filter = request.GET.get("status") or getattr(user, f"{media_type}_status")
+
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
 
@@ -112,7 +127,7 @@ def media_list(request, media_type):
 
     # Get media list with filters applied
     media_queryset = BasicMedia.objects.get_media_list(
-        user=request.user,
+        user=user,
         media_type=media_type,
         status_filter=status_filter,
         sort_filter=sort_filter,
@@ -139,6 +154,10 @@ def media_list(request, media_type):
         "current_status": status_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
+        "username": user.username,
+        "user": user,
+        "own_page": own_page,
+        "original_user": request.user
     }
 
     # Handle HTMX requests for partial updates
@@ -146,7 +165,7 @@ def media_list(request, media_type):
         # Changing from empty list to a status with items
         if request.headers.get("HX-Target") == "empty_list":
             response = HttpResponse()
-            response["HX-Redirect"] = reverse("medialist", args=[media_type])
+            response["HX-Redirect"] = reverse("medialist", args=[user.username, media_type])
             return response
         if layout == "grid":
             template_name = "app/components/media_grid_items.html"
@@ -156,6 +175,65 @@ def media_list(request, media_type):
         template_name = "app/media_list.html"
 
     return render(request, template_name, context)
+
+# @login_not_required
+# @require_GET
+# def public_media_list(request, username, media_type):
+#     """Return the media list page."""
+#     user = get_object_or_404(User, username=username)
+#     logger.info(user)
+#     own_page = request.user == user
+#
+#     layout = user.update_preference(
+#         f"{media_type}_layout",
+#         request.GET.get("layout"),
+#     )
+#     sort_filter = user.update_preference(
+#         f"{media_type}_sort",
+#         request.GET.get("sort"),
+#     )
+#     status_filter = user.update_preference(
+#         f"{media_type}_status",
+#         request.GET.get("status"),
+#     )
+#     search_query = request.GET.get("search", "")
+#     page = request.GET.get("page", 1)
+#
+#     # Prepare status filter for database query
+#     if not status_filter:
+#         status_filter = MediaStatusChoices.ALL
+#
+#     # Get media list with filters applied
+#     media_queryset = BasicMedia.objects.get_media_list(
+#         user=request.user,
+#         media_type=media_type,
+#         status_filter=status_filter,
+#         sort_filter=sort_filter,
+#         search=search_query,
+#     )
+#
+#     # Paginate results
+#     items_per_page = 32
+#     paginator = Paginator(media_queryset, items_per_page)
+#     media_page = paginator.get_page(page)
+#
+#     BasicMedia.objects.annotate_max_progress(
+#         media_page.object_list,
+#         media_type,
+#     )
+#
+#     context = {
+#         "media_type": media_type,
+#         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
+#         "media_list": media_page,
+#         "current_layout": layout,
+#         "layout_class": ".media-grid" if layout == "grid" else "tbody",
+#         "current_sort": sort_filter,
+#         "current_status": status_filter,
+#         "sort_choices": MediaSortChoices.choices,
+#         "status_choices": MediaStatusChoices.choices,
+#     }
+#     return render(request, "app/media_list.html", context)
 
 
 @require_GET
