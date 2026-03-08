@@ -249,20 +249,30 @@ def get_media_metadata(
     return metadata_retrievers[media_type]()
 
 
-def search(media_type, query, page, source=None):
+def search(media_type, query, page, source=None, show_adult_titles=False):  # noqa: FBT002
     """Search for media based on the query and return the results."""
     search_handlers = {
         MediaTypes.MANGA.value: lambda: (
             mangaupdates.search(query, page)
             if source == Sources.MANGAUPDATES.value
-            else mal.search(media_type, query, page)
+            else mal.search(media_type, query, page, show_adult_titles)
         ),
-        MediaTypes.ANIME.value: lambda: mal.search(media_type, query, page),
-        MediaTypes.TV.value: lambda: tmdb.search(media_type, query, page),
-        MediaTypes.MOVIE.value: lambda: tmdb.search(media_type, query, page),
-        MediaTypes.SEASON.value: lambda: tmdb.search(MediaTypes.TV.value, query, page),
-        MediaTypes.EPISODE.value: lambda: tmdb.search(MediaTypes.TV.value, query, page),
-        MediaTypes.GAME.value: lambda: igdb.search(query, page),
+        MediaTypes.ANIME.value: lambda: mal.search(
+            media_type, query, page, show_adult_titles
+        ),
+        MediaTypes.TV.value: lambda: tmdb.search(
+            media_type, query, page, show_adult_titles
+        ),
+        MediaTypes.MOVIE.value: lambda: tmdb.search(
+            media_type, query, page, show_adult_titles
+        ),
+        MediaTypes.SEASON.value: lambda: tmdb.search(
+            MediaTypes.TV.value, query, page, show_adult_titles
+        ),
+        MediaTypes.EPISODE.value: lambda: tmdb.search(
+            MediaTypes.TV.value, query, page, show_adult_titles
+        ),
+        MediaTypes.GAME.value: lambda: igdb.search(query, page, show_adult_titles),
         MediaTypes.BOOK.value: lambda: (
             openlibrary.search(query, page)
             if source == Sources.OPENLIBRARY.value

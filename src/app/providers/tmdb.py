@@ -70,9 +70,11 @@ def get_external_links(external_ids, tmdb_id=None):
     return links
 
 
-def search(media_type, query, page):
+def search(media_type, query, page, show_adult_titles=False):  # noqa: FBT002
     """Search for media on TMDB."""
-    cache_key = f"search_{Sources.TMDB.value}_{media_type}_{query}_{page}"
+    cache_key = (
+        f"search_{Sources.TMDB.value}_{media_type}_{query}_{page}_{show_adult_titles}"
+    )
     data = cache.get(cache_key)
 
     if data is None:
@@ -84,7 +86,7 @@ def search(media_type, query, page):
             "page": page,
         }
 
-        if settings.TMDB_NSFW:
+        if settings.TMDB_NSFW and show_adult_titles:
             params["include_adult"] = "true"
 
         try:
