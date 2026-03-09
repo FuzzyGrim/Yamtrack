@@ -32,7 +32,8 @@ def get_state(state):
         case "DROPPED":
             return "Dropped"
         case _:
-            raise UnknownStateError
+            error_msg = f"Unknown state: '{state}'"
+            raise UnknownStateError(error_msg)
 
 
 def to_date(date_str):
@@ -74,12 +75,9 @@ class WatcharrImporter(YamtrackImporter):
         dict_entry["start_date"] = ""
         dict_entry["end_date"] = ""
 
-        if "season_number" not in dict_entry:
-            dict_entry["season_number"] = ""
-        if "episode_number" not in dict_entry:
-            dict_entry["episode_number"] = ""
-        if "progress" not in dict_entry:
-            dict_entry["progress"] = ""
+        dict_entry.setdefault("season_number", "")
+        dict_entry.setdefault("episode_number", "")
+        dict_entry.setdefault("progress", "")
 
         self._rows.append(dict_entry)
 
@@ -105,7 +103,7 @@ class WatcharrImporter(YamtrackImporter):
                     "movie",
                     entry,
                     entry,
-                    {"progress": 1 if entry["status"] == "FINISHED" else 0},
+                    {},
                 )
             case "tv":
                 self._add_entry("tv", entry, entry, {})

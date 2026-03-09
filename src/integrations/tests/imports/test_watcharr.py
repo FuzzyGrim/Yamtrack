@@ -8,6 +8,7 @@ from app.models import (
     Episode,
     Movie,
     Season,
+    Status,
 )
 from integrations.imports import (
     watcharr,
@@ -38,3 +39,19 @@ class ImportWatcharr(TestCase):
             Episode.objects.filter(related_season__user=self.user).count(),
             34,
         )
+
+    def test_import_records(self):
+        """Test basic records of imported media."""
+        jojo = Movie.objects.get(item__title="Jojo Rabbit", user=self.user)
+        self.assertEqual(jojo.status, Status.COMPLETED.value)
+        self.assertEqual(jojo.score, 10)
+
+        avatar = Movie.objects.get(
+            item__title="Avatar: The Way of Water", user=self.user
+        )
+        self.assertEqual(avatar.status, Status.DROPPED.value)
+        self.assertEqual(avatar.score, 3)
+
+        ted = TV.objects.get(item__title="Ted Lasso", user=self.user)
+        self.assertEqual(ted.status, Status.COMPLETED.value)
+        self.assertEqual(ted.score, 10)
