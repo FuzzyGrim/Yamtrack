@@ -25,4 +25,4 @@ redis[hiredis]==7.1.0
 requests==2.32.5
 requests-ratelimiter==0.8.0
 unidecode==1.4.0
-python-dateutil
+python-dateutil==2.9.0.post0

@@ -425,7 +425,7 @@ def import_watcharr(request):
     )
     messages.info(
         request,
-        "The task to import media from Watcharrr JSON file has been queued.",
+        "The task to import media from Watcharr JSON file has been queued.",
     )
     return redirect("import_data")
 
