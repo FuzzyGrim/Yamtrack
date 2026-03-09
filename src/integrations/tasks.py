@@ -18,6 +18,7 @@ from integrations.imports import (
     simkl,
     steam,
     trakt,
+    watcharr,
     yamtrack,
 )
 
@@ -137,3 +138,9 @@ def import_imdb(file, user_id, mode):
 def import_goodreads(file, user_id, mode):
     """Celery task for importing media data from GoodReads."""
     return import_media(goodreads.importer, file, user_id, mode)
+
+
+@shared_task(name="Import from Watcharr")
+def import_watcharr(file, user_id, mode):
+    """Celery task for importing the Watcharr JSON export."""
+    return import_media(watcharr.importer, file, user_id, mode)

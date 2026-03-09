@@ -408,6 +408,28 @@ def import_goodreads(request):
     return redirect("import_data")
 
 
+@require_POST
+def import_watcharr(request):
+    """View for importing books data from Watcharr JSON."""
+    file = request.FILES.get("watcharr_json")
+
+    if not file:
+        messages.error(request, "Watcharr JSON file is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    tasks.import_watcharr.delay(
+        file=request.FILES["watcharr_json"],
+        user_id=request.user.id,
+        mode=mode,
+    )
+    messages.info(
+        request,
+        "The task to import media from Watcharrr JSON file has been queued.",
+    )
+    return redirect("import_data")
+
+
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
