@@ -19,6 +19,9 @@ if (!window.__mediaFormRegistered) {
       const endDateField = this.$el.querySelector('[name="end_date"]');
       const startDateField = this.$el.querySelector('[name="start_date"]');
       const instanceIdField = this.$el.querySelector('[name="instance_id"]');
+      const progressField = this.$el.querySelector('[name="progress"]');
+      const progressUnitField = this.$el.querySelector('[name="progress_unit"]');
+      const mediaTypeField = this.$el.querySelector('[name="media_type"]');
 
       // Check if this is a new form (no instance_id) vs editing existing record
       const isNewForm = !instanceIdField || !instanceIdField.value;
@@ -31,6 +34,41 @@ if (!window.__mediaFormRegistered) {
       }
       this.syncOptionalDateField(startDateField);
       this.syncOptionalDateField(endDateField);
+
+      // Progress unit toggle logic
+      if (progressUnitField && progressField) {
+        this.progress_unit = progressUnitField.value;
+        const maxProgress = parseInt(this.$el.dataset.maxProgress) || 0;
+
+        this.toggleProgressUnit = () => {
+          const oldUnit = this.progress_unit;
+          const newUnit = oldUnit === 'pages' ? 'percentage' : 'pages';
+          const currentValue = parseInt(progressField.value) || 0;
+
+          if (maxProgress > 0) {
+            let newValue;
+            if (newUnit === 'percentage') {
+              // pages -> percentage
+              newValue = Math.round((currentValue / maxProgress) * 100);
+              progressField.max = 100;
+            } else {
+              // percentage -> pages
+              newValue = Math.round((currentValue / 100) * maxProgress);
+              progressField.max = maxProgress;
+            }
+            progressField.value = Number.isNaN(newValue) ? 0 : newValue;
+          }
+
+          this.progress_unit = newUnit;
+          progressUnitField.value = newUnit;
+
+          // Update label suffix via custom event or direct DOM manipulation
+          const label = this.$el.querySelector(`label[for="${progressField.id}"]`);
+          if (label) {
+            label.textContent = newUnit === 'percentage' ? 'Progress (%)' : `Progress (Pages)`;
+          }
+        };
+      }
 
       // Initial load handling - only auto-fill for new forms
       // For existing records, respect the saved values (even if empty)
