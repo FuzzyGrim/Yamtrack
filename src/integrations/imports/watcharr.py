@@ -72,7 +72,7 @@ class WatcharrImporter(YamtrackImporter):
         dict_entry["start_date"] = to_date(state_entry["createdAt"])
         dict_entry["end_date"] = (
             to_date(state_entry["updatedAt"])
-            if state_entry["status"] == "COMPLETED"
+            if state_entry["status"] == "FINISHED"
             else ""
         )
 
