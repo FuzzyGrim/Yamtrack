@@ -302,7 +302,7 @@ class BookForm(MediaForm):
         """Bind form to model."""
 
         model = Book
-        fields = MediaForm.Meta.fields + ["progress_unit"]
+        fields = [*MediaForm.Meta.fields, "progress_unit"]
         labels = {
             "progress": (
                 f"Progress ({config.get_unit(MediaTypes.BOOK.value, short=False)}s)"

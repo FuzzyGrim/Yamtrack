@@ -823,11 +823,6 @@ class Media(models.Model):
         """Return the title of the media."""
         return self.item.__str__()
 
-    def get_progress_unit(self):
-        """Return the progress unit for the media."""
-        # Check if instance has a specific progress_unit field (like Book)
-        return getattr(self, "progress_unit", None)
-
     def save(self, *args, **kwargs):
         """Save the media instance."""
         if self.tracker.has_changed("progress"):
@@ -838,17 +833,23 @@ class Media(models.Model):
 
         super().save(*args, **kwargs)
 
+    def get_progress_unit(self):
+        """Return the progress unit for the media."""
+        # Check if instance has a specific progress_unit field (like Book)
+        return getattr(self, "progress_unit", None)
+
     def process_progress(self):
         """Update fields depending on the progress of the media."""
-        if self.progress < 0:
-            self.progress = 0
+        self.progress = max(self.progress, 0)
 
         if self.status != Status.IN_PROGRESS.value:
             return
 
-        if self.get_progress_unit() == users.models.ProgressUnit.PERCENTAGE:
-            self.progress = min(self.progress, 100)
-            if self.progress == 100:
+        percentage_unit = users.models.ProgressUnit.PERCENTAGE
+        if self.get_progress_unit() == percentage_unit:
+            max_percentage = 100
+            self.progress = min(self.progress, max_percentage)
+            if self.progress == max_percentage:
                 self.status = Status.COMPLETED.value
                 now = timezone.now().replace(second=0, microsecond=0)
                 self.end_date = now
@@ -872,8 +873,10 @@ class Media(models.Model):
     def process_status(self):
         """Update fields depending on the status of the media."""
         if self.status == Status.COMPLETED.value:
-            if self.get_progress_unit() == users.models.ProgressUnit.PERCENTAGE:
-                self.progress = 100
+            percentage_unit = users.models.ProgressUnit.PERCENTAGE
+            if self.get_progress_unit() == percentage_unit:
+                max_percentage = 100
+                self.progress = max_percentage
             else:
                 max_progress = providers.services.get_media_metadata(
                     self.item.media_type,
@@ -1638,9 +1641,8 @@ class Book(Media):
 
     progress_unit = models.CharField(
         max_length=20,
-        null=True,
         blank=True,
-        default=None,
+        default="",
     )
 
     @property
@@ -1653,7 +1655,7 @@ class Book(Media):
     def get_progress_unit(self):
         """Return the progress unit for the book, falling back to user preference."""
         unit = super().get_progress_unit()
-        if unit:
+        if unit and unit != "":
             return unit
         return self.user.book_progress_unit
 
