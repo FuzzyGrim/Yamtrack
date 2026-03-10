@@ -15,7 +15,12 @@ from django_celery_beat.models import PeriodicTask
 from app.models import Item, MediaTypes
 from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
-from users.models import DateFormatChoices, QuickWatchDateChoices, TimeFormatChoices
+from users.models import (
+    DateFormatChoices,
+    ProgressUnit,
+    QuickWatchDateChoices,
+    TimeFormatChoices,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +231,7 @@ def preferences(request):
                 "date_format_choices": DateFormatChoices.choices,
                 "time_format_choices": TimeFormatChoices.choices,
                 "watch_provider_choices": watch_provider_regions,
+                "progress_unit_choices": ProgressUnit.choices,
             },
         )
 
@@ -252,6 +258,10 @@ def preferences(request):
     request.user.time_format = request.POST.get(
         "time_format",
         TimeFormatChoices.HOUR_24,
+    )
+    request.user.book_progress_unit = request.POST.get(
+        "book_progress_unit",
+        ProgressUnit.PAGES,
     )
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 

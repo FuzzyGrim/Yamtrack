@@ -90,6 +90,13 @@ class QuickWatchDateChoices(models.TextChoices):
     NO_DATE = "no_date", "No Date"
 
 
+class ProgressUnit(models.TextChoices):
+    """Choices for progress measurement units."""
+
+    PAGES = "pages", "Pages"
+    PERCENTAGE = "percentage", "Percentage"
+
+
 class DateFormatChoices(models.TextChoices):
     """Choices for date format display."""
 
@@ -247,6 +254,11 @@ class User(AbstractUser):
         max_length=20,
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
+    )
+    book_progress_unit = models.CharField(
+        max_length=20,
+        default=ProgressUnit.PAGES,
+        choices=ProgressUnit,
     )
 
     # Media type preferences: Comics
@@ -461,6 +473,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="book_sort_valid",
                 condition=models.Q(book_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="book_progress_unit_valid",
+                condition=models.Q(book_progress_unit__in=ProgressUnit.values),
             ),
             models.CheckConstraint(
                 name="calendar_layout_valid",
