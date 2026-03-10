@@ -272,7 +272,6 @@
                   <span class="text-gray-400">Progress:</span>
                   <span class="text-gray-200">
                     {{ current_instance.formatted_progress }}
-                    {% if current_instance.max_progress %}/ {{ current_instance.max_progress }}{% endif %}
                   </span>
                 </div>
               {% endif %}
@@ -332,9 +331,6 @@
                       {% if media.media_type != MediaTypes.MOVIE.value %}
                         <div class="text-xs text-gray-400">
                           Progress: {{ user_media.formatted_progress }}
-                          {% if media.media_type != MediaTypes.GAME.value %}
-                            {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
-                          {% endif %}
                         </div>
                       {% endif %}
 
