@@ -1,7 +1,6 @@
 import json
 import logging
-
-from dateutil import parser
+import re
 
 from integrations.imports.yamtrack import YamtrackImporter
 
@@ -37,9 +36,23 @@ def get_state(state):
 
 
 def to_date(date_str):
-    """Convert the Watcharr date to ISO 8601."""
-    date = parser.parse(date_str)
-    return date.isoformat()
+    """Convert date to ISO 8601 without Z and only 6 digits for fractional seconds."""
+    match = re.fullmatch(
+        r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})",
+        date_str,
+    )
+    if not match:
+        error_msg = f"Unsupported timestamp format: {date_str}"
+        raise ValueError(error_msg)
+
+    base, fraction, tz = match.groups()
+
+    if tz == "Z":
+        tz = "+00:00"
+
+    fraction = "000000" if fraction is None else fraction[:6].ljust(6, "0")
+
+    return f"{base}.{fraction}{tz}"
 
 
 class WatcharrImporter(YamtrackImporter):
