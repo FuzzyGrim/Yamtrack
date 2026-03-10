@@ -18,6 +18,7 @@ from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdate
 from users.models import (
     WATCH_PROVIDER_REGION_UNSET,
     DateFormatChoices,
+    ProgressUnit,
     QuickWatchDateChoices,
     TimeFormatChoices,
     WeekStartDayChoices,
@@ -233,6 +234,7 @@ def preferences(request):
                 "time_format_choices": TimeFormatChoices.choices,
                 "week_start_day_choices": WeekStartDayChoices.choices,
                 "watch_provider_choices": watch_provider_regions,
+                "progress_unit_choices": ProgressUnit.choices,
             },
         )
 
@@ -264,6 +266,10 @@ def preferences(request):
     week_start_day = request.POST.get("week_start_day")
     if week_start_day in WeekStartDayChoices.values:
         request.user.week_start_day = week_start_day
+    request.user.book_progress_unit = request.POST.get(
+        "book_progress_unit",
+        ProgressUnit.PAGES,
+    )
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     provider_region = request.POST.get("watch_provider_region", "")
