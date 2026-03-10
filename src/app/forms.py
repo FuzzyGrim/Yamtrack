@@ -1,6 +1,7 @@
 from django import forms
 from django.conf import settings
 
+import users
 from app import config
 from app.models import (
     TV,
@@ -194,10 +195,16 @@ class ManualItemForm(forms.ModelForm):
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
+    can_toggle_unit = False
     instance_id = forms.CharField(widget=forms.HiddenInput(), required=False)
     media_type = forms.CharField(widget=forms.HiddenInput(), required=True)
     source = forms.CharField(widget=forms.HiddenInput(), required=True)
     media_id = forms.CharField(widget=forms.HiddenInput(), required=True)
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
 
     class Meta:
         """Define fields and input types."""
@@ -284,15 +291,45 @@ class GameForm(MediaForm):
 class BookForm(MediaForm):
     """Form for books."""
 
+    can_toggle_unit = True
+    progress_unit = forms.ChoiceField(
+        choices=users.models.ProgressUnit.choices,
+        widget=forms.HiddenInput(),
+        required=False,
+    )
+
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
         model = Book
+        fields = MediaForm.Meta.fields + ["progress_unit"]
         labels = {
             "progress": (
                 f"Progress ({config.get_unit(MediaTypes.BOOK.value, short=False)}s)"
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the form and set progress unit."""
+        super().__init__(*args, **kwargs)
+
+        # Set initial progress unit
+        if self.instance and self.instance.pk:
+            unit = self.instance.get_progress_unit()
+            self.initial["progress_unit"] = unit
+        else:
+            # For new items, use user preference if available
+            user = getattr(self, "user", None)
+            if user:
+                self.initial["progress_unit"] = user.book_progress_unit
+            else:
+                self.initial["progress_unit"] = users.models.ProgressUnit.PAGES
+
+        # Update label based on unit
+        current_unit = self.initial.get("progress_unit")
+        if current_unit == users.models.ProgressUnit.PERCENTAGE:
+            self.fields["progress"].label = "Progress (%)"
+            self.fields["progress"].widget.attrs["max"] = 100
 
 
 class ComicForm(MediaForm):

@@ -823,6 +823,11 @@ class Media(models.Model):
         """Return the title of the media."""
         return self.item.__str__()
 
+    def get_progress_unit(self):
+        """Return the progress unit for the media."""
+        # Check if instance has a specific progress_unit field (like Book)
+        return getattr(self, "progress_unit", None)
+
     def save(self, *args, **kwargs):
         """Save the media instance."""
         if self.tracker.has_changed("progress"):
@@ -837,33 +842,47 @@ class Media(models.Model):
         """Update fields depending on the progress of the media."""
         if self.progress < 0:
             self.progress = 0
-        elif self.status == Status.IN_PROGRESS.value:
-            max_progress = providers.services.get_media_metadata(
-                self.item.media_type,
-                self.item.media_id,
-                self.item.source,
-            )["max_progress"]
 
-            if max_progress:
-                self.progress = min(self.progress, max_progress)
+        if self.status != Status.IN_PROGRESS.value:
+            return
 
-                if self.progress == max_progress:
-                    self.status = Status.COMPLETED.value
+        if self.get_progress_unit() == users.models.ProgressUnit.PERCENTAGE:
+            self.progress = min(self.progress, 100)
+            if self.progress == 100:
+                self.status = Status.COMPLETED.value
+                now = timezone.now().replace(second=0, microsecond=0)
+                self.end_date = now
+            return
 
-                    now = timezone.now().replace(second=0, microsecond=0)
-                    self.end_date = now
+        max_progress = providers.services.get_media_metadata(
+            self.item.media_type,
+            self.item.media_id,
+            self.item.source,
+        )["max_progress"]
+
+        if max_progress:
+            self.progress = min(self.progress, max_progress)
+
+            if self.progress == max_progress:
+                self.status = Status.COMPLETED.value
+
+                now = timezone.now().replace(second=0, microsecond=0)
+                self.end_date = now
 
     def process_status(self):
         """Update fields depending on the status of the media."""
         if self.status == Status.COMPLETED.value:
-            max_progress = providers.services.get_media_metadata(
-                self.item.media_type,
-                self.item.media_id,
-                self.item.source,
-            )["max_progress"]
+            if self.get_progress_unit() == users.models.ProgressUnit.PERCENTAGE:
+                self.progress = 100
+            else:
+                max_progress = providers.services.get_media_metadata(
+                    self.item.media_type,
+                    self.item.media_id,
+                    self.item.source,
+                )["max_progress"]
 
-            if max_progress:
-                self.progress = max_progress
+                if max_progress:
+                    self.progress = max_progress
 
         self.item.fetch_releases(delay=True)
 
@@ -881,7 +900,11 @@ class Media(models.Model):
     @property
     def formatted_progress(self):
         """Return the progress of the media in a formatted string."""
-        return str(self.progress)
+        display = str(self.progress)
+        max_progress = getattr(self, "max_progress", None)
+        if max_progress and self.item.media_type != MediaTypes.MOVIE.value:
+            display += f" / {max_progress}"
+        return display
 
     def increase_progress(self):
         """Increase the progress of the media by one."""
@@ -1612,6 +1635,27 @@ class Book(Media):
     """Model for books."""
 
     tracker = FieldTracker()
+
+    progress_unit = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        default=None,
+    )
+
+    @property
+    def formatted_progress(self):
+        """Return the progress of the media in a formatted string."""
+        if self.get_progress_unit() == users.models.ProgressUnit.PERCENTAGE:
+            return f"{self.progress}%"
+        return super().formatted_progress
+
+    def get_progress_unit(self):
+        """Return the progress unit for the book, falling back to user preference."""
+        unit = super().get_progress_unit()
+        if unit:
+            return unit
+        return self.user.book_progress_unit
 
 
 class Comic(Media):
