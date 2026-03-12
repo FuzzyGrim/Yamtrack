@@ -59,6 +59,7 @@ class BaseWebhookProcessor:
     def _process_tv(self, payload, user, ids):
         if ids["tmdb_id"] and not ids["imdb_id"] and not ids["tvdb_id"]:
             # We only have tmdb_id for this TV-show episode.
+            media_id = None
             series_name = payload["Metadata"].get("grandparentTitle")
             season_number = payload["Metadata"].get("parentIndex")
             episode_number = payload["Metadata"].get("index")
@@ -66,14 +67,18 @@ class BaseWebhookProcessor:
             logger.warning("Trying to match episode using TV-show name %s , season %s and episode number %s", series_name, season_number, episode_number)
             response = app.providers.tmdb.search(MediaTypes.TV.value, series_name, 1)
 
-            for results in response["results"]:
-                show_id = results["media_id"]
-                episode_data = app.providers.tmdb.episode(show_id, season_number, episode_number)
-                if episode_data["tmdb_id"] == int(ids["tmdb_id"]):
-                    logger.warning("We have matched tmdb_id using search")
-                    media_id = results["media_id"]
-                    break
-            logger.warning("Not able to match TV-show using search.")
+            for result in response["results"]:
+                show_id = result["media_id"]
+                try:
+                    episode_data = app.providers.tmdb.episode(show_id, season_number, episode_number)
+                    if episode_data["tmdb_id"] == int(ids["tmdb_id"]):
+                        logger.warning("We have matched tmdb_id using search")
+                        media_id = result["media_id"]
+                        break
+                except app.providers.services.ProviderAPIError:
+                    logger.debug("Episode not found for show_id %s, continuing search.", show_id)   
+            else:
+                logger.warning("Not able to match TV-show using search.")
         else:
             # We have IMDB ID and/or TVDB ID for the episode.
             media_id, season_number, episode_number = self._find_tv_media_id(ids)
