@@ -335,7 +335,7 @@ class NetflixImporter:
                 self._create_db_entry(
                     title=title,
                     media_id=media_id,
-                    media_type=MediaTypes.SEASON.value,
+                    media_type=MediaTypes.SEASON,
                     image=season["image"],
                     status=(
                         Status.IN_PROGRESS.value
@@ -350,7 +350,7 @@ class NetflixImporter:
                     self._create_db_entry(
                         title=episode["episode_name"],
                         media_id=media_id,
-                        media_type=MediaTypes.EPISODE.value,
+                        media_type=MediaTypes.EPISODE,
                         image=episode["image"],
                         season_number=season["season_number"],
                         episode_number=episode["episode_number"],
