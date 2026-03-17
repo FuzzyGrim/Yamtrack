@@ -111,6 +111,8 @@ class User(AbstractUser):
 
     is_demo = models.BooleanField(default=False)
 
+    profile_private = models.BooleanField(default=False)
+
     last_search_type = models.CharField(
         max_length=10,
         default=MediaTypes.TV.value,
@@ -123,7 +125,7 @@ class User(AbstractUser):
         choices=HomeSortChoices,
     )
 
-    # add something about it being private
+
 
     # Media type preferences: TV Shows
     tv_enabled = models.BooleanField(default=True)

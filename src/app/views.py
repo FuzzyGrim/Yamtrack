@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse, Http404
 from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -114,6 +114,9 @@ def media_list(request, username, media_type):
             request.GET.get("status"),
         )
     else:
+        if user.profile_private:
+            raise Http404("User not found")
+
         layout = request.GET.get("layout") or getattr(user, f"{media_type}_layout")
         sort_filter = request.GET.get("sort") or getattr(user, f"{media_type}_sort")
         status_filter = request.GET.get("status") or getattr(user, f"{media_type}_status")
