@@ -10,6 +10,7 @@ from app.models import (
     Status,
 )
 from app.templatetags import app_tags
+from users.forms import UserUpdateForm
 
 
 class MediaListViewTests(TestCase):
@@ -18,8 +19,11 @@ class MediaListViewTests(TestCase):
     def setUp(self):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
+        self.external_credentials = {"username": "test2", "password": "12345", "profile_private": True}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.external_user = get_user_model().objects.create_user(**self.external_credentials)
         self.client.login(**self.credentials)
+
 
         movies_id = ["278", "238", "129", "424", "680"]
         num_completed = 3
@@ -39,6 +43,14 @@ class MediaListViewTests(TestCase):
             Movie.objects.create(
                 item=item,
                 user=self.user,
+                status=status,
+                progress=1 if i < num_completed else 0,
+                score=i,
+            )
+
+            Movie.objects.create(
+                item=item,
+                user=self.external_user,
                 status=status,
                 progress=1 if i < num_completed else 0,
                 score=i,
@@ -102,4 +114,16 @@ class MediaListViewTests(TestCase):
         self.assertTemplateUsed(response, "app/components/media_table_items.html")
 
 
-    # maybe make test without being logged in?
+    def test_private_media_list(self):
+        """Test the private media list view."""
+        response = self.client.get(reverse("medialist", args=[self.external_user.username, MediaTypes.MOVIE.value]))
+        self.assertEqual(response.status_code, 404)
+
+        form = UserUpdateForm(data={"username": "test2", "profile_private": False}, instance=self.external_user)
+        self.assertTrue(form.is_valid(), form.errors)
+        external_user = form.save()
+        external_user.refresh_from_db()
+
+        response = self.client.get(reverse("medialist", args=[self.external_user.username, MediaTypes.MOVIE.value]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("media_list", response.context)
