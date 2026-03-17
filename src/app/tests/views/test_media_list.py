@@ -46,7 +46,7 @@ class MediaListViewTests(TestCase):
 
     def test_media_list_view(self):
         """Test the media list view displays media items."""
-        response = self.client.get(reverse("medialist", args=[MediaTypes.MOVIE.value]))
+        response = self.client.get(reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]))
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/media_list.html")
@@ -65,7 +65,7 @@ class MediaListViewTests(TestCase):
     def test_media_list_with_filters(self):
         """Test the media list view with filters."""
         response = self.client.get(
-            reverse("medialist", args=[MediaTypes.MOVIE.value])
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
             + "?status=Completed&sort=score&layout=table",
         )
 
@@ -88,15 +88,18 @@ class MediaListViewTests(TestCase):
     def test_media_list_htmx_request(self):
         """Test the media list view with HTMX request."""
         response = self.client.get(
-            reverse("medialist", args=[MediaTypes.MOVIE.value]) + "?layout=grid",
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]) + "?layout=grid",
             headers={"hx-request": "true"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_grid_items.html")
 
         response = self.client.get(
-            reverse("medialist", args=[MediaTypes.MOVIE.value]) + "?layout=table",
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]) + "?layout=table",
             headers={"hx-request": "true"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_table_items.html")
+
+
+    # maybe make test without being logged in?
