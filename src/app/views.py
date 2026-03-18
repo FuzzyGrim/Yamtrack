@@ -54,6 +54,13 @@ def home(request):
         "sort_choices": HomeSortChoices.choices,
         "items_limit": items_limit,
     }
+
+    # Only fetch discovery payload if the user has it enabled
+    if getattr(request.user, "discovery_enabled", True):
+        context["discovery"] = tmdb.discovery(7)
+    else:
+        context["discovery"] = {"trending_movies": [], "trending_tv": []}
+
     return render(request, "app/home.html", context)
 
 

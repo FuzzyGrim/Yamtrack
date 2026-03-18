@@ -1,0 +1,22 @@
+{% load static %}
+{% load app_tags %}
+
+{# Render discovery cards using the same card sizing as In Progress (no outer grid wrapper). #}
+{% for media in media_list %}
+  <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg transition-all duration-300">
+    <a href="{% url 'media_details' media.source media.media_type media.media_id media.title|slugify %}">
+      <img alt="{{ media.title }}"
+           class="lazyload w-full aspect-2/3 {% if media.image != IMG_NONE %}object-cover{% endif %}"
+           data-src="{{ media.image }}"
+           src="{{ IMG_NONE }}">
+    </a>
+
+    <div>
+      <div class="p-3 space-y-3">
+        <a href="{% url 'media_details' media.source media.media_type media.media_id media.title|slugify %}"
+           class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center block"
+           title="{{ media.title }}">{{ media.title }}</a>
+      </div>
+    </div>
+  </div>
+{% endfor %}

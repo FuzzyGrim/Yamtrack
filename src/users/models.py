@@ -291,6 +291,12 @@ class User(AbstractUser):
         help_text="Hide hover overlay on touch devices",
     )
 
+    # Discovery section visibility on home page
+    discovery_enabled = models.BooleanField(
+        default=True,
+        help_text="Show the Discovery section on the home page",
+    )
+
     # Tracking settings
     quick_watch_date = models.CharField(
         max_length=20,

@@ -236,6 +236,8 @@ def preferences(request):
 
     # Process form submission
     request.user.clickable_media_cards = "clickable_media_cards" in request.POST
+    # Discovery toggle
+    request.user.discovery_enabled = "discovery_enabled" in request.POST
     request.user.quick_watch_date = request.POST.get(
         "quick_watch_date",
         QuickWatchDateChoices.CURRENT_DATE,

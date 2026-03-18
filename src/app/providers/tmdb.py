@@ -237,8 +237,7 @@ def movie(media_id):
                 ),
             },
             "external_links": get_external_links(
-                response.get("external_ids", {}),
-                media_id
+                response.get("external_ids", {}), media_id
             ),
             "providers": response.get("watch/providers", {}).get("results", {}),
         }
@@ -800,5 +799,60 @@ def watch_provider_regions():
                 data.append((key, name))
 
         cache.set(cache_key, data)
+
+    return data
+
+
+def discovery(limit=6):
+    """Return a small discovery payload with trending media."""
+    cache_key = f"{Sources.TMDB.value}_discovery_{limit}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        # Trending (week) for movies and tv
+        try:
+            trending_movies = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                f"{base_url}/trending/movie/week",
+                params={**base_params},
+            )
+        except Exception as error:
+            logger.warning("Failed to fetch trending movies: %s", error)
+            trending_movies = {"results": []}
+
+        try:
+            trending_tv = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                f"{base_url}/trending/tv/week",
+                params={**base_params},
+            )
+        except Exception as error:
+            logger.warning("Failed to fetch trending tv: %s", error)
+            trending_tv = {"results": []}
+
+        def format_items(results, media_type):
+            return [
+                {
+                    "media_id": media.get("id"),
+                    "source": Sources.TMDB.value,
+                    "media_type": media_type,
+                    "title": get_title(media),
+                    "image": get_image_url(media.get("poster_path")),
+                }
+                for media in results[:limit]
+            ]
+
+        data = {
+            "trending_movies": format_items(
+                trending_movies.get("results", []), MediaTypes.MOVIE.value
+            ),
+            "trending_tv": format_items(
+                trending_tv.get("results", []), MediaTypes.TV.value
+            ),
+        }
+
+        cache.set(cache_key, data, timeout=60 * 10)
 
     return data
