@@ -810,27 +810,21 @@ def discovery(limit=6):
 
     if data is None:
         # Trending (week) for movies and tv
-        try:
-            trending_movies = services.api_request(
-                Sources.TMDB.value,
-                "GET",
-                f"{base_url}/trending/movie/week",
-                params={**base_params},
-            )
-        except Exception as error:
-            logger.warning("Failed to fetch trending movies: %s", error)
-            trending_movies = {"results": []}
+        def _fetch_trending(media_type: str):
+            """Helper to fetch trending media for a given type."""
+            try:
+                return services.api_request(
+                    Sources.TMDB.value,
+                    "GET",
+                    f"{base_url}/trending/{media_type}/week",
+                    params={**base_params},
+                )
+            except Exception as error:
+                logger.warning("Failed to fetch trending %s: %s", media_type, error)
+                return {"results": []}
 
-        try:
-            trending_tv = services.api_request(
-                Sources.TMDB.value,
-                "GET",
-                f"{base_url}/trending/tv/week",
-                params={**base_params},
-            )
-        except Exception as error:
-            logger.warning("Failed to fetch trending tv: %s", error)
-            trending_tv = {"results": []}
+        trending_movies = _fetch_trending("movie")
+        trending_tv = _fetch_trending("tv")
 
         def format_items(results, media_type):
             return [
@@ -853,6 +847,6 @@ def discovery(limit=6):
             ),
         }
 
-        cache.set(cache_key, data, timeout=60 * 10)
+        cache.set(cache_key, data, timeout=60 * 60 * 4)  # 4 hours
 
     return data

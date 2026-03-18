@@ -26,6 +26,8 @@ from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
+DISCOVERY_ITEMS_LIMIT = 7
+
 
 @require_GET
 def home(request):
@@ -57,7 +59,7 @@ def home(request):
 
     # Only fetch discovery payload if the user has it enabled
     if getattr(request.user, "discovery_enabled", True):
-        context["discovery"] = tmdb.discovery(7)
+        context["discovery"] = tmdb.discovery(DISCOVERY_ITEMS_LIMIT)
     else:
         context["discovery"] = {"trending_movies": [], "trending_tv": []}
 
