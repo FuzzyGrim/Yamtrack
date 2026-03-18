@@ -92,15 +92,12 @@ def progress_edit(request, media_type, instance_id):
 @login_not_required
 @require_GET
 def media_list(request, username, media_type):
+    """Return the media list page."""
     user = get_object_or_404(User, username=username)
-
-    logger.info(user)
 
     own_page = request.user == user
 
     if own_page:
-        logger.info("Username matches visited page")
-        """Return the media list page."""
         layout = user.update_preference(
             f"{media_type}_layout",
             request.GET.get("layout"),
@@ -178,65 +175,6 @@ def media_list(request, username, media_type):
         template_name = "app/media_list.html"
 
     return render(request, template_name, context)
-
-# @login_not_required
-# @require_GET
-# def public_media_list(request, username, media_type):
-#     """Return the media list page."""
-#     user = get_object_or_404(User, username=username)
-#     logger.info(user)
-#     own_page = request.user == user
-#
-#     layout = user.update_preference(
-#         f"{media_type}_layout",
-#         request.GET.get("layout"),
-#     )
-#     sort_filter = user.update_preference(
-#         f"{media_type}_sort",
-#         request.GET.get("sort"),
-#     )
-#     status_filter = user.update_preference(
-#         f"{media_type}_status",
-#         request.GET.get("status"),
-#     )
-#     search_query = request.GET.get("search", "")
-#     page = request.GET.get("page", 1)
-#
-#     # Prepare status filter for database query
-#     if not status_filter:
-#         status_filter = MediaStatusChoices.ALL
-#
-#     # Get media list with filters applied
-#     media_queryset = BasicMedia.objects.get_media_list(
-#         user=request.user,
-#         media_type=media_type,
-#         status_filter=status_filter,
-#         sort_filter=sort_filter,
-#         search=search_query,
-#     )
-#
-#     # Paginate results
-#     items_per_page = 32
-#     paginator = Paginator(media_queryset, items_per_page)
-#     media_page = paginator.get_page(page)
-#
-#     BasicMedia.objects.annotate_max_progress(
-#         media_page.object_list,
-#         media_type,
-#     )
-#
-#     context = {
-#         "media_type": media_type,
-#         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
-#         "media_list": media_page,
-#         "current_layout": layout,
-#         "layout_class": ".media-grid" if layout == "grid" else "tbody",
-#         "current_sort": sort_filter,
-#         "current_status": status_filter,
-#         "sort_choices": MediaSortChoices.choices,
-#         "status_choices": MediaStatusChoices.choices,
-#     }
-#     return render(request, "app/media_list.html", context)
 
 
 @require_GET
