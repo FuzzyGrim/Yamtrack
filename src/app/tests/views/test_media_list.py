@@ -48,14 +48,6 @@ class MediaListViewTests(TestCase):
                 score=i,
             )
 
-            Movie.objects.create(
-                item=item,
-                user=self.external_user,
-                status=status,
-                progress=1 if i < num_completed else 0,
-                score=i,
-            )
-
     def test_media_list_view(self):
         """Test the media list view displays media items."""
         response = self.client.get(reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]))
