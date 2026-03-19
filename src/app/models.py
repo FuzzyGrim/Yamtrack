@@ -344,13 +344,20 @@ class MediaManager(models.Manager):
                 "-calculated_progress",
                 models.functions.Lower("item__title"),
             )
-            
-        if sort_by == MediaSortChoices.LATEST_EPISODE:
+
+        if sort_filter == "latest_episode":
             # Get the maximum end_date from related episodes for each show
-            return queryset.annotate(
-                latest_episode_date=models.Max("episodes__end_date")
-            ).order_by("-latest_episode_date")
-            
+            queryset = queryset.annotate(
+                latest_episode_date=models.Max(
+                    "seasons__episodes__end_date",
+                    filter=models.Q(seasons__item__season_number__gt=0),
+                ),
+            )
+            return queryset.order_by(
+                models.F("latest_episode_date").desc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
         # Default to generic sorting
         return self._sort_generic_media_list(queryset, sort_filter)
 
