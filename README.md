@@ -6,7 +6,7 @@
 ![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/dev/graph/badge.svg?token=PWUG660120)
 ![GitHub](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
-Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games.
+Yamtrack is a self-hosted media tracker for movies, TV shows, anime, manga, video games, books, comics, and board games.
 
 ## 🚀 Demo
 
@@ -14,13 +14,13 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 
 ## ✨ Features
 
-- 🎬 Track movies, tv shows, anime, manga, games, books, comics, and board games.
+- 🎬 Track movies, TV shows, anime, manga, games, books, comics, and board games.
 - 📺 Track each season of a tv show individually and episodes watched.
 - ⭐ Save score, status, progress, repeats (rewatches, rereads...), start and end dates, or write a note.
-- 📈 Keep a tracking history with each action with a media, such as when you added it, when you started it, when you started watching it again, etc.
+- 📈 Keep a tracking history of each action with a media, such as when you added it, when you started it, when you started watching it again, etc.
 - ✏️ Create custom media entries, for niche media that cannot be found by the supported APIs.
 - 📂 Create personal lists to organize your media for any purpose, add other members to collaborate on your lists.
-- 📅 Keep up with your upcoming media with a calendar, which can be subscribed to in external applications using a iCalendar (.ics) URL.
+- 📅 Keep up with your upcoming media with a calendar, which can be subscribed to in external applications using an iCalendar (.ics) URL.
 - 🔔 Receive notifications of upcoming releases via Apprise (supports Discord, Telegram, ntfy, Slack, email, and many more).
 - 🐳 Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
 - 👥 Multi-users functionality allowing individual accounts with personalized tracking.
@@ -57,7 +57,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 
 ## 🐳 Installing with Docker
 
-Copy the default `docker-compose.yml` file from the repository and set the environment variables. This would use a SQlite database, which is enough for most use cases.
+Copy the default `docker-compose.yml` file from the repository and set the environment variables. This would use a SQLite database, which is enough for most use cases.
 
 To start the containers run:
 
