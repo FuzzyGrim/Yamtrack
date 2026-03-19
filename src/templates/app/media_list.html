@@ -3,11 +3,15 @@
 {% load app_tags %}
 
 {% block title %}
-  {% if not own_page %}{{ username }}'s {% endif %}{{ media_type|media_type_readable_plural }} - Yamtrack
+  {% if not own_page %}{{ username }}'s{% endif %}
+  {{ media_type|media_type_readable_plural }} - Yamtrack
 {% endblock title %}
 
 {% block content %}
-  <h1 class="text-3xl font-bold mb-6">{% if not own_page %}{{ username }}'s {% endif %}{{ media_type|media_type_readable_plural }}</h1>
+  <h1 class="text-3xl font-bold mb-6">
+    {% if not own_page %}{{ username }}'s{% endif %}
+    {{ media_type|media_type_readable_plural }}
+  </h1>
 
   <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: {
     {% for value, label in status_choices %}

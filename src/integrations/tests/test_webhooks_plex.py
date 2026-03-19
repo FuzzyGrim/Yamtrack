@@ -387,7 +387,7 @@ class PlexWebhookTests(TestCase):
                 "type": "episode",
                 "index": 1,
                 "parentIndex": 1,
-                "guid": "com.plexapp.agents.hama://anidb-3651/1/1?lang=en"
+                "guid": "com.plexapp.agents.hama://anidb-3651/1/1?lang=en",
             },
         }
 

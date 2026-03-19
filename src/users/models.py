@@ -125,8 +125,6 @@ class User(AbstractUser):
         choices=HomeSortChoices,
     )
 
-
-
     # Media type preferences: TV Shows
     tv_enabled = models.BooleanField(default=True)
     tv_layout = models.CharField(

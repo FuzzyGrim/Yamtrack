@@ -9,8 +9,8 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse, Http404
-from django.shortcuts import redirect, render, get_object_or_404
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -112,11 +112,14 @@ def media_list(request, username, media_type):
         )
     else:
         if user.profile_private:
-            raise Http404("User not found")
+            msg = "User not found"
+            raise Http404(msg)
 
         layout = request.GET.get("layout") or getattr(user, f"{media_type}_layout")
         sort_filter = request.GET.get("sort") or getattr(user, f"{media_type}_sort")
-        status_filter = request.GET.get("status") or getattr(user, f"{media_type}_status")
+        status_filter = request.GET.get("status") or getattr(
+            user, f"{media_type}_status"
+        )
 
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
@@ -157,7 +160,7 @@ def media_list(request, username, media_type):
         "username": user.username,
         "user": user,
         "own_page": own_page,
-        "original_user": request.user
+        "original_user": request.user,
     }
 
     # Handle HTMX requests for partial updates
@@ -165,7 +168,9 @@ def media_list(request, username, media_type):
         # Changing from empty list to a status with items
         if request.headers.get("HX-Target") == "empty_list":
             response = HttpResponse()
-            response["HX-Redirect"] = reverse("medialist", args=[user.username, media_type])
+            response["HX-Redirect"] = reverse(
+                "medialist", args=[user.username, media_type]
+            )
             return response
         if layout == "grid":
             template_name = "app/components/media_grid_items.html"

@@ -19,11 +19,16 @@ class MediaListViewTests(TestCase):
     def setUp(self):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
-        self.external_credentials = {"username": "test2", "password": "12345", "profile_private": True}
+        self.external_credentials = {
+            "username": "test2",
+            "password": "12345",
+            "profile_private": True,
+        }
         self.user = get_user_model().objects.create_user(**self.credentials)
-        self.external_user = get_user_model().objects.create_user(**self.external_credentials)
+        self.external_user = get_user_model().objects.create_user(
+            **self.external_credentials
+        )
         self.client.login(**self.credentials)
-
 
         movies_id = ["278", "238", "129", "424", "680"]
         num_completed = 3
@@ -50,7 +55,9 @@ class MediaListViewTests(TestCase):
 
     def test_media_list_view(self):
         """Test the media list view displays media items."""
-        response = self.client.get(reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]))
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/media_list.html")
@@ -92,30 +99,42 @@ class MediaListViewTests(TestCase):
     def test_media_list_htmx_request(self):
         """Test the media list view with HTMX request."""
         response = self.client.get(
-            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]) + "?layout=grid",
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?layout=grid",
             headers={"hx-request": "true"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_grid_items.html")
 
         response = self.client.get(
-            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]) + "?layout=table",
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?layout=table",
             headers={"hx-request": "true"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_table_items.html")
 
-
     def test_private_media_list(self):
         """Test the private media list view."""
-        response = self.client.get(reverse("medialist", args=[self.external_user.username, MediaTypes.MOVIE.value]))
+        response = self.client.get(
+            reverse(
+                "medialist", args=[self.external_user.username, MediaTypes.MOVIE.value]
+            )
+        )
         self.assertEqual(response.status_code, 404)
 
-        form = UserUpdateForm(data={"username": "test2", "profile_private": False}, instance=self.external_user)
+        form = UserUpdateForm(
+            data={"username": "test2", "profile_private": False},
+            instance=self.external_user,
+        )
         self.assertTrue(form.is_valid(), form.errors)
         external_user = form.save()
         external_user.refresh_from_db()
 
-        response = self.client.get(reverse("medialist", args=[self.external_user.username, MediaTypes.MOVIE.value]))
+        response = self.client.get(
+            reverse(
+                "medialist", args=[self.external_user.username, MediaTypes.MOVIE.value]
+            )
+        )
         self.assertEqual(response.status_code, 200)
         self.assertIn("media_list", response.context)
