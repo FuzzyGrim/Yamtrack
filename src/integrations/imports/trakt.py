@@ -538,27 +538,27 @@ class TraktImporter:
             tv_metadata,
         )
 
-def _update_completion_status(
-    self,
-    season_obj,
-    tv_obj,
-    season_number,
-    episode_number,
-    season_metadata,
-    tv_metadata,
-):
-    """Update completion status for season and TV show if applicable."""
-    if episode_number == season_metadata["max_progress"]:
-        season_obj.status = Status.COMPLETED.value
-
-        last_season = tv_metadata.get("last_episode_season")
-        # Only mark TV as completed if it's the last season AND the show status is "Ended"
-        if last_season and last_season == season_number:
-            show_status = tv_metadata.get("details", {}).get("status", "").lower()
-            # Only set to completed if the show has actually ended
-            if show_status == "ended":
-                tv_obj.status = Status.COMPLETED.value
-            # Otherwise, keep it as IN_PROGRESS (for "Returning Series" or other statuses)
+    def _update_completion_status(
+        self,
+        season_obj,
+        tv_obj,
+        season_number,
+        episode_number,
+        season_metadata,
+        tv_metadata,
+    ):
+        """Update completion status for season and TV show if applicable."""
+        if episode_number == season_metadata["max_progress"]:
+            season_obj.status = Status.COMPLETED.value
+    
+            last_season = tv_metadata.get("last_episode_season")
+            # Only mark TV as completed if it's the last season AND the show status is "Ended"
+            if last_season and last_season == season_number:
+                show_status = tv_metadata.get("details", {}).get("status", "").lower()
+                # Only set to completed if the show has actually ended
+                if show_status == "ended":
+                    tv_obj.status = Status.COMPLETED.value
+                # Otherwise, keep it as IN_PROGRESS (for "Returning Series" or other statuses)
 
     def process_watchlist(self):
         """Process watchlist from Trakt."""
