@@ -9,7 +9,7 @@ ARG VERSION=dev
 ENV VERSION=$VERSION
 
 COPY ./requirements.txt /requirements.txt
-COPY ./entrypoint.sh /entrypoint.sh
+COPY --chmod=755 ./entrypoint.sh /entrypoint.sh
 COPY ./supervisord.conf /etc/supervisord.conf
 COPY ./nginx.conf /etc/nginx/nginx.conf
 # Generate a copy of the nginx config with IPv6 support.
@@ -22,7 +22,6 @@ RUN apk add --no-cache nginx shadow \
     && pip install --no-cache-dir supervisor==4.3.0 \
     && rm -rf /root/.cache /tmp/* \
     && find /usr/local -type d -name __pycache__ -exec rm -rf {} + \
-    && chmod +x /entrypoint.sh \
     # create user abc for later PUID/PGID mapping
     && useradd -U -M -s /bin/sh abc \
     # Create required nginx directories and set permissions
