@@ -57,8 +57,8 @@ class BaseWebhookProcessor:
             self._process_movie(payload, user, ids)
 
     def _process_tv(self, payload, user, ids):
-        if ids["tmdb_id"] and not ids["imdb_id"] and not ids["tvdb_id"]:
-            # We only have tmdb_id for this TV-show episode.
+        if ids["tmdb_id"]:
+            # We have tmdb_id for this TV-show episode.
             media_id = None
             series_name = payload["Metadata"].get("grandparentTitle")
             season_number = payload["Metadata"].get("parentIndex")
