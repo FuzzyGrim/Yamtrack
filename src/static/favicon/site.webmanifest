@@ -87,7 +87,7 @@
             "name": "Movies",
             "short_name": "Movies",
             "description": "View your Movies",
-            "url": "/medialist/movies",
+            "url": "/medialist/movie",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/movies.svg",
@@ -123,7 +123,7 @@
             "name": "Games",
             "short_name": "Games",
             "description": "View your Games",
-            "url": "/medialist/games",
+            "url": "/medialist/game",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/games.svg",
@@ -135,7 +135,7 @@
             "name": "Books",
             "short_name": "Books",
             "description": "View your Books",
-            "url": "/medialist/books",
+            "url": "/medialist/book",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/books.svg",
@@ -147,7 +147,7 @@
             "name": "Comics",
             "short_name": "Comics",
             "description": "View your Comics",
-            "url": "/medialist/comics",
+            "url": "/medialist/comic",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/comics.svg",
