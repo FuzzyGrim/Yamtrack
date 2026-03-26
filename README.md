@@ -126,6 +126,8 @@ python manage.py runserver & celery -A config worker --beat --scheduler django -
 
 Alternatively, you can run the server in VS Code using the provided launch configuration, after running the previous commands excluding the last line. The debug session can be launched by going to the Run and Debug view and starting the session.
 
+**Note**: When using the VS Code debugging configuration, only the Django server is controlled by the debugger. You must manually start the Celery worker and Tailwind CSS watcher if your development work requires these services.
+
 Go to: http://localhost:8000
 
 ## 💪 Support the Project
