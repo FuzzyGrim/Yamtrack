@@ -4,7 +4,8 @@ This page covers working on Yamtrack from source.
 
 ## Prerequisites
 
-- Python 3.12
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [tailwindcss CLI](https://tailwindcss.com/docs/installation/tailwind-cli) (install with `npm install -g tailwindcss @tailwindcss/cli`)
 - Docker
 - Redis
 
@@ -25,18 +26,19 @@ If you do not already have Redis running locally, start it with Docker:
 docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:8-alpine
 ```
 
-### Create a virtual environment
+### Install dependencies
+
+uv manages the Python environment and dependencies:
 
 ```bash
-python -m venv venv
-venv/bin/python -m pip install -U -r requirements-dev.txt
-venv/bin/pre-commit install
+uv sync
+uv run pre-commit install
 ```
 
-Installing the development requirements includes pre-commit. After `venv/bin/pre-commit install`, the hooks run automatically before each commit. You can also run the full hook set manually:
+Installing the development dependencies includes pre-commit. After `uv run pre-commit install`, the hooks run automatically before each commit. You can also run the full hook set manually:
 
 ```bash
-venv/bin/pre-commit run --all-files
+uv run pre-commit run --all-files
 ```
 
 ### Configure environment values
@@ -60,7 +62,7 @@ See [Environment Variables](env-variables.md) for the full list of supported set
 
 ```bash
 cd src
-../venv/bin/python manage.py migrate
+uv run manage.py migrate
 ```
 
 ### Run the app
@@ -69,21 +71,21 @@ Run the Django development server:
 
 ```bash
 cd src
-../venv/bin/python manage.py runserver
+uv run manage.py runserver
 ```
 
 Run the Celery worker with the scheduler in another terminal:
 
 ```bash
 cd src
-../venv/bin/celery -A config worker --beat --scheduler django --loglevel DEBUG
+uv run celery -A config worker --beat --scheduler django --loglevel DEBUG
 ```
 
 Run Tailwind in another terminal:
 
 ```bash
 cd src
-../venv/bin/tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
+tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
 ```
 
 Open the development server at:
@@ -94,10 +96,11 @@ http://localhost:8000
 
 ## Documentation
 
-Install the docs dependencies from `docs/requirements.txt`, then serve the current checkout:
+Install the docs dependency group, then serve the docs from the current checkout:
 
 ```bash
-venv/bin/zensical serve
+uv sync --group docs
+uv run zensical serve
 ```
 
 ## Testing
@@ -106,12 +109,12 @@ Run the Django test suite from the `src` directory:
 
 ```bash
 cd src
-../venv/bin/python manage.py test --parallel
+uv run manage.py test --parallel
 ```
 
 To run tests for a specific app or test module, pass the test label after `test`:
 
 ```bash
 cd src
-../venv/bin/python manage.py test app.tests --parallel
+uv run manage.py test app.tests --parallel
 ```
