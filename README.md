@@ -121,7 +121,7 @@ Install [tailwindcss CLI](https://tailwindcss.com/docs/installation/tailwind-cli
 Then run the following commands to setup the environment.
 
 ```bash
-uv sync
+uv sync --all-extras
 uv run pre-commit install
 ```
 
