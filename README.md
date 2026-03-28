@@ -114,14 +114,23 @@ SECRET=SECRET
 DEBUG=True
 ```
 
-Then run the following commands.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) to manage the Python environment and dependencies.
+
+Install [tailwindcss CLI](https://tailwindcss.com/docs/installation/tailwind-cli) with `npm install -g tailwindcss @tailwindcss/cli`.
+
+Then run the following commands to setup the environment.
 
 ```bash
-python -m pip install -U -r requirements-dev.txt
-pre-commit install
+uv sync
+uv run pre-commit install
+```
+
+To run the development server with hot reload for both Django and Tailwind CSS, run:
+
+```bash
 cd src
-python manage.py migrate
-python manage.py runserver & celery -A config worker --beat --scheduler django --loglevel DEBUG & tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
+uv run manage.py migrate
+uv run manage.py runserver & uv run celery -A config worker --beat --scheduler django --loglevel DEBUG & tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
 ```
 
 Go to: <http://localhost:8000>
