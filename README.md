@@ -124,7 +124,7 @@ python manage.py migrate
 python manage.py runserver & celery -A config worker --beat --scheduler django --loglevel DEBUG & tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
 ```
 
-Go to: http://localhost:8000
+Go to: <http://localhost:8000>
 
 ## 💪 Support the Project
 
