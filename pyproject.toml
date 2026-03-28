@@ -3,7 +3,7 @@ name = "yamtrack"
 version = "0.25.0"
 description = "A self hosted media tracker."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = "==3.12"
 dependencies = [
 	"aiohttp==3.13.3",
 	"apprise==1.9.7",
