@@ -374,9 +374,9 @@
                           </h4>
                           <div class="text-sm text-gray-400 mt-1">
                             <p>
-                              {% if media.start_date %}{{ media.start_date|datetime_format:user }}{% endif %}
+                              {% if media.start_date %}{{ media.start_date|datetime_format:request.user }}{% endif %}
                               {% if media.start_date and media.end_date %}-{% endif %}
-                              {% if media.end_date %}{{ media.end_date|datetime_format:user }}{% endif %}
+                              {% if media.end_date %}{{ media.end_date|datetime_format:request.user }}{% endif %}
                             </p>
                           </div>
                           {% if media.score|show_media_score:user %}

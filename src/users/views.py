@@ -286,7 +286,7 @@ def integrations(request):
 def import_data(request):
     """Render the import data settings page."""
     import_tasks = request.user.get_import_tasks()
-    return render(request, "users/import_data.html", {"import_tasks": import_tasks})
+    return render(request, "users/import_data.html", {"import_tasks": import_tasks, "user": request.user})
 
 
 @require_GET

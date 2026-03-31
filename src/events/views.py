@@ -90,6 +90,7 @@ def calendar(request):
         "release_dict": release_dict,
         "today": today,
         "view_type": view_type,
+        "user": request.user,
     }
     return render(request, "events/calendar.html", context)
 

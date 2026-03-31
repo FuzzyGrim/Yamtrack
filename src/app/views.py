@@ -785,6 +785,7 @@ def history_modal(
             "timeline": timeline_entries,
             "total_medias": total_medias,
             "return_url": request.GET["return_url"],
+            "user": request.user,
         },
     )
 
@@ -881,6 +882,7 @@ def statistics(request):
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
+        "user": request.user,
     }
 
     return render(request, "app/statistics.html", context)

@@ -256,14 +256,14 @@
               {% if current_instance.start_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Started:</span>
-                  <span class="text-gray-200">{{ current_instance.start_date|datetime_format:user }}</span>
+                  <span class="text-gray-200">{{ current_instance.start_date|datetime_format:request.user }}</span>
                 </div>
               {% endif %}
 
               {% if current_instance.end_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Ended:</span>
-                  <span class="text-gray-200">{{ current_instance.end_date|datetime_format:user }}</span>
+                  <span class="text-gray-200">{{ current_instance.end_date|datetime_format:request.user }}</span>
                 </div>
               {% endif %}
 
@@ -339,11 +339,11 @@
                       {% endif %}
 
                       {% if user_media.start_date %}
-                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|datetime_format:user }}</div>
+                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|datetime_format:request.user }}</div>
                       {% endif %}
 
                       {% if user_media.end_date %}
-                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|datetime_format:user }}</div>
+                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|datetime_format:request.user }}</div>
                       {% endif %}
 
                       {% if user_media.notes %}
@@ -622,7 +622,7 @@
                     </div>
                     {% if episode.history %}
                       <p class="text-xs text-gray-400 mt-2 px-4">
-                        Last watched: {{ episode.history.0.end_date|datetime_format:user }}
+                        Last watched: {{ episode.history.0.end_date|datetime_format:request.user }}
                         {% if not episode.history.0.end_date %}No date provided{% endif %}
                         {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                       </p>
