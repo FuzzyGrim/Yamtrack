@@ -20,7 +20,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Check for workflow modifications
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
