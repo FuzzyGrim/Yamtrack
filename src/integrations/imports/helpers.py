@@ -11,12 +11,28 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
-from simple_history.utils import bulk_create_with_history
+from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 import app
-from app.models import MediaTypes
+from app.models import MediaTypes, Sources
 
 logger = logging.getLogger(__name__)
+
+
+def get_last_import_date(user, task_name):
+    """Return date_done of the most recent successful import task, or None."""
+    from django_celery_results.models import TaskResult
+
+    result = (
+        TaskResult.objects.filter(
+            task_name=task_name,
+            task_kwargs__contains=f"'user_id': {user.id},",
+            status="SUCCESS",
+        )
+        .order_by("-date_done")
+        .first()
+    )
+    return result.date_done.date() if result else None
 
 
 class MediaImportError(Exception):
@@ -182,12 +198,38 @@ def bulk_create_media(bulk_media_list, user):
             )
             update_episode_references(bulk_media, user)
 
+        ignore_conflicts = media_type != MediaTypes.EPISODE.value
         bulk_create_with_history(
             bulk_media,
             model,
             batch_size=500,
             default_user=user,
+            ignore_conflicts=ignore_conflicts,
         )
+
+
+def update_rewatched_movies(movie_objs, existing_media, user):
+    """Update end_date for movies that already existed (rewatches)."""
+    existing_ids = existing_media[MediaTypes.MOVIE.value][Sources.TMDB.value]
+    updates = {}
+    for movie_obj in movie_objs:
+        tmdb_id = movie_obj.item.media_id
+        if tmdb_id in existing_ids:
+            if tmdb_id not in updates or movie_obj.end_date > updates[tmdb_id]:
+                updates[tmdb_id] = movie_obj.end_date
+    if not updates:
+        return
+    Movie = apps.get_model("app", "movie")
+    movies_to_update = list(
+        Movie.objects.filter(
+            user=user,
+            item__media_id__in=updates.keys(),
+            item__source=Sources.TMDB.value,
+        ).select_related("item")
+    )
+    for movie in movies_to_update:
+        movie.end_date = updates[movie.item.media_id]
+    bulk_update_with_history(movies_to_update, Movie, ["end_date"], default_user=user)
 
 
 def create_import_schedule(
