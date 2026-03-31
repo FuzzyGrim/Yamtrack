@@ -5,7 +5,7 @@ fakeredis==2.34.1
 pre-commit==4.5.1
 pytest-django==4.12.0
 pytest-playwright==0.7.2
-ruff==0.15.1
+ruff==0.15.8
 tblib==3.2.2
 
 -r requirements.txt
