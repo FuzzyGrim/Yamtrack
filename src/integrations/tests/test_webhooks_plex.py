@@ -378,6 +378,37 @@ class PlexWebhookTests(TestCase):
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(Movie.objects.count(), 0)
 
+    def test_anime_episode_anidb_guid_mark_played(self):
+        """Test webhook handles anime episode with anidb guid."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "episode",
+                "index": 1,
+                "parentIndex": 1,
+                "guid": "com.plexapp.agents.hama://anidb-3651/1/1?lang=en"
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify anime was created and marked as in progress
+        anime = Anime.objects.get(
+            item__media_id="849",
+            user=self.user,
+        )
+        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
+        self.assertEqual(anime.progress, 1)
+
     def test_extract_external_ids(self):
         """Test extraction of external IDs from Plex webhook payload."""
         # Setup test payload
@@ -399,11 +430,32 @@ class PlexWebhookTests(TestCase):
             "tmdb_id": "12345",
             "imdb_id": "tt67890",
             "tvdb_id": "98765",
+            "anidb_id": None,
         }
 
-        if result != expected:
-            msg = f"Expected {expected}, got {result}"
-            raise AssertionError(msg)
+        self.assertEqual(result, expected)
+
+    def test_extract_external_ids_from_guid_string(self):
+        """Test extraction of external IDs from Plex webhook payload."""
+        # Setup test payload
+        payload = {
+            "Metadata": {
+                "guid": "com.plexapp.agents.hama://anidb-12345/1/1?lang=en",
+            },
+        }
+
+        # Execute
+        result = PlexWebhookProcessor()._extract_external_ids(payload)
+
+        # Assert
+        expected = {
+            "tmdb_id": None,
+            "imdb_id": None,
+            "tvdb_id": None,
+            "anidb_id": "12345",
+        }
+
+        self.assertEqual(result, expected)
 
     def test_extract_external_ids_missing_data(self):
         """Test handling of missing or empty data."""
@@ -415,7 +467,6 @@ class PlexWebhookTests(TestCase):
             "tmdb_id": None,
             "imdb_id": None,
             "tvdb_id": None,
+            "anidb_id": None,
         }
-        if result != expected:
-            msg = f"Expected {expected}, got {result}"
-            raise AssertionError(msg)
+        self.assertEqual(result, expected)

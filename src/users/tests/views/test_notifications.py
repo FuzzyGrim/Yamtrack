@@ -85,7 +85,7 @@ class NotificationTests(TestCase):
         response = self.client.post(
             reverse("exclude_notification_item"),
             {"item_id": self.item1.id},
-            HTTP_HX_REQUEST="true",
+            headers={"hx-request": "true"},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -102,7 +102,7 @@ class NotificationTests(TestCase):
         response = self.client.post(
             reverse("include_notification_item"),
             {"item_id": self.item1.id},
-            HTTP_HX_REQUEST="true",
+            headers={"hx-request": "true"},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -117,7 +117,7 @@ class NotificationTests(TestCase):
         response = self.client.get(
             reverse("search_notification_items"),
             {"q": "Test"},
-            HTTP_HX_REQUEST="true",
+            headers={"hx-request": "true"},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -131,7 +131,7 @@ class NotificationTests(TestCase):
         response = self.client.get(
             reverse("search_notification_items"),
             {"q": "Test"},
-            HTTP_HX_REQUEST="true",
+            headers={"hx-request": "true"},
         )
 
         self.assertNotContains(response, "Test Anime")
@@ -142,7 +142,7 @@ class NotificationTests(TestCase):
         response = self.client.get(
             reverse("search_notification_items"),
             {"q": "T"},
-            HTTP_HX_REQUEST="true",
+            headers={"hx-request": "true"},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -156,7 +156,7 @@ class NotificationTests(TestCase):
         response = self.client.get(
             reverse("search_notification_items"),
             {"q": ""},
-            HTTP_HX_REQUEST="true",
+            headers={"hx-request": "true"},
         )
 
         self.assertEqual(response.status_code, 200)

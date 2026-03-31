@@ -5,7 +5,7 @@ celery==5.6.2
 croniter==6.0.0
 defusedxml==0.7.1
 Django==5.2.11
-django-allauth[socialaccount]==65.14.0
+django-allauth[socialaccount]==65.14.1
 django-celery-beat==2.8.1
 django-celery-results==2.6.0
 django_debug_toolbar==6.2.0
@@ -16,12 +16,12 @@ django-redis==6.0.0
 django-select2==8.4.8
 django-simple-history==3.11.0
 django-widget-tweaks==1.5.1
-gunicorn==25.0.1
+gunicorn==25.0.3
 icalendar==7.0.0
-Pillow==12.1.0
+Pillow==12.1.1
 psycopg[binary,pool]==3.3.2
 python-decouple==3.8
-redis[hiredis]==7.1.0
+redis[hiredis]==7.1.1
 requests==2.32.5
 requests-ratelimiter==0.8.0
 unidecode==1.4.0

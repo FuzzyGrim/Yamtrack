@@ -19,7 +19,7 @@ WORKDIR /yamtrack
 
 RUN apk add --no-cache nginx shadow \
     && pip install --no-cache-dir -r /requirements.txt \
-    && pip install --no-cache-dir supervisor==4.2.5 \
+    && pip install --no-cache-dir supervisor==4.3.0 \
     && rm -rf /root/.cache /tmp/* \
     && find /usr/local -type d -name __pycache__ -exec rm -rf {} + \
     && chmod +x /entrypoint.sh \

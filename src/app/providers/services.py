@@ -35,9 +35,7 @@ def get_redis_connection():
 
 
 redis_pool = get_redis_connection()
-
-REDIS_PREFIX = getattr(settings, "REDIS_PREFIX", None)
-bucket_name = f"{REDIS_PREFIX}_api" if REDIS_PREFIX else "api"
+bucket_name = f"{settings.REDIS_PREFIX}_api" if settings.REDIS_PREFIX else "api"
 
 session = LimiterSession(
     per_second=5,

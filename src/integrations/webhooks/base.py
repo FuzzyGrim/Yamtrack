@@ -57,6 +57,37 @@ class BaseWebhookProcessor:
             self._process_movie(payload, user, ids)
 
     def _process_tv(self, payload, user, ids):
+        anidb_id = ids.get("anidb_id")
+        if user.anime_enabled and anidb_id:
+            mapping_data = self._fetch_mapping_data()
+            matching_entry = mapping_data.get(anidb_id)
+            if not matching_entry:
+                logger.info(
+                    "AniDB ID %s not found in mapping, "
+                    "falling through to TV processing",
+                    anidb_id,
+                )
+            elif not payload["Metadata"]["index"]:
+                logger.warning(
+                    "No episode number found for AniDB ID: %s",
+                    anidb_id,
+                )
+            else:
+                episode_number = payload["Metadata"]["index"]
+                logger.info(
+                    "Detected anime via AniDB ID: %s. Matching MAL ID: %s, Episode: %d",
+                    anidb_id,
+                    matching_entry["mal_id"],
+                    episode_number,
+                )
+                self._handle_anime(
+                    matching_entry["mal_id"],
+                    episode_number,
+                    payload,
+                    user,
+                )
+                return
+
         media_id, season_number, episode_number = self._find_tv_media_id(ids)
         if not media_id:
             logger.warning("No matching TMDB ID found for TV show")
