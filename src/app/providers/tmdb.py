@@ -204,7 +204,7 @@ def movie(media_id):
                 "character": member.get("character"),
                 "image": get_image_url(member.get("profile_path")),
             }
-            for member in cast[:10]
+            for member in cast[:30]
         ]
 
         data = {
@@ -229,6 +229,7 @@ def movie(media_id):
                 "languages": get_languages(response["spoken_languages"]),
             },
             "cast": filtered_cast,
+            "total_cast_count": len(cast),
             "related": {
                 collection_response.get("name", "collection"): collection_items,
                 "recommendations": get_related(

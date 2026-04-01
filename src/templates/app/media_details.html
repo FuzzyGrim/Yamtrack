@@ -498,10 +498,24 @@
       {% if media.cast %}
         <section class="mb-8">
           <h2 class="text-xl font-bold mb-4">Cast</h2>
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+          <div class="flex overflow-x-auto gap-4 pb-4 snap-x items-stretch">
             {% for cast in media.cast %}
               {% include "app/components/cast_card.html" with cast=cast %}
             {% endfor %}
+            {% if media.total_cast_count > 30 %}
+              <a href="{{ media.source_url }}/cast"
+                 target="_blank"
+                 class="shrink-0 bg-[#2a2f35] rounded-lg shadow-lg flex flex-col items-center justify-center hover:bg-[#343a40] transition-colors duration-200"
+                 style="width: 176px;
+                        min-width: 176px;
+                        height: 264px">
+                <div class="p-2.5 bg-indigo-600 text-white rounded-full mb-3">
+                  {% include "app/icons/external-link.svg" with classes="w-6 h-6" %}
+                </div>
+                <span class="text-sm font-semibold text-white">View all</span>
+                <span class="text-xs text-gray-400 mt-1">{{ media.total_cast_count }} cast members</span>
+              </a>
+            {% endif %}
           </div>
         </section>
       {% endif %}
@@ -520,7 +534,6 @@
               </h2>
               <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
                 {% for result in related_items %}
-                  {# Set active to highlight the current movie in a collection. Avoid TV media, since seasons have same ID as the parent show #}
                   {% if media_type == MediaTypes.MOVIE.value %}
                     {% include "app/components/media_card.html" with item=result.item title=result.item.season_title|default:result.item.title media=result.media active=media.media_id|str_equals:result.item.media_id %}
                   {% else %}
