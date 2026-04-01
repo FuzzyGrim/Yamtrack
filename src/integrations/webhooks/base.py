@@ -72,69 +72,153 @@ class BaseWebhookProcessor:
             logger.warning("Rating %s out of range (0-10), ignoring", rating)
         return None
 
+    def _try_detect_anime(
+        self,
+        ids,
+        user,
+        payload,
+        media_type=None,
+        season_number=None,
+    ):
+        """Try to detect if media is anime and return MAL ID.
+
+        Args:
+            ids: Dictionary of external IDs (tmdb_id, imdb_id, tvdb_id, anidb_id)
+            user: The user instance
+            payload: The webhook payload
+            media_type: Optional media type (for TV-specific detection)
+            season_number: Optional season number (for TV-specific detection)
+
+        Returns:
+            Tuple of (is_anime, mal_id, source, episode_number)
+            is_anime: True if anime was detected
+            mal_id: MAL ID if detected, None otherwise
+            source: Source of the ID ("anidb", "tvdb", "tmdb", "imdb")
+            episode_number: Episode number if applicable, None otherwise
+        """
+        if not user.anime_enabled:
+            return False, None, None, None
+
+        mapping_data = self._fetch_mapping_data()
+
+        if (res := self._detect_anime_from_anidb(ids, payload, mapping_data))[0]:
+            return res
+
+        if (res := self._detect_anime_from_tvdb(
+                ids, payload, mapping_data, media_type, season_number
+            )
+        )[0]:
+            return res
+
+        if (res := self._detect_anime_from_tmdb(ids, mapping_data))[0]:
+            return res
+
+        if (res := self._detect_anime_from_imdb(ids, mapping_data))[0]:
+            return res
+
+        return False, None, None, None
+
+    def _detect_anime_from_anidb(self, ids, payload, mapping_data):
+        """Detect anime from AniDB ID."""
+        anidb_id = ids.get("anidb_id")
+        if not anidb_id:
+            return False, None, None, None
+
+        matching_entry = mapping_data.get(anidb_id)
+        if not matching_entry or "mal_id" not in matching_entry:
+            logger.debug(
+                "AniDB ID %s not found in mapping or has no MAL ID",
+                anidb_id,
+            )
+            return False, None, None, None
+
+        episode_number = payload["Metadata"].get("index")
+        if not episode_number:
+            logger.warning(
+                "No episode number found for AniDB ID: %s",
+                anidb_id,
+            )
+            return False, None, None, None
+
+        mal_id = self._parse_mal_id(matching_entry["mal_id"])
+        logger.info(
+            "Detected anime via AniDB ID: %s, MAL ID: %s, Episode: %d",
+            anidb_id,
+            mal_id,
+            episode_number,
+        )
+        return True, mal_id, "anidb", episode_number
+
+    def _detect_anime_from_tvdb(
+        self, ids, payload, mapping_data, media_type, season_number
+    ):
+        """Detect anime from TVDB ID."""
+        tvdb_id = ids.get("tvdb_id")
+        if not tvdb_id or media_type != MediaTypes.TV.value:
+            return False, None, None, None
+
+        actual_season = season_number or payload["Metadata"].get("parentIndex") or 1
+        episode_number = payload["Metadata"].get("index") or 1
+        mal_id, episode_offset = self._get_mal_id_from_tvdb(
+            mapping_data, int(tvdb_id), actual_season, episode_number
+        )
+        if mal_id:
+            logger.info(
+                "Detected anime TV via TVDB ID: %s S%d, MAL ID: %s",
+                tvdb_id,
+                actual_season,
+                mal_id,
+            )
+            return True, mal_id, "tvdb", episode_offset
+        return False, None, None, None
+
+    def _detect_anime_from_tmdb(self, ids, mapping_data):
+        """Detect anime from TMDB ID."""
+        tmdb_id = ids.get("tmdb_id")
+        if not tmdb_id:
+            return False, None, None, None
+
+        mal_id = self._get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
+        if mal_id:
+            logger.info(
+                "Detected anime via TMDB ID: %s, MAL ID: %s",
+                tmdb_id,
+                mal_id,
+            )
+            return True, mal_id, "tmdb", None
+        return False, None, None, None
+
+    def _detect_anime_from_imdb(self, ids, mapping_data):
+        """Detect anime from IMDB ID."""
+        imdb_id = ids.get("imdb_id")
+        if not imdb_id:
+            return False, None, None, None
+
+        mal_id = self._get_mal_id_from_imdb(mapping_data, imdb_id)
+        if mal_id:
+            logger.info(
+                "Detected anime via IMDB ID: %s, MAL ID: %s",
+                imdb_id,
+                mal_id,
+            )
+            return True, mal_id, "imdb", None
+        return False, None, None, None
+
     def _process_tv(self, payload, user, ids):
         rating = self._get_rating_from_payload(payload)
-        anidb_id = ids.get("anidb_id")
-        if user.anime_enabled and anidb_id:
-            mapping_data = self._fetch_mapping_data()
-            matching_entry = mapping_data.get(anidb_id)
-            if not matching_entry:
-                logger.info(
-                    "AniDB ID %s not found in mapping, "
-                    "falling through to TV processing",
-                    anidb_id,
-                )
-            elif not payload["Metadata"]["index"]:
-                logger.warning(
-                    "No episode number found for AniDB ID: %s",
-                    anidb_id,
-                )
-            else:
-                episode_number = payload["Metadata"]["index"]
-                logger.info(
-                    "Detected anime via AniDB ID: %s. Matching MAL ID: %s, Episode: %d",
-                    anidb_id,
-                    matching_entry["mal_id"],
-                    episode_number,
-                )
-                self._handle_anime(
-                    matching_entry["mal_id"],
-                    episode_number,
-                    payload,
-                    user,
-                    rating,
-                )
-                return
+
+        # Try anime detection first
+        is_anime, mal_id, source, anime_episode = self._try_detect_anime(
+            ids, user, payload, MediaTypes.TV.value
+        )
+        if is_anime:
+            self._handle_anime(mal_id, anime_episode, payload, user, rating)
+            return
 
         media_id, season_number, episode_number = self._find_tv_media_id(ids)
         if not media_id:
             logger.warning("No matching TMDB ID found for TV show")
             return
-
-        tvdb_id = app.providers.tmdb.tv_with_seasons(media_id, [season_number])[
-            "tvdb_id"
-        ]
-
-        if not tvdb_id:
-            logger.warning("No TVDB ID found for TMDB ID: %s", media_id)
-            return
-
-        if user.anime_enabled:
-            mapping_data = self._fetch_mapping_data()
-            mal_id, episode_offset = self._get_mal_id_from_tvdb(
-                mapping_data,
-                int(tvdb_id),
-                season_number,
-                episode_number,
-            )
-            if mal_id:
-                logger.info(
-                    "Detected anime episode via MAL ID: %s, Episode: %d",
-                    mal_id,
-                    episode_offset,
-                )
-                self._handle_anime(mal_id, episode_offset, payload, user, rating)
-                return
 
         logger.info(
             "Detected TV episode via TMDB ID: %s, Season: %d, Episode: %d",
@@ -142,37 +226,18 @@ class BaseWebhookProcessor:
             season_number,
             episode_number,
         )
-        self._handle_tv_episode(
-            media_id, season_number, episode_number, payload, user, rating
-        )
+        self._handle_tv_episode(media_id, season_number, episode_number, payload, user)
 
     def _process_movie(self, payload, user, ids):
         tmdb_id = ids["tmdb_id"]
         imdb_id = ids["imdb_id"]
         rating = self._get_rating_from_payload(payload)
 
-        # Try to detect anime first if user has anime enabled
-        if user.anime_enabled:
-            mapping_data = self._fetch_mapping_data()
-            mal_id = None
-            source = None
-
-            if tmdb_id:
-                mal_id = self._get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
-                source = "TMDB"
-
-            if not mal_id and imdb_id:
-                mal_id = self._get_mal_id_from_imdb(mapping_data, imdb_id)
-                source = "IMDB"
-
-            if mal_id:
-                logger.info(
-                    "Detected anime movie with MAL ID: %s (via %s)",
-                    mal_id,
-                    source,
-                )
-                self._handle_anime(mal_id, 1, payload, user, rating)
-                return
+        # Try anime detection first
+        is_anime, mal_id, _, _ = self._try_detect_anime(ids, user, payload)
+        if is_anime:
+            self._handle_anime(mal_id, 1, payload, user, rating)
+            return
 
         # Handle as regular movie
         if tmdb_id:
