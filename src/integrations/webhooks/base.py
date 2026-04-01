@@ -343,9 +343,7 @@ class BaseWebhookProcessor:
                 user=user,
                 progress=progress,
                 status=(
-                    Status.COMPLETED.value
-                    if movie_played
-                    else Status.IN_PROGRESS.value
+                    Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value
                 ),
                 start_date=now if not movie_played else None,
                 end_date=now if movie_played else None,
@@ -354,7 +352,7 @@ class BaseWebhookProcessor:
             logger.info(
                 "Created new movie instance with status: %s%s",
                 Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value,
-                f" and rating: {rating}" if rating else "",
+                f" and rating: {rating}" if rating is not None else "",
             )
 
     def _handle_tv_episode(
@@ -560,7 +558,7 @@ class BaseWebhookProcessor:
                 "Created new anime instance with status: %s and progress %d%s",
                 status,
                 episode_number,
-                f" and rating: {rating}" if rating else "",
+                f" and rating: {rating}" if rating is not None else "",
             )
 
     def _handle_rating(self, media_type, media_id, source, rating, user):

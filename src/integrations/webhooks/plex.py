@@ -160,19 +160,40 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
                     )
 
         media_id = None
-        source = None
+        source = "tmdb"
 
         if ids.get("tmdb_id"):
             media_id = ids["tmdb_id"]
-            source = "tmdb"
-        elif ids.get("imdb_id"):
-            media_id = ids["imdb_id"]
-            source = "imdb"
+        elif media_type == MediaTypes.TV.value and ids.get("tvdb_id"):
+            logger.debug("No TMDB ID found, looking up via TVDB ID: %s", ids["tvdb_id"])
+            response = app.providers.tmdb.find(ids["tvdb_id"], "tvdb_id")
+
+            if response.get("tv_results"):
+                media_id = response["tv_results"][0]["id"]
+                logger.info("Found matching TMDB ID: %s", media_id)
+            else:
+                logger.warning(
+                    "No matching TMDB ID found for TVDB ID: %s",
+                    ids["tvdb_id"],
+                )
+        elif media_type == MediaTypes.MOVIE.value and ids.get("imdb_id"):
+            logger.debug("No TMDB ID found, looking up via IMDB ID: %s", ids["imdb_id"])
+            response = app.providers.tmdb.find(ids["imdb_id"], "imdb_id")
+
+            if response.get("movie_results"):
+                media_id = response["movie_results"][0]["id"]
+                logger.info("Found matching TMDB ID: %s", media_id)
+            else:
+                logger.warning(
+                    "No matching TMDB ID found for IMDB ID: %s",
+                    ids["imdb_id"],
+                )
         else:
             logger.warning("No valid ID found for rating event")
             return
 
-        self._handle_rating(media_type, media_id, source, rating, user)
+        if media_id:
+            self._handle_rating(media_type, media_id, source, rating, user)
 
     def _get_media_type(self, payload):
         media_type = payload["Metadata"].get("type")

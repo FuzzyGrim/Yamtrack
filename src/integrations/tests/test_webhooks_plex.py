@@ -675,17 +675,15 @@ class PlexWebhookTests(TestCase):
 
     def test_get_rating(self):
         """Test extraction of rating from payload."""
-        payload_with_rating = {
-            "Metadata": {"userRating": 8}
-        }
+        payload_with_rating = {"Metadata": {"userRating": 8}}
         payload_without_rating = {"Metadata": {"userRating": None}}
         payload_no_field = {"Metadata": {}}
 
         processor = PlexWebhookProcessor()
 
-        self.assertEqual(processor._get_rating(payload_with_rating), 8.0)
-        self.assertIsNone(processor._get_rating(payload_without_rating))
-        self.assertIsNone(processor._get_rating(payload_no_field))
+        self.assertEqual(processor._get_rating_from_payload(payload_with_rating), 8.0)
+        self.assertIsNone(processor._get_rating_from_payload(payload_without_rating))
+        self.assertIsNone(processor._get_rating_from_payload(payload_no_field))
 
     def test_is_rating_event(self):
         """Test detection of rating events."""
