@@ -470,3 +470,546 @@ class PlexWebhookTests(TestCase):
             "anidb_id": None,
         }
         self.assertEqual(result, expected)
+
+    def test_movie_rating(self):
+        """Test webhook handles movie rating event."""
+        movie_item = Item.objects.create(
+            media_id="603",
+            source="tmdb",
+            media_type=MediaTypes.MOVIE.value,
+            title="The Matrix",
+            image="https://example.com/matrix.jpg",
+        )
+        Movie.objects.create(
+            item=movie_item,
+            user=self.user,
+            progress=1,
+            status=Status.COMPLETED.value,
+            score=None,
+        )
+
+        payload = {
+            "event": "media.rate",
+            "Account": {
+                "title": "testuser",
+            },
+            "Metadata": {
+                "type": "movie",
+                "title": "The Matrix",
+                "userRating": 9,
+                "Guid": [
+                    {
+                        "id": "imdb://tt0133093",
+                    },
+                    {
+                        "id": "tmdb://603",
+                    },
+                ],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        movie = Movie.objects.get(item__media_id="603", user=self.user)
+        self.assertEqual(movie.score, 9.0)
+
+    def test_tv_rating(self):
+        """Test webhook handles TV show rating event."""
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source="tmdb",
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="https://example.com/friends.jpg",
+        )
+        TV.objects.create(
+            item=tv_item,
+            user=self.user,
+            progress=1,
+            status=Status.COMPLETED.value,
+            score=None,
+        )
+
+        payload = {
+            "event": "media.rate",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "show",
+                "title": "Friends",
+                "userRating": 8,
+                "Guid": [{"id": "tmdb://1668"}, {"id": "tvdb://10097"}],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        tv = TV.objects.get(item__media_id="1668", user=self.user)
+        self.assertEqual(tv.score, 8.0)
+
+    def test_anime_rating(self):
+        """Test webhook handles anime rating event."""
+        anime_item = Item.objects.create(
+            media_id="437",
+            source="mal",
+            media_type=MediaTypes.ANIME.value,
+            title="Perfect Blue",
+            image="https://example.com/perfectblue.jpg",
+        )
+        Anime.objects.create(
+            item=anime_item,
+            user=self.user,
+            progress=1,
+            status=Status.COMPLETED.value,
+            score=None,
+        )
+
+        payload = {
+            "event": "media.rate",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "movie",
+                "title": "Perfect Blue",
+                "userRating": 10,
+                "Guid": [
+                    {"id": "tmdb://10494"},
+                    {"id": "imdb://tt0156887"},
+                ],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify rating was saved
+        anime = Anime.objects.get(item__media_id="437", user=self.user)
+        self.assertEqual(anime.score, 10.0)
+
+    def test_rating_untracked_media(self):
+        """Test rating media that is not in user's list - should log but not create."""
+        payload = {
+            "event": "media.rate",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "movie",
+                "title": "Unknown Movie",
+                "userRating": 7,
+                "Guid": [{"id": "tmdb://99999999"}],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 0)
+
+    def test_rating_update(self):
+        """Test that rating can be updated (changed)."""
+        movie_item = Item.objects.create(
+            media_id="603",
+            source="tmdb",
+            media_type=MediaTypes.MOVIE.value,
+            title="The Matrix",
+            image="https://example.com/matrix.jpg",
+        )
+        Movie.objects.create(
+            item=movie_item,
+            user=self.user,
+            progress=1,
+            status=Status.COMPLETED.value,
+            score=5.0,
+        )
+
+        payload = {
+            "event": "media.rate",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "movie",
+                "title": "The Matrix",
+                "userRating": 9,
+                "Guid": [{"id": "tmdb://603"}],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        movie = Movie.objects.get(item__media_id="603", user=self.user)
+        self.assertEqual(movie.score, 9.0)
+
+    def test_get_rating(self):
+        """Test extraction of rating from payload."""
+        payload_with_rating = {
+            "Metadata": {"userRating": 8}
+        }
+        payload_without_rating = {"Metadata": {"userRating": None}}
+        payload_no_field = {"Metadata": {}}
+
+        processor = PlexWebhookProcessor()
+
+        self.assertEqual(processor._get_rating(payload_with_rating), 8.0)
+        self.assertIsNone(processor._get_rating(payload_without_rating))
+        self.assertIsNone(processor._get_rating(payload_no_field))
+
+    def test_is_rating_event(self):
+        """Test detection of rating events."""
+        rating_payload = {"event": "media.rate"}
+        scrobble_payload = {"event": "media.scrobble"}
+        play_payload = {"event": "media.play"}
+
+        processor = PlexWebhookProcessor()
+
+        self.assertTrue(processor._is_rating_event(rating_payload))
+        self.assertFalse(processor._is_rating_event(scrobble_payload))
+        self.assertFalse(processor._is_rating_event(play_payload))
+
+    def test_anime_tv_rating(self):
+        """Test webhook handles anime TV show rating event via TVDB mapping."""
+        anime_item = Item.objects.create(
+            media_id="52991",
+            source="mal",
+            media_type=MediaTypes.ANIME.value,
+            title="Frieren: Beyond Journey's End",
+            image="https://example.com/frieren.jpg",
+        )
+        Anime.objects.create(
+            item=anime_item,
+            user=self.user,
+            progress=1,
+            status=Status.IN_PROGRESS.value,
+            score=None,
+        )
+
+        payload = {
+            "event": "media.rate",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "show",
+                "title": "Frieren: Beyond Journey's End",
+                "userRating": 9,
+                "parentIndex": 1,
+                "Guid": [
+                    {"id": "tmdb://39462"},
+                    {"id": "tvdb://9350138"},
+                ],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        anime = Anime.objects.get(item__media_id="52991", user=self.user)
+        self.assertEqual(anime.score, 9.0)
+
+    def test_movie_played_with_rating(self):
+        """Test webhook handles movie playback with rating."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "movie",
+                "title": "The Matrix",
+                "userRating": 8,
+                "Guid": [
+                    {"id": "imdb://tt0133093"},
+                    {"id": "tmdb://603"},
+                ],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        movie = Movie.objects.get(item__media_id="603", user=self.user)
+        self.assertEqual(movie.status, Status.COMPLETED.value)
+        self.assertEqual(movie.progress, 1)
+        self.assertEqual(movie.score, 8.0)
+
+    def test_episode_played_with_rating(self):
+        """Test webhook handles TV episode playback with rating."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "episode",
+                "grandparentTitle": "Friends",
+                "index": 1,
+                "parentIndex": 1,
+                "userRating": 7,
+                "Guid": [
+                    {"id": "imdb://tt0583459"},
+                    {"id": "tmdb://85987"},
+                    {"id": "tvdb://303821"},
+                ],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        tv_item = Item.objects.get(media_type=MediaTypes.TV.value, media_id="1668")
+        self.assertEqual(tv_item.title, "Friends")
+
+        tv = TV.objects.get(item=tv_item, user=self.user)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+
+        season = Season.objects.get(
+            item__media_id="1668",
+            item__season_number=1,
+        )
+        self.assertEqual(season.status, Status.IN_PROGRESS.value)
+
+        episode = Episode.objects.get(
+            item__media_id="1668",
+            item__season_number=1,
+            item__episode_number=1,
+        )
+        self.assertIsNotNone(episode.end_date)
+
+    def test_anime_episode_played_with_rating(self):
+        """Test webhook handles anime episode playback with rating."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "episode",
+                "grandparentTitle": "Frieren: Beyond Journey's End",
+                "index": 1,
+                "parentIndex": 1,
+                "userRating": 9,
+                "Guid": [
+                    {"id": "imdb://tt23861604"},
+                    {"id": "tmdb://3946240"},
+                    {"id": "tvdb://9350138"},
+                ],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        anime = Anime.objects.get(item__media_id="52991", user=self.user)
+        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
+        self.assertEqual(anime.progress, 1)
+        self.assertEqual(anime.score, 9.0)
+
+    def test_anime_movie_played_with_rating(self):
+        """Test webhook handles anime movie playback with rating."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "movie",
+                "title": "Perfect Blue",
+                "userRating": 10,
+                "Guid": [
+                    {"id": "imdb://tt0156887"},
+                    {"id": "tmdb://10494"},
+                ],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        anime = Anime.objects.get(item__media_id="437", user=self.user)
+        self.assertEqual(anime.status, Status.COMPLETED.value)
+        self.assertEqual(anime.progress, 1)
+        self.assertEqual(anime.score, 10.0)
+
+    def test_movie_rating_zero(self):
+        """Test webhook handles movie rating of 0."""
+        movie_item = Item.objects.create(
+            media_id="603",
+            source="tmdb",
+            media_type=MediaTypes.MOVIE.value,
+            title="The Matrix",
+            image="https://example.com/matrix.jpg",
+        )
+        Movie.objects.create(
+            item=movie_item,
+            user=self.user,
+            progress=1,
+            status=Status.COMPLETED.value,
+            score=None,
+        )
+
+        payload = {
+            "event": "media.rate",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "movie",
+                "title": "The Matrix",
+                "userRating": 0,
+                "Guid": [{"id": "tmdb://603"}],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+        response = self.client.post(self.url, data=data, format="multipart")
+
+        self.assertEqual(response.status_code, 200)
+        movie = Movie.objects.get(item__media_id="603", user=self.user)
+        self.assertEqual(movie.score, 0.0)
+
+    def test_rating_out_of_range(self):
+        """Test that out-of-range ratings are ignored."""
+        payload_high = {"Metadata": {"userRating": 15}}
+        payload_negative = {"Metadata": {"userRating": -1}}
+
+        processor = PlexWebhookProcessor()
+
+        self.assertIsNone(processor._get_rating_from_payload(payload_high))
+        self.assertIsNone(processor._get_rating_from_payload(payload_negative))
+
+    def test_rating_on_completed_movie(self):
+        """Test that rating a completed movie updates the score.
+
+        Regression test for issue where rating updates were not applied
+        to already-completed media items.
+        """
+        movie_item = Item.objects.create(
+            media_id="603",
+            source="tmdb",
+            media_type=MediaTypes.MOVIE.value,
+            title="The Matrix",
+            image="https://example.com/matrix.jpg",
+        )
+        Movie.objects.create(
+            item=movie_item,
+            user=self.user,
+            progress=1,
+            status=Status.COMPLETED.value,
+            score=None,
+        )
+
+        payload = {
+            "event": "media.rate",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "movie",
+                "title": "The Matrix",
+                "userRating": 8,
+                "Guid": [{"id": "tmdb://603"}],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+        response = self.client.post(self.url, data=data, format="multipart")
+
+        self.assertEqual(response.status_code, 200)
+        movie = Movie.objects.get(item__media_id="603", user=self.user)
+        self.assertEqual(movie.score, 8.0)
+
+    def test_rating_on_completed_anime(self):
+        """Test that rating a completed anime updates the score.
+
+        Regression test for issue where rating updates were not applied
+        to already-completed anime items.
+        """
+        anime_item = Item.objects.create(
+            media_id="437",
+            source="mal",
+            media_type=MediaTypes.ANIME.value,
+            title="Perfect Blue",
+            image="https://example.com/perfectblue.jpg",
+        )
+        Anime.objects.create(
+            item=anime_item,
+            user=self.user,
+            progress=1,
+            status=Status.COMPLETED.value,
+            score=None,
+        )
+
+        payload = {
+            "event": "media.rate",
+            "Account": {"title": "testuser"},
+            "Metadata": {
+                "type": "movie",
+                "title": "Perfect Blue",
+                "userRating": 9,
+                "Guid": [
+                    {"id": "tmdb://10494"},
+                    {"id": "imdb://tt0156887"},
+                ],
+            },
+        }
+
+        data = {"payload": json.dumps(payload)}
+        response = self.client.post(self.url, data=data, format="multipart")
+
+        self.assertEqual(response.status_code, 200)
+        anime = Anime.objects.get(item__media_id="437", user=self.user)
+        self.assertEqual(anime.score, 9.0)

@@ -36,10 +36,13 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
             logger.warning("Ignoring Plex webhook call because no ID was found.")
             return
 
-        self._process_media(payload, user, ids)
+        if self._is_rating_event(payload):
+            self._process_rating(payload, user, ids)
+        else:
+            self._process_media(payload, user, ids)
 
     def _is_supported_event(self, event_type):
-        return event_type in ("media.scrobble", "media.play")
+        return event_type in ("media.scrobble", "media.play", "media.rate")
 
     def _is_valid_user(self, payload_user, user):
         stored_usernames = [
@@ -56,6 +59,120 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
 
     def _is_played(self, payload):
         return payload["event"] == "media.scrobble"
+
+    def _is_rating_event(self, payload):
+        """Check if this is a rating event."""
+        return payload.get("event") == "media.rate"
+
+    def _process_rating(self, payload, user, ids):
+        """Process rating event."""
+        media_type = self._get_media_type(payload)
+        if not media_type:
+            logger.debug("Ignoring unsupported media type for rating")
+            return
+
+        rating = self._get_rating_from_payload(payload)
+        logger.info("Processing rating event: %s with rating %s", media_type, rating)
+
+        if user.anime_enabled:
+            mapping_data = self._fetch_mapping_data()
+
+            if ids.get("anidb_id"):
+                matching_entry = mapping_data.get(ids["anidb_id"])
+                if matching_entry and "mal_id" in matching_entry:
+                    mal_id = self._parse_mal_id(matching_entry["mal_id"])
+                    logger.info(
+                        "Detected anime via AniDB ID: %s, MAL ID: %s",
+                        ids["anidb_id"],
+                        mal_id,
+                    )
+                    self._handle_rating(
+                        MediaTypes.ANIME.value, mal_id, "mal", rating, user
+                    )
+                    return
+                else:
+                    logger.debug(
+                        "AniDB ID %s not found in mapping or has no MAL ID",
+                        ids["anidb_id"],
+                    )
+
+            tvdb_id = ids.get("tvdb_id")
+            if tvdb_id and media_type == MediaTypes.TV.value:
+                season_number = payload["Metadata"].get("parentIndex") or 1
+                mal_id, _ = self._get_mal_id_from_tvdb(
+                    mapping_data, int(tvdb_id), season_number, 1
+                )
+                if mal_id:
+                    logger.info(
+                        "Detected anime TV via TVDB ID: %s S%d, MAL ID: %s",
+                        tvdb_id,
+                        season_number,
+                        mal_id,
+                    )
+                    self._handle_rating(
+                        MediaTypes.ANIME.value, mal_id, "mal", rating, user
+                    )
+                    return
+                else:
+                    logger.debug(
+                        "TVDB ID %s S%d not found in anime mapping",
+                        tvdb_id,
+                        season_number,
+                    )
+
+            tmdb_id = ids.get("tmdb_id")
+            imdb_id = ids.get("imdb_id")
+
+            if tmdb_id:
+                mal_id = self._get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
+                if mal_id:
+                    logger.info(
+                        "Detected anime movie via TMDB ID: %s, MAL ID: %s",
+                        tmdb_id,
+                        mal_id,
+                    )
+                    self._handle_rating(
+                        MediaTypes.ANIME.value, mal_id, "mal", rating, user
+                    )
+                    return
+                else:
+                    logger.debug(
+                        "TMDB ID %s not found in anime mapping",
+                        tmdb_id,
+                    )
+
+            if imdb_id:
+                mal_id = self._get_mal_id_from_imdb(mapping_data, imdb_id)
+                if mal_id:
+                    logger.info(
+                        "Detected anime movie via IMDB ID: %s, MAL ID: %s",
+                        imdb_id,
+                        mal_id,
+                    )
+                    self._handle_rating(
+                        MediaTypes.ANIME.value, mal_id, "mal", rating, user
+                    )
+                    return
+                else:
+                    logger.debug(
+                        "IMDB ID %s not found in anime mapping",
+                        imdb_id,
+                    )
+
+        media_id = None
+        source = None
+
+        if ids.get("tmdb_id"):
+            media_id = ids["tmdb_id"]
+            source = "tmdb"
+        elif ids.get("imdb_id"):
+            media_id = ids["imdb_id"]
+            source = "imdb"
+        else:
+            logger.warning("No valid ID found for rating event")
+            return
+
+        self._handle_rating(media_type, media_id, source, rating, user)
 
     def _get_media_type(self, payload):
         media_type = payload["Metadata"].get("type")

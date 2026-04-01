@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 import app
-from app.models import MediaTypes, Sources, Status
+from app.models import Anime, Item, MediaTypes, Movie, Sources, Status, TV
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,8 @@ class BaseWebhookProcessor:
     MEDIA_TYPE_MAPPING = {
         "Episode": MediaTypes.TV.value,
         "Movie": MediaTypes.MOVIE.value,
+        "Show": MediaTypes.TV.value,
+        "Season": MediaTypes.TV.value,
     }
 
     def process_payload(self, payload, user):
@@ -56,7 +58,22 @@ class BaseWebhookProcessor:
         elif media_type == MediaTypes.MOVIE.value:
             self._process_movie(payload, user, ids)
 
+    def _get_rating_from_payload(self, payload):
+        """Extract rating from payload if present.
+
+        Plex uses payload["Metadata"].get("userRating").
+        Returns None if no rating is present or if rating is out of range.
+        """
+        rating = payload.get("Metadata", {}).get("userRating")
+        if rating is not None:
+            rating = float(rating)
+            if 0 <= rating <= 10:
+                return rating
+            logger.warning("Rating %s out of range (0-10), ignoring", rating)
+        return None
+
     def _process_tv(self, payload, user, ids):
+        rating = self._get_rating_from_payload(payload)
         anidb_id = ids.get("anidb_id")
         if user.anime_enabled and anidb_id:
             mapping_data = self._fetch_mapping_data()
@@ -85,6 +102,7 @@ class BaseWebhookProcessor:
                     episode_number,
                     payload,
                     user,
+                    rating,
                 )
                 return
 
@@ -115,7 +133,7 @@ class BaseWebhookProcessor:
                     mal_id,
                     episode_offset,
                 )
-                self._handle_anime(mal_id, episode_offset, payload, user)
+                self._handle_anime(mal_id, episode_offset, payload, user, rating)
                 return
 
         logger.info(
@@ -124,11 +142,14 @@ class BaseWebhookProcessor:
             season_number,
             episode_number,
         )
-        self._handle_tv_episode(media_id, season_number, episode_number, payload, user)
+        self._handle_tv_episode(
+            media_id, season_number, episode_number, payload, user, rating
+        )
 
     def _process_movie(self, payload, user, ids):
         tmdb_id = ids["tmdb_id"]
         imdb_id = ids["imdb_id"]
+        rating = self._get_rating_from_payload(payload)
 
         # Try to detect anime first if user has anime enabled
         if user.anime_enabled:
@@ -150,13 +171,13 @@ class BaseWebhookProcessor:
                     mal_id,
                     source,
                 )
-                self._handle_anime(mal_id, 1, payload, user)
+                self._handle_anime(mal_id, 1, payload, user, rating)
                 return
 
         # Handle as regular movie
         if tmdb_id:
             logger.info("Detected movie via TMDB ID: %s", tmdb_id)
-            self._handle_movie(tmdb_id, payload, user)
+            self._handle_movie(tmdb_id, payload, user, rating)
         elif imdb_id:
             logger.debug("No TMDB ID found, looking up via IMDB ID: %s", imdb_id)
             response = app.providers.tmdb.find(imdb_id, "imdb_id")
@@ -164,7 +185,7 @@ class BaseWebhookProcessor:
             if response.get("movie_results"):
                 media_id = response["movie_results"][0]["id"]
                 logger.info("Found matching TMDB ID: %s", media_id)
-                self._handle_movie(media_id, payload, user)
+                self._handle_movie(media_id, payload, user, rating)
             else:
                 logger.warning(
                     "No matching TMDB ID found for IMDB ID: %s",
@@ -255,8 +276,15 @@ class BaseWebhookProcessor:
             return mal_id.split(",")[0].strip()
         return mal_id
 
-    def _handle_movie(self, media_id, payload, user):
-        """Handle movie playback event."""
+    def _handle_movie(self, media_id, payload, user, rating=None):
+        """Handle movie playback event.
+
+        Args:
+            media_id: The TMDB ID of the movie
+            payload: The webhook payload
+            user: The user instance
+            rating: Optional rating value (1-10) from the payload
+        """
         movie_metadata = app.providers.tmdb.movie(media_id)
         movie_item, _ = app.models.Item.objects.get_or_create(
             media_id=media_id,
@@ -275,16 +303,28 @@ class BaseWebhookProcessor:
         progress = 1 if movie_played else 0
         now = timezone.now().replace(second=0, microsecond=0)
 
-        if current_instance and current_instance.status != Status.COMPLETED.value:
-            current_instance.progress = progress
+        if current_instance:
+            if current_instance.status != Status.COMPLETED.value:
+                current_instance.progress = progress
 
-            if movie_played:
-                current_instance.end_date = now
-                current_instance.status = Status.COMPLETED.value
+                if movie_played:
+                    current_instance.end_date = now
+                    current_instance.status = Status.COMPLETED.value
 
-            elif current_instance.status != Status.IN_PROGRESS.value:
-                current_instance.start_date = now
-                current_instance.status = Status.IN_PROGRESS.value
+                elif current_instance.status != Status.IN_PROGRESS.value:
+                    current_instance.start_date = now
+                    current_instance.status = Status.IN_PROGRESS.value
+
+            if rating is not None:
+                old_score = current_instance.score
+                current_instance.score = rating
+                if old_score != rating:
+                    logger.info(
+                        "Updated rating for movie %s from %s to %s",
+                        movie_metadata["title"],
+                        old_score,
+                        rating,
+                    )
 
             if current_instance.tracker.changed():
                 current_instance.save()
@@ -302,15 +342,19 @@ class BaseWebhookProcessor:
                 item=movie_item,
                 user=user,
                 progress=progress,
-                status=Status.COMPLETED.value
-                if movie_played
-                else Status.IN_PROGRESS.value,
+                status=(
+                    Status.COMPLETED.value
+                    if movie_played
+                    else Status.IN_PROGRESS.value
+                ),
                 start_date=now if not movie_played else None,
                 end_date=now if movie_played else None,
+                score=rating,
             )
             logger.info(
-                "Created new movie instance with status: %s",
+                "Created new movie instance with status: %s%s",
                 Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value,
+                f" and rating: {rating}" if rating else "",
             )
 
     def _handle_tv_episode(
@@ -436,8 +480,16 @@ class BaseWebhookProcessor:
                 episode_number,
             )
 
-    def _handle_anime(self, media_id, episode_number, payload, user):
-        """Handle anime playback event."""
+    def _handle_anime(self, media_id, episode_number, payload, user, rating=None):
+        """Handle anime playback event.
+
+        Args:
+            media_id: The MAL ID of the anime
+            episode_number: The episode number
+            payload: The webhook payload
+            user: The user instance
+            rating: Optional rating value (1-10) from the payload
+        """
         anime_metadata = app.providers.mal.anime(media_id)
         anime_item, _ = app.models.Item.objects.get_or_create(
             media_id=media_id,
@@ -459,16 +511,28 @@ class BaseWebhookProcessor:
         is_completed = episode_number == anime_metadata["max_progress"]
         status = Status.COMPLETED.value if is_completed else Status.IN_PROGRESS.value
 
-        if current_instance and current_instance.status != Status.COMPLETED.value:
-            current_instance.progress = episode_number
+        if current_instance:
+            if current_instance.status != Status.COMPLETED.value:
+                current_instance.progress = episode_number
 
-            if is_completed:
-                current_instance.end_date = now
-                current_instance.status = status
+                if is_completed:
+                    current_instance.end_date = now
+                    current_instance.status = status
 
-            elif current_instance.status != Status.IN_PROGRESS.value:
-                current_instance.start_date = now
-                current_instance.status = status
+                elif current_instance.status != Status.IN_PROGRESS.value:
+                    current_instance.start_date = now
+                    current_instance.status = status
+
+            if rating is not None:
+                old_score = current_instance.score
+                current_instance.score = rating
+                if old_score != rating:
+                    logger.info(
+                        "Updated rating for anime %s from %s to %s",
+                        anime_metadata["title"],
+                        old_score,
+                        rating,
+                    )
 
             if current_instance.tracker.changed():
                 current_instance.save()
@@ -490,9 +554,81 @@ class BaseWebhookProcessor:
                 status=status,
                 start_date=now if not is_completed else None,
                 end_date=now if is_completed else None,
+                score=rating,
             )
             logger.info(
-                "Created new anime instance with status: %s and progress %d",
+                "Created new anime instance with status: %s and progress %d%s",
                 status,
                 episode_number,
+                f" and rating: {rating}" if rating else "",
+            )
+
+    def _handle_rating(self, media_type, media_id, source, rating, user):
+        """Handle rating update event for a media item.
+
+        Args:
+            media_type: The type of media (movie, tv, anime)
+            media_id: The external ID of the media
+            source: The source of the ID (tmdb, mal, etc.)
+            rating: The rating value (1-10) or None
+            user: The user instance
+        """
+        item, item_created = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            defaults={
+                "title": f"Media {media_id}",
+                "image": "",
+            },
+        )
+
+        if item_created:
+            metadata = app.providers.services.get_media_metadata(
+                media_type, media_id, source
+            )
+            if metadata:
+                item.title = metadata.get("title") or item.title
+                item.image = metadata.get("image") or item.image
+                item.save()
+            else:
+                logger.debug(
+                    "Failed to fetch metadata for %s %s, using placeholder",
+                    media_type,
+                    media_id,
+                )
+
+        if media_type == MediaTypes.MOVIE.value:
+            instances = Movie.objects.filter(item=item, user=user)
+        elif media_type == MediaTypes.TV.value:
+            instances = TV.objects.filter(item=item, user=user)
+        elif media_type == MediaTypes.ANIME.value:
+            instances = Anime.objects.filter(item=item, user=user)
+        else:
+            logger.warning("Unsupported media type for rating: %s", media_type)
+            return
+
+        if instances.exists():
+            instance = instances.first()
+            old_score = instance.score
+            instance.score = rating
+            if instance.tracker.changed():
+                instance.save()
+                logger.info(
+                    "Updated rating for %s: %s from %s to %s",
+                    media_type,
+                    item.title,
+                    old_score,
+                    rating,
+                )
+            else:
+                logger.info(
+                    "Rating unchanged for %s: %s",
+                    media_type,
+                    item.title,
+                )
+        else:
+            logger.debug(
+                "Media %s not in user's list, skipping rating update",
+                item.title,
             )
