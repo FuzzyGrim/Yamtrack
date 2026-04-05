@@ -759,6 +759,22 @@ def process_other(item, events_bulk):
             ),
         )
 
+    # Games don't have content number
+    elif (
+        item.media_type == MediaTypes.GAME.value
+        and date_key in metadata["details"]
+        and metadata["details"][date_key]
+    ):
+        content_datetime = date_parser(metadata["details"][date_key])
+
+        events_bulk.append(
+            Event(
+                item=item,
+                content_number=None,
+                datetime=content_datetime,
+            ),
+        )
+
     elif item.source == Sources.MANGAUPDATES.value and content_number:
         # MangaUpdates doesn't have an end date, so use a placeholder
         content_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))

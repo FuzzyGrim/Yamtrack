@@ -482,6 +482,60 @@ class ReloadCalendarTaskTests(TestCase):
         expected_end_date = date_parser("2023-12-22")
         self.assertEqual(events_bulk[0].datetime, expected_end_date)
 
+    @patch("events.calendar.services.get_media_metadata")
+    def test_process_other_mangaupdates(self, mock_get_media_metadata):
+        """Test process_other for MangaUpdates manga."""
+        mangaupdates_item = Item.objects.create(
+            media_id="123",
+            source=Sources.MANGAUPDATES.value,
+            media_type=MediaTypes.MANGA.value,
+            title="Some Manga",
+            image="http://example.com/manga.jpg",
+        )
+
+        mock_get_media_metadata.return_value = {
+            "max_progress": 100,
+            "details": {},
+        }
+
+        events_bulk = []
+        process_other(mangaupdates_item, events_bulk)
+        self.assertEqual(len(events_bulk), 1)
+        self.assertEqual(events_bulk[0].item, mangaupdates_item)
+        self.assertEqual(events_bulk[0].content_number, 100)
+
+        # Verify placeholder date was used
+        expected_date = datetime.datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+        self.assertEqual(events_bulk[0].datetime, expected_date)
+
+    @patch("events.calendar.services.get_media_metadata")
+    def test_process_other_game(self, mock_get_media_metadata):
+        """Test process_other for a game."""
+        game_item = Item.objects.create(
+            media_id="52189",
+            source=Sources.IGDB.value,
+            media_type=MediaTypes.GAME.value,
+            title="Grand Theft Auto VI",
+            image="http://example.com/gta6.jpg",
+        )
+
+        mock_get_media_metadata.return_value = {
+            "max_progress": None,
+            "details": {
+                "release_date": "2025-10-15",
+            },
+        }
+
+        events_bulk = []
+        process_other(game_item, events_bulk)
+
+        self.assertEqual(len(events_bulk), 1)
+        self.assertEqual(events_bulk[0].item, game_item)
+        self.assertEqual(events_bulk[0].content_number, None)
+
+        expected_date = date_parser("2025-10-15")
+        self.assertEqual(events_bulk[0].datetime, expected_date)
+
     @patch("events.calendar.services.api_request")
     def test_get_anime_schedule_bulk(self, mock_api_request):
         """Test get_anime_schedule_bulk function."""

@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from django.apps import apps
 from django.conf import settings
@@ -12,14 +13,13 @@ from django.db.models import (
     CheckConstraint,
     Count,
     F,
-    IntegerField,
     Max,
     Prefetch,
     Q,
     UniqueConstraint,
     Window,
 )
-from django.db.models.functions import Cast, RowNumber
+from django.db.models.functions import RowNumber
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
@@ -67,7 +67,8 @@ class MediaTypes(models.TextChoices):
 class Item(CalendarTriggerMixin, models.Model):
     """Model to store basic information about media items."""
 
-    media_id = models.CharField(max_length=20)
+    # limited by uuid for manual entries
+    media_id = models.CharField(max_length=36)
     source = models.CharField(
         max_length=20,
         choices=Sources,
@@ -168,21 +169,12 @@ class Item(CalendarTriggerMixin, models.Model):
         return name
 
     @classmethod
-    def generate_manual_id(cls, media_type):
-        """Generate a new ID for manual items."""
-        latest_item = (
-            cls.objects.filter(source=Sources.MANUAL.value, media_type=media_type)
-            .annotate(
-                media_id_int=Cast("media_id", IntegerField()),
-            )
-            .order_by("-media_id_int")
-            .first()
-        )
+    def generate_manual_id(cls):
+        """Generate a new ID for manual items.
 
-        if latest_item is None:
-            return "1"
-
-        return str(int(latest_item.media_id) + 1)
+        Uses a UUID to ensure uniqueness.
+        """
+        return str(uuid.uuid4())
 
     def fetch_releases(self, delay):
         """Fetch releases for the item."""

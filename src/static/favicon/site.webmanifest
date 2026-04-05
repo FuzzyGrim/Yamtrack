@@ -16,12 +16,26 @@
         {
             "src": "/static/favicon/android-chrome-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "/static/favicon/android-chrome-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/favicon/android-chrome-192x192-maskable.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/static/favicon/android-chrome-512x512-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ],
     "screenshots": [
@@ -49,61 +63,121 @@
             "name": "Home",
             "short_name": "Home",
             "description": "Home",
-            "url": "/"
+            "url": "/",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/home.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "TV Shows",
             "short_name": "TV",
             "description": "View your TV Shows",
-            "url": "/medialist/tv"
+            "url": "/medialist/tv",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/tv.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "Movies",
             "short_name": "Movies",
             "description": "View your Movies",
-            "url": "/medialist/movies"
+            "url": "/medialist/movie",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/movies.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "Anime",
             "short_name": "Anime",
             "description": "View your Anime",
-            "url": "/medialist/anime"
+            "url": "/medialist/anime",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/anime.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "Manga",
             "short_name": "Manga",
             "description": "View your Mangas",
-            "url": "/medialist/manga"
+            "url": "/medialist/manga",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/manga.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "Games",
             "short_name": "Games",
             "description": "View your Games",
-            "url": "/medialist/games"
+            "url": "/medialist/game",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/games.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "Books",
             "short_name": "Books",
             "description": "View your Books",
-            "url": "/medialist/books"
+            "url": "/medialist/book",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/books.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "Comics",
             "short_name": "Comics",
             "description": "View your Comics",
-            "url": "/medialist/comics"
+            "url": "/medialist/comic",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/comics.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "Statistics",
             "short_name": "Stats",
             "description": "View your Statistics",
-            "url": "/statistics"
+            "url": "/statistics",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/stats.svg",
+                    "sizes": "192x192"
+                }
+            ]
         },
         {
             "name": "Your Lists",
             "short_name": "Lists",
             "description": "View your Lists",
-            "url": "/lists"
+            "url": "/lists",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/lists.svg",
+                    "sizes": "192x192"
+                }
+            ]
         }
     ]
 }
