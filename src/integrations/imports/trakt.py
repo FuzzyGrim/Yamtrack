@@ -91,7 +91,7 @@ def get_access_token(encrypted_refresh_token):
         "client_secret": settings.TRAKT_API_SECRET,
         "refresh_token": decrypted_token,
         "grant_type": "refresh_token",
-        "redirect_uri": f"{settings.URLS[0]}{reverse('import_trakt_private')}",
+        "redirect_uri": f"{settings.URLS[0].rstrip('/')}{reverse('import_trakt_private')}",
     }
 
     try:
