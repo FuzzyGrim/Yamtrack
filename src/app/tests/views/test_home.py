@@ -145,10 +145,8 @@ class HomeViewTests(TestCase):
             )
 
         # Now test the load more functionality
-        headers = {"HTTP_HX_REQUEST": "true"}
         response = self.client.get(
-            reverse("home") + "?load_media_type=season",
-            **headers,
+            reverse("home") + "?load_media_type=season", headers={"hx-request": "true"}
         )
 
         self.assertEqual(response.status_code, 200)

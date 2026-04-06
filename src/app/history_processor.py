@@ -123,7 +123,9 @@ def collect_creation_changes(new_record, history_model, media_type, user):
             continue
 
         value = getattr(new_record, field.attname, None)
-        if not value:
+        if not value and not (
+            media_type == MediaTypes.EPISODE.value and field.name == "end_date"
+        ):
             continue
 
         change_data = {
@@ -161,7 +163,7 @@ def apply_date_status_integration(changes, user):
     ):
         date_changes["start_date"]["description"] = (
             f"Started on "
-            f"{app_tags.date_format(date_changes['start_date']['new'], user)}"
+            f"{app_tags.datetime_format(date_changes['start_date']['new'], user)}"
         )
         changes["status_change"] = None
 
@@ -172,7 +174,8 @@ def apply_date_status_integration(changes, user):
         and status_change["new"] == Status.COMPLETED.value
     ):
         date_changes["end_date"]["description"] = (
-            f"Finished on {app_tags.date_format(date_changes['end_date']['new'], user)}"
+            f"Finished on "
+            f"{app_tags.datetime_format(date_changes['end_date']['new'], user)}"
         )
         changes["status_change"] = None
 
@@ -200,8 +203,8 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
     taking into account the media type and status transitions.
     """
     if field_name in {"start_date", "end_date"}:
-        new_value = app_tags.date_format(new_value, user)
-        old_value = app_tags.date_format(old_value, user)
+        new_value = app_tags.datetime_format(new_value, user)
+        old_value = app_tags.datetime_format(old_value, user)
 
     # If old_value is None, treat it as an initial setting
     if old_value is None:
@@ -231,7 +234,9 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
 
         if field_name in ["start_date", "end_date"]:
             field_display = "Started" if field_name == "start_date" else "Finished"
-            return f"{field_display} on {new_value}"
+            if new_value:
+                return f"{field_display} on {new_value}"
+            return f"{field_display} without date"
 
         if field_name == "notes":
             return "Added notes"

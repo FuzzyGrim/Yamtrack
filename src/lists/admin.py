@@ -3,6 +3,7 @@ from django.contrib import admin
 from lists.models import CustomList, CustomListItem
 
 
+@admin.register(CustomList)
 class CustomListAdmin(admin.ModelAdmin):
     """Admin configuration for CustomList model."""
 
@@ -13,20 +14,19 @@ class CustomListAdmin(admin.ModelAdmin):
     autocomplete_fields = ["collaborators"]
     filter_horizontal = ["collaborators"]
 
+    @admin.display(description="Number of items")
     def item_count(self, obj):
         """Return the number of items in the list."""
         return obj.items.count()
 
-    item_count.short_description = "Number of items"
-
+    @admin.display(description="Last updated")
     def get_last_update(self, obj):
         """Return the date of the last item added."""
         last_update = CustomListItem.objects.get_last_added_date(obj)
         return last_update or "-"
 
-    get_last_update.short_description = "Last updated"
 
-
+@admin.register(CustomListItem)
 class CustomListItemAdmin(admin.ModelAdmin):
     """Admin configuration for CustomListItem model."""
 
@@ -37,12 +37,7 @@ class CustomListItemAdmin(admin.ModelAdmin):
     autocomplete_fields = ["item", "custom_list"]
     readonly_fields = ["date_added"]
 
+    @admin.display(description="Media Type")
     def get_media_type(self, obj):
         """Return the media type of the item."""
         return obj.item.get_media_type_display()
-
-    get_media_type.short_description = "Media Type"
-
-
-admin.site.register(CustomList, CustomListAdmin)
-admin.site.register(CustomListItem, CustomListItemAdmin)

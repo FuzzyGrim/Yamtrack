@@ -11,6 +11,7 @@ from app.models import (
 
 
 # Custom ModelAdmin classes with search functionality
+@admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     """Custom admin for Item model with search and filter options."""
 
@@ -26,6 +27,7 @@ class ItemAdmin(admin.ModelAdmin):
     list_filter = ["media_type", "source"]
 
 
+@admin.register(Episode)
 class EpisodeAdmin(admin.ModelAdmin):
     """Custom admin for Episode model with search and filter options."""
 
@@ -42,8 +44,6 @@ class MediaAdmin(admin.ModelAdmin):
 
 
 # Register models with custom admin classes
-admin.site.register(Item, ItemAdmin)
-admin.site.register(Episode, EpisodeAdmin)
 
 
 # Auto-register remaining models

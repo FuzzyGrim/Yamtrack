@@ -38,7 +38,7 @@ class SteamImporter:
         self.user = user
         self.mode = mode
         self.warnings = []
-        self.api_key = getattr(settings, "STEAM_API_KEY", None)
+        self.api_key = settings.STEAM_API_KEY
 
         if not self.api_key:
             msg = "Steam API key not configured in environment variables"
