@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 import app
+import app.forms
 from app import config
 from app.models import MediaTypes, Sources
 from app.providers import services
@@ -54,15 +55,19 @@ class YamtrackImporter:
             mode,
         )
 
-    def import_data(self):
-        """Import all user data from the CSV file."""
+    def get_iterator(self):
+        """Return an iterator for the CSV file. Exists to be overridden."""
         try:
             decoded_file = self.file.read().decode("utf-8").splitlines()
         except UnicodeDecodeError as e:
             msg = "Invalid file format. Please upload a CSV file."
             raise MediaImportError(msg) from e
 
-        reader = DictReader(decoded_file)
+        return DictReader(decoded_file)
+
+    def import_data(self):
+        """Import all user data from the CSV file."""
+        reader = self.get_iterator()
 
         for row in reader:
             try:

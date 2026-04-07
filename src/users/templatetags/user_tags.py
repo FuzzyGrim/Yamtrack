@@ -52,6 +52,10 @@ SOURCES_CONFIG = {
         "name": "GoodReads",
         "logo": static("img/logo-goodreads.svg"),
     },
+    "watcharr": {
+        "name": "Watcharr",
+        "logo": static("img/watcharr-logo.png"),
+    },
 }
 
 

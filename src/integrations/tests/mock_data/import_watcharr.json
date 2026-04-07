@@ -1,0 +1,466 @@
+[
+	{
+		"id": 1,
+		"createdAt": "2024-06-08T12:51:09.869791Z",
+		"updatedAt": "2025-09-10T20:00:27.522541796Z",
+		"deletedAt": null,
+		"status": "FINISHED",
+		"rating": 10,
+		"thoughts": "",
+		"pinned": false,
+		"content": {
+			"id": 5,
+			"tmdbId": 515001,
+			"title": "Jojo Rabbit",
+			"poster_path": "/1mqL7VG4Ix8wmxwypmCA1HTHBky.jpg",
+			"overview": "A World War II satire that follows a lonely German boy whose world view is turned upside down when he discovers his single mother is hiding a young Jewish girl in their attic. Aided only by his idiotic imaginary friend, Adolf Hitler, Jojo must confront his blind nationalism.",
+			"type": "movie",
+			"release_date": "2019-10-18T00:00:00Z",
+			"popularity": 4.4158,
+			"vote_average": 8,
+			"vote_count": 9948,
+			"imdb_id": "tt2584384",
+			"status": "Released",
+			"budget": 14000000,
+			"revenue": 82468705,
+			"runtime": 108,
+			"numberOfEpisodes": 0,
+			"numberOfSeasons": 0
+		},
+		"activity": [],
+		"tags": []
+	},
+	{
+		"id": 2,
+		"createdAt": "2024-07-26T15:16:49.6934216Z",
+		"updatedAt": "2024-08-02T20:22:57.407627351Z",
+		"deletedAt": null,
+		"status": "DROPPED",
+		"rating": 3,
+		"thoughts": "",
+		"pinned": false,
+		"content": {
+			"id": 1,
+			"tmdbId": 76600,
+			"title": "Avatar: The Way of Water",
+			"poster_path": "/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg",
+			"overview": "Set more than a decade after the events of the first film, learn the story of the Sully family (Jake, Neytiri, and their kids), the trouble that follows them, the lengths they go to keep each other safe, the battles they fight to stay alive, and the tragedies they endure.",
+			"type": "movie",
+			"release_date": "2022-12-14T00:00:00Z",
+			"popularity": 139.086,
+			"vote_average": 7.623,
+			"vote_count": 11536,
+			"imdb_id": "tt1630029",
+			"status": "Released",
+			"budget": 460000000,
+			"revenue": 2320250281,
+			"runtime": 192,
+			"numberOfEpisodes": 0,
+			"numberOfSeasons": 0
+		},
+		"activity": []
+	},
+	{
+		"id": 11,
+		"createdAt": "2024-08-02T20:16:19.05521003Z",
+		"updatedAt": "2025-09-10T20:01:05.900075622Z",
+		"deletedAt": null,
+		"status": "FINISHED",
+		"rating": 10,
+		"thoughts": "",
+		"pinned": false,
+		"content": {
+			"id": 11,
+			"tmdbId": 97546,
+			"title": "Ted Lasso",
+			"poster_path": "/5fhZdwP1DVJ0FyVH6vrFdHwpXIn.jpg",
+			"overview": "Ted Lasso, an American football coach, moves to England when he's hired to manage a soccer team—despite having no experience. With cynical players and a doubtful town, will he get them to see the Ted Lasso Way?",
+			"type": "tv",
+			"release_date": "2020-08-14T00:00:00Z",
+			"popularity": 28.0278,
+			"vote_average": 8.4,
+			"vote_count": 2034,
+			"imdb_id": "",
+			"status": "Returning Series",
+			"budget": 0,
+			"revenue": 0,
+			"runtime": 0,
+			"numberOfEpisodes": 34,
+			"numberOfSeasons": 4
+		},
+		"activity": [],
+		"watchedSeasons": [
+			{
+				"id": 1,
+				"createdAt": "2024-08-02T20:16:19.096418729Z",
+				"updatedAt": "2026-03-08T20:26:05.684478107Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 2,
+				"createdAt": "2024-08-02T20:16:19.111684249Z",
+				"updatedAt": "2026-03-08T20:26:05.684478107Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 3,
+				"createdAt": "2024-08-02T20:16:19.133908067Z",
+				"updatedAt": "2026-03-08T20:26:05.684478107Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"status": "FINISHED",
+				"rating": 0
+			}
+		],
+		"watchedEpisodes": [
+			{
+				"id": 1,
+				"createdAt": "2024-08-02T20:16:19.185472315Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 1,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 2,
+				"createdAt": "2024-08-02T20:16:19.372598826Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 2,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 3,
+				"createdAt": "2024-08-02T20:16:19.391737511Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 3,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 4,
+				"createdAt": "2024-08-02T20:16:19.410261374Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 4,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 5,
+				"createdAt": "2024-08-02T20:16:19.433514116Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 5,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 6,
+				"createdAt": "2024-08-02T20:16:19.456541477Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 6,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 7,
+				"createdAt": "2024-08-02T20:16:19.483789161Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 7,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 8,
+				"createdAt": "2024-08-02T20:16:19.49849878Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 8,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 9,
+				"createdAt": "2024-08-02T20:16:19.518962061Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 9,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 10,
+				"createdAt": "2024-08-02T20:16:19.540003199Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 1,
+				"episodeNumber": 10,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 11,
+				"createdAt": "2024-08-02T20:16:19.563343162Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 1,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 12,
+				"createdAt": "2024-08-02T20:16:19.951053018Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 2,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 13,
+				"createdAt": "2024-08-02T20:16:19.97090959Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 3,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 14,
+				"createdAt": "2024-08-02T20:16:19.991326232Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 4,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 15,
+				"createdAt": "2024-08-02T20:16:20.011634951Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 5,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 16,
+				"createdAt": "2024-08-02T20:16:20.034759693Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 6,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 17,
+				"createdAt": "2024-08-02T20:16:20.069461463Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 7,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 18,
+				"createdAt": "2024-08-02T20:16:20.083116932Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 8,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 19,
+				"createdAt": "2024-08-02T20:16:20.103281397Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 9,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 20,
+				"createdAt": "2024-08-02T20:16:20.132899563Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 10,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 21,
+				"createdAt": "2024-08-02T20:16:20.15920945Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 11,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 22,
+				"createdAt": "2024-08-02T20:16:20.192382822Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 2,
+				"episodeNumber": 12,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 23,
+				"createdAt": "2024-08-02T20:16:20.211423518Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 1,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 24,
+				"createdAt": "2024-08-02T20:16:20.37960353Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 2,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 25,
+				"createdAt": "2024-08-02T20:16:20.404377209Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 3,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 26,
+				"createdAt": "2024-08-02T20:16:20.427046633Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 4,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 27,
+				"createdAt": "2024-08-02T20:16:20.465634548Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 5,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 28,
+				"createdAt": "2024-08-02T20:16:20.493039534Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 6,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 29,
+				"createdAt": "2024-08-02T20:16:20.518709543Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 7,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 30,
+				"createdAt": "2024-08-02T20:16:20.540156397Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 8,
+				"status": "FINISHED",
+				"rating": 0
+			},
+			{
+				"id": 31,
+				"createdAt": "2024-08-02T20:16:20.565623572Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 9,
+				"status": "WATCHING",
+				"rating": 0
+			},
+			{
+				"id": 32,
+				"createdAt": "2024-08-02T20:16:20.599088399Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 10,
+				"status": "PLANNED",
+				"rating": 0
+			},
+			{
+				"id": 33,
+				"createdAt": "2024-08-02T20:16:20.739867172Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 11,
+				"status": "PLANNED",
+				"rating": 0
+			},
+			{
+				"id": 34,
+				"createdAt": "2024-08-02T20:16:20.758313075Z",
+				"updatedAt": "2026-03-08T20:26:06.424287939Z",
+				"deletedAt": null,
+				"seasonNumber": 3,
+				"episodeNumber": 12,
+				"status": "PAUSED",
+				"rating": 0
+			}
+		],
+		"tags": [],
+		"lastViewedSeason": 0
+	}
+]
