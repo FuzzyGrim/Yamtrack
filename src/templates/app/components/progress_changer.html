@@ -1,5 +1,7 @@
 {% load app_tags %}
 
+{% include "app/components/messages/messages_oob.html" %}
+
 <div class="flex items-center justify-center space-x-4 pb-3">
   <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
           {% if media.progress == 0 %}disabled{% endif %}

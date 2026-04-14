@@ -47,8 +47,11 @@
               {% for entry in episode.history %}
                 <div class="flex items-center justify-between bg-[#343a40] rounded-md p-3 border border-gray-600">
                   <div class="text-sm text-white">
-                    {{ entry.end_date|datetime_format:request.user }}
-                    {% if not entry.end_date %}No date provided{% endif %}
+                    {% if entry.end_date %}
+                      {{ entry.end_date|datetime_format:request.user }}
+                    {% else %}
+                      No date provided
+                    {% endif %}
                   </div>
                   <form method="post"
                         action="{% url 'media_delete' %}?next={{ request.path }}">

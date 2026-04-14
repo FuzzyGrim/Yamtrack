@@ -87,18 +87,16 @@ class MediaListViewTests(TestCase):
 
     def test_media_list_htmx_request(self):
         """Test the media list view with HTMX request."""
-        headers = {"HTTP_HX_REQUEST": "true"}
-
         response = self.client.get(
             reverse("medialist", args=[MediaTypes.MOVIE.value]) + "?layout=grid",
-            **headers,
+            headers={"hx-request": "true"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_grid_items.html")
 
         response = self.client.get(
             reverse("medialist", args=[MediaTypes.MOVIE.value]) + "?layout=table",
-            **headers,
+            headers={"hx-request": "true"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_table_items.html")

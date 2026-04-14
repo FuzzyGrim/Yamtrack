@@ -8,6 +8,8 @@ src/db/db.sqlite3
 db.sqlite3-shm
 db.sqlite3-wal
 .vscode/launch.json
+AGENTS.md
 CLAUDE.md
 requests.http
 TODO.txt
+.codex

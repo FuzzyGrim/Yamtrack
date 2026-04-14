@@ -12,26 +12,26 @@
       </a>
 
       {% if media.next_event and not media.next_event.is_max_datetime %}
-        <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/80 px-2 py-1.5 rounded-md shadow-md whitespace-nowrap max-w-[98%]">
-          {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-indigo-400" %}
+        <div class="absolute top-2 left-1/2 flex max-w-[98%] -translate-x-1/2 items-center gap-1.5 rounded-md bg-black/80 px-2 py-1.5 shadow-md whitespace-nowrap">
+          {% if home_status == Status.PLANNING.value %}
+            {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-sky-400" %}
+          {% else %}
+            {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-indigo-400" %}
+          {% endif %}
           <span class="text-xs font-medium text-white drop-shadow-sm truncate">
             {% if media.next_event.content_number %}
-              {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }}
-            {% else %}
-              Release
+              {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} •
             {% endif %}
-
-            • {{ media.next_event.datetime|natural_day:user }}
+            {{ media.next_event.datetime|natural_day:user }}
           </span>
         </div>
       {% endif %}
 
-      <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100{% if user.clickable_media_cards %} pointer-coarse:hidden{% endif %}">
+      <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover-tap:opacity-100{% if user.clickable_media_cards %} pointer-coarse:hidden{% endif %}">
         <a href="{{ media.item|media_url }}" class="absolute inset-0"></a>
 
         <div class="relative flex items-center justify-center space-x-2.5">
-          {# Track Button #}
-          <button class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
+          <button class="cursor-pointer rounded-full bg-indigo-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)]"
                   title="Add to tracker"
                   hx-get="{% media_view_url 'track_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
@@ -39,8 +39,7 @@
                   hx-trigger="click once"
                   @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
 
-          {# Lists Button #}
-          <button class="p-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-200 cursor-pointer"
+          <button class="cursor-pointer rounded-full bg-emerald-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]"
                   title="Add to custom lists"
                   hx-get="{% media_view_url 'lists_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
@@ -48,8 +47,7 @@
                   hx-trigger="click once"
                   @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
 
-          {# History Button #}
-          <button class="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-200 cursor-pointer"
+          <button class="cursor-pointer rounded-full bg-amber-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]"
                   title="View your activity history"
                   hx-get="{% media_view_url 'history_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
@@ -60,42 +58,42 @@
       </div>
     </div>
 
-    <div>
-      <div class="p-3 space-y-3">
-        <a href="{{ media.item|media_url }}"
-           class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
-           title="{{ media }}">{{ media }}</a>
-      </div>
+    <div class="p-3">
+      <a href="{{ media.item|media_url }}"
+         class="line-clamp-1 text-center text-sm font-semibold text-white transition duration-300 {% if home_status == Status.PLANNING.value %}hover:text-sky-400{% else %}hover:text-indigo-400{% endif %}"
+         title="{{ media }}">{{ media }}</a>
+    </div>
+
+    {% if home_status == Status.PLANNING.value %}
+      {% if user.progress_bar %}<div class="h-[5px] {{ Status.PLANNING.value|status_background_color }}"></div>{% endif %}
+    {% else %}
       <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
         {% include "app/components/progress_changer.html" with media=media user=user csrf_token=csrf_token MediaTypes=MediaTypes only %}
       </div>
-    </div>
+    {% endif %}
 
-    {# Track Modal #}
     <div x-show="trackOpen"
          @keydown.escape.window="trackOpen = false"
-         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="relative z-60 max-h-[90vh] w-152 px-4 md:px-0"
            @click.outside="trackOpen = false">
         <div id="{% component_id 'track' media.item media.id %}"></div>
       </div>
     </div>
 
-    {# Lists Modal #}
     <div x-show="listsOpen"
          @keydown.escape.window="listsOpen = false"
-         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
            @click.outside="listsOpen = false">
         <div id="{% component_id 'lists' media.item %}"></div>
       </div>
     </div>
 
-    {# History Modal #}
     <div x-show="historyOpen"
          @keydown.escape.window="historyOpen = false"
-         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
            @click.outside="historyOpen = false">
         <div id="{% component_id 'history' media.item %}"></div>
       </div>
