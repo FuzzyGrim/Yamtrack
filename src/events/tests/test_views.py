@@ -286,3 +286,120 @@ class CalendarViewTests(TestCase):
 
         # Check response - should be 405 Method Not Allowed
         self.assertEqual(response.status_code, 405)
+
+
+class DownloadCalendarViewTests(TestCase):
+    """Tests for the download_calendar view."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.credentials = {"username": "testuser", "password": "testpassword"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.url = reverse("download_calendar", args=[self.user.token])
+
+    def test_download_calendar_invalid_token(self):
+        """Test that an invalid token returns 401."""
+        url = reverse("download_calendar", args=["invalid-token"])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 401)
+
+    @patch("events.models.Event.objects.get_user_events")
+    def test_download_calendar_empty(self, mock_get_user_events):
+        """Test downloading a calendar with no events."""
+        mock_get_user_events.return_value = []
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/calendar")
+        self.assertEqual(
+            response["Content-Disposition"],
+            'attachment; filename="calendar.ics"',
+        )
+
+        content = response.content.decode()
+        self.assertIn("BEGIN:VCALENDAR", content)
+        self.assertIn("PRODID:-//Yamtrack//EN", content)
+        self.assertIn("VERSION:2.0", content)
+        self.assertIn("END:VCALENDAR", content)
+        self.assertNotIn("BEGIN:VEVENT", content)
+
+    @patch("events.models.Event.objects.get_user_events")
+    def test_download_calendar_with_events(self, mock_get_user_events):
+        """Test downloading a calendar with events."""
+        item1 = Item.objects.create(
+            media_id="123",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Test Show",
+            image="https://example.com/image.jpg",
+        )
+        item2 = Item.objects.create(
+            media_id="456",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Test Movie",
+            image="https://example.com/image2.jpg",
+        )
+
+        event1 = Event.objects.create(
+            item=item1,
+            content_number=5,
+            datetime=timezone.make_aware(
+                timezone.datetime(2024, 6, 15, 12, 0),
+            ),
+        )
+        event2 = Event.objects.create(
+            item=item2,
+            datetime=timezone.make_aware(
+                timezone.datetime(2024, 6, 20, 18, 0),
+            ),
+        )
+
+        mock_get_user_events.return_value = [event1, event2]
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/calendar")
+
+        content = response.content.decode()
+        self.assertIn("BEGIN:VCALENDAR", content)
+        self.assertIn("BEGIN:VEVENT", content)
+        self.assertIn("END:VEVENT", content)
+        self.assertIn("END:VCALENDAR", content)
+
+        # Verify event count
+        self.assertEqual(content.count("BEGIN:VEVENT"), 2)
+
+        # Verify the date range passed to get_user_events
+        mock_get_user_events.assert_called_once()
+        call_args = mock_get_user_events.call_args
+        self.assertEqual(call_args[0][0], self.user)
+
+        # Start date should be 30 days ago, end date 90 days in the future
+        today = timezone.now().date()
+        expected_start = today - timedelta(days=30)
+        expected_end = today + timedelta(days=90)
+        self.assertEqual(call_args[0][1], expected_start)
+        self.assertEqual(call_args[0][2], expected_end)
+
+    def test_download_calendar_head_request(self):
+        """Test that HEAD requests are allowed."""
+        response = self.client.head(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    @patch("events.models.Event.objects.get_user_events")
+    def test_download_calendar_no_auth_required(self, mock_get_user_events):
+        """Test that download_calendar does not require login."""
+        mock_get_user_events.return_value = []
+
+        # Use a new client that is not logged in
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_download_calendar_post_not_allowed(self):
+        """Test that POST requests are not allowed."""
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 405)

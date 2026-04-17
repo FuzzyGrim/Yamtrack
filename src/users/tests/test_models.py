@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
@@ -10,6 +10,7 @@ from django_celery_results.models import TaskResult
 from users.models import (
     HomeSortChoices,
     MediaTypes,
+    QuickWatchDateChoices,
 )
 
 
@@ -351,3 +352,62 @@ class UserGetImportTasksTests(TestCase):
 
         # Check results
         self.assertEqual(len(import_tasks["results"]), 0)
+
+
+class UserResolveWatchDateTests(TestCase):
+    """Tests for the User.resolve_watch_date method."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.QuickWatchDateChoices = QuickWatchDateChoices
+        self.credentials = {"username": "test_watch", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.now = timezone.now()
+        self.release_date = datetime(2020, 5, 15, 20, 0, tzinfo=UTC)
+
+    def test_resolve_watch_date_current_date(self):
+        """Test resolve_watch_date returns current date for CURRENT_DATE."""
+        self.user.quick_watch_date = self.QuickWatchDateChoices.CURRENT_DATE
+        self.user.save()
+
+        result = self.user.resolve_watch_date(self.now, self.release_date)
+
+        self.assertEqual(result, self.now)
+
+    def test_resolve_watch_date_release_date(self):
+        """Test resolve_watch_date returns release date for RELEASE_DATE."""
+        self.user.quick_watch_date = self.QuickWatchDateChoices.RELEASE_DATE
+        self.user.save()
+
+        result = self.user.resolve_watch_date(self.now, self.release_date)
+
+        self.assertEqual(result, self.release_date)
+
+    def test_resolve_watch_date_release_date_none(self):
+        """Test resolve_watch_date returns None when release_date is None."""
+        self.user.quick_watch_date = self.QuickWatchDateChoices.RELEASE_DATE
+        self.user.save()
+
+        result = self.user.resolve_watch_date(self.now, None)
+
+        self.assertIsNone(result)
+
+    def test_resolve_watch_date_no_date(self):
+        """Test resolve_watch_date returns None when preference is NO_DATE."""
+        self.user.quick_watch_date = self.QuickWatchDateChoices.NO_DATE
+        self.user.save()
+
+        result = self.user.resolve_watch_date(self.now, self.release_date)
+
+        self.assertIsNone(result)
+
+    def test_resolve_watch_date_default_is_current_date(self):
+        """Test that default preference is CURRENT_DATE."""
+        self.assertEqual(
+            self.user.quick_watch_date,
+            self.QuickWatchDateChoices.CURRENT_DATE,
+        )
+
+        result = self.user.resolve_watch_date(self.now, self.release_date)
+
+        self.assertEqual(result, self.now)

@@ -28,7 +28,8 @@
                   {% with color=release.item.media_type|media_color %}
                     {% icon release.item.media_type is_active=False extra_classes=color|add:" w-4 h-4 shrink-0" %}
                   {% endwith %}
-                  <span class="truncate" title="{{ release }} {{ release.display_time }}">{{ release }} {{ release.display_time }}</span>
+                  <span class="truncate"
+                        title="{{ release }} {{ release.datetime|time_format:user }}">{{ release }} {{ release.datetime|time_format:user }}</span>
                 </div>
               </a>
             {% endfor %}

@@ -204,4 +204,3 @@ class YamtrackImporter:
 
         msg = f"Missing metadata for: {row}"
         raise MediaImportError(msg)
-

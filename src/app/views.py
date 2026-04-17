@@ -13,13 +13,23 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.utils.text import slugify
 from django.utils.timezone import datetime
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import config, helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
+from app.models import (
+    TV,
+    BasicMedia,
+    Item,
+    MediaTypes,
+    Season,
+    Sources,
+    Status,
+    UserMessage,
+)
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
@@ -29,27 +39,48 @@ logger = logging.getLogger(__name__)
 
 @require_GET
 def home(request):
-    """Home page with media items in progress."""
+    """Home page with media items in progress and planning."""
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
+    status_to_load = request.GET.get("load_status", Status.IN_PROGRESS.value)
     items_limit = 14
-
-    list_by_type = BasicMedia.objects.get_in_progress(
-        request.user,
-        sort_by,
-        items_limit,
-        media_type_to_load,
-    )
 
     # If this is an HTMX request to load more items for a specific media type
     if request.headers.get("HX-Request") and media_type_to_load:
+        list_by_type = BasicMedia.objects.get_home_status(
+            user=request.user,
+            status=status_to_load,
+            sort_by=sort_by,
+            items_limit=items_limit,
+            specific_media_type=media_type_to_load,
+        )
         context = {
             "media_list": list_by_type.get(media_type_to_load, []),
+            "home_status": status_to_load,
         }
         return render(request, "app/components/home_grid.html", context)
 
+    home_sections = []
+    for status in (Status.IN_PROGRESS.value, Status.PLANNING.value):
+        media_types = BasicMedia.objects.get_home_status(
+            user=request.user,
+            status=status,
+            sort_by=sort_by,
+            items_limit=items_limit,
+        )
+        home_sections.append(
+            {
+                "key": status,
+                "id": slugify(status),
+                "media_types": media_types,
+                "count": sum(
+                    media_list["total"] for media_list in media_types.values()
+                ),
+            },
+        )
+
     context = {
-        "list_by_type": list_by_type,
+        "home_sections": home_sections,
         "current_sort": sort_by,
         "sort_choices": HomeSortChoices.choices,
         "items_limit": items_limit,
@@ -143,8 +174,11 @@ def media_list(request, media_type):
 
     # Handle HTMX requests for partial updates
     if request.headers.get("HX-Request"):
-        # Changing from empty list to a status with items
+        # Filtering from empty list
         if request.headers.get("HX-Target") == "empty_list":
+            # If still empty, keep user in the same page
+            if not media_page.object_list:
+                return HttpResponse(status=204)
             response = HttpResponse()
             response["HX-Redirect"] = reverse("medialist", args=[media_type])
             return response
@@ -179,7 +213,9 @@ def media_search(request):
 
     # Enrich search results with user tracking data
     if data.get("results"):
-        data["results"] = helpers.enrich_items_with_user_data(request, data["results"])
+        data["results"] = helpers.enrich_items_with_user_data(
+            request, data["results"], "search"
+        )
 
     context = {
         "data": data,
@@ -209,16 +245,24 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
             if related_items:
                 media_metadata["related"][section_name] = (
                     helpers.enrich_items_with_user_data(
-                        request,
-                        related_items,
+                        request, related_items, section_name
                     )
                 )
+
+    if media_type in ["tv", "movie"]:
+        watch_providers = tmdb.filter_providers(
+            media_metadata.get("providers"), request.user.watch_provider_region
+        )
+    else:
+        watch_providers = None
 
     context = {
         "media": media_metadata,
         "media_type": media_type,
         "user_medias": user_medias,
         "current_instance": current_instance,
+        "watch_providers": watch_providers,
+        "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
 
@@ -264,6 +308,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
                     helpers.enrich_items_with_user_data(
                         request,
                         related_items,
+                        section_name,
                     )
                 )
 
@@ -273,6 +318,10 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "media_type": MediaTypes.SEASON.value,
         "user_medias": user_medias,
         "current_instance": current_instance,
+        "watch_providers": tmdb.filter_providers(
+            season_metadata.get("providers"), request.user.watch_provider_region
+        ),
+        "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
 
@@ -555,6 +604,25 @@ def media_delete(request):
 
 
 @require_POST
+def mark_user_messages_shown(request):
+    """Mark all unseen persistent messages for the user as shown."""
+    message_ids = [
+        int(message_id)
+        for message_id in request.POST.getlist("message_ids")
+        if message_id.isdigit()
+    ]
+    if not message_ids:
+        return HttpResponse(status=204)
+
+    UserMessage.objects.filter(
+        id__in=message_ids,
+        user=request.user,
+        shown_at__isnull=True,
+    ).update(shown_at=timezone.now())
+    return HttpResponse(status=204)
+
+
+@require_POST
 def episode_save(request):
     """Handle the creation, deletion, and updating of episodes for a season."""
     media_id = request.POST["media_id"]
@@ -759,6 +827,7 @@ def history_modal(
                     history,
                     media_type,
                     media_entry_number,
+                    request.user,
                 ),
             )
     return render(

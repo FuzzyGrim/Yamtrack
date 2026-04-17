@@ -4,6 +4,7 @@ from django import template
 from django.conf import settings
 from django.urls import reverse
 from django.utils import formats, timezone
+from django.utils.dateparse import parse_date
 from django.utils.html import format_html
 from unidecode import unidecode
 
@@ -55,19 +56,61 @@ def slug(arg1):
 
 
 @register.filter
-def date_tracker_format(date):
-    """Format a datetime object to a readable string."""
-    if not date:
+def date_format(datetime, user):
+    """Format a datetime using user's preferred date format (date only, no time).
+
+    Args:
+        datetime: The datetime object to format
+        user: User object to get preferred date format
+    """
+    if not datetime:
         return None
+    local_dt = timezone.localtime(datetime)
+    return formats.date_format(local_dt, user.date_format)
 
-    local_dt = timezone.localtime(date)
 
-    date_format = "DATETIME_FORMAT" if settings.TRACK_TIME else "DATE_FORMAT"
+@register.filter
+def iso_date_format(value, user):
+    """Format an ISO date string (YYYY-MM-DD) using user's preferred date format.
 
-    return formats.date_format(
-        local_dt,
-        date_format,
-    )
+    If value is not a valid ISO date string, returns the original value.
+    """
+    if isinstance(value, str):
+        date_obj = parse_date(value)
+        if date_obj:
+            return formats.date_format(date_obj, user.date_format)
+
+    return value
+
+
+@register.filter
+def time_format(datetime, user):
+    """Format a datetime using user's preferred time format (time only, no date)."""
+    if not datetime:
+        return None
+    local_dt = timezone.localtime(datetime)
+    return formats.time_format(local_dt, user.time_format)
+
+
+@register.filter
+def datetime_format(datetime, user):
+    """Format a datetime using user's preferred formats.
+
+    Includes time only if TRACK_TIME setting is enabled.
+
+    Args:
+        datetime: The datetime object to format
+        user: User object to get preferred date/time format
+    """
+    if not datetime:
+        return None
+    local_dt = timezone.localtime(datetime)
+    formatted_date = formats.date_format(local_dt, user.date_format)
+
+    if settings.TRACK_TIME:
+        formatted_time = formats.time_format(local_dt, user.time_format)
+        return f"{formatted_date} {formatted_time}"
+    return formatted_date
 
 
 @register.filter
@@ -186,28 +229,31 @@ def status_color(status):
 
 
 @register.filter
-def natural_day(value):
+def status_background_color(status):
+    """Return the background color associated with the status."""
+    return config.get_status_background_color(status)
+
+
+@register.filter
+def natural_day(datetime, user):
     """Format date with natural language (Today, Tomorrow, etc.)."""
-    # Get today's date in the current timezone
+    if not datetime:
+        return None
+
     today = timezone.localdate()
 
-    # Extract just the date part for comparison
-    value_date = value.date()
+    local_dt = timezone.localtime(datetime)
+    datetime_date = local_dt.date()
+    formatted_date = formats.date_format(local_dt, user.date_format)
+    formatted_time = formats.time_format(local_dt, user.time_format)
+    days = (datetime_date - today).days
 
-    # Calculate the difference in days
-    diff = value_date - today
-    days = diff.days
-
-    threshold = 5
     if days == 0:
-        return "Today"
+        return f"Today {formatted_time}"
     if days == 1:
-        return "Tomorrow"
-    if days > 1 and days <= threshold:
-        return f"In {days} days"
+        return f"Tomorrow {formatted_time}"
 
-    # For dates further away
-    return value.strftime("%b %d")
+    return f"{formatted_date} {formatted_time}"
 
 
 @register.filter
@@ -388,3 +434,18 @@ def get_pagination_range(current_page, total_pages, window):
         result.append(total_pages)
 
     return result
+
+
+@register.filter
+def show_media_score(rating, user):
+    """
+    Return if we should show the rating of a media.
+
+    Args:
+        rating: the rating value of the media
+        user: the user to check preferences for
+
+    Returns:
+        True if we should show the media score
+    """
+    return rating is not None and (not user.hide_zero_rating or rating > 0)

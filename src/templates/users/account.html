@@ -75,13 +75,9 @@
                     @click="showCurrentPassword = !showCurrentPassword"
                     class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
               <!-- Show when password is hidden -->
-              <div x-show="!showCurrentPassword">
-                {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
-              </div>
+              <div x-show="!showCurrentPassword">{% include "app/icons/eye.svg" with classes="w-4 h-4" %}</div>
               <!-- Show when password is visible -->
-              <div x-show="showCurrentPassword">
-                {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
-              </div>
+              <div x-show="showCurrentPassword">{% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}</div>
             </button>
           </div>
           {% if password_form.old_password.errors %}
@@ -103,13 +99,9 @@
                     @click="showNewPassword = !showNewPassword"
                     class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
               <!-- Show when password is hidden -->
-              <div x-show="!showNewPassword">
-                {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
-              </div>
+              <div x-show="!showNewPassword">{% include "app/icons/eye.svg" with classes="w-4 h-4" %}</div>
               <!-- Show when password is visible -->
-              <div x-show="showNewPassword">
-                {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
-              </div>
+              <div x-show="showNewPassword">{% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}</div>
             </button>
           </div>
           {% if password_form.new_password1.errors %}
@@ -131,13 +123,9 @@
                     @click="showConfirmPassword = !showConfirmPassword"
                     class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
               <!-- Show when password is hidden -->
-              <div x-show="!showConfirmPassword">
-                {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
-              </div>
+              <div x-show="!showConfirmPassword">{% include "app/icons/eye.svg" with classes="w-4 h-4" %}</div>
               <!-- Show when password is visible -->
-              <div x-show="showConfirmPassword">
-                {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
-              </div>
+              <div x-show="showConfirmPassword">{% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}</div>
             </button>
           </div>
           {% if password_form.new_password2.errors %}
@@ -154,7 +142,7 @@
         </div>
       </form>
     </div>
-    
+
     {% get_providers as socialaccount_providers %}
     {% if socialaccount_providers %}
       <div class="bg-[#2a2f35] rounded-lg p-6">

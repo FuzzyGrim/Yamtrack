@@ -125,9 +125,9 @@ def comic(media_id):
             )
 
         publisher_id = response.get("publisher", {}).get("id")
-        recommendations = []
+        publisher_comics = []
         if publisher_id:
-            recommendations = get_similar_comics(publisher_id, media_id)
+            publisher_comics = get_publisher_comics(publisher_id, media_id)
 
         data = {
             "media_id": media_id,
@@ -154,7 +154,7 @@ def comic(media_id):
                 "last_updated": response.get("date_last_updated").split()[0],
             },
             "related": {
-                "from_the_same_publisher": recommendations,
+                "recommendations": publisher_comics,
             },
             # used for events fetching
             "last_issue_id": response["last_issue"]["id"],
@@ -249,9 +249,9 @@ def get_people(response):
     return [person["name"] for person in people[:5] if isinstance(person, dict)]
 
 
-def get_similar_comics(publisher_id, current_id, limit=10):
-    """Get similar comics from the same publisher."""
-    cache_key = f"{Sources.COMICVINE.value}_similar_{publisher_id}_{current_id}"
+def get_publisher_comics(publisher_id, current_id, limit=15):
+    """Get comics from the same publisher."""
+    cache_key = f"{Sources.COMICVINE.value}_publisher_{publisher_id}_{current_id}"
     data = cache.get(cache_key)
 
     if data is None:

@@ -4,43 +4,43 @@
 {% load static %}
 
 {% block title %}
-    Advanced - Yamtrack
+  Advanced - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
 
-    <div class="space-y-6">
-        <div class="bg-[#2a2f35] rounded-lg p-6">
-            <div class="flex items-center mb-5">
-                {% include "app/icons/vertical-sliders.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-                <h2 class="text-xl font-semibold">Advanced</h2>
-            </div>
+  <div class="space-y-6">
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-5">
+        {% include "app/icons/vertical-sliders.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Advanced</h2>
+      </div>
 
-            <div class="bg-[#39404b] p-5 rounded-lg mb-6">
-                <div class="flex items-center mb-3">
-                    {% include "app/icons/trashcan.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
-                    <h3 class="text-base font-medium">Clear Search Cache</h3>
-                </div>
-                <p class="text-gray-400 mb-4 text-sm">
-                    Yamtrack stores your search results in a cache to speed up performance and reduce API calls.
-                    <br>
-                    Normally, these cached results expire automatically after 24 hours.
-                    If your search results appear outdated, you can clear the cache manually.
-                    <br>
-                    Your next search may be slightly slower as fresh data is retrieved.
-                </p>
-                <div class="flex space-x-3">
-                    <form method="post" action="{% url 'clear_search_cache' %}">
-                        {% csrf_token %}
-                        <button type="submit"
-                                class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
-                            {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
-                            Clear Search Cache
-                        </button>
-                    </form>
-                </div>
-            </div>
+      <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+        <div class="flex items-center mb-3">
+          {% include "app/icons/trashcan.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+          <h3 class="text-base font-medium">Clear Search Cache</h3>
         </div>
+        <p class="text-gray-400 mb-4 text-sm">
+          Yamtrack stores your search results in a cache to speed up performance and reduce API calls.
+          <br>
+          Normally, these cached results expire automatically after 24 hours.
+          If your search results appear outdated, you can clear the cache manually.
+          <br>
+          Your next search may be slightly slower as fresh data is retrieved.
+        </p>
+        <div class="flex space-x-3">
+          <form method="post" action="{% url 'clear_search_cache' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+              {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
+              Clear Search Cache
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
+  </div>
 
 {% endblock settings_content %}

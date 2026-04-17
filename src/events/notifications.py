@@ -5,7 +5,7 @@ import apprise
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from django.utils import formats, timezone
+from django.utils import timezone
 
 from app.models import TV, MediaTypes, Season
 from app.templatetags import app_tags
@@ -102,12 +102,7 @@ def send_daily_digest():
     if not events.exists():
         return "No releases scheduled for today"
 
-    # Format date for display in local timezone
-    message_date = formats.date_format(
-        today_start.date(),
-        "DATE_FORMAT",
-    )
-    title = f"📆 YamTrack: Today's Releases ({message_date}) 📆"
+    title = "📆 YamTrack: Today's Releases 📆"
 
     result = send_notifications(
         events=events,

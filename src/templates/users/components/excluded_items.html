@@ -21,9 +21,7 @@
                 hx-target="#excluded-items-container"
                 hx-swap="innerHTML"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-vals='{"item_id": "{{ item.id }}"}'>
-          {% include "app/icons/x.svg" with classes="w-4 h-4" %}
-        </button>
+                hx-vals='{"item_id": "{{ item.id }}"}'>{% include "app/icons/x.svg" with classes="w-4 h-4" %}</button>
       </div>
     {% endfor %}
   {% else %}

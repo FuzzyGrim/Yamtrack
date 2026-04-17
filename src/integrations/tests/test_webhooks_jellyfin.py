@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
@@ -333,3 +334,176 @@ class JellyfinWebhookTests(TestCase):
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)
+
+    def test_get_episode_number(self):
+        """Test extracting episode number from Jellyfin payload."""
+        payload = {
+            "Item": {
+                "IndexNumber": 7,
+            },
+        }
+
+        result = JellyfinWebhookProcessor()._get_episode_number(payload)
+
+        self.assertEqual(result, 7)
+
+    def test_get_mal_id_from_tvdb_uses_exact_season_match(self):
+        """Test TVDB lookups respect exact season mappings and episode offsets."""
+        mapping_data = {
+            "2369": {
+                "tvdb_id": 74796,
+                "tvdb_season": -1,
+                "tvdb_epoffset": 0,
+                "mal_id": 269,
+            },
+            "15449": {
+                "tvdb_id": 74796,
+                "tvdb_season": 17,
+                "tvdb_epoffset": 0,
+                "mal_id": 41467,
+            },
+            "17765": {
+                "tvdb_id": 74796,
+                "tvdb_season": 17,
+                "tvdb_epoffset": 13,
+                "mal_id": 53998,
+            },
+            "18220": {
+                "tvdb_id": 74796,
+                "tvdb_season": 17,
+                "tvdb_epoffset": 26,
+                "mal_id": 56784,
+            },
+        }
+
+        mal_id, episode_offset = JellyfinWebhookProcessor()._get_mal_id_from_tvdb(
+            mapping_data,
+            74796,
+            17,
+            14,
+            None,
+        )
+
+        self.assertEqual(mal_id, 53998)
+        self.assertEqual(episode_offset, 1)
+
+    def test_get_mal_id_from_tvdb_falls_back_to_absolute_order(self):
+        """Test season 1 episodes can resolve through Kometa absolute mappings."""
+        mapping_data = {
+            "2369": {
+                "tvdb_id": 74796,
+                "tvdb_season": -1,
+                "tvdb_epoffset": 0,
+                "mal_id": 269,
+            },
+        }
+
+        mal_id, episode_offset = JellyfinWebhookProcessor()._get_mal_id_from_tvdb(
+            mapping_data,
+            74796,
+            1,
+            9,
+            9,
+        )
+
+        self.assertEqual(mal_id, 269)
+        self.assertEqual(episode_offset, 9)
+
+    def test_get_mal_id_from_tvdb_prefers_exact_season_over_absolute_order(self):
+        """Test exact season matches win over absolute-order fallback mappings."""
+        mapping_data = {
+            "2369": {
+                "tvdb_id": 74796,
+                "tvdb_season": -1,
+                "tvdb_epoffset": 0,
+                "mal_id": 269,
+            },
+            "99999": {
+                "tvdb_id": 74796,
+                "tvdb_season": 1,
+                "tvdb_epoffset": 0,
+                "mal_id": 12345,
+            },
+        }
+
+        mal_id, episode_offset = JellyfinWebhookProcessor()._get_mal_id_from_tvdb(
+            mapping_data,
+            74796,
+            1,
+            9,
+            9,
+        )
+
+        self.assertEqual(mal_id, 12345)
+        self.assertEqual(episode_offset, 9)
+
+    def test_get_mal_id_from_tvdb_uses_absolute_episode_number_for_fallback(self):
+        """Test cross-season absolute-order mappings use TVDB absolute numbering."""
+        mapping_data = {
+            "2369": {
+                "tvdb_id": 74796,
+                "tvdb_season": -1,
+                "tvdb_epoffset": 0,
+                "mal_id": 269,
+            },
+        }
+
+        mal_id, episode_offset = JellyfinWebhookProcessor()._get_mal_id_from_tvdb(
+            mapping_data,
+            74796,
+            2,
+            2,
+            absolute_episode_number=22,
+        )
+
+        self.assertEqual(mal_id, 269)
+        self.assertEqual(episode_offset, 22)
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_anime")
+    @patch("integrations.webhooks.base.tvdb_provider.episode")
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._find_tv_media_id")
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._fetch_mapping_data")
+    def test_process_tv_uses_tvdb_absolute_order_for_cross_season_match(
+        self,
+        mock_fetch_mapping_data,
+        mock_find_tv_media_id,
+        mock_tvdb_episode,
+        mock_handle_anime,
+    ):
+        """Test webhook anime matching uses TVDB absolute numbering across seasons."""
+        mock_fetch_mapping_data.return_value = {
+            "2369": {
+                "tvdb_id": 74796,
+                "tvdb_season": -1,
+                "tvdb_epoffset": 0,
+                "mal_id": 269,
+            },
+        }
+        mock_find_tv_media_id.return_value = ("1668", 2, 2)
+        mock_tvdb_episode.return_value = {
+            "episode_id": 12345,
+            "series_id": 74796,
+            "season_number": 2,
+            "episode_number": 2,
+            "absolute_number": 22,
+        }
+
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Test Episode",
+                "ProviderIds": {
+                    "Tvdb": "12345",
+                },
+                "UserData": {"Played": True},
+                "SeriesName": "Bleach",
+                "ParentIndexNumber": 2,
+                "IndexNumber": 2,
+            },
+        }
+
+        JellyfinWebhookProcessor().process_payload(payload, self.user)
+
+        mock_tvdb_episode.assert_called_once_with(12345)
+        mock_handle_anime.assert_called_once_with(269, 22, payload, self.user)
