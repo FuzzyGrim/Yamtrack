@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,6 +14,8 @@ from app.models import (
     Season,
     Sources,
     Status,
+    UserMessage,
+    UserMessageLevel,
 )
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
@@ -225,16 +227,47 @@ class EpisodeStatusTests(TestCase):
 
         self.tv.refresh_from_db()
         self.assertEqual(self.tv.status, Status.COMPLETED.value)
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.SUCCESS,
+                message=f"{self.tv} was marked as completed automatically.",
+            ).exists(),
+        )
 
     @patch("app.models.providers.services.get_media_metadata")
-    def test_non_last_season_does_not_complete_tv_show(self, mock_get_metadata):
-        """Test non-last season completion doesn't complete TV show."""
+    def test_non_last_season_starts_next_season(self, mock_get_metadata):
+        """Test non-last season completion starts the next season."""
+        next_season_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image2.jpg",
+            season_number=2,
+        )
+        next_season = Season.objects.create(
+            item=next_season_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+
         mock_metadata = {
             "season/1": {
                 "episodes": [{"episode_number": 1}],
             },
             "related": {
-                "seasons": [{"season_number": 1}, {"season_number": 2}],  # Two seasons
+                "seasons": [
+                    {
+                        "season_number": 1,
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                    {
+                        "season_number": 2,
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                ],
             },
         }
         mock_get_metadata.return_value = mock_metadata
@@ -245,5 +278,123 @@ class EpisodeStatusTests(TestCase):
             end_date=timezone.now(),
         )
 
+        next_season.refresh_from_db()
+        self.assertEqual(next_season.status, Status.IN_PROGRESS.value)
+
         self.tv.refresh_from_db()
-        self.assertEqual(self.tv.status, Status.PLANNING.value)
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.SUCCESS,
+                message=f"{self.season} was marked as completed automatically.",
+            ).exists(),
+        )
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.INFO,
+                message=f"{self.tv} Season 2 was marked as in progress automatically.",
+            ).exists(),
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_non_last_season_with_future_next_season_keeps_planning(
+        self,
+        mock_get_metadata,
+    ):
+        """Future seasons should not auto-start when the current one completes."""
+        next_season_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image2.jpg",
+            season_number=2,
+        )
+        next_season = Season.objects.create(
+            item=next_season_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+
+        mock_get_metadata.return_value = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}],
+            },
+            "related": {
+                "seasons": [
+                    {
+                        "season_number": 1,
+                        "first_air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                    {
+                        "season_number": 2,
+                        "first_air_date": datetime(2999, 1, 1, tzinfo=UTC),
+                    },
+                ],
+            },
+        }
+
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        next_season.refresh_from_db()
+        self.tv.refresh_from_db()
+
+        self.assertEqual(next_season.status, Status.PLANNING.value)
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_rewatch_last_episode_does_not_duplicate_completion_messages(
+        self,
+        mock_get_metadata,
+    ):
+        """Rewatching a finale should not create duplicate completion toasts."""
+        mock_get_metadata.return_value = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}],
+            },
+            "related": {
+                "seasons": [{"season_number": 1}],
+            },
+        }
+
+        first_watch_time = timezone.now()
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=first_watch_time,
+        )
+        second_watch_time = first_watch_time + timedelta(days=1)
+        Episode.objects.create(
+            item=self.episode_item,
+            related_season=self.season,
+            end_date=second_watch_time,
+        )
+
+        self.season.refresh_from_db()
+        self.tv.refresh_from_db()
+
+        self.assertEqual(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.SUCCESS,
+                message=f"{self.season} was marked as completed automatically.",
+            ).count(),
+            1,
+        )
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
+        self.assertEqual(self.tv.status, Status.COMPLETED.value)
+        self.assertEqual(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.SUCCESS,
+                message=f"{self.tv} was marked as completed automatically.",
+            ).count(),
+            1,
+        )

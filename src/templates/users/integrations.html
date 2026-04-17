@@ -82,35 +82,21 @@
               <div class="relative mt-2">
                 <textarea readonly id="jellyfin-json-template" class="w-full bg-[#39404b] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono p-3 resize-none overflow-auto max-h-72" rows="14">
 {% verbatim %}{
-  {{#if_equals NotificationType 'PlaybackStart'}}
-    "Event": "Play",
-  {{/if_equals}}
-  {{#if_equals NotificationType 'PlaybackStop'}}
-    "Event": "Stop",
-  {{/if_equals}}
+  "Event": "{{#if_equals NotificationType 'PlaybackStart'}}Play{{/if_equals}}{{#if_equals NotificationType 'PlaybackStop'}}Stop{{/if_equals}}",
   "Item": {
-    "Id": "{{{ItemId}}}",
-    "Type": "{{{ItemType}}}",
-    "Name": "{{{Name}}}",
-    "Overview": "{{{Overview}}}",
-    "ProductionYear": "{{{Year}}}",
-    {{#if_equals ItemType 'Episode'}}
-      "SeriesName": "{{{SeriesName}}}",
-      "ParentIndexNumber": {{{SeasonNumber}}},
-      "IndexNumber": {{{EpisodeNumber}}},
-    {{/if_equals}}
+    "Type": "{{ItemType}}",
     "ProviderIds": {
-      "Tmdb": "{{{Provider_tmdb}}}",
-      "Imdb": "{{{Provider_imdb}}}",
-      "Tvdb": "{{{Provider_tvdb}}}"
+      "Tmdb": "{{Provider_tmdb}}",
+      "Imdb": "{{Provider_imdb}}",
+      "Tvdb": "{{Provider_tvdb}}"
     },
     "UserData": {
-      {{#if_equals PlayedToCompletion 'True'}}
-        "Played": "True"
-      {{else}}
-        "Played": ""
-      {{/if_equals}}
-    }
+      "Played": {{#if_equals PlayedToCompletion 'True'}}true{{else}}false{{/if_equals}}
+    }{{#if_equals ItemType 'Episode'}},
+    "SeriesName": "{{SeriesName}}",
+    "ParentIndexNumber": {{SeasonNumber}},
+    "IndexNumber": {{EpisodeNumber}}
+    {{/if_equals}}
   }
 }{% endverbatim %}</textarea>
                 <span class="absolute top-3 right-3 flex items-center cursor-pointer group"

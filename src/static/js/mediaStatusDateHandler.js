@@ -26,9 +26,8 @@ document.addEventListener("alpine:init", () => {
         this.original.start_date = startDateField?.value || null;
         this.original.end_date = endDateField?.value || null;
       }
-
-      // Get the current time in correct format based on input type
-      const now = this.getCurrentDateTime(endDateField);
+      this.syncOptionalDateField(startDateField);
+      this.syncOptionalDateField(endDateField);
 
       // Initial load handling - only auto-fill for new forms
       // For existing records, respect the saved values (even if empty)
@@ -39,7 +38,7 @@ document.addEventListener("alpine:init", () => {
         endDateField &&
         !endDateField.value
       ) {
-        endDateField.value = now;
+        this.setDateFieldValue(endDateField, this.getCurrentDateTime(endDateField));
         this.autoFilled.end_date = true;
       } else if (
         isNewForm &&
@@ -48,7 +47,10 @@ document.addEventListener("alpine:init", () => {
         startDateField &&
         !startDateField.value
       ) {
-        startDateField.value = now;
+        this.setDateFieldValue(
+          startDateField,
+          this.getCurrentDateTime(startDateField),
+        );
         this.autoFilled.start_date = true;
       }
 
@@ -59,11 +61,11 @@ document.addEventListener("alpine:init", () => {
 
           // Clear previously auto-filled fields when status changes
           if (this.autoFilled.start_date && startDateField) {
-            startDateField.value = "";
+            this.setDateFieldValue(startDateField, "");
             this.autoFilled.start_date = false;
           }
           if (this.autoFilled.end_date && endDateField) {
-            endDateField.value = "";
+            this.setDateFieldValue(endDateField, "");
             this.autoFilled.end_date = false;
           }
 
@@ -86,7 +88,10 @@ document.addEventListener("alpine:init", () => {
             !endDateField.value &&
             !isReturningToOriginalCompleted
           ) {
-            endDateField.value = now;
+            this.setDateFieldValue(
+              endDateField,
+              this.getCurrentDateTime(endDateField),
+            );
             this.autoFilled.end_date = true;
           } else if (
             status === "In progress" &&
@@ -94,27 +99,55 @@ document.addEventListener("alpine:init", () => {
             !startDateField.value &&
             !isReturningToOriginalInProgress
           ) {
-            startDateField.value = now;
+            this.setDateFieldValue(
+              startDateField,
+              this.getCurrentDateTime(startDateField),
+            );
             this.autoFilled.start_date = true;
           }
+
+          this.syncOptionalDateField(startDateField);
+          this.syncOptionalDateField(endDateField);
         });
       }
+    },
+
+    setDateFieldValue(field, value) {
+      if (!field) {
+        return;
+      }
+
+      field.value = value;
+      this.syncOptionalDateField(field);
+
+      // WebKit can keep stale validity state after scripted datetime changes.
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+    },
+
+    syncOptionalDateField(field) {
+      if (!field) {
+        return;
+      }
+
+      field.required = false;
+      field.removeAttribute("required");
+      field.setCustomValidity("");
     },
 
     getCurrentDateTime(field) {
       const date = new Date();
 
-      if (field.type === 'datetime-local') {
+      if (field.type === "datetime-local") {
         return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
           .toISOString()
           .slice(0, 16);
-      } else if (field.type === 'date') {
+      } else if (field.type === "date") {
         return date.toISOString().slice(0, 10);
       }
 
       // Fallback to date format
       return date.toISOString().slice(0, 10);
-    }
+    },
   }));
 });
-

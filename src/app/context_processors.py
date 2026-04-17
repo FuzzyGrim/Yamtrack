@@ -2,7 +2,7 @@
 
 from django.conf import settings
 
-from app.models import MediaTypes, Sources, Status
+from app.models import MediaTypes, Sources, Status, UserMessage
 
 
 def export_vars(request):  # noqa: ARG001
@@ -21,4 +21,19 @@ def media_enums(request):  # noqa: ARG001
         "MediaTypes": MediaTypes,
         "Sources": Sources,
         "Status": Status,
+    }
+
+
+def persistent_messages(request):
+    """Return persistent user notifications that have not been shown yet."""
+    if not request.user.is_authenticated:
+        return {"persistent_messages": []}
+
+    return {
+        "persistent_messages": list(
+            UserMessage.objects.filter(
+                user=request.user,
+                shown_at__isnull=True,
+            ),
+        ),
     }

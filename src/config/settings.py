@@ -1,6 +1,7 @@
 """Django settings for Yamtrack project."""
 
 import json
+import sys
 import warnings
 import zoneinfo
 from pathlib import Path
@@ -125,12 +126,6 @@ INSTALLED_APPS = [
     "simple_history",
     "widget_tweaks",
     "health_check",
-    "health_check.cache",
-    "health_check.storage",
-    "health_check.contrib.migrations",
-    "health_check.contrib.celery_ping",
-    "health_check.contrib.redis",
-    "health_check.contrib.db_heartbeat",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -168,6 +163,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "app.context_processors.export_vars",
                 "app.context_processors.media_enums",
+                "app.context_processors.persistent_messages",
                 "django.template.context_processors.request",
             ],
         },
@@ -353,6 +349,14 @@ TMDB_API = config(
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
 
+TVDB_API = config(
+    "TVDB_API",
+    default=secret(
+        "TVDB_API_FILE",
+        "91b5c503-23f1-4181-be23-64ad8b8e8bc1",
+    ),
+)
+
 MAL_API = config(
     "MAL_API",
     default=secret(
@@ -533,6 +537,11 @@ DAILY_DIGEST_HOUR = config(
     default=8,
     cast=int,
 )
+USER_MESSAGE_RETENTION_DAYS = config(
+    "USER_MESSAGE_RETENTION_DAYS",
+    default=30,
+    cast=int,
+)
 CELERY_BEAT_SCHEDULE = {
     "reload_calendar": {
         "task": "Reload calendar",
@@ -546,8 +555,15 @@ CELERY_BEAT_SCHEDULE = {
         "task": "Send daily digest",
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
     },
+    "cleanup_user_messages": {
+        "task": "Cleanup user messages",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
 }
-# Allauth settings
+
+IS_PROD = not any(cmd in sys.argv for cmd in ("runserver", "test"))
+if IS_PROD:
+    ALLAUTH_TRUSTED_CLIENT_IP_HEADER = "X-Real-IP"
 if CSRF_TRUSTED_ORIGINS:
     # Check if all origins start with http:// or https://
     all_http = all(

@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -71,6 +72,84 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["first_air_date"], "2008-01-20")
         self.assertEqual(response["details"]["status"], "Ended")
         self.assertEqual(response["details"]["episodes"], 62)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_changes(self, mock_api_request, mock_localdate):
+        """Test fetching changed TV ids from TMDB."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.return_value = {
+            "results": [{"id": 1}, {"id": 2}],
+            "total_pages": 1,
+        }
+
+        result = tmdb.tv_changes()
+
+        self.assertEqual(result, {"1", "2"})
+        _, kwargs = mock_api_request.call_args
+        self.assertEqual(kwargs["params"]["start_date"], "2026-04-02")
+        self.assertEqual(kwargs["params"]["end_date"], "2026-04-05")
+        self.assertEqual(kwargs["params"]["page"], 1)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_changes_across_pages(self, mock_api_request, mock_localdate):
+        """Test TMDB TV changes pagination and deduplication."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.side_effect = [
+            {
+                "results": [{"id": 1}, {"id": 2}],
+                "total_pages": 2,
+            },
+            {
+                "results": [{"id": 2}, {"id": 3}],
+                "total_pages": 2,
+            },
+        ]
+
+        result = tmdb.tv_changes()
+
+        self.assertEqual(result, {"1", "2", "3"})
+        self.assertEqual(mock_api_request.call_count, 2)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_changes(self, mock_api_request, mock_localdate):
+        """Test fetching changed movie ids from TMDB."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.return_value = {
+            "results": [{"id": 10}, {"id": 20}],
+            "total_pages": 1,
+        }
+
+        result = tmdb.movie_changes()
+
+        self.assertEqual(result, {"10", "20"})
+        _, kwargs = mock_api_request.call_args
+        self.assertEqual(kwargs["params"]["start_date"], "2026-04-02")
+        self.assertEqual(kwargs["params"]["end_date"], "2026-04-05")
+        self.assertEqual(kwargs["params"]["page"], 1)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_changes_across_pages(self, mock_api_request, mock_localdate):
+        """Test TMDB movie changes pagination and deduplication."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.side_effect = [
+            {
+                "results": [{"id": 10}, {"id": 20}],
+                "total_pages": 2,
+            },
+            {
+                "results": [{"id": 20}, {"id": 30}],
+                "total_pages": 2,
+            },
+        ]
+
+        result = tmdb.movie_changes()
+
+        self.assertEqual(result, {"10", "20", "30"})
+        self.assertEqual(mock_api_request.call_count, 2)
 
     def test_tmdb_process_episodes(self):
         """Test the process_episodes function for TMDB episodes."""

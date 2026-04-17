@@ -1,0 +1,6 @@
+{% for message in persistent_messages %}
+  {% include "app/components/messages/toast.html" with message=message only %}
+{% endfor %}
+{% for message in messages %}
+  {% include "app/components/messages/toast.html" with message=message only %}
+{% endfor %}

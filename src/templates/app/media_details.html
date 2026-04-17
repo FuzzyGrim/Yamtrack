@@ -438,25 +438,25 @@
       {% if watch_provider_region == "UNSET" or watch_providers is not None %}
         <div class="bg-[#2a2f35] p-4 rounded-lg my-4">
           <h3 class="text-sm font-semibold text-gray-400 mb-2">STREAMING</h3>
-          <div class="flex flex-wrap items-center gap-2 place-content-evenly">
-            {% if watch_provider_region == "UNSET" %}
-              {% url 'preferences' as preferences_url %}
-              <p class="text-sm">
-                Watch provider region is not configured. Set a region or disable this feature in the
-                <a href="{{ preferences_url }}"
-                   class="hover:text-indigo-500 hover:underline">preferences</a>.
-              </p>
-            {% elif watch_providers %}
+          {% if watch_provider_region == "UNSET" %}
+            {% url 'preferences' as preferences_url %}
+            <p class="text-gray-200">
+              Watch provider region is not configured. Set a region or disable this feature in the
+              <a href="{{ preferences_url }}"
+                 class="hover:text-indigo-500 hover:underline">preferences</a>.
+            </p>
+          {% elif watch_providers %}
+            <div class="grid grid-cols-[repeat(auto-fill,48px)] gap-2 items-center justify-between">
               {% for provider in watch_providers %}
-                <img class="size-10 rounded-md"
+                <img class="rounded-md"
                      src="{{ provider.image }}"
                      title="{{ provider.provider_name }}"
                      alt="{{ provider.provider_name }}" />
               {% endfor %}
-            {% else %}
-              <p>No watch providers</p>
-            {% endif %}
-          </div>
+            </div>
+          {% else %}
+            <p class="text-gray-200">No watch providers</p>
+          {% endif %}
         </div>
       {% endif %}
 
@@ -498,10 +498,21 @@
       {% if media.cast %}
         <section class="mb-8">
           <h2 class="text-xl font-bold mb-4">Cast</h2>
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+          <div class="flex overflow-x-auto gap-x-4 pb-5">
             {% for cast in media.cast %}
               {% include "app/components/cast_card.html" with cast=cast %}
             {% endfor %}
+            {% if media.total_cast_count > 30 %}
+              <a href="{{ media.source_url }}/cast"
+                 target="_blank"
+                 class="bg-[#2a2f35] rounded-lg shadow-lg flex flex-col items-center justify-center hover:bg-[#343a40] transition-colors duration-200 min-w-44">
+                <div class="p-2.5 bg-indigo-600 text-white rounded-full mb-3">
+                  {% include "app/icons/external-link.svg" with classes="w-6 h-6" %}
+                </div>
+                <span class="text-sm font-semibold text-white">View all</span>
+                <span class="text-xs text-gray-400 mt-1">{{ media.total_cast_count }} cast members</span>
+              </a>
+            {% endif %}
           </div>
         </section>
       {% endif %}
@@ -622,8 +633,12 @@
                     </div>
                     {% if episode.history %}
                       <p class="text-xs text-gray-400 mt-2 px-4">
-                        Last watched: {{ episode.history.0.end_date|datetime_format:user }}
-                        {% if not episode.history.0.end_date %}No date provided{% endif %}
+                        Last watched:
+                        {% if episode.history.0.end_date %}
+                          {{ episode.history.0.end_date|datetime_format:user }}
+                        {% else %}
+                          No date provided
+                        {% endif %}
                         {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                       </p>
                     {% endif %}

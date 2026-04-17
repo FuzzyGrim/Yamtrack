@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch
@@ -22,7 +23,7 @@ from app.models import (
     Status,
 )
 from events.models import Event
-from users.models import MediaStatusChoices
+from users.models import HomeSortChoices, MediaStatusChoices
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 
@@ -34,6 +35,76 @@ class MediaManagerTests(TestCase):
         """Set up test data for MediaManager tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.metadata_patcher = patch("app.providers.services.get_media_metadata")
+        self.mock_get_media_metadata = self.metadata_patcher.start()
+        self.addCleanup(self.metadata_patcher.stop)
+
+        def mock_get_media_metadata(
+            media_type,
+            _media_id,
+            _source,
+            season_numbers=None,
+            _episode_number=None,
+        ):
+            if media_type == MediaTypes.TV.value:
+                return {
+                    "title": "Friends",
+                    "image": "http://example.com/image.jpg",
+                    "max_progress": 10,
+                    "details": {"seasons": 1},
+                    "related": {
+                        "seasons": [
+                            {
+                                "season_number": 1,
+                                "image": "http://example.com/image.jpg",
+                            },
+                        ],
+                    },
+                }
+
+            if media_type == "tv_with_seasons":
+                season_numbers = season_numbers or [1]
+                return {
+                    f"season/{season_number}": {
+                        "episodes": [
+                            {
+                                "episode_number": i,
+                                "air_date": f"2023-06-{i:02d}",
+                                "image": "http://example.com/image.jpg",
+                            }
+                            for i in range(1, 11)
+                        ],
+                        "image": "http://example.com/image.jpg",
+                    }
+                    for season_number in season_numbers
+                }
+
+            if media_type == MediaTypes.SEASON.value:
+                return {
+                    "title": "Friends",
+                    "image": "http://example.com/image.jpg",
+                    "max_progress": 10,
+                    "episodes": [
+                        {
+                            "episode_number": i,
+                            "air_date": f"2023-06-{i:02d}",
+                            "image": "http://example.com/image.jpg",
+                        }
+                        for i in range(1, 11)
+                    ],
+                }
+
+            max_progress_by_type = {
+                MediaTypes.MOVIE.value: 1,
+                MediaTypes.ANIME.value: 24,
+                MediaTypes.MANGA.value: 300,
+                MediaTypes.GAME.value: 240,
+                MediaTypes.BOOK.value: 500,
+                MediaTypes.BOARDGAME.value: 1,
+            }
+            return {"max_progress": max_progress_by_type.get(media_type)}
+
+        self.mock_get_media_metadata.side_effect = mock_get_media_metadata
 
         # Enable all media types for the user
         for media_type in MediaTypes.values:
@@ -487,6 +558,113 @@ class MediaManagerTests(TestCase):
         self.assertNotIn(MediaTypes.MANGA.value, media_types)
         self.assertIn(MediaTypes.MOVIE.value, media_types)
 
+    def test_get_home_status_groups_media_and_annotates_home_fields(self):
+        """Test get_home_status groups media and annotates max_progress/events."""
+        manager = MediaManager()
+
+        movie_item = Item.objects.create(
+            media_id="551",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Before Sunrise",
+            image="http://example.com/before-sunrise.jpg",
+        )
+        Movie.objects.create(
+            item=movie_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+
+        Event.objects.create(
+            item=self.anime_item,
+            content_number=14,
+            datetime=timezone.now() - timedelta(days=1),
+            notification_sent=True,
+        )
+
+        home_status = manager.get_home_status(
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+
+        self.assertNotIn(MediaTypes.TV.value, home_status)
+        self.assertCountEqual(
+            home_status.keys(),
+            [
+                MediaTypes.SEASON.value,
+                MediaTypes.MOVIE.value,
+                MediaTypes.ANIME.value,
+                MediaTypes.MANGA.value,
+                MediaTypes.GAME.value,
+            ],
+        )
+
+        self.assertEqual(home_status[MediaTypes.ANIME.value]["total"], 1)
+        anime = home_status[MediaTypes.ANIME.value]["items"][0]
+        self.assertEqual(anime.max_progress, 14)
+        self.assertIsNotNone(anime.next_event)
+        self.assertEqual(anime.next_event.content_number, 17)
+
+        movie = home_status[MediaTypes.MOVIE.value]["items"][0]
+        self.assertEqual(movie.max_progress, 1)
+        self.assertIsNone(movie.next_event)
+
+    def test_get_home_status_specific_media_type_returns_remaining_items(self):
+        """Test get_home_status returns the remaining items for load-more."""
+        manager = MediaManager()
+
+        for media_id, title in (
+            ("OL1M", "Dune"),
+            ("OL2M", "Foundation"),
+            ("OL3M", "Hyperion"),
+        ):
+            item = Item.objects.create(
+                media_id=media_id,
+                source=Sources.OPENLIBRARY.value,
+                media_type=MediaTypes.BOOK.value,
+                title=title,
+                image="http://example.com/book.jpg",
+            )
+            Book.objects.create(
+                item=item,
+                user=self.user,
+                status=Status.PLANNING.value,
+            )
+
+        initial_page = manager.get_home_status(
+            user=self.user,
+            status=Status.PLANNING.value,
+            sort_by=HomeSortChoices.TITLE,
+            items_limit=2,
+        )
+        load_more_page = manager.get_home_status(
+            user=self.user,
+            status=Status.PLANNING.value,
+            sort_by=HomeSortChoices.TITLE,
+            items_limit=2,
+            specific_media_type=MediaTypes.BOOK.value,
+        )
+
+        self.assertEqual(initial_page[MediaTypes.BOOK.value]["total"], 4)
+        self.assertEqual(
+            [
+                media.item.title
+                for media in initial_page[MediaTypes.BOOK.value]["items"]
+            ],
+            ["1984", "Dune"],
+        )
+        self.assertEqual(list(load_more_page), [MediaTypes.BOOK.value])
+        self.assertEqual(load_more_page[MediaTypes.BOOK.value]["total"], 4)
+        self.assertEqual(
+            [
+                media.item.title
+                for media in load_more_page[MediaTypes.BOOK.value]["items"]
+            ],
+            ["Foundation", "Hyperion"],
+        )
+
     def test_annotate_next_event(self):
         """Test the _annotate_next_event method."""
         manager = MediaManager()
@@ -541,8 +719,8 @@ class MediaManagerTests(TestCase):
 
         self.assertIsNone(anime_list[0].next_event)
 
-    def test_sort_in_progress_media(self):
-        """Test the _sort_in_progress_media method."""
+    def test_sort_home_media(self):
+        """Test the _sort_home_media method."""
         manager = MediaManager()
 
         anime_list = []
@@ -599,23 +777,34 @@ class MediaManagerTests(TestCase):
         )
         anime_list.append(anime3)
 
-        sorted_list = manager._sort_in_progress_media(anime_list, "upcoming")
+        sorted_list = manager._sort_home_media(
+            anime_list,
+            HomeSortChoices.UPCOMING,
+        )
         # Items with next_event should come first, sorted by datetime
         self.assertEqual(sorted_list, [anime1, anime3, anime2])
 
-        sorted_list = manager._sort_in_progress_media(anime_list, "title")
+        sorted_list = manager._sort_home_media(anime_list, HomeSortChoices.TITLE)
         self.assertEqual(
             sorted_list,
             sorted(anime_list, key=lambda x: x.item.title.lower()),
         )
 
-        sorted_list = manager._sort_in_progress_media(anime_list, "completion")
+        sorted_list = manager._sort_home_media(
+            anime_list,
+            HomeSortChoices.COMPLETION,
+        )
         self.assertEqual(sorted_list, [anime1, anime3, anime2])
 
-        sorted_list = manager._sort_in_progress_media(anime_list, "episodes_left")
+        sorted_list = manager._sort_home_media(
+            anime_list,
+            HomeSortChoices.EPISODES_LEFT,
+        )
         self.assertEqual(sorted_list, [anime1, anime3, anime2])
 
-        sorted_list = manager._sort_in_progress_media(anime_list, sort_by="recent")
+        sorted_list = manager._sort_home_media(
+            anime_list, sort_by=HomeSortChoices.RECENT
+        )
         self.assertEqual(sorted_list, [anime3, anime2, anime1])
 
     def test_annotate_max_progress(self):
@@ -663,79 +852,6 @@ class MediaManagerTests(TestCase):
 
         manager._annotate_tv_released_episodes(tv_list, timezone.now())
         self.assertEqual(tv_list[0].max_progress, 10)
-
-    def test_get_in_progress(self):
-        """Test the get_in_progress method."""
-        manager = MediaManager()
-
-        Event.objects.create(
-            item=self.anime_item,
-            content_number=20,
-            datetime=timezone.now() - timedelta(days=20),
-            notification_sent=True,
-        )
-
-        in_progress = manager.get_in_progress(
-            user=self.user,
-            sort_by="title",
-            items_limit=10,
-        )
-
-        self.assertIn(MediaTypes.ANIME.value, in_progress)
-        self.assertEqual(len(in_progress[MediaTypes.ANIME.value]["items"]), 1)
-        self.assertEqual(in_progress[MediaTypes.ANIME.value]["total"], 1)
-
-        in_progress = manager.get_in_progress(
-            user=self.user,
-            sort_by="title",
-            items_limit=5,
-        )
-
-        self.assertIn(MediaTypes.ANIME.value, in_progress)
-        self.assertIn(MediaTypes.GAME.value, in_progress)
-        self.assertIn(MediaTypes.MANGA.value, in_progress)
-        self.assertNotIn(MediaTypes.MOVIE.value, in_progress)  # Completed
-        self.assertNotIn(MediaTypes.BOOK.value, in_progress)  # Planned
-
-        for i in range(10):
-            anime_item = Item.objects.create(
-                media_id=f"100{i}",
-                source=Sources.MAL.value,
-                media_type=MediaTypes.ANIME.value,
-                title=f"Test Anime {i}",
-                image=f"http://example.com/anime{i}.jpg",
-            )
-
-            Anime.objects.create(
-                item=anime_item,
-                user=self.user,
-                status=Status.IN_PROGRESS.value,
-            )
-
-        in_progress = manager.get_in_progress(
-            user=self.user,
-            sort_by="title",
-            items_limit=5,
-        )
-
-        self.assertEqual(len(in_progress[MediaTypes.ANIME.value]["items"]), 5)
-        self.assertEqual(
-            in_progress[MediaTypes.ANIME.value]["total"],
-            11,
-        )  # 1 original + 10 new
-
-        in_progress = manager.get_in_progress(
-            user=self.user,
-            sort_by="title",
-            items_limit=5,
-            specific_media_type=MediaTypes.ANIME.value,
-        )
-
-        self.assertEqual(
-            len(in_progress[MediaTypes.ANIME.value]["items"]),
-            6,
-        )  # 11 total - 5 offset
-        self.assertEqual(in_progress[MediaTypes.ANIME.value]["total"], 11)
 
     def test_get_media(self):
         """Test the get_media method."""

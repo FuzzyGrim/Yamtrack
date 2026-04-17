@@ -1,0 +1,103 @@
+{% load app_tags %}
+
+<section class="space-y-5">
+  <div class="space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#39404b] {% if section.key == Status.IN_PROGRESS.value %}{{ Status.IN_PROGRESS.value|status_color }}{% else %}{{ Status.PLANNING.value|status_color }}{% endif %}">
+          {% if section.key == Status.IN_PROGRESS.value %}
+            {% include "app/icons/states/in-progress.svg" with classes="h-5 w-5" %}
+          {% else %}
+            {% include "app/icons/states/planning.svg" with classes="h-5 w-5" %}
+          {% endif %}
+        </div>
+        <div>
+          <h2 class="text-2xl font-semibold text-white">{{ section.key|media_status_readable|title }}</h2>
+        </div>
+      </div>
+      <span class="inline-flex items-center gap-2 rounded-full border border-gray-700 bg-[#39404b] px-3 py-1 text-sm text-gray-300">
+        {% if section.key == Status.IN_PROGRESS.value %}
+          {% include "app/icons/pulse.svg" with classes="h-4 w-4 text-indigo-400" %}
+        {% else %}
+          {% include "app/icons/leaf.svg" with classes="h-4 w-4 text-sky-400" %}
+        {% endif %}
+        {{ section.count }} item{{ section.count|pluralize }}
+      </span>
+    </div>
+    <div class="relative h-px overflow-hidden rounded-full bg-gray-700/80">
+      <div class="absolute inset-y-0 left-0 w-full bg-linear-to-r {% if section.key == Status.IN_PROGRESS.value %}from-indigo-400 via-indigo-400/45 to-indigo-400/8{% else %}from-sky-400 via-sky-400/45 to-sky-400/8{% endif %}">
+      </div>
+      <div class="absolute top-1/2 left-0 h-1.5 w-1.5 -translate-y-1/2 rounded-full {% if section.key == Status.IN_PROGRESS.value %}bg-indigo-400{% else %}bg-sky-400{% endif %}">
+      </div>
+    </div>
+  </div>
+
+  {% if section.media_types %}
+    <div class="space-y-8">
+      {% for media_type, media_list in section.media_types.items %}
+        <div class="space-y-4">
+          <div class="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-semibold text-white">{{ media_type|media_type_readable_plural }}</h3>
+            </div>
+          </div>
+
+          <div id="media-grid-{{ section.id }}-{{ media_type }}" class="media-grid">
+            {% include "app/components/home_grid.html" with media_list=media_list home_status=section.key %}
+          </div>
+
+          {% if media_list.total > items_limit %}
+            <div class="mt-5 flex justify-center">
+              <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_status={{ section.key }}&load_media_type={{ media_type }}"
+                      hx-target="#media-grid-{{ section.id }}-{{ media_type }}"
+                      hx-swap="beforeend"
+                      hx-indicator="#loading-indicator-{{ section.id }}-{{ media_type }}"
+                      hx-trigger="click"
+                      type="button"
+                      class="rounded-md border border-gray-700 bg-[#2a2f35] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#313842] cursor-pointer"
+                      hx-on:click="this.remove()">Load all ({{ media_list.total }})</button>
+              <div id="loading-indicator-{{ section.id }}-{{ media_type }}"
+                   class="htmx-indicator hidden text-center">
+                <div class="inline-flex items-center justify-center">
+                  <div class="h-8 w-8 animate-spin rounded-full border-b-2 {% if section.key == Status.IN_PROGRESS.value %}border-indigo-400{% else %}border-sky-400{% endif %}">
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-700 bg-[#2a2f35] px-6 py-16 text-center">
+      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#39404b]">
+        {% if section.key == Status.IN_PROGRESS.value %}
+          {% include "app/icons/pulse.svg" with classes="h-8 w-8 text-indigo-300" %}
+        {% else %}
+          {% include "app/icons/leaf.svg" with classes="h-8 w-8 text-sky-400" %}
+        {% endif %}
+      </div>
+      <h3 class="text-xl font-semibold text-white">
+        {% if section.key == Status.IN_PROGRESS.value %}
+          Nothing is actively moving right now
+        {% else %}
+          Your planning shelf is still empty
+        {% endif %}
+      </h3>
+      <p class="mt-2 max-w-md text-sm text-gray-400">
+        {% if section.key == Status.IN_PROGRESS.value %}
+          Start a title and mark it as in progress to see quick updates and release reminders here.
+        {% else %}
+          Add a few titles to planning to see them here.
+        {% endif %}
+      </p>
+      <div class="mt-6">
+        <a href="{% if section.key == Status.IN_PROGRESS.value %}{{ MediaTypes.TV.value|sample_search }}{% else %}{{ MediaTypes.MOVIE.value|sample_search }}{% endif %}"
+           class="inline-flex items-center gap-2 rounded-md {% if section.key == Status.IN_PROGRESS.value %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-sky-600 hover:bg-sky-700{% endif %} px-4 py-2 text-sm font-medium text-white transition-colors">
+          {% include "app/icons/magnifying-glass.svg" with classes="h-4 w-4" %}
+          Browse media
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</section>

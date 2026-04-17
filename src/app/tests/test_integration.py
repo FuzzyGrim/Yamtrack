@@ -63,9 +63,9 @@ class IntegrationTest(StaticLiveServerTestCase):
             f"Last watched: {fixed_date.strftime(datetime_format)}",
         )
         self.page.get_by_role("link", name="Home").click()
-        expect(self.page.get_by_text("Breaking Bad S1 1 Episode")).to_be_visible()
-        self.page.get_by_text("Breaking Bad S1 1 Episode").get_by_role("button").nth(
-            1,
+        expect(self.page.get_by_text("Breaking Bad S1")).to_be_visible()
+        self.page.locator("#media-grid-in-progress-season").get_by_role("button").nth(
+            4,
         ).click()
         self.page.get_by_title("Breaking Bad S1").click()
 
