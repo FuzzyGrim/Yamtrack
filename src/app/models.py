@@ -435,7 +435,7 @@ class MediaManager(models.Manager):
             else:
                 media_list = media_list.filter(hide_from_home=False)
 
-            if not media_list.exists():
+            if not media_list:
                 continue
 
             # Annotate with max_progress and next_event

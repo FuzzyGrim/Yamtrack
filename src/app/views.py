@@ -98,11 +98,16 @@ def home(request):
 @require_POST
 def toggle_hide_home(request, media_type, instance_id):
     """Toggle the hide_from_home status of a media item."""
-    media = BasicMedia.objects.get_media(
-        request.user,
-        media_type,
-        instance_id,
-    )
+    model = apps.get_model(app_label="app", model_name=media_type)
+    try:
+        media = BasicMedia.objects.get_media(
+            request.user,
+            media_type,
+            instance_id,
+        )
+    except model.DoesNotExist:
+        return HttpResponse(status=404)
+
     media.hide_from_home = not media.hide_from_home
     media.save(update_fields=["hide_from_home"])
     
