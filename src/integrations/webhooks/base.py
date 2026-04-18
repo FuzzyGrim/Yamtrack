@@ -62,6 +62,7 @@ class BaseWebhookProcessor:
             self._process_movie(payload, user, ids)
 
     def _process_tv(self, payload, user, ids):
+        media_id = None
         anidb_id = ids.get("anidb_id")
         if user.anime_enabled and anidb_id:
             mapping_data = self._fetch_mapping_data()
@@ -134,7 +135,6 @@ class BaseWebhookProcessor:
 
             if ids["tmdb_id"]:
                 # We have tmdb_id for this TV-show episode.
-                media_id = None
                 series_name = payload["Metadata"].get("grandparentTitle")
                 season_number = payload["Metadata"].get("parentIndex")
                 episode_number = payload["Metadata"].get("index")
