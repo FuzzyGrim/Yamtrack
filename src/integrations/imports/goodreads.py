@@ -155,7 +155,6 @@ class GoodReadsImporter:
             media_id=book["media_id"],
             source=Sources.HARDCOVER.value,
             media_type=media_type,
-            title=book["title"],
             defaults={
                 "title": book["title"],
                 "image": book["image"],

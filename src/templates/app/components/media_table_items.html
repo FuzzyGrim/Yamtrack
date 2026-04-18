@@ -14,9 +14,7 @@
               hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
               hx-target="#{% component_id 'track' media.item media.id %}"
               hx-trigger="click once"
-              @click="trackOpen = true">
-        {% include "app/icons/edit.svg" with classes="w-4 h-4" %}
-      </button>
+              @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
 
       {# Track Modal #}
       <div x-show="trackOpen"
@@ -68,7 +66,7 @@
     <td class="p-2 text-center">{{ media.status|media_status_readable }}</td>
 
     {% if media.start_date %}
-      <td class="p-2 text-center">{{ media.start_date|date:"SHORT_DATE_FORMAT" }}</td>
+      <td class="p-2 text-center">{{ media.start_date|date_format:user }}</td>
     {% else %}
       <td class="p-2 text-center">
         <span class="text-gray-500">-</span>
@@ -76,7 +74,7 @@
     {% endif %}
 
     {% if media.end_date %}
-      <td class="p-2 text-center">{{ media.end_date|date:"SHORT_DATE_FORMAT" }}</td>
+      <td class="p-2 text-center">{{ media.end_date|date_format:user }}</td>
     {% else %}
       <td class="p-2 text-center">
         <span class="text-gray-500">-</span>

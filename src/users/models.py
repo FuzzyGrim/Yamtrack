@@ -82,6 +82,30 @@ class ListDetailSortChoices(models.TextChoices):
     MEDIA_TYPE = "media_type", "Media Type"
 
 
+class QuickWatchDateChoices(models.TextChoices):
+    """Choices for quick watch date behavior when bulk-marking media as completed."""
+
+    CURRENT_DATE = "current_date", "Current Date"
+    RELEASE_DATE = "release_date", "Release Date"
+    NO_DATE = "no_date", "No Date"
+
+
+class DateFormatChoices(models.TextChoices):
+    """Choices for date format display."""
+
+    ISO = "Y-m-d", "2026-01-18 (ISO)"
+    EUROPEAN = "d/m/Y", "18/01/2026 (EU)"
+    US = "m/d/Y", "01/18/2026 (US)"
+    LONG = "M j, Y", "Jan 18, 2026"
+
+
+class TimeFormatChoices(models.TextChoices):
+    """Choices for time format display."""
+
+    HOUR_24 = "H:i", "14:30 (24-hour)"
+    HOUR_12 = "g:i A", "2:30 PM (12-hour)"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -96,7 +120,7 @@ class User(AbstractUser):
     home_sort = models.CharField(
         max_length=20,
         default=HomeSortChoices.UPCOMING,
-        choices=HomeSortChoices.choices,
+        choices=HomeSortChoices,
     )
 
     # Media type preferences: TV Shows
@@ -104,17 +128,17 @@ class User(AbstractUser):
     tv_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.GRID,
-        choices=LayoutChoices.choices,
+        choices=LayoutChoices,
     )
     tv_sort = models.CharField(
         max_length=20,
         default=MediaSortChoices.SCORE,
-        choices=MediaSortChoices.choices,
+        choices=MediaSortChoices,
     )
     tv_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
-        choices=MediaStatusChoices.choices,
+        choices=MediaStatusChoices,
     )
 
     # Media type preferences: TV Seasons
@@ -122,17 +146,17 @@ class User(AbstractUser):
     season_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.GRID,
-        choices=LayoutChoices.choices,
+        choices=LayoutChoices,
     )
     season_sort = models.CharField(
         max_length=20,
         default=MediaSortChoices.SCORE,
-        choices=MediaSortChoices.choices,
+        choices=MediaSortChoices,
     )
     season_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
-        choices=MediaStatusChoices.choices,
+        choices=MediaStatusChoices,
     )
 
     # Media type preferences: Movies
@@ -140,17 +164,17 @@ class User(AbstractUser):
     movie_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.GRID,
-        choices=LayoutChoices.choices,
+        choices=LayoutChoices,
     )
     movie_sort = models.CharField(
         max_length=20,
         default=MediaSortChoices.SCORE,
-        choices=MediaSortChoices.choices,
+        choices=MediaSortChoices,
     )
     movie_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
-        choices=MediaStatusChoices.choices,
+        choices=MediaStatusChoices,
     )
 
     # Media type preferences: Anime
@@ -158,17 +182,17 @@ class User(AbstractUser):
     anime_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.TABLE,
-        choices=LayoutChoices.choices,
+        choices=LayoutChoices,
     )
     anime_sort = models.CharField(
         max_length=20,
         default=MediaSortChoices.SCORE,
-        choices=MediaSortChoices.choices,
+        choices=MediaSortChoices,
     )
     anime_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
-        choices=MediaStatusChoices.choices,
+        choices=MediaStatusChoices,
     )
 
     # Media type preferences: Manga
@@ -176,17 +200,17 @@ class User(AbstractUser):
     manga_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.TABLE,
-        choices=LayoutChoices.choices,
+        choices=LayoutChoices,
     )
     manga_sort = models.CharField(
         max_length=20,
         default=MediaSortChoices.SCORE,
-        choices=MediaSortChoices.choices,
+        choices=MediaSortChoices,
     )
     manga_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
-        choices=MediaStatusChoices.choices,
+        choices=MediaStatusChoices,
     )
 
     # Media type preferences: Games
@@ -194,17 +218,17 @@ class User(AbstractUser):
     game_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.GRID,
-        choices=LayoutChoices.choices,
+        choices=LayoutChoices,
     )
     game_sort = models.CharField(
         max_length=20,
         default=MediaSortChoices.SCORE,
-        choices=MediaSortChoices.choices,
+        choices=MediaSortChoices,
     )
     game_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
-        choices=MediaStatusChoices.choices,
+        choices=MediaStatusChoices,
     )
 
     # Media type preferences: Books
@@ -212,17 +236,17 @@ class User(AbstractUser):
     book_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.GRID,
-        choices=LayoutChoices.choices,
+        choices=LayoutChoices,
     )
     book_sort = models.CharField(
         max_length=20,
         default=MediaSortChoices.SCORE,
-        choices=MediaSortChoices.choices,
+        choices=MediaSortChoices,
     )
     book_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
-        choices=MediaStatusChoices.choices,
+        choices=MediaStatusChoices,
     )
 
     # Media type preferences: Comics
@@ -230,17 +254,35 @@ class User(AbstractUser):
     comic_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.GRID,
-        choices=LayoutChoices.choices,
+        choices=LayoutChoices,
     )
     comic_sort = models.CharField(
         max_length=20,
         default=MediaSortChoices.SCORE,
-        choices=MediaSortChoices.choices,
+        choices=MediaSortChoices,
     )
     comic_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
-        choices=MediaStatusChoices.choices,
+        choices=MediaStatusChoices,
+    )
+
+    # Media type preferences: Board Games
+    boardgame_enabled = models.BooleanField(default=True)
+    boardgame_layout = models.CharField(
+        max_length=20,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices,
+    )
+    boardgame_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices,
+    )
+    boardgame_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices,
     )
 
     # UI preferences
@@ -249,23 +291,74 @@ class User(AbstractUser):
         help_text="Hide hover overlay on touch devices",
     )
 
+    # Tracking settings
+    quick_watch_date = models.CharField(
+        max_length=20,
+        default=QuickWatchDateChoices.CURRENT_DATE,
+        choices=QuickWatchDateChoices,
+        help_text="Date to use when bulk-marking media as completed",
+    )
+
+    date_format = models.CharField(
+        max_length=20,
+        default=DateFormatChoices.ISO,
+        choices=DateFormatChoices,
+        help_text="Preferred date display format",
+    )
+    time_format = models.CharField(
+        max_length=20,
+        default=TimeFormatChoices.HOUR_24,
+        choices=TimeFormatChoices,
+        help_text="Preferred time display format",
+    )
+
+    # Progress bar
+    progress_bar = models.BooleanField(
+        default=True,
+        help_text="Show progress bar",
+    )
+
+    # Hide completed recommendations
+    hide_completed_recommendations = models.BooleanField(
+        default=False,
+        help_text="Hide completed media in recommendations",
+    )
+
+    # Hide zero ratings
+    hide_zero_rating = models.BooleanField(
+        default=False,
+        help_text="Hide zero ratings from media cards",
+    )
+
+    # Watch provider region
+    watch_provider_region = models.CharField(
+        max_length=5,
+        default="UNSET",
+        help_text="Region to show watch providers for",
+    )
+
     # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,
         default=CalendarLayoutChoices.GRID,
-        choices=CalendarLayoutChoices.choices,
+        choices=CalendarLayoutChoices,
     )
 
     # Lists preferences
     lists_sort = models.CharField(
         max_length=20,
         default=ListSortChoices.LAST_ITEM_ADDED,
-        choices=ListSortChoices.choices,
+        choices=ListSortChoices,
     )
     list_detail_sort = models.CharField(
         max_length=20,
         default=ListDetailSortChoices.DATE_ADDED,
-        choices=ListDetailSortChoices.choices,
+        choices=ListDetailSortChoices,
+    )
+    list_detail_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices,
     )
 
     # Notification settings
@@ -382,6 +475,10 @@ class User(AbstractUser):
                 condition=models.Q(list_detail_sort__in=ListDetailSortChoices.values),
             ),
             models.CheckConstraint(
+                name="list_detail_status_valid",
+                condition=models.Q(list_detail_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
                 name="tv_status_valid",
                 condition=models.Q(tv_status__in=MediaStatusChoices.values),
             ),
@@ -408,6 +505,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="book_status_valid",
                 condition=models.Q(book_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="quick_watch_date_valid",
+                condition=models.Q(quick_watch_date__in=QuickWatchDateChoices.values),
             ),
         ]
 
@@ -449,6 +550,26 @@ class User(AbstractUser):
             self.save(update_fields=[field_name])
 
         return new_value
+
+    def resolve_watch_date(self, now, release_date):
+        """
+        Resolve the appropriate watch date based on user preference.
+
+        Args:
+            now: Pre-calculated current datetime
+            release_date: The release/air date for the specific media item
+
+        Returns:
+            datetime or None based on user preference
+        """
+        if self.quick_watch_date == QuickWatchDateChoices.NO_DATE:
+            return None
+
+        if self.quick_watch_date == QuickWatchDateChoices.RELEASE_DATE:
+            return release_date  # Will be None if not available in metadata
+
+        # CURRENT_DATE is the default
+        return now
 
     def get_enabled_media_types(self):
         """Return a list of enabled media type values based on user preferences."""

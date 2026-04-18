@@ -72,6 +72,23 @@
         </p>
       </div>
 
+      <div class="space-y-2">
+        <div class="flex items-center gap-2 text-lg font-medium text-gray-200">
+          {% include "app/icons/page.svg" with classes="w-5 h-5 text-indigo-400" %}
+          <h3>Attribution</h3>
+        </div>
+        <p class="text-gray-300 pl-7">
+          Movie and TV streaming providers from
+          <a href="https://www.justwatch.com/"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors">
+            JustWatch
+            {% include "app/icons/external-link.svg" with classes="w-3 h-3 ml-1" %}
+          </a>
+        </p>
+      </div>
+
       <div class="mt-8 pt-4 border-t border-gray-700">
         <p class="text-gray-400 text-sm">
           Version: <span class="font-mono">{{ version }}</span>

@@ -2,14 +2,16 @@ import logging
 import time
 
 import requests
+from defusedxml import ElementTree
 from django.conf import settings
 from pyrate_limiter import RedisBucket
-from redis import ConnectionPool
+from redis import Redis
 from requests.adapters import HTTPAdapter
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
 from app.models import MediaTypes, Sources
 from app.providers import (
+    bgg,
     comicvine,
     hardcover,
     igdb,
@@ -23,24 +25,22 @@ from app.providers import (
 logger = logging.getLogger(__name__)
 
 
-def get_redis_connection():
-    """Return a Redis connection pool."""
+def get_redis_client():
+    """Return a Redis client."""
     if settings.TESTING:
         import fakeredis  # noqa: PLC0415
 
-        return fakeredis.FakeStrictRedis().connection_pool
-    return ConnectionPool.from_url(settings.REDIS_URL)
+        return fakeredis.FakeRedis()
+    return Redis.from_url(settings.REDIS_URL)
 
 
-redis_pool = get_redis_connection()
-
-REDIS_PREFIX = getattr(settings, "REDIS_PREFIX", None)
-bucket_name = f"{REDIS_PREFIX}_api" if REDIS_PREFIX else "api"
+redis_db = get_redis_client()
+bucket_key = f"{settings.REDIS_PREFIX}_api" if settings.REDIS_PREFIX else "api"
 
 session = LimiterSession(
     per_second=5,
     bucket_class=RedisBucket,
-    bucket_kwargs={"redis_pool": redis_pool, "bucket_name": bucket_name},
+    bucket_kwargs={"redis": redis_db, "bucket_key": bucket_key},
 )
 
 session.mount("http://", HTTPAdapter(max_retries=3))
@@ -72,7 +72,11 @@ session.mount(
 )
 session.mount(
     "https://api.hardcover.app/v1/graphql",
-    LimiterAdapter(per_minute=55),
+    LimiterAdapter(per_minute=50),
+)
+session.mount(
+    "https://boardgamegeek.com/xmlapi2",
+    LimiterAdapter(per_second=2),
 )
 
 
@@ -126,8 +130,29 @@ def raise_not_found_error(provider, media_id, media_type="item"):
     raise ProviderAPIError(provider, mock_error, error_msg)
 
 
-def api_request(provider, method, url, params=None, data=None, headers=None):
-    """Make a request to the API and return the response as a dictionary."""
+def api_request(
+    provider,
+    method,
+    url,
+    params=None,
+    data=None,
+    headers=None,
+    response_format="json",
+):
+    """Make a request to the API and return the response.
+
+    Args:
+        provider: Provider identifier for error messages
+        method: HTTP method ("GET" or "POST")
+        url: Request URL
+        params: Query params for GET, JSON body for POST
+        data: Raw data for POST
+        headers: Request headers
+        response_format: "json" (default) or "xml" for XML parsing
+
+    Returns:
+        Parsed JSON dict or ElementTree for XML
+    """
     try:
         request_kwargs = {
             "url": url,
@@ -145,6 +170,9 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
 
         response = request_func(**request_kwargs)
         response.raise_for_status()
+
+        if response_format == "xml":
+            return ElementTree.fromstring(response.text)
         return response.json()
 
     except requests.exceptions.HTTPError as error:
@@ -153,7 +181,7 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
 
         # handle rate limiting
         if status_code == requests.codes.too_many_requests:
-            seconds_to_wait = int(error_resp.headers["Retry-After"])
+            seconds_to_wait = int(error_resp.headers.get("Retry-After", 5))
             logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
             time.sleep(seconds_to_wait + 3)
             logger.info("Retrying request")
@@ -164,6 +192,7 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
                 params=params,
                 data=data,
                 headers=headers,
+                response_format=response_format,
             )
 
         raise error from None
@@ -188,9 +217,11 @@ def get_media_metadata(
 
     metadata_retrievers = {
         MediaTypes.ANIME.value: lambda: mal.anime(media_id),
-        MediaTypes.MANGA.value: lambda: mangaupdates.manga(media_id)
-        if source == Sources.MANGAUPDATES.value
-        else mal.manga(media_id),
+        MediaTypes.MANGA.value: lambda: (
+            mangaupdates.manga(media_id)
+            if source == Sources.MANGAUPDATES.value
+            else mal.manga(media_id)
+        ),
         MediaTypes.TV.value: lambda: tmdb.tv(media_id),
         "tv_with_seasons": lambda: tmdb.tv_with_seasons(media_id, season_numbers),
         MediaTypes.SEASON.value: lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
@@ -203,33 +234,37 @@ def get_media_metadata(
         ),
         MediaTypes.MOVIE.value: lambda: tmdb.movie(media_id),
         MediaTypes.GAME.value: lambda: igdb.game(media_id),
-        MediaTypes.BOOK.value: lambda: hardcover.book(media_id)
-        if source == Sources.HARDCOVER.value
-        else openlibrary.book(media_id),
+        MediaTypes.BOOK.value: lambda: (
+            hardcover.book(media_id)
+            if source == Sources.HARDCOVER.value
+            else openlibrary.book(media_id)
+        ),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
+        MediaTypes.BOARDGAME.value: lambda: bgg.boardgame(media_id),
     }
     return metadata_retrievers[media_type]()
 
 
 def search(media_type, query, page, source=None):
     """Search for media based on the query and return the results."""
-    if media_type == MediaTypes.MANGA.value:
-        if source == Sources.MANGAUPDATES.value:
-            response = mangaupdates.search(query, page)
-        else:
-            response = mal.search(media_type, query, page)
-    elif media_type == MediaTypes.ANIME.value:
-        response = mal.search(media_type, query, page)
-    elif media_type in (MediaTypes.TV.value, MediaTypes.MOVIE.value):
-        response = tmdb.search(media_type, query, page)
-    elif media_type == MediaTypes.GAME.value:
-        response = igdb.search(query, page)
-    elif media_type == MediaTypes.BOOK.value:
-        if source == Sources.OPENLIBRARY.value:
-            response = openlibrary.search(query, page)
-        else:
-            response = hardcover.search(query, page)
-    elif media_type == MediaTypes.COMIC.value:
-        response = comicvine.search(query, page)
-
-    return response
+    search_handlers = {
+        MediaTypes.MANGA.value: lambda: (
+            mangaupdates.search(query, page)
+            if source == Sources.MANGAUPDATES.value
+            else mal.search(media_type, query, page)
+        ),
+        MediaTypes.ANIME.value: lambda: mal.search(media_type, query, page),
+        MediaTypes.TV.value: lambda: tmdb.search(media_type, query, page),
+        MediaTypes.MOVIE.value: lambda: tmdb.search(media_type, query, page),
+        MediaTypes.SEASON.value: lambda: tmdb.search(MediaTypes.TV.value, query, page),
+        MediaTypes.EPISODE.value: lambda: tmdb.search(MediaTypes.TV.value, query, page),
+        MediaTypes.GAME.value: lambda: igdb.search(query, page),
+        MediaTypes.BOOK.value: lambda: (
+            openlibrary.search(query, page)
+            if source == Sources.OPENLIBRARY.value
+            else hardcover.search(query, page)
+        ),
+        MediaTypes.COMIC.value: lambda: comicvine.search(query, page),
+        MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
+    }
+    return search_handlers[media_type]()

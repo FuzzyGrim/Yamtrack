@@ -101,7 +101,7 @@ def book(media_id):
 
     if data is None:
         book_query = """
-        query GetBookDetails($book_id: Int!, $rec_id: bigint!) {
+        query GetBookDetails($book_id: Int!) {
           books_by_pk(id: $book_id) {
             id
             title
@@ -118,23 +118,10 @@ def book(media_id):
               edition_format
               isbn_13
               isbn_10
+              release_date
               publisher {
                 name
               }
-            }
-          }
-          recommendations(
-            where: {
-              subject_id: {_eq: $rec_id},
-              subject_type: {_eq: "Book"},
-              item_type: {_eq: "Book"}
-            }
-            limit: 10
-          ) {
-            item_book {
-              id
-              title
-              cached_image(path: "url")
             }
           }
         }
@@ -142,7 +129,6 @@ def book(media_id):
 
         variables = {
             "book_id": int(media_id),
-            "rec_id": str(media_id),
         }
 
         try:
@@ -160,11 +146,12 @@ def book(media_id):
 
         if not book_data:
             services.raise_not_found_error(
-                Sources.HARDCOVER.value, media_id, "book",
+                Sources.HARDCOVER.value,
+                media_id,
+                "book",
             )
 
         edition_details = get_edition_details(book_data.get("default_cover_edition"))
-        recommendations = response["data"]["recommendations"]
 
         data = {
             "media_id": book_data["id"],
@@ -181,13 +168,11 @@ def book(media_id):
             "details": {
                 "format": edition_details.get("format"),
                 "number_of_pages": book_data.get("pages"),
-                "publish_date": book_data.get("release_date"),
+                "publish_date": edition_details.get("release_date")
+                or book_data.get("release_date"),
                 "author": book_data.get("cached_contributors"),
                 "publisher": edition_details.get("publisher"),
                 "isbn": edition_details.get("isbn"),
-            },
-            "related": {
-                "recommendations": get_recommendations(recommendations),
             },
         }
 
@@ -228,26 +213,9 @@ def get_edition_details(edition_data):
     return {
         "format": edition_data.get("edition_format") or "Unknown",
         "publisher": publisher_name,
-        "isbn": isbns if isbns else None,
+        "isbn": isbns or None,
+        "release_date": edition_data.get("release_date"),
     }
-
-
-def get_recommendations(recommendations_data):
-    """Get processed recommendations from API data."""
-    if not recommendations_data:
-        return []
-
-    return [
-        {
-            "media_id": rec["item_book"]["id"],
-            "source": Sources.HARDCOVER.value,
-            "title": rec["item_book"]["title"],
-            "media_type": MediaTypes.BOOK.value,
-            "image": rec["item_book"].get("cached_image") or settings.IMG_NONE,
-        }
-        for rec in recommendations_data
-        if rec.get("item_book")
-    ]
 
 
 def get_image_url(response):

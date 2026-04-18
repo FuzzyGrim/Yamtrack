@@ -1,0 +1,30 @@
+{# djlint:off #}
+<div class="flex items-center gap-2 rounded-md border px-3 py-2 shadow-lg text-white toast-{{ message.tags }} opacity-0"
+     x-data="{ 
+         init() { 
+           setTimeout(() => this.$el.classList.add('opacity-100', 'transform-none'), 10);
+           this.$el.classList.add('transition-all', 'duration-300', 'ease-out', 'transform', 'translate-y-[-1rem]');
+
+           {% if message.tags not in 'warning,error' %}
+             setTimeout(() => this.$el.remove(), 5000);
+           {% endif %}
+         }
+     }">
+
+  {% if message.tags == 'success' %}
+    {% include "app/icons/states/completed.svg" with classes="w-4 h-4 text-emerald-300 shrink-0" %}
+  {% elif message.tags == 'warning' %}
+    {% include "app/icons/warning.svg" with classes="w-4 h-4 text-amber-300 shrink-0" %}
+  {% elif message.tags == 'error' %}
+    {% include "app/icons/warning.svg" with classes="w-4 h-4 text-red-300 shrink-0" %}
+  {% elif message.tags == "info" %}
+    {% include "app/icons/info.svg" with classes="w-4 h-4 text-indigo-300 shrink-0" %}
+  {% endif %}
+
+  <p class="text-sm font-medium flex-1">{{ message }}</p>
+  <button class="text-current opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+          @click="$el.parentElement.remove()">
+    {% include "app/icons/x.svg" with classes="w-4 h-4" %}
+  </button>
+</div>
+{# djlint:on #}

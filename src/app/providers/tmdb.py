@@ -1,8 +1,10 @@
 import logging
+from datetime import timedelta
 
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone
 
 from app import helpers
 from app.models import MediaTypes, Sources
@@ -39,6 +41,33 @@ def handle_error(error):
         Sources.TMDB.value,
         error,
     )
+
+
+def get_external_links(external_ids, tmdb_id=None):
+    """Build external links dictionary from TMDB external_ids response."""
+    links = {}
+
+    if external_ids.get("imdb_id"):
+        links["IMDb"] = f"https://www.imdb.com/title/{external_ids['imdb_id']}/"
+
+    if external_ids.get("tvdb_id"):
+        links["TVDB"] = (
+            f"https://www.thetvdb.com/dereferrer/series/{external_ids['tvdb_id']}"
+        )
+
+    if external_ids.get("wikidata_id"):
+        links["Wikidata"] = (
+            f"https://www.wikidata.org/wiki/{external_ids['wikidata_id']}"
+        )
+
+    # Only passed in for movies as Letterboxd seldom supports TV
+    if tmdb_id:
+        # https://letterboxd.com/about/film-data/
+        # Letterboxd will redirect to the correct movie
+        # as they source their data from TMDB
+        links["Letterboxd"] = f"https://www.letterboxd.com/tmdb/{tmdb_id}"
+
+    return links
 
 
 def search(media_type, query, page):
@@ -129,9 +158,10 @@ def movie(media_id):
 
     if data is None:
         url = f"{base_url}/movie/{media_id}"
+        appends = ["recommendations", "external_ids", "credits", "watch/providers"]
         params = {
             **base_params,
-            "append_to_response": "recommendations",
+            "append_to_response": ",".join(appends),
         }
 
         try:
@@ -141,8 +171,43 @@ def movie(media_id):
                 url,
                 params=params,
             )
+
+            if response.get("belongs_to_collection", {}) is not None and (
+                collection_id := response.get("belongs_to_collection", {}).get("id")
+            ):
+                try:
+                    collection_response = services.api_request(
+                        Sources.TMDB.value,
+                        "GET",
+                        f"{base_url}/collection/{collection_id}",
+                        params={**base_params},
+                    )
+                except requests.exceptions.HTTPError as error:
+                    logger.warning("Failed to get collection: %s", error)
+                    collection_response = {}
+            else:
+                collection_response = {}
         except requests.exceptions.HTTPError as error:
             handle_error(error)
+
+        # Filter out collection items from recommendations, to avoid duplicates
+        collection_items = get_collection(collection_response)
+        collection_ids = [item["media_id"] for item in collection_items]
+        recommended_items = response.get("recommendations", {}).get("results", [])
+        filtered_recommendations = [
+            item for item in recommended_items if item["id"] not in collection_ids
+        ]
+
+        cast = response.get("credits", {}).get("cast", [])
+        filtered_cast = [
+            {
+                "id": member.get("id"),
+                "name": member.get("name"),
+                "character": member.get("character"),
+                "image": get_image_url(member.get("profile_path")),
+            }
+            for member in cast[:30]
+        ]
 
         data = {
             "media_id": media_id,
@@ -165,12 +230,19 @@ def movie(media_id):
                 "country": get_country(response["production_countries"]),
                 "languages": get_languages(response["spoken_languages"]),
             },
+            "cast": filtered_cast,
+            "total_cast_count": len(cast),
             "related": {
+                collection_response.get("name", "collection"): collection_items,
                 "recommendations": get_related(
-                    response.get("recommendations", {}).get("results", [])[:15],
+                    filtered_recommendations,
                     MediaTypes.MOVIE.value,
                 ),
             },
+            "external_links": get_external_links(
+                response.get("external_ids", {}), media_id
+            ),
+            "providers": response.get("watch/providers", {}).get("results", {}),
         }
 
         cache.set(cache_key, data)
@@ -204,6 +276,7 @@ def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
     )
     season_data["title"] = tv_data["title"]
     season_data["tvdb_id"] = tv_data["tvdb_id"]
+    season_data["external_links"] = tv_data["external_links"]
     season_data["genres"] = tv_data["genres"]
     if season_data["synopsis"] == "No synopsis available.":
         season_data["synopsis"] = tv_data["synopsis"]
@@ -213,14 +286,19 @@ def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
 def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
     """Fetch uncached seasons from API and cache them."""
     url = f"{base_url}/tv/{media_id}"
-    base_append = "recommendations,external_ids"
-    max_seasons_per_request = 18
+    base_append = "recommendations,external_ids,watch/providers"
+    max_seasons_per_request = 8
     fetched_tv_data = tv_data
     result_data = {}
 
     for i in range(0, len(season_numbers), max_seasons_per_request):
         season_subset = season_numbers[i : i + max_seasons_per_request]
-        append_text = ",".join([f"season/{season}" for season in season_subset])
+        append_text = ",".join(
+            [
+                f"season/{season},season/{season}/watch/providers"
+                for season in season_subset
+            ]
+        )
 
         params = {
             **base_params,
@@ -256,7 +334,9 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
                 not_found_error = type("Error", (), {"response": not_found_response})
                 raise services.ProviderAPIError(msg, error=not_found_error, details=msg)
 
-            season_data = process_season(response[season_key])
+            season_data = process_season(
+                response[season_key], response[f"{season_key}/watch/providers"]
+            )
             season_data = enrich_season_with_tv_data(
                 season_data,
                 fetched_tv_data,
@@ -310,7 +390,7 @@ def tv(media_id):
         url = f"{base_url}/tv/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations,external_ids",
+            "append_to_response": "recommendations,external_ids,watch/providers",
         }
 
         try:
@@ -365,17 +445,19 @@ def process_tv(response):
                 response,
             ),
             "recommendations": get_related(
-                response.get("recommendations", {}).get("results", [])[:15],
+                response.get("recommendations", {}).get("results", []),
                 MediaTypes.TV.value,
             ),
         },
         "tvdb_id": response.get("external_ids", {}).get("tvdb_id"),
+        "external_links": get_external_links(response.get("external_ids", {})),
         "last_episode_season": last_episode["season_number"] if last_episode else None,
         "next_episode_season": next_episode["season_number"] if next_episode else None,
+        "providers": response.get("watch/providers", {}).get("results", {}),
     }
 
 
-def process_season(response):
+def process_season(response, providers_response):
     """Process the metadata for the selected season from The Movie Database."""
     episodes = response["episodes"]
     num_episodes = len(episodes)
@@ -413,6 +495,7 @@ def process_season(response):
             "total_runtime": total_runtime,
         },
         "episodes": response["episodes"],
+        "providers": providers_response.get("results", {}),
     }
 
 
@@ -557,6 +640,55 @@ def get_related(related_medias, media_type, parent_response=None):
     return related
 
 
+def get_collection(collection_response):
+    """Format media collection list to match related media."""
+
+    def date_key(media):
+        date = media.get("release_date", "")
+        if date is None or date == "":
+            # If release date is unknown, sort by title after known releases
+            title = get_title(media)
+            date = f"9999-99-99-{title}"
+        return date
+
+    parts = sorted(collection_response.get("parts", []), key=date_key)
+    return [
+        {
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.MOVIE.value,
+            "image": get_image_url(media["poster_path"]),
+            "media_id": media["id"],
+            "title": get_title(media),
+        }
+        for media in parts
+    ]
+
+
+def filter_providers(all_providers, region):
+    """Filter watch providers by region."""
+    if region == "":
+        return None
+
+    if not all_providers:
+        return []
+
+    # Create a dict to get rid of duplicates across different provider types
+    region_providers = all_providers.get(region, {})
+    flatrate_providers = region_providers.get("flatrate", [])
+    free_providers = region_providers.get("free", [])
+    providers = {}
+    for provider in [*flatrate_providers, *free_providers]:
+        providers[provider.get("provider_id")] = provider
+
+    # Convert dict back to list and add image URLs
+    providers = list(providers.values())
+    for provider in providers:
+        provider["image"] = get_image_url(provider.get("logo_path"))
+
+    providers.sort(key=lambda e: e.get("display_priority", 999))
+    return providers
+
+
 def process_episodes(season_metadata, episodes_in_db):
     """Process the episodes for the selected season."""
     episodes_metadata = []
@@ -638,3 +770,83 @@ def episode(media_id, season_number, episode_number):
         error=not_found_error,
         details=msg,
     )
+
+
+def watch_provider_regions():
+    """Return the available watch provider regions from The Movie Database."""
+    cache_key = f"{Sources.TMDB.value}_watch_provider_regions"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/watch/providers/regions"
+        params = {**base_params}
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = [("", "Disabled")]
+        regions = response.get("results", [])
+        for region in sorted(regions, key=lambda r: r.get("english_name", "")):
+            key = region.get("iso_3166_1")
+            name = region.get("english_name")
+            if key:
+                if not name:
+                    name = key
+                data.append((key, name))
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def get_changed_ids(media_type):
+    """Return changed TMDB ids for the given media type over the last days."""
+    url = f"{base_url}/{media_type}/changes"
+    end_date = timezone.localdate()
+    start_date = end_date - timedelta(days=3)
+    changed_ids = set()
+    page = 1
+
+    while True:
+        params = {
+            **base_params,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "page": page,
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        changed_ids.update(str(result["id"]) for result in response.get("results", []))
+
+        total_pages = response.get("total_pages", 1)
+        if page >= total_pages:
+            break
+        page += 1
+
+    return changed_ids
+
+
+def tv_changes():
+    """Return changed TV ids from TMDB for the last days across all pages."""
+    return get_changed_ids(MediaTypes.TV.value)
+
+
+def movie_changes():
+    """Return changed movie ids from TMDB for the last days across all pages."""
+    return get_changed_ids(MediaTypes.MOVIE.value)

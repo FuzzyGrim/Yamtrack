@@ -24,7 +24,7 @@
     </div>
 
     <div class="relative mb-6 flex gap-2"
-         x-data="{ sort: '{{ current_sort }}', query: '{{ request.GET.q|default:'' }}' }">
+         x-data="{ sort: '{{ current_sort }}', query: '{{ request.GET.q|default:''|escapejs }}' }">
 
       <!-- Form to manage state -->
       <form id="filter-form" class="hidden">

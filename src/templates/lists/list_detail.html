@@ -41,14 +41,21 @@
     {% include "lists/components/list_form.html" %}
   </div>
 
-  <div x-data="{ sort: '{{ current_sort }}', type: '{{ request.GET.type|default:'all' }}', query: '{{ request.GET.q|default:'' }}', mediaTypeLabels: {
+  <div x-data="{ sort: '{{ current_sort|escapejs }}', type: '{{ request.GET.type|default:'all'|escapejs }}', status: '{{ current_status|escapejs }}', query: '{{ request.GET.q|default:''|escapejs }}', mediaTypeLabels: {
     {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %}
-    'all': 'All Types' }, getMediaTypeLabel() { return this.mediaTypeLabels[this.type] || this.type; } }">
+    'all': 'All Types' }, statusLabels: {
+    {% for value, label in status_choices %}
+      '{{ value }}': '{{ label }}'
+      {% if not forloop.last %},{% endif %}
+
+    {% endfor %}
+    }, getMediaTypeLabel() { return this.mediaTypeLabels[this.type] || this.type; } }">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
       <input type="hidden" name="sort" x-model="sort">
       <input type="hidden" name="type" x-model="type">
+      <input type="hidden" name="status" x-model="status">
       <input type="hidden" name="q" x-model="query">
     </form>
 
@@ -66,14 +73,69 @@
                {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
                hx-include="#filter-form"
                hx-indicator="#search-indicator">
-          {% include "app/icons/magnifying-glass.svg" with classes="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" %}
+        {% include "app/icons/magnifying-glass.svg" with classes="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" %}
         <div id="search-indicator"
              class="htmx-indicator absolute right-3 top-1/2 transform -translate-y-1/2">
           <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 shrink-0">
+      <div class="flex items-center gap-2 flex-shrink-0">
+        {# Filter by Status #}
+        <div class="relative" x-data="{ open: false }">
+          <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+                  @click="open = !open"
+                  type="button">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            <span class="text-sm" x-text="statusLabels[status] || status"></span>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </button>
+
+          <div class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
+               x-cloak
+               x-show="open"
+               @click.outside="open = false"
+               x-transition:enter="transition ease-out duration-100"
+               x-transition:enter-start="transform opacity-0 scale-95"
+               x-transition:enter-end="transform opacity-100 scale-100"
+               x-transition:leave="transition ease-in duration-75"
+               x-transition:leave-start="transform opacity-100 scale-100"
+               x-transition:leave-end="transform opacity-0 scale-95">
+            {% for value, label in status_choices %}
+              <button hx-get="{% url 'list_detail' custom_list.id %}"
+                      {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
+                      hx-include="#filter-form"
+                      hx-indicator="#loading-indicator"
+                      class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                      :class="status === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      @click="status = '{{ value }}'; open = false"
+                      type="button">{{ label }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
         {# Filter by Type #}
         <div class="relative" x-data="{ open: false }">
           <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
@@ -178,11 +240,4 @@
 
 {% block js %}
   {{ form.media.js }}
-
-  <script>
-    const mediaTypeLabels = {
-      {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %}
-      'all': 'All Types'
-    };
-  </script>
 {% endblock js %}

@@ -384,6 +384,7 @@ class SimklImporter:
                     user=self.user,
                     status=movie_status,
                     score=movie["user_rating"],
+                    progress=1 if movie_status == Status.COMPLETED.value else 0,
                     start_date=self._get_date(movie.get("last_watched_at")),
                     end_date=self._get_date(movie.get("last_watched_at")),
                     notes=movie["memo"]["text"] if movie["memo"] != {} else "",

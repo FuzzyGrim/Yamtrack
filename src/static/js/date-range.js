@@ -184,11 +184,27 @@ function dateRangePicker() {
 
     formatDisplayDate(dateString) {
       const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
+      // Get format from the script tag's data attribute
+      const scriptTag = document.querySelector('script[data-date-format]');
+      const format = scriptTag?.dataset.dateFormat || "Y-m-d";
+
+      // Map Django date format to Intl.DateTimeFormat options
+      const options = this.getDateFormatOptions(format);
+      return date.toLocaleDateString(undefined, options);
+    },
+
+    getDateFormatOptions(djangoFormat) {
+      // Map common Django format strings to Intl.DateTimeFormat options
+      switch (djangoFormat) {
+        case "d/m/Y": // European: 18/01/2026
+        case "m/d/Y": // US: 01/18/2026
+        case "Y-m-d": // ISO: 2026-01-18
+          return { year: "numeric", month: "2-digit", day: "2-digit" };
+        case "M j, Y": // Long: Jan 18, 2026
+          return { year: "numeric", month: "short", day: "numeric" };
+        default:
+          return { year: "numeric", month: "short", day: "numeric" };
+      }
     },
 
     detectRangeFromDates() {
