@@ -430,7 +430,12 @@ class MediaManager(models.Manager):
                 sort_filter=None,
             )
 
-            if not media_list:
+            if sort_by == users.models.HomeSortChoices.HIDDEN:
+                media_list = media_list.filter(hide_from_home=True)
+            else:
+                media_list = media_list.filter(hide_from_home=False)
+
+            if not media_list.exists():
                 continue
 
             # Annotate with max_progress and next_event
@@ -453,6 +458,19 @@ class MediaManager(models.Manager):
             }
 
         return list_by_type
+
+    def has_hidden_home_items(self, user):
+        """Check if the user has any hidden items on the home page."""
+        media_types = self._get_media_types_to_process(user, None)
+        for media_type in media_types:
+            model = apps.get_model("app", media_type)
+            if model.objects.filter(
+                user=user,
+                hide_from_home=True,
+                status__in=[Status.IN_PROGRESS.value, Status.PLANNING.value],
+            ).exists():
+                return True
+        return False
 
     def _get_media_types_to_process(self, user, specific_media_type):
         """Determine which media types to process based on user settings."""
@@ -509,6 +527,7 @@ class MediaManager(models.Manager):
                 (x.max_progress - x.progress if x.max_progress else 0),
             ),
             users.models.HomeSortChoices.TITLE: lambda x: x.item.title.lower(),
+            users.models.HomeSortChoices.HIDDEN: lambda x: x.item.title.lower(),
         }
 
         primary_sort_function = primary_sort_functions[sort_by]
@@ -854,6 +873,7 @@ class Media(models.Model):
     start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
+    hide_from_home = models.BooleanField(default=False)
 
     class Meta:
         """Meta options for the model."""

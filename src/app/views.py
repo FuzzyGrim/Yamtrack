@@ -79,13 +79,34 @@ def home(request):
             },
         )
 
+    has_hidden_items = BasicMedia.objects.has_hidden_home_items(request.user)
+    if sort_by == HomeSortChoices.HIDDEN.value and not has_hidden_items:
+        sort_by = request.user.update_preference("home_sort", HomeSortChoices.UPCOMING.value)
+
+    sort_choices = list(HomeSortChoices.choices)
+    if not has_hidden_items:
+        sort_choices = [c for c in sort_choices if c[0] != HomeSortChoices.HIDDEN.value]
+
     context = {
         "home_sections": home_sections,
         "current_sort": sort_by,
-        "sort_choices": HomeSortChoices.choices,
+        "sort_choices": sort_choices,
         "items_limit": items_limit,
     }
     return render(request, "app/home.html", context)
+
+@require_POST
+def toggle_hide_home(request, media_type, instance_id):
+    """Toggle the hide_from_home status of a media item."""
+    media = BasicMedia.objects.get_media(
+        request.user,
+        media_type,
+        instance_id,
+    )
+    media.hide_from_home = not media.hide_from_home
+    media.save(update_fields=["hide_from_home"])
+    
+    return HttpResponse(status=200)
 
 
 @require_POST

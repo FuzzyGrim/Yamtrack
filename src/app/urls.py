@@ -59,6 +59,11 @@ urlpatterns = [
     ),
     path("episode_save", views.episode_save, name="episode_save"),
     path(
+        "toggle_hide_home/<media_type:media_type>/<int:instance_id>",
+        views.toggle_hide_home,
+        name="toggle_hide_home",
+    ),
+    path(
         "history_modal/<source:source>/<media_type:media_type>/<str:media_id>",
         views.history_modal,
         name="history_modal",

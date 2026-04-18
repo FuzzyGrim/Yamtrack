@@ -54,6 +54,20 @@
                   hx-target="#{% component_id 'history' media.item %}"
                   hx-trigger="click once"
                   @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
+
+          <button class="cursor-pointer rounded-full p-2.5 text-white transition-all duration-200 hover:scale-110 {% if media.hide_from_home %}bg-emerald-600 hover:bg-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]{% else %}bg-slate-600 hover:bg-slate-500 hover:shadow-[0_0_15px_rgba(100,116,139,0.5)]{% endif %}"
+                  title="{% if media.hide_from_home %}Unhide item{% else %}Hide from home{% endif %}"
+                  hx-post="{% url 'toggle_hide_home' media.item.media_type media.id %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-target="closest div[x-data]"
+                  hx-swap="delete"
+                  hx-trigger="click">
+            {% if media.hide_from_home %}
+              {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
+            {% else %}
+              {% include "app/icons/eye-closed.svg" with classes="w-4 h-4" %}
+            {% endif %}
+          </button>
         </div>
       </div>
     </div>
