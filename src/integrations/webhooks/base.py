@@ -62,35 +62,6 @@ class BaseWebhookProcessor:
             self._process_movie(payload, user, ids)
 
     def _process_tv(self, payload, user, ids):
-        if ids["tmdb_id"]:
-            # We have tmdb_id for this TV-show episode.
-            media_id = None
-            series_name = payload["Metadata"].get("grandparentTitle")
-            season_number = payload["Metadata"].get("parentIndex")
-            episode_number = payload["Metadata"].get("index")
-            logger.warning("Only TMDB episode ID provided.")
-            logger.warning("Trying to match episode using TV-show name %s , season %s and episode number %s", series_name, season_number, episode_number)
-            response = app.providers.tmdb.search(MediaTypes.TV.value, series_name, 1)
-
-            for result in response["results"]:
-                show_id = result["media_id"]
-                try:
-                    episode_data = app.providers.tmdb.episode(show_id, season_number, episode_number)
-                    if episode_data["tmdb_id"] == int(ids["tmdb_id"]):
-                        logger.warning("We have matched tmdb_id using search")
-                        media_id = result["media_id"]
-                        break
-                except app.providers.services.ProviderAPIError:
-                    logger.debug("Episode not found for show_id %s, continuing search.", show_id)   
-            else:
-                logger.warning("Not able to match TV-show using search.")
-        else:
-            # We have IMDB ID and/or TVDB ID for the episode.
-            media_id, season_number, episode_number = self._find_tv_media_id(ids)
-
-        if not media_id:
-            logger.warning("No matching TMDB ID found for TV show")
-            
         anidb_id = ids.get("anidb_id")
         if user.anime_enabled and anidb_id:
             mapping_data = self._fetch_mapping_data()
@@ -126,43 +97,70 @@ class BaseWebhookProcessor:
         tvdb_episode_id = ids.get("tvdb_id")
         if not tvdb_episode_id:
             logger.warning("No TVDB episode ID found for TV episode")
-            return
-
-        tvdb_episode = tvdb_provider.episode(int(tvdb_episode_id))
-        if not tvdb_episode:
-            logger.warning(
-                "No TVDB episode metadata found for TVDB episode ID: %s",
-                tvdb_episode_id,
-            )
-            return
-
-        if user.anime_enabled:
-            mapping_data = self._fetch_mapping_data()
-            mal_id, episode_offset = self._get_mal_id_from_tvdb(
-                mapping_data,
-                tvdb_episode["series_id"],
-                tvdb_episode["season_number"],
-                tvdb_episode["episode_number"],
-                absolute_episode_number=tvdb_episode["absolute_number"],
-            )
-            if mal_id:
-                logger.info(
-                    "Detected anime episode via MAL ID: %s, Episode: %d",
-                    mal_id,
-                    episode_offset,
+        else:
+            tvdb_episode = tvdb_provider.episode(int(tvdb_episode_id))
+            if not tvdb_episode:
+                logger.warning(
+                    "No TVDB episode metadata found for TVDB episode ID: %s",
+                    tvdb_episode_id,
                 )
-                self._handle_anime(mal_id, episode_offset, payload, user)
-                return
+            else:
+                if user.anime_enabled:
+                    mapping_data = self._fetch_mapping_data()
+                    mal_id, episode_offset = self._get_mal_id_from_tvdb(
+                        mapping_data,
+                        tvdb_episode["series_id"],
+                        tvdb_episode["season_number"],
+                        tvdb_episode["episode_number"],
+                        absolute_episode_number=tvdb_episode["absolute_number"],
+                    )
+                    if mal_id:
+                        logger.info(
+                            "Detected anime episode via MAL ID: %s, Episode: %d",
+                            mal_id,
+                            episode_offset,
+                        )
+                        self._handle_anime(mal_id, episode_offset, payload, user)
+                        return
 
-        media_id, season_number, episode_number = self._find_tv_media_id(
-            tvdb_episode_id
-        )
+                media_id, season_number, episode_number = self._find_tv_media_id(
+                    tvdb_episode_id
+                )                
+
         if not media_id:
             logger.warning(
                 "No matching TMDB ID found for TVDB episode ID: %s", tvdb_episode_id
             )
-            return
 
+            if ids["tmdb_id"]:
+                # We have tmdb_id for this TV-show episode.
+                media_id = None
+                series_name = payload["Metadata"].get("grandparentTitle")
+                season_number = payload["Metadata"].get("parentIndex")
+                episode_number = payload["Metadata"].get("index")
+
+                logger.warning("Only TMDB episode ID provided.")
+                logger.info("Trying to match episode using TV-show name: %s, season: %s and episode number: %s", series_name, season_number, episode_number)
+
+                response = app.providers.tmdb.search(MediaTypes.TV.value, series_name, 1)
+
+                for result in response["results"]:
+                    show_id = result["media_id"]
+                    try:
+                        episode_data = app.providers.tmdb.episode(show_id, season_number, episode_number)
+                        if episode_data["tmdb_id"] == int(ids["tmdb_id"]):
+                            logger.info("We have matched tmdb_id using search")
+                            media_id = result["media_id"]
+                            break
+                    except app.providers.services.ProviderAPIError:
+                        logger.debug("Episode not found for show_id %s, continuing search.", show_id)   
+                else:
+                    logger.warning("Not able to match TV-show using search.")
+                    return
+            else:
+                logger.warning("No TMDB episode ID provided")
+                return
+       
         logger.info(
             "Detected TV episode via TMDB ID: %s, Season: %d, Episode: %d",
             media_id,
