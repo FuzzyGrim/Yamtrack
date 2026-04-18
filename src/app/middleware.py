@@ -1,27 +1,30 @@
-import os
-
+from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.shortcuts import render
-from django.utils.deprecation import MiddlewareMixin
 
 from app.providers import services
 
 
-class AutoLoginMiddleware(MiddlewareMixin):
+class AutoLoginMiddleware:
     """Middleware to auto-login with a specific user."""
 
-    def process_request(self, request):
+    def __init__(self, get_response):
+        """Initialize the middleware."""
+        self.get_response = get_response
+
+    def __call__(self, request):
         """Handle authorization request."""
-        auto_login_username = os.environ.get("YAMTRACK_AUTO_LOGIN_USERNAME")
-        if not auto_login_username or request.user.is_authenticated:
-            return
-        user_model = get_user_model()
-        try:
-            user = user_model.objects.get(username=auto_login_username)
-            user.backend = "django.contrib.auth.backends.ModelBackend"
-            login(request, user)
-        except user_model.DoesNotExist:
-            pass
+        auto_login_username = getattr(settings, "YAMTRACK_AUTO_LOGIN_USERNAME", None)
+        if auto_login_username and not request.user.is_authenticated:
+            user_model = get_user_model()
+            try:
+                user = user_model.objects.get(username=auto_login_username)
+                user.backend = "django.contrib.auth.backends.ModelBackend"
+                login(request, user)
+            except user_model.DoesNotExist:
+                pass
+
+        return self.get_response(request)
 
 
 class ProviderAPIErrorMiddleware:

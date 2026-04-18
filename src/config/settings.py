@@ -1,7 +1,6 @@
 """Django settings for Yamtrack project."""
 
 import json
-import os
 import sys
 import warnings
 import zoneinfo
@@ -148,10 +147,10 @@ MIDDLEWARE = [
     "app.middleware.ProviderAPIErrorMiddleware",
 ]
 
-if os.getenv("YAMTRACK_AUTO_LOGIN_USERNAME"):
+YAMTRACK_AUTO_LOGIN_USERNAME = config("YAMTRACK_AUTO_LOGIN_USERNAME", default=None)
+if YAMTRACK_AUTO_LOGIN_USERNAME:
     _index = MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware")
-    # This overrides everything the auth middleware is doing but still allows
-    # regular login in case the provided user does not exist.
+    # This allows auto-login if the user is not already authenticated.
     MIDDLEWARE.insert(_index + 1, "app.middleware.AutoLoginMiddleware")
 
 ROOT_URLCONF = "config.urls"
