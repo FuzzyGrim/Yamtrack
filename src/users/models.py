@@ -318,6 +318,12 @@ class User(AbstractUser):
         help_text="Show progress bar",
     )
 
+    # Show special episodes
+    show_special_episodes = models.BooleanField(
+        default=True,
+        help_text="Include Season 0 (Specials) in your In Progress list on the home page.",
+    )
+
     # Hide completed recommendations
     hide_completed_recommendations = models.BooleanField(
         default=False,

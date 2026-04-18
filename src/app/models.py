@@ -430,7 +430,10 @@ class MediaManager(models.Manager):
                 sort_filter=None,
             )
 
-            if not media_list:
+            if status == Status.IN_PROGRESS.value and not user.show_special_episodes:
+                media_list = media_list.exclude(item__season_number=0)
+
+            if not media_list.exists():
                 continue
 
             # Annotate with max_progress and next_event
