@@ -1,3 +1,4 @@
+import datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -273,3 +274,130 @@ class ImportTrakt(TestCase):
         self.assertEqual(importer.username, "testuser")
         self.assertIsNone(importer.refresh_token)
         self.assertEqual(importer.mode, "new")
+
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_new_mode_imports_episodes_for_existing_show(self, mock_get_metadata):
+        """Episodes for an existing show should be imported in new mode with last_import_at."""
+        episode_entry = {
+            "type": "episode",
+            "episode": {"season": 1, "number": 2, "title": "Second Episode"},
+            "show": {"title": "Existing Show", "ids": {"tmdb": 99999}},
+            "watched_at": "2026-03-15T00:00:00.000Z",
+        }
+
+        def mock_metadata_side_effect(media_type, _, __, ___=None):
+            if media_type == MediaTypes.TV.value:
+                return {
+                    "title": "Existing Show",
+                    "image": "tv_image.jpg",
+                    "last_episode_season": 1,
+                    "max_progress": 5,
+                }
+            if media_type == MediaTypes.SEASON.value:
+                return {
+                    "title": "Season 1",
+                    "image": "season_image.jpg",
+                    "episodes": [
+                        {"episode_number": 1, "still_path": None},
+                        {"episode_number": 2, "still_path": "/ep2.jpg"},
+                    ],
+                    "max_progress": 5,
+                }
+            return None
+
+        mock_get_metadata.side_effect = mock_metadata_side_effect
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        # Simulate that the show already exists in the DB
+        trakt_importer.existing_media[MediaTypes.TV.value]["tmdb"]["99999"] = object()
+        # Simulate that a previous import was done (use a date far enough back
+        # that the watched_at timestamp is outside the dedup window)
+        trakt_importer.last_import_at = datetime.date(2026, 3, 7)
+        trakt_importer.existing_episode_watch_keys = set()
+
+        trakt_importer.process_watched_episode(episode_entry)
+
+        # Episode must be added despite the show already existing
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.EPISODE.value]), 1)
+
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    def test_start_at_appended_when_last_import_exists(self, mock_make_request):
+        """start_at in URL should be last_import_at minus 1 day."""
+        mock_make_request.return_value = []
+
+        # last_import_at is a date object; start_at should be last_import_at - 1 day
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer.last_import_at = datetime.date(2026, 3, 1)
+
+        trakt_importer.process_history()
+
+        urls_called = [call.args[0] for call in mock_make_request.call_args_list]
+        self.assertTrue(
+            any("start_at=" in url for url in urls_called),
+            f"Expected start_at in URL, got: {urls_called}",
+        )
+        # start_at should be 2026-02-28 (one day before last_import_at)
+        self.assertTrue(
+            any("2026-02-28" in url for url in urls_called),
+            f"Expected 2026-02-28 in URL, got: {urls_called}",
+        )
+
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    def test_no_start_at_on_first_import(self, mock_make_request):
+        """start_at should not be appended when there is no previous import."""
+        mock_make_request.return_value = []
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer.last_import_at = None
+
+        trakt_importer.process_history()
+
+        urls_called = [call.args[0] for call in mock_make_request.call_args_list]
+        self.assertFalse(
+            any("start_at=" in url for url in urls_called),
+            f"Expected no start_at in URL, got: {urls_called}",
+        )
+
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_episode_dedup_skips_existing_watch(self, mock_get_metadata):
+        """An episode watch already in existing_episode_watch_keys should be skipped."""
+        watched_at = "2026-03-01T10:00:00.000Z"
+        episode_entry = {
+            "type": "episode",
+            "episode": {"season": 1, "number": 1, "title": "Pilot"},
+            "show": {"title": "Test Show", "ids": {"tmdb": 11111}},
+            "watched_at": watched_at,
+        }
+
+        def mock_metadata_side_effect(media_type, _, __, ___=None):
+            if media_type == MediaTypes.TV.value:
+                return {
+                    "title": "Test Show",
+                    "image": "tv.jpg",
+                    "last_episode_season": 1,
+                    "max_progress": 1,
+                }
+            if media_type == MediaTypes.SEASON.value:
+                return {
+                    "title": "Season 1",
+                    "image": "s1.jpg",
+                    "episodes": [{"episode_number": 1, "still_path": None}],
+                    "max_progress": 1,
+                }
+            return None
+
+        mock_get_metadata.side_effect = mock_metadata_side_effect
+
+        from django.utils.dateparse import parse_datetime
+
+        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer.last_import_at = datetime.date(2026, 3, 2)
+        # Pre-populate dedup set with the exact watch key
+        trakt_importer.existing_episode_watch_keys = {
+            ("11111", 1, 1, parse_datetime(watched_at)),
+        }
+
+        trakt_importer.process_watched_episode(episode_entry)
+
+        # Episode should be skipped — already in the dedup set
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.EPISODE.value]), 0)

@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 from collections import defaultdict
@@ -166,6 +167,12 @@ class TraktImporter:
         # Track existing media to handle "new" mode correctly
         self.existing_media = helpers.get_existing_media(user)
 
+        # Last successful import date for incremental sync
+        self.last_import_at = helpers.get_last_import_date(user, "Import from Trakt")
+
+        # Pre-load existing episode watches for dedup during the overlap window
+        self.existing_episode_watch_keys = self._load_existing_episode_watch_keys()
+
         # Track media IDs to delete in overwrite mode
         self.to_delete = defaultdict(lambda: defaultdict(set))
 
@@ -181,6 +188,26 @@ class TraktImporter:
             mode,
         )
 
+    def _load_existing_episode_watch_keys(self):
+        """Load (media_id, season_number, episode_number, end_date) tuples for
+        episodes in the overlap window to prevent duplicate creation."""
+        if not (self.mode == "new" and self.last_import_at):
+            return set()
+        since = self.last_import_at - datetime.timedelta(days=1)
+        until = self.last_import_at + datetime.timedelta(days=1)
+        return set(
+            app.models.Episode.objects.filter(
+                related_season__user=self.user,
+                end_date__date__gte=since,
+                end_date__date__lte=until,
+            ).values_list(
+                "item__media_id",
+                "item__season_number",
+                "item__episode_number",
+                "end_date",
+            )
+        )
+
     def import_data(self):
         """Import all user data from Trakt."""
         self.process_history()
@@ -190,6 +217,11 @@ class TraktImporter:
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
+        helpers.update_rewatched_movies(
+            self.bulk_media[MediaTypes.MOVIE.value],
+            self.existing_media,
+            self.user,
+        )
 
         imported_counts = {
             media_type: len(media_list)
@@ -220,13 +252,15 @@ class TraktImporter:
             headers=headers,
         )
 
-    def _get_paginated_data(self, endpoint, item_type="items"):
+    def _get_paginated_data(self, endpoint, item_type="items", start_at=None):
         """Get paginated data from Trakt API."""
         page = 1
         all_data = []
 
         while True:
             url = f"{endpoint}?page={page}&limit={BULK_PAGE_SIZE}"
+            if start_at:
+                url += f"&start_at={start_at.isoformat()}"
 
             try:
                 page_data = self._make_api_request(url)
@@ -269,7 +303,14 @@ class TraktImporter:
         """Process watch history from Trakt."""
         logger.info("Importing watch history for user %s", self.username)
         history_endpoint = f"{self.user_base_url}/history"
-        full_history = self._get_paginated_data(history_endpoint, "history entries")
+        start_at = (
+            self.last_import_at - datetime.timedelta(days=1)
+            if self.mode == "new" and self.last_import_at
+            else None
+        )
+        full_history = self._get_paginated_data(
+            history_endpoint, "history entries", start_at=start_at
+        )
 
         # Process in chronological order (oldest first)
         for entry in reversed(full_history):
@@ -372,16 +413,17 @@ class TraktImporter:
         if not tmdb_id:
             return
 
-        # Check if we should process this movie based on mode
-        if not helpers.should_process_media(
-            self.existing_media,
-            self.to_delete,
-            MediaTypes.MOVIE.value,
-            Sources.TMDB.value,
-            tmdb_id,
-            self.mode,
-        ):
-            return
+        # Skip existence check when date-based filtering guarantees all entries are new
+        if not (self.mode == "new" and self.last_import_at):
+            if not helpers.should_process_media(
+                self.existing_media,
+                self.to_delete,
+                MediaTypes.MOVIE.value,
+                Sources.TMDB.value,
+                tmdb_id,
+                self.mode,
+            ):
+                return
 
         metadata = self._get_metadata(MediaTypes.MOVIE.value, tmdb_id, movie["title"])
         if not metadata:
@@ -420,16 +462,17 @@ class TraktImporter:
         if not tmdb_id:
             return
 
-        # Check if we should process this episode based on mode
-        if not helpers.should_process_media(
-            self.existing_media,
-            self.to_delete,
-            MediaTypes.TV.value,
-            Sources.TMDB.value,
-            tmdb_id,
-            self.mode,
-        ):
-            return
+        # Skip existence check when date-based filtering guarantees all entries are new
+        if not (self.mode == "new" and self.last_import_at):
+            if not helpers.should_process_media(
+                self.existing_media,
+                self.to_delete,
+                MediaTypes.TV.value,
+                Sources.TMDB.value,
+                tmdb_id,
+                self.mode,
+            ):
+                return
 
         # Extract episode data
         season_number = entry["episode"]["season"]
@@ -516,6 +559,11 @@ class TraktImporter:
             season_number,
             episode_number,
         )
+
+        # Dedup: skip if this exact watch already exists (overlap window)
+        ep_watch_key = (tmdb_id, season_number, episode_number, parse_datetime(watched_at))
+        if ep_watch_key in self.existing_episode_watch_keys:
+            return
 
         ep_key = f"{tmdb_id}:{season_number}:{episode_number}"
 
