@@ -107,6 +107,13 @@ class TimeFormatChoices(models.TextChoices):
     HOUR_12 = "g:i A", "2:30 PM (12-hour)"
 
 
+class WeekStartDayChoices(models.TextChoices):
+    """Choices for week start day."""
+
+    MONDAY = "monday", "Monday"
+    SUNDAY = "sunday", "Sunday"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -322,6 +329,13 @@ class User(AbstractUser):
         help_text="Preferred time display format",
     )
 
+    week_start_day = models.CharField(
+        max_length=10,
+        default=WeekStartDayChoices.MONDAY,
+        choices=WeekStartDayChoices,
+        help_text="First day of the week",
+    )
+
     # Progress bar
     progress_bar = models.BooleanField(
         default=True,
@@ -519,6 +533,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="quick_watch_date_valid",
                 condition=models.Q(quick_watch_date__in=QuickWatchDateChoices.values),
+            ),
+            models.CheckConstraint(
+                name="week_start_day_valid",
+                condition=models.Q(week_start_day__in=WeekStartDayChoices.values),
             ),
         ]
 

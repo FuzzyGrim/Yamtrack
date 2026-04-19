@@ -11,6 +11,7 @@ from users.models import (
     HomeSortChoices,
     MediaTypes,
     QuickWatchDateChoices,
+    WeekStartDayChoices,
 )
 
 
@@ -429,3 +430,21 @@ class UserResolveWatchDateTests(TestCase):
         result = self.user.resolve_watch_date(self.now, self.release_date)
 
         self.assertEqual(result, self.now)
+
+
+class UserWeekStartDayTests(TestCase):
+    """Tests for the User.week_start_day field."""
+
+    def test_update_preference_valid(self):
+        """update_preference accepts a valid week_start_day choice."""
+        credentials = {"username": "weekstart", "password": "testpassword"}
+        user = get_user_model().objects.create_user(**credentials)
+        self.assertEqual(user.week_start_day, WeekStartDayChoices.MONDAY)
+
+        result = user.update_preference(
+            "week_start_day",
+            WeekStartDayChoices.SUNDAY,
+        )
+        self.assertEqual(result, WeekStartDayChoices.SUNDAY)
+        user.refresh_from_db()
+        self.assertEqual(user.week_start_day, WeekStartDayChoices.SUNDAY)

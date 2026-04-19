@@ -15,7 +15,12 @@ from django_celery_beat.models import PeriodicTask
 from app.models import Item, MediaTypes
 from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
-from users.models import DateFormatChoices, QuickWatchDateChoices, TimeFormatChoices
+from users.models import (
+    DateFormatChoices,
+    QuickWatchDateChoices,
+    TimeFormatChoices,
+    WeekStartDayChoices,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +230,7 @@ def preferences(request):
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
                 "date_format_choices": DateFormatChoices.choices,
                 "time_format_choices": TimeFormatChoices.choices,
+                "week_start_day_choices": WeekStartDayChoices.choices,
                 "watch_provider_choices": watch_provider_regions,
             },
         )
@@ -254,6 +260,9 @@ def preferences(request):
         "time_format",
         TimeFormatChoices.HOUR_24,
     )
+    week_start_day = request.POST.get("week_start_day")
+    if week_start_day in WeekStartDayChoices.values:
+        request.user.week_start_day = week_start_day
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     provider_region = request.POST.get("watch_provider_region", "")
