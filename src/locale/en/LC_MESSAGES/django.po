@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-20 12:32+0200\n"
+"POT-Creation-Date: 2026-04-20 14:47+0200\n"
 "PO-Revision-Date: 2026-04-18 16:11+0200\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: English\n"
@@ -102,8 +102,8 @@ msgstr ""
 msgid "TV Season"
 msgstr ""
 
-#: .\app\models.py:58 .\templates\app\media_details.html:93
-#: .\templates\app\media_details.html:569
+#: .\app\models.py:58 .\templates\app\media_details.html:94
+#: .\templates\app\media_details.html:570
 msgid "Episode"
 msgstr ""
 
@@ -355,7 +355,7 @@ msgid "You haven't started tracking it yet."
 msgstr ""
 
 #: .\templates\app\components\fill_track_episode.html:13
-#: .\templates\app\media_details.html:577
+#: .\templates\app\media_details.html:578
 msgid "Track Episode"
 msgstr ""
 
@@ -377,7 +377,7 @@ msgid "Previous Watches"
 msgstr ""
 
 #: .\templates\app\components\fill_track_episode.html:54
-#: .\templates\app\media_details.html:644
+#: .\templates\app\media_details.html:645
 msgid "No date provided"
 msgstr ""
 
@@ -466,7 +466,7 @@ msgstr ""
 msgid "Score"
 msgstr ""
 
-#: .\templates\app\create_entry.html:308 .\templates\app\media_details.html:333
+#: .\templates\app\create_entry.html:308 .\templates\app\media_details.html:334
 #: .\templates\app\media_list.html:168
 msgid "Status"
 msgstr ""
@@ -506,141 +506,141 @@ msgstr ""
 msgid "Read more"
 msgstr ""
 
-#: .\templates\app\media_details.html:33
+#: .\templates\app\media_details.html:15
+msgid "Unknown air date"
+msgstr ""
+
+#: .\templates\app\media_details.html:34
 msgid "Add to tracker"
 msgstr ""
 
-#: .\templates\app\media_details.html:133
+#: .\templates\app\media_details.html:134
 msgid "YOUR NOTES"
 msgstr ""
 
-#: .\templates\app\media_details.html:154
+#: .\templates\app\media_details.html:155
 msgid "SCORE"
 msgstr ""
 
-#: .\templates\app\media_details.html:164
+#: .\templates\app\media_details.html:165
 #, python-format
 msgid "%(formatted_score_count)s vote"
 msgid_plural "%(formatted_score_count)s votes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: .\templates\app\media_details.html:176
+#: .\templates\app\media_details.html:177
 msgid "YOUR SCORE"
 msgstr ""
 
-#: .\templates\app\media_details.html:189
+#: .\templates\app\media_details.html:190
 msgid "Click to edit"
 msgstr ""
 
-#: .\templates\app\media_details.html:231
+#: .\templates\app\media_details.html:232
 msgid "Your History"
 msgstr ""
 
-#: .\templates\app\media_details.html:241
+#: .\templates\app\media_details.html:242
 msgid "Add new consumption"
 msgstr ""
 
-#: .\templates\app\media_details.html:261
-#: .\templates\app\media_details.html:345
-#: .\templates\users\import_data.html:465
+#: .\templates\app\media_details.html:262
+#: .\templates\app\media_details.html:346
+#: .\templates\users\import_data.html:474
 msgid "Started"
 msgstr ""
 
-#: .\templates\app\media_details.html:268
+#: .\templates\app\media_details.html:269
 msgid "Ended"
 msgstr ""
 
-#: .\templates\app\media_details.html:275
-#: .\templates\app\media_details.html:337 .\templates\app\media_list.html:166
+#: .\templates\app\media_details.html:276
+#: .\templates\app\media_details.html:338 .\templates\app\media_list.html:166
 #: .\users\models.py:39
 msgid "Progress"
 msgstr ""
 
-#: .\templates\app\media_details.html:291
+#: .\templates\app\media_details.html:292
 msgid "Show Repeats"
 msgstr ""
 
-#: .\templates\app\media_details.html:307
+#: .\templates\app\media_details.html:308
 msgid "Not rated"
 msgstr ""
 
-#: .\templates\app\media_details.html:349
-#: .\templates\users\import_data.html:459
+#: .\templates\app\media_details.html:350
+#: .\templates\users\import_data.html:468
 msgid "Finished"
 msgstr ""
 
-#: .\templates\app\media_details.html:379
+#: .\templates\app\media_details.html:380
 msgid "Actions"
 msgstr ""
 
-#: .\templates\app\media_details.html:384
-#: .\templates\app\media_details.html:593
+#: .\templates\app\media_details.html:385
+#: .\templates\app\media_details.html:594
 msgid "Add to custom lists"
 msgstr ""
 
-#: .\templates\app\media_details.html:404
-#: .\templates\app\media_details.html:615
+#: .\templates\app\media_details.html:405
+#: .\templates\app\media_details.html:616
 msgid "View your activity history"
 msgstr ""
 
-#: .\templates\app\media_details.html:423
+#: .\templates\app\media_details.html:424
 msgid "Sync metadata with provider"
 msgstr ""
 
-#: .\templates\app\media_details.html:440
+#: .\templates\app\media_details.html:441
 msgid "Details"
 msgstr ""
 
-#: .\templates\app\media_details.html:443
+#: .\templates\app\media_details.html:444
 msgid "STREAMING"
 msgstr ""
 
-#: .\templates\app\media_details.html:447
+#: .\templates\app\media_details.html:448
 #, python-format
 msgid ""
 "Watch provider region is not configured. Set a region or disable this "
 "feature in the %(link_start)spreferences%(link_end)s."
 msgstr ""
 
-#: .\templates\app\media_details.html:462
+#: .\templates\app\media_details.html:463
 msgid "No watch providers"
 msgstr ""
 
-#: .\templates\app\media_details.html:480 .\templates\app\search.html:13
+#: .\templates\app\media_details.html:481 .\templates\app\search.html:13
 msgid "Source"
 msgstr ""
 
-#: .\templates\app\media_details.html:487
+#: .\templates\app\media_details.html:488
 msgid "EXTERNAL LINKS"
 msgstr ""
 
-#: .\templates\app\media_details.html:496
+#: .\templates\app\media_details.html:497
 msgid "No details available"
 msgstr ""
 
-#: .\templates\app\media_details.html:504
+#: .\templates\app\media_details.html:505
 msgid "Cast"
 msgstr ""
 
-#: .\templates\app\media_details.html:516
+#: .\templates\app\media_details.html:517
 msgid "View all"
 msgstr ""
 
-#: .\templates\app\media_details.html:517
+#: .\templates\app\media_details.html:518
 msgid "cast members"
 msgstr ""
 
-#: .\templates\app\media_details.html:531
+#: .\templates\app\media_details.html:532
 msgid "DLCs"
 msgstr ""
 
-#: .\templates\app\media_details.html:554
+#: .\templates\app\media_details.html:555
 msgid "Episodes"
-msgstr ""
-
-#: .\templates\app\media_details.html:569
-msgid "Unknown air date"
 msgstr ""
 
 #: .\templates\app\media_list.html:38 .\templates\app\search.html:6
@@ -1178,186 +1178,214 @@ msgstr ""
 msgid "Export as CSV"
 msgstr ""
 
-#: .\templates\users\import_data.html:7 .\templates\users\import_data.html:336
+#: .\templates\users\import_data.html:7 .\templates\users\import_data.html:345
 msgid "Import"
 msgstr ""
 
+#: .\templates\users\import_data.html:11
+msgid "Hide failed items"
+msgstr ""
+
+#: .\templates\users\import_data.html:12 .\templates\users\import_data.html:494
+msgid "Show failed items"
+msgstr ""
+
+#: .\templates\users\import_data.html:13
+msgid "Hide traceback"
+msgstr ""
+
+#: .\templates\users\import_data.html:14 .\templates\users\import_data.html:499
+msgid "Show traceback"
+msgstr ""
+
+#: .\templates\users\import_data.html:15
+msgid "Import from YamTrack backup"
+msgstr ""
+
+#: .\templates\users\import_data.html:16
+msgid "Import games"
+msgstr ""
+
+#: .\templates\users\import_data.html:17
+msgid "Import movies and TV shows from your ratings"
+msgstr ""
+
 #: .\templates\users\import_data.html:18
+msgid "Import from GoodReads backup"
+msgstr ""
+
+#: .\templates\users\import_data.html:19
+msgid "File uploads are not available for periodic imports"
+msgstr ""
+
+#: .\templates\users\import_data.html:27
 msgid "Import Settings"
 msgstr ""
 
-#: .\templates\users\import_data.html:20
+#: .\templates\users\import_data.html:29
 msgid "Configure your import preferences."
 msgstr ""
 
-#: .\templates\users\import_data.html:24
+#: .\templates\users\import_data.html:33
 msgid "Import Frequency"
 msgstr ""
 
-#: .\templates\users\import_data.html:28
+#: .\templates\users\import_data.html:37
 msgid "One Time Import"
 msgstr ""
 
-#: .\templates\users\import_data.html:29 .\users\helpers.py:73
+#: .\templates\users\import_data.html:38 .\users\helpers.py:73
 msgid "Every Day"
 msgstr ""
 
-#: .\templates\users\import_data.html:30
+#: .\templates\users\import_data.html:39
 msgid "Every 2 Days"
 msgstr ""
 
-#: .\templates\users\import_data.html:35
+#: .\templates\users\import_data.html:44
 msgid "Import Time"
 msgstr ""
 
-#: .\templates\users\import_data.html:42
+#: .\templates\users\import_data.html:51
 msgid "Import Mode"
 msgstr ""
 
-#: .\templates\users\import_data.html:46
+#: .\templates\users\import_data.html:55
 msgid "Only Sync New Items"
 msgstr ""
 
-#: .\templates\users\import_data.html:47
+#: .\templates\users\import_data.html:56
 msgid "Sync New Items and Overwrite Existing"
 msgstr ""
 
-#: .\templates\users\import_data.html:60
+#: .\templates\users\import_data.html:69
 msgid "Import Sources"
 msgstr ""
 
-#: .\templates\users\import_data.html:63
+#: .\templates\users\import_data.html:72
 #, python-format
 msgid ""
 "Some of these require additional configuration, check the "
 "%(link_start)simport configuration guide%(link_end)s."
 msgstr ""
 
-#: .\templates\users\import_data.html:74
+#: .\templates\users\import_data.html:83
 msgid "Import TV shows and movies"
 msgstr ""
 
-#: .\templates\users\import_data.html:81 .\templates\users\import_data.html:174
+#: .\templates\users\import_data.html:90 .\templates\users\import_data.html:183
 msgid "Import private profile (requires authentication)"
 msgstr ""
 
-#: .\templates\users\import_data.html:118
+#: .\templates\users\import_data.html:127
 msgid "Connect with Trakt & Import"
 msgstr ""
 
-#: .\templates\users\import_data.html:126
+#: .\templates\users\import_data.html:135
 msgid "Import TV shows, movies and anime"
 msgstr ""
 
-#: .\templates\users\import_data.html:134
+#: .\templates\users\import_data.html:143
 msgid "Connect with Simkl & Import"
 msgstr ""
 
-#: .\templates\users\import_data.html:142
-#: .\templates\users\import_data.html:167
-#: .\templates\users\import_data.html:219
+#: .\templates\users\import_data.html:151
+#: .\templates\users\import_data.html:176
+#: .\templates\users\import_data.html:228
 msgid "Import anime and manga"
 msgstr ""
 
-#: .\templates\users\import_data.html:211
+#: .\templates\users\import_data.html:220
 msgid "Connect with AniList & Import"
 msgstr ""
 
-#: .\templates\users\import_data.html:235
+#: .\templates\users\import_data.html:244
 msgid "Find it on your Kitsu profile URL"
 msgstr ""
 
-#: .\templates\users\import_data.html:303
-#: .\templates\users\import_data.html:365
-#: .\templates\users\import_data.html:392
+#: .\templates\users\import_data.html:312
+#: .\templates\users\import_data.html:374
+#: .\templates\users\import_data.html:401
 msgid "Select CSV File"
 msgstr ""
 
-#: .\templates\users\import_data.html:311
+#: .\templates\users\import_data.html:320
 msgid "Import games from your Steam library"
 msgstr ""
 
-#: .\templates\users\import_data.html:320
+#: .\templates\users\import_data.html:329
 msgid "Steam 64-bit ID"
 msgstr ""
 
-#: .\templates\users\import_data.html:327
+#: .\templates\users\import_data.html:336
 msgid "Find it on your Steam account details page under your username."
 msgstr ""
 
-#: .\templates\users\import_data.html:330
+#: .\templates\users\import_data.html:339
 msgid ""
 "Your profile must be public if the API key you are using is not linked to "
 "the steamid you are requesting."
 msgstr ""
 
-#: .\templates\users\import_data.html:404
+#: .\templates\users\import_data.html:413
 msgid "Active Periodic Imports"
 msgstr ""
 
-#: .\templates\users\import_data.html:407
+#: .\templates\users\import_data.html:416
 msgid ""
 "Automated imports that run on a schedule. These will continue to sync your "
 "media until disabled."
 msgstr ""
 
-#: .\templates\users\import_data.html:428
+#: .\templates\users\import_data.html:437
 msgid "Username"
 msgstr ""
 
-#: .\templates\users\import_data.html:429
+#: .\templates\users\import_data.html:438
 msgid "Mode"
 msgstr ""
 
-#: .\templates\users\import_data.html:430
+#: .\templates\users\import_data.html:439
 msgid "Last Import"
 msgstr ""
 
-#: .\templates\users\import_data.html:431
+#: .\templates\users\import_data.html:440
 msgid "Next Import"
 msgstr ""
 
-#: .\templates\users\import_data.html:436
+#: .\templates\users\import_data.html:445
 msgid "No periodic imports configured"
 msgstr ""
 
-#: .\templates\users\import_data.html:437
+#: .\templates\users\import_data.html:446
 msgid "Set up an import with a daily or 2-day frequency to see it here"
 msgstr ""
 
-#: .\templates\users\import_data.html:447
+#: .\templates\users\import_data.html:456
 msgid "Import History"
 msgstr ""
 
-#: .\templates\users\import_data.html:450
+#: .\templates\users\import_data.html:459
 msgid "Showing import activity from the last 7 days."
 msgstr ""
 
-#: .\templates\users\import_data.html:461
+#: .\templates\users\import_data.html:470
 msgid "Success"
 msgstr ""
 
-#: .\templates\users\import_data.html:467
+#: .\templates\users\import_data.html:476
 msgid "Failed"
 msgstr ""
 
-#: .\templates\users\import_data.html:469
+#: .\templates\users\import_data.html:478
 msgid "Pending"
 msgstr ""
 
-#: .\templates\users\import_data.html:485
-msgid "Show failed items"
-msgstr ""
-
-#: .\templates\users\import_data.html:490
-msgid "Show traceback"
-msgstr ""
-
-#: .\templates\users\import_data.html:505
+#: .\templates\users\import_data.html:514
 msgid "No imports in the last 7 days"
 msgstr ""
 
-#: .\templates\users\import_data.html:506
+#: .\templates\users\import_data.html:515
 msgid "Import your media from any source to see the history here"
 msgstr ""
 
@@ -1756,7 +1784,8 @@ msgid "Changing the password is not allowed for the demo account."
 msgstr ""
 
 #: .\users\forms.py:117
-msgid " is not a valid Apprise URL."
+#, python-format
+msgid "%(url)s is not a valid Apprise URL."
 msgstr ""
 
 #: .\users\helpers.py:20
@@ -1784,7 +1813,8 @@ msgid "Every 2 days"
 msgstr ""
 
 #: .\users\helpers.py:77
-msgid "Cron"
+#, python-format
+msgid "Cron: %(expr)s"
 msgstr ""
 
 #: .\users\models.py:27

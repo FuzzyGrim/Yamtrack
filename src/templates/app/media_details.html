@@ -12,6 +12,7 @@
 {% block content %}
   {% trans "Show less" as show_less_label %}
   {% trans "Read more" as read_more_label %}
+  {% trans "Unknown air date" as unknown_air_date %}
   {# Top section #}
   <div class="flex flex-col md:flex-row gap-8 md:gap-10 mb-12 md:mb-8">
     <div class="w-full md:w-1/4 max-w-[250px] mx-auto md:mx-0">
@@ -566,7 +567,7 @@
                         <div>
                           <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
                           <p class="text-sm text-gray-400">
-                            {% trans "Episode" %} {{ episode.episode_number }} • {{ episode.air_date|default_if_none:_("Unknown air date") }}
+                            {% trans "Episode" %} {{ episode.episode_number }} • {{ episode.air_date|default_if_none:unknown_air_date }}
                             {% if episode.runtime %}• {{ episode.runtime }}{% endif %}
                           </p>
                         </div>

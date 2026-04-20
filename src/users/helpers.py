@@ -74,7 +74,7 @@ def get_next_run_info(periodic_task):
     elif cron.day_of_week == "*/2":
         frequency = _("Every 2 days")
     else:
-        frequency = _("Cron") + ":" + f" {cron_expr}"
+        frequency = _("Cron: %(expr)s") % {"expr": cron_expr}
 
     return {
         "next_run": next_run,

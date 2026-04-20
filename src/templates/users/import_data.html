@@ -8,6 +8,15 @@
 {% endblock title %}
 
 {% block settings_content %}
+  {% trans "Hide failed items" as hide_failed_items_label %}
+  {% trans "Show failed items" as show_failed_items_label %}
+  {% trans "Hide traceback" as hide_traceback_label %}
+  {% trans "Show traceback" as show_traceback_label %}
+  {% trans "Import from YamTrack backup" as import_from_yamtrack_backup_label %}
+  {% trans "Import games" as import_games_label %}
+  {% trans "Import movies and TV shows from your ratings" as import_imdb_ratings_label %}
+  {% trans "Import from GoodReads backup" as import_from_goodreads_backup_label %}
+  {% trans "File uploads are not available for periodic imports" as periodic_upload_unavailable_label %}
   <div class="space-y-6"
        x-data="{ importFrequency: 'once', importTime: '{% now "H:i" %}', importMode: 'new' }">
 
@@ -60,7 +69,7 @@
         <h2 class="text-xl font-semibold">{% trans "Import Sources" %}</h2>
       </div>
       <p class="text-gray-400 mb-5 text-sm">
-        {% blocktrans trimmed with link_start=<a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Media-Import-Configuration" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline"> link_end=</a> %}
+        {% blocktrans trimmed with link_start='<a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Media-Import-Configuration" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline">'|safe link_end='</a>'|safe %}
         Some of these require additional configuration, check the
         {{ link_start }}import configuration guide{{ link_end }}.
         {% endblocktrans %}
@@ -255,7 +264,7 @@
                title="View CSV format documentation">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
           </div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import from YamTrack backup' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{{ import_from_yamtrack_backup_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
           <form method="post"
                 action="{% url 'import_yamtrack' %}"
@@ -282,7 +291,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "hltb" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import games' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{{ import_games_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
           <form method="post"
                 action="{% url 'import_hltb' %}"
@@ -344,7 +353,7 @@
             <div class="flex items-center">{% source_display "imdb" %}</div>
           </div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import movies and TV shows from your ratings' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{{ import_imdb_ratings_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
           <form method="post"
                 action="{% url 'import_imdb' %}"
@@ -371,7 +380,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "goodreads" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import from GoodReads backup' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? '{{ import_from_goodreads_backup_label|escapejs }}' : '{{ periodic_upload_unavailable_label|escapejs }}'">
           </p>
           <form method="post"
                 action="{% url 'import_goodreads' %}"
@@ -482,12 +491,12 @@
                   {% if result.status == "SUCCESS" %}
                     <button @click="showDetails = !showDetails"
                             class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                            x-text="showDetails ? 'Hide failed items' : 'Show failed items'">{% trans "Show failed items" %}</button>
+                            x-text="showDetails ? '{{ hide_failed_items_label|escapejs }}' : '{{ show_failed_items_label|escapejs }}'">{% trans "Show failed items" %}</button>
 
                   {% elif result.status == "FAILURE" %}
                     <button @click="showDetails = !showDetails"
                             class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                            x-text="showDetails ? 'Hide traceback' : 'Show traceback'">{% trans "Show traceback" %}</button>
+                            x-text="showDetails ? '{{ hide_traceback_label|escapejs }}' : '{{ show_traceback_label|escapejs }}'">{% trans "Show traceback" %}</button>
                   {% endif %}
 
                   <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded overflow-x-auto break-words"

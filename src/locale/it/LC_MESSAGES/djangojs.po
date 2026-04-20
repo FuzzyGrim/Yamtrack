@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-04-20 12:27+0200\n"
-"PO-Revision-Date: 2026-04-20 12:28+0200\n"
+"PO-Revision-Date: 2026-04-20 14:55+0200\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -30,7 +30,7 @@ msgstr ""
 #: .\static\js\date-range.js:5 .\static\js\date-range.js:22
 #: .\static\js\date-range.js:126 .\static\js\date-range.js:331
 msgid "Last 12 Months"
-msgstr "Ultimi 12 Mesi"
+msgstr "Ultimi 12 mesi"
 
 #: .\static\js\date-range.js:13 .\static\js\date-range.js:62
 #: .\static\js\date-range.js:235
@@ -45,37 +45,37 @@ msgstr "Ieri"
 #: .\static\js\date-range.js:15 .\static\js\date-range.js:75
 #: .\static\js\date-range.js:253
 msgid "This Week"
-msgstr "Questa Settimana"
+msgstr "Questa settimana"
 
 #: .\static\js\date-range.js:16 .\static\js\date-range.js:84
 #: .\static\js\date-range.js:261
 msgid "Last 7 Days"
-msgstr "Ultimi 7 Giorni"
+msgstr "Ultimi 7 giorni"
 
 #: .\static\js\date-range.js:17 .\static\js\date-range.js:90
 #: .\static\js\date-range.js:268
 msgid "This Month"
-msgstr "Questo Mese"
+msgstr "Questo mese"
 
 #: .\static\js\date-range.js:18 .\static\js\date-range.js:96
 #: .\static\js\date-range.js:276
 msgid "Last 30 Days"
-msgstr "Ultimi 30 Giorni"
+msgstr "Ultimi 30 giorni"
 
 #: .\static\js\date-range.js:19 .\static\js\date-range.js:102
 #: .\static\js\date-range.js:284
 msgid "Last 90 Days"
-msgstr "Ultimi 90 Giorni"
+msgstr "Ultimi 90 giorni"
 
 #: .\static\js\date-range.js:20 .\static\js\date-range.js:108
 #: .\static\js\date-range.js:291
 msgid "This Year"
-msgstr "Quest'Anno"
+msgstr "Quest'anno"
 
 #: .\static\js\date-range.js:21 .\static\js\date-range.js:114
 #: .\static\js\date-range.js:315
 msgid "Last 6 Months"
-msgstr "Ultimi 6 Mesi"
+msgstr "Ultimi 6 mesi"
 
 #: .\static\js\date-range.js:23 .\static\js\date-range.js:136
 #: .\static\js\date-range.js:213
@@ -97,8 +97,8 @@ msgstr "Conteggio"
 
 #: .\static\js\statistics-charts.js:346
 msgid "Number of Items"
-msgstr "Numero di Elementi"
+msgstr "Numero di elementi"
 
 #: .\static\js\statistics-charts.js:354
 msgid "Average Score"
-msgstr "Punteggio Medio"
+msgstr "Punteggio medio"

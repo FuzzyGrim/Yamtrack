@@ -114,7 +114,7 @@ class NotificationSettingsForm(forms.ModelForm):
 
         for url in urls:
             if not apobj.add(url):
-                message = url + _(" is not a valid Apprise URL.")
+                message = _("%(url)s is not a valid Apprise URL.") % {"url": url}
                 raise ValidationError(message)
 
         return notification_urls
