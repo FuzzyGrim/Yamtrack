@@ -86,6 +86,72 @@ Note that the setting must include the correct protocol (`https` or `http`), and
 
 For detailed information on environment variables, please refer to the [Environment Variables wiki page](https://github.com/FuzzyGrim/Yamtrack/wiki/Environment-Variables).
 
+## ❄️ Installing with Nix
+
+[Nix](https://nixos.org/) is a declarative build tool which allows for reproducible builds. Yamtrack can be built and used with nix. NixOS can configure yamtrack without utilizing a container runtime.
+
+### Standalone with `nix run`
+
+Try Yamtrack without installing — this starts gunicorn on `localhost:8001` (requires a running Redis on `localhost:6379`), no preinstalled dependencies required:
+
+```bash
+nix run github:FuzzyGrim/Yamtrack
+```
+
+### NixOS module via flake
+
+Add the flake to your NixOS configuration:
+
+```nix
+# flake.nix
+{
+  inputs.yamtrack.url = "github:FuzzyGrim/Yamtrack";
+
+  outputs = { nixpkgs, yamtrack, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      modules = [
+        yamtrack.nixosModules.default
+        {
+          services.yamtrack = {
+            enable = true;
+            port = 8001;
+            # secretKeyFile = "/run/secrets/yamtrack-secret";
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+This sets up gunicorn, Celery worker, Celery beat, and Redis automatically. SQLite is the default database.
+
+For PostgreSQL instead:
+
+```nix
+services.yamtrack = {
+  enable = true;
+  database.createLocally = true;  # provisions PostgreSQL via Unix socket
+};
+```
+
+See all module options in the [flake.nix](flake.nix) header comment.
+
+### Running tests
+
+```bash
+# Sandboxed unit tests (no network needed)
+nix build .#checks.x86_64-linux.yamtrack-unit-tests
+
+# NixOS VM tests
+nix build .#checks.x86_64-linux.yamtrack-sqlite
+nix build .#checks.x86_64-linux.yamtrack-postgresql
+nix build .#checks.x86_64-linux.yamtrack-playwright
+
+# Full test suite with real API access (needs network)
+nix run .#run-tests
+```
+
 ## 💻 Local development
 
 Clone the repository and change directory to it.
