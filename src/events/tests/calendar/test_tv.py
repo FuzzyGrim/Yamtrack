@@ -126,7 +126,7 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
                 "image": "http://example.com/season2.jpg",
                 "season_number": 2,
                 "episodes": [
-                    {"episode_number": 1, "air_date": "2026-01-20"},
+                    {"episode_number": 1, "air_date": "2027-01-20"},
                 ],
                 "tvdb_id": "81189",
             },
@@ -147,6 +147,64 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         self.assertEqual(tv.status, Status.IN_PROGRESS.value)
         self.assertEqual(season_two.status, Status.PLANNING.value)
+        self.assertEqual(len(events_bulk), 1)
+
+    @patch("events.calendar.tv.get_tvmaze_episode_map")
+    @patch("events.calendar.tv.tmdb.tv_with_seasons")
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_process_tv_does_not_reopen_completed_show_for_past_only_season(
+        self,
+        mock_tv,
+        mock_tv_with_seasons,
+        mock_get_tvmaze_episode_map,
+    ):
+        """Past-only seasons should not reopen a completed TV entry."""
+        TV.objects.filter(item=self.tv_item, user=self.user).update(
+            status=Status.COMPLETED.value,
+        )
+        Season.objects.filter(item=self.season_item, user=self.user).update(
+            status=Status.COMPLETED.value,
+        )
+        Event.objects.create(
+            item=self.season_item,
+            content_number=1,
+            datetime=date_parser("2008-01-20"),
+        )
+
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "episodes": [1]},
+                    {"season_number": 2, "episodes": [1]},
+                ],
+            },
+            "next_episode_season": 2,
+        }
+        mock_tv_with_seasons.return_value = {
+            "season/2": {
+                "image": "http://example.com/season2.jpg",
+                "season_number": 2,
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2010-01-20"},
+                ],
+                "tvdb_id": "81189",
+            },
+        }
+        mock_get_tvmaze_episode_map.return_value = {}
+
+        events_bulk = []
+        process_tv(self.tv_item, events_bulk)
+
+        tv = TV.objects.get(item=self.tv_item, user=self.user)
+        self.assertEqual(tv.status, Status.COMPLETED.value)
+        self.assertFalse(
+            Season.objects.filter(
+                item__media_id=self.tv_item.media_id,
+                item__source=self.tv_item.source,
+                item__season_number=2,
+                user=self.user,
+            ).exists(),
+        )
         self.assertEqual(len(events_bulk), 1)
 
     @patch("events.calendar.tv.services.api_request")
