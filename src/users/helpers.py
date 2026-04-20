@@ -4,24 +4,25 @@ from datetime import datetime
 
 import croniter
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 import integrations
 
 
 def process_task_result(task):
     """Process task result based on status and format appropriately."""
-    if task.status == "FAILURE":
+    if task.status == _("FAILURE"):
         result_json = json.loads(task.result)
         if result_json["exc_type"] == "MediaImportError":
             task.summary = result_json["exc_message"][0]
             task.errors = task.traceback
         else:
-            task.summary = "Unexpected error occurred while processing the task."
+            task.summary = _("Unexpected error occurred while processing the task.")
             task.errors = task.traceback
-    elif task.status == "STARTED":
-        task.summary = "This task is currently running."
+    elif task.status == _("STARTED"):
+        task.summary = _("This task is currently running.")
         task.errors = None
-    elif task.status == "SUCCESS":
+    elif task.status == _("SUCCESS"):
         result_json = json.loads(task.result)
         # Split by the error indicator
         parts = result_json.split(integrations.tasks.ERROR_TITLE.strip())
@@ -35,8 +36,8 @@ def process_task_result(task):
             # Only summary, no errors
             task.summary = result_json.strip()
             task.errors = None
-    elif task.status == "PENDING":
-        task.summary = "This task has been queued and is waiting to run."
+    elif task.status == _("PENDING"):
+        task.summary = _("This task has been queued and is waiting to run.")
         task.errors = None
 
     return task
@@ -53,7 +54,7 @@ def get_next_run_info(periodic_task):
     except json.JSONDecodeError:
         mode = "new"
 
-    mode = "Only New Items" if mode == "new" else "Overwrite Existing"
+    mode = _("Only New Items") if mode == "new" else _("Overwrite Existing")
 
     cron = periodic_task.crontab
     tz = zoneinfo.ZoneInfo(str(cron.timezone))
@@ -69,11 +70,11 @@ def get_next_run_info(periodic_task):
 
     # Determine frequency
     if cron.day_of_week == "*":
-        frequency = "Every Day"
+        frequency = _("Every Day")
     elif cron.day_of_week == "*/2":
-        frequency = "Every 2 days"
+        frequency = _("Every 2 days")
     else:
-        frequency = f"Cron: {cron_expr}"
+        frequency = _("Cron") + ":" + f" {cron_expr}"
 
     return {
         "next_run": next_run,

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load app_tags %}
 {% load humanize %}
+{% load i18n %}
 
 {% block title %}
   {{ media.title }}
@@ -9,6 +10,8 @@
 {% endblock title %}
 
 {% block content %}
+  {% trans "Show less" as show_less_label %}
+  {% trans "Read more" as read_more_label %}
   {# Top section #}
   <div class="flex flex-col md:flex-row gap-8 md:gap-10 mb-12 md:mb-8">
     <div class="w-full md:w-1/4 max-w-[250px] mx-auto md:mx-0">
@@ -27,7 +30,7 @@
             {% if user_medias %}
               {{ current_instance.status|media_status_readable }}
             {% else %}
-              Add to tracker
+              {% trans "Add to tracker" %}
             {% endif %}
           </div>
 
@@ -87,7 +90,7 @@
                     <div class="flex-1 text-left">
                       <div class="text-sm font-medium">{{ tv_season.season_title }}</div>
                       <div class="text-xs text-gray-400">
-                        {{ tv_season.max_progress }} Episode{{ tv_season.max_progress|pluralize }}
+                        {{ tv_season.max_progress }} {% trans "Episode" %}{{ tv_season.max_progress|pluralize }}
                         {% if tv_season.first_air_date %}• {{ tv_season.first_air_date }}{% endif %}
                       </div>
                     </div>
@@ -118,7 +121,7 @@
           <button x-show="isClamped"
                   @click="isExpanded = !isExpanded"
                   class="text-indigo-400 hover:text-indigo-300 text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
-            <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+            <span x-text="isExpanded ? '{{ show_less_label|escapejs }}' : '{{ read_more_label|escapejs }}'"></span>
           </button>
         </div>
 
@@ -127,7 +130,7 @@
 
           <div class="flex items-start mt-2">
             {% include "app/icons/page-empty.svg" with classes="w-5 h-5 mr-2 text-yellow-400 shrink-0 mt-0.5" %}
-            <div class="font-medium text-gray-400 mb-1">YOUR NOTES</div>
+            <div class="font-medium text-gray-400 mb-1">{% trans "YOUR NOTES" %}</div>
           </div>
 
           <div x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.notesText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
@@ -138,7 +141,7 @@
             <button x-show="isClamped"
                     @click="isExpanded = !isExpanded"
                     class="text-indigo-400 hover:text-indigo-300 text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
-              <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+              <span x-text="isExpanded ? '{{ show_less_label|escapejs }}' : '{{ read_more_label|escapejs }}'"></span>
             </button>
           </div>
         {% endif %}
@@ -148,7 +151,7 @@
       <div class="flex flex-wrap gap-4">
         {% if media.score_count is not None %}
           <div class="bg-[#2a2f35] p-3 rounded-lg w-[120px]">
-            <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{{ media.source|upper }} SCORE</h3>
+            <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{{ media.source|upper }} {% trans "SCORE" %}</h3>
             <div class="flex items-center justify-center">
               {% include "app/icons/star.svg" with classes="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400" %}
               {% if media.score is not None %}
@@ -158,7 +161,7 @@
               {% endif %}
             </div>
             <p class="text-xs text-gray-400 mt-0.5 text-center">
-              {{ media.score_count|intcomma }} vote{{ media.score_count|pluralize }}
+              {% blocktrans count score_count=media.score_count with formatted_score_count=media.score_count|intcomma %}{{ formatted_score_count }} vote{% plural %}{{ formatted_score_count }} votes{% endblocktrans %}
             </p>
           </div>
         {% endif %}
@@ -170,7 +173,7 @@
             <!-- Rating display -->
             <div @click="showRatingPopup = !showRatingPopup"
                  class="bg-[#2a2f35] p-3 rounded-lg w-[120px] cursor-pointer">
-              <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">YOUR SCORE</h3>
+              <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{% trans "YOUR SCORE" %}</h3>
               <div class="flex items-center justify-center">
                 {% include "app/icons/star.svg" with classes="w-5 h-5 mr-1.5 text-yellow-400 fill-yellow-400" %}
                 <template x-if="rating">
@@ -183,7 +186,7 @@
                   <span class="text-lg font-bold text-gray-400">-</span>
                 </template>
               </div>
-              <p class="text-xs text-gray-400 mt-0.5 text-center">Click to edit</p>
+              <p class="text-xs text-gray-400 mt-0.5 text-center">{% trans "Click to edit" %}</p>
             </div>
 
             <!-- Rating popup -->
@@ -225,7 +228,7 @@
       {# Your History #}
       {% if user_medias|length > 1 or current_instance.start_date or current_instance.end_date or current_instance.progress and media.media_type != MediaTypes.MOVIE.value %}
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-bold">Your History</h2>
+          <h2 class="text-xl font-bold">{% trans "Your History" %}</h2>
 
           {% if media_type != MediaTypes.TV.value and media_type != MediaTypes.SEASON.value %}
             <div x-data="{ trackOpen: false }">
@@ -235,7 +238,7 @@
                       hx-target="#{% component_id 'track' media %}"
                       hx-trigger="click once"
                       @click="trackOpen = true"
-                      title="Add new consumption">{% include "app/icons/plus.svg" with classes="w-4 h-4" %}</button>
+                      title="{% trans 'Add new consumption' %}">{% include "app/icons/plus.svg" with classes="w-4 h-4" %}</button>
 
               {# Track Modal #}
               <div x-show="trackOpen"
@@ -255,21 +258,21 @@
             <div class="@container flex flex-col gap-y-1">
               {% if current_instance.start_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Started:</span>
+                  <span class="text-gray-400">{% trans "Started" %}:</span>
                   <span class="text-gray-200">{{ current_instance.start_date|datetime_format:user }}</span>
                 </div>
               {% endif %}
 
               {% if current_instance.end_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Ended:</span>
+                  <span class="text-gray-400">{% trans "Ended" %}:</span>
                   <span class="text-gray-200">{{ current_instance.end_date|datetime_format:user }}</span>
                 </div>
               {% endif %}
 
               {% if media_type != MediaTypes.MOVIE.value %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
-                  <span class="text-gray-400">Progress:</span>
+                  <span class="text-gray-400">{% trans "Progress" %}:</span>
                   <span class="text-gray-200">
                     {{ current_instance.formatted_progress }}
                     {% if current_instance.max_progress %}/ {{ current_instance.max_progress }}{% endif %}
@@ -285,7 +288,7 @@
                       class="group flex items-center justify-center w-full px-3 py-2 text-sm text-white bg-gray-600 hover:bg-gray-700 transition-all duration-200 rounded-lg tracking-wide cursor-pointer">
                 <div class="lucide lucide-chevron-down w-4 h-4 mr-2 transition-transform"
                      :class="{ 'rotate-180': showRepeats }">{% include "app/icons/chevron-down.svg" %}</div>
-                Show Repeats ({{ user_medias|length|add:"-1" }})
+                {% trans "Show Repeats" %} ({{ user_medias|length|add:"-1" }})
               </button>
 
               <div x-show="showRepeats" class="space-y-2 mt-4">
@@ -301,7 +304,7 @@
                         {% if user_media.score %}
                           <span class="text-sm font-medium text-gray-300">{{ user_media.score }}</span>
                         {% else %}
-                          <span class="text-sm font-medium text-gray-400">Not rated</span>
+                          <span class="text-sm font-medium text-gray-400">{% trans "Not rated" %}</span>
                         {% endif %}
                       </div>
 
@@ -327,11 +330,11 @@
                     </div>
 
                     <div class="space-y-2">
-                      <div class="text-xs text-gray-400">Status: {{ user_media.status|media_status_readable }}</div>
+                      <div class="text-xs text-gray-400">{% trans "Status" %}: {{ user_media.status|media_status_readable }}</div>
 
                       {% if media.media_type != MediaTypes.MOVIE.value %}
                         <div class="text-xs text-gray-400">
-                          Progress: {{ user_media.formatted_progress }}
+                          {% trans "Progress" %}: {{ user_media.formatted_progress }}
                           {% if media.media_type != MediaTypes.GAME.value %}
                             {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
                           {% endif %}
@@ -339,11 +342,11 @@
                       {% endif %}
 
                       {% if user_media.start_date %}
-                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|datetime_format:user }}</div>
+                        <div class="text-xs text-gray-400">{% trans "Started" %}: {{ user_media.start_date|datetime_format:user }}</div>
                       {% endif %}
 
                       {% if user_media.end_date %}
-                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|datetime_format:user }}</div>
+                        <div class="text-xs text-gray-400">{% trans "Finished" %}: {{ user_media.end_date|datetime_format:user }}</div>
                       {% endif %}
 
                       {% if user_media.notes %}
@@ -358,7 +361,7 @@
                             <button x-show="isClamped"
                                     @click="isExpanded = !isExpanded"
                                     class="text-indigo-400 hover:text-indigo-300 text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
-                              <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+                              <span x-text="isExpanded ? '{{ show_less_label|escapejs }}' : '{{ read_more_label|escapejs }}'"></span>
                             </button>
                           </div>
                         </div>
@@ -373,12 +376,12 @@
       {% endif %}
 
       {# Actions #}
-      <h2 class="text-xl font-bold mb-4">Actions</h2>
+      <h2 class="text-xl font-bold mb-4">{% trans "Actions" %}</h2>
       <div class="bg-[#2a2f35] p-4 md:p-2 lg:p-4 rounded-lg flex items-center justify-center gap-x-5 md:gap-x-2 lg:gap-x-5 mb-6">
         {# Custom Lists #}
         <div x-data="{ listsOpen: false }">
           <button class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
-                  title="Add to custom lists"
+                  title="{% trans 'Add to custom lists' %}"
                   hx-get="{% media_view_url 'lists_modal' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'lists' media %}"
@@ -398,7 +401,7 @@
         {# Activity History #}
         <div x-data="{ historyOpen: false }">
           <button class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
-                  title="View your activity history"
+                  title="{% trans 'View your activity history' %}"
                   hx-get="{% media_view_url 'history_modal' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'history' media %}"
@@ -417,7 +420,7 @@
 
         {# Sync metadata #}
         <button type="button"
-                title="Sync metadata with provider"
+                title="{% trans 'Sync metadata with provider' %}"
                 class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer disabled:opacity-75"
                 hx-post="{% media_view_url 'sync_metadata' media %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -434,16 +437,17 @@
       </div>
 
       {# Media Details #}
-      <h2 class="text-xl font-bold mb-4">Details</h2>
+      <h2 class="text-xl font-bold mb-4">{% trans "Details" %}</h2>
       {% if watch_provider_region == "UNSET" or watch_providers is not None %}
         <div class="bg-[#2a2f35] p-4 rounded-lg my-4">
-          <h3 class="text-sm font-semibold text-gray-400 mb-2">STREAMING</h3>
+          <h3 class="text-sm font-semibold text-gray-400 mb-2">{% trans "STREAMING" %}</h3>
           {% if watch_provider_region == "UNSET" %}
             {% url 'preferences' as preferences_url %}
             <p class="text-gray-200">
+              {% blocktrans trimmed with link_start='<a href="{{ preferences_url }}" class="hover:text-indigo-500 hover:underline">' link_end='</a>' %}
               Watch provider region is not configured. Set a region or disable this feature in the
-              <a href="{{ preferences_url }}"
-                 class="hover:text-indigo-500 hover:underline">preferences</a>.
+              {{ link_start }}preferences{{ link_end }}.
+              {% endblocktrans %}
             </p>
           {% elif watch_providers %}
             <div class="grid grid-cols-[repeat(auto-fill,48px)] gap-2 items-center justify-between">
@@ -455,7 +459,7 @@
               {% endfor %}
             </div>
           {% else %}
-            <p class="text-gray-200">No watch providers</p>
+            <p class="text-gray-200">{% trans "No watch providers" %}</p>
           {% endif %}
         </div>
       {% endif %}
@@ -473,14 +477,14 @@
             </div>
           {% endfor %}
           <div>
-            <h3 class="text-sm font-semibold text-gray-400">Source</h3>
+            <h3 class="text-sm font-semibold text-gray-400">{% trans "Source" %}</h3>
             <a href="{{ media.source_url }}"
                class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
                target="_blank">{{ media.source|source_readable }}</a>
           </div>
           {% if media.external_links %}
             <div class="mt-4">
-              <h3 class="text-sm font-semibold text-gray-400">EXTERNAL LINKS</h3>
+              <h3 class="text-sm font-semibold text-gray-400">{% trans "EXTERNAL LINKS" %}</h3>
               {% for name, url in media.external_links.items %}
                 <a href="{{ url }}"
                    class="text-gray-200 hover:text-indigo-500 transition-colors duration-200 block"
@@ -489,7 +493,7 @@
             </div>
           {% endif %}
         {% else %}
-          <div class="text-gray-200">No details available</div>
+          <div class="text-gray-200">{% trans "No details available" %}</div>
         {% endif %}
       </div>
     </div>
@@ -497,7 +501,7 @@
     <div class="w-full md:w-3/4">
       {% if media.cast %}
         <section class="mb-8">
-          <h2 class="text-xl font-bold mb-4">Cast</h2>
+          <h2 class="text-xl font-bold mb-4">{% trans "Cast" %}</h2>
           <div class="flex overflow-x-auto gap-x-4 pb-5">
             {% for cast in media.cast %}
               {% include "app/components/cast_card.html" with cast=cast %}
@@ -509,8 +513,8 @@
                 <div class="p-2.5 bg-indigo-600 text-white rounded-full mb-3">
                   {% include "app/icons/external-link.svg" with classes="w-6 h-6" %}
                 </div>
-                <span class="text-sm font-semibold text-white">View all</span>
-                <span class="text-xs text-gray-400 mt-1">{{ media.total_cast_count }} cast members</span>
+                <span class="text-sm font-semibold text-white">{% trans "View all" %}</span>
+                <span class="text-xs text-gray-400 mt-1">{{ media.total_cast_count }} {% trans "cast members" %}</span>
               </a>
             {% endif %}
           </div>
@@ -524,7 +528,7 @@
             <section class="{% if not forloop.last %}mb-8{% endif %}">
               <h2 class="text-xl font-bold mb-4">
                 {% if name == "dlcs" %}
-                  DLCs
+                  {% trans "DLCs" %}
                 {% else %}
                   {{ name|no_underscore|title }}
                 {% endif %}
@@ -547,7 +551,7 @@
       {# Episodes List #}
       {% if media.episodes %}
         <div class="w-full">
-          <h2 class="text-xl font-bold mb-4">Episodes</h2>
+          <h2 class="text-xl font-bold mb-4">{% trans "Episodes" %}</h2>
           <div class="space-y-6">
             {% for episode in media.episodes %}
               <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
@@ -562,7 +566,7 @@
                         <div>
                           <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
                           <p class="text-sm text-gray-400">
-                            Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
+                            {% trans "Episode" %} {{ episode.episode_number }} • {{ episode.air_date|default_if_none:_("Unknown air date") }}
                             {% if episode.runtime %}• {{ episode.runtime }}{% endif %}
                           </p>
                         </div>
@@ -570,7 +574,7 @@
                           {# Track Episode #}
                           <div x-data="{ trackOpen: false }">
                             <button @click="trackOpen = true"
-                                    title="Track Episode"
+                                    title="{% trans 'Track Episode' %}"
                                     class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
                               {% if episode.history %}
                                 {% include "app/icons/eye.svg" with classes="w-4 h-4" %}
@@ -586,7 +590,7 @@
                           {# Lists #}
                           <div x-data="{ listsOpen: false }">
                             <button class="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition duration-300 cursor-pointer"
-                                    title="Add to custom lists"
+                                    title="{% trans 'Add to custom lists' %}"
                                     hx-get="{% media_view_url 'lists_modal' episode %}"
                                     hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                                     hx-target="#{% component_id 'lists' episode %}"
@@ -608,7 +612,7 @@
                           {# History #}
                           <div x-data="{ historyOpen: false }">
                             <button class="p-2 bg-amber-600 hover:bg-amber-700 text-white rounded-full transition duration-300 cursor-pointer"
-                                    title="View your activity history"
+                                    title="{% trans 'View your activity history' %}"
                                     hx-get="{% media_view_url 'history_modal' episode %}"
                                     hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                                     hx-target="#{% component_id 'history' episode %}"
@@ -637,7 +641,7 @@
                         {% if episode.history.0.end_date %}
                           {{ episode.history.0.end_date|datetime_format:user }}
                         {% else %}
-                          No date provided
+                          {% trans "No date provided" %}
                         {% endif %}
                         {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                       </p>

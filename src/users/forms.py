@@ -1,10 +1,9 @@
 import apprise
 from allauth.account.forms import LoginForm, SignupForm
 from django import forms
-from django.contrib.auth.forms import (
-    PasswordChangeForm,
-)
+from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 from .models import User
 
@@ -16,9 +15,9 @@ class CustomLoginForm(LoginForm):
         """Remove email field and change password2 label."""
         super().__init__(*args, **kwargs)
 
-        self.fields["login"].widget.attrs["placeholder"] = "Enter your username"
+        self.fields["login"].widget.attrs["placeholder"] = _("Enter your username")
 
-        self.fields["password"].widget.attrs["placeholder"] = "Enter your password"
+        self.fields["password"].widget.attrs["placeholder"] = _("Enter your password")
 
 
 class CustomSignupForm(SignupForm):
@@ -31,8 +30,10 @@ class CustomSignupForm(SignupForm):
         del self.fields["email"]
 
         # Change label and placeholder for password2 field
-        self.fields["password2"].label = "Confirm Password"
-        self.fields["password2"].widget.attrs["placeholder"] = "Confirm your password"
+        self.fields["password2"].label = _("Confirm Password")
+        self.fields["password2"].widget.attrs["placeholder"] = _(
+            "Confirm your password"
+        )
 
 
 class UserUpdateForm(forms.ModelForm):
@@ -42,7 +43,7 @@ class UserUpdateForm(forms.ModelForm):
         """Check if the user is demo before changing the password."""
         cleaned_data = super().clean()
         if self.instance.is_demo:
-            msg = "Changing the username is not allowed for the demo account."
+            msg = _("Changing the username is not allowed for the demo account.")
             self.add_error("username", msg)
         return cleaned_data
 
@@ -65,7 +66,7 @@ class PasswordChangeForm(PasswordChangeForm):
         """Check if the user is demo before changing the password."""
         cleaned_data = super().clean()
         if self.user.is_demo:
-            msg = "Changing the password is not allowed for the demo account."
+            msg = _("Changing the password is not allowed for the demo account.")
             self.add_error("new_password2", msg)
         return cleaned_data
 
@@ -113,7 +114,7 @@ class NotificationSettingsForm(forms.ModelForm):
 
         for url in urls:
             if not apobj.add(url):
-                message = f"'{url}' is not a valid Apprise URL."
+                message = url + _(" is not a valid Apprise URL.")
                 raise ValidationError(message)
 
         return notification_urls

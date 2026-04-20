@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}
-  Forbidden - Yamtrack
+  {% trans "Forbidden" %} - Yamtrack
 {% endblock title %}
 
 {% block body %}
@@ -10,26 +11,26 @@
     <div class="text-center max-w-md">
       <div class="mb-6">
         <div class="text-9xl font-bold text-red-400">403</div>
-        <h1 class="text-3xl font-bold mt-4 mb-2">Access Forbidden</h1>
+        <h1 class="text-3xl font-bold mt-4 mb-2">{% trans "Access Forbidden" %}</h1>
         <p class="text-gray-400 mb-4">
-          You don't have permission to access this resource. Please log in or contact an administrator.
+          {% trans "You don't have permission to access this resource. Please log in or contact an administrator." %}
         </p>
 
         <p class="text-sm text-gray-500 mb-6">
-          If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues"
-    class="text-indigo-400 hover:underline">report the issue.</a>
+          {% trans "If you believe this was a bug, please" %}
+          <a href="https://github.com/fuzzygrim/yamtrack/issues" class="text-indigo-400 hover:underline">{% trans "report the issue." %}</a>
         </p>
       </div>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a href="{% url 'account_login' %}"
            class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
           {% include "app/icons/padlock.svg" with classes="w-5 h-5" %}
-          <span>Log In</span></a>
+          <span>{% trans "Log In" %}</span></a>
 
         <a href="{% url 'home' %}"
            class="flex items-center justify-center gap-2 px-6 py-3 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors">
           {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-          <span>Back to Home</span></a>
+          <span>{% trans "Back to Home" %}</span></a>
       </div>
     </div>
   </div>

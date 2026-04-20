@@ -21,6 +21,7 @@ from django.db.models import (
 )
 from django.db.models.functions import RowNumber
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
 from simple_history.models import HistoricalRecords
@@ -38,30 +39,30 @@ logger = logging.getLogger(__name__)
 class Sources(models.TextChoices):
     """Choices for the source of the item."""
 
-    TMDB = "tmdb", "The Movie Database"
-    MAL = "mal", "MyAnimeList"
-    MANGAUPDATES = "mangaupdates", "MangaUpdates"
-    IGDB = "igdb", "Internet Game Database"
-    OPENLIBRARY = "openlibrary", "Open Library"
-    HARDCOVER = "hardcover", "Hardcover"
-    COMICVINE = "comicvine", "Comic Vine"
-    BGG = "bgg", "BoardGameGeek"
-    MANUAL = "manual", "Manual"
+    TMDB = "tmdb", _("The Movie Database")
+    MAL = "mal", _("MyAnimeList")
+    MANGAUPDATES = "mangaupdates", _("MangaUpdates")
+    IGDB = "igdb", _("Internet Game Database")
+    OPENLIBRARY = "openlibrary", _("Open Library")
+    HARDCOVER = "hardcover", _("Hardcover")
+    COMICVINE = "comicvine", _("Comic Vine")
+    BGG = "bgg", _("BoardGameGeek")
+    MANUAL = "manual", _("Manual")
 
 
 class MediaTypes(models.TextChoices):
     """Choices for the media type of the item."""
 
-    TV = "tv", "TV Show"
-    SEASON = "season", "TV Season"
-    EPISODE = "episode", "Episode"
-    MOVIE = "movie", "Movie"
-    ANIME = "anime", "Anime"
-    MANGA = "manga", "Manga"
-    GAME = "game", "Game"
-    BOOK = "book", "Book"
-    COMIC = "comic", "Comic"
-    BOARDGAME = "boardgame", "Boardgame"
+    TV = "tv", _("TV Show")
+    SEASON = "season", _("TV Season")
+    EPISODE = "episode", _("Episode")
+    MOVIE = "movie", _("Movie")
+    ANIME = "anime", _("Anime")
+    MANGA = "manga", _("Manga")
+    GAME = "game", _("Game")
+    BOOK = "book", _("Book")
+    COMIC = "comic", _("Comic")
+    BOARDGAME = "boardgame", _("Boardgame")
 
 
 class Item(CalendarTriggerMixin, models.Model):

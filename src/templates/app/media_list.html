@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block title %}
   {{ media_type|media_type_readable_plural }} - Yamtrack
@@ -34,7 +35,7 @@
     <div class="flex flex-col md:flex-row gap-4 mb-6">
       <!-- Search -->
       <div class="relative grow">
-        <input placeholder="Search {{ media_type_plural }} in your list..."
+        <input placeholder="{% trans 'Search' %} {{ media_type_plural }} {% trans 'in your list' %}..."
                class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="search"
@@ -122,12 +123,12 @@
           <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
              class="p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
-             title="Grid View"
+             title="{% trans 'Grid View' %}"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
           <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
              class="p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
-             title="Table View"
+             title="{% trans 'Table View' %}"
              @click="layout = 'table'">{% include "app/icons/table.svg" with classes="w-5 h-5" %}</a>
         </div>
       </div>
@@ -140,13 +141,15 @@
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             {% include "app/icons/edit.svg" with classes="w-8 h-8 text-gray-400" %}
           </div>
-          <h3 class="text-xl font-semibold mb-2">No {{ media_type|media_type_readable_plural }} Tracked Yet</h3>
+          <h3 class="text-xl font-semibold mb-2">
+            {% blocktrans with media_plural=media_type|media_type_readable_plural %}No {{ media_plural }} Tracked Yet{% endblocktrans %}
+          </h3>
           <p class="text-gray-400 mb-6">
-            Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
+            {% blocktrans with media_type=media_type|media_type_readable %}Start tracking your {{ media_type }} to keep a record of what you've {{ media_type|media_past_verb }}.{% endblocktrans %}
           </p>
           <a href="{{ media_type|sample_search }}"
              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-            Browse {{ media_type|media_type_readable_plural }}
+            {% blocktrans with media_type=media_type|media_type_readable_plural %}Browse {{ media_type }}{% endblocktrans %}
           </a>
         </div>
       </div>
@@ -158,13 +161,13 @@
           <thead class="text-left text-gray-400 text-sm">
             <tr>
               <th class="p-2 w-15"></th>
-              <th class="p-2 pe-8 w-2/5">Title</th>
-              <th class="p-2 text-center">Score</th>
-              {% if media_type != MediaTypes.MOVIE.value %}<th class="p-2 text-center">Progress</th>{% endif %}
-              {% if media_type == MediaTypes.TV.value %}<th class="p-2 text-center">Last Watched</th>{% endif %}
-              <th class="p-2 text-center">Status</th>
-              <th class="p-2 text-center">Start Date</th>
-              <th class="p-2 text-center">End Date</th>
+              <th class="p-2 pe-8 w-2/5">{% trans "Title" %}</th>
+              <th class="p-2 text-center">{% trans "Score" %}</th>
+              {% if media_type != MediaTypes.MOVIE.value %}<th class="p-2 text-center">{% trans "Progress" %}</th>{% endif %}
+              {% if media_type == MediaTypes.TV.value %}<th class="p-2 text-center">{% trans "Last Watched" %}</th>{% endif %}
+              <th class="p-2 text-center">{% trans "Status" %}</th>
+              <th class="p-2 text-center">{% trans "Start Date" %}</th>
+              <th class="p-2 text-center">{% trans "End Date" %}</th>
             </tr>
           </thead>
           <tbody>

@@ -1,43 +1,45 @@
 {% extends "base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}
-  Server Error - Yamtrack
+{% trans "Server Error" %} - Yamtrack
 {% endblock title %}
 
 {% block body %}
-  <div class="min-h-screen bg-[#212529] flex flex-col items-center justify-center text-white p-4">
-    <div class="text-center max-w-md">
-      <div class="mb-6">
-        <div class="text-9xl font-bold text-red-500">500</div>
-        <h1 class="text-3xl font-bold mt-4 mb-3">Something Went Wrong</h1>
-        <p class="text-gray-400 mb-4">
-          {% if error_message %}
-            {{ error_message }}
-          {% else %}
-            We're sorry, but there was an error processing your request.
-          {% endif %}
-        </p>
-        <p class="text-sm text-gray-500 mb-6">
-          If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues"
-    class="text-indigo-400 hover:underline">report the issue.</a>
-        </p>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="{{ request.path }}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
-           class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-          {% include "app/icons/circle-spinning-counter-clockwise.svg" with classes="w-5 h-5" %}
-          <span>Try Again</span>
-        </a>
-        <a href="{% url 'home' %}"
-           class="flex items-center justify-center gap-2 px-6 py-3 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors">
-          {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-          <span>Back to Home</span></a>
-      </div>
+<div class="min-h-screen bg-[#212529] flex flex-col items-center justify-center text-white p-4">
+  <div class="text-center max-w-md">
+    <div class="mb-6">
+      <div class="text-9xl font-bold text-red-500">500</div>
+      <h1 class="text-3xl font-bold mt-4 mb-3">{% trans "Something Went Wrong" %}</h1>
+      <p class="text-gray-400 mb-4">
+        {% if error_message %}
+        {{ error_message }}
+        {% else %}
+        {% trans "We're sorry, but there was an error processing your request." %}
+        {% endif %}
+      </p>
+      <p class="text-sm text-gray-500 mb-6">
+        {% trans "If you believe this was a bug, please" %}
+        <a href="https://github.com/fuzzygrim/yamtrack/issues" class="text-indigo-400 hover:underline">{% trans "report
+          the issue." %}</a>
+      </p>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="{{ request.path }}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+        class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+        {% include "app/icons/circle-spinning-counter-clockwise.svg" with classes="w-5 h-5" %}
+        <span>{% trans "Try Again" %}</span>
+      </a>
+      <a href="{% url 'home' %}"
+        class="flex items-center justify-center gap-2 px-6 py-3 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors">
+        {% include "app/icons/house.svg" with classes="w-5 h-5" %}
+        <span>{% trans "Back to Home" %}</span></a>
     </div>
   </div>
+</div>
 {% endblock body %}
 
 {% block messages_sidebar_offset %}
-  top-10 lg:top-64
+top-10 lg:top-64
 {% endblock messages_sidebar_offset %}

@@ -124,7 +124,33 @@ python manage.py migrate
 python manage.py runserver & celery -A config worker --beat --scheduler django --loglevel DEBUG & tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
 ```
 
-Go to: http://localhost:8000
+Go to: <http://localhost:8000>
+
+## 🌍 Localization (i18n)
+
+Yamtrack uses Django i18n with message catalogs stored in [src/locale](src/locale).
+
+Currently configured languages:
+
+- `en` (default)
+- `it`
+
+From the repository root, run:
+
+```bash
+cd src
+python manage.py makemessages -l en -l it
+python manage.py compilemessages
+```
+
+After editing templates/python strings, regenerate message files and compile catalogs again.
+
+Recommended contribution flow:
+
+1. Mark strings with `{% trans %}`, `{% blocktranslate %}`, or `gettext_lazy` / `gettext`.
+2. Run `makemessages` for supported locales.
+3. Update translations in `locale/<lang>/LC_MESSAGES/django.po`.
+4. Run `compilemessages` and verify UI language switching from the app language selector.
 
 ## 💪 Support the Project
 

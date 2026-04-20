@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}
-  Forbidden - Yamtrack
+  {% trans "Forbidden" %} - Yamtrack
 {% endblock title %}
 
 {% block body %}
@@ -10,38 +11,41 @@
     <div class="text-center max-w-md">
       <div class="mb-6">
         <div class="text-9xl font-bold text-red-400">403</div>
-        <h1 class="text-3xl font-bold mt-4 mb-2">Access Forbidden</h1>
+        <h1 class="text-3xl font-bold mt-4 mb-2">{% trans "Access Forbidden" %}</h1>
         <p class="text-gray-400 mb-4">
-          You don't have permission to access this resource. Please log in or contact an administrator.
+          {% trans "You don't have permission to access this resource. Please log in or contact an administrator." %}
         </p>
         <div class="bg-[#2a2f35] p-4 rounded-lg mb-4 text-left">
-          <h3 class="font-medium mb-2 text-gray-300">Using a Reverse Proxy?</h3>
+          <h3 class="font-medium mb-2 text-gray-300">{% trans "Using a Reverse Proxy?" %}</h3>
           <p class="text-sm text-gray-400">
-            If you're accessing YamTrack through a reverse proxy, you need to set the <code class="bg-[#39404b] px-1 py-0.5 rounded">URLS</code> environment variable to your application URL.
-          </p>
+            {% blocktrans trimmed with code_start='<code class="bg-[#39404b] px-1 py-0.5 rounded">'|safe code_end='</code>'|safe %}
+            If you're accessing YamTrack through a reverse proxy, you need to set the {{ code_start }}URLS{{ code_end }} environment variable to your application URL.
+          {% endblocktrans %}
+        </p>
 
-          <p class="text-sm text-gray-400 mt-2">
-            For example, <code class="bg-[#39404b] px-1 py-0.5 rounded">https://yamtrack.mydomain.com</code>.
-          </p>
-        </div>
-        <p class="text-sm text-gray-500 mb-6">
-          If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues"
-    class="text-indigo-400 hover:underline">report the issue.</a>
+        <p class="text-sm text-gray-400 mt-2">
+          {% trans "For example " %}, <code class="bg-[#39404b] px-1 py-0.5 rounded">https://yamtrack.mydomain.com</code>.
         </p>
       </div>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="{% url 'account_login' %}"
-           class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-          {% include "app/icons/padlock.svg" with classes="w-5 h-5" %}
-          <span>Log In</span></a>
+      <p class="text-sm text-gray-500 mb-6">
+        {% blocktrans trimmed with link_start='<a href="https://github.com/fuzzygrim/yamtrack/issues">'|safe link_end='</a>'|safe %}
+          If you believe this was a bug, please {{ link_start }}report the issue{{ link_end }}.
+        {% endblocktrans %}
+      </p>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="{% url 'account_login' %}"
+         class="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+        {% include "app/icons/padlock.svg" with classes="w-5 h-5" %}
+        <span>{% trans "Log In" %}</span></a>
 
-        <a href="{% url 'home' %}"
-           class="flex items-center justify-center gap-2 px-6 py-3 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors">
-          {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-          <span>Back to Home</span></a>
-      </div>
+      <a href="{% url 'home' %}"
+         class="flex items-center justify-center gap-2 px-6 py-3 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors">
+        {% include "app/icons/house.svg" with classes="w-5 h-5" %}
+        <span>{% trans "Back to Home" %}</span></a>
     </div>
   </div>
+</div>
 {% endblock body %}
 
 {% block messages_sidebar_offset %}

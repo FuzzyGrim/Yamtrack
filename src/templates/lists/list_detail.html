@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load app_tags %}
+{% load i18n %}
 
 {% block extra_head %}
   {{ form.media.css }}
@@ -36,7 +37,7 @@
     <button @click="showModal = true"
             class="px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 text-sm group cursor-pointer">
       {% include "app/icons/horizontal-sliders.svg" with classes="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" %}
-      <span>Edit List</span>
+      <span>{% trans "Edit List" %}</span>
     </button>
     {% include "lists/components/list_form.html" %}
   </div>
@@ -220,11 +221,11 @@
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             {% include "app/icons/list-add.svg" with classes="w-8 h-8 text-gray-400" %}
           </div>
-          <h3 class="text-xl font-semibold mb-2">No items in this list yet</h3>
-          <p class="text-gray-400 mb-6">Start adding your favorite media to build your collection</p>
+          <h3 class="text-xl font-semibold mb-2">{% trans "No items in this list yet" %}</h3>
+          <p class="text-gray-400 mb-6">{% trans "Start adding your favorite media to build your collection" %}</p>
           <div class="pt-4">
             <a href="{{ 'tv'|sample_search }}"
-               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
+               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">{% trans "Browse Media" %}</a>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import secrets
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
@@ -23,27 +24,27 @@ def generate_token():
 class HomeSortChoices(models.TextChoices):
     """Choices for home page sort options."""
 
-    UPCOMING = "upcoming", "Upcoming"
-    RECENT = "recent", "Recent"
-    COMPLETION = "completion", "Completion"
-    EPISODES_LEFT = "episodes_left", "Episodes Left"
-    TITLE = "title", "Title"
+    UPCOMING = "upcoming", _("Upcoming")
+    RECENT = "recent", _("Recent")
+    COMPLETION = "completion", _("Completion")
+    EPISODES_LEFT = "episodes_left", _("Episodes Left")
+    TITLE = "title", _("Title")
 
 
 class MediaSortChoices(models.TextChoices):
     """Choices for media list sort options."""
 
-    SCORE = "score", "Rating"
-    TITLE = "title", "Title"
-    PROGRESS = "progress", "Progress"
-    START_DATE = "start_date", "Start Date"
-    END_DATE = "end_date", "End Date"
+    SCORE = "score", _("Rating")
+    TITLE = "title", _("Title")
+    PROGRESS = "progress", _("Progress")
+    START_DATE = "start_date", _("Start Date")
+    END_DATE = "end_date", _("End Date")
 
 
 class MediaStatusChoices(models.TextChoices):
     """Choices for media list status options."""
 
-    ALL = "All", "All"
+    ALL = "All", _("All")
     COMPLETED = Status.COMPLETED.value, Status.COMPLETED.label
     IN_PROGRESS = Status.IN_PROGRESS.value, Status.IN_PROGRESS.label
     PLANNING = Status.PLANNING.value, Status.PLANNING.label
@@ -54,56 +55,56 @@ class MediaStatusChoices(models.TextChoices):
 class LayoutChoices(models.TextChoices):
     """Choices for media list layout options."""
 
-    GRID = "grid", "Grid"
-    TABLE = "table", "Table"
+    GRID = "grid", _("Grid")
+    TABLE = "table", _("Table")
 
 
 class CalendarLayoutChoices(models.TextChoices):
     """Choices for calendar layout options."""
 
-    GRID = "grid", "Grid"
-    LIST = "list", "List"
+    GRID = "grid", _("Grid")
+    LIST = "list", _("List")
 
 
 class ListSortChoices(models.TextChoices):
     """Choices for list sort options."""
 
-    LAST_ITEM_ADDED = "last_item_added", "Last Item Added"
-    NAME = "name", "Name"
-    ITEMS_COUNT = "items_count", "Items Count"
-    NEWEST_FIRST = "newest_first", "Newest First"
+    LAST_ITEM_ADDED = "last_item_added", _("Last Item Added")
+    NAME = "name", _("Name")
+    ITEMS_COUNT = "items_count", _("Items Count")
+    NEWEST_FIRST = "newest_first", _("Newest First")
 
 
 class ListDetailSortChoices(models.TextChoices):
     """Choices for list detail sort options."""
 
-    DATE_ADDED = "date_added", "Date Added"
-    TITLE = "title", "Title"
-    MEDIA_TYPE = "media_type", "Media Type"
+    DATE_ADDED = "date_added", _("Date Added")
+    TITLE = "title", _("Title")
+    MEDIA_TYPE = "media_type", _("Media Type")
 
 
 class QuickWatchDateChoices(models.TextChoices):
     """Choices for quick watch date behavior when bulk-marking media as completed."""
 
-    CURRENT_DATE = "current_date", "Current Date"
-    RELEASE_DATE = "release_date", "Release Date"
-    NO_DATE = "no_date", "No Date"
+    CURRENT_DATE = "current_date", _("Current Date")
+    RELEASE_DATE = "release_date", _("Release Date")
+    NO_DATE = "no_date", _("No Date")
 
 
 class DateFormatChoices(models.TextChoices):
     """Choices for date format display."""
 
-    ISO = "Y-m-d", "2026-01-18 (ISO)"
-    EUROPEAN = "d/m/Y", "18/01/2026 (EU)"
-    US = "m/d/Y", "01/18/2026 (US)"
-    LONG = "M j, Y", "Jan 18, 2026"
+    ISO = "Y-m-d", _("2026-01-18 (ISO)")
+    EUROPEAN = "d/m/Y", _("18/01/2026 (EU)")
+    US = "m/d/Y", _("01/18/2026 (US)")
+    LONG = "M j, Y", _("Jan 18, 2026")
 
 
 class TimeFormatChoices(models.TextChoices):
     """Choices for time format display."""
 
-    HOUR_24 = "H:i", "14:30 (24-hour)"
-    HOUR_12 = "g:i A", "2:30 PM (12-hour)"
+    HOUR_24 = "H:i", _("14:30 (24-hour)")
+    HOUR_12 = "g:i A", _("2:30 PM (12-hour)")
 
 
 class User(AbstractUser):
@@ -288,7 +289,7 @@ class User(AbstractUser):
     # UI preferences
     clickable_media_cards = models.BooleanField(
         default=False,
-        help_text="Hide hover overlay on touch devices",
+        help_text=_("Hide hover overlay on touch devices"),
     )
 
     # Tracking settings
@@ -296,45 +297,45 @@ class User(AbstractUser):
         max_length=20,
         default=QuickWatchDateChoices.CURRENT_DATE,
         choices=QuickWatchDateChoices,
-        help_text="Date to use when bulk-marking media as completed",
+        help_text=_("Date to use when bulk-marking media as completed"),
     )
 
     date_format = models.CharField(
         max_length=20,
         default=DateFormatChoices.ISO,
         choices=DateFormatChoices,
-        help_text="Preferred date display format",
+        help_text=_("Preferred date display format"),
     )
     time_format = models.CharField(
         max_length=20,
         default=TimeFormatChoices.HOUR_24,
         choices=TimeFormatChoices,
-        help_text="Preferred time display format",
+        help_text=_("Preferred time display format"),
     )
 
     # Progress bar
     progress_bar = models.BooleanField(
         default=True,
-        help_text="Show progress bar",
+        help_text=_("Show progress bar"),
     )
 
     # Hide completed recommendations
     hide_completed_recommendations = models.BooleanField(
         default=False,
-        help_text="Hide completed media in recommendations",
+        help_text=_("Hide completed media in recommendations"),
     )
 
     # Hide zero ratings
     hide_zero_rating = models.BooleanField(
         default=False,
-        help_text="Hide zero ratings from media cards",
+        help_text=_("Hide zero ratings from media cards"),
     )
 
     # Watch provider region
     watch_provider_region = models.CharField(
         max_length=5,
         default="UNSET",
-        help_text="Region to show watch providers for",
+        help_text=_("Region to show watch providers for"),
     )
 
     # Calendar preferences
@@ -364,21 +365,21 @@ class User(AbstractUser):
     # Notification settings
     notification_urls = models.TextField(
         blank=True,
-        help_text="Apprise URLs for notifications",
+        help_text=_("Apprise URLs for notifications"),
     )
     notification_excluded_items = models.ManyToManyField(
         Item,
         related_name="excluded_by_users",
         blank=True,
-        help_text="Items excluded from notifications",
+        help_text=_("Items excluded from notifications"),
     )
     release_notifications_enabled = models.BooleanField(
         default=True,
-        help_text="Receive notifications for recently released media",
+        help_text=_("Receive notifications for recently released media"),
     )
     daily_digest_enabled = models.BooleanField(
         default=True,
-        help_text="Receive a daily digest of upcoming releases",
+        help_text=_("Receive a daily digest of upcoming releases"),
     )
 
     # Integration settings
@@ -386,11 +387,11 @@ class User(AbstractUser):
         max_length=32,
         unique=True,
         default=generate_token,
-        help_text="Token for external integrations",
+        help_text=_("Token for external integrations"),
     )
     plex_usernames = models.TextField(
         blank=True,
-        help_text="Comma-separated list of Plex usernames for webhook matching",
+        help_text=_("Comma-separated list of Plex usernames for webhook matching"),
     )
 
     class Meta:
@@ -601,16 +602,16 @@ class User(AbstractUser):
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""
         import_tasks = {
-            "trakt": "Import from Trakt",
-            "simkl": "Import from SIMKL",
-            "myanimelist": "Import from MyAnimeList",
-            "anilist": "Import from AniList",
-            "kitsu": "Import from Kitsu",
-            "yamtrack": "Import from Yamtrack",
-            "hltb": "Import from HowLongToBeat",
-            "steam": "Import from Steam",
-            "imdb": "Import from IMDB",
-            "goodreads": "Import from GoodReads",
+            "trakt": _("Import from Trakt"),
+            "simkl": _("Import from SIMKL"),
+            "myanimelist": _("Import from MyAnimeList"),
+            "anilist": _("Import from AniList"),
+            "kitsu": _("Import from Kitsu"),
+            "yamtrack": _("Import from Yamtrack"),
+            "hltb": _("Import from HowLongToBeat"),
+            "steam": _("Import from Steam"),
+            "imdb": _("Import from IMDB"),
+            "goodreads": _("Import from GoodReads"),
         }
 
         # Reverse mapping to get source from task name

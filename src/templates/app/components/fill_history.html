@@ -1,8 +1,9 @@
 {% load app_tags %}
+{% load i18n %}
 
 <div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
   <div class="flex items-center justify-between mb-6">
-    <h2 class="text-2xl font-bold text-white">Activity History</h2>
+    <h2 class="text-2xl font-bold text-white">{% trans "Activity History" %}</h2>
     <button class="text-gray-400 hover:text-white cursor-pointer"
             @click="historyOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
   </div>
@@ -12,7 +13,7 @@
           class="bg-[#39404b] p-4 pt-3 rounded-lg group relative space-y-1">
         <div class="flex justify-between items-center mb-2">
           {% if total_medias > 1 %}
-            <span class="text-xs px-2 py-1 rounded bg-gray-600 text-gray-300">Instance #{{ entry.media_entry_number }}</span>
+            <span class="text-xs px-2 py-1 rounded bg-gray-600 text-gray-300">{% trans "Instance" %} #{{ entry.media_entry_number }}</span>
           {% endif %}
           <span class="text-sm text-gray-400">{{ entry.date|datetime_format:user }}</span>
 
@@ -25,7 +26,7 @@
         {% for change in entry.changes %}<p class="text-white">{{ change.description }}</p>{% endfor %}
       </li>
     {% empty %}
-      <li class="bg-[#39404b] p-4 rounded-lg text-center text-gray-400">You haven't started tracking it yet.</li>
+      <li class="bg-[#39404b] p-4 rounded-lg text-center text-gray-400">{% trans "You haven't started tracking it yet." %}</li>
     {% endfor %}
   </ul>
 </div>

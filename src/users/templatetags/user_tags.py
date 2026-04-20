@@ -1,6 +1,7 @@
 from django import template
 from django.templatetags.static import static
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
 register = template.Library()
 
@@ -13,43 +14,43 @@ def get_attr(obj, attr):
 
 SOURCES_CONFIG = {
     "kitsu": {
-        "name": "Kitsu",
+        "name": _("Kitsu"),
         "logo": static("img/kitsu-logo.png"),
     },
     "trakt": {
-        "name": "Trakt",
+        "name": _("Trakt"),
         "logo": static("img/trakt-logo.svg"),
     },
     "myanimelist": {
-        "name": "MyAnimeList",
+        "name": _("MyAnimeList"),
         "logo": static("img/mal-logo.ico"),
     },
     "anilist": {
-        "name": "AniList",
+        "name": _("AniList"),
         "logo": static("img/anilist-logo.svg"),
     },
     "simkl": {
-        "name": "SIMKL",
+        "name": _("SIMKL"),
         "logo": static("img/simkl-logo.png"),
     },
     "yamtrack": {
-        "name": "YamTrack",
+        "name": _("YamTrack"),
         "logo": static("favicon/apple-touch-icon.png"),
     },
     "hltb": {
-        "name": "HowLongToBeat",
+        "name": _("HowLongToBeat"),
         "logo": static("img/hltb-logo.png"),
     },
     "imdb": {
-        "name": "IMDB",
+        "name": _("IMDB"),
         "logo": static("img/imdb-logo.png"),
     },
     "steam": {
-        "name": "Steam",
+        "name": _("Steam"),
         "logo": static("img/steam-logo.ico"),
     },
     "goodreads": {
-        "name": "GoodReads",
+        "name": _("GoodReads"),
         "logo": static("img/logo-goodreads.svg"),
     },
 }
