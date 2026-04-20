@@ -1,0 +1,104 @@
+# Yamtrack
+# Italian (Italy) translation
+# Copyright (C) 2026
+# This file is distributed under the same license as the Yamtrack package.
+# bunz <66bunz@gmail.com>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Yamtrack\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-20 12:27+0200\n"
+"PO-Revision-Date: 2026-04-20 12:28+0200\n"
+"Last-Translator: bunz <66bunz@gmail.com>\n"
+"Language-Team: Italian\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.9\n"
+
+#: .\static\js\copy-item.js:67
+msgid ""
+"Could not copy to clipboard. Please select the text and press Ctrl+C/Cmd+C "
+"to copy."
+msgstr ""
+"Impossibile copiare negli appunti. Seleziona il testo e premi Ctrl+C/Cmd+C "
+"per copiare."
+
+#: .\static\js\date-range.js:5 .\static\js\date-range.js:22
+#: .\static\js\date-range.js:126 .\static\js\date-range.js:331
+msgid "Last 12 Months"
+msgstr "Ultimi 12 Mesi"
+
+#: .\static\js\date-range.js:13 .\static\js\date-range.js:62
+#: .\static\js\date-range.js:235
+msgid "Today"
+msgstr "Oggi"
+
+#: .\static\js\date-range.js:14 .\static\js\date-range.js:68
+#: .\static\js\date-range.js:243
+msgid "Yesterday"
+msgstr "Ieri"
+
+#: .\static\js\date-range.js:15 .\static\js\date-range.js:75
+#: .\static\js\date-range.js:253
+msgid "This Week"
+msgstr "Questa Settimana"
+
+#: .\static\js\date-range.js:16 .\static\js\date-range.js:84
+#: .\static\js\date-range.js:261
+msgid "Last 7 Days"
+msgstr "Ultimi 7 Giorni"
+
+#: .\static\js\date-range.js:17 .\static\js\date-range.js:90
+#: .\static\js\date-range.js:268
+msgid "This Month"
+msgstr "Questo Mese"
+
+#: .\static\js\date-range.js:18 .\static\js\date-range.js:96
+#: .\static\js\date-range.js:276
+msgid "Last 30 Days"
+msgstr "Ultimi 30 Giorni"
+
+#: .\static\js\date-range.js:19 .\static\js\date-range.js:102
+#: .\static\js\date-range.js:284
+msgid "Last 90 Days"
+msgstr "Ultimi 90 Giorni"
+
+#: .\static\js\date-range.js:20 .\static\js\date-range.js:108
+#: .\static\js\date-range.js:291
+msgid "This Year"
+msgstr "Quest'Anno"
+
+#: .\static\js\date-range.js:21 .\static\js\date-range.js:114
+#: .\static\js\date-range.js:315
+msgid "Last 6 Months"
+msgstr "Ultimi 6 Mesi"
+
+#: .\static\js\date-range.js:23 .\static\js\date-range.js:136
+#: .\static\js\date-range.js:213
+msgid "All Time"
+msgstr "Sempre"
+
+#: .\static\js\statistics-charts.js:35 .\static\js\statistics-charts.js:37
+#: .\static\js\statistics-charts.js:339
+msgid "Score"
+msgstr "Punteggio"
+
+#: .\static\js\statistics-charts.js:72
+msgid "Total"
+msgstr "Totale"
+
+#: .\static\js\statistics-charts.js:131
+msgid "Count"
+msgstr "Conteggio"
+
+#: .\static\js\statistics-charts.js:346
+msgid "Number of Items"
+msgstr "Numero di Elementi"
+
+#: .\static\js\statistics-charts.js:354
+msgid "Average Score"
+msgstr "Punteggio Medio"

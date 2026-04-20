@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-20 11:03+0200\n"
+"POT-Creation-Date: 2026-04-20 12:32+0200\n"
 "PO-Revision-Date: 2026-04-18 16:11+0200\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: English\n"
@@ -34,27 +34,27 @@ msgid ""
 "minutes (e.g., '5:30', '5h 30min'), or just minutes (e.g., '30min')."
 msgstr ""
 
-#: .\app\forms.py:105 .\app\forms.py:112
+#: .\app\forms.py:108 .\app\forms.py:115
 msgid "Select"
 msgstr ""
 
-#: .\app\forms.py:106 .\templates\app\create_entry.html:137
+#: .\app\forms.py:109 .\templates\app\create_entry.html:137
 msgid "Parent TV Show"
 msgstr ""
 
-#: .\app\forms.py:113 .\templates\app\create_entry.html:184
+#: .\app\forms.py:116 .\templates\app\create_entry.html:184
 msgid "Parent Season"
 msgstr ""
 
-#: .\app\forms.py:162
+#: .\app\forms.py:165
 msgid "Parent TV show is required for seasons"
 msgstr ""
 
-#: .\app\forms.py:172
+#: .\app\forms.py:175
 msgid "Parent season is required for episodes"
 msgstr ""
 
-#: .\app\forms.py:180
+#: .\app\forms.py:183
 msgid "Title is required for this media type"
 msgstr ""
 
@@ -364,11 +364,8 @@ msgid "Watched once"
 msgstr ""
 
 #: .\templates\app\components\fill_track_episode.html:31
-msgid "Watched"
-msgstr ""
-
-#: .\templates\app\components\fill_track_episode.html:31
-msgid "times"
+#, python-format
+msgid "Watched %(watch_count)s times"
 msgstr ""
 
 #: .\templates\app\components\fill_track_episode.html:34
@@ -497,7 +494,7 @@ msgid "Create Entry"
 msgstr ""
 
 #: .\templates\app\home.html:6 .\templates\app\home.html:12
-#: .\templates\base.html:86
+#: .\templates\base.html:87
 msgid "Home"
 msgstr ""
 
@@ -647,7 +644,7 @@ msgid "Unknown air date"
 msgstr ""
 
 #: .\templates\app\media_list.html:38 .\templates\app\search.html:6
-#: .\templates\base.html:222
+#: .\templates\base.html:223
 msgid "Search"
 msgstr ""
 
@@ -705,7 +702,7 @@ msgid "Try checking your spelling or using different keywords."
 msgstr ""
 
 #: .\templates\app\statistics.html:7 .\templates\app\statistics.html:12
-#: .\templates\base.html:130
+#: .\templates\base.html:131
 msgid "Statistics"
 msgstr ""
 
@@ -830,26 +827,26 @@ msgstr ""
 msgid "Consume media items to see them appear on your timeline."
 msgstr ""
 
-#: .\templates\base.html:115
+#: .\templates\base.html:116
 msgid "Create Custom"
 msgstr ""
 
-#: .\templates\base.html:145 .\templates\lists\components\fill_lists.html:5
+#: .\templates\base.html:146 .\templates\lists\components\fill_lists.html:5
 #: .\templates\lists\custom_lists.html:10
 #: .\templates\lists\custom_lists.html:17
 msgid "Lists"
 msgstr ""
 
-#: .\templates\base.html:160 .\templates\events\calendar.html:6
+#: .\templates\base.html:161 .\templates\events\calendar.html:6
 #: .\templates\events\calendar.html:11
 msgid "Calendar"
 msgstr ""
 
-#: .\templates\base.html:184 .\templates\users\base.html:8
+#: .\templates\base.html:185 .\templates\users\base.html:8
 msgid "Settings"
 msgstr ""
 
-#: .\templates\base.html:193
+#: .\templates\base.html:194
 msgid "Logout"
 msgstr ""
 
@@ -1267,7 +1264,7 @@ msgid "Connect with AniList & Import"
 msgstr ""
 
 #: .\templates\users\import_data.html:235
-msgid "Find it on your Kitsu profile URL:"
+msgid "Find it on your Kitsu profile URL"
 msgstr ""
 
 #: .\templates\users\import_data.html:303
@@ -1415,11 +1412,12 @@ msgstr ""
 
 #: .\templates\users\integrations.html:66
 #: .\templates\users\integrations.html:135
-msgid "Restart your server, then configure the plugin:"
+msgid "Restart your server, then configure the plugin"
 msgstr ""
 
 #: .\templates\users\integrations.html:68
-msgid "Click on the \\"
+msgid ""
+"Click on the \"Add Generic Destination\" button to create a new webhook."
 msgstr ""
 
 #: .\templates\users\integrations.html:80
@@ -1431,7 +1429,7 @@ msgid "User Filter: Your Jellyfin User"
 msgstr ""
 
 #: .\templates\users\integrations.html:82
-msgid "Finally, under the \\"
+msgid "Finally, under the \"Template\" section, paste the following code."
 msgstr ""
 
 #: .\templates\users\integrations.html:117
@@ -1497,7 +1495,8 @@ msgid "In Plex settings, go to %(link_start)sWebhooks%(link_end)s."
 msgstr ""
 
 #: .\templates\users\integrations.html:199
-msgid "In the Webhooks section, click on \\"
+msgid ""
+"In the Webhooks section, click on \"Add Webhook\" and enter the following URL"
 msgstr ""
 
 #: .\templates\users\integrations.html:224
@@ -1513,15 +1512,15 @@ msgid "In Emby, go to Settings > Notifications"
 msgstr ""
 
 #: .\templates\users\integrations.html:231
-msgid "In the Notifications section, click on \\"
+msgid "In the Notifications section, click on \"Add Notification\""
 msgstr ""
 
 #: .\templates\users\integrations.html:233
-msgid "In the Notification settings:"
+msgid "In the Notification settings"
 msgstr ""
 
 #: .\templates\users\integrations.html:237
-msgid "URL:"
+msgid "URL"
 msgstr ""
 
 #: .\templates\users\integrations.html:251
@@ -1533,7 +1532,8 @@ msgid "Limit user events to: Your Emby User"
 msgstr ""
 
 #: .\templates\users\integrations.html:254
-msgid "\\"
+msgid ""
+"\"Limit library events to\" and \"Limit devices events to\" are optional"
 msgstr ""
 
 #: .\templates\users\notifications.html:19
@@ -1759,28 +1759,12 @@ msgstr ""
 msgid " is not a valid Apprise URL."
 msgstr ""
 
-#: .\users\helpers.py:14
-msgid "FAILURE"
-msgstr ""
-
 #: .\users\helpers.py:20
 msgid "Unexpected error occurred while processing the task."
 msgstr ""
 
-#: .\users\helpers.py:22
-msgid "STARTED"
-msgstr ""
-
 #: .\users\helpers.py:23
 msgid "This task is currently running."
-msgstr ""
-
-#: .\users\helpers.py:25
-msgid "SUCCESS"
-msgstr ""
-
-#: .\users\helpers.py:39
-msgid "PENDING"
 msgstr ""
 
 #: .\users\helpers.py:40
@@ -2003,65 +1987,67 @@ msgstr ""
 msgid "GoodReads"
 msgstr ""
 
-#: .\users\views.py:36
+#: .\users\views.py:37
 msgid "Your username has been updated!"
 msgstr ""
 
-#: .\users\views.py:61
+#: .\users\views.py:62
 msgid "Your password has been updated!"
 msgstr ""
 
-#: .\users\views.py:88
+#: .\users\views.py:89
 msgid "Notification settings updated successfully!"
 msgstr ""
 
-#: .\users\views.py:187
+#: .\users\views.py:188
 msgid "No notification URLs configured."
 msgstr ""
 
-#: .\users\views.py:195
+#: .\users\views.py:196
 msgid "YamTrack Test Notification"
 msgstr ""
 
-#: .\users\views.py:197
+#: .\users\views.py:198
 msgid ""
 "This is a test notification from YamTrack. If you're seeing this, your "
 "notifications are working correctly!"
 msgstr ""
 
-#: .\users\views.py:203
+#: .\users\views.py:204
 msgid "Test notification sent successfully!"
 msgstr ""
 
-#: .\users\views.py:205
+#: .\users\views.py:206
 msgid "Failed to send test notification."
 msgstr ""
 
-#: .\users\views.py:234
+#: .\users\views.py:235
 msgid "This section is view-only for demo accounts."
 msgstr ""
 
-#: .\users\views.py:274
+#: .\users\views.py:275
 msgid "Settings updated."
 msgstr ""
 
-#: .\users\views.py:320
+#: .\users\views.py:321
 msgid "Import schedule deleted."
 msgstr ""
 
-#: .\users\views.py:322
+#: .\users\views.py:323
 msgid "Import schedule not found."
 msgstr ""
 
-#: .\users\views.py:332
+#: .\users\views.py:333
 msgid "Token regenerated successfully."
 msgstr ""
 
-#: .\users\views.py:357
+#: .\users\views.py:358
 msgid "Plex usernames updated successfully"
 msgstr ""
 
-#: .\users\views.py:370
+#: .\users\views.py:371
 #, python-format
 msgid "Successfully cleared %(count)d search entry"
-msgstr ""
+msgid_plural "Successfully cleared %(count)d search entries"
+msgstr[0] ""
+msgstr[1] ""

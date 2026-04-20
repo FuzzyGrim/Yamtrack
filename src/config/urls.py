@@ -12,11 +12,23 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path
+from django.utils import timezone
+from django.views.decorators.http import last_modified
+from django.views.i18n import JavaScriptCatalog
 from health_check.views import HealthCheckView
 from redis.asyncio import Redis as RedisClient
 
+last_modified_date = timezone.now()
+
 urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
+    path(
+        "jsi18n/",
+        last_modified(lambda req, **kw: last_modified_date)(  # noqa: ARG005
+            JavaScriptCatalog.as_view()
+        ),
+        name="javascript-catalog",
+    ),
     path("", include("app.urls")),
     path("", include("integrations.urls")),
     path("", include("users.urls")),

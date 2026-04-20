@@ -139,9 +139,12 @@ From the repository root, run:
 
 ```bash
 cd src
-python manage.py makemessages -l en -l it
+python manage.py makemessages -d django -l en -l it
+python manage.py makemessages -d djangojs -l en -l it
 python manage.py compilemessages
 ```
+
+You need to add all the supported languages with the `-l` flag.
 
 After editing templates/python strings, regenerate message files and compile catalogs again.
 

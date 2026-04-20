@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-20 11:03+0200\n"
-"PO-Revision-Date: 2026-04-20 10:54+0200\n"
+"POT-Creation-Date: 2026-04-20 12:32+0200\n"
+"PO-Revision-Date: 2026-04-20 12:24+0200\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -36,27 +36,27 @@ msgstr ""
 "Formato orario non valido. Fornisci la durata in ore (es. '5', '1.5'), ore e "
 "minuti (es. '5:30', '5h 30min'), o solo minuti (es. '30min')."
 
-#: .\app\forms.py:105 .\app\forms.py:112
+#: .\app\forms.py:108 .\app\forms.py:115
 msgid "Select"
 msgstr "Seleziona"
 
-#: .\app\forms.py:106 .\templates\app\create_entry.html:137
+#: .\app\forms.py:109 .\templates\app\create_entry.html:137
 msgid "Parent TV Show"
 msgstr "Serie TV principale"
 
-#: .\app\forms.py:113 .\templates\app\create_entry.html:184
+#: .\app\forms.py:116 .\templates\app\create_entry.html:184
 msgid "Parent Season"
 msgstr "Stagione principale"
 
-#: .\app\forms.py:162
+#: .\app\forms.py:165
 msgid "Parent TV show is required for seasons"
 msgstr "La serie TV della stagione è obbligatoria"
 
-#: .\app\forms.py:172
+#: .\app\forms.py:175
 msgid "Parent season is required for episodes"
 msgstr "La stagione degli episodi è obbligatoria"
 
-#: .\app\forms.py:180
+#: .\app\forms.py:183
 msgid "Title is required for this media type"
 msgstr "Il titolo è obbligatorio per questo tipo di media"
 
@@ -357,15 +357,15 @@ msgstr "O continua con"
 #: .\templates\app\components\fill_history.html:6
 #: .\templates\app\statistics.html:168
 msgid "Activity History"
-msgstr ""
+msgstr "Cronologia attività"
 
 #: .\templates\app\components\fill_history.html:16
 msgid "Instance"
-msgstr ""
+msgstr "Istanza"
 
 #: .\templates\app\components\fill_history.html:29
 msgid "You haven't started tracking it yet."
-msgstr ""
+msgstr "Non hai ancora iniziato a tracciare."
 
 #: .\templates\app\components\fill_track_episode.html:13
 #: .\templates\app\media_details.html:577
@@ -374,15 +374,12 @@ msgstr "Traccia episodio"
 
 #: .\templates\app\components\fill_track_episode.html:29
 msgid "Watched once"
-msgstr ""
+msgstr "Guardato una volta"
 
 #: .\templates\app\components\fill_track_episode.html:31
-msgid "Watched"
-msgstr ""
-
-#: .\templates\app\components\fill_track_episode.html:31
-msgid "times"
-msgstr ""
+#, python-format
+msgid "Watched %(watch_count)s times"
+msgstr "Guardato %(watch_count)s volte"
 
 #: .\templates\app\components\fill_track_episode.html:34
 msgid "Not watched yet"
@@ -390,7 +387,7 @@ msgstr "Ancora non guardato"
 
 #: .\templates\app\components\fill_track_episode.html:45
 msgid "Previous Watches"
-msgstr ""
+msgstr "Visioni precedenti"
 
 #: .\templates\app\components\fill_track_episode.html:54
 #: .\templates\app\media_details.html:644
@@ -408,11 +405,11 @@ msgstr "Visto il"
 
 #: .\templates\app\components\fill_track_episode.html:101
 msgid "Air date"
-msgstr ""
+msgstr "Data di trasmissione"
 
 #: .\templates\app\components\fill_track_episode.html:110
 msgid "Add watch"
-msgstr ""
+msgstr "Aggiungi visione"
 
 #: .\templates\app\components\search_parent_season.html:15
 msgid "No seasons found matching"
@@ -421,11 +418,11 @@ msgstr "Nessuna stagione corrispondente trovata"
 #: .\templates\app\components\search_parent_season.html:15
 #: .\templates\app\components\search_parent_tv.html:15
 msgid "Please try a different search term."
-msgstr ""
+msgstr "Per favore, prova un termine di ricerca diverso."
 
 #: .\templates\app\components\search_parent_tv.html:15
 msgid "No TV shows found matching"
-msgstr ""
+msgstr "Nessuna serie TV corrispondente trovata"
 
 #: .\templates\app\create_entry.html:6
 msgid "Create"
@@ -440,6 +437,8 @@ msgid ""
 "Add a custom media entry to your collection if it's not available in the "
 "database."
 msgstr ""
+"Aggiungi un elemento multimediale personalizzato alla tua collezione se non "
+"è disponibile nel database."
 
 #: .\templates\app\create_entry.html:111 .\users\models.py:83
 msgid "Media Type"
@@ -472,15 +471,15 @@ msgstr "Numero episodio"
 
 #: .\templates\app\create_entry.html:231
 msgid "Image URL"
-msgstr ""
+msgstr "URL dell'immagine"
 
 #: .\templates\app\create_entry.html:236
 msgid "Enter image URL"
-msgstr ""
+msgstr "Inserisci URL dell'immagine"
 
 #: .\templates\app\create_entry.html:252 .\templates\app\media_list.html:165
 msgid "Score"
-msgstr ""
+msgstr "Punteggio"
 
 #: .\templates\app\create_entry.html:308 .\templates\app\media_details.html:333
 #: .\templates\app\media_list.html:168
@@ -499,7 +498,7 @@ msgstr "Data di fine"
 
 #: .\templates\app\create_entry.html:340
 msgid "Notes"
-msgstr ""
+msgstr "Note"
 
 #: .\templates\app\create_entry.html:344
 msgid "Add any notes or comments..."
@@ -510,7 +509,7 @@ msgid "Create Entry"
 msgstr "Crea elemento"
 
 #: .\templates\app\home.html:6 .\templates\app\home.html:12
-#: .\templates\base.html:86
+#: .\templates\base.html:87
 msgid "Home"
 msgstr "Home"
 
@@ -524,26 +523,26 @@ msgstr "Leggi di più"
 
 #: .\templates\app\media_details.html:33
 msgid "Add to tracker"
-msgstr ""
+msgstr "Aggiungi al tracker"
 
 #: .\templates\app\media_details.html:133
 msgid "YOUR NOTES"
-msgstr ""
+msgstr "LE TUE NOTE"
 
 #: .\templates\app\media_details.html:154
 msgid "SCORE"
-msgstr ""
+msgstr "PUNTEGGIO"
 
 #: .\templates\app\media_details.html:164
 #, python-format
 msgid "%(formatted_score_count)s vote"
 msgid_plural "%(formatted_score_count)s votes"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(formatted_score_count)s voto"
+msgstr[1] "%(formatted_score_count)s voti"
 
 #: .\templates\app\media_details.html:176
 msgid "YOUR SCORE"
-msgstr ""
+msgstr "IL TUO PUNTEGGIO"
 
 #: .\templates\app\media_details.html:189
 msgid "Click to edit"
@@ -555,7 +554,7 @@ msgstr "La tua cronologia"
 
 #: .\templates\app\media_details.html:241
 msgid "Add new consumption"
-msgstr ""
+msgstr "Aggiungi nuova visione"
 
 #: .\templates\app\media_details.html:261
 #: .\templates\app\media_details.html:345
@@ -565,7 +564,7 @@ msgstr "Iniziato"
 
 #: .\templates\app\media_details.html:268
 msgid "Ended"
-msgstr ""
+msgstr "Concluso"
 
 #: .\templates\app\media_details.html:275
 #: .\templates\app\media_details.html:337 .\templates\app\media_list.html:166
@@ -598,19 +597,19 @@ msgstr "Aggiungi a lista personalizzata"
 #: .\templates\app\media_details.html:404
 #: .\templates\app\media_details.html:615
 msgid "View your activity history"
-msgstr ""
+msgstr "Visualizza la tua cronologia di attività"
 
 #: .\templates\app\media_details.html:423
 msgid "Sync metadata with provider"
-msgstr ""
+msgstr "Sincronizza metadati con il provider"
 
 #: .\templates\app\media_details.html:440
 msgid "Details"
-msgstr ""
+msgstr "Dettagli"
 
 #: .\templates\app\media_details.html:443
 msgid "STREAMING"
-msgstr ""
+msgstr "STREAMING"
 
 #: .\templates\app\media_details.html:447
 #, python-format
@@ -618,6 +617,8 @@ msgid ""
 "Watch provider region is not configured. Set a region or disable this "
 "feature in the %(link_start)spreferences%(link_end)s."
 msgstr ""
+"La regione del provider di visione non è configurata. Imposta una regione o "
+"disabilita questa funzione nelle %(link_start)spreferenze%(link_end)s."
 
 #: .\templates\app\media_details.html:462
 msgid "No watch providers"
@@ -629,7 +630,7 @@ msgstr "Sorgente"
 
 #: .\templates\app\media_details.html:487
 msgid "EXTERNAL LINKS"
-msgstr ""
+msgstr "COLLEGAMENTI ESTERNI"
 
 #: .\templates\app\media_details.html:496
 msgid "No details available"
@@ -637,7 +638,7 @@ msgstr "Nessun dettaglio disponibile"
 
 #: .\templates\app\media_details.html:504
 msgid "Cast"
-msgstr ""
+msgstr "Cast"
 
 #: .\templates\app\media_details.html:516
 msgid "View all"
@@ -645,11 +646,11 @@ msgstr "Vedi tutti"
 
 #: .\templates\app\media_details.html:517
 msgid "cast members"
-msgstr ""
+msgstr "Membri del cast"
 
 #: .\templates\app\media_details.html:531
 msgid "DLCs"
-msgstr ""
+msgstr "DLCs"
 
 #: .\templates\app\media_details.html:554
 msgid "Episodes"
@@ -657,10 +658,10 @@ msgstr "Episodi"
 
 #: .\templates\app\media_details.html:569
 msgid "Unknown air date"
-msgstr ""
+msgstr "Data di trasmissione sconosciuta"
 
 #: .\templates\app\media_list.html:38 .\templates\app\search.html:6
-#: .\templates\base.html:222
+#: .\templates\base.html:223
 msgid "Search"
 msgstr "Cerca"
 
@@ -683,7 +684,7 @@ msgstr "Tabella"
 #: .\templates\app\media_list.html:145
 #, python-format
 msgid "No %(media_plural)s Tracked Yet"
-msgstr ""
+msgstr "Nessun %(media_plural)s ancora tracciato"
 
 #: .\templates\app\media_list.html:148
 #, python-format
@@ -691,6 +692,8 @@ msgid ""
 "Start tracking your %(media_type)s to keep a record of what you've "
 "%(media_type|media_past_verb)s."
 msgstr ""
+"Inizia a tracciare i tuoi %(media_type)s per tenere traccia di ciò che hai "
+"%(media_type|media_past_verb)s."
 
 #: .\templates\app\media_list.html:152
 #, python-format
@@ -699,7 +702,7 @@ msgstr "Sfoglia %(media_type)s"
 
 #: .\templates\app\media_list.html:167
 msgid "Last Watched"
-msgstr ""
+msgstr "Visto l'ultima volta"
 
 #: .\templates\app\search.html:11
 msgid "Search Results"
@@ -715,24 +718,24 @@ msgstr "Nessun risultato trovato"
 
 #: .\templates\app\search.html:102
 msgid "We couldn't find any matches for"
-msgstr ""
+msgstr "Non abbiamo trovato corrispondenze per"
 
 #: .\templates\app\search.html:102
 msgid "Try checking your spelling or using different keywords."
-msgstr ""
+msgstr "Prova a controllare l'ortografia o a usare parole chiave diverse."
 
 #: .\templates\app\statistics.html:7 .\templates\app\statistics.html:12
-#: .\templates\base.html:130
+#: .\templates\base.html:131
 msgid "Statistics"
 msgstr "Statistiche"
 
 #: .\templates\app\statistics.html:13
 msgid "Track your media consumption habits"
-msgstr ""
+msgstr "Traccia le tue abitudini di consumo multimediale"
 
 #: .\templates\app\statistics.html:36
 msgid "Predefined Ranges"
-msgstr ""
+msgstr "Intervalli predefiniti"
 
 #: .\templates\app\statistics.html:39
 msgid "Custom Range"
@@ -744,7 +747,7 @@ msgstr "Annulla"
 
 #: .\templates\app\statistics.html:91
 msgid "Apply Range"
-msgstr ""
+msgstr "Applica intervallo"
 
 #: .\templates\app\statistics.html:107
 msgid "Completed Items"
@@ -765,22 +768,22 @@ msgstr "Streak attuale"
 #: .\templates\app\statistics.html:187
 #: .\templates\events\components\calendar_grid.html:6
 msgid "Mon"
-msgstr ""
+msgstr "Lun"
 
 #: .\templates\app\statistics.html:189
 #: .\templates\events\components\calendar_grid.html:8
 msgid "Wed"
-msgstr ""
+msgstr "Mer"
 
 #: .\templates\app\statistics.html:191
 #: .\templates\events\components\calendar_grid.html:10
 msgid "Fri"
-msgstr ""
+msgstr "Ven"
 
 #: .\templates\app\statistics.html:193
 #: .\templates\events\components\calendar_grid.html:12
 msgid "Sun"
-msgstr ""
+msgstr "Dom"
 
 #: .\templates\app\statistics.html:227
 msgid "Media Type Distribution"
@@ -788,23 +791,25 @@ msgstr "Distribuzione dei tipi di media"
 
 #: .\templates\app\statistics.html:238
 msgid "No media types to display"
-msgstr ""
+msgstr "Nessun tipo di media da visualizzare"
 
 #: .\templates\app\statistics.html:239
 msgid "Add different types of media to see their distribution."
-msgstr ""
+msgstr "Aggiungi diversi tipi di media per vedere la loro distribuzione."
 
 #: .\templates\app\statistics.html:246
 msgid "Status Distribution"
-msgstr ""
+msgstr "Distribuzione dello stato"
 
 #: .\templates\app\statistics.html:257
 msgid "No status data to display"
-msgstr ""
+msgstr "Nessun dato di stato da visualizzare"
 
 #: .\templates\app\statistics.html:258
 msgid "Track media items with different statuses to see their distribution."
 msgstr ""
+"Traccia elementi multimediali con stati diversi per vedere la loro "
+"distribuzione."
 
 #: .\templates\app\statistics.html:265
 msgid "Status Distribution by Media Type"
@@ -818,6 +823,8 @@ msgstr "Nessun dato disponibile"
 msgid ""
 "Add media items with different statuses to see their distribution by type."
 msgstr ""
+"Aggiungi elementi multimediali con stati diversi per vedere la loro "
+"distribuzione per tipo."
 
 #: .\templates\app\statistics.html:286
 msgid "Score Distribution by Media Type"
@@ -830,46 +837,45 @@ msgstr "Ancora nessuna valutazione"
 #: .\templates\app\statistics.html:298 .\templates\app\statistics.html:320
 msgid "Rate your media items to see score distribution statistics."
 msgstr ""
+"Valuta i tuoi elementi multimediali per vedere le statistiche di "
+"distribuzione delle valutazioni."
 
 #: .\templates\app\statistics.html:306
 msgid "Top Rated Media"
 msgstr "Media valutati meglio"
 
 #: .\templates\app\statistics.html:327
-#, fuzzy
-#| msgid "Media Type"
 msgid "Media Timeline"
-msgstr "Tipi media"
+msgstr "Timeline dei media"
 
 #: .\templates\app\statistics.html:403
-#, fuzzy
 msgid "Your timeline is empty"
-msgstr "La collezione è vuota."
+msgstr "La tua timeline è vuota"
 
 #: .\templates\app\statistics.html:404
 msgid "Consume media items to see them appear on your timeline."
-msgstr ""
+msgstr "Consuma elementi multimediali per vederli apparire sulla tua timeline."
 
-#: .\templates\base.html:115
+#: .\templates\base.html:116
 msgid "Create Custom"
 msgstr "Crea personalizzato"
 
-#: .\templates\base.html:145 .\templates\lists\components\fill_lists.html:5
+#: .\templates\base.html:146 .\templates\lists\components\fill_lists.html:5
 #: .\templates\lists\custom_lists.html:10
 #: .\templates\lists\custom_lists.html:17
 msgid "Lists"
 msgstr "Liste"
 
-#: .\templates\base.html:160 .\templates\events\calendar.html:6
+#: .\templates\base.html:161 .\templates\events\calendar.html:6
 #: .\templates\events\calendar.html:11
 msgid "Calendar"
 msgstr "Calendario"
 
-#: .\templates\base.html:184 .\templates\users\base.html:8
+#: .\templates\base.html:185 .\templates\users\base.html:8
 msgid "Settings"
 msgstr "Impostazioni"
 
-#: .\templates\base.html:193
+#: .\templates\base.html:194
 msgid "Logout"
 msgstr "Esci"
 
@@ -887,13 +893,15 @@ msgstr "Recupera nuovi rilasci"
 
 #: .\templates\events\calendar.html:71
 msgid "Export link"
-msgstr ""
+msgstr "Link di esportazione"
 
 #: .\templates\events\calendar.html:74
 msgid ""
 "This link can be used to integrate your calendar into any of your calendar "
 "applications."
 msgstr ""
+"Questo link può essere utilizzato per integrare il tuo calendario in "
+"qualsiasi applicazione di calendario."
 
 #: .\templates\events\components\calendar_grid.html:7
 msgid "Tue"
@@ -930,11 +938,11 @@ msgstr "Crea lista"
 
 #: .\templates\lists\components\list_item_button.html:9
 msgid "Remove"
-msgstr ""
+msgstr "Rimuovi"
 
 #: .\templates\lists\components\list_item_button.html:17
 msgid "Add"
-msgstr ""
+msgstr "Aggiungi"
 
 #: .\templates\lists\custom_lists.html:18
 msgid "Organize and share your media lists"
@@ -973,6 +981,8 @@ msgstr "Ancora nessuna lista è stata creata"
 msgid ""
 "Create custom lists to organize your media collection and share with friends."
 msgstr ""
+"Crea liste personalizzate per organizzare la tua collezione media e "
+"condividerla con gli amici."
 
 #: .\templates\lists\custom_lists.html:107
 msgid "Create Your First List"
@@ -1001,14 +1011,17 @@ msgid ""
 "You can sign in to your account using any of the following third-party "
 "accounts"
 msgstr ""
+"Puoi accedere al tuo account utilizzando uno qualsiasi dei seguenti account "
+"di terze parti"
 
 #: .\templates\socialaccount\connections.html:66
 msgid "Remove Selected"
-msgstr ""
+msgstr "Rimuovi selezionati"
 
 #: .\templates\socialaccount\connections.html:75
 msgid "You currently have no third-party accounts connected to this account."
 msgstr ""
+"Al momento non hai nessun account di terze parti connesso a questo account."
 
 #: .\templates\socialaccount\connections.html:83
 msgid "Add a Third-Party Account"
@@ -1016,7 +1029,7 @@ msgstr "Aggiungi un account di terze parti"
 
 #: .\templates\users\about.html:8 .\templates\users\base.html:68
 msgid "About"
-msgstr ""
+msgstr "About"
 
 #: .\templates\users\about.html:13
 msgid "About Yamtrack"
@@ -1024,17 +1037,19 @@ msgstr "Riguardo Yamtrack"
 
 #: .\templates\users\about.html:19
 msgid "Description"
-msgstr ""
+msgstr "Descrizione"
 
 #: .\templates\users\about.html:22
 msgid ""
 "Yamtrack is an open-source media tracker that helps you organize and track "
 "your media."
 msgstr ""
+"Yamtrack è un tracker multimediale open-source che ti aiuta a organizzare e "
+"tracciare i tuoi media."
 
 #: .\templates\users\about.html:29
 msgid "Links"
-msgstr ""
+msgstr "Link"
 
 #: .\templates\users\about.html:37
 msgid "Source Code"
@@ -1046,31 +1061,31 @@ msgstr "Documentazione"
 
 #: .\templates\users\about.html:55
 msgid "Bug Reports"
-msgstr ""
+msgstr "Segnalazione bug"
 
 #: .\templates\users\about.html:64
 msgid "License"
-msgstr ""
+msgstr "Licenza"
 
 #: .\templates\users\about.html:67
 msgid "Yamtrack is licensed under the"
-msgstr ""
+msgstr "Yamtrack è concesso in licenza sotto la"
 
 #: .\templates\users\about.html:79
 msgid "Attribution"
-msgstr ""
+msgstr "Attribuzione"
 
 #: .\templates\users\about.html:82
 msgid "Movie and TV streaming providers from"
-msgstr ""
+msgstr "Fornitori di streaming di film e TV da"
 
 #: .\templates\users\about.html:87
 msgid "JustWatch"
-msgstr ""
+msgstr "JustWatch"
 
 #: .\templates\users\about.html:95
 msgid "Version"
-msgstr ""
+msgstr "Versione"
 
 #: .\templates\users\account.html:8 .\templates\users\base.html:19
 msgid "Account"
@@ -1078,7 +1093,7 @@ msgstr "Account"
 
 #: .\templates\users\account.html:16
 msgid "Profile Information"
-msgstr ""
+msgstr "Informazioni profilo"
 
 #: .\templates\users\account.html:43
 msgid "Save Changes"
@@ -1102,15 +1117,16 @@ msgstr "Conferma nuova password"
 
 #: .\templates\users\account.html:141
 msgid "Update Password"
-msgstr ""
+msgstr "Aggiorna password"
 
 #: .\templates\users\account.html:152
 msgid "Third-Party Connections"
-msgstr ""
+msgstr "Connessioni di terze parti"
 
 #: .\templates\users\account.html:154
 msgid "Manage your connected third-party accounts for easier sign-in."
 msgstr ""
+"Gestisci i tuoi account di terze parti connessi per un accesso più facile."
 
 #: .\templates\users\account.html:158
 msgid "Manage Account Connections"
@@ -1119,30 +1135,38 @@ msgstr "Gestisci connessioni account"
 #: .\templates\users\advanced.html:8 .\templates\users\advanced.html:17
 #: .\templates\users\base.html:61
 msgid "Advanced"
-msgstr ""
+msgstr "Avanzate"
 
 #: .\templates\users\advanced.html:23 .\templates\users\advanced.html:39
 msgid "Clear Search Cache"
-msgstr ""
+msgstr "Pulisci cache di ricerca"
 
 #: .\templates\users\advanced.html:26
 msgid ""
 "Yamtrack stores your search results in a cache to speed up performance and "
 "reduce API calls."
 msgstr ""
+"Yamtrack memorizza i risultati della ricerca in una cache per velocizzare le "
+"prestazioni e ridurre le chiamate API."
 
 #: .\templates\users\advanced.html:28
 msgid "Normally, these cached results expire automatically after 24 hours."
 msgstr ""
+"Normalmente, questi risultati memorizzati scadono automaticamente dopo 24 "
+"ore."
 
 #: .\templates\users\advanced.html:29
 msgid ""
 "If your search results appear outdated, you can clear the cache manually."
 msgstr ""
+"Se i risultati della ricerca sembrano obsoleti, puoi pulire la cache "
+"manualmente."
 
 #: .\templates\users\advanced.html:31
 msgid "Your next search may be slightly slower as fresh data is retrieved."
 msgstr ""
+"La tua prossima ricerca potrebbe essere leggermente più lenta poiché vengono "
+"recuperati dati aggiornati."
 
 #: .\templates\users\base.html:9
 msgid "Configure your account and preferences"
@@ -1160,7 +1184,7 @@ msgstr "Notifiche"
 #: .\templates\users\base.html:40 .\templates\users\integrations.html:7
 #: .\templates\users\integrations.html:14
 msgid "Integrations"
-msgstr ""
+msgstr "Integrazioni"
 
 #: .\templates\users\base.html:47
 msgid "Import Data"
@@ -1168,7 +1192,7 @@ msgstr "Importa dati"
 
 #: .\templates\users\base.html:54 .\templates\users\export_data.html:13
 msgid "Export Data"
-msgstr ""
+msgstr "Esporta dati"
 
 #: .\templates\users\components\excluded_items.html:4
 msgid "Currently Excluded"
@@ -1180,7 +1204,7 @@ msgstr "Ancora nessun elemento escluso"
 
 #: .\templates\users\components\search_results.html:22
 msgid "Exclude"
-msgstr ""
+msgstr "Escludi"
 
 #: .\templates\users\components\search_results.html:28
 msgid "No matching items found"
@@ -1188,23 +1212,24 @@ msgstr "Nessun elemento corrispondente trovato"
 
 #: .\templates\users\export_data.html:6
 msgid "Export"
-msgstr ""
+msgstr "Esporta"
 
 #: .\templates\users\export_data.html:15
 msgid "Back up your data or export it for use with other services."
 msgstr ""
+"Esegui il backup dei tuoi dati o esportali per usarli con altri servizi."
 
 #: .\templates\users\export_data.html:16
 msgid "Your export will include all your media items."
-msgstr ""
+msgstr "La tua esportazione includerà tutti i tuoi elementi media."
 
 #: .\templates\users\export_data.html:20
 msgid "Export as CSV"
-msgstr ""
+msgstr "Esporta come CSV"
 
 #: .\templates\users\import_data.html:7 .\templates\users\import_data.html:336
 msgid "Import"
-msgstr ""
+msgstr "Importa"
 
 #: .\templates\users\import_data.html:18
 msgid "Import Settings"
@@ -1256,14 +1281,16 @@ msgid ""
 "Some of these require additional configuration, check the "
 "%(link_start)simport configuration guide%(link_end)s."
 msgstr ""
+"Alcuni di questi richiedono una configurazione aggiuntiva, controlla la "
+"%(link_start)sguida alla configurazione dell'importazione%(link_end)s."
 
 #: .\templates\users\import_data.html:74
 msgid "Import TV shows and movies"
-msgstr ""
+msgstr "Importa serie TV e film"
 
 #: .\templates\users\import_data.html:81 .\templates\users\import_data.html:174
 msgid "Import private profile (requires authentication)"
-msgstr ""
+msgstr "Importa profilo privato (richiede l'autenticazione)"
 
 #: .\templates\users\import_data.html:118
 msgid "Connect with Trakt & Import"
@@ -1271,7 +1298,7 @@ msgstr "Connetti con Trakt e importa"
 
 #: .\templates\users\import_data.html:126
 msgid "Import TV shows, movies and anime"
-msgstr ""
+msgstr "Importa serie TV, film e anime"
 
 #: .\templates\users\import_data.html:134
 msgid "Connect with Simkl & Import"
@@ -1285,11 +1312,13 @@ msgstr "Importa anime e manga"
 
 #: .\templates\users\import_data.html:211
 msgid "Connect with AniList & Import"
-msgstr ""
+msgstr "Connetti con AniList e importa"
 
 #: .\templates\users\import_data.html:235
-msgid "Find it on your Kitsu profile URL:"
-msgstr ""
+#, fuzzy
+#| msgid "Find it on your Kitsu profile URL:"
+msgid "Find it on your Kitsu profile URL"
+msgstr "Trovalo nell'URL del tuo profilo Kitsu:"
 
 #: .\templates\users\import_data.html:303
 #: .\templates\users\import_data.html:365
@@ -1303,35 +1332,42 @@ msgstr "Importa giochi dalla tua libreria Steam"
 
 #: .\templates\users\import_data.html:320
 msgid "Steam 64-bit ID"
-msgstr ""
+msgstr "ID Steam a 64 bit"
 
 #: .\templates\users\import_data.html:327
 msgid "Find it on your Steam account details page under your username."
 msgstr ""
+"Trovalo nella pagina dei dettagli del tuo account Steam sotto il tuo nome "
+"utente."
 
 #: .\templates\users\import_data.html:330
 msgid ""
 "Your profile must be public if the API key you are using is not linked to "
 "the steamid you are requesting."
 msgstr ""
+"Il tuo profilo deve essere pubblico se la chiave API che stai utilizzando "
+"non è collegata allo steamid che stai richiedendo."
 
 #: .\templates\users\import_data.html:404
 msgid "Active Periodic Imports"
-msgstr ""
+msgstr "Importazioni periodiche attive"
 
 #: .\templates\users\import_data.html:407
 msgid ""
 "Automated imports that run on a schedule. These will continue to sync your "
 "media until disabled."
 msgstr ""
+"Importazioni automatizzate che vengono eseguite secondo un programma. "
+"Continueranno a sincronizzare i tuoi media fino a quando non saranno "
+"disabilitate."
 
 #: .\templates\users\import_data.html:428
 msgid "Username"
-msgstr ""
+msgstr "Nome utente"
 
 #: .\templates\users\import_data.html:429
 msgid "Mode"
-msgstr ""
+msgstr "Modalità"
 
 #: .\templates\users\import_data.html:430
 msgid "Last Import"
@@ -1348,6 +1384,8 @@ msgstr "Nessun trasferimento periodico configurato"
 #: .\templates\users\import_data.html:437
 msgid "Set up an import with a daily or 2-day frequency to see it here"
 msgstr ""
+"Imposta un trasferimento con frequenza giornaliera o ogni 2 giorni per "
+"vederlo qui"
 
 #: .\templates\users\import_data.html:447
 msgid "Import History"
@@ -1355,19 +1393,19 @@ msgstr "Cronologia trasferimenti"
 
 #: .\templates\users\import_data.html:450
 msgid "Showing import activity from the last 7 days."
-msgstr ""
+msgstr "Mostra l'attività di importazione degli ultimi 7 giorni."
 
 #: .\templates\users\import_data.html:461
 msgid "Success"
-msgstr ""
+msgstr "Successo"
 
 #: .\templates\users\import_data.html:467
 msgid "Failed"
-msgstr ""
+msgstr "Fallito"
 
 #: .\templates\users\import_data.html:469
 msgid "Pending"
-msgstr ""
+msgstr "In attesa"
 
 #: .\templates\users\import_data.html:485
 msgid "Show failed items"
@@ -1375,7 +1413,7 @@ msgstr "Mostra elementi falliti"
 
 #: .\templates\users\import_data.html:490
 msgid "Show traceback"
-msgstr ""
+msgstr "Mostra traceback"
 
 #: .\templates\users\import_data.html:505
 msgid "No imports in the last 7 days"
@@ -1383,81 +1421,93 @@ msgstr "Nessun trasferimento negli ultimi 7 giorni"
 
 #: .\templates\users\import_data.html:506
 msgid "Import your media from any source to see the history here"
-msgstr ""
+msgstr "Importa i tuoi media da qualsiasi fonte per vedere la cronologia qui"
 
 #: .\templates\users\integrations.html:16
 msgid ""
 "Connect your media servers to automatically track your watching progress."
 msgstr ""
+"Connetti i tuoi server multimediali per tenere traccia automaticamente dei "
+"tuoi progressi di visione."
 
 #: .\templates\users\integrations.html:20
 msgid "API Token"
-msgstr ""
+msgstr "Token API"
 
 #: .\templates\users\integrations.html:22
 msgid ""
 "This token is used to authenticate webhook requests from your media servers."
 msgstr ""
+"Questo token viene utilizzato per autenticare le richieste webhook dai tuoi "
+"server multimediali."
 
 #: .\templates\users\integrations.html:40
 msgid "Regenerating will invalidate the previous token"
-msgstr ""
+msgstr "Rigenerare invaliderà il token precedente"
 
 #: .\templates\users\integrations.html:48
 msgid "Regenerate"
-msgstr ""
+msgstr "Rigenera"
 
 #: .\templates\users\integrations.html:57
 msgid "Jellyfin Integration (Official Repo)"
-msgstr ""
+msgstr "Integrazione con Jellyfin (Repository Ufficiale)"
 
 #: .\templates\users\integrations.html:59
 #: .\templates\users\integrations.html:119
 msgid "Connect Jellyfin to automatically track your watching progress."
 msgstr ""
+"Connetti Jellyfin per tenere traccia automaticamente dei tuoi progressi di "
+"visione."
 
 #: .\templates\users\integrations.html:61
 #: .\templates\users\integrations.html:121
 #: .\templates\users\integrations.html:189
 #: .\templates\users\integrations.html:228
 msgid "Setup Instructions"
-msgstr ""
+msgstr "Istruzioni di configurazione"
 
 #: .\templates\users\integrations.html:63
 #: .\templates\users\integrations.html:123
 msgid "You will need to have TMDB and TVDB as metadata providers in Jellyfin."
 msgstr ""
+"Avrai bisogno di avere TMDB e TVDB come provider di metadati in Jellyfin."
 
 #: .\templates\users\integrations.html:64
 msgid ""
 "Install the Webhook plugin from the 'Jellyfin Stable' repo via your server's "
 "Plugin Catalog."
 msgstr ""
+"Installa il plugin Webhook dal repository 'Jellyfin Stable' tramite il "
+"Catalogo dei plugin del tuo server."
 
 #: .\templates\users\integrations.html:66
 #: .\templates\users\integrations.html:135
-msgid "Restart your server, then configure the plugin:"
-msgstr ""
+msgid "Restart your server, then configure the plugin"
+msgstr "Riavvia il tuo server, quindi configura il plugin"
 
 #: .\templates\users\integrations.html:68
-msgid "Click on the \\"
+msgid ""
+"Click on the \"Add Generic Destination\" button to create a new webhook."
 msgstr ""
+"Clicca sul pulsante \"Aggiungi destinazione generica\" per creare un nuovo "
+"webhook."
 
 #: .\templates\users\integrations.html:80
 msgid "Notification Type: Playback Start and Playback Stop"
-msgstr ""
+msgstr "Tipo di notifica: Inizio riproduzione e fine riproduzione"
 
 #: .\templates\users\integrations.html:81
 msgid "User Filter: Your Jellyfin User"
-msgstr ""
+msgstr "Filtro utente: Il tuo utente Jellyfin"
 
 #: .\templates\users\integrations.html:82
-msgid "Finally, under the \\"
-msgstr ""
+msgid "Finally, under the \"Template\" section, paste the following code."
+msgstr "Infine, nella sezione \"Template\", incolla il seguente codice."
 
 #: .\templates\users\integrations.html:117
 msgid "Jellyfin Integration (Unofficial Repo)"
-msgstr ""
+msgstr "Integrazione con Jellyfin (Repository non ufficiale)"
 
 #: .\templates\users\integrations.html:125
 #, python-format
@@ -1465,6 +1515,8 @@ msgid ""
 "Add this repository %(link_start)slink%(link_end)s to your \"Plugins "
 "Catalog\" in Jellyfin settings."
 msgstr ""
+"Aggiungi questo repository %(link_start)slink%(link_end)s al tuo \"Catalogo "
+"dei plugin\" nelle impostazioni di Jellyfin."
 
 #: .\templates\users\integrations.html:130
 #, python-format
@@ -1472,6 +1524,8 @@ msgid ""
 "From your \"Plugins Catalog\", install the %(link_start)sUnofficial Webhooks "
 "plugin%(link_end)s."
 msgstr ""
+"Dal tuo \"Catalogo dei plugin\", installa il plugin %(link_start)sUnofficial "
+"Webhooks%(link_end)s."
 
 #: .\templates\users\integrations.html:147
 msgid "Payload format: Default"
@@ -1479,38 +1533,42 @@ msgstr "Formato contenuto: Default"
 
 #: .\templates\users\integrations.html:148
 msgid "Listen to events only for: Your Jellyfin User"
-msgstr ""
+msgstr "Ascolta solo eventi per: Il tuo utente Jellyfin"
 
 #: .\templates\users\integrations.html:149
 #: .\templates\users\integrations.html:252
 msgid "Events: Play and Stop"
-msgstr ""
+msgstr "Eventi: Riproduzione e Stop"
 
 #: .\templates\users\integrations.html:159
 msgid "Plex Integration"
-msgstr ""
+msgstr "Integrazione con Plex"
 
 #: .\templates\users\integrations.html:161
 msgid "Connect Plex to automatically track your watching progress."
 msgstr ""
+"Connetti Plex per tenere traccia automaticamente dei tuoi progressi di "
+"visione."
 
 #: .\templates\users\integrations.html:163
 msgid "Plex Usernames"
-msgstr ""
+msgstr "Nomi utente Plex"
 
 #: .\templates\users\integrations.html:171
 msgid ""
 "This username (or several, comma separated) will be used to filter which "
 "events are sent to your webhook."
 msgstr ""
+"Questo nome utente (o più, separati da virgola) sarà usato per filtrare "
+"quali eventi vengono inviati al tuo webhook."
 
 #: .\templates\users\integrations.html:191
 msgid "You will need to have a PlexPass in order to have webhooks enabled"
-msgstr ""
+msgstr "Avrai bisogno di avere un PlexPass per abilitare i webhooks"
 
 #: .\templates\users\integrations.html:192
 msgid "Go to Settings > Server > Network and enable Webhooks"
-msgstr ""
+msgstr "Vai su Impostazioni > Server > Rete e abilita i Webhooks"
 
 #: .\templates\users\integrations.html:194
 #, python-format
@@ -1519,44 +1577,51 @@ msgstr ""
 "Nelle impostazioni di Plex, vai nei %(link_start)sWebhooks%(link_end)s."
 
 #: .\templates\users\integrations.html:199
-msgid "In the Webhooks section, click on \\"
+msgid ""
+"In the Webhooks section, click on \"Add Webhook\" and enter the following URL"
 msgstr ""
+"Nella sezione Webhooks, clicca su \"Aggiungi Webhook\" e inserisci il "
+"seguente URL"
 
 #: .\templates\users\integrations.html:224
 msgid "Emby Integration"
-msgstr ""
+msgstr "Integrazione con Emby"
 
 #: .\templates\users\integrations.html:226
 msgid "Connect Emby to automatically track your watching progress."
 msgstr ""
+"Connetti Emby per tenere traccia automaticamente dei tuoi progressi di "
+"visione."
 
 #: .\templates\users\integrations.html:230
 msgid "In Emby, go to Settings > Notifications"
-msgstr ""
+msgstr "In Emby, vai su Impostazioni > Notifiche"
 
 #: .\templates\users\integrations.html:231
-msgid "In the Notifications section, click on \\"
-msgstr ""
+msgid "In the Notifications section, click on \"Add Notification\""
+msgstr "Nelle impostazioni delle Notifiche, clicca su \"Aggiungi Notifica\""
 
 #: .\templates\users\integrations.html:233
-msgid "In the Notification settings:"
+msgid "In the Notification settings"
 msgstr "Nelle impostazioni delle Notifiche"
 
 #: .\templates\users\integrations.html:237
-msgid "URL:"
-msgstr ""
+msgid "URL"
+msgstr "URL"
 
 #: .\templates\users\integrations.html:251
 msgid "Request content type: multipart/form-data"
-msgstr ""
+msgstr "Tipo di contenuto della richiesta: multipart/form-data"
 
 #: .\templates\users\integrations.html:253
 msgid "Limit user events to: Your Emby User"
-msgstr ""
+msgstr "Limita gli eventi dell'utente a: Il tuo utente Emby"
 
 #: .\templates\users\integrations.html:254
-msgid "\\"
+msgid ""
+"\"Limit library events to\" and \"Limit devices events to\" are optional"
 msgstr ""
+"\"Limita eventi libreria a\" e \"Limita eventi dispositivi a\" sono opzionali"
 
 #: .\templates\users\notifications.html:19
 msgid "Configure how you want to receive notifications about your media."
@@ -1572,6 +1637,8 @@ msgid ""
 "%(apprise_link_start)sApprise%(apprise_link_end)s is a notification service "
 "that supports %(platforms_start)smany platforms%(platforms_end)s including:"
 msgstr ""
+"%(apprise_link_start)sApprise%(apprise_link_end)s è un servizio di notifica "
+"che supporta %(platforms_start)smolte piattaforme%(platforms_end)s tra cui:"
 
 #: .\templates\users\notifications.html:42
 msgid "Discord"
@@ -1804,30 +1871,14 @@ msgstr "Non si può cambiare la password per l'account demo."
 msgid " is not a valid Apprise URL."
 msgstr " non è un URL Apprise valido."
 
-#: .\users\helpers.py:14
-msgid "FAILURE"
-msgstr "FALLIMENTO"
-
 #: .\users\helpers.py:20
 msgid "Unexpected error occurred while processing the task."
 msgstr ""
 "Si è verificato un errore imprevisto durante l'elaborazione dell'attività."
 
-#: .\users\helpers.py:22
-msgid "STARTED"
-msgstr "INIZIATO"
-
 #: .\users\helpers.py:23
 msgid "This task is currently running."
 msgstr "Questa attività è in esecuzione."
-
-#: .\users\helpers.py:25
-msgid "SUCCESS"
-msgstr "SUCCESSO"
-
-#: .\users\helpers.py:39
-msgid "PENDING"
-msgstr "IN ATTESA"
 
 #: .\users\helpers.py:40
 msgid "This task has been queued and is waiting to run."
@@ -2050,27 +2101,27 @@ msgstr "Steam"
 msgid "GoodReads"
 msgstr "GoodReads"
 
-#: .\users\views.py:36
+#: .\users\views.py:37
 msgid "Your username has been updated!"
 msgstr "Il tuo nome utente è stato aggiornato!"
 
-#: .\users\views.py:61
+#: .\users\views.py:62
 msgid "Your password has been updated!"
 msgstr "La tua password è stata aggiornata!"
 
-#: .\users\views.py:88
+#: .\users\views.py:89
 msgid "Notification settings updated successfully!"
 msgstr "Impostazioni di notifica aggiornate con successo!"
 
-#: .\users\views.py:187
+#: .\users\views.py:188
 msgid "No notification URLs configured."
 msgstr "Nessun URL di notifica configurato."
 
-#: .\users\views.py:195
+#: .\users\views.py:196
 msgid "YamTrack Test Notification"
 msgstr "Notifica di test YamTrack"
 
-#: .\users\views.py:197
+#: .\users\views.py:198
 msgid ""
 "This is a test notification from YamTrack. If you're seeing this, your "
 "notifications are working correctly!"
@@ -2078,39 +2129,41 @@ msgstr ""
 "Questa è una notifica di test da YamTrack. Se stai vedendo questo, le tue "
 "notifiche funzionano correttamente!"
 
-#: .\users\views.py:203
+#: .\users\views.py:204
 msgid "Test notification sent successfully!"
 msgstr "Notifica di test inviata con successo!"
 
-#: .\users\views.py:205
+#: .\users\views.py:206
 msgid "Failed to send test notification."
 msgstr "Failed to send test notification."
 
-#: .\users\views.py:234
+#: .\users\views.py:235
 msgid "This section is view-only for demo accounts."
 msgstr "Per gli account demo, questa sezione è solo di visualizzazione."
 
-#: .\users\views.py:274
+#: .\users\views.py:275
 msgid "Settings updated."
 msgstr "Impostazioni aggiornate."
 
-#: .\users\views.py:320
+#: .\users\views.py:321
 msgid "Import schedule deleted."
 msgstr "Programmazione importazione eliminata."
 
-#: .\users\views.py:322
+#: .\users\views.py:323
 msgid "Import schedule not found."
 msgstr "Programmazione importazione non trovata."
 
-#: .\users\views.py:332
+#: .\users\views.py:333
 msgid "Token regenerated successfully."
 msgstr "Token rigenerato con successo."
 
-#: .\users\views.py:357
+#: .\users\views.py:358
 msgid "Plex usernames updated successfully"
 msgstr "Nomi utente Plex aggiornati con successo"
 
-#: .\users\views.py:370
+#: .\users\views.py:371
 #, python-format
 msgid "Successfully cleared %(count)d search entry"
-msgstr "Entry di ricerca cancellate con successo: %(count)d"
+msgid_plural "Successfully cleared %(count)d search entries"
+msgstr[0] "Ricerca cancellata con successo: %(count)d"
+msgstr[1] "Ricerche cancellate con successo: %(count)d"
