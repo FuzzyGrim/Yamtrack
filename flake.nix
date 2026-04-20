@@ -38,7 +38,11 @@
       };
 
       checks.${system} = {
-        inherit (tests) yamtrack-unit-tests;
+        inherit (tests)
+          yamtrack-unit-tests
+          yamtrack-sqlite
+          yamtrack-postgresql
+          ;
       };
 
       nixosModules.default = import ./nix/module.nix { inherit self system; };

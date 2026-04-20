@@ -62,6 +62,46 @@ in
       touch $out
     '';
 
+  yamtrack-sqlite = pkgs.testers.nixosTest {
+    name = "yamtrack-sqlite";
+    nodes.machine =
+      { ... }:
+      {
+        imports = [ self.nixosModules.default ];
+        services.yamtrack = {
+          enable = true;
+          package = self.packages.${system}.default;
+        };
+      };
+    testScript = ''
+      machine.wait_for_unit("yamtrack.service")
+      machine.wait_for_unit("yamtrack-celery-worker.service")
+      machine.wait_until_succeeds("curl -fs http://localhost:8001/accounts/login/", timeout=60)
+      machine.wait_until_succeeds("curl -fs http://localhost:8001/health/", timeout=120)
+    '';
+  };
+
+  yamtrack-postgresql = pkgs.testers.nixosTest {
+    name = "yamtrack-postgresql";
+    nodes.machine =
+      { ... }:
+      {
+        imports = [ self.nixosModules.default ];
+        services.yamtrack = {
+          enable = true;
+          package = self.packages.${system}.default;
+          database.createLocally = true;
+        };
+      };
+    testScript = ''
+      machine.wait_for_unit("postgresql.service")
+      machine.wait_for_unit("yamtrack.service")
+      machine.wait_for_unit("yamtrack-celery-worker.service")
+      machine.wait_until_succeeds("curl -fs http://localhost:8001/accounts/login/", timeout=60)
+      machine.wait_until_succeeds("curl -fs http://localhost:8001/health/", timeout=120)
+    '';
+  };
+
   # Script to run the full test suite (including network-dependent tests)
   # outside the nix sandbox. Usage: nix run .#run-tests
   run-tests = pkgs.writeShellScriptBin "yamtrack-run-tests" ''
