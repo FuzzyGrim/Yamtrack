@@ -35,6 +35,9 @@ let
     // lib.optionalAttrs (cfg.secretKeyFile != null) {
       SECRET_FILE = cfg.secretKeyFile;
     }
+    // lib.optionalAttrs (cfg.trustedOrigins != [ ]) {
+      CSRF = lib.concatStringsSep "," cfg.trustedOrigins;
+    }
     // lib.mapAttrs (_: toString) cfg.extraConfig;
 
   commonServiceConfig = {
@@ -95,6 +98,31 @@ in
       description = "Extra environment variables for Yamtrack.";
     };
 
+    hostName = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      example = "yamtrack.example.com";
+      description = "The domain serving your Yamtrack instance. Required when configuring nginx.";
+    };
+
+    trustedOrigins = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "https://yamtrack.example.com" ];
+      description = ''
+        List of trusted origins for CSRF protection (Django's CSRF_TRUSTED_ORIGINS).
+        When {option}`hostName` is set, an appropriate origin is added automatically:
+        `http://<hostName>` when {option}`configureNginx` is enabled (nginx serves on port 80),
+        or `http://<hostName>:<port>` otherwise.
+      '';
+    };
+
+    configureNginx = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Configure nginx as a reverse proxy for Yamtrack.";
+    };
+
     user = lib.mkOption {
       type = lib.types.str;
       default = "yamtrack";
@@ -109,6 +137,20 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.configureNginx -> cfg.hostName != "";
+        message = "services.yamtrack.hostName must be set when services.yamtrack.configureNginx is enabled.";
+      }
+    ];
+
+    services.yamtrack.trustedOrigins = lib.mkIf (cfg.hostName != "") (
+      if cfg.configureNginx then
+        [ "http://${cfg.hostName}" ]
+      else
+        [ "http://${cfg.hostName}:${toString cfg.port}" ]
+    );
+
     users.users = lib.mkIf (cfg.user == "yamtrack") {
       yamtrack = {
         inherit (cfg) group;
@@ -135,6 +177,26 @@ in
           ensureDBOwnership = true;
         }
       ];
+    };
+
+    services.nginx = lib.mkIf cfg.configureNginx {
+      enable = true;
+      upstreams.yamtrack.servers."127.0.0.1:${toString cfg.port}" = { };
+      virtualHosts."${cfg.hostName}" = {
+        locations."/static/" = {
+          alias = "${pkg}/lib/yamtrack/staticfiles/";
+        };
+        locations."/" = {
+          proxyPass = "http://yamtrack";
+          proxyWebsockets = true;
+          extraConfig = ''
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+          '';
+        };
+      };
     };
 
     systemd.services.yamtrack = {

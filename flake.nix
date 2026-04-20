@@ -7,6 +7,7 @@
 #   checks.x86_64-linux.yamtrack-unit-tests   — Sandboxed unit tests (460+)
 #   checks.x86_64-linux.yamtrack-sqlite       — NixOS VM test with SQLite
 #   checks.x86_64-linux.yamtrack-postgresql   — NixOS VM test with PostgreSQL
+#   checks.x86_64-linux.yamtrack-nginx        — NixOS VM test with nginx reverse proxy
 #   checks.x86_64-linux.yamtrack-playwright   — Playwright integration tests in VM
 #   nixosModules.default              — NixOS service module
 #
@@ -63,6 +64,7 @@
           yamtrack-unit-tests
           yamtrack-sqlite
           yamtrack-postgresql
+          yamtrack-nginx
           yamtrack-playwright
           ;
       };
