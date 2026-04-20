@@ -102,6 +102,36 @@ in
     '';
   };
 
+  yamtrack-playwright = pkgs.testers.nixosTest {
+    name = "yamtrack-playwright";
+    nodes.machine =
+      { pkgs, ... }:
+      {
+        virtualisation.memorySize = 2048;
+        environment.systemPackages = [ playwrightTestPython ];
+        environment.variables = {
+          PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+        };
+      };
+    testScript = ''
+      machine.wait_for_unit("multi-user.target")
+      machine.succeed("""
+        set -e
+        cp -r ${yamtrack}/lib/yamtrack /tmp/yamtrack-test
+        chmod -R u+w /tmp/yamtrack-test
+        cd /tmp/yamtrack-test
+        cp ${./conftest_playwright.py} conftest.py
+        export DJANGO_SETTINGS_MODULE=config.test_settings
+        export HOME=/tmp
+        export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright-driver.browsers}
+        ${playwrightTestPython.interpreter} -m pytest \
+          app/tests/test_integration.py \
+          lists/tests/test_integration.py \
+          -x -v 2>&1
+      """)
+    '';
+  };
+
   # Script to run the full test suite (including network-dependent tests)
   # outside the nix sandbox. Usage: nix run .#run-tests
   run-tests = pkgs.writeShellScriptBin "yamtrack-run-tests" ''

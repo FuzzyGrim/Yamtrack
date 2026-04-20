@@ -42,6 +42,7 @@
           yamtrack-unit-tests
           yamtrack-sqlite
           yamtrack-postgresql
+          yamtrack-playwright
           ;
       };
 
