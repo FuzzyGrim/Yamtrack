@@ -181,6 +181,7 @@ in
 
     services.nginx = lib.mkIf cfg.configureNginx {
       enable = true;
+      recommendedProxySettings = true;
       upstreams.yamtrack.servers."127.0.0.1:${toString cfg.port}" = { };
       virtualHosts."${cfg.hostName}" = {
         locations."/static/" = {
@@ -189,12 +190,6 @@ in
         locations."/" = {
           proxyPass = "http://yamtrack";
           proxyWebsockets = true;
-          extraConfig = ''
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-          '';
         };
       };
     };

@@ -255,6 +255,10 @@ in
       machine.wait_for_unit("nginx.service")
       machine.wait_until_succeeds(f"curl -fs {base_url}/accounts/login/", timeout=120)
 
+      # Regression: ensure nginx does not send duplicate Host header (DisallowedHost)
+      # A duplicate header would cause Django to see "yamtrack,yamtrack" and reject it
+      machine.succeed(f"curl -fs {base_url}/health/")
+
       # Verify static files are served directly by nginx
       machine.succeed(f"curl -fs {base_url}/static/js/serviceworker.js -o /dev/null")
 
