@@ -99,5 +99,11 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
 
+      - name: Evaluate flake
+        run: nix flake check --no-build
+
+      - name: Build package
+        run: nix build .#default -L
+
       - name: Run unit tests
         run: nix build .#checks.x86_64-linux.yamtrack-unit-tests -L
