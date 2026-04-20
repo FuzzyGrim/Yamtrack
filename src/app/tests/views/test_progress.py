@@ -28,6 +28,16 @@ class ProgressEditSeason(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
 
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+        tv = TV(item=tv_item, user=self.user, status=Status.IN_PROGRESS.value)
+        TV.save_base(tv)
+
         self.item_season = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -39,6 +49,7 @@ class ProgressEditSeason(TestCase):
         self.season = Season.objects.create(
             item=self.item_season,
             user=self.user,
+            related_tv=tv,
             status=Status.IN_PROGRESS.value,
         )
 
@@ -57,6 +68,9 @@ class ProgressEditSeason(TestCase):
             end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
         )
         Episode.save_base(episode)
+        # save_base bypasses Episode.save(), so manually set progress
+        Season.objects.filter(pk=self.season.pk).update(progress=1)
+        self.season.refresh_from_db()
 
     def test_progress_increase(self):
         """Test the increase of progress for a season."""
@@ -217,6 +231,9 @@ class ProgressEditPersistentMessages(TestCase):
             end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
         )
         Episode.save_base(episode)
+        # save_base bypasses Episode.save(), so manually set progress
+        Season.objects.filter(pk=self.season.pk).update(progress=1)
+        self.season.refresh_from_db()
 
     @patch("app.models.providers.services.get_media_metadata")
     def test_progress_edit_htmx_appends_persistent_messages(

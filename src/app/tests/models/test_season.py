@@ -30,6 +30,38 @@ class SeasonModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
+        self.episodes_metadata = [
+            {
+                "episode_number": i,
+                "image": f"img{i}.jpg",
+                "air_date": datetime(2023, 1, i, tzinfo=UTC),
+            }
+            for i in range(1, 25)
+        ]
+
+        def mock_metadata(media_type, media_id, source, season_numbers=None, **kw):
+            if media_type == "tv_with_seasons":
+                return {
+                    f"season/{s}": {"episodes": self.episodes_metadata}
+                    for s in (season_numbers or [1])
+                }
+            return {"episodes": self.episodes_metadata, "image": "season_img.jpg"}
+
+        self.metadata_patcher = patch("app.models.providers.services.get_media_metadata")
+        self.mock_get_metadata = self.metadata_patcher.start()
+        self.mock_get_metadata.side_effect = mock_metadata
+        self.addCleanup(self.metadata_patcher.stop)
+
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+        tv = TV(item=tv_item, user=self.user, status=Status.IN_PROGRESS.value)
+        TV.save_base(tv)
+
         item_season = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -42,6 +74,7 @@ class SeasonModel(TestCase):
         self.season = Season.objects.create(
             item=item_season,
             user=self.user,
+            related_tv=tv,
             status=Status.IN_PROGRESS.value,
         )
 
@@ -76,7 +109,8 @@ class SeasonModel(TestCase):
         )
 
     def test_season_progress(self):
-        """Test the progress property of the Season model."""
+        """Test that season progress reflects the highest watched episode number."""
+        self.season.refresh_from_db()
         self.assertEqual(self.season.progress, 2)
 
     def test_season_start_date(self):

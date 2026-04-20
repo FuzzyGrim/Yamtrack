@@ -363,12 +363,8 @@ class MediaManager(models.Manager):
             )
 
         if sort_filter == "progress":
-            # Annotate with the maximum episode number
-            queryset = queryset.annotate(
-                calculated_progress=models.Max("episodes__item__episode_number"),
-            )
             return queryset.order_by(
-                "-calculated_progress",
+                "-progress",
                 models.functions.Lower("item__title"),
             )
 
@@ -1159,6 +1155,20 @@ class TV(Media):
                 "as watched automatically.",
                 level=UserMessageLevel.INFO,
             )
+            # Update season progress for each season that got new episodes
+            season_ep_max = {}
+            for ep in episodes_to_create:
+                sid = ep.related_season_id
+                ep_num = ep.item.episode_number
+                season_ep_max[sid] = max(season_ep_max.get(sid, 0), ep_num)
+            seasons_to_update_progress = []
+            for season in seasons_to_create + seasons_to_update:
+                new_progress = max(season.progress, season_ep_max.get(season.pk, 0))
+                if new_progress != season.progress:
+                    season.progress = new_progress
+                    seasons_to_update_progress.append(season)
+            if seasons_to_update_progress:
+                Season.objects.bulk_update(seasons_to_update_progress, ["progress"])
 
         if not tv_completed:
             self.status = Status.IN_PROGRESS.value
@@ -1397,6 +1407,13 @@ class Season(Media):
                         "marked as watched automatically.",
                         level=UserMessageLevel.INFO,
                     )
+                    max_ep_num = max(
+                        ep.item.episode_number for ep in episodes_to_create
+                    )
+                    new_progress = max(self.progress, max_ep_num)
+                    if self.progress != new_progress:
+                        self.progress = new_progress
+                        Season.objects.bulk_update([self], ["progress"])
 
                 if target_status == Status.COMPLETED.value:
                     self.related_tv._handle_completed_season(
@@ -1484,37 +1501,6 @@ class Season(Media):
             return Status.IN_PROGRESS.value
 
         return unreleased_only_status
-
-    @property
-    def progress(self):
-        """Return the current episode number of the season."""
-        episodes = self.episodes.all()
-        if not episodes:
-            return 0
-
-        if self.status == Status.IN_PROGRESS.value:
-            # Calculate repeat counts for each episode number
-            episode_counts = {}
-            for ep in episodes:
-                ep_num = ep.item.episode_number
-                episode_counts[ep_num] = episode_counts.get(ep_num, 0) + 1
-
-            # Sort by repeat count then episode_number
-            sorted_episodes = sorted(
-                episodes,
-                key=lambda e: (
-                    -episode_counts[e.item.episode_number],
-                    -e.item.episode_number,
-                ),
-            )
-        else:
-            # Default sorting by episode_number
-            sorted_episodes = sorted(
-                episodes,
-                key=lambda e: -e.item.episode_number,
-            )
-
-        return sorted_episodes[0].item.episode_number
 
     @property
     def progressed_at(self):
@@ -1619,6 +1605,18 @@ class Season(Media):
             episode_number,
             remaining_count,
         )
+
+        # Recalculate progress from remaining watched episodes
+        remaining = (
+            Episode.objects.filter(related_season=self)
+            .order_by("-item__episode_number")
+            .select_related("item")
+            .first()
+        )
+        new_progress = remaining.item.episode_number if remaining else 0
+        if self.progress != new_progress:
+            self.progress = new_progress
+            Season.objects.filter(pk=self.pk).update(progress=new_progress)
 
     def get_tv(self):
         """Get related TV instance for a season and create it if it doesn't exist."""
@@ -1830,6 +1828,14 @@ class Episode(models.Model):
                 [self.related_season.related_tv],
                 TV,
                 fields=["status"],
+            )
+
+        # Update season progress to reflect the episode just watched
+        new_progress = self.item.episode_number
+        if self.related_season.progress != new_progress:
+            self.related_season.progress = new_progress
+            Season.objects.filter(pk=self.related_season.pk).update(
+                progress=new_progress
             )
 
 

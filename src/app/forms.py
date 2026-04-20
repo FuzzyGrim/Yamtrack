@@ -352,9 +352,13 @@ class SeasonForm(MediaForm):
         model = Season
         fields = [
             "score",
+            "progress",
             "status",
             "notes",
         ]
+        labels = {
+            "progress": "Episode Progress",
+        }
 
 
 class EpisodeForm(forms.ModelForm):
