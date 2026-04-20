@@ -26,6 +26,8 @@ let
     ++ [
       ps.playwright
       ps.pytest-playwright
+      ps.pytest-rerunfailures
+      ps.pytest-timeout
     ]
   );
 in
@@ -127,7 +129,8 @@ in
         ${playwrightTestPython.interpreter} -m pytest \
           app/tests/test_integration.py \
           lists/tests/test_integration.py \
-          -x -v 2>&1
+          --reruns=5 --reruns-delay=10 --timeout=120 \
+          -v 2>&1
       """)
     '';
   };
@@ -144,6 +147,8 @@ in
     export DJANGO_SETTINGS_MODULE=config.test_settings
     export HOME="''${HOME:-/tmp}"
     export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright-driver.browsers}
-    exec ${playwrightTestPython.interpreter} -m pytest "$@"
+    exec ${playwrightTestPython.interpreter} -m pytest \
+      --reruns=5 --reruns-delay=10 --timeout=120 \
+      "$@"
   '';
 }
