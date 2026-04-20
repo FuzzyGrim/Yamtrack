@@ -17,5 +17,7 @@
     in
     {
       packages.${system}.default = yamtrack;
+
+      nixosModules.default = import ./nix/module.nix { inherit self system; };
     };
 }
