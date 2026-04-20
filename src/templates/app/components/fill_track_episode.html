@@ -28,7 +28,7 @@
               {% if episode.history|length == 1 %}
                 <p class="text-sm text-gray-400 mt-1">{% trans "Watched once" %}</p>
               {% else %}
-                <p class="text-sm text-gray-400 mt-1">{% trans "Watched" %} {{ episode.history|length }} {% trans "times" %}</p>
+                <p class="text-sm text-gray-400 mt-1">{% blocktrans with watch_count=episode.history|length %}Watched {{ watch_count }} times{% endblocktrans %}</p>
               {% endif %}
             {% else %}
               <p class="text-sm text-gray-400 mt-1">{% trans "Not watched yet" %}</p>

@@ -91,7 +91,10 @@ class CustomDurationField(forms.CharField):
             return hours * 60 + minutes
         except ValueError as e:
             msg = _(
-                "Invalid time format. Provide duration in hours (e.g., '5', '1.5'), hours and minutes (e.g., '5:30', '5h 30min'), or just minutes (e.g., '30min')."
+                "Invalid time format. Provide duration in hours "
+                "(e.g., '5', '1.5'), hours and minutes "
+                "(e.g., '5:30', '5h 30min'), or just minutes "
+                "(e.g., '30min')."
             )
             raise forms.ValidationError(msg) from e
 

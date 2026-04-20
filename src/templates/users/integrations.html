@@ -63,9 +63,9 @@
           <li>{% trans "You will need to have TMDB and TVDB as metadata providers in Jellyfin." %}</li>
           <li>{% trans "Install the Webhook plugin from the 'Jellyfin Stable' repo via your server's Plugin Catalog." %}</li>
           <li>
-            {% trans "Restart your server, then configure the plugin:" %}
+            {% trans "Restart your server, then configure the plugin" %}:
             <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
-              <li>{% trans "Click on the \"Add Generic Destination\" button to create a new webhook." %}</li>
+              <li>{% trans 'Click on the "Add Generic Destination" button to create a new webhook.' %}</li>
               <li>{% trans "Name" %}: Yamtrack</li>
               {# djlint:off #}
                 <li>
@@ -79,7 +79,7 @@
               {# djlint:on #}
               <li>{% trans "Notification Type: Playback Start and Playback Stop" %}</li>
               <li>{% trans "User Filter: Your Jellyfin User" %}</li>
-              <li>{% trans "Finally, under the \"Template\" section, paste the following code." %}</li>
+              <li>{% trans 'Finally, under the "Template" section, paste the following code.' %}</li>
               <div class="relative mt-2">
                 <textarea readonly id="jellyfin-json-template" class="w-full bg-[#39404b] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono p-3 resize-none overflow-auto max-h-72" rows="14">
 {% verbatim %}{
@@ -132,7 +132,7 @@
             {% endblocktrans %}
             </li>
             <li>
-              {% trans "Restart your server, then configure the plugin:" %}
+              {% trans "Restart your server, then configure the plugin" %}:
               <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
                 {# djlint:off #}
                 <li>
@@ -196,7 +196,7 @@
               {% endblocktrans %}
             </li>
             <li>
-              {% trans "In the Webhooks section, click on \"Add Webhook\" and enter the following URL:" %}
+              {% trans 'In the Webhooks section, click on "Add Webhook" and enter the following URL' %}:
               <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
                 <li>
                   <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">
@@ -228,13 +228,13 @@
           <h4 class="text-sm font-medium mb-3">{% trans "Setup Instructions" %}</h4>
           <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
             <li>{% trans "In Emby, go to Settings > Notifications" %}</li>
-            <li>{% trans "In the Notifications section, click on \"Add Notification\"" %}</li>
+            <li>{% trans 'In the Notifications section, click on "Add Notification"' %}</li>
             <li>
-              {% trans "In the Notification settings:" %}
+              {% trans "In the Notification settings" %}:
               <ul class="list-disc list-inside ml-6 mt-2 space-y-2 text-gray-400">
                 {# djlint:off #}
               <li>
-                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">{% trans "URL:" %} 
+                <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">{% trans "URL" %}: 
                   <input readonly
                          id="emby-webhook-url"
                          class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
@@ -251,7 +251,7 @@
                 <li>{% trans "Request content type: multipart/form-data" %}</li>
                 <li>{% trans "Events: Play and Stop" %}</li>
                 <li>{% trans "Limit user events to: Your Emby User" %}</li>
-                <li>{% trans "\"Limit library events to\" and \"Limit devices events to\" are optional" %}</li>
+                <li>{% trans '"Limit library events to" and "Limit devices events to" are optional' %}</li>
               </ul>
             </li>
           </ol>

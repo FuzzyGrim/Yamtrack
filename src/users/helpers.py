@@ -11,7 +11,7 @@ import integrations
 
 def process_task_result(task):
     """Process task result based on status and format appropriately."""
-    if task.status == _("FAILURE"):
+    if task.status == "FAILURE":
         result_json = json.loads(task.result)
         if result_json["exc_type"] == "MediaImportError":
             task.summary = result_json["exc_message"][0]
@@ -19,10 +19,10 @@ def process_task_result(task):
         else:
             task.summary = _("Unexpected error occurred while processing the task.")
             task.errors = task.traceback
-    elif task.status == _("STARTED"):
+    elif task.status == "STARTED":
         task.summary = _("This task is currently running.")
         task.errors = None
-    elif task.status == _("SUCCESS"):
+    elif task.status == "SUCCESS":
         result_json = json.loads(task.result)
         # Split by the error indicator
         parts = result_json.split(integrations.tasks.ERROR_TITLE.strip())
@@ -36,7 +36,7 @@ def process_task_result(task):
             # Only summary, no errors
             task.summary = result_json.strip()
             task.errors = None
-    elif task.status == _("PENDING"):
+    elif task.status == "PENDING":
         task.summary = _("This task has been queued and is waiting to run.")
         task.errors = None
 
