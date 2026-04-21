@@ -14,31 +14,33 @@ let
   pythonEnv = pkg.passthru.pythonEnv;
   stateDir = "/var/lib/yamtrack";
 
-  env =
-    {
-      DJANGO_SETTINGS_MODULE = "config.settings";
-      PYTHONPATH = "${pkg}/lib/yamtrack";
-    }
-    // lib.optionalAttrs (!cfg.database.createLocally) {
-      DB_PATH = "${stateDir}/db/db.sqlite3";
-    }
-    // lib.optionalAttrs cfg.database.createLocally {
-      DB_HOST = "/run/postgresql";
-      DB_NAME = "yamtrack";
-      DB_USER = "yamtrack";
-      DB_PASSWORD = "";
-      DB_PORT = "5432";
-    }
-    // lib.optionalAttrs cfg.redis.createLocally {
-      REDIS_URL = "redis://localhost:6379";
-    }
-    // lib.optionalAttrs (cfg.secretKeyFile != null) {
-      SECRET_FILE = cfg.secretKeyFile;
-    }
-    // lib.optionalAttrs (cfg.trustedOrigins != [ ]) {
-      CSRF = lib.concatStringsSep "," cfg.trustedOrigins;
-    }
-    // lib.mapAttrs (_: toString) cfg.extraConfig;
+  env = {
+    DJANGO_SETTINGS_MODULE = "config.settings";
+    PYTHONPATH = "${pkg}/lib/yamtrack";
+  }
+  // lib.optionalAttrs (!cfg.database.createLocally) {
+    DB_PATH = "${stateDir}/db/db.sqlite3";
+  }
+  // lib.optionalAttrs cfg.database.createLocally {
+    DB_HOST = "/run/postgresql";
+    DB_NAME = "yamtrack";
+    DB_USER = "yamtrack";
+    DB_PASSWORD = "";
+    DB_PORT = "5432";
+  }
+  // lib.optionalAttrs cfg.redis.createLocally {
+    REDIS_URL = "redis://localhost:6379";
+  }
+  // lib.optionalAttrs (cfg.secretKeyFile != null) {
+    SECRET_FILE = cfg.secretKeyFile;
+  }
+  // lib.optionalAttrs (cfg.trustedOrigins != [ ]) {
+    CSRF = lib.concatStringsSep "," cfg.trustedOrigins;
+  }
+  // lib.optionalAttrs (cfg.hostName != "") {
+    ALLOWED_HOSTS = cfg.hostName;
+  }
+  // lib.mapAttrs (_: toString) cfg.extraConfig;
 
   commonServiceConfig = {
     User = cfg.user;
@@ -111,8 +113,8 @@ in
       example = [ "https://yamtrack.example.com" ];
       description = ''
         List of trusted origins for CSRF protection (Django's CSRF_TRUSTED_ORIGINS).
-        When {option}`hostName` is set, an appropriate origin is added automatically:
-        `http://<hostName>` when {option}`configureNginx` is enabled (nginx serves on port 80),
+        When {option}`hostName` is set, appropriate origins are added automatically:
+        both `http://<hostName>` and `https://<hostName>` when {option}`configureNginx` is enabled,
         or `http://<hostName>:<port>` otherwise.
       '';
     };
@@ -146,7 +148,10 @@ in
 
     services.yamtrack.trustedOrigins = lib.mkIf (cfg.hostName != "") (
       if cfg.configureNginx then
-        [ "http://${cfg.hostName}" ]
+        [
+          "http://${cfg.hostName}"
+          "https://${cfg.hostName}"
+        ]
       else
         [ "http://${cfg.hostName}:${toString cfg.port}" ]
     );
@@ -212,7 +217,7 @@ in
       '';
 
       serviceConfig = commonServiceConfig // {
-        ExecStart = "${pythonEnv}/bin/gunicorn config.wsgi:application --bind ${cfg.address}:${toString cfg.port} --timeout 200 --preload";
+        ExecStart = "${pythonEnv}/bin/gunicorn config.wsgi:application --bind ${cfg.address}:${toString cfg.port} --timeout 60 --preload";
       };
     };
 
