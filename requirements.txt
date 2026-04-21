@@ -5,11 +5,11 @@ celery==5.6.3
 croniter==6.2.2
 defusedxml==0.7.1
 Django==5.2.13
-django-allauth[socialaccount]==65.15.1
+django-allauth[socialaccount]==65.16.1
 django-celery-beat==2.9.0
 django-celery-results==2.6.0
 django_debug_toolbar==6.3.0
-django-health-check[celery,redis]==4.2.2
+django-health-check[celery,redis]==4.4.0
 django-model-utils==5.0.0
 django-redis==6.0.0
 django-select2==8.4.8
