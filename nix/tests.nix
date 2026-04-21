@@ -32,37 +32,42 @@ let
   );
 in
 {
-  yamtrack-unit-tests = pkgs.runCommand "yamtrack-unit-tests"
-    {
-      nativeBuildInputs = [ testPython ];
-    }
-    ''
-      cp -r ${yamtrack}/lib/yamtrack /tmp/yamtrack-test
-      chmod -R u+w /tmp/yamtrack-test
-      cd /tmp/yamtrack-test
-      # inject conftest that mocks all external API calls
-      cp ${./conftest.py} conftest.py
-      export DJANGO_SETTINGS_MODULE=config.test_settings
-      export HOME=/tmp
-      ${testPython.interpreter} -m pytest \
-        --ignore=app/tests/test_integration.py \
-        --ignore=lists/tests/test_integration.py \
-        --ignore=app/tests/providers/test_metadata.py \
-        --ignore=app/tests/providers/test_search.py \
-        --ignore=integrations/tests/imports/test_anilist.py \
-        --ignore=integrations/tests/imports/test_goodreads.py \
-        --ignore=integrations/tests/imports/test_hltb.py \
-        --ignore=integrations/tests/imports/test_imdb.py \
-        --ignore=integrations/tests/imports/test_mal.py \
-        --ignore=integrations/tests/imports/test_simkl.py \
-        --ignore=integrations/tests/imports/test_yamtrack.py \
-        --ignore=integrations/tests/test_webhooks_emby.py \
-        --ignore=integrations/tests/test_webhooks_jellyfin.py \
-        --ignore=integrations/tests/test_webhooks_plex.py \
-        --deselect=app/tests/views/test_entry.py::CreateEntryViewTests::test_create_entry_post_movie \
-        -x
-      touch $out
-    '';
+  yamtrack-unit-tests =
+    pkgs.runCommand "yamtrack-unit-tests"
+      {
+        nativeBuildInputs = [ testPython ];
+      }
+      ''
+          cp -r ${yamtrack}/lib/yamtrack ./test-root
+          chmod -R u+w ./test-root
+          cd ./test-root
+          # inject conftest that mocks all external API calls
+          cp ${./conftest.py} conftest.py
+          export DJANGO_SETTINGS_MODULE=config.test_settings
+          export HOME=/tmp
+          ${testPython.interpreter} -m pytest \
+            --ignore=app/tests/test_integration.py \
+            --ignore=lists/tests/test_integration.py \
+            --ignore=app/tests/providers/test_metadata.py \
+            --ignore=app/tests/providers/test_search.py \
+            --ignore=integrations/tests/test_webhooks_emby.py \
+            --ignore=integrations/tests/test_webhooks_jellyfin.py \
+            --ignore=integrations/tests/test_webhooks_plex.py \
+            --deselect=app/tests/views/test_entry.py::CreateEntryViewTests::test_create_entry_post_movie \
+            --deselect=integrations/tests/imports/test_anilist.py::ImportAniList::test_user_not_found \
+            --deselect=integrations/tests/imports/test_mal.py::ImportMAL::test_user_not_found \
+            --deselect=integrations/tests/imports/test_simkl.py::ImportSimkl::test_importer \
+            --deselect=integrations/tests/imports/test_yamtrack.py::ImportYamtrackPartials::test_end_dates \
+            --deselect=integrations/tests/imports/test_yamtrack.py::ImportYamtrackPartials::test_season_episode_search_by_title \
+            -x
+        # Ignored: integration tests require Playwright browser
+        # Ignored: provider tests validate real external API responses
+        # Ignored: webhook tests require TVDB API and anime mapping data
+        # Deselected: test_create_entry_post_movie - model save() overrides form progress
+        # Deselected: test_user_not_found - validates real API error response parsing
+        # Deselected: simkl/yamtrack tests that assert exact metadata from real API responses
+          touch $out
+      '';
 
   yamtrack-sqlite = pkgs.testers.nixosTest {
     name = "yamtrack-sqlite";
@@ -94,7 +99,9 @@ in
           assert status == "working" or status == "OK", f"Health check '{check}' failed: {status}"
 
       # Create a test user via the yamtrack service environment
-      manage = "sudo -u yamtrack env DJANGO_SETTINGS_MODULE=config.settings PYTHONPATH=${self.packages.${system}.default}/lib/yamtrack DB_PATH=/var/lib/yamtrack/db/db.sqlite3 yamtrack-manage"
+      manage = "sudo -u yamtrack env DJANGO_SETTINGS_MODULE=config.settings PYTHONPATH=${
+        self.packages.${system}.default
+      }/lib/yamtrack DB_PATH=/var/lib/yamtrack/db/db.sqlite3 yamtrack-manage"
       machine.succeed(f"{manage} createsuperuser --noinput --username testuser --email test@test.com")
       machine.succeed(f"""{manage} shell -c "
           from django.contrib.auth import get_user_model;
@@ -178,7 +185,9 @@ in
           assert status == "working" or status == "OK", f"Health check '{check}' failed: {status}"
 
       # Create a test user via the yamtrack service environment
-      manage = "sudo -u yamtrack env DJANGO_SETTINGS_MODULE=config.settings PYTHONPATH=${self.packages.${system}.default}/lib/yamtrack DB_HOST=/run/postgresql DB_NAME=yamtrack DB_USER=yamtrack DB_PASSWORD= DB_PORT=5432 yamtrack-manage"
+      manage = "sudo -u yamtrack env DJANGO_SETTINGS_MODULE=config.settings PYTHONPATH=${
+        self.packages.${system}.default
+      }/lib/yamtrack DB_HOST=/run/postgresql DB_NAME=yamtrack DB_USER=yamtrack DB_PASSWORD= DB_PORT=5432 yamtrack-manage"
       machine.succeed(f"{manage} createsuperuser --noinput --username testuser --email test@test.com")
       machine.succeed(f"""{manage} shell -c "
           from django.contrib.auth import get_user_model;
@@ -270,7 +279,9 @@ in
           assert status == "working" or status == "OK", f"Health check '{check}' failed: {status}"
 
       # Create a test user via the yamtrack service environment
-      manage = "sudo -u yamtrack env DJANGO_SETTINGS_MODULE=config.settings PYTHONPATH=${self.packages.${system}.default}/lib/yamtrack DB_PATH=/var/lib/yamtrack/db/db.sqlite3 yamtrack-manage"
+      manage = "sudo -u yamtrack env DJANGO_SETTINGS_MODULE=config.settings PYTHONPATH=${
+        self.packages.${system}.default
+      }/lib/yamtrack DB_PATH=/var/lib/yamtrack/db/db.sqlite3 yamtrack-manage"
       machine.succeed(f"{manage} createsuperuser --noinput --username testuser --email test@test.com")
       machine.succeed(f"""{manage} shell -c "
           from django.contrib.auth import get_user_model;
