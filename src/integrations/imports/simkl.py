@@ -222,7 +222,7 @@ class SimklImporter:
                         continue
                     raise
 
-                tv_item, _ = app.models.Item.objects.get_or_create(
+                tv_item, _created = app.models.Item.objects.get_or_create(
                     media_id=tmdb_id,
                     source=Sources.TMDB.value,
                     media_type=MediaTypes.TV.value,
@@ -380,7 +380,7 @@ class SimklImporter:
                         continue
                     raise
 
-                movie_item, _ = app.models.Item.objects.get_or_create(
+                movie_item, _created = app.models.Item.objects.get_or_create(
                     media_id=tmdb_id,
                     source=Sources.TMDB.value,
                     media_type=MediaTypes.MOVIE.value,
@@ -463,7 +463,7 @@ class SimklImporter:
                         continue
                     raise
 
-                anime_item, _ = app.models.Item.objects.get_or_create(
+                anime_item, _created = app.models.Item.objects.get_or_create(
                     media_id=mal_id,
                     source=Sources.MAL.value,
                     media_type=MediaTypes.ANIME.value,

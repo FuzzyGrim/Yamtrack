@@ -209,7 +209,7 @@ class SteamImporter:
                 return
 
             # Use IGDB data if found
-            item, _ = app.models.Item.objects.get_or_create(
+            item, _created = app.models.Item.objects.get_or_create(
                 media_id=str(igdb_game["media_id"]),
                 source=Sources.IGDB.value,
                 media_type=MediaTypes.GAME.value,

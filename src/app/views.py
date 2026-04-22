@@ -386,7 +386,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             source,
             [season_number],
         )
-        item, _ = Item.objects.update_or_create(
+        item, _created = Item.objects.update_or_create(
             media_id=media_id,
             source=source,
             media_type=media_type,
@@ -656,7 +656,7 @@ def episode_save(request):
         )
         season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
-        item, _ = Item.objects.get_or_create(
+        item, _created = Item.objects.get_or_create(
             media_id=media_id,
             source=Sources.TMDB.value,
             media_type=MediaTypes.SEASON.value,

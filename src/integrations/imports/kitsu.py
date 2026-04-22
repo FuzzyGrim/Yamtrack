@@ -98,10 +98,9 @@ class KitsuImporter:
             msg = _("User %(username)s not found.") % {"username": username}
             raise MediaImportError(msg)
         if len(response["data"]) > 1:
-            msg = (
-                _("Multiple users found for %(username)s, please use your user ID. ")
-                + _("User IDs can be found in the URL when viewing your Kitsu profile.")
-            )
+            msg = _(
+                "Multiple users found for %(username)s, please use your user ID. "
+            ) + _("User IDs can be found in the URL when viewing your Kitsu profile.")
             raise MediaImportError(msg)
 
         return response["data"][0]["id"]
@@ -131,7 +130,9 @@ class KitsuImporter:
                 kitsu_id = entry["relationships"][media_type]["data"]["id"]
                 kitsu_metadata = media_lookup[kitsu_id]
                 title = kitsu_metadata["attributes"]["canonicalTitle"]
-                msg = _("Error processing entry: %(title)s (%(kitsu_id)s) - %(entry)s") % {
+                msg = _(
+                    "Error processing entry: %(title)s (%(kitsu_id)s) - %(entry)s"
+                ) % {
                     "title": title,
                     "kitsu_id": kitsu_id,
                     "entry": entry,
@@ -217,7 +218,7 @@ class KitsuImporter:
             repeats_count = 1
 
         if repeats_count >= 1:
-            for _ in range(attributes["reconsumeCount"]):
+            for _repeat_idx in range(attributes["reconsumeCount"]):
                 instance = model(
                     item=item,
                     user=self.user,
@@ -327,7 +328,7 @@ class KitsuImporter:
 
         image_url = self._get_image_url(kitsu_metadata)
 
-        item, _ = app.models.Item.objects.get_or_create(
+        item, _created = app.models.Item.objects.get_or_create(
             media_id=media_id,
             source=source,
             media_type=media_type,
