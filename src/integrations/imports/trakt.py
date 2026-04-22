@@ -306,7 +306,8 @@ class TraktImporter:
             return str(entry_data["ids"]["tmdb"])
 
         self.warnings.append(
-            _("%(title)s: No %(source)s ID found.") % {
+            _("%(title)s: No %(source)s ID found.")
+            % {
                 "title": entry_data["title"],
                 "source": Sources.TMDB.label,
             }
@@ -331,7 +332,8 @@ class TraktImporter:
                 if media_type == MediaTypes.SEASON.value:
                     title = f"{title} S{season_number}"
                 self.warnings.append(
-                    _("%(title)s: not found in %(source)s with ID %(tmdb_id)s.") % {
+                    _("%(title)s: not found in %(source)s with ID %(tmdb_id)s.")
+                    % {
                         "title": title,
                         "source": Sources.TMDB.label,
                         "tmdb_id": tmdb_id,
@@ -466,7 +468,8 @@ class TraktImporter:
         if not episode_exists:
             item_identifier = f"{show['title']} S{season_number}E{episode_number}"
             self.warnings.append(
-                _("%(item_identifier)s: not found in %(source)s with ID %(tmdb_id)s.") % {
+                _("%(item_identifier)s: not found in %(source)s with ID %(tmdb_id)s.")
+                % {
                     "item_identifier": item_identifier,
                     "source": Sources.TMDB.label,
                     "tmdb_id": tmdb_id,
@@ -580,7 +583,9 @@ class TraktImporter:
                     {"status": Status.PLANNING.value},
                 )
             except Exception as e:
-                msg = _("Error processing watchlist entry: %(entry)s") % {"entry": entry}
+                msg = _("Error processing watchlist entry: %(entry)s") % {
+                    "entry": entry
+                }
                 raise MediaImportUnexpectedError(msg) from e
 
     def process_ratings(self):

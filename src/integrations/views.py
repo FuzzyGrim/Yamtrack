@@ -59,7 +59,9 @@ def import_trakt_private(request):
             mode=mode,
             username=oauth_callback["username"],
         )
-        messages.info(request, _("The task to import media from Trakt has been queued."))
+        messages.info(
+            request, _("The task to import media from Trakt has been queued.")
+        )
     else:
         helpers.create_import_schedule(
             oauth_callback["username"],
@@ -91,7 +93,9 @@ def import_trakt_public(request):
             mode=mode,
             username=username,
         )
-        messages.info(request, _("The task to import media from Trakt has been queued."))
+        messages.info(
+            request, _("The task to import media from Trakt has been queued.")
+        )
     else:
         helpers.create_import_schedule(
             username=username,
@@ -136,7 +140,9 @@ def import_simkl_private(request):
 
     if frequency == "once":
         tasks.import_simkl.delay(token=enc_token, user_id=request.user.id, mode=mode)
-        messages.info(request, _("The task to import media from Simkl has been queued."))
+        messages.info(
+            request, _("The task to import media from Simkl has been queued.")
+        )
     else:
         helpers.create_import_schedule(
             oauth_callback["username"],
@@ -281,7 +287,9 @@ def import_kitsu(request):
 
     if frequency == "once":
         tasks.import_kitsu.delay(username=kitsu_id, user_id=request.user.id, mode=mode)
-        messages.info(request, _("The task to import media from Kitsu has been queued."))
+        messages.info(
+            request, _("The task to import media from Kitsu has been queued.")
+        )
     else:
         import_time = request.POST["time"]
         helpers.create_import_schedule(
@@ -352,7 +360,9 @@ def import_steam(request):
 
     if frequency == "once":
         tasks.import_steam.delay(username=steam_id, user_id=request.user.id, mode=mode)
-        messages.info(request, _("The task to import media from Steam has been queued."))
+        messages.info(
+            request, _("The task to import media from Steam has been queued.")
+        )
     else:
         import_time = request.POST["time"]
         helpers.create_import_schedule(

@@ -250,7 +250,7 @@ def create_import_schedule(
         )
         return
 
-    crontab, _ = CrontabSchedule.objects.get_or_create(
+    crontab, _created = CrontabSchedule.objects.get_or_create(
         hour=import_time.hour,
         minute=import_time.minute,
         day_of_week="*" if frequency == "daily" else "*/2",
