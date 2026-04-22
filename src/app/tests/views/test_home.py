@@ -246,7 +246,7 @@ class HomeViewTests(TestCase):
         self.user.home_separate_incoming = True
         self.user.save(update_fields=["home_separate_incoming"])
 
-        for i in range(6, 20):
+        for i in range(6, 36):
             anime_item = Item.objects.create(
                 media_id=f"incoming-{i}",
                 source=Sources.MAL.value,
@@ -275,8 +275,8 @@ class HomeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/home_grid.html")
         self.assertEqual(response.context["home_status"], "incoming")
-        self.assertEqual(len(response.context["media_list"]["items"]), 1)
-        self.assertEqual(response.context["media_list"]["total"], 15)
+        self.assertEqual(len(response.context["media_list"]["items"]), 17)
+        self.assertEqual(response.context["media_list"]["total"], 31)
 
     @patch("app.providers.services.get_media_metadata")
     def test_home_view_htmx_load_more(self, mock_get_media_metadata):

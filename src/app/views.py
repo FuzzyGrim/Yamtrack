@@ -66,7 +66,8 @@ def _paginate_home_media_types(media_types, items_limit, page_start=0):
     """Paginate already-grouped home media entries."""
     paginated_media_types = {}
     for media_type, media_list in media_types.items():
-        items = media_list["items"][page_start : page_start + items_limit]
+        page_end = None if items_limit is None else page_start + items_limit
+        items = media_list["items"][page_start:page_end]
 
         if items:
             paginated_media_types[media_type] = {
@@ -155,7 +156,7 @@ def _get_home_load_more_media_types(
         return _get_split_in_progress_media_types(
             request,
             sort_by,
-            items_limit,
+            None,
             page_start=items_limit,
         )[section_key]
 
