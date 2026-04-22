@@ -3,6 +3,7 @@
 set -e
 
 python manage.py migrate --noinput
+python manage.py compilemessages
 
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}

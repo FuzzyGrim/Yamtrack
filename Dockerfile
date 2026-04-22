@@ -17,11 +17,12 @@ RUN sed 's/listen 8000;/listen 8000; listen [::]:8000;/' /etc/nginx/nginx.conf >
 
 WORKDIR /yamtrack
 
-RUN apk add --no-cache nginx shadow \
+RUN apk add --no-cache nginx shadow gettext \
     && pip install --no-cache-dir -r /requirements.txt \
     && pip install --no-cache-dir supervisor==4.3.0 \
     && rm -rf /root/.cache /tmp/* \
     && find /usr/local -type d -name __pycache__ -exec rm -rf {} + \
+    && sed -i 's/\r$//' /entrypoint.sh \
     && chmod +x /entrypoint.sh \
     # create user abc for later PUID/PGID mapping
     && useradd -U -M -s /bin/sh abc \
@@ -31,7 +32,8 @@ RUN apk add --no-cache nginx shadow \
 
 # Django app
 COPY src ./
-RUN python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput \
+  && python manage.py compilemessages
 
 EXPOSE 8000
 
