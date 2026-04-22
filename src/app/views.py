@@ -129,12 +129,22 @@ def _uses_split_home_sections(user, section_key):
     )
 
 
-def _get_home_section_media_types(request, sort_by, section_key, items_limit):
+def _get_home_section_media_types(
+    request,
+    sort_by,
+    section_key,
+    items_limit,
+    split_media_types=None,
+):
     """Return media types for home section, including virtual incoming section."""
     if _uses_split_home_sections(request.user, section_key):
-        return _get_split_in_progress_media_types(request, sort_by, items_limit)[
-            section_key
-        ]
+        if split_media_types is None:
+            split_media_types = _get_split_in_progress_media_types(
+                request,
+                sort_by,
+                items_limit,
+            )
+        return split_media_types[section_key]
 
     return BasicMedia.objects.get_home_status(
         user=request.user,
@@ -203,10 +213,24 @@ def home(request):
             },
         )
 
+    split_media_types = None
+    if request.user.home_separate_incoming:
+        split_media_types = _get_split_in_progress_media_types(
+            request,
+            sort_by,
+            items_limit,
+        )
+
     home_sections = [
         _build_home_section(
             section_key,
-            _get_home_section_media_types(request, sort_by, section_key, items_limit),
+            _get_home_section_media_types(
+                request,
+                sort_by,
+                section_key,
+                items_limit,
+                split_media_types=split_media_types,
+            ),
         )
         for section_key in _get_home_section_keys(request.user)
     ]
