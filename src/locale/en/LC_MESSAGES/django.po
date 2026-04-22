@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-20 14:47+0200\n"
+"POT-Creation-Date: 2026-04-22 13:16+0200\n"
 "PO-Revision-Date: 2026-04-18 16:11+0200\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: English\n"
@@ -204,6 +204,403 @@ msgid "Boardgame"
 msgid_plural "Boardgames"
 msgstr[0] ""
 msgstr[1] ""
+
+#: .\events\notifications.py:34
+msgid "No users with release notifications enabled"
+msgstr ""
+
+#: .\events\views.py:102
+msgid "The task to refresh upcoming releases has been queued."
+msgstr ""
+
+#: .\integrations\imports\anilist.py:44
+msgid "Invalid Anilist secret key."
+msgstr ""
+
+#: .\integrations\imports\anilist.py:79
+msgid "Invalid AniList access token."
+msgstr ""
+
+#: .\integrations\imports\goodreads.py:70
+#, python-format
+msgid "Error processing entry with ID %(media_id)s"
+msgstr ""
+
+#: .\integrations\imports\goodreads.py:76 .\integrations\imports\hltb.py:76
+#: .\integrations\imports\hltb.py:84 .\integrations\imports\imdb.py:98
+#: .\integrations\imports\imdb.py:106 .\integrations\imports\yamtrack.py:83
+#, python-format
+msgid "Error processing entry: %(row)s"
+msgstr ""
+
+#: .\integrations\imports\goodreads.py:102
+#, python-format
+msgid "%(title)s: Couldn't find this book via Title or ISBN13 in %(source)s"
+msgstr ""
+
+#: .\integrations\imports\helpers.py:242
+msgid "Invalid import time."
+msgstr ""
+
+#: .\integrations\imports\helpers.py:249
+msgid "The same import task is already scheduled."
+msgstr ""
+
+#: .\integrations\imports\helpers.py:278
+#, python-format
+msgid "%(source)s import task scheduled."
+msgstr ""
+
+#: .\integrations\imports\hltb.py:61 .\integrations\imports\imdb.py:83
+#: .\integrations\imports\yamtrack.py:63
+msgid "Invalid file format. Please upload a CSV file."
+msgstr ""
+
+#: .\integrations\imports\hltb.py:106
+#, python-format
+msgid "%(title)s: Couldn't find a game with this title in %(source)s"
+msgstr ""
+
+#: .\integrations\imports\hltb.py:151
+#, python-format
+msgid ""
+"%(title_list)s: They were matched to the same ID %(media_id)s - none imported"
+msgstr ""
+
+#: .\integrations\imports\imdb.py:131
+#, python-format
+msgid "Invalid or missing IMDB ID for title: %(title)s"
+msgstr ""
+
+#: .\integrations\imports\imdb.py:141
+#, python-format
+msgid "Unsupported title type '%(title_type)s' for title: %(title)s - skipped"
+msgstr ""
+
+#: .\integrations\imports\imdb.py:148
+#, python-format
+msgid "Unknown title type '%(title_type)s' for title: %(title)s - skipped"
+msgstr ""
+
+#: .\integrations\imports\imdb.py:158
+#, python-format
+msgid "Couldn't find a match in %(source)s for title: %(title)s"
+msgstr ""
+
+#: .\integrations\imports\imdb.py:212
+#, python-format
+msgid ""
+"%(title_list)s: They were matched to the same TMDB ID %(media_id)s - none "
+"imported"
+msgstr ""
+
+#: .\integrations\imports\kitsu.py:98 .\integrations\imports\mal.py:91
+#, python-format
+msgid "User %(username)s not found."
+msgstr ""
+
+#: .\integrations\imports\kitsu.py:102
+#, python-format
+msgid "Multiple users found for %(username)s, please use your user ID. "
+msgstr ""
+
+#: .\integrations\imports\kitsu.py:103
+msgid "User IDs can be found in the URL when viewing your Kitsu profile."
+msgstr ""
+
+#: .\integrations\imports\kitsu.py:135
+#, python-format
+msgid "Error processing entry: %(title)s (%(kitsu_id)s) - %(entry)s"
+msgstr ""
+
+#: .\integrations\imports\kitsu.py:257
+#, python-format
+msgid ""
+"Could not import unknown item - missing media data from Kitsu. Relationship: "
+"%(relationship)s"
+msgstr ""
+
+#: .\integrations\imports\kitsu.py:324
+#, python-format
+msgid "%(media_title)s: No valid external ID found."
+msgstr ""
+
+#: .\integrations\imports\mal.py:99
+#, python-format
+msgid "Error processing entry: %(content)s"
+msgstr ""
+
+#: .\integrations\imports\simkl.py:72
+msgid "Invalid SIMKL secret key."
+msgstr ""
+
+#: .\integrations\imports\simkl.py:182 .\integrations\imports\simkl.py:344
+#, python-brace-format
+msgid "{title}: No TMDB ID found"
+msgstr ""
+
+#: .\integrations\imports\simkl.py:188 .\integrations\imports\simkl.py:350
+#, python-brace-format
+msgid "{title} ({tmdb_id}) already present in the import list"
+msgstr ""
+
+#: .\integrations\imports\simkl.py:254
+#, python-format
+msgid "Error processing entry: %(tv)s"
+msgstr ""
+
+#: .\integrations\imports\simkl.py:373
+#, python-brace-format
+msgid "{title}: not found in {source} with ID {tmdb_id}."
+msgstr ""
+
+#: .\integrations\imports\simkl.py:408
+#, python-format
+msgid "Error processing entry: %(movie)s"
+msgstr ""
+
+#: .\integrations\imports\simkl.py:427
+#, python-brace-format
+msgid "{title}: No MyAnimeList ID found"
+msgstr ""
+
+#: .\integrations\imports\simkl.py:433
+#, python-brace-format
+msgid "{title} ({mal_id}) already present in the import list"
+msgstr ""
+
+#: .\integrations\imports\simkl.py:456
+#, python-brace-format
+msgid "{title}: not found in {source} with ID {mal_id}."
+msgstr ""
+
+#: .\integrations\imports\steam.py:45
+msgid "Steam API key not configured in environment variables"
+msgstr ""
+
+#: .\integrations\imports\steam.py:113
+msgid "Invalid response from Steam API"
+msgstr ""
+
+#: .\integrations\imports\steam.py:119
+#, python-format
+msgid "No games found in Steam response for user %(steam_id)s"
+msgstr ""
+
+#: .\integrations\imports\steam.py:145
+msgid "Steam API rate limit exceeded. Please try again later."
+msgstr ""
+
+#: .\integrations\imports\steam.py:148
+msgid "Steam profile is private or invalid"
+msgstr ""
+
+#: .\integrations\imports\steam.py:151
+msgid "Bad request to Steam API. Please check the Steam ID."
+msgstr ""
+
+#: .\integrations\imports\steam.py:154
+msgid "Invalid Steam API key"
+msgstr ""
+
+#: .\integrations\imports\steam.py:156
+#, python-format
+msgid "Steam API error: %(status_code)s"
+msgstr ""
+
+#: .\integrations\imports\steam.py:161
+msgid "Steam API request failed after all retries"
+msgstr ""
+
+#: .\integrations\imports\steam.py:183
+#, python-brace-format
+msgid "{name} ({appid}): Couldn't find a match in {Sources.IGDB.label}"
+msgstr ""
+
+#: .\integrations\imports\steam.py:253
+#, python-format
+msgid "Couldn't find a match in %(source)s"
+msgstr ""
+
+#: .\integrations\imports\steam.py:260
+#, python-format
+msgid "Failed to process Steam game %(name)s (%(appid)s): %(error)s"
+msgstr ""
+
+#: .\integrations\imports\trakt.py:107
+msgid "Invalid Trakt secret key."
+msgstr ""
+
+#: .\integrations\imports\trakt.py:237
+#, python-format
+msgid ""
+"User slug %(username)s not found. User slug can be found in your Trakt "
+"profile URL."
+msgstr ""
+
+#: .\integrations\imports\trakt.py:243
+msgid "This account is set to private, use OAuth import instead."
+msgstr ""
+
+#: .\integrations\imports\trakt.py:296
+#, python-format
+msgid "Error processing history entry: %(entry)s"
+msgstr ""
+
+#: .\integrations\imports\trakt.py:309
+#, python-format
+msgid "%(title)s: No %(source)s ID found."
+msgstr ""
+
+#: .\integrations\imports\trakt.py:334
+#, python-format
+msgid "%(title)s: not found in %(source)s with ID %(tmdb_id)s."
+msgstr ""
+
+#: .\integrations\imports\trakt.py:469
+#, python-format
+msgid "%(item_identifier)s: not found in %(source)s with ID %(tmdb_id)s."
+msgstr ""
+
+#: .\integrations\imports\trakt.py:583
+#, python-format
+msgid "Error processing watchlist entry: %(entry)s"
+msgstr ""
+
+#: .\integrations\imports\trakt.py:600
+#, python-format
+msgid "Error processing rating entry: %(entry)s"
+msgstr ""
+
+#: .\integrations\imports\trakt.py:617
+#, python-format
+msgid "Error processing comment entry: %(entry)s"
+msgstr ""
+
+#: .\integrations\imports\yamtrack.py:73
+#, python-format
+msgid "Error processing entry with ID %(media_id)s (%(media_type)s): %(error)s"
+msgstr ""
+
+#: .\integrations\imports\yamtrack.py:166
+#, python-format
+msgid "%(title)s (%(media_type)s): %(errors)s"
+msgstr ""
+
+#: .\integrations\imports\yamtrack.py:216
+#, python-format
+msgid "Missing metadata for: %(row)s"
+msgstr ""
+
+#: .\integrations\tasks.py:26
+msgid ""
+"\n"
+"\n"
+"\n"
+" Couldn't import the following media: \n"
+"\n"
+msgstr ""
+
+#: .\integrations\tasks.py:47
+msgid "No media was imported."
+msgstr ""
+
+#: .\integrations\tasks.py:49
+#, python-format
+msgid "Imported %(media_list)s."
+msgstr ""
+
+#: .\integrations\views.py:62 .\integrations\views.py:94
+msgid "The task to import media from Trakt has been queued."
+msgstr ""
+
+#: .\integrations\views.py:81
+msgid "Trakt username is required."
+msgstr ""
+
+#: .\integrations\views.py:139
+msgid "The task to import media from Simkl has been queued."
+msgstr ""
+
+#: .\integrations\views.py:159
+msgid "MyAnimeList username is required."
+msgstr ""
+
+#: .\integrations\views.py:169
+msgid "The task to import media from MyAnimeList has been queued."
+msgstr ""
+
+#: .\integrations\views.py:212 .\integrations\views.py:245
+msgid "AniList username is required."
+msgstr ""
+
+#: .\integrations\views.py:226 .\integrations\views.py:258
+msgid "AniList import queued."
+msgstr ""
+
+#: .\integrations\views.py:276
+msgid "Kitsu user ID is required."
+msgstr ""
+
+#: .\integrations\views.py:284
+msgid "The task to import media from Kitsu has been queued."
+msgstr ""
+
+#: .\integrations\views.py:304
+msgid "Yamtrack CSV file is required."
+msgstr ""
+
+#: .\integrations\views.py:315
+msgid "The task to import media from Yamtrack CSV file has been queued."
+msgstr ""
+
+#: .\integrations\views.py:326
+msgid "HowLongToBeat CSV file is required."
+msgstr ""
+
+#: .\integrations\views.py:337
+msgid "The task to import media from HowLongToBeat CSV file has been queued."
+msgstr ""
+
+#: .\integrations\views.py:347
+msgid "Steam ID is required."
+msgstr ""
+
+#: .\integrations\views.py:355
+msgid "The task to import media from Steam has been queued."
+msgstr ""
+
+#: .\integrations\views.py:374
+msgid "IMDB CSV file is required."
+msgstr ""
+
+#: .\integrations\views.py:385
+msgid "The task to import media from IMDB CSV file has been queued."
+msgstr ""
+
+#: .\integrations\views.py:396
+msgid "GoodReads CSV file is required."
+msgstr ""
+
+#: .\integrations\views.py:407
+msgid "The task to import media from GoodReads CSV file has been queued."
+msgstr ""
+
+#: .\integrations\views.py:477 .\integrations\views.py:508
+msgid "Missing payload"
+msgstr ""
+
+#: .\lists\views.py:100
+msgid "List not found"
+msgstr ""
+
+#: .\lists\views.py:231
+msgid "You do not have permission to edit this list."
+msgstr ""
+
+#: .\lists\views.py:245
+msgid "You do not have permission to delete this list."
+msgstr ""
 
 #: .\templates\400.html:6 .\templates\400.html:14
 msgid "Bad Request"

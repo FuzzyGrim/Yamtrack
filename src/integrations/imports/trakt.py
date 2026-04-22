@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
+from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 
 import app
@@ -103,7 +104,7 @@ def get_access_token(encrypted_refresh_token):
         )
     except services.ProviderAPIError as error:
         if error.status_code == requests.codes.unauthorized:
-            msg = "Invalid Trakt secret key."
+            msg = _("Invalid Trakt secret key.")
             raise MediaImportError(msg) from error
         raise
 
@@ -232,14 +233,14 @@ class TraktImporter:
                 page_data = self._make_api_request(url)
             except requests.exceptions.HTTPError as error:
                 if error.response.status_code == requests.codes.not_found:
-                    msg = (
-                        f"User slug {self.username} not found. "
+                    msg = _(
+                        "User slug %(username)s not found. "
                         "User slug can be found in your Trakt profile URL."
-                    )
+                    ) % {"username": self.username}
                     raise MediaImportError(msg) from error
 
                 if error.response.status_code == requests.codes.unauthorized:
-                    msg = "This account is set to private, use OAuth import instead."
+                    msg = _("This account is set to private, use OAuth import instead.")
                     raise MediaImportError(msg) from error
                 raise
 
@@ -292,7 +293,7 @@ class TraktImporter:
                     )
                     self.process_watched_episode(entry)
             except Exception as e:
-                msg = f"Error processing history entry: {entry}"
+                msg = _("Error processing history entry: %(entry)s") % {"entry": entry}
                 raise MediaImportUnexpectedError(msg) from e
 
     def _get_tmdb_id(self, entry_data):
@@ -305,7 +306,10 @@ class TraktImporter:
             return str(entry_data["ids"]["tmdb"])
 
         self.warnings.append(
-            f"{entry_data['title']}: No {Sources.TMDB.label} ID found.",
+            _("%(title)s: No %(source)s ID found.") % {
+                "title": entry_data["title"],
+                "source": Sources.TMDB.label,
+            }
         )
         return None
 
@@ -327,7 +331,11 @@ class TraktImporter:
                 if media_type == MediaTypes.SEASON.value:
                     title = f"{title} S{season_number}"
                 self.warnings.append(
-                    f"{title}: not found in {Sources.TMDB.label} with ID {tmdb_id}.",
+                    _("%(title)s: not found in %(source)s with ID %(tmdb_id)s.") % {
+                        "title": title,
+                        "source": Sources.TMDB.label,
+                        "tmdb_id": tmdb_id,
+                    }
                 )
                 return None
             raise
@@ -458,8 +466,11 @@ class TraktImporter:
         if not episode_exists:
             item_identifier = f"{show['title']} S{season_number}E{episode_number}"
             self.warnings.append(
-                f"{item_identifier}: not found in {Sources.TMDB.label} "
-                f"with ID {tmdb_id}.",
+                _("%(item_identifier)s: not found in %(source)s with ID %(tmdb_id)s.") % {
+                    "item_identifier": item_identifier,
+                    "source": Sources.TMDB.label,
+                    "tmdb_id": tmdb_id,
+                }
             )
             return
 
@@ -569,7 +580,7 @@ class TraktImporter:
                     {"status": Status.PLANNING.value},
                 )
             except Exception as e:
-                msg = f"Error processing watchlist entry: {entry}"
+                msg = _("Error processing watchlist entry: %(entry)s") % {"entry": entry}
                 raise MediaImportUnexpectedError(msg) from e
 
     def process_ratings(self):
@@ -586,7 +597,7 @@ class TraktImporter:
                     {"score": entry["rating"]},
                 )
             except Exception as e:
-                msg = f"Error processing rating entry: {entry}"
+                msg = _("Error processing rating entry: %(entry)s") % {"entry": entry}
                 raise MediaImportUnexpectedError(msg) from e
 
     def process_comments(self):
@@ -603,7 +614,7 @@ class TraktImporter:
                     {"notes": entry["comment"]["comment"]},
                 )
             except Exception as e:
-                msg = f"Error processing comment entry: {entry}"
+                msg = _("Error processing comment entry: %(entry)s") % {"entry": entry}
                 raise MediaImportUnexpectedError(msg) from e
 
     def _process_generic_entry(self, entry, entry_type, attribute_updates):

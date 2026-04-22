@@ -9,6 +9,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.translations import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -98,7 +99,7 @@ def calendar(request):
 def reload_calendar(request):
     """Refresh the calendar with the latest dates."""
     tasks.reload_calendar.delay(request.user)
-    messages.info(request, "The task to refresh upcoming releases has been queued.")
+    messages.info(request, _("The task to refresh upcoming releases has been queued."))
     return redirect("calendar")
 
 

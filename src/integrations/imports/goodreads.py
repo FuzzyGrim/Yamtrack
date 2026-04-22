@@ -5,6 +5,7 @@ from datetime import datetime
 
 from django.apps import apps
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -66,11 +67,13 @@ class GoodReadsImporter:
             try:
                 self._process_row(row)
             except services.ProviderAPIError:
-                error_msg = f"Error processing entry with ID {row['media_id']} "
+                error_msg = _("Error processing entry with ID %(media_id)s") % {
+                    "media_id": row.get("media_id")
+                }
                 self.warnings.append(error_msg)
                 continue
             except Exception as error:
-                error_msg = f"Error processing entry: {row}"
+                error_msg = _("Error processing entry: %(row)s") % {"row": row}
                 raise MediaImportUnexpectedError(error_msg) from error
 
         logger.debug("processed %s", self.bulk_media)
@@ -95,8 +98,11 @@ class GoodReadsImporter:
 
         if not book:
             self.warnings.append(
-                f"{row['Title']}: Couldn't find this book via Title or ISBN13 in "
-                f"{default_source.label}",
+                _(
+                    "%(title)s: Couldn't find this book via Title or ISBN13"
+                    " in %(source)s"
+                )
+                % {"title": row.get("Title"), "source": default_source.label}
             )
             return
 

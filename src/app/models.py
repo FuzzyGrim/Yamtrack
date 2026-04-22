@@ -766,20 +766,20 @@ class MediaManager(models.Manager):
 class Status(models.TextChoices):
     """Choices for item status."""
 
-    COMPLETED = "Completed", "Completed"
-    IN_PROGRESS = "In progress", "In Progress"
-    PLANNING = "Planning", "Planning"
-    PAUSED = "Paused", "Paused"
-    DROPPED = "Dropped", "Dropped"
+    COMPLETED = "Completed", _("Completed")
+    IN_PROGRESS = "In progress", _("In Progress")
+    PLANNING = "Planning", _("Planning")
+    PAUSED = "Paused", _("Paused")
+    DROPPED = "Dropped", _("Dropped")
 
 
 class UserMessageLevel(models.TextChoices):
     """Choices for persistent user messages."""
 
-    SUCCESS = "success", "Success"
-    WARNING = "warning", "Warning"
-    ERROR = "error", "Error"
-    INFO = "info", "Info"
+    SUCCESS = "success", _("Success")
+    WARNING = "warning", _("Warning")
+    ERROR = "error", _("Error")
+    INFO = "info", _("Info")
 
 
 class UserMessage(models.Model):

@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_GET, require_POST
 
 from app import helpers
@@ -96,7 +97,7 @@ def list_detail(request, list_id):
     )
 
     if not custom_list.user_can_view(request.user):
-        msg = "List not found"
+        msg = _("List not found")
         raise Http404(msg)
 
     # Get and process request parameters
@@ -227,7 +228,7 @@ def edit(request):
             form.save()
             logger.info("%s list edited successfully.", custom_list)
     else:
-        messages.error(request, "You do not have permission to edit this list.")
+        messages.error(request, _("You do not have permission to edit this list."))
     return helpers.redirect_back(request)
 
 
@@ -241,7 +242,7 @@ def delete(request):
         logger.info("%s list deleted successfully.", custom_list)
         return redirect("lists")
 
-    messages.error(request, "You do not have permission to delete this list.")
+    messages.error(request, _("You do not have permission to delete this list."))
     return helpers.redirect_back(request)
 
 

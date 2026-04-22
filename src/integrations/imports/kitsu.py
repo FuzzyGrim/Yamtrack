@@ -6,6 +6,7 @@ from pathlib import Path
 from django.apps import apps
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
+from django.utils.translation import gettext_lazy as _
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -94,12 +95,13 @@ class KitsuImporter:
         )
 
         if not response["data"]:
-            msg = f"User {username} not found."
+            msg = _("User %(username)s not found.") % {"username": username}
             raise MediaImportError(msg)
         if len(response["data"]) > 1:
             msg = (
-                f"Multiple users found for {username}, please use your user ID. "
-                "User IDs can be found in the URL when viewing your Kitsu profile."
+                _("Multiple users found for %(username)s, please use your user ID. ")
+                + _("User IDs can be found in the URL when viewing your Kitsu profile.")
+            )
             )
             raise MediaImportError(msg)
 
@@ -130,7 +132,11 @@ class KitsuImporter:
                 kitsu_id = entry["relationships"][media_type]["data"]["id"]
                 kitsu_metadata = media_lookup[kitsu_id]
                 title = kitsu_metadata["attributes"]["canonicalTitle"]
-                msg = f"Error processing entry: {title} ({kitsu_id}) - {entry}"
+                msg = _("Error processing entry: %(title)s (%(kitsu_id)s) - %(entry)s") % {
+                    "title": title,
+                    "kitsu_id": kitsu_id,
+                    "entry": entry,
+                }
                 raise MediaImportUnexpectedError(msg) from error
 
     def _get_media_response(self, media_type):
@@ -247,10 +253,10 @@ class KitsuImporter:
         """Fetch media data from Kitsu related URL when relationship data is null."""
         related_url = relationship["links"]["related"]
         if not related_url:
-            msg = (
-                f"Could not import unknown item - missing media data from Kitsu. "
-                f"Relationship: {relationship}"
-            )
+            msg = _(
+                "Could not import unknown item - missing media data from Kitsu. "
+                "Relationship: %(relationship)s"
+            ) % {"relationship": relationship}
             raise MediaImportError(msg)
 
         params = {
@@ -315,7 +321,9 @@ class KitsuImporter:
         # Farmagia (49333) shows MAL external_id == "anime"
         if not media_id or not media_id.isdigit():
             media_title = kitsu_metadata["attributes"]["canonicalTitle"]
-            msg = f"{media_title}: No valid external ID found."
+            msg = _("%(media_title)s: No valid external ID found.") % {
+                "media_title": media_title
+            }
             raise MediaImportError(msg)
 
         image_url = self._get_image_url(kitsu_metadata)

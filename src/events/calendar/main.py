@@ -1,5 +1,7 @@
 import logging
 
+from django.utils.translation import gettext_lazy as _
+
 from app.models import MediaTypes, Sources
 from events.models import Event
 
@@ -15,11 +17,11 @@ logger = logging.getLogger(__name__)
 def fetch_releases(user=None, items_to_process=None):
     """Fetch and process releases for the calendar."""
     if items_to_process and items_to_process[0].source == Sources.MANUAL.value:
-        return "Manual sources are not processed"
+        return _("Manual sources are not processed")
 
     items_to_process = items_to_process or get_items_to_process(user)
     if not items_to_process:
-        return "No items to process"
+        return _("No items to process")
 
     events_bulk = process_items(items_to_process)
     items_updated = save_events(events_bulk)
@@ -113,15 +115,23 @@ def generate_final_message(items_to_process, items_updated):
         success_details = "\n".join(
             f"  - {item} ({item.get_media_type_display()})" for item in items_updated
         )
-        return (
-            f"Processed {len(items_to_process)} items:\n{processed_details}\n\n"
-            f"Releases updated for {len(items_updated)} items:\n{success_details}"
-        )
+        return _(
+            "Processed %(processed_count)s items:\n%(processed_details)s\n\n"
+            "Releases updated for %(updated_count)s items:\n%(success_details)s"
+        ) % {
+            "processed_count": len(items_to_process),
+            "processed_details": processed_details,
+            "updated_count": len(items_updated),
+            "success_details": success_details,
+        }
 
-    return (
-        f"Processed {len(items_to_process)} items:\n{processed_details}\n\n"
-        f"No releases have been updated."
-    )
+    return _(
+        "Processed %(processed_count)s items:\n%(processed_details)s\n\n"
+        "No releases have been updated."
+    ) % {
+        "processed_count": len(items_to_process),
+        "processed_details": processed_details,
+    }
 
 
 def cleanup_invalid_events(events_bulk):

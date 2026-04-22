@@ -7,6 +7,7 @@ from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.translation import gettext_lazy as _
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -87,7 +88,7 @@ class MyAnimeListImporter:
             response = self._get_whole_response(url, params)
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == requests.codes.not_found:
-                msg = f"User {self.username} not found."
+                msg = _("User %(username)s not found.") % {"username": self.username}
                 raise MediaImportError(msg) from error
             raise
 
@@ -95,7 +96,7 @@ class MyAnimeListImporter:
             try:
                 self._process_entry(content, media_type)
             except Exception as error:
-                msg = f"Error processing entry: {content}"
+                msg = _("Error processing entry: %(content)s") % {"content": content}
                 raise MediaImportUnexpectedError(msg) from error
 
     def _get_whole_response(self, url, params):
