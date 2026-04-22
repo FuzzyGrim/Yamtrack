@@ -15,6 +15,7 @@ from app.models import (
     Sources,
     Status,
 )
+from events.models import Event
 from users.models import HomeSortChoices
 
 
@@ -142,6 +143,16 @@ class HomeViewTests(TestCase):
             status=Status.IN_PROGRESS.value,
             progress=10,
         )
+        Event.objects.create(
+            item=anime_item,
+            content_number=16,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=anime_item,
+            content_number=17,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
 
         movie_item = Item.objects.create(
             media_id="10",
@@ -154,6 +165,11 @@ class HomeViewTests(TestCase):
             item=movie_item,
             user=self.user,
             status=Status.PLANNING.value,
+        )
+        Event.objects.create(
+            item=season_item,
+            content_number=6,
+            datetime=timezone.now() + timezone.timedelta(days=1),
         )
 
     def test_home_view(self):
@@ -200,6 +216,67 @@ class HomeViewTests(TestCase):
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.home_sort, "completion")
+
+    def test_home_view_separates_incoming_when_enabled(self):
+        """Test home view splits incoming media from in-progress."""
+        self.user.home_separate_incoming = True
+        self.user.save(update_fields=["home_separate_incoming"])
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+
+        sections_by_key = {
+            section["key"]: section for section in response.context["home_sections"]
+        }
+        self.assertIn("incoming", sections_by_key)
+        self.assertIn(Status.IN_PROGRESS.value, sections_by_key)
+
+        incoming_section = sections_by_key["incoming"]
+        in_progress_section = sections_by_key[Status.IN_PROGRESS.value]
+
+        self.assertEqual(incoming_section["count"], 2)
+        self.assertEqual(in_progress_section["count"], 1)
+        self.assertIn(MediaTypes.SEASON.value, incoming_section["media_types"])
+        self.assertIn(MediaTypes.ANIME.value, incoming_section["media_types"])
+        self.assertIn(MediaTypes.ANIME.value, in_progress_section["media_types"])
+
+    def test_home_view_htmx_load_more_for_incoming(self):
+        """Test HTMX load more for incoming section."""
+        self.user.home_separate_incoming = True
+        self.user.save(update_fields=["home_separate_incoming"])
+
+        for i in range(6, 20):
+            anime_item = Item.objects.create(
+                media_id=f"incoming-{i}",
+                source=Sources.MAL.value,
+                media_type=MediaTypes.ANIME.value,
+                title=f"Incoming Anime {i}",
+                image="http://example.com/image.jpg",
+            )
+            Anime.objects.create(
+                item=anime_item,
+                user=self.user,
+                status=Status.IN_PROGRESS.value,
+                progress=1,
+            )
+            Event.objects.create(
+                item=anime_item,
+                content_number=2,
+                datetime=timezone.now() + timezone.timedelta(days=1),
+            )
+
+        response = self.client.get(
+            reverse("home")
+            + f"?load_status=incoming&load_media_type={MediaTypes.ANIME.value}",
+            headers={"hx-request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/components/home_grid.html")
+        self.assertEqual(response.context["home_status"], "incoming")
+        self.assertEqual(len(response.context["media_list"]["items"]), 1)
+        self.assertEqual(response.context["media_list"]["total"], 15)
 
     @patch("app.providers.services.get_media_metadata")
     def test_home_view_htmx_load_more(self, mock_get_media_metadata):
