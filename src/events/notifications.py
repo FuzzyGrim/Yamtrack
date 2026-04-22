@@ -6,7 +6,7 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.translations import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from app.models import TV, MediaTypes, Season
 from app.templatetags import app_tags
