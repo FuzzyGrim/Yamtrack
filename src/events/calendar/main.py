@@ -110,28 +110,26 @@ def generate_final_message(items_to_process, items_updated):
     processed_details = "\n".join(
         f"  - {item} ({item.get_media_type_display()})" for item in items_to_process
     )
+    processed_message = _("Processed %(processed_count)s items:") % {
+        "processed_count": len(items_to_process),
+    }
 
     if items_updated:
         success_details = "\n".join(
             f"  - {item} ({item.get_media_type_display()})" for item in items_updated
         )
-        return _(
-            "Processed %(processed_count)s items:\n%(processed_details)s\n\n"
-            "Releases updated for %(updated_count)s items:\n%(success_details)s"
-        ) % {
-            "processed_count": len(items_to_process),
-            "processed_details": processed_details,
+        updated_message = _("Releases updated for %(updated_count)s items:") % {
             "updated_count": len(items_updated),
-            "success_details": success_details,
         }
+        return (
+            f"{processed_message}\n{processed_details}\n\n"
+            f"{updated_message}\n{success_details}"
+        )
 
-    return _(
-        "Processed %(processed_count)s items:\n%(processed_details)s\n\n"
-        "No releases have been updated."
-    ) % {
-        "processed_count": len(items_to_process),
-        "processed_details": processed_details,
-    }
+    return (
+        f"{processed_message}\n{processed_details}\n\n"
+        f"{_('No releases have been updated.')}"
+    )
 
 
 def cleanup_invalid_events(events_bulk):

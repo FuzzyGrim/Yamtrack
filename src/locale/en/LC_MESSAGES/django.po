@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Yamtrack\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-22 13:16+0200\n"
+"POT-Creation-Date: 2026-04-22 17:40+0200\n"
 "PO-Revision-Date: 2026-04-18 16:11+0200\n"
 "Last-Translator: bunz <66bunz@gmail.com>\n"
 "Language-Team: English\n"
@@ -103,7 +103,7 @@ msgid "TV Season"
 msgstr ""
 
 #: .\app\models.py:58 .\templates\app\media_details.html:94
-#: .\templates\app\media_details.html:570
+#: .\templates\app\media_details.html:572
 msgid "Episode"
 msgstr ""
 
@@ -133,6 +133,42 @@ msgstr ""
 
 #: .\app\models.py:65
 msgid "Boardgame"
+msgstr ""
+
+#: .\app\models.py:769
+msgid "Completed"
+msgstr ""
+
+#: .\app\models.py:770
+msgid "In Progress"
+msgstr ""
+
+#: .\app\models.py:771
+msgid "Planning"
+msgstr ""
+
+#: .\app\models.py:772
+msgid "Paused"
+msgstr ""
+
+#: .\app\models.py:773
+msgid "Dropped"
+msgstr ""
+
+#: .\app\models.py:779 .\templates\users\import_data.html:470
+msgid "Success"
+msgstr ""
+
+#: .\app\models.py:780
+msgid "Warning"
+msgstr ""
+
+#: .\app\models.py:781
+msgid "Error"
+msgstr ""
+
+#: .\app\models.py:782
+msgid "Info"
 msgstr ""
 
 #: .\app\templatetags\app_tags.py:141
@@ -204,6 +240,69 @@ msgid "Boardgame"
 msgid_plural "Boardgames"
 msgstr[0] ""
 msgstr[1] ""
+
+#: .\app\views.py:360
+msgid "Manual items cannot be synced."
+msgstr ""
+
+#: .\app\views.py:376
+msgid "The data was recently synced, please wait a few seconds."
+msgstr ""
+
+#: .\app\views.py:452
+#, python-format
+msgid "%(title)s was synced to %(source)s successfully."
+msgstr ""
+
+#: .\app\views.py:639
+msgid "Invalid form data"
+msgstr ""
+
+#: .\app\views.py:705
+#, python-format
+msgid "Season %(episode_number)s"
+msgstr ""
+
+#: .\app\views.py:709
+#, python-format
+msgid "Episode %(episode_number)s"
+msgstr ""
+
+#: .\app\views.py:716
+#, python-format
+msgid "%(media_name)s already exists in the database."
+msgstr ""
+
+#: .\app\views.py:749
+#, python-format
+msgid "%(item)s added successfully."
+msgstr ""
+
+#: .\app\views.py:884
+msgid "Record not found"
+msgstr ""
+
+#: .\events\calendar\main.py:20
+msgid "Manual sources are not processed"
+msgstr ""
+
+#: .\events\calendar\main.py:24
+msgid "No items to process"
+msgstr ""
+
+#: .\events\calendar\main.py:113
+#, python-format
+msgid "Processed %(processed_count)s items:"
+msgstr ""
+
+#: .\events\calendar\main.py:121
+#, python-format
+msgid "Releases updated for %(updated_count)s items:"
+msgstr ""
+
+#: .\events\calendar\main.py:131
+msgid "No releases have been updated."
+msgstr ""
 
 #: .\events\notifications.py:34
 msgid "No users with release notifications enabled"
@@ -308,7 +407,7 @@ msgstr ""
 msgid "User IDs can be found in the URL when viewing your Kitsu profile."
 msgstr ""
 
-#: .\integrations\imports\kitsu.py:135
+#: .\integrations\imports\kitsu.py:134
 #, python-format
 msgid "Error processing entry: %(title)s (%(kitsu_id)s) - %(entry)s"
 msgstr ""
@@ -335,13 +434,13 @@ msgid "Invalid SIMKL secret key."
 msgstr ""
 
 #: .\integrations\imports\simkl.py:182 .\integrations\imports\simkl.py:344
-#, python-brace-format
-msgid "{title}: No TMDB ID found"
+#, python-format
+msgid "%(title)s: No TMDB ID found"
 msgstr ""
 
 #: .\integrations\imports\simkl.py:188 .\integrations\imports\simkl.py:350
-#, python-brace-format
-msgid "{title} ({tmdb_id}) already present in the import list"
+#, python-format
+msgid "%(title)s (%(tmdb_id)s) already present in the import list"
 msgstr ""
 
 #: .\integrations\imports\simkl.py:254
@@ -349,9 +448,9 @@ msgstr ""
 msgid "Error processing entry: %(tv)s"
 msgstr ""
 
-#: .\integrations\imports\simkl.py:373
-#, python-brace-format
-msgid "{title}: not found in {source} with ID {tmdb_id}."
+#: .\integrations\imports\simkl.py:373 .\integrations\imports\trakt.py:334
+#, python-format
+msgid "%(title)s: not found in %(source)s with ID %(tmdb_id)s."
 msgstr ""
 
 #: .\integrations\imports\simkl.py:408
@@ -360,18 +459,18 @@ msgid "Error processing entry: %(movie)s"
 msgstr ""
 
 #: .\integrations\imports\simkl.py:427
-#, python-brace-format
-msgid "{title}: No MyAnimeList ID found"
+#, python-format
+msgid "%(title)s: No MyAnimeList ID found"
 msgstr ""
 
 #: .\integrations\imports\simkl.py:433
-#, python-brace-format
-msgid "{title} ({mal_id}) already present in the import list"
+#, python-format
+msgid "%(title)s (%(mal_id)s) already present in the import list"
 msgstr ""
 
 #: .\integrations\imports\simkl.py:456
-#, python-brace-format
-msgid "{title}: not found in {source} with ID {mal_id}."
+#, python-format
+msgid "%(title)s: not found in %(source)s with ID %(mal_id)s."
 msgstr ""
 
 #: .\integrations\imports\steam.py:45
@@ -413,8 +512,8 @@ msgid "Steam API request failed after all retries"
 msgstr ""
 
 #: .\integrations\imports\steam.py:183
-#, python-brace-format
-msgid "{name} ({appid}): Couldn't find a match in {Sources.IGDB.label}"
+#, python-format
+msgid "%(name)s (%(appid)s): Couldn't find a match in %(source)s"
 msgstr ""
 
 #: .\integrations\imports\steam.py:253
@@ -450,11 +549,6 @@ msgstr ""
 #: .\integrations\imports\trakt.py:309
 #, python-format
 msgid "%(title)s: No %(source)s ID found."
-msgstr ""
-
-#: .\integrations\imports\trakt.py:334
-#, python-format
-msgid "%(title)s: not found in %(source)s with ID %(tmdb_id)s."
 msgstr ""
 
 #: .\integrations\imports\trakt.py:469
@@ -752,7 +846,7 @@ msgid "You haven't started tracking it yet."
 msgstr ""
 
 #: .\templates\app\components\fill_track_episode.html:13
-#: .\templates\app\media_details.html:578
+#: .\templates\app\media_details.html:580
 msgid "Track Episode"
 msgstr ""
 
@@ -774,7 +868,7 @@ msgid "Previous Watches"
 msgstr ""
 
 #: .\templates\app\components\fill_track_episode.html:54
-#: .\templates\app\media_details.html:645
+#: .\templates\app\media_details.html:647
 msgid "No date provided"
 msgstr ""
 
@@ -863,7 +957,7 @@ msgstr ""
 msgid "Score"
 msgstr ""
 
-#: .\templates\app\create_entry.html:308 .\templates\app\media_details.html:334
+#: .\templates\app\create_entry.html:308 .\templates\app\media_details.html:336
 #: .\templates\app\media_list.html:168
 msgid "Status"
 msgstr ""
@@ -915,128 +1009,129 @@ msgstr ""
 msgid "YOUR NOTES"
 msgstr ""
 
-#: .\templates\app\media_details.html:155
-msgid "SCORE"
+#: .\templates\app\media_details.html:156
+#, python-format
+msgid "%(source)s SCORE"
 msgstr ""
 
-#: .\templates\app\media_details.html:165
+#: .\templates\app\media_details.html:167
 #, python-format
 msgid "%(formatted_score_count)s vote"
 msgid_plural "%(formatted_score_count)s votes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: .\templates\app\media_details.html:177
+#: .\templates\app\media_details.html:179
 msgid "YOUR SCORE"
 msgstr ""
 
-#: .\templates\app\media_details.html:190
+#: .\templates\app\media_details.html:192
 msgid "Click to edit"
 msgstr ""
 
-#: .\templates\app\media_details.html:232
+#: .\templates\app\media_details.html:234
 msgid "Your History"
 msgstr ""
 
-#: .\templates\app\media_details.html:242
+#: .\templates\app\media_details.html:244
 msgid "Add new consumption"
 msgstr ""
 
-#: .\templates\app\media_details.html:262
-#: .\templates\app\media_details.html:346
+#: .\templates\app\media_details.html:264
+#: .\templates\app\media_details.html:348
 #: .\templates\users\import_data.html:474
 msgid "Started"
 msgstr ""
 
-#: .\templates\app\media_details.html:269
+#: .\templates\app\media_details.html:271
 msgid "Ended"
 msgstr ""
 
-#: .\templates\app\media_details.html:276
-#: .\templates\app\media_details.html:338 .\templates\app\media_list.html:166
+#: .\templates\app\media_details.html:278
+#: .\templates\app\media_details.html:340 .\templates\app\media_list.html:166
 #: .\users\models.py:39
 msgid "Progress"
 msgstr ""
 
-#: .\templates\app\media_details.html:292
+#: .\templates\app\media_details.html:294
 msgid "Show Repeats"
 msgstr ""
 
-#: .\templates\app\media_details.html:308
+#: .\templates\app\media_details.html:310
 msgid "Not rated"
 msgstr ""
 
-#: .\templates\app\media_details.html:350
+#: .\templates\app\media_details.html:352
 #: .\templates\users\import_data.html:468
 msgid "Finished"
 msgstr ""
 
-#: .\templates\app\media_details.html:380
+#: .\templates\app\media_details.html:382
 msgid "Actions"
 msgstr ""
 
-#: .\templates\app\media_details.html:385
-#: .\templates\app\media_details.html:594
+#: .\templates\app\media_details.html:387
+#: .\templates\app\media_details.html:596
 msgid "Add to custom lists"
 msgstr ""
 
-#: .\templates\app\media_details.html:405
-#: .\templates\app\media_details.html:616
+#: .\templates\app\media_details.html:407
+#: .\templates\app\media_details.html:618
 msgid "View your activity history"
 msgstr ""
 
-#: .\templates\app\media_details.html:424
+#: .\templates\app\media_details.html:426
 msgid "Sync metadata with provider"
 msgstr ""
 
-#: .\templates\app\media_details.html:441
+#: .\templates\app\media_details.html:443
 msgid "Details"
 msgstr ""
 
-#: .\templates\app\media_details.html:444
+#: .\templates\app\media_details.html:446
 msgid "STREAMING"
 msgstr ""
 
-#: .\templates\app\media_details.html:448
+#: .\templates\app\media_details.html:450
 #, python-format
 msgid ""
 "Watch provider region is not configured. Set a region or disable this "
 "feature in the %(link_start)spreferences%(link_end)s."
 msgstr ""
 
-#: .\templates\app\media_details.html:463
+#: .\templates\app\media_details.html:465
 msgid "No watch providers"
 msgstr ""
 
-#: .\templates\app\media_details.html:481 .\templates\app\search.html:13
+#: .\templates\app\media_details.html:483 .\templates\app\search.html:13
 msgid "Source"
 msgstr ""
 
-#: .\templates\app\media_details.html:488
+#: .\templates\app\media_details.html:490
 msgid "EXTERNAL LINKS"
 msgstr ""
 
-#: .\templates\app\media_details.html:497
+#: .\templates\app\media_details.html:499
 msgid "No details available"
 msgstr ""
 
-#: .\templates\app\media_details.html:505
+#: .\templates\app\media_details.html:507
 msgid "Cast"
 msgstr ""
 
-#: .\templates\app\media_details.html:517
+#: .\templates\app\media_details.html:519
 msgid "View all"
 msgstr ""
 
-#: .\templates\app\media_details.html:518
+#: .\templates\app\media_details.html:520
 msgid "cast members"
 msgstr ""
 
-#: .\templates\app\media_details.html:532
+#: .\templates\app\media_details.html:534
 msgid "DLCs"
 msgstr ""
 
-#: .\templates\app\media_details.html:555
+#: .\templates\app\media_details.html:557
 msgid "Episodes"
 msgstr ""
 
@@ -1764,10 +1859,6 @@ msgstr ""
 
 #: .\templates\users\import_data.html:459
 msgid "Showing import activity from the last 7 days."
-msgstr ""
-
-#: .\templates\users\import_data.html:470
-msgid "Success"
 msgstr ""
 
 #: .\templates\users\import_data.html:476

@@ -449,9 +449,8 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
 
         item.fetch_releases(delay=False)
 
-        msg = _("%s was synced to %s successfully.") % (
-            title,
-            Sources(source).label,
+        msg = _("%(title)s was synced to %(source)s successfully.") % (
+            {"title": title, "source": Sources(source).label}
         )
         messages.success(request, msg)
 
