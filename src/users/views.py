@@ -1,8 +1,6 @@
 import logging
 
 import apprise
-from app.models import Item, MediaTypes
-from app.providers import tmdb
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
@@ -14,6 +12,8 @@ from django.template.defaultfilters import pluralize
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
+from app.models import Item, MediaTypes
+from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import DateFormatChoices, QuickWatchDateChoices, TimeFormatChoices
 

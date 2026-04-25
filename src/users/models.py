@@ -1,11 +1,11 @@
 import secrets
 
-from app.models import Item, MediaTypes, Status
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
+from app.models import Item, MediaTypes, Status
 from users import helpers
 
 EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
