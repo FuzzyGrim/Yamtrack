@@ -103,6 +103,7 @@ for url in URLS:
 if BASE_URL:
     CSRF_COOKIE_PATH = BASE_URL + "/"
 
+USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
