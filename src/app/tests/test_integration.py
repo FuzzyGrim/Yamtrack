@@ -186,7 +186,7 @@ class IntegrationTest(StaticLiveServerTestCase):
             "Obfuscate Unseen Episodes"
         )
         expect(self.page.get_by_role("main")).to_contain_text(
-            "unseen episode images will be hidden"
+            "unseen episode images and descriptions will be blurred"
         )
 
         # Find and check the obfuscate checkbox by clicking the label

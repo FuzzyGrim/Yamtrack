@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name="obfuscate_unseen_episodes",
             field=models.BooleanField(
                 default=False,
-                help_text="Hide unseen episode images and descriptions",
+                help_text="Blur unseen episode images and descriptions",
             ),
         ),
     ]

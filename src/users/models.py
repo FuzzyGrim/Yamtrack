@@ -293,7 +293,7 @@ class User(AbstractUser):
 
     obfuscate_unseen_episodes = models.BooleanField(
         default=False,
-        help_text="Hide unseen episode images and descriptions",
+        help_text="Blur unseen episode images and descriptions",
     )
 
     # Tracking settings
