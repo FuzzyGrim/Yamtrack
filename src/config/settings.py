@@ -365,14 +365,17 @@ SPECTACULAR_SETTINGS = {
         "name": "GNU AFFERO GENERAL PUBLIC LICENSE v3.0",
         "url": "https://github.com/FuzzyGrim/Yamtrack/blob/dev/LICENSE",
     },
-    "SCHEMA_PATH_PREFIX": "/api/v1",
-    "SORT_OPERATIONS": True,
-    "COMPONENT_SPLIT_REQUEST": True,
     "SERVERS": [
         {
             "url": "http://localhost:8000/",
             "description": "Local development server",
         },
+    ],
+    "SCHEMA_PATH_PREFIX": "/api/v1",
+    "SORT_OPERATIONS": True,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "PARSER_WHITELIST": [
+        "rest_framework.parsers.JSONParser",
     ],
 }
 
