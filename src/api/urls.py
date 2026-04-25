@@ -1,4 +1,9 @@
+from django.conf import settings
 from django.urls import re_path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+)
 
 from . import views
 
@@ -165,3 +170,13 @@ urlpatterns = [
     ),
     re_path(r"^statistics/?$", views.StatisticsView.as_view(), name="api_statistics"),
 ]
+
+if settings.SPECTACULAR_ENABLE_SERVE:
+    urlpatterns += [
+        re_path(r"^schema/?$", SpectacularAPIView.as_view(), name="api_schema"),
+        re_path(
+            r"^docs/?$",
+            SpectacularSwaggerView.as_view(url_name="api_schema"),
+            name="api_docs",
+        ),
+    ]

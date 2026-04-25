@@ -126,6 +126,22 @@ python manage.py runserver & celery -A config worker --beat --scheduler django -
 
 Go to: http://localhost:8000
 
+### OpenAPI schema generation
+
+The API spec in [openapi.yaml](openapi.yaml) can be generated automatically from Django/DRF using [`drf-spectacular`](https://github.com/tfranzel/drf-spectacular).
+
+From the project root, run:
+
+```bash
+cd src
+python manage.py generate_openapi --validate
+```
+
+When schema serving is enabled (default: `DEBUG=True`, or by setting `SPECTACULAR_ENABLE_SERVE=True`), docs are available at:
+
+- `http://localhost:8000/api/v1/schema/`
+- `http://localhost:8000/api/v1/docs/`
+
 ## 💪 Support the Project
 
 There are many ways you can support Yamtrack's development:
