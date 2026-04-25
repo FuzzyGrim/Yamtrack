@@ -52,6 +52,11 @@ urlpatterns = [
     ),
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
+    path(
+        "user_messages/mark_shown",
+        views.mark_user_messages_shown,
+        name="mark_user_messages_shown",
+    ),
     path("episode_save", views.episode_save, name="episode_save"),
     path(
         "history_modal/<source:source>/<media_type:media_type>/<str:media_id>",

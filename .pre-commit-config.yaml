@@ -1,0 +1,38 @@
+repos:
+  - repo: local
+    hooks:
+      - id: check-migrations
+        name: check-migrations
+        entry: python src/manage.py makemigrations --check
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: django-upgrade
+        name: django-upgrade
+        entry: django-upgrade
+        language: system
+        types: [python]
+      - id: ruff
+        name: ruff
+        entry: ruff check --fix
+        language: system
+        types: [python]
+        require_serial: true
+      - id: ruff-format
+        name: ruff-format
+        entry: ruff format
+        language: system
+        types: [python]
+        require_serial: true
+      - id: djlint-lint
+        name: djlint-lint
+        entry: djlint --lint
+        language: system
+        types: [html]
+        require_serial: true
+      - id: djlint-reformat
+        name: djlint-reformat
+        entry: djlint --reformat
+        language: system
+        types: [html]
+        require_serial: true

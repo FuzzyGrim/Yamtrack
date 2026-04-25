@@ -1,8 +1,9 @@
 import os
+from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.utils import formats, timezone
+from django.utils import timezone
 from playwright.sync_api import expect, sync_playwright
 
 
@@ -52,20 +53,23 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_role("main")).to_contain_text("Track Episode")
         self.page.get_by_role("button", name="Air date").click()
         self.page.get_by_role("button", name="Add watch").click()
+
+        datetime_format = "%Y-%m-%d"
+
+        # Episode 1 air date is 2008-01-20
+        fixed_date = date(2008, 1, 20)
+
         expect(self.page.get_by_role("main")).to_contain_text(
-            "Last watched: Jan. 20, 2008",
+            f"Last watched: {fixed_date.strftime(datetime_format)}",
         )
         self.page.get_by_role("link", name="Home").click()
-        expect(self.page.get_by_text("Breaking Bad S1 1 Episode")).to_be_visible()
-        self.page.get_by_text("Breaking Bad S1 1 Episode").get_by_role("button").nth(
-            1,
+        expect(self.page.get_by_text("Breaking Bad S1")).to_be_visible()
+        self.page.locator("#media-grid-in-progress-season").get_by_role("button").nth(
+            4,
         ).click()
         self.page.get_by_title("Breaking Bad S1").click()
 
-        today = formats.date_format(
-            timezone.localdate(),
-            "DATE_FORMAT",
-        )
+        today = timezone.localtime().strftime(datetime_format)
         expect(self.page.get_by_role("main")).to_contain_text(f"Last watched: {today}")
 
     def test_tv_completed(self):
@@ -173,9 +177,9 @@ class IntegrationTest(StaticLiveServerTestCase):
 
     def test_obfuscate_unseen_episodes_enabled(self):
         """Test that obfuscate_unseen_episodes setting is accessible and functional."""
-        # Navigate to UI preferences
+        # Navigate to preferences
         self.page.get_by_role("link", name="Settings").click()
-        self.page.get_by_role("link", name="UI Preferences").click()
+        self.page.get_by_role("link", name="Preferences").click()
 
         # Verify the obfuscate setting is visible
         expect(self.page.get_by_role("main")).to_contain_text(
@@ -196,12 +200,10 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="Save Preferences").click()
 
         # Verify success message
-        expect(self.page.locator(".scheme-dark")).to_contain_text(
-            "Settings updated"
-        )
+        expect(self.page.locator(".scheme-dark")).to_contain_text("Settings updated")
 
         # Verify setting persisted
-        self.page.get_by_role("link", name="UI Preferences").click()
+        self.page.get_by_role("link", name="Preferences").click()
         obfuscate_checkbox = self.page.locator(
             'input[name="obfuscate_unseen_episodes"]'
         )
@@ -209,9 +211,9 @@ class IntegrationTest(StaticLiveServerTestCase):
 
     def test_obfuscate_unseen_episodes_disabled(self):
         """Test toggling obfuscate_unseen_episodes setting off."""
-        # Navigate to UI preferences
+        # Navigate to preferences
         self.page.get_by_role("link", name="Settings").click()
-        self.page.get_by_role("link", name="UI Preferences").click()
+        self.page.get_by_role("link", name="Preferences").click()
 
         # Find the obfuscate checkbox
         obfuscate_checkbox = self.page.locator(
@@ -233,7 +235,7 @@ class IntegrationTest(StaticLiveServerTestCase):
             )
 
             # Verify setting persisted as unchecked
-            self.page.get_by_role("link", name="UI Preferences").click()
+            self.page.get_by_role("link", name="Preferences").click()
             obfuscate_checkbox = self.page.locator(
                 'input[name="obfuscate_unseen_episodes"]'
             )

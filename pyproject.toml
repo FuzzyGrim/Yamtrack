@@ -1,10 +1,11 @@
 [tool.ruff]
 target-version = "py312"
 extend-exclude = ["migrations"]
+force-exclude = true
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["ANN", "PT", "PD", "D100", "D104", "RUF012", "PLR0913", "SLF001"]
+ignore = ["ANN", "PT", "PD", "D100", "D104", "RUF012", "PLR0913", "SLF001", "COM812"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 88
@@ -16,6 +17,7 @@ convention = "pep257"
 custom_blocks = "element,slot,setvar"
 preserve_blank_lines = true
 ignore = "H006,H021"
+indent = 2
 
 [tool.coverage.run]
 concurrency = ["multiprocessing"]

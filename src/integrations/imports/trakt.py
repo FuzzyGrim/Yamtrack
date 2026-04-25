@@ -397,6 +397,7 @@ class TraktImporter:
             user=self.user,
             end_date=watched_at,
             status=Status.COMPLETED.value,
+            progress=1,
         )
         movie_obj._history_date = parse_datetime(watched_at)
 
@@ -605,7 +606,7 @@ class TraktImporter:
                 msg = f"Error processing comment entry: {entry}"
                 raise MediaImportUnexpectedError(msg) from e
 
-    def _process_generic_entry(self, entry, entry_type, attribute_updates=None):
+    def _process_generic_entry(self, entry, entry_type, attribute_updates):
         """Process a generic entry (watchlist, rating, or comment)."""
         if entry["type"] == "movie":
             logger.info(
@@ -613,12 +614,18 @@ class TraktImporter:
                 entry["movie"]["title"],
                 entry_type,
             )
+            # Movies with Completed status (from ratings and comments)
+            # should have progress=1
+            status = attribute_updates.get("status", Status.COMPLETED.value)
+            if status == Status.COMPLETED.value:
+                attribute_updates["progress"] = 1
+
             self._process_media_item(
                 entry,
                 entry["movie"],
                 MediaTypes.MOVIE.value,
                 app.models.Movie,
-                attribute_updates or {},
+                attribute_updates,
             )
         elif entry["type"] == "show":
             logger.info(
@@ -631,7 +638,7 @@ class TraktImporter:
                 entry["show"],
                 MediaTypes.TV.value,
                 app.models.TV,
-                attribute_updates or {},
+                attribute_updates,
             )
         elif entry["type"] == "season":
             logger.info(
@@ -645,7 +652,7 @@ class TraktImporter:
                 entry["show"],
                 MediaTypes.SEASON.value,
                 app.models.Season,
-                attribute_updates or {},
+                attribute_updates,
                 entry["season"]["number"],
             )
 
@@ -655,7 +662,7 @@ class TraktImporter:
         media_data,
         media_type,
         model_class,
-        defaults=None,
+        defaults,
         season_number=None,
     ):
         """Process media items for watchlist, ratings, and comments."""

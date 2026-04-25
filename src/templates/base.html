@@ -13,7 +13,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-title" content="Yamtrack">
-    
+
     <title>
       {% block title %}
         Yamtrack
@@ -77,8 +77,10 @@
                    class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                   {% if request.path|str_equals:"/" %}
                     {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                   {% else %}
                     {% include "app/icons/house.svg" with classes="w-5 h-5" %}
+
                   {% endif %}
                   <span>Home</span>
                 </a>
@@ -104,8 +106,10 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% if request.path|str_equals:create_entry_url %}
                       {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                     {% else %}
                       {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
+
                     {% endif %}
                     <span>Create Custom</span>
                   </a>
@@ -117,8 +121,10 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% if request.path|str_equals:statistics_url %}
                       {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                     {% else %}
                       {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
+
                     {% endif %}
                     <span>Statistics</span>
                   </a>
@@ -130,8 +136,10 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% if request.path|str_equals:lists_url %}
                       {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                     {% else %}
                       {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
+
                     {% endif %}
                     <span>Lists</span>
                   </a>
@@ -143,8 +151,10 @@
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                     {% if request.path|str_equals:calendar_url %}
                       {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                     {% else %}
                       {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
+
                     {% endif %}
                     <span>Calendar</span>
                   </a>
@@ -165,8 +175,10 @@
                  class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
                 {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
                   {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
                 {% else %}
                   {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
+
                 {% endif %}
                 <span>Settings</span>
               </a>
@@ -176,6 +188,7 @@
                 <button type="submit"
                         class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
                   {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
+
                   <span>Logout</span>
                 </button>
               </form>
@@ -184,7 +197,7 @@
         </aside>
 
         {# Main content #}
-        <div class="flex-1 flex flex-col min-h-screen">
+        <div class="flex-1 min-w-0 flex flex-col min-h-screen">
           {# Top bar #}
           <div class="sticky top-0 z-10 bg-[#1a1d20] border-b border-[#2c3136] shadow-md">
             <div class="container mx-auto px-4">
@@ -193,6 +206,7 @@
                 <button @click="isMobileMenuOpen = !isMobileMenuOpen"
                         class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
                   {% include "app/icons/hamburger.svg" with classes="w-6 h-6" %}
+
                 </button>
 
                 {# Define search type from current media type (if it exists) or last search type #}
@@ -211,6 +225,7 @@
                       <div class="relative grow">
                         {# Search input #}
                         <input type="search"
+                               id="global-search"
                                name="q"
                                value="{{ request.GET.q }}"
                                :placeholder="getPlaceholder()"
@@ -218,6 +233,7 @@
                         <button type="submit"
                                 class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
                           {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
+
                         </button>
                       </div>
 
@@ -230,6 +246,7 @@
                               class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
                         <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
                         {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
+
                       </button>
                       <ul x-cloak
                           x-show="isOpen"
@@ -264,46 +281,14 @@
       </div>
     {% endblock body %}
 
-    {% if messages %}
-      <div class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none">
-        <div class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">
-          {% for message in messages %}
-            {# djlint:off #}
-            <div class="flex items-center gap-2 rounded-md border px-3 py-2 shadow-lg text-white toast-{{ message.tags }} opacity-0"
-              x-data="{ 
-                  init() { 
-                    // Start entrance animation after a tiny delay
-                    setTimeout(() => this.$el.classList.add('opacity-100', 'transform-none'), 10);
-                    this.$el.classList.add('transition-all', 'duration-300', 'ease-out', 'transform', 'translate-y-[-1rem]');
-          
-                    {% if message.tags not in 'warning,error' %}
-                      // Auto-dismiss non-critical messages
-                      setTimeout(() => this.$el.remove(), 5000);
-                    {% endif %}
-                  }
-              }">
-
-              {% if message.tags == 'success' %}
-                {% include "app/icons/states/completed.svg" with classes="w-4 h-4 text-emerald-300 shrink-0" %}
-              {% elif message.tags == 'warning' %}
-                {% include "app/icons/warning.svg" with classes="w-4 h-4 text-amber-300 shrink-0" %}
-              {% elif message.tags == 'error' %}
-                {% include "app/icons/warning.svg" with classes="w-4 h-4 text-red-300 shrink-0" %}
-              {% elif message.tags == "info" %}
-                {% include "app/icons/info.svg" with classes="w-4 h-4 text-indigo-300 shrink-0" %}
-              {% endif %}
-
-              <p class="text-sm font-medium flex-1">{{ message }}</p>
-              <button class="text-current opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
-                      @click="$el.parentElement.remove()">
-                {% include "app/icons/x.svg" with classes="w-4 h-4" %}
-              </button>
-            </div>
-            {# djlint:on #}
-          {% endfor %}
-        </div>
+    <div class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none">
+      <div id="messages-list"
+           class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">
+        {% include "app/components/messages/messages_stack.html" %}
       </div>
-    {% endif %}
+    </div>
+
+    <div id="persistent-messages-actions">{% include "app/components/messages/persistent_messages_actions.html" %}</div>
 
     {% block js %}
     {% endblock js %}
@@ -323,5 +308,6 @@
     </script>
 
     <script src="{% static 'js/mediaStatusDateHandler.js' %}{% get_static_file_mtime 'js/mediaStatusDateHandler.js' %}"></script>
+    <script src="{% static 'js/searchShortcut.js' %}{% get_static_file_mtime 'js/searchShortcut.js' %}"></script>
   </body>
 </html>

@@ -22,14 +22,10 @@
         <div class="flex rounded-md overflow-hidden border border-gray-700">
           <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=grid"
              {% if layout == 'grid' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
-             title="Grid View">
-            {% include "app/icons/four-square.svg" with classes="w-5 h-5" %}
-          </a>
+             title="Grid View">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
           <a href="?q={{ request.GET.q|urlencode }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&layout=list"
              {% if layout == 'list' %} class="p-2 cursor-pointer bg-indigo-600 text-white flex items-center" {% else %} class="p-2 cursor-pointer bg-[#39404b] hover:bg-[#454d5a] flex items-center" {% endif %}
-             title="List View">
-            {% include "app/icons/list.svg" with classes="w-5 h-5" %}
-          </a>
+             title="List View">{% include "app/icons/list.svg" with classes="w-5 h-5" %}</a>
         </div>
       </div>
     </div>
@@ -59,9 +55,7 @@
         </a>
       {% else %}
         <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
-                disabled>
-          {% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}
-        </button>
+                disabled>{% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}</button>
       {% endif %}
 
       {# Page numbers with ellipses #}
@@ -88,9 +82,7 @@
         </a>
       {% else %}
         <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
-                disabled>
-          {% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}
-        </button>
+                disabled>{% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}</button>
       {% endif %}
     </div>
 

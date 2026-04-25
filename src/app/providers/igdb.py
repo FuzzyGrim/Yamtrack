@@ -125,7 +125,7 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
         url = f"{base_url}/external_games"
         query = (
             f'fields game; where uid = "{external_id}" & '
-            f'external_game_source = {source};'
+            f"external_game_source = {source};"
         )
         headers = {
             "Client-ID": settings.IGDB_ID,
@@ -229,7 +229,7 @@ def search(query, page):
                     Sources.IGDB.value,
                     "POST",
                     url,
-                    data=data,
+                    data=multiquery,
                     headers=headers,
                 )
 
@@ -282,7 +282,8 @@ def game(media_id):
             "expansions.name,expansions.cover.image_id,"
             "standalone_expansions.name,standalone_expansions.cover.image_id,"
             "expanded_games.name,expanded_games.cover.image_id,"
-            "similar_games.name,similar_games.cover.image_id;"
+            "similar_games.name,similar_games.cover.image_id,"
+            "dlcs.name,dlcs.cover.image_id;"
             f"where id = {media_id};"
         )
         headers = {
@@ -314,7 +315,9 @@ def game(media_id):
         # Check if response is empty (no results found)
         if not response:
             services.raise_not_found_error(
-                Sources.IGDB.value, media_id, "game",
+                Sources.IGDB.value,
+                media_id,
+                "game",
             )
 
         response = response[0]  # response is a list with a single element
@@ -342,6 +345,7 @@ def game(media_id):
                 "remasters": get_related(response.get("remasters")),
                 "remakes": get_related(response.get("remakes")),
                 "expansions": get_related(response.get("expansions")),
+                "dlcs": get_related(response.get("dlcs")),
                 "standalone_expansions": get_related(
                     response.get("standalone_expansions"),
                 ),

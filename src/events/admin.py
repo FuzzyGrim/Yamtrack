@@ -4,6 +4,7 @@ from django.utils import timezone
 from events.models import Event
 
 
+@admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     """Admin configuration for the Event model."""
 
@@ -27,6 +28,3 @@ class EventAdmin(admin.ModelAdmin):
             return timezone.localtime(obj.datetime).strftime("%Y-%m-%d %H:%M")
         except (OverflowError, ValueError):
             return "Invalid date"
-
-
-admin.site.register(Event, EventAdmin)

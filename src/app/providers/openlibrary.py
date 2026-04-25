@@ -276,7 +276,7 @@ async def get_authors(response):
             data.get("name", "Unknown Author") for data in author_data_list if data
         ]
 
-    return authors if authors else None
+    return authors or None
 
 
 async def fetch_author_data(session, url):
