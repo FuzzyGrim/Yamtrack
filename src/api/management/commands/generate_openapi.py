@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management import BaseCommand, call_command
 
 
@@ -26,8 +27,7 @@ class Command(BaseCommand):
         if options["file"]:
             output_path = Path(options["file"]).expanduser().resolve()
         else:
-            repo_root = Path(__file__).resolve().parents[4]
-            output_path = repo_root / "openapi.yaml"
+            output_path = settings.BASE_DIR.parent / "openapi.yaml"
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
