@@ -360,7 +360,7 @@ SPECTACULAR_ENABLE_SERVE = config(
 SPECTACULAR_SETTINGS = {
     "TITLE": "Yamtrack API",
     "DESCRIPTION": "OpenAPI schema for Yamtrack's API",
-    "VERSION": "0.0.25",
+    "VERSION": "0.1.0",
     "LICENSE": {
         "name": "GNU AFFERO GENERAL PUBLIC LICENSE v3.0",
         "url": "https://github.com/FuzzyGrim/Yamtrack/blob/dev/LICENSE",
