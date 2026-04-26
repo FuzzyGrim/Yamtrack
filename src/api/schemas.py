@@ -1,4 +1,5 @@
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 
 
 class BearerAuthenticationScheme(OpenApiAuthenticationExtension):
@@ -28,3 +29,32 @@ class ApiKeyAuthenticationScheme(OpenApiAuthenticationExtension):
             "in": "header",
             "name": "X-API-Key",
         }
+
+
+PaginationLimitParam = OpenApiParameter(
+    name="limit",
+    type=OpenApiTypes.INT,
+    location=OpenApiParameter.QUERY,
+    description="Maximum number of results to return (default: 20).",
+)
+
+PaginationOffsetParam = OpenApiParameter(
+    name="offset",
+    type=OpenApiTypes.INT,
+    location=OpenApiParameter.QUERY,
+    description="Number of results to skip before returning items (default: 0).",
+)
+
+ListSortParam = OpenApiParameter(
+    name="sort",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Sorting expression in the format `<field>:asc|desc`.",
+)
+
+ListSearchParam = OpenApiParameter(
+    name="search",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Free-text filter for list names or item titles.",
+)
