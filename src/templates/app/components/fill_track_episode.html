@@ -11,7 +11,7 @@
       {# Modal Header #}
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-white">Track Episode</h2>
-        <button class="text-gray-400 hover:text-white transition-colors cursor-pointer focus:outline-none"
+        <button class="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 @click="trackOpen = false">{% include "app/icons/x.svg" with classes="w-5 h-5" %}</button>
       </div>
 
@@ -57,7 +57,7 @@
                   <input type="hidden" name="instance_id" value="{{ entry.id }}">
                   <input type="hidden" name="media_type" value="episode">
                   <button type="submit"
-                          class="text-red-400 hover:text-red-300 transition-colors text-sm px-2 py-1 hover:bg-red-600/20 rounded-md cursor-pointer focus:outline-none">
+                          class="text-red-400 hover:text-red-300 transition-colors text-sm px-2 py-1 hover:bg-red-600/20 rounded-md cursor-pointer">
                     Delete
                   </button>
                 </form>
@@ -99,7 +99,7 @@
         <div class="mt-6 flex items-center justify-end gap-3">
           {# Clear Button #}
           <button type="reset"
-                  class="px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-colors bg-red-600/10 hover:bg-red-600/20 rounded-md cursor-pointer focus:outline-none border border-red-600/30"
+                  class="px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-colors bg-red-600/10 hover:bg-red-600/20 rounded-md cursor-pointer border border-red-600/30"
                   title="Clear date and time">Clear</button>
 
           <div class="relative inline-flex shadow-sm rounded-md"
@@ -108,14 +108,14 @@
 
             {# Main Button #}
             <button type="submit"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-l-md transition duration-300 cursor-pointer font-medium focus:outline-none"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-l-md transition duration-300 cursor-pointer font-medium"
                     title="Add watched entry with current settings">Add watch</button>
 
             {# Dropdown Toggle #}
             <button type="button"
                     @click="dropdownOpen = !dropdownOpen"
                     :style="dropdownOpen ? 'background-color: #4338ca;' : 'background-color: #4f46e5;'"
-                    class="px-2 py-2 text-white rounded-r-md border-l border-indigo-500 transition duration-300 cursor-pointer focus:outline-none flex items-center justify-center">
+                    class="px-2 py-2 text-white rounded-r-md border-l border-indigo-500 transition duration-300 cursor-pointer flex items-center justify-center">
               <svg class="w-4 h-4 transition-transform duration-200"
                    :class="{'rotate-180': dropdownOpen}"
                    fill="none"
@@ -129,7 +129,7 @@
             <div x-show="dropdownOpen"
                  style="display: none"
                  x-transition
-                 class="absolute right-0 bottom-full mb-2 w-48 bg-[#2a2f35] border border-gray-600 rounded-md shadow-2xl z-[9999] overflow-hidden">
+                 class="absolute right-0 bottom-full mb-2 w-48 bg-[#2a2f35] border border-gray-600 rounded-md shadow-2xl overflow-hidden">
 
               {# Option A - Current Time #}
               <button type="button"
