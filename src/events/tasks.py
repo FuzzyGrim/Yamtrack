@@ -2,7 +2,8 @@ import logging
 
 from celery import shared_task
 
-from events import calendar, notifications
+from events import notifications
+from events.calendar.main import fetch_releases
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ def reload_calendar(user=None, items_to_process=None):
     else:
         logger.info("Reloading calendar for all users")
 
-    return calendar.fetch_releases(
+    return fetch_releases(
         user=user,
         items_to_process=items_to_process,
     )

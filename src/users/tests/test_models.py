@@ -166,6 +166,24 @@ class UserUpdatePreferenceTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.release_notifications_enabled, False)
 
+    def test_update_preference_obfuscate_unseen_episodes(self):
+        """Test update_preference with obfuscate_unseen_episodes field."""
+        # Set initial value
+        self.user.obfuscate_unseen_episodes = False
+        self.user.save()
+
+        # Call update_preference with new value
+        result = self.user.update_preference(
+            field_name="obfuscate_unseen_episodes",
+            new_value=True,
+        )
+
+        # Should return new value
+        self.assertEqual(result, True)
+        # Should change the value
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.obfuscate_unseen_episodes, True)
+
 
 class UserGetImportTasksTests(TestCase):
     """Tests for the User.get_import_tasks method."""
