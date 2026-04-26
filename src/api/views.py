@@ -28,6 +28,7 @@ from events.models import Event
 from lists.models import CustomList, CustomListItem
 from users.models import MediaStatusChoices
 
+from .authentication import APIKeyAuthentication, BearerAuthentication
 from .changes_history_processor import (
     delete_changes_history_entry,
     get_changes_history_entries,
@@ -54,15 +55,24 @@ from .helpers import (
     try_parse_date,
     validate_body,
 )
+from .schemas import (
+    ListSearchParam,
+    ListSortParam,
+    PaginationLimitParam,
+    PaginationOffsetParam,
+)
 from .serializers import (
+    ApiErrorResponseSerializer,
     ChangesHistoryEntrySerializer,
     CompleteEpisodeSerializer,
     CompleteMediaSerializer,
     EpisodeSerializer,
+    EventSerializer,
     HealthResponseSerializer,
     HistorySerializer,
     InfoSerializer,
     MediaSerializer,
+    PaginatedEventsSerializer,
     TimelineItemSerializer,
     serialize_data,
 )
@@ -90,8 +100,58 @@ from .serializers import (
 class CalendarView(drf_views.APIView):
     """Calendar view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    serializer_class = PaginatedEventsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        operation_id="calendar_list",
+        summary="Get events",
+        parameters=[
+            OpenApiParameter(
+                name="start_date",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Filter range start date.",
+            ),
+            OpenApiParameter(
+                name="end_date",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filter range end date. If omitted with start_date, "
+                    "defaults to the end of that month; otherwise defaults "
+                    "to the end of the selected/current month."
+                ),
+            ),
+            OpenApiParameter(
+                name="month",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Calendar month (1-12) used with year. Used only "
+                    "if start_date is not set. Default is current month."
+                ),
+            ),
+            OpenApiParameter(
+                name="year",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Calendar year used with month. Used only "
+                    "if start_date is not set. Default is current year."
+                ),
+            ),
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: PaginatedEventsSerializer,
+            400: OpenApiResponse(response=ApiErrorResponseSerializer),
+            403: OpenApiResponse(response=ApiErrorResponseSerializer),
+            500: OpenApiResponse(response=ApiErrorResponseSerializer),
+        },
+    )
     def get(self, request):
         """Retrieve calendar events for the authenticated user."""
         start_date = request.GET.get("start_date")
@@ -128,11 +188,11 @@ class CalendarView(drf_views.APIView):
             )
 
         paginated_data = paginate_data(request, releases, limit, offset)
-        paginated_data["results"] = serialize_data(
+        paginated_data["results"] = EventSerializer(
             paginated_data["results"],
             many=True,
             context={"request": request},
-        )
+        ).data
 
         return Response(paginated_data)
 

@@ -33,14 +33,14 @@ class ApiKeyAuthenticationScheme(OpenApiAuthenticationExtension):
 
 PaginationLimitParam = OpenApiParameter(
     name="limit",
-    type=OpenApiTypes.INT,
+    type={"type": "integer", "minimum": 1, "default": 20},
     location=OpenApiParameter.QUERY,
     description="Maximum number of results to return (default: 20).",
 )
 
 PaginationOffsetParam = OpenApiParameter(
     name="offset",
-    type=OpenApiTypes.INT,
+    type={"type": "integer", "minimum": 0, "default": 0},
     location=OpenApiParameter.QUERY,
     description="Number of results to skip before returning items (default: 0).",
 )

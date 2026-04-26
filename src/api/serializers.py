@@ -24,21 +24,17 @@ from .changes_history_processor import (
     get_changes_from_diff,
     get_changes_from_new_record,
 )
-from .helpers import (
-    build_item_id,
-    build_parent_id,
-    get_media_status,
-)
+from .helpers import build_item_id, build_parent_id, get_media_status
 
 
-class ItemIdField(serializers.Field):
+class ItemIdField(serializers.CharField):
     """Custom field to generate item_id string."""
 
     def to_representation(self, item):  # noqa: D102
         return build_item_id(item)
 
 
-class ParentIdField(serializers.Field):
+class ParentIdField(serializers.CharField):
     """Custom field to generate parent_id string for seasons and episodes."""
 
     def to_representation(self, item):  # noqa: D102
@@ -57,6 +53,7 @@ class ItemSerializer(serializers.ModelSerializer):
 
     media_id = serializers.SerializerMethodField()
 
+    @extend_schema_field(str)
     def get_media_id(self, obj):
         """Return media_id preserving alphanumeric provider IDs."""
         media_id = getattr(obj, "media_id", None)
@@ -110,6 +107,24 @@ class ChangesHistoryEntrySerializer(serializers.Serializer):
             "timestamp": getattr(instance, "history_date", None),
             "changes": changes,
         }
+
+
+# TODO: errors field can be str or list, depending on the error
+class ApiErrorResponseSerializer(serializers.Serializer):
+    """Standard API error response serializer."""
+
+    detail = serializers.CharField()
+    errors = serializers.CharField(required=False, allow_blank=True)
+
+
+class PaginationSerializer(serializers.Serializer):
+    """Common pagination metadata serializer."""
+
+    total = serializers.IntegerField()
+    limit = serializers.IntegerField()
+    offset = serializers.IntegerField()
+    next = serializers.CharField(allow_null=True)
+    previous = serializers.CharField(allow_null=True)
 
 
 class CompleteEpisodeSerializer(serializers.Serializer):
@@ -476,6 +491,13 @@ class EventSerializer(serializers.ModelSerializer):
             data["parent_id"] = ParentIdField().to_representation(temp_item)
 
         return data
+
+
+class PaginatedEventsSerializer(serializers.Serializer):
+    """Serializer for paginated calendar events."""
+
+    pagination = PaginationSerializer()
+    results = EventSerializer(many=True)
 
 
 class HealthResponseSerializer(serializers.Serializer):
