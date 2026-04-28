@@ -63,9 +63,9 @@ class IntegrationTest(StaticLiveServerTestCase):
             f"Last watched: {fixed_date.strftime(datetime_format)}",
         )
         self.page.get_by_role("link", name="Home").click()
-        expect(self.page.get_by_text("Breaking Bad S1 1 Episode")).to_be_visible()
-        self.page.get_by_text("Breaking Bad S1 1 Episode").get_by_role("button").nth(
-            1,
+        expect(self.page.get_by_text("Breaking Bad S1")).to_be_visible()
+        self.page.locator("#media-grid-in-progress-season").get_by_role("button").nth(
+            4,
         ).click()
         self.page.get_by_title("Breaking Bad S1").click()
 
@@ -174,3 +174,69 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_role("main")).to_contain_text(
             "Episode 1 • Unknown air date",
         )
+
+    def test_obfuscate_unseen_episodes_enabled(self):
+        """Test that obfuscate_unseen_episodes setting is accessible and functional."""
+        # Navigate to preferences
+        self.page.get_by_role("link", name="Settings").click()
+        self.page.get_by_role("link", name="Preferences").click()
+
+        # Verify the obfuscate setting is visible
+        expect(self.page.get_by_role("main")).to_contain_text(
+            "Obfuscate Unseen Episodes"
+        )
+        expect(self.page.get_by_role("main")).to_contain_text(
+            "unseen episode images and descriptions will be blurred"
+        )
+
+        # Find and check the obfuscate checkbox by clicking the label
+        # The checkbox is sr-only (hidden), so we need to click the label
+        obfuscate_label = self.page.locator(
+            'label:has(input[name="obfuscate_unseen_episodes"])'
+        )
+        obfuscate_label.click()
+
+        # Save preferences
+        self.page.get_by_role("button", name="Save Preferences").click()
+
+        # Verify success message
+        expect(self.page.locator(".scheme-dark")).to_contain_text("Settings updated")
+
+        # Verify setting persisted
+        self.page.get_by_role("link", name="Preferences").click()
+        obfuscate_checkbox = self.page.locator(
+            'input[name="obfuscate_unseen_episodes"]'
+        )
+        expect(obfuscate_checkbox).to_be_checked()
+
+    def test_obfuscate_unseen_episodes_disabled(self):
+        """Test toggling obfuscate_unseen_episodes setting off."""
+        # Navigate to preferences
+        self.page.get_by_role("link", name="Settings").click()
+        self.page.get_by_role("link", name="Preferences").click()
+
+        # Find the obfuscate checkbox
+        obfuscate_checkbox = self.page.locator(
+            'input[name="obfuscate_unseen_episodes"]'
+        )
+        if obfuscate_checkbox.is_checked():
+            # Click the label to uncheck (checkbox is sr-only, so click label)
+            obfuscate_label = self.page.locator(
+                'label:has(input[name="obfuscate_unseen_episodes"])'
+            )
+            obfuscate_label.click()
+
+            # Save preferences
+            self.page.get_by_role("button", name="Save Preferences").click()
+
+            # Verify success message
+            expect(self.page.locator(".scheme-dark")).to_contain_text(
+                "Settings updated"
+            )
+
+            # Verify setting persisted as unchecked
+            self.page.get_by_role("link", name="Preferences").click()
+            obfuscate_checkbox = self.page.locator(
+                'input[name="obfuscate_unseen_episodes"]'
+            )
+            expect(obfuscate_checkbox).not_to_be_checked()

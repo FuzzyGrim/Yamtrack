@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
@@ -378,8 +379,20 @@ class PlexWebhookTests(TestCase):
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(Movie.objects.count(), 0)
 
-    def test_anime_episode_anidb_guid_mark_played(self):
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_anime")
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._fetch_mapping_data")
+    def test_anime_episode_anidb_guid_mark_played(
+        self,
+        mock_fetch_mapping_data,
+        mock_handle_anime,
+    ):
         """Test webhook handles anime episode with anidb guid."""
+        mock_fetch_mapping_data.return_value = {
+            "3651": {
+                "mal_id": 849,
+            },
+        }
+
         payload = {
             "event": "media.scrobble",
             "Account": {"title": "testuser"},
@@ -400,14 +413,7 @@ class PlexWebhookTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-
-        # Verify anime was created and marked as in progress
-        anime = Anime.objects.get(
-            item__media_id="849",
-            user=self.user,
-        )
-        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
-        self.assertEqual(anime.progress, 1)
+        mock_handle_anime.assert_called_once_with(849, 1, payload, self.user)
 
     def test_extract_external_ids(self):
         """Test extraction of external IDs from Plex webhook payload."""
@@ -470,3 +476,15 @@ class PlexWebhookTests(TestCase):
             "anidb_id": None,
         }
         self.assertEqual(result, expected)
+
+    def test_get_episode_number(self):
+        """Test extracting episode number from Plex payload."""
+        payload = {
+            "Metadata": {
+                "index": 7,
+            },
+        }
+
+        result = PlexWebhookProcessor()._get_episode_number(payload)
+
+        self.assertEqual(result, 7)

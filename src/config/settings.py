@@ -163,6 +163,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "app.context_processors.export_vars",
                 "app.context_processors.media_enums",
+                "app.context_processors.persistent_messages",
                 "django.template.context_processors.request",
             ],
         },
@@ -348,6 +349,14 @@ TMDB_API = config(
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
 
+TVDB_API = config(
+    "TVDB_API",
+    default=secret(
+        "TVDB_API_FILE",
+        "91b5c503-23f1-4181-be23-64ad8b8e8bc1",
+    ),
+)
+
 MAL_API = config(
     "MAL_API",
     default=secret(
@@ -528,6 +537,11 @@ DAILY_DIGEST_HOUR = config(
     default=8,
     cast=int,
 )
+USER_MESSAGE_RETENTION_DAYS = config(
+    "USER_MESSAGE_RETENTION_DAYS",
+    default=30,
+    cast=int,
+)
 CELERY_BEAT_SCHEDULE = {
     "reload_calendar": {
         "task": "Reload calendar",
@@ -540,6 +554,10 @@ CELERY_BEAT_SCHEDULE = {
     "send_daily_digest": {
         "task": "Send daily digest",
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
+    },
+    "cleanup_user_messages": {
+        "task": "Cleanup user messages",
+        "schedule": 60 * 60 * 24,  # every 24 hours
     },
 }
 
@@ -609,3 +627,5 @@ if not REGISTRATION:
     ACCOUNT_ADAPTER = "users.account_adapter.NoNewUsersAccountAdapter"
 
 REDIRECT_LOGIN_TO_SSO = config("REDIRECT_LOGIN_TO_SSO", default=False, cast=bool)
+
+SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=60 * 60 * 24 * 14, cast=int)

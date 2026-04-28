@@ -5,6 +5,7 @@ from django.utils import timezone
 
 import app
 from app.models import MediaTypes, Sources, Status
+from app.providers import tvdb as tvdb_provider
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,10 @@ class BaseWebhookProcessor:
         """Get media title from payload."""
         raise NotImplementedError
 
+    def _get_episode_number(self, payload):
+        """Get episode number from payload."""
+        raise NotImplementedError
+
     def _process_media(self, payload, user, ids):
         """Route processing based on media type."""
         media_type = self._get_media_type(payload)
@@ -61,19 +66,20 @@ class BaseWebhookProcessor:
         if user.anime_enabled and anidb_id:
             mapping_data = self._fetch_mapping_data()
             matching_entry = mapping_data.get(anidb_id)
+            episode_number = self._get_episode_number(payload)
+
             if not matching_entry:
                 logger.info(
                     "AniDB ID %s not found in mapping, "
                     "falling through to TV processing",
                     anidb_id,
                 )
-            elif not payload["Metadata"]["index"]:
+            elif not episode_number:
                 logger.warning(
                     "No episode number found for AniDB ID: %s",
                     anidb_id,
                 )
             else:
-                episode_number = payload["Metadata"]["index"]
                 logger.info(
                     "Detected anime via AniDB ID: %s. Matching MAL ID: %s, Episode: %d",
                     anidb_id,
@@ -88,26 +94,27 @@ class BaseWebhookProcessor:
                 )
                 return
 
-        media_id, season_number, episode_number = self._find_tv_media_id(ids)
-        if not media_id:
-            logger.warning("No matching TMDB ID found for TV show")
+        tvdb_episode_id = ids.get("tvdb_id")
+        if not tvdb_episode_id:
+            logger.warning("No TVDB episode ID found for TV episode")
             return
 
-        tvdb_id = app.providers.tmdb.tv_with_seasons(media_id, [season_number])[
-            "tvdb_id"
-        ]
-
-        if not tvdb_id:
-            logger.warning("No TVDB ID found for TMDB ID: %s", media_id)
+        tvdb_episode = tvdb_provider.episode(int(tvdb_episode_id))
+        if not tvdb_episode:
+            logger.warning(
+                "No TVDB episode metadata found for TVDB episode ID: %s",
+                tvdb_episode_id,
+            )
             return
 
         if user.anime_enabled:
             mapping_data = self._fetch_mapping_data()
             mal_id, episode_offset = self._get_mal_id_from_tvdb(
                 mapping_data,
-                int(tvdb_id),
-                season_number,
-                episode_number,
+                tvdb_episode["series_id"],
+                tvdb_episode["season_number"],
+                tvdb_episode["episode_number"],
+                absolute_episode_number=tvdb_episode["absolute_number"],
             )
             if mal_id:
                 logger.info(
@@ -117,6 +124,15 @@ class BaseWebhookProcessor:
                 )
                 self._handle_anime(mal_id, episode_offset, payload, user)
                 return
+
+        media_id, season_number, episode_number = self._find_tv_media_id(
+            tvdb_episode_id
+        )
+        if not media_id:
+            logger.warning(
+                "No matching TMDB ID found for TVDB episode ID: %s", tvdb_episode_id
+            )
+            return
 
         logger.info(
             "Detected TV episode via TMDB ID: %s, Season: %d, Episode: %d",
@@ -173,21 +189,17 @@ class BaseWebhookProcessor:
         else:
             logger.warning("No TMDB or IMDB ID found for movie, skipping processing")
 
-    def _find_tv_media_id(self, ids):
-        """Find TV media ID from external IDs."""
-        for ext_id, ext_type in [
-            (ids["imdb_id"], "imdb_id"),
-            (ids["tvdb_id"], "tvdb_id"),
-        ]:
-            if ext_id:
-                response = app.providers.tmdb.find(ext_id, ext_type)
-                if response.get("tv_episode_results"):
-                    result = response["tv_episode_results"][0]
-                    return (
-                        result.get("show_id"),
-                        result.get("season_number"),
-                        result.get("episode_number"),
-                    )
+    def _find_tv_media_id(self, tvdb_episode_id):
+        """Find TMDB TV episode metadata from a TVDB episode ID."""
+        if tvdb_episode_id:
+            response = app.providers.tmdb.find(tvdb_episode_id, "tvdb_id")
+            if response.get("tv_episode_results"):
+                result = response["tv_episode_results"][0]
+                return (
+                    result.get("show_id"),
+                    result.get("season_number"),
+                    result.get("episode_number"),
+                )
         return None, None, None
 
     def _fetch_mapping_data(self):
@@ -205,32 +217,52 @@ class BaseWebhookProcessor:
         tvdb_id,
         season_number,
         episode_number,
+        absolute_episode_number,
     ):
-        matching_entries = [
-            entry
-            for entry in mapping_data.values()
-            if entry.get("tvdb_id") == tvdb_id
-            and entry.get("tvdb_season") == season_number
-            and "mal_id" in entry
-        ]
+        """Find a MAL ID from Kometa's TVDB-based anime mappings.
 
-        if not matching_entries:
+        Kometa stores Anime-Lists absolute-order entries as ``tvdb_season = -1``.
+        When available we prefer TVDB's absolute episode number for that fallback.
+        For season 1, if TVDB does not provide one, the regular episode number is
+        usually equivalent and can be used as a safe fallback.
+        """
+
+        def find_matching_entries(target_season):
+            return [
+                entry
+                for entry in mapping_data.values()
+                if entry.get("tvdb_id") == tvdb_id
+                and entry.get("tvdb_season") == target_season
+                and "mal_id" in entry
+            ]
+
+        def match_entries(entries, mapped_episode_number):
+            if not entries or mapped_episode_number is None:
+                return None, None
+
+            entries.sort(key=lambda x: x.get("tvdb_epoffset", 0))
+            for i, entry in enumerate(entries):
+                current_offset = entry.get("tvdb_epoffset", 0)
+                next_offset = (
+                    entries[i + 1].get("tvdb_epoffset", float("inf"))
+                    if i < len(entries) - 1
+                    else float("inf")
+                )
+
+                if current_offset < mapped_episode_number <= next_offset:
+                    mal_id = self._parse_mal_id(entry["mal_id"])
+                    return mal_id, mapped_episode_number - current_offset
+
             return None, None
 
-        matching_entries.sort(key=lambda x: x.get("tvdb_epoffset", 0))
-        for i, entry in enumerate(matching_entries):
-            current_offset = entry.get("tvdb_epoffset", 0)
-            next_offset = (
-                matching_entries[i + 1].get("tvdb_epoffset", float("inf"))
-                if i < len(matching_entries) - 1
-                else float("inf")
-            )
+        mal_id, mapped_episode_number = match_entries(
+            find_matching_entries(season_number),
+            episode_number,
+        )
+        if mal_id:
+            return mal_id, mapped_episode_number
 
-            if current_offset < episode_number <= next_offset:
-                mal_id = self._parse_mal_id(entry["mal_id"])
-                return mal_id, episode_number - current_offset
-
-        return None, None
+        return match_entries(find_matching_entries(-1), absolute_episode_number)
 
     def _get_mal_id_from_tmdb_movie(self, mapping_data, tmdb_movie_id):
         """Find MAL ID from TMDB movie mapping."""

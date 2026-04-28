@@ -293,6 +293,11 @@ class User(AbstractUser):
         help_text="Hide hover overlay on touch devices",
     )
 
+    obfuscate_unseen_episodes = models.BooleanField(
+        default=False,
+        help_text="Blur unseen episode images and descriptions",
+    )
+
     # Tracking settings
     quick_watch_date = models.CharField(
         max_length=20,

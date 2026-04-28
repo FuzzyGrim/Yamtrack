@@ -1,0 +1,9 @@
+{% if persistent_messages %}
+  <form class="hidden"
+        hx-post="{% url 'mark_user_messages_shown' %}"
+        hx-trigger="load"
+        hx-swap="none">
+    {% csrf_token %}
+    {% for message in persistent_messages %}<input type="hidden" name="message_ids" value="{{ message.id }}">{% endfor %}
+  </form>
+{% endif %}

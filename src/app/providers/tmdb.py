@@ -1,8 +1,10 @@
 import logging
+from datetime import timedelta
 
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone
 
 from app import helpers
 from app.models import MediaTypes, Sources
@@ -802,3 +804,49 @@ def watch_provider_regions():
         cache.set(cache_key, data)
 
     return data
+
+
+def get_changed_ids(media_type):
+    """Return changed TMDB ids for the given media type over the last days."""
+    url = f"{base_url}/{media_type}/changes"
+    end_date = timezone.localdate()
+    start_date = end_date - timedelta(days=3)
+    changed_ids = set()
+    page = 1
+
+    while True:
+        params = {
+            **base_params,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "page": page,
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        changed_ids.update(str(result["id"]) for result in response.get("results", []))
+
+        total_pages = response.get("total_pages", 1)
+        if page >= total_pages:
+            break
+        page += 1
+
+    return changed_ids
+
+
+def tv_changes():
+    """Return changed TV ids from TMDB for the last days across all pages."""
+    return get_changed_ids(MediaTypes.TV.value)
+
+
+def movie_changes():
+    """Return changed movie ids from TMDB for the last days across all pages."""
+    return get_changed_ids(MediaTypes.MOVIE.value)

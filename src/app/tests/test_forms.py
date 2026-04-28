@@ -70,6 +70,13 @@ class BasicMediaForm(TestCase):
         form = TvForm(data=form_data)
         self.assertTrue(form.is_valid())
 
+    def test_media_date_fields_are_optional(self):
+        """Start and end dates should remain optional in tracking forms."""
+        form = AnimeForm()
+
+        self.assertFalse(form.fields["start_date"].required)
+        self.assertFalse(form.fields["end_date"].required)
+
     def test_valid_season_form(self):
         """Test the season form with valid data."""
         form_data = {

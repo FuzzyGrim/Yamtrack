@@ -6,69 +6,40 @@
 {% endblock title %}
 
 {% block content %}
-  <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-    <h1 class="text-3xl font-bold text-center w-full sm:w-auto">In Progress</h1>
-    <div class="relative" x-data="{ open: false }">
-      <button @click="open = !open"
-              @click.outside="open = false"
-              class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
-        {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
-        <span class="text-sm font-medium">{{ current_sort|no_underscore|title }}</span>
-        {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
-      </button>
-      <div x-show="open"
-           x-transition:enter="transition ease-out duration-100"
-           x-transition:enter-start="transform opacity-0 scale-95"
-           x-transition:enter-end="transform opacity-100 scale-100"
-           x-transition:leave="transition ease-in duration-75"
-           x-transition:leave-start="transform opacity-100 scale-100"
-           x-transition:leave-end="transform opacity-0 scale-95"
-           class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
-        {% for value, label in sort_choices %}
-          <a href="{% url 'home' %}?sort={{ value }}"
-             class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-            {{ label }}
-          </a>
-        {% endfor %}
+  <div class="space-y-8">
+    <div class="flex flex-col gap-4 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+      <h1 class="text-3xl font-bold text-center sm:col-start-2 sm:justify-self-center">Home</h1>
+      <div class="relative sm:col-start-3 sm:justify-self-end"
+           x-data="{ open: false }">
+        <button @click="open = !open"
+                @click.outside="open = false"
+                class="flex items-center gap-2 rounded-md border border-gray-700 bg-[#39404b] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#454d5a] cursor-pointer">
+          {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
+          <span>{{ current_sort|no_underscore|title }}</span>
+          {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
+        </button>
+        <div x-show="open"
+             x-transition:enter="transition ease-out duration-100"
+             x-transition:enter-start="transform opacity-0 scale-95"
+             x-transition:enter-end="transform opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-75"
+             x-transition:leave-start="transform opacity-100 scale-100"
+             x-transition:leave-end="transform opacity-0 scale-95"
+             class="absolute right-0 z-10 mt-2 w-52 overflow-hidden rounded-md border border-gray-700 bg-[#39404b] py-1 shadow-lg">
+          {% for value, label in sort_choices %}
+            <a href="{% url 'home' %}?sort={{ value }}"
+               class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+              {{ label }}
+            </a>
+          {% endfor %}
+        </div>
       </div>
     </div>
-  </div>
-  <div class="space-y-8">
-    {% for media_type, media_list in list_by_type.items %}
-      <div>
-        <h2 class="text-xl font-semibold mb-4">{{ media_type|media_type_readable_plural }}</h2>
-        <div id="media-grid-{{ media_type }}" class="media-grid">{% include "app/components/home_grid.html" %}</div>
 
-        {% if media_list.total > items_limit %}
-          <div class="mt-6 flex justify-center">
-            <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_media_type={{ media_type }}"
-                    hx-target="#media-grid-{{ media_type }}"
-                    hx-swap="beforeend"
-                    hx-indicator="#loading-indicator-{{ media_type }}"
-                    hx-trigger="click"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors cursor-pointer"
-                    hx-on:click="this.remove()">Load All ({{ media_list.total }})</button>
-            <div id="loading-indicator-{{ media_type }}"
-                 class="htmx-indicator text-center hidden">
-              <div class="inline-flex justify-center items-center">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-              </div>
-            </div>
-          </div>
-        {% endif %}
-      </div>
-    {% empty %}
-      <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
-        <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-          {% include "app/icons/pulse.svg" with classes="w-8 h-8 text-gray-400" %}
-        </div>
-        <h3 class="text-xl font-semibold mb-2">No media in progress</h3>
-        <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>
-        <div class="pt-4">
-          <a href="{{ 'tv'|sample_search }}"
-             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
-        </div>
-      </div>
-    {% endfor %}
+    <div class="space-y-15">
+      {% for section in home_sections %}
+        {% include "app/components/home_section.html" with section=section %}
+      {% endfor %}
+    </div>
   </div>
 {% endblock content %}

@@ -156,6 +156,18 @@
             ]
         },
         {
+            "name": "Boardgames",
+            "short_name": "Boardgames",
+            "description": "View your Boardgames",
+            "url": "/medialist/boardgame",
+            "icons": [
+                {
+                    "src": "/static/img/shortcuts/boardgames.svg",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
             "name": "Statistics",
             "short_name": "Stats",
             "description": "View your Statistics",
