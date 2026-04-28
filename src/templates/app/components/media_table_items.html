@@ -3,7 +3,7 @@
 {% for media in media_list %}
   <tr class="hover:bg-[#39404b] transition-colors cursor-pointer hover-tap"
       x-data="{ trackOpen: false }"
-      {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' media_type %}?page={{ media_list.next_page_number }}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
+      {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' username media_type %}?page={{ media_list.next_page_number }}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
     <td class="p-2 relative">
       <img alt="{{ media.item }}"
            class="lazyload min-w-10 w-10 h-10 object-cover rounded-md {% if own_page %}parent-hover-tap:hidden{% endif %}"
