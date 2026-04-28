@@ -1,5 +1,12 @@
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiTypes,
+)
+
+from .serializers import ApiErrorResponseSerializer
 
 
 class BearerAuthenticationScheme(OpenApiAuthenticationExtension):
@@ -30,6 +37,25 @@ class ApiKeyAuthenticationScheme(OpenApiAuthenticationExtension):
             "name": "X-API-Key",
         }
 
+
+forbidden_response = OpenApiResponse(
+    response=ApiErrorResponseSerializer,
+    description="Forbidden",
+    examples=[
+        OpenApiExample(
+            "No authentication example",
+            description="No authentication example",
+            summary="No authentication example",
+            value={"detail": "Authentication credentials were not provided."},
+        ),
+        OpenApiExample(
+            "Invalid token example",
+            description="Invalid token example",
+            summary="Invalid token example",
+            value={"detail": "Invalid token"},
+        ),
+    ],
+)
 
 PaginationLimitParam = OpenApiParameter(
     name="limit",

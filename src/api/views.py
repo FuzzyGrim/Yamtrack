@@ -6,6 +6,13 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.utils.timezone import datetime, localdate, make_aware
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+)
 from health_check.views import HealthCheckView
 from rest_framework import permissions
 from rest_framework import views as drf_views
@@ -60,6 +67,7 @@ from .schemas import (
     ListSortParam,
     PaginationLimitParam,
     PaginationOffsetParam,
+    forbidden_response,
 )
 from .serializers import (
     ApiErrorResponseSerializer,
@@ -146,10 +154,90 @@ class CalendarView(drf_views.APIView):
             PaginationOffsetParam,
         ],
         responses={
-            200: PaginatedEventsSerializer,
-            400: OpenApiResponse(response=ApiErrorResponseSerializer),
-            403: OpenApiResponse(response=ApiErrorResponseSerializer),
-            500: OpenApiResponse(response=ApiErrorResponseSerializer),
+            200: OpenApiResponse(
+                PaginatedEventsSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Events response example",
+                        description="Events response example",
+                        summary="Events response example",
+                        value={
+                            "pagination": {
+                                "total": 2,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 5086,
+                                    "item": {
+                                        "media_id": "208569",
+                                        "source": "tmdb",
+                                        "media_type": "episode",
+                                        "title": "Will Trent",
+                                        "image": "https://image.tmdb.org/t/p/w500/qG5O46gUxxYGImld03tl2zLhvrg.jpg",
+                                        "season_number": 4,
+                                        "episode_number": 13,
+                                    },
+                                    "item_id": "tv/tmdb/208569/4/13",
+                                    "parent_id": "tv/tmdb/208569/4",
+                                    "content_number": 13,
+                                    "datetime": "2026-04-01T00:00:00Z",
+                                    "notification_sent": False,
+                                },
+                                {
+                                    "id": 14438,
+                                    "item": {
+                                        "media_id": "75219",
+                                        "source": "tmdb",
+                                        "media_type": "episode",
+                                        "title": "9-1-1",
+                                        "image": "https://image.tmdb.org/t/p/w500/2hFiCrn4XtvvTGlZQdLzGhnaOsg.jpg",
+                                        "season_number": 9,
+                                        "episode_number": 16,
+                                    },
+                                    "item_id": "tv/tmdb/75219/9/16",
+                                    "parent_id": "tv/tmdb/75219/9",
+                                    "content_number": 16,
+                                    "datetime": "2026-04-03T00:00:00Z",
+                                    "notification_sent": False,
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                response=ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid date format example",
+                        description="Invalid date format example",
+                        summary="Invalid date format example",
+                        value={"detail": "Invalid date format."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            500: OpenApiResponse(
+                response=ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching events",
+                        description="Error while fetching events example",
+                        summary="Error while fetching events example",
+                        value={
+                            "detail": "Error occurred while fetching events.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
         },
     )
     def get(self, request):
@@ -191,7 +279,6 @@ class CalendarView(drf_views.APIView):
         paginated_data["results"] = EventSerializer(
             paginated_data["results"],
             many=True,
-            context={"request": request},
         ).data
 
         return Response(paginated_data)
