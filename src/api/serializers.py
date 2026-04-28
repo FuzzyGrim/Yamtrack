@@ -149,6 +149,21 @@ class PaginationSerializer(serializers.Serializer):
     previous = serializers.CharField(allow_null=True)
 
 
+class StatisticsMediaCountSerializer(serializers.Serializer):
+    """Serializer for media count by type in statistics response."""
+
+    total = serializers.IntegerField()
+    tv = serializers.IntegerField()
+    season = serializers.IntegerField()
+    movie = serializers.IntegerField()
+    anime = serializers.IntegerField()
+    manga = serializers.IntegerField()
+    game = serializers.IntegerField()
+    book = serializers.IntegerField()
+    comic = serializers.IntegerField()
+    board_game = serializers.IntegerField()
+
+
 class CompleteEpisodeSerializer(serializers.Serializer):
     """Serializer that builds a CompleteEpisode response."""
 
@@ -746,6 +761,41 @@ class MediaSerializer(serializers.ModelSerializer):
             "notes": instance.notes if hasattr(instance, "notes") else None,
             "lists": lists,
         }
+
+
+# TODO: Complete the mapping of statistics response fields
+class StatisticsResponseSerializer(serializers.Serializer):
+    """Serializer for statistics endpoint payload."""
+
+    start_date = serializers.DateTimeField()
+    end_date = serializers.DateTimeField()
+    media_count = StatisticsMediaCountSerializer()
+    activity_data = serializers.JSONField()
+    media_type_distribution = serializers.DictField()
+    score_distribution = serializers.DictField()
+    top_rated = MediaSerializer(many=True)
+    status_distribution = serializers.DictField()
+    status_pie_chart_data = serializers.JSONField()
+    timeline = serializers.DictField(
+        child=serializers.ListField(child=serializers.DictField()),
+    )
+
+
+class SearchMediaSerializer(serializers.Serializer):
+    """Serializer for individual media items in search results."""
+
+    media_id = serializers.CharField()
+    source = serializers.CharField()
+    media_type = serializers.CharField()
+    title = serializers.CharField()
+    image = serializers.URLField()
+
+
+class SearchResponseSerializer(serializers.Serializer):
+    """Serializer for search endpoint results."""
+
+    pagination = PaginationSerializer()
+    results = SearchMediaSerializer(many=True)
 
 
 class MixedMediaSerializer(serializers.Serializer):

@@ -39,7 +39,7 @@ class ApiKeyAuthenticationScheme(OpenApiAuthenticationExtension):
 
 
 forbidden_response = OpenApiResponse(
-    response=ApiErrorResponseSerializer,
+    ApiErrorResponseSerializer,
     description="Forbidden",
     examples=[
         OpenApiExample(

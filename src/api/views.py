@@ -43,6 +43,8 @@ from .changes_history_processor import (
 )
 from .helpers import (
     MEDIA_TYPE_COMPLETE_MODEL_MAP,
+    MEDIA_TYPE_VALID_LIST,
+    SOURCES_VALID_LIST,
     apply_aggregated_sort,
     apply_list_sort,
     build_lists_by_item_id,
@@ -90,6 +92,7 @@ from .serializers import (
     PaginatedGenericResponseSerializer,
     PaginatedListMembershipResponseSerializer,
     PaginatedPolymorphicMediaResponseSerializer,
+    SearchResponseSerializer,
     StatisticsResponseSerializer,
     TimelineItemSerializer,
     UpdateListRequestSerializer,
@@ -4689,9 +4692,70 @@ class MediaEpisodeSyncView(drf_views.APIView):
 class SearchProviderView(drf_views.APIView):
     """Search view."""
 
-    serializer_class = MediaSerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MediaSerializer
 
+    @extend_schema(
+        operation_id="search_get",
+        summary="Search for media",
+        parameters=[
+            OpenApiParameter(
+                name="media_type",
+                type=OpenApiTypes.STR,
+                enum=MEDIA_TYPE_VALID_LIST,
+                location=OpenApiParameter.PATH,
+                description="Type of media to search for",
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Search query",
+            ),
+            OpenApiParameter(
+                name="source",
+                type=OpenApiTypes.STR,
+                enum=SOURCES_VALID_LIST,
+                location=OpenApiParameter.QUERY,
+                description="Source of the media",
+            ),
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                SearchResponseSerializer,
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Unsupported media type example",
+                        description="Unsupported media type example",
+                        summary="Unsupported media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching results",
+                        description="Error while fetching results example",
+                        summary="Error while fetching results example",
+                        value={
+                            "detail": "Internal server error.",
+                        },
+                    )
+                ],
+            ),
+        }
+    )
     def get(self, request, media_type):
         """Search for media using the specified provider."""
         search = request.GET.get("search", "")
@@ -4775,8 +4839,61 @@ class SearchProviderView(drf_views.APIView):
 class StatisticsView(drf_views.APIView):
     """Statistics view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = StatisticsResponseSerializer
 
+    @extend_schema(
+        operation_id="statistics_get",
+        summary="Get user statistics",
+        parameters=[
+            OpenApiParameter(
+                name="start_date",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Filter media started after this date (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name="end_date",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Filter media started before this date (YYYY-MM-DD)",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                StatisticsResponseSerializer,
+                description="Successful response",
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid date format example",
+                        description="Invalid date format example",
+                        summary="Invalid date format example",
+                        value={"detail": "Invalid date format."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching statistics",
+                        description="Error while fetching statistics example",
+                        summary="Error while fetching statistics example",
+                        value={
+                            "detail": "Internal server error.",
+                        },
+                    )
+                ],
+            ),
+        }
+    )
     def get(self, request):
         """Retrieve statistics for the authenticated user."""
         # TODO: Possibly don't use WebUI needed statistics but compute them for API

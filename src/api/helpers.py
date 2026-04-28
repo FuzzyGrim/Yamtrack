@@ -162,6 +162,8 @@ VALID_SOURCES = {
     MediaTypes.BOARDGAME.value: ["bgg", "manual"],
 }
 
+SOURCES_VALID_LIST = list(VALID_SOURCES.keys())
+
 
 def build_item_id(item):
     """Build the item_id string for the given item."""
