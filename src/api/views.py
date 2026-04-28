@@ -71,17 +71,28 @@ from .schemas import (
 )
 from .serializers import (
     ApiErrorResponseSerializer,
+    ApiMessageResponseSerializer,
     ChangesHistoryEntrySerializer,
     CompleteEpisodeSerializer,
     CompleteMediaSerializer,
+    CreateListRequestSerializer,
     EpisodeSerializer,
     EventSerializer,
+    GenericObjectSerializer,
     HealthResponseSerializer,
     HistorySerializer,
     InfoSerializer,
+    ListSerializer,
     MediaSerializer,
+    MixedMediaSerializer,
+    PaginatedChangesHistoryResponseSerializer,
     PaginatedEventsSerializer,
+    PaginatedGenericResponseSerializer,
+    PaginatedListMembershipResponseSerializer,
+    PaginatedPolymorphicMediaResponseSerializer,
+    StatisticsResponseSerializer,
     TimelineItemSerializer,
+    UpdateListRequestSerializer,
     serialize_data,
 )
 
@@ -109,11 +120,11 @@ class CalendarView(drf_views.APIView):
     """Calendar view."""
 
     authentication_classes = [BearerAuthentication, APIKeyAuthentication]
-    serializer_class = PaginatedEventsSerializer
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedEventsSerializer
 
     @extend_schema(
-        operation_id="calendar_list",
+        operation_id="calendar_get",
         summary="Get events",
         parameters=[
             OpenApiParameter(
@@ -211,7 +222,7 @@ class CalendarView(drf_views.APIView):
                 ],
             ),
             400: OpenApiResponse(
-                response=ApiErrorResponseSerializer,
+                ApiErrorResponseSerializer,
                 description="Bad request",
                 examples=[
                     OpenApiExample(
@@ -224,7 +235,7 @@ class CalendarView(drf_views.APIView):
             ),
             403: forbidden_response,
             500: OpenApiResponse(
-                response=ApiErrorResponseSerializer,
+                ApiErrorResponseSerializer,
                 description="Internal server error",
                 examples=[
                     OpenApiExample(
@@ -241,7 +252,7 @@ class CalendarView(drf_views.APIView):
         },
     )
     def get(self, request):
-        """Retrieve calendar events for the authenticated user."""
+        """Retrieve calendar events."""
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         month_q = request.GET.get("month")
@@ -288,10 +299,32 @@ class CalendarView(drf_views.APIView):
 class CalendarUpdateView(drf_views.APIView):
     """Update calendar view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ApiMessageResponseSerializer
 
+    @extend_schema(
+        operation_id="calendar_update_post",
+        summary="Trigger calendar update",
+        request=None,
+        responses={
+            202: OpenApiResponse(
+                ApiMessageResponseSerializer,
+                description="Task queued successfully",
+                examples=[
+                    OpenApiExample(
+                        "Task queued example",
+                        description="Task queued example",
+                        summary="Task queued example",
+                        value={"detail": "Task queued"},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+        },
+    )
     def post(self, request):
-        """Trigger calendar events update for the authenticated user."""
+        """Trigger calendar events update."""
         tasks.reload_calendar.delay(request.user)
         return Response(
             {"detail": "Task queued"},
@@ -303,8 +336,93 @@ class CalendarUpdateView(drf_views.APIView):
 class MediaTypeChangesHistoryDetailView(drf_views.APIView):
     """Changes history record view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ChangesHistoryEntrySerializer
 
+    @extend_schema(
+        operation_id="changes_history_entry_get",
+        summary="Get changes history record",
+        parameters=[
+            OpenApiParameter(
+                name="media_type",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.PATH,
+                description="The type of media for which to retrieve changes history.",
+                enum=[media_type.value for media_type in MediaTypes],
+            ),
+            OpenApiParameter(
+                name="history_id",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.PATH,
+                description="The ID of the changes history record to retrieve.",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                ChangesHistoryEntrySerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Changes history record example",
+                        description="Changes history record example",
+                        summary="Changes history record example",
+                        value={
+                            "id": 312,
+                            "item_id": "tv/tmdb/245703",
+                            "timestamp": "2026-01-18T15:21:02.920479Z",
+                            "changes": [
+                                {"field": "status", "old_value": 3, "new_value": 1}
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "History record not found example",
+                        description="History record not found example",
+                        summary="History record not found example",
+                        value={
+                            "detail": "History record not found",
+                            "errors": "HistoricalTV matching query does not exist.",
+                        },
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching history record example",
+                        description="Error while fetching history record example",
+                        summary="Error while fetching history record example",
+                        value={
+                            "detail": "An error occurred while fetching the history record.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, history_id):
         """Retrieve the changes history record for a specific media."""
         if not check_valid_type(media_type, complete=True):
@@ -315,11 +433,10 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
 
         try:
             record = get_changes_history_entry(media_type, history_id, request.user)
-            serialized_data = serialize_data(
-                record,
-                context={"media_type": media_type},
-                serializer_class=ChangesHistoryEntrySerializer,
-            )
+
+            serialized_data = ChangesHistoryEntrySerializer(
+                record, context={"media_type": media_type}
+            ).data
             return Response(serialized_data, status=HTTP.OK)
         except Exception as e:  # noqa: BLE001
             return Response(
@@ -330,6 +447,81 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
+    @extend_schema(
+        operation_id="changes_history_entry_delete",
+        summary="Delete changes history record",
+        parameters=[
+            OpenApiParameter(
+                name="media_type",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.PATH,
+                description="The type of media for which to delete changes history.",
+                enum=[media_type.value for media_type in MediaTypes],
+            ),
+            OpenApiParameter(
+                name="history_id",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.PATH,
+                description="The ID of the changes history record to delete.",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(
+                description="History record deleted successfully",
+                examples=[
+                    OpenApiExample(
+                        "History record deleted example",
+                        description="History record deleted example",
+                        summary="History record deleted example",
+                        value=None,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "History record not found example",
+                        description="History record not found example",
+                        summary="History record not found example",
+                        value={
+                            "detail": "History record not found",
+                            "errors": "HistoricalTV matching query does not exist.",
+                        },
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while deleting history record example",
+                        description="Error while deleting history record example",
+                        summary="Error while deleting history record example",
+                        value={
+                            "detail": "An error occurred while deleting the history record.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def delete(self, request, media_type, history_id):
         """Delete the changes history record for a specific media."""
         if not check_valid_type(media_type, complete=True):
@@ -360,6 +552,7 @@ class HealthView(drf_views.APIView):
 
     authentication_classes = []
     permission_classes = []
+    serializer_class = HealthResponseSerializer
 
     checks = HealthCheckView.checks
 
@@ -375,6 +568,78 @@ class HealthView(drf_views.APIView):
             *(check.get_result() for check in self.get_checks())
         )
 
+    @extend_schema(
+        operation_id="health_get",
+        summary="Check API health status",
+        responses={
+            200: OpenApiResponse(
+                HealthResponseSerializer,
+                description="API is healthy",
+                examples=[
+                    OpenApiExample(
+                        "Healthy API example",
+                        description="Healthy API example",
+                        summary="Healthy API example",
+                        value={
+                            "status": "ok",
+                            "timestamp": "2026-04-28T08:49:33.826808+00:00",
+                            "checks": {
+                                "Cache(alias='default')": {
+                                    "status": "ok",
+                                    "error": None,
+                                },
+                                "Database(alias='default')": {
+                                    "status": "ok",
+                                    "error": None,
+                                },
+                                "Storage(alias='default')": {
+                                    "status": "ok",
+                                    "error": None,
+                                },
+                            },
+                        },
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                HealthResponseSerializer,
+                description="API is unhealthy",
+                examples=[
+                    OpenApiExample(
+                        "Unhealthy API example",
+                        description="Unhealthy API example",
+                        summary="Unhealthy API example",
+                        value={
+                            "status": "unavailable",
+                            "timestamp": "2026-04-28T08:49:33.826808+00:00",
+                            "checks": {
+                                "Cache(alias='default')": {
+                                    "status": "ok",
+                                    "error": None,
+                                },
+                                "Database(alias='default')": {
+                                    "status": "ok",
+                                    "error": None,
+                                },
+                                "DNS(hostname='laptop')": {
+                                    "status": "error",
+                                    "error": "OK",
+                                },
+                                "Mail(backend='django.core.mail.backends.smtp.EmailBackend')": {
+                                    "status": "error",
+                                    "error": "OK",
+                                },
+                                "Storage(alias='default')": {
+                                    "status": "ok",
+                                    "error": None,
+                                },
+                            },
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request):  # noqa: ARG002
         """Check API health status."""
         # TODO: speed up data collection, right now request takes ~2s
@@ -389,10 +654,7 @@ class HealthView(drf_views.APIView):
             "plugins": plugins,
             "errors": errors,
         }
-        response_data = serialize_data(
-            health_data,
-            serializer_class=HealthResponseSerializer,
-        )
+        response_data = HealthResponseSerializer(health_data).data
         status_code = HTTP.INTERNAL_SERVER_ERROR if errors else HTTP.OK
         return Response(response_data, status=status_code)
 
@@ -403,14 +665,37 @@ class InfoView(drf_views.APIView):
 
     authentication_classes = []
     permission_classes = []
+    serializer_class = InfoSerializer
 
+    @extend_schema(
+        operation_id="info_get",
+        summary="Get application information",
+        responses={
+            200: OpenApiResponse(
+                InfoSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Info response example",
+                        description="Info response example",
+                        summary="Info response example",
+                        value={
+                            "version": "dev",
+                            "debug": True,
+                            "frontend_url": "http://localhost:8000",
+                            "language": "en-us",
+                            "timezone": "UTC",
+                            "admin_enabled": True,
+                            "track_time": True,
+                        },
+                    )
+                ],
+            )
+        },
+    )
     def get(self, request):  # noqa: ARG002
         """Get application information."""
-        info_data = {}
-        response_data = serialize_data(
-            info_data,
-            serializer_class=InfoSerializer,
-        )
+        response_data = InfoSerializer({}).data
         return Response(response_data, status=HTTP.OK)
 
 
@@ -1414,8 +1699,111 @@ class MediaDetailView(drf_views.APIView):
 class MediaChangesHistoryView(drf_views.APIView):
     """Media changes history view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedChangesHistoryResponseSerializer
 
+    @extend_schema(
+        operation_id="media_changes_history_get",
+        summary="Get media changes history",
+        parameters=[
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedChangesHistoryResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        value={
+                            "pagination": {
+                                "total": 2,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 312,
+                                    "item_id": "tv/tmdb/245703",
+                                    "timestamp": "2026-01-18T15:21:02.920479Z",
+                                    "changes": [
+                                        {
+                                            "field": "status",
+                                            "old_value": 3,
+                                            "new_value": 1,
+                                        }
+                                    ],
+                                },
+                                {
+                                    "id": 150,
+                                    "item_id": "tv/tmdb/245703",
+                                    "timestamp": "2025-09-17T09:41:00Z",
+                                    "changes": [
+                                        {
+                                            "field": "score",
+                                            "old_value": None,
+                                            "new_value": 9.0,
+                                        },
+                                        {
+                                            "field": "status",
+                                            "old_value": None,
+                                            "new_value": 3,
+                                        },
+                                        {
+                                            "field": "notes",
+                                            "old_value": None,
+                                            "new_value": "",
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id):
         """Retrieve changes history timeline entries for a specific media."""
         limit, offset, err = parse_limit_offset(request)
@@ -1457,12 +1845,11 @@ class MediaChangesHistoryView(drf_views.APIView):
             limit,
             offset,
         )
-        paginated_data["results"] = serialize_data(
+        paginated_data["results"] = ChangesHistoryEntrySerializer(
             paginated_data["results"],
             many=True,
             context={"media_type": media_type},
-            serializer_class=ChangesHistoryEntrySerializer,
-        )
+        ).data
         return Response(paginated_data, status=HTTP.OK)
 
 
@@ -2415,8 +2802,135 @@ class MediaSeasonDetailView(drf_views.APIView):
 class MediaSeasonChangesHistoryView(drf_views.APIView):
     """Changes history season view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedChangesHistoryResponseSerializer
 
+    @extend_schema(
+        operation_id="season_changes_history_get",
+        summary="Get season changes history",
+        parameters=[
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedChangesHistoryResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        value={
+                            "pagination": {
+                                "total": 4,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 144,
+                                    "item_id": "tv/tmdb/245703/1",
+                                    "timestamp": "2026-01-18T15:21:02.888039Z",
+                                    "changes": [
+                                        {
+                                            "field": "status",
+                                            "old_value": 3,
+                                            "new_value": 1,
+                                        }
+                                    ],
+                                },
+                                {
+                                    "id": 143,
+                                    "item_id": "tv/tmdb/245703/1",
+                                    "timestamp": "2026-01-18T15:15:10.443874Z",
+                                    "changes": [
+                                        {
+                                            "field": "notes",
+                                            "old_value": "",
+                                            "new_value": "Ciccio bomba",
+                                        },
+                                        {
+                                            "field": "score",
+                                            "old_value": 9.0,
+                                            "new_value": 2.0,
+                                        },
+                                    ],
+                                },
+                                {
+                                    "id": 142,
+                                    "item_id": "tv/tmdb/245703/1",
+                                    "timestamp": "2026-01-18T15:10:47.709781Z",
+                                    "changes": [
+                                        {
+                                            "field": "score",
+                                            "old_value": None,
+                                            "new_value": 9.0,
+                                        }
+                                    ],
+                                },
+                                {
+                                    "id": 9,
+                                    "item_id": "tv/tmdb/245703/1",
+                                    "timestamp": "2025-09-17T09:41:00Z",
+                                    "changes": [
+                                        {
+                                            "field": "status",
+                                            "old_value": None,
+                                            "new_value": 3,
+                                        },
+                                        {
+                                            "field": "notes",
+                                            "old_value": None,
+                                            "new_value": "",
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Season not found example",
+                        description="Season not found or not tracked example",
+                        summary="Season not found example",
+                        value={"detail": "Season not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number):
         """Retrieve changes history timeline entries for a season."""
         limit, offset, err = parse_limit_offset(request)
@@ -2467,12 +2981,11 @@ class MediaSeasonChangesHistoryView(drf_views.APIView):
             limit,
             offset,
         )
-        paginated_data["results"] = serialize_data(
+        paginated_data["results"] = ChangesHistoryEntrySerializer(
             paginated_data["results"],
             many=True,
             context={"media_type": MediaTypes.SEASON.value},
-            serializer_class=ChangesHistoryEntrySerializer,
-        )
+        ).data
         return Response(paginated_data, status=HTTP.OK)
 
 
@@ -3502,8 +4015,101 @@ class MediaEpisodeDetailView(drf_views.APIView):
 class MediaEpisodeChangesHistoryView(drf_views.APIView):
     """Changes history episode view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedChangesHistoryResponseSerializer
 
+    @extend_schema(
+        operation_id="episode_changes_history_get",
+        summary="Get episode changes history",
+        parameters=[
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedChangesHistoryResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        value={
+                            "pagination": {
+                                "total": 2,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 1226,
+                                    "item_id": "tv/tmdb/245703/1/1",
+                                    "timestamp": "2026-01-18T15:21:02.851911Z",
+                                    "changes": [
+                                        {
+                                            "field": "end_date",
+                                            "old_value": None,
+                                            "new_value": "2026-01-18T15:15:00Z",
+                                        }
+                                    ],
+                                },
+                                {
+                                    "id": 112,
+                                    "item_id": "tv/tmdb/245703/1/1",
+                                    "timestamp": "2026-01-15T15:33:03.502096Z",
+                                    "changes": [
+                                        {
+                                            "field": "end_date",
+                                            "old_value": None,
+                                            "new_value": "2025-09-17T09:41:00Z",
+                                        }
+                                    ],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Episode not found example",
+                        description="Episode not found or not tracked example",
+                        summary="Episode not found example",
+                        value={"detail": "Episode not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
         """Retrieve changes history timeline entries for a specific episode."""
         limit, offset, err = parse_limit_offset(request)
@@ -3555,12 +4161,11 @@ class MediaEpisodeChangesHistoryView(drf_views.APIView):
             limit,
             offset,
         )
-        paginated_data["results"] = serialize_data(
+        paginated_data["results"] = ChangesHistoryEntrySerializer(
             paginated_data["results"],
             many=True,
-            context={"request": request, "media_type": MediaTypes.EPISODE.value},
-            serializer_class=ChangesHistoryEntrySerializer,
-        )
+            context={"media_type": MediaTypes.EPISODE.value},
+        ).data
         return Response(paginated_data, status=HTTP.OK)
 
 

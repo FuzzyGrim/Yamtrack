@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.utils.timezone import now
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 from rest_framework import serializers
 
 from app.models import (
@@ -66,8 +67,23 @@ class ItemSerializer(serializers.ModelSerializer):
         exclude = ("id",)
 
 
+class ChangesHistoryChangeSerializer(serializers.Serializer):
+    """Serializer for a single change in a history entry."""
+
+    field = serializers.ChoiceField(
+        choices=["end_date", "notes", "progress", "score", "start_date", "status"]
+    )
+    old_value = serializers.CharField(allow_null=True, required=False)
+    new_value = serializers.CharField(allow_null=True, required=False)
+
+
 class ChangesHistoryEntrySerializer(serializers.Serializer):
     """Serializer that builds a change-based history entry."""
+
+    id = serializers.IntegerField(allow_null=True, required=False)
+    item_id = serializers.CharField(allow_null=True, required=False)
+    timestamp = serializers.DateTimeField(allow_null=True, required=False)
+    changes = ChangesHistoryChangeSerializer(many=True)
 
     def to_representation(self, instance):
         """Build history entry with changes."""
@@ -107,6 +123,12 @@ class ChangesHistoryEntrySerializer(serializers.Serializer):
             "timestamp": getattr(instance, "history_date", None),
             "changes": changes,
         }
+
+
+class ApiMessageResponseSerializer(serializers.Serializer):
+    """Standard API message response serializer."""
+
+    detail = serializers.CharField()
 
 
 # TODO: errors field can be str or list, depending on the error
@@ -500,8 +522,19 @@ class PaginatedEventsSerializer(serializers.Serializer):
     results = EventSerializer(many=True)
 
 
+class HealthCheckSerializer(serializers.Serializer):
+    """Serializer for individual health checks."""
+
+    status = serializers.ChoiceField(choices=["ok", "error"])
+    error = serializers.CharField(allow_null=True)
+
+
 class HealthResponseSerializer(serializers.Serializer):
     """Serializer for health check response."""
+
+    status = serializers.ChoiceField(choices=["ok", "unavailable"])
+    timestamp = serializers.DateTimeField()
+    checks = HealthCheckSerializer(many=True)
 
     def to_representation(self, instance):
         """Transform reports from health-check library to json."""
@@ -581,6 +614,14 @@ class HistorySerializer(serializers.Serializer):
 
 class InfoSerializer(serializers.Serializer):
     """Serializer for the info endpoint."""
+
+    version = serializers.CharField()
+    debug = serializers.BooleanField()
+    frontend_url = serializers.URLField()
+    language = serializers.CharField()
+    timezone = serializers.CharField()
+    admin_enabled = serializers.BooleanField()
+    track_time = serializers.BooleanField()
 
     def to_representation(self, instance):  # noqa: ARG002
         """Transform to representation."""
