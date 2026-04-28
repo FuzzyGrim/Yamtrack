@@ -65,141 +65,143 @@
              @click="isMobileMenuOpen = false"></div>
 
         {# Sidebar #}
-        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
-               :class="isMobileMenuOpen ? 'translate-x-0' : ''">
-          <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
-            <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
-          </div>
-          <nav class="p-4 flex-1 overflow-y-auto">
-            <ul class="space-y-1 mb-6">
-              <li>
-                <a href="{% url 'home' %}"
-                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                  {% if request.path|str_equals:"/" %}
-                    {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                  {% else %}
-                    {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-
-                  {% endif %}
-                  <span>Home</span>
-                </a>
-              </li>
-
-              {% get_sidebar_media_types user as sidebar_media_types %}
-              {% for item in sidebar_media_types %}
+        {% block sidebar %}
+          <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
+                 :class="isMobileMenuOpen ? 'translate-x-0' : ''">
+            <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
+              <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
+            </div>
+            <nav class="p-4 flex-1 overflow-y-auto">
+              <ul class="space-y-1 mb-6">
                 <li>
-                  <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
-                    <span>
-                      {% if not own_page and own_page != None %}{{ username }}'s{% endif %}
-                    {{ item.display_name }}</span>
+                  <a href="{% url 'home' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% if request.path|str_equals:"/" %}
+                      {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
+                    {% else %}
+                      {% include "app/icons/house.svg" with classes="w-5 h-5" %}
+
+                    {% endif %}
+                    <span>Home</span>
                   </a>
                 </li>
-              {% endfor %}
-            </ul>
+
+                {% get_sidebar_media_types user as sidebar_media_types %}
+                {% for item in sidebar_media_types %}
+                  <li>
+                    <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
+                      <span>
+                        {% if not own_page and own_page != None %}{{ username }}'s{% endif %}
+                      {{ item.display_name }}</span>
+
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+              {% if own_page or own_page == None %}
+                <div class="border-t border-[#2c3136] pt-4">
+                  <ul class="space-y-1">
+                    {% url 'create_entry' as create_entry_url %}
+                    <li>
+                      <a href="{{ create_entry_url }}"
+                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                        {% if request.path|str_equals:create_entry_url %}
+                          {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                        {% else %}
+                          {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
+
+                        {% endif %}
+                        <span>Create Custom</span>
+                      </a>
+                    </li>
+
+                    {% url 'statistics' as statistics_url %}
+                    <li>
+                      <a href="{{ statistics_url }}"
+                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                        {% if request.path|str_equals:statistics_url %}
+                          {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                        {% else %}
+                          {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
+
+                        {% endif %}
+                        <span>Statistics</span>
+                      </a>
+                    </li>
+
+                    {% url 'lists' as lists_url %}
+                    <li>
+                      <a href="{{ lists_url }}"
+                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                        {% if request.path|str_equals:lists_url %}
+                          {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                        {% else %}
+                          {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
+
+                        {% endif %}
+                        <span>Lists</span>
+                      </a>
+                    </li>
+
+                    {% url 'calendar' as calendar_url %}
+                    <li>
+                      <a href="{{ calendar_url }}"
+                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                        {% if request.path|str_equals:calendar_url %}
+                          {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                        {% else %}
+                          {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
+
+                        {% endif %}
+                        <span>Calendar</span>
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </nav>
+            {% endif %}
             {% if own_page or own_page == None %}
-              <div class="border-t border-[#2c3136] pt-4">
-                <ul class="space-y-1">
-                  {% url 'create_entry' as create_entry_url %}
-                  <li>
-                    <a href="{{ create_entry_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:create_entry_url %}
-                        {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+              <div class="p-4 border-t border-[#2c3136] mt-auto">
+                <div class="space-y-2">
+                  {% url 'account' as account_url %}
+                  {% url 'notifications' as notifications_url %}
+                  {% url 'sidebar' as sidebar_url %}
+                  {% url 'integrations' as integrations_url %}
+                  {% url 'import_data' as import_url %}
+                  {% url 'export_data' as export_url %}
+                  <a href="{{ account_url }}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
+                      {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
-                      {% else %}
-                        {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
+                    {% else %}
+                      {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
 
-                      {% endif %}
-                      <span>Create Custom</span>
-                    </a>
-                  </li>
+                    {% endif %}
+                    <span>Settings</span>
+                  </a>
 
-                  {% url 'statistics' as statistics_url %}
-                  <li>
-                    <a href="{{ statistics_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:statistics_url %}
-                        {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
+                  <form method="post" action="{% url 'account_logout' %}" class="w-full">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
+                      {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
 
-                      {% else %}
-                        {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
-
-                      {% endif %}
-                      <span>Statistics</span>
-                    </a>
-                  </li>
-
-                  {% url 'lists' as lists_url %}
-                  <li>
-                    <a href="{{ lists_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:lists_url %}
-                        {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                      {% else %}
-                        {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
-
-                      {% endif %}
-                      <span>Lists</span>
-                    </a>
-                  </li>
-
-                  {% url 'calendar' as calendar_url %}
-                  <li>
-                    <a href="{{ calendar_url }}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:calendar_url %}
-                        {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                      {% else %}
-                        {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
-
-                      {% endif %}
-                      <span>Calendar</span>
-                    </a>
-                  </li>
-                </ul>
+                      <span>Logout</span>
+                    </button>
+                  </form>
+                </div>
               </div>
-            </nav>
-          {% endif %}
-          {% if own_page or own_page == None %}
-            <div class="p-4 border-t border-[#2c3136] mt-auto">
-              <div class="space-y-2">
-                {% url 'account' as account_url %}
-                {% url 'notifications' as notifications_url %}
-                {% url 'sidebar' as sidebar_url %}
-                {% url 'integrations' as integrations_url %}
-                {% url 'import_data' as import_url %}
-                {% url 'export_data' as export_url %}
-                <a href="{{ account_url }}"
-                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                  {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
-                    {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                  {% else %}
-                    {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
-
-                  {% endif %}
-                  <span>Settings</span>
-                </a>
-
-                <form method="post" action="{% url 'account_logout' %}" class="w-full">
-                  {% csrf_token %}
-                  <button type="submit"
-                          class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
-                    {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
-
-                    <span>Logout</span>
-                  </button>
-                </form>
-              </div>
-            </div>
-          {% endif %}
-        </aside>
+            {% endif %}
+          </aside>
+        {% endblock sidebar %}
 
         {# Main content #}
         <div class="flex-1 min-w-0 flex flex-col min-h-screen">

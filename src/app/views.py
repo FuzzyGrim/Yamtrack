@@ -126,9 +126,9 @@ def media_list(request, username, media_type):
     """Return the media list page."""
     user = get_object_or_404(User, username=username)
 
-    own_page = request.user == user
+    users_own_page = request.user == user
 
-    if own_page:
+    if users_own_page:
         layout = user.update_preference(
             f"{media_type}_layout",
             request.GET.get("layout"),
@@ -188,9 +188,10 @@ def media_list(request, username, media_type):
         "current_status": status_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
-        "username": user.username,
-        "user": user,
-        "own_page": own_page,
+        "target_username": user.username,
+        "target_user": user,
+        "users_own_page": users_own_page,
+        "user_anonymous": not request.user.is_authenticated,
         "original_user": request.user,
     }
 

@@ -3,13 +3,13 @@
 {% load app_tags %}
 
 {% block title %}
-  {% if not own_page %}{{ username }}'s{% endif %}
+  {% if not users_own_page %}{{ target_user.username }}'s{% endif %}
   {{ media_type|media_type_readable_plural }} - Yamtrack
 {% endblock title %}
 
 {% block content %}
   <h1 class="text-3xl font-bold mb-6">
-    {% if not own_page %}{{ username }}'s{% endif %}
+    {% if not users_own_page %}{{ target_user.username }}'s{% endif %}
     {{ media_type|media_type_readable_plural }}
   </h1>
 
@@ -38,11 +38,11 @@
     <div class="flex flex-col md:flex-row gap-4 mb-6">
       <!-- Search -->
       <div class="relative grow">
-        <input placeholder="Search {{ media_type_plural }} in {% if not own_page %}{{ username }}'s {% else %}your {% endif %}list..."
+        <input placeholder="Search {{ media_type_plural }} in {% if not users_own_page %}{{ target_user.username }}'s {% else %}your {% endif %}list..."
                class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="search"
-               hx-get="{% url 'medialist' username media_type %}"
+               hx-get="{% url 'medialist' target_user.username media_type %}"
                hx-trigger="keyup changed delay:300ms, search"
                {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
                hx-include="#filter-form"
@@ -76,7 +76,7 @@
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
             {% for value, label in status_choices %}
-              <button hx-get="{% url 'medialist' username media_type %}"
+              <button hx-get="{% url 'medialist' target_user.username media_type %}"
                       {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
@@ -109,7 +109,7 @@
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
             {% for value, label in sort_choices %}
-              <button hx-get="{% url 'medialist' username media_type %}"
+              <button hx-get="{% url 'medialist' target_user.username media_type %}"
                       {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
@@ -123,12 +123,12 @@
 
         <!-- Layout Toggle -->
         <div class="flex rounded-md overflow-hidden border border-gray-700">
-          <a :href="`{% url 'medialist' username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
              class="p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Grid View"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
-          <a :href="`{% url 'medialist' username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
              class="p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Table View"
@@ -185,3 +185,157 @@
     </div>
   </div>
 {% endblock content %}
+
+{% block sidebar %}
+  <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
+         :class="isMobileMenuOpen ? 'translate-x-0' : ''">
+    <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
+      <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
+    </div>
+    <nav class="p-4 flex-1 overflow-y-auto">
+      <ul class="space-y-1 mb-6">
+        {% if not user_anonymous %}
+          <li>
+            <a href="{% url 'home' %}"
+               class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+              {% if request.path|str_equals:"/" %}
+                {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+              {% else %}
+                {% include "app/icons/house.svg" with classes="w-5 h-5" %}
+
+              {% endif %}
+              <span>Home</span>
+            </a>
+          </li>
+          {% get_sidebar_media_types original_user as sidebar_media_types %}
+          {% for item in sidebar_media_types %}
+            <li>
+              <a href="{% url 'medialist' username=original_user.username media_type=item.media_type %}"
+                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-gray-400 hover:text-white hover:bg-[#23272b]">
+                {% icon item.media_type is_active=False %}
+                <span>{{ item.display_name }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        {% endif %}
+        {% if not users_own_page %}
+          <div {% if not user_anonymous %}class="border-t border-[#2c3136] pt-4"{% endif %}>
+            <li>
+              <span class="flex font-bold items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-white">{{ target_user.username }}'s Media:</span>
+            </li>
+          </div>
+          {% get_sidebar_media_types target_user as sidebar_media_types %}
+          {% for item in sidebar_media_types %}
+            <li>
+              <a href="{% url 'medialist' username=target_user.username media_type=item.media_type %}"
+                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
+                <span>{{ item.display_name }}</span>
+
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if own_page or own_page == None %}
+        <div class="border-t border-[#2c3136] pt-4">
+          <ul class="space-y-1">
+            {% url 'create_entry' as create_entry_url %}
+            <li>
+              <a href="{{ create_entry_url }}"
+                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                {% if request.path|str_equals:create_entry_url %}
+                  {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                {% else %}
+                  {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
+
+                {% endif %}
+                <span>Create Custom</span>
+              </a>
+            </li>
+
+            {% url 'statistics' as statistics_url %}
+            <li>
+              <a href="{{ statistics_url }}"
+                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                {% if request.path|str_equals:statistics_url %}
+                  {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                {% else %}
+                  {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
+
+                {% endif %}
+                <span>Statistics</span>
+              </a>
+            </li>
+
+            {% url 'lists' as lists_url %}
+            <li>
+              <a href="{{ lists_url }}"
+                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                {% if request.path|str_equals:lists_url %}
+                  {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                {% else %}
+                  {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
+
+                {% endif %}
+                <span>Lists</span>
+              </a>
+            </li>
+
+            {% url 'calendar' as calendar_url %}
+            <li>
+              <a href="{{ calendar_url }}"
+                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                {% if request.path|str_equals:calendar_url %}
+                  {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                {% else %}
+                  {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
+
+                {% endif %}
+                <span>Calendar</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    {% endif %}
+    {% if own_page or own_page == None %}
+      <div class="p-4 border-t border-[#2c3136] mt-auto">
+        <div class="space-y-2">
+          {% url 'account' as account_url %}
+          {% url 'notifications' as notifications_url %}
+          {% url 'sidebar' as sidebar_url %}
+          {% url 'integrations' as integrations_url %}
+          {% url 'import_data' as import_url %}
+          {% url 'export_data' as export_url %}
+          <a href="{{ account_url }}"
+             class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+            {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
+              {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+            {% else %}
+              {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
+
+            {% endif %}
+            <span>Settings</span>
+          </a>
+
+          <form method="post" action="{% url 'account_logout' %}" class="w-full">
+            {% csrf_token %}
+            <button type="submit"
+                    class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
+              {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
+
+              <span>Logout</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </aside>
+{% endblock sidebar %}
