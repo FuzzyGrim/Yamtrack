@@ -111,7 +111,9 @@ class User(AbstractUser):
 
     is_demo = models.BooleanField(default=False)
 
-    profile_private = models.BooleanField(default=False)
+    profile_private = models.BooleanField(
+        default=False, help_text="Toggle profile visibility to anonymous users"
+    )
 
     last_search_type = models.CharField(
         max_length=10,
