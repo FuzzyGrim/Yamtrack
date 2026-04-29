@@ -65,13 +65,13 @@
              @click="isMobileMenuOpen = false"></div>
 
         {# Sidebar #}
-        {% block sidebar %}
-          <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
-                 :class="isMobileMenuOpen ? 'translate-x-0' : ''">
-            <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
-              <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
-            </div>
-            <nav class="p-4 flex-1 overflow-y-auto">
+        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
+               :class="isMobileMenuOpen ? 'translate-x-0' : ''">
+          <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
+            <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
+          </div>
+          <nav class="p-4 flex-1 overflow-y-auto">
+            {% block sidebar_own_media %}
               <ul class="space-y-1 mb-6">
                 <li>
                   <a href="{% url 'home' %}"
@@ -90,15 +90,28 @@
                 {% get_sidebar_media_types user as sidebar_media_types %}
                 {% for item in sidebar_media_types %}
                   <li>
-                    <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
-                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
-                      <span>{{ item.display_name }}</span>
-                    </a>
+                    {% if target_user is None or target_user == request.user %}
+                      <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
+                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                        {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
+                        <span>{{ item.display_name }}</span>
+                      </a>
+                    {% else %}
+                      <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
+                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-gray-400 hover:text-white hover:bg-[#23272b]">
+                        {% icon item.media_type is_active=False %}
+                        <span>{{ item.display_name }}</span>
+                      </a>
+                    {% endif %}
                   </li>
                 {% endfor %}
               </ul>
+            {% endblock sidebar_own_media %}
 
+            {% block sidebar_external_media_view %}
+            {% endblock sidebar_external_media_view %}
+
+            {% block sidebar_utilities %}
               <div class="border-t border-[#2c3136] pt-4">
                 <ul class="space-y-1">
                   {% url 'create_entry' as create_entry_url %}
@@ -162,8 +175,10 @@
                   </li>
                 </ul>
               </div>
-            </nav>
+            {% endblock sidebar_utilities %}
+          </nav>
 
+          {% block sidebar_logout %}
             <div class="p-4 border-t border-[#2c3136] mt-auto">
               <div class="space-y-2">
                 {% url 'account' as account_url %}
@@ -195,8 +210,11 @@
                 </form>
               </div>
             </div>
-          </aside>
-        {% endblock sidebar %}
+          {% endblock sidebar_logout %}
+
+          {% block anonymous_login %}
+          {% endblock anonymous_login %}
+        </aside>
 
         {# Main content #}
         <div class="flex-1 min-w-0 flex flex-col min-h-screen">
