@@ -152,7 +152,11 @@ def media_list(request, username, media_type):
             raise Http404(msg)
 
         if media_type not in enabled_media_types:
-            return redirect(f"/{target_user.username}/{enabled_media_types[0]}")
+            return redirect(
+                "medialist",
+                username=target_user.username,
+                media_type=enabled_media_types[0],
+            )
 
         layout = request.GET.get("layout") or getattr(
             target_user, f"{media_type}_layout"
