@@ -126,6 +126,7 @@ def media_list(request, username, media_type):
     """Return the media list page."""
     target_user = get_object_or_404(User, username=username)
 
+    # if user is looking at own page then update preferences
     if request.user == target_user:
         layout = target_user.update_preference(
             f"{media_type}_layout",
@@ -140,9 +141,18 @@ def media_list(request, username, media_type):
             request.GET.get("status"),
         )
     else:
+        # privacy check then media type check
         if target_user.profile_private:
             msg = "User not found"
             raise Http404(msg)
+
+        enabled_media_types = target_user.get_enabled_media_types()
+        if not enabled_media_types:
+            msg = "User doesn't have any media types enabled"
+            raise Http404(msg)
+
+        if media_type not in enabled_media_types:
+            return redirect(f"/{target_user.username}/{enabled_media_types[0]}")
 
         layout = request.GET.get("layout") or getattr(
             target_user, f"{media_type}_layout"
