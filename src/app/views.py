@@ -124,32 +124,34 @@ def progress_edit(request, media_type, instance_id):
 @require_GET
 def media_list(request, username, media_type):
     """Return the media list page."""
-    user = get_object_or_404(User, username=username)
+    target_user = get_object_or_404(User, username=username)
 
-    users_own_page = request.user == user
-
-    if users_own_page:
-        layout = user.update_preference(
+    if request.user == target_user:
+        layout = target_user.update_preference(
             f"{media_type}_layout",
             request.GET.get("layout"),
         )
-        sort_filter = user.update_preference(
+        sort_filter = target_user.update_preference(
             f"{media_type}_sort",
             request.GET.get("sort"),
         )
-        status_filter = user.update_preference(
+        status_filter = target_user.update_preference(
             f"{media_type}_status",
             request.GET.get("status"),
         )
     else:
-        if user.profile_private:
+        if target_user.profile_private:
             msg = "User not found"
             raise Http404(msg)
 
-        layout = request.GET.get("layout") or getattr(user, f"{media_type}_layout")
-        sort_filter = request.GET.get("sort") or getattr(user, f"{media_type}_sort")
+        layout = request.GET.get("layout") or getattr(
+            target_user, f"{media_type}_layout"
+        )
+        sort_filter = request.GET.get("sort") or getattr(
+            target_user, f"{media_type}_sort"
+        )
         status_filter = request.GET.get("status") or getattr(
-            user, f"{media_type}_status"
+            target_user, f"{media_type}_status"
         )
 
     search_query = request.GET.get("search", "")
@@ -161,7 +163,7 @@ def media_list(request, username, media_type):
 
     # Get media list with filters applied
     media_queryset = BasicMedia.objects.get_media_list(
-        user=user,
+        user=target_user,
         media_type=media_type,
         status_filter=status_filter,
         sort_filter=sort_filter,
@@ -188,11 +190,7 @@ def media_list(request, username, media_type):
         "current_status": status_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
-        "target_username": user.username,
-        "target_user": user,
-        "users_own_page": users_own_page,
-        "user_anonymous": not request.user.is_authenticated,
-        "original_user": request.user,
+        "target_user": target_user,
     }
 
     # Handle HTMX requests for partial updates
@@ -204,7 +202,7 @@ def media_list(request, username, media_type):
                 return HttpResponse(status=204)
             response = HttpResponse()
             response["HX-Redirect"] = reverse(
-                "medialist", args=[user.username, media_type]
+                "medialist", args=[target_user.username, media_type]
             )
             return response
         if layout == "grid":

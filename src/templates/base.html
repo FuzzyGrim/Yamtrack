@@ -224,56 +224,58 @@
                 {% endif %}
 
                 {# Search bar #}
-                <div class="relative w-full max-w-2xl">
-                  <form method="get"
-                        action="{% url 'search' %}"
-                        x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
-                    <div class="flex">
-                      <div class="relative grow">
-                        {# Search input #}
-                        <input type="search"
-                               id="global-search"
-                               name="q"
-                               value="{{ request.GET.q }}"
-                               :placeholder="getPlaceholder()"
-                               class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
-                        <button type="submit"
-                                class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
-                          {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
+                {% block search_bar %}
+                  <div class="relative w-full max-w-2xl">
+                    <form method="get"
+                          action="{% url 'search' %}"
+                          x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
+                      <div class="flex">
+                        <div class="relative grow">
+                          {# Search input #}
+                          <input type="search"
+                                 id="global-search"
+                                 name="q"
+                                 value="{{ request.GET.q }}"
+                                 :placeholder="getPlaceholder()"
+                                 class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
+                          <button type="submit"
+                                  class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
+                            {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
+
+                          </button>
+                        </div>
+
+                        <input type="hidden" name="media_type" :value="selectedType.value">
+
+                        {# Media type dropdown #}
+                        <button type="button"
+                                @click="isOpen = !isOpen"
+                                @click.away="isOpen = false"
+                                class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
+                          <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
+                          {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
 
                         </button>
+                        <ul x-cloak
+                            x-show="isOpen"
+                            @keydown.escape.window="isOpen = false"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="transform opacity-0 scale-95"
+                            x-transition:enter-end="transform opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="transform opacity-100 scale-100"
+                            x-transition:leave-end="transform opacity-0 scale-95"
+                            class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32">
+                          <template x-for="type in mediaTypes" :key="type.value">
+                            <li @click="selectedType = type; isOpen = false"
+                                class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
+                                x-text="type.display"></li>
+                          </template>
+                        </ul>
                       </div>
-
-                      <input type="hidden" name="media_type" :value="selectedType.value">
-
-                      {# Media type dropdown #}
-                      <button type="button"
-                              @click="isOpen = !isOpen"
-                              @click.away="isOpen = false"
-                              class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
-                        <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
-                        {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
-
-                      </button>
-                      <ul x-cloak
-                          x-show="isOpen"
-                          @keydown.escape.window="isOpen = false"
-                          x-transition:enter="transition ease-out duration-100"
-                          x-transition:enter-start="transform opacity-0 scale-95"
-                          x-transition:enter-end="transform opacity-100 scale-100"
-                          x-transition:leave="transition ease-in duration-75"
-                          x-transition:leave-start="transform opacity-100 scale-100"
-                          x-transition:leave-end="transform opacity-0 scale-95"
-                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32">
-                        <template x-for="type in mediaTypes" :key="type.value">
-                          <li @click="selectedType = type; isOpen = false"
-                              class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
-                              x-text="type.display"></li>
-                        </template>
-                      </ul>
-                    </div>
-                  </form>
-                </div>
+                    </form>
+                  </div>
+                {% endblock search_bar %}
               </div>
             </div>
           </div>

@@ -3,13 +3,13 @@
 {% load app_tags %}
 
 {% block title %}
-  {% if not users_own_page %}{{ target_user.username }}'s{% endif %}
+  {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
   {{ media_type|media_type_readable_plural }} - Yamtrack
 {% endblock title %}
 
 {% block content %}
   <h1 class="text-3xl font-bold mb-6">
-    {% if not users_own_page %}{{ target_user.username }}'s{% endif %}
+    {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
     {{ media_type|media_type_readable_plural }}
   </h1>
 
@@ -38,7 +38,7 @@
     <div class="flex flex-col md:flex-row gap-4 mb-6">
       <!-- Search -->
       <div class="relative grow">
-        <input placeholder="Search {{ media_type_plural }} in {% if not users_own_page %}{{ target_user.username }}'s {% else %}your {% endif %}list..."
+        <input placeholder="Search {{ media_type_plural }} in {% if target_user != request.user %}{{ target_user.username }}'s {% else %}your {% endif %}list..."
                class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="search"
@@ -194,7 +194,7 @@
     </div>
     <nav class="p-4 flex-1 overflow-y-auto">
       <ul class="space-y-1 mb-6">
-        {% if not user_anonymous %}
+        {% if request.user.is_authenticated %}
           <li>
             <a href="{% url 'home' %}"
                class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
@@ -208,10 +208,10 @@
               <span>Home</span>
             </a>
           </li>
-          {% get_sidebar_media_types original_user as sidebar_media_types %}
+          {% get_sidebar_media_types request.user as sidebar_media_types %}
           {% for item in sidebar_media_types %}
             <li>
-              <a href="{% url 'medialist' username=original_user.username media_type=item.media_type %}"
+              <a href="{% url 'medialist' username=request.user.username media_type=item.media_type %}"
                  class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-gray-400 hover:text-white hover:bg-[#23272b]">
                 {% icon item.media_type is_active=False %}
                 <span>{{ item.display_name }}</span>
@@ -219,8 +219,8 @@
             </li>
           {% endfor %}
         {% endif %}
-        {% if not users_own_page %}
-          <div {% if not user_anonymous %}class="border-t border-[#2c3136] pt-4"{% endif %}>
+        {% if target_user != request.user %}
+          <div {% if request.user.is_authenticated %}class="border-t border-[#2c3136] pt-4"{% endif %}>
             <li>
               <span class="flex font-bold items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-white">{{ target_user.username }}'s Media:</span>
             </li>
@@ -238,7 +238,7 @@
           {% endfor %}
         </ul>
       {% endif %}
-      {% if own_page or own_page == None %}
+      {% if request.user.is_authenticated %}
         <div class="border-t border-[#2c3136] pt-4">
           <ul class="space-y-1">
             {% url 'create_entry' as create_entry_url %}
@@ -304,7 +304,8 @@
         </div>
       </nav>
     {% endif %}
-    {% if own_page or own_page == None %}
+
+    {% if request.user.is_authenticated %}
       <div class="p-4 border-t border-[#2c3136] mt-auto">
         <div class="space-y-2">
           {% url 'account' as account_url %}
@@ -336,6 +337,33 @@
           </form>
         </div>
       </div>
+    {% else %}
+      <div class="p-4 border-t border-[#2c3136] mt-auto">
+        <div class="space-y-2">
+          <a href="/accounts/login"
+             class="mt-4 p-3 rounded-lg w-full flex items-center justify-center gap-2 text-white duration-300 cursor-pointer bg-indigo-600 hover:bg-indigo-700 ">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="18"
+                 height="18"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" x2="3" y1="12" y2="12"></line>
+            </svg>
+            Sign In
+          </a>
+        </div>
+      </div>
     {% endif %}
+
   </aside>
 {% endblock sidebar %}
+
+{% block search_bar %}
+  {% if request.user.is_authenticated %}{{ block.super }}{% endif %}
+{% endblock search_bar %}
