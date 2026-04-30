@@ -62,27 +62,68 @@
     </button>
   </form>
 {% elif results %}
-  <div class="space-y-2 max-h-64 overflow-y-auto">
-    {% for result in results %}
-      <form method="post" action="{% url 'media_move' %}">
+  {% if target_type == "tv" %}
+    <div x-data="{ selectedMediaId: '', selectedSource: '', selectedTitle: '', selectedImage: '' }">
+      <div class="space-y-2 max-h-64 overflow-y-auto">
+        {% for result in results %}
+          <div class="flex items-center gap-3 p-2 rounded-md cursor-pointer transition duration-200"
+               :class="selectedMediaId === '{{ result.media_id }}' ? 'bg-sky-600/20 ring-1 ring-sky-500' : 'hover:bg-[#2a2f35]'"
+               @click="selectedMediaId = '{{ result.media_id }}'; selectedSource = '{{ result.source }}'; selectedTitle = '{{ result.title|escapejs }}'; selectedImage = '{{ result.image }}'">
+            <img src="{{ result.image }}"
+                 alt="{{ result.title }}"
+                 class="w-10 h-14 rounded object-cover bg-[#2a2f35] flex-shrink-0">
+            <span class="text-white text-sm truncate">{{ result.title }}</span>
+            <span x-show="selectedMediaId === '{{ result.media_id }}'"
+                  class="ml-auto text-sky-400 text-xs flex-shrink-0">&#10003;</span>
+          </div>
+        {% endfor %}
+      </div>
+      <form method="post" action="{% url 'media_move' %}" class="flex items-center gap-2 mt-4 pt-3 border-t border-gray-700">
         {% csrf_token %}
         <input type="hidden" name="instance_id" value="{{ instance_id }}">
         <input type="hidden" name="media_type" value="{{ media_type }}">
         <input type="hidden" name="target_type" value="{{ target_type }}">
-        <input type="hidden" name="target_media_id" value="{{ result.media_id }}">
-        <input type="hidden" name="target_source" value="{{ result.source }}">
-        <input type="hidden" name="target_title" value="{{ result.title }}">
-        <input type="hidden" name="target_image" value="{{ result.image }}">
+        <input type="hidden" name="target_media_id" :value="selectedMediaId">
+        <input type="hidden" name="target_source" :value="selectedSource">
+        <input type="hidden" name="target_title" :value="selectedTitle">
+        <input type="hidden" name="target_image" :value="selectedImage">
+        <label class="flex items-center gap-1 flex-shrink-0">
+          <span class="text-gray-400 text-sm">Season</span>
+          <input type="number" name="target_season_number"
+                 value="1" min="1"
+                 class="w-12 bg-[#2a2f35] text-white text-sm text-center rounded px-1 py-1 border border-gray-600 focus:border-sky-500 focus:outline-none">
+        </label>
         <button type="submit"
-                class="w-full flex items-center gap-3 p-2 rounded-md hover:bg-[#2a2f35] transition duration-200 cursor-pointer text-left">
-          <img src="{{ result.image }}"
-               alt="{{ result.title }}"
-               class="w-10 h-14 rounded object-cover bg-[#2a2f35] flex-shrink-0">
-          <span class="text-white text-sm truncate">{{ result.title }}</span>
+                :disabled="!selectedMediaId"
+                :class="selectedMediaId ? 'bg-sky-600 hover:bg-sky-700 cursor-pointer' : 'bg-gray-600 cursor-not-allowed'"
+                class="ml-auto px-4 py-2 text-white text-sm rounded-md transition duration-200">
+          Move
         </button>
       </form>
-    {% endfor %}
-  </div>
+    </div>
+  {% else %}
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      {% for result in results %}
+        <form method="post" action="{% url 'media_move' %}" class="flex items-center gap-2">
+          {% csrf_token %}
+          <input type="hidden" name="instance_id" value="{{ instance_id }}">
+          <input type="hidden" name="media_type" value="{{ media_type }}">
+          <input type="hidden" name="target_type" value="{{ target_type }}">
+          <input type="hidden" name="target_media_id" value="{{ result.media_id }}">
+          <input type="hidden" name="target_source" value="{{ result.source }}">
+          <input type="hidden" name="target_title" value="{{ result.title }}">
+          <input type="hidden" name="target_image" value="{{ result.image }}">
+          <button type="submit"
+                  class="flex-1 flex items-center gap-3 p-2 rounded-md hover:bg-[#2a2f35] transition duration-200 cursor-pointer text-left">
+            <img src="{{ result.image }}"
+                 alt="{{ result.title }}"
+                 class="w-10 h-14 rounded object-cover bg-[#2a2f35] flex-shrink-0">
+            <span class="text-white text-sm truncate">{{ result.title }}</span>
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+  {% endif %}
 {% else %}
   <p class="text-gray-400 text-sm">No results found. Cannot move this entry.</p>
 {% endif %}

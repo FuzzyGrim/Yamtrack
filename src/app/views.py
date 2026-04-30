@@ -859,12 +859,16 @@ def _move_to_tv(request, new_item, old_instance):
         )
         db_models.Model.save(tv_instance)
 
-    # Determine next available season number
-    existing_season_nums = list(
-        Season.objects.filter(related_tv=tv_instance)
-        .values_list("item__season_number", flat=True)
-    )
-    season_number = max(existing_season_nums, default=0) + 1
+    # Use user-selected season number, or determine next available
+    selected_season = request.POST.get("target_season_number")
+    if selected_season:
+        season_number = int(selected_season)
+    else:
+        existing_season_nums = list(
+            Season.objects.filter(related_tv=tv_instance)
+            .values_list("item__season_number", flat=True)
+        )
+        season_number = max(existing_season_nums, default=0) + 1
 
     if old_instance.progress:
         season_item, _ = Item.objects.get_or_create(
