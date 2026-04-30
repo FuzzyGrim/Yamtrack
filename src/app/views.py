@@ -707,6 +707,63 @@ def media_move(request):
     )
 
 
+@require_GET
+def media_relink_search(request):
+    """Search the current media type's source for relinking."""
+    instance_id = request.GET["instance_id"]
+    media_type = request.GET["media_type"]
+    query = request.GET.get("query", "").strip()
+
+    if not query:
+        return render(request, "app/components/relink_search_results.html", {"results": []})
+
+    results = services.search(media_type, query, 1)
+
+    context = {
+        "results": results["results"],
+        "instance_id": instance_id,
+        "media_type": media_type,
+    }
+    return render(request, "app/components/relink_search_results.html", context)
+
+
+@require_POST
+def media_relink(request):
+    """Change the linked Item for a tracking entry."""
+    instance_id = request.POST["instance_id"]
+    media_type = request.POST["media_type"]
+    new_media_id = request.POST["new_media_id"]
+    new_source = request.POST["new_source"]
+
+    old_instance = BasicMedia.objects.get_media(request.user, media_type, instance_id)
+
+    # Get or create the new Item
+    new_item, _ = Item.objects.get_or_create(
+        media_id=new_media_id,
+        source=new_source,
+        media_type=media_type,
+        defaults={
+            "title": old_instance.item.title,
+            "image": old_instance.item.image,
+        },
+    )
+
+    # Update the tracking entry to point to the new Item
+    old_instance.item = new_item
+    old_instance.save()
+
+    logger.info("Relinked %s to %s/%s.", old_instance, new_source, new_media_id)
+    messages.success(request, "Media link updated successfully.")
+
+    return redirect(
+        "media_details",
+        source=new_item.source,
+        media_type=media_type,
+        media_id=new_item.media_id,
+        title=slugify(new_item.title) or "untitled",
+    )
+
+
 @require_POST
 def mark_user_messages_shown(request):
     """Mark all unseen persistent messages for the user as shown."""

@@ -12,9 +12,49 @@
   {# Top section #}
   <div class="flex flex-col md:flex-row gap-8 md:gap-10 mb-12 md:mb-8">
     <div class="w-full md:w-1/4 max-w-[250px] mx-auto md:mx-0">
-      <img alt="{{ media.title }}"
-           class="w-full rounded-lg shadow-lg bg-[#2a2f35] object-cover"
-           src="{{ media.image }}">
+      <div class="relative" x-data="{ relinkOpen: false }">
+        <img alt="{{ media.title }}"
+             class="w-full rounded-lg shadow-lg bg-[#2a2f35] object-cover"
+             src="{{ media.image }}">
+        {% if current_instance %}
+          <button class="absolute top-2 right-2 p-1.5 bg-black/60 rounded-md text-white hover:bg-black/80 transition duration-200 cursor-pointer"
+                  title="Change linked media"
+                  @click="relinkOpen = true">
+            {% include "app/icons/edit-flat.svg" with classes="w-4 h-4" %}
+          </button>
+
+          {# Relink Modal #}
+          <div x-show="relinkOpen"
+               x-cloak
+               @keydown.escape.window="relinkOpen = false"
+               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+                 @click.outside="relinkOpen = false">
+              <div class="bg-[#2a2f35] rounded-lg p-6 shadow-xl">
+                <h3 class="text-lg font-bold text-white mb-4">Change linked media</h3>
+                <p class="text-sm text-gray-400 mb-3">Search for the correct entry:</p>
+                <input type="text"
+                       id="relink-search-query"
+                       name="query"
+                       value="{{ media.title }}"
+                       placeholder="Search..."
+                       class="w-full p-2 rounded-md bg-[#2a2f35] text-white border border-gray-600 placeholder-gray-500 mb-4"
+                       hx-get="{% url 'media_relink_search' %}"
+                       hx-target="#relink-search-results"
+                       hx-trigger="keyup changed delay:300ms, load"
+                       hx-vals='{"instance_id": "{{ current_instance.id }}", "media_type": "{{ media_type }}"}'
+                >
+                <div id="relink-search-results"></div>
+                <div class="flex justify-end mt-4">
+                  <button type="button"
+                          @click="relinkOpen = false"
+                          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-300 cursor-pointer">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
 
       <div x-data="{ trackOpen: false }">
         <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
