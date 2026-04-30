@@ -26,6 +26,7 @@ from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
+    Episode,
     Item,
     MediaTypes,
     Season,
@@ -798,6 +799,14 @@ def media_move(request):
                 },
             )
 
+            # Skip if user already has this media tracked in the target type
+            if target_model.objects.filter(item=new_item, user=request.user).exists():
+                messages.warning(
+                    request,
+                    f"Skipped S{season.item.season_number}: \"{new_item.title}\" already in your {MediaTypes(target_type).label} list.",
+                )
+                continue
+
             fields = {
                 "item": new_item,
                 "user": request.user,
@@ -845,23 +854,91 @@ def media_move(request):
         },
     )
 
-    # Create new tracking entry in target model, bypassing save() hooks
-    # to preserve original tracking data (dates, progress) without triggering
-    # process_status/process_progress which would reset dates and mark episodes
-    fields = {
-        "item": new_item,
-        "user": request.user,
-        "score": old_instance.score,
-        "status": old_instance.status,
-        "notes": old_instance.notes,
-    }
-    # TV has progress/start_date/end_date as computed properties, skip them
-    if target_type != MediaTypes.TV.value:
-        fields["progress"] = old_instance.progress
-        fields["start_date"] = old_instance.start_date
-        fields["end_date"] = old_instance.end_date
-    new_instance = target_model(**fields)
-    db_models.Model.save(new_instance)
+    # For TV targets, reuse existing TV entry or create a new one
+    if target_type == MediaTypes.TV.value:
+        existing_tv = TV.objects.filter(
+            item=new_item, user=request.user
+        ).first()
+        if existing_tv:
+            new_instance = existing_tv
+        else:
+            new_instance = TV(
+                item=new_item,
+                user=request.user,
+                score=old_instance.score,
+                status=old_instance.status,
+                notes=old_instance.notes,
+            )
+            db_models.Model.save(new_instance)
+
+        # Determine next available season number
+        existing_season_nums = list(
+            Season.objects.filter(related_tv=new_instance)
+            .values_list("item__season_number", flat=True)
+        )
+        season_number = max(existing_season_nums, default=0) + 1
+
+        if old_instance.progress:
+            season_item, _ = Item.objects.get_or_create(
+                media_id=new_item.media_id,
+                source=new_item.source,
+                media_type=MediaTypes.SEASON.value,
+                season_number=season_number,
+                defaults={
+                    "title": new_item.title,
+                    "image": new_item.image,
+                },
+            )
+            new_season = Season(
+                item=season_item,
+                user=request.user,
+                status=old_instance.status,
+                related_tv=new_instance,
+            )
+            db_models.Model.save(new_season)
+
+            # Create episode items and episodes to represent watched progress
+            now = timezone.now().replace(second=0, microsecond=0)
+            for ep_num in range(1, old_instance.progress + 1):
+                ep_item, _ = Item.objects.get_or_create(
+                    media_id=new_item.media_id,
+                    source=new_item.source,
+                    media_type=MediaTypes.EPISODE.value,
+                    season_number=season_number,
+                    episode_number=ep_num,
+                    defaults={
+                        "title": new_item.title,
+                        "image": new_item.image,
+                    },
+                )
+                ep = Episode(
+                    related_season=new_season,
+                    item=ep_item,
+                    end_date=old_instance.end_date or now,
+                )
+                db_models.Model.save(ep)
+    else:
+        # Check if the user already has this media tracked in the target type
+        if target_model.objects.filter(item=new_item, user=request.user).exists():
+            messages.error(
+                request,
+                f"You already have \"{new_item.title}\" in your {MediaTypes(target_type).label} list.",
+            )
+            return helpers.redirect_back(request)
+
+        # Create new tracking entry, bypassing save() hooks
+        fields = {
+            "item": new_item,
+            "user": request.user,
+            "score": old_instance.score,
+            "status": old_instance.status,
+            "notes": old_instance.notes,
+            "progress": old_instance.progress,
+            "start_date": old_instance.start_date,
+            "end_date": old_instance.end_date,
+        }
+        new_instance = target_model(**fields)
+        db_models.Model.save(new_instance)
 
     # Delete the old entry
     old_instance.delete()
