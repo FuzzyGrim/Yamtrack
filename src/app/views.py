@@ -901,6 +901,8 @@ def media_move(request):
 
             # Create episode items and episodes to represent watched progress
             now = timezone.now().replace(second=0, microsecond=0)
+            episodes_to_create = []
+            now = timezone.now().replace(second=0, microsecond=0)
             for ep_num in range(1, old_instance.progress + 1):
                 ep_item, _ = Item.objects.get_or_create(
                     media_id=new_item.media_id,
@@ -913,12 +915,12 @@ def media_move(request):
                         "image": new_item.image,
                     },
                 )
-                ep = Episode(
+                episodes_to_create.append(Episode(
                     related_season=new_season,
                     item=ep_item,
                     end_date=old_instance.end_date or now,
-                )
-                db_models.Model.save(ep)
+                ))
+            Episode.objects.bulk_create(episodes_to_create)
     else:
         # Check if the user already has this media tracked in the target type
         if target_model.objects.filter(item=new_item, user=request.user).exists():
