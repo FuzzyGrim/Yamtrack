@@ -820,7 +820,7 @@ def media_move(request):
                 "end_date": season.end_date,
             }
             new_instance = target_model(**fields)
-            db_models.Model.save(new_instance)
+            new_instance.save()
             last_item = new_item
 
         # Delete the TV entry (cascades to seasons/episodes)
