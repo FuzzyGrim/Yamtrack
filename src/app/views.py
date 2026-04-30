@@ -836,8 +836,7 @@ def _move_tv_seasons(request, old_instance, target_type, target_model):
 
     # Only delete moved seasons; delete TV entry only if all seasons were moved
     if moved_seasons:
-        for season in moved_seasons:
-            season.delete()
+        Season.objects.filter(id__in=[s.id for s in moved_seasons]).delete()
         remaining_seasons = old_instance.seasons.exclude(item__season_number=0)
         if not remaining_seasons.exists():
             old_instance.delete()
