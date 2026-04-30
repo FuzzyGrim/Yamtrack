@@ -4,6 +4,8 @@ from difflib import SequenceMatcher
 from io import BytesIO
 from pathlib import Path
 
+import requests
+from PIL import Image, UnidentifiedImageError
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
@@ -612,8 +614,6 @@ def media_delete(request):
 
 def _compute_image_hash(image_url, hash_size=8, retries=3):
     """Compute average hash of an image from URL. Returns a list of bits."""
-    from PIL import Image  # noqa: PLC0415
-
     for attempt in range(1 + retries):
         try:
             response = services.session.get(image_url, timeout=5)
@@ -624,7 +624,7 @@ def _compute_image_hash(image_url, hash_size=8, retries=3):
             pixels = list(img.getdata())
             avg = sum(pixels) / len(pixels)
             return [1 if p > avg else 0 for p in pixels]
-        except Exception:  # noqa: BLE001
+        except (requests.RequestException, UnidentifiedImageError, OSError):
             if attempt < retries:
                 continue
             return None
