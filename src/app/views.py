@@ -651,6 +651,81 @@ MOVABLE_MEDIA_TYPES = {
 }
 
 
+def _compute_image_hashes(seasons, search_results):
+    """Compute image hashes for seasons and search results in parallel."""
+    hash_tasks = {}
+    with ThreadPoolExecutor() as executor:
+        for season in seasons:
+            if season.item.image:
+                hash_tasks[("season", season.item.season_number)] = (
+                    executor.submit(_compute_image_hash, season.item.image)
+                )
+        for result in search_results:
+            if result.get("image"):
+                hash_tasks[("result", str(result["media_id"]))] = (
+                    executor.submit(_compute_image_hash, result["image"])
+                )
+
+    season_hashes = {}
+    result_hashes = {}
+    for (kind, key), future in hash_tasks.items():
+        if kind == "season":
+            season_hashes[key] = future.result()
+        else:
+            result_hashes[key] = future.result()
+    return season_hashes, result_hashes
+
+
+def _score_result_for_season(result, season_num, season_title, season_hash, result_hashes):
+    """Compute a combined similarity score for a search result against a season."""
+    title_ratio = SequenceMatcher(
+        None, season_title, result["title"].lower()
+    ).ratio()
+
+    # Boost results that contain the season number
+    season_indicators = [
+        f"season {season_num}",
+        f"s{season_num}",
+        f"part {season_num}",
+    ]
+    ordinals = {1: "1st", 2: "2nd", 3: "3rd"}
+    ordinal = ordinals.get(season_num, f"{season_num}th")
+    season_indicators.append(f"{ordinal} season")
+
+    result_lower = result["title"].lower()
+    if any(ind in result_lower for ind in season_indicators):
+        title_ratio = min(title_ratio + 0.2, 1.0)
+    if season_num == 1 and title_ratio > 0.7:
+        title_ratio = min(title_ratio + 0.1, 1.0)
+
+    # Image similarity (0-1)
+    result_hash = result_hashes.get(str(result["media_id"]))
+    img_ratio = _image_similarity(season_hash, result_hash)
+
+    return (title_ratio * 0.3) + (img_ratio * 0.7)
+
+
+def _compute_season_recommendations(seasons, search_results, season_hashes, result_hashes):
+    """Compute best matching search result for each season."""
+    recommendations = {}
+    for season in seasons:
+        season_num = season.item.season_number
+        season_title = season.item.title.lower()
+        season_hash = season_hashes.get(season_num)
+        best_score = 0
+        best_id = None
+        for result in search_results:
+            combined = _score_result_for_season(
+                result, season_num, season_title, season_hash, result_hashes
+            )
+            if combined > best_score:
+                best_score = combined
+                best_id = str(result["media_id"])
+        if best_score >= 0.3:
+            recommendations[season_num] = best_id
+    return recommendations
+
+
 @require_GET
 def media_move_search(request):
     """Search the target source for matching media to move to."""
@@ -675,71 +750,12 @@ def media_move_search(request):
             results = services.search(target_type, query, 1)
             search_results = results["results"]
 
-            # Compute image hashes in parallel
-            hash_tasks = {}
-            with ThreadPoolExecutor() as executor:
-                for season in seasons:
-                    if season.item.image:
-                        hash_tasks[("season", season.item.season_number)] = (
-                            executor.submit(_compute_image_hash, season.item.image)
-                        )
-                for result in search_results:
-                    if result.get("image"):
-                        hash_tasks[("result", str(result["media_id"]))] = (
-                            executor.submit(_compute_image_hash, result["image"])
-                        )
-
-            season_hashes = {}
-            result_hashes = {}
-            for (kind, key), future in hash_tasks.items():
-                if kind == "season":
-                    season_hashes[key] = future.result()
-                else:
-                    result_hashes[key] = future.result()
-
-            # Compute best match per season based on title + image similarity
-            recommendations = {}
-            for season in seasons:
-                season_num = season.item.season_number
-                season_title = season.item.title.lower()
-                season_hash = season_hashes.get(season_num)
-                best_score = 0
-                best_id = None
-                for result in search_results:
-                    # Title similarity (0-1)
-                    title_ratio = SequenceMatcher(
-                        None, season_title, result["title"].lower()
-                    ).ratio()
-                    # Boost results that contain the season number
-                    season_indicators = [
-                        f"season {season_num}",
-                        f"s{season_num}",
-                        f"part {season_num}",
-                    ]
-                    ordinals = {
-                        1: "1st", 2: "2nd", 3: "3rd",
-                    }
-                    ordinal = ordinals.get(season_num, f"{season_num}th")
-                    season_indicators.append(f"{ordinal} season")
-                    result_lower = result["title"].lower()
-                    if any(ind in result_lower for ind in season_indicators):
-                        title_ratio = min(title_ratio + 0.2, 1.0)
-                    # First season often matches the base title exactly
-                    if season_num == 1 and title_ratio > 0.7:
-                        title_ratio = min(title_ratio + 0.1, 1.0)
-
-                    # Image similarity (0-1)
-                    result_hash = result_hashes.get(str(result["media_id"]))
-                    img_ratio = _image_similarity(season_hash, result_hash)
-
-                    # Combined score: 20% title, 80% image
-                    combined = (title_ratio * 0.3) + (img_ratio * 0.7)
-
-                    if combined > best_score:
-                        best_score = combined
-                        best_id = str(result["media_id"])
-                if best_score >= 0.3:
-                    recommendations[season_num] = best_id
+            season_hashes, result_hashes = _compute_image_hashes(
+                seasons, search_results
+            )
+            recommendations = _compute_season_recommendations(
+                seasons, search_results, season_hashes, result_hashes
+            )
 
             context = {
                 "results": search_results,
@@ -766,6 +782,131 @@ def media_move_search(request):
     return render(request, "app/components/move_search_results.html", context)
 
 
+def _move_tv_seasons(request, old_instance, target_type, target_model):
+    """Move individual seasons from a TV show to the target type."""
+    seasons = (
+        old_instance.seasons.select_related("item")
+        .exclude(item__season_number=0)
+        .order_by("item__season_number")
+    )
+    last_item = None
+    moved_seasons = []
+    for season in seasons:
+        season_key = f"target_media_id_{season.item.season_number}"
+        target_media_id = request.POST.get(season_key)
+        if not target_media_id:
+            continue
+
+        source_key = f"target_source_{season.item.season_number}"
+        target_source = request.POST.get(source_key, "")
+
+        new_item, _ = Item.objects.get_or_create(
+            media_id=target_media_id,
+            source=target_source,
+            media_type=target_type,
+            defaults={
+                "title": season.item.title,
+                "image": season.item.image,
+            },
+        )
+
+        if target_model.objects.filter(item=new_item, user=request.user).exists():
+            messages.warning(
+                request,
+                f"Skipped S{season.item.season_number}: \"{new_item.title}\" already in your {MediaTypes(target_type).label} list.",
+            )
+            continue
+
+        new_instance = target_model(
+            item=new_item,
+            user=request.user,
+            score=season.score,
+            status=season.status,
+            notes=season.notes,
+            progress=season.progress,
+            start_date=season.start_date,
+            end_date=season.end_date,
+        )
+        new_instance.save()
+        moved_seasons.append(season)
+        last_item = new_item
+
+    # Only delete moved seasons; delete TV entry only if all seasons were moved
+    if moved_seasons:
+        for season in moved_seasons:
+            season.delete()
+        remaining_seasons = old_instance.seasons.exclude(item__season_number=0)
+        if not remaining_seasons.exists():
+            old_instance.delete()
+
+    return last_item
+
+
+def _move_to_tv(request, new_item, old_instance):
+    """Move a flat media entry to a TV show, creating season and episodes."""
+    existing_tv = TV.objects.filter(
+        item=new_item, user=request.user
+    ).first()
+    if existing_tv:
+        tv_instance = existing_tv
+    else:
+        tv_instance = TV(
+            item=new_item,
+            user=request.user,
+            score=old_instance.score,
+            status=old_instance.status,
+            notes=old_instance.notes,
+        )
+        db_models.Model.save(tv_instance)
+
+    # Determine next available season number
+    existing_season_nums = list(
+        Season.objects.filter(related_tv=tv_instance)
+        .values_list("item__season_number", flat=True)
+    )
+    season_number = max(existing_season_nums, default=0) + 1
+
+    if old_instance.progress:
+        season_item, _ = Item.objects.get_or_create(
+            media_id=new_item.media_id,
+            source=new_item.source,
+            media_type=MediaTypes.SEASON.value,
+            season_number=season_number,
+            defaults={
+                "title": new_item.title,
+                "image": new_item.image,
+            },
+        )
+        new_season = Season(
+            item=season_item,
+            user=request.user,
+            status=old_instance.status,
+            related_tv=tv_instance,
+        )
+        db_models.Model.save(new_season)
+
+        now = timezone.now().replace(second=0, microsecond=0)
+        episodes_to_create = []
+        for ep_num in range(1, old_instance.progress + 1):
+            ep_item, _ = Item.objects.get_or_create(
+                media_id=new_item.media_id,
+                source=new_item.source,
+                media_type=MediaTypes.EPISODE.value,
+                season_number=season_number,
+                episode_number=ep_num,
+                defaults={
+                    "title": new_item.title,
+                    "image": new_item.image,
+                },
+            )
+            episodes_to_create.append(Episode(
+                related_season=new_season,
+                item=ep_item,
+                end_date=old_instance.end_date or now,
+            ))
+        Episode.objects.bulk_create(episodes_to_create)
+
+
 @require_POST
 @transaction.atomic
 def media_move(request):
@@ -787,62 +928,7 @@ def media_move(request):
 
     # Handle TV shows with per-season move
     if media_type == MediaTypes.TV.value:
-        seasons = (
-            old_instance.seasons.select_related("item")
-            .exclude(item__season_number=0)
-            .order_by("item__season_number")
-        )
-        last_item = None
-        moved_seasons = []
-        for season in seasons:
-            season_key = f"target_media_id_{season.item.season_number}"
-            target_media_id = request.POST.get(season_key)
-            if not target_media_id:
-                continue  # Skip seasons not mapped
-
-            source_key = f"target_source_{season.item.season_number}"
-            target_source = request.POST.get(source_key, "")
-
-            new_item, _ = Item.objects.get_or_create(
-                media_id=target_media_id,
-                source=target_source,
-                media_type=target_type,
-                defaults={
-                    "title": season.item.title,
-                    "image": season.item.image,
-                },
-            )
-
-            # Skip if user already has this media tracked in the target type
-            if target_model.objects.filter(item=new_item, user=request.user).exists():
-                messages.warning(
-                    request,
-                    f"Skipped S{season.item.season_number}: \"{new_item.title}\" already in your {MediaTypes(target_type).label} list.",
-                )
-                continue
-
-            fields = {
-                "item": new_item,
-                "user": request.user,
-                "score": season.score,
-                "status": season.status,
-                "notes": season.notes,
-                "progress": season.progress,
-                "start_date": season.start_date,
-                "end_date": season.end_date,
-            }
-            new_instance = target_model(**fields)
-            new_instance.save()
-            moved_seasons.append(season)
-            last_item = new_item
-
-        # Only delete moved seasons; delete TV entry only if all seasons were moved
-        if moved_seasons:
-            for season in moved_seasons:
-                season.delete()
-            remaining_seasons = old_instance.seasons.exclude(item__season_number=0)
-            if not remaining_seasons.exists():
-                old_instance.delete()
+        last_item = _move_tv_seasons(request, old_instance, target_type, target_model)
 
         logger.info("Moved %s (TV) to %s.", old_item.title, target_type)
         messages.success(
@@ -864,7 +950,6 @@ def media_move(request):
     target_media_id = request.POST["target_media_id"]
     target_source = request.POST["target_source"]
 
-    # Get or create the Item from the selected search result
     new_item, _ = Item.objects.get_or_create(
         media_id=target_media_id,
         source=target_source,
@@ -875,71 +960,8 @@ def media_move(request):
         },
     )
 
-    # For TV targets, reuse existing TV entry or create a new one
     if target_type == MediaTypes.TV.value:
-        existing_tv = TV.objects.filter(
-            item=new_item, user=request.user
-        ).first()
-        if existing_tv:
-            new_instance = existing_tv
-        else:
-            new_instance = TV(
-                item=new_item,
-                user=request.user,
-                score=old_instance.score,
-                status=old_instance.status,
-                notes=old_instance.notes,
-            )
-            db_models.Model.save(new_instance)
-
-        # Determine next available season number
-        existing_season_nums = list(
-            Season.objects.filter(related_tv=new_instance)
-            .values_list("item__season_number", flat=True)
-        )
-        season_number = max(existing_season_nums, default=0) + 1
-
-        if old_instance.progress:
-            season_item, _ = Item.objects.get_or_create(
-                media_id=new_item.media_id,
-                source=new_item.source,
-                media_type=MediaTypes.SEASON.value,
-                season_number=season_number,
-                defaults={
-                    "title": new_item.title,
-                    "image": new_item.image,
-                },
-            )
-            new_season = Season(
-                item=season_item,
-                user=request.user,
-                status=old_instance.status,
-                related_tv=new_instance,
-            )
-            db_models.Model.save(new_season)
-
-            # Create episode items and episodes to represent watched progress
-            now = timezone.now().replace(second=0, microsecond=0)
-            episodes_to_create = []
-            now = timezone.now().replace(second=0, microsecond=0)
-            for ep_num in range(1, old_instance.progress + 1):
-                ep_item, _ = Item.objects.get_or_create(
-                    media_id=new_item.media_id,
-                    source=new_item.source,
-                    media_type=MediaTypes.EPISODE.value,
-                    season_number=season_number,
-                    episode_number=ep_num,
-                    defaults={
-                        "title": new_item.title,
-                        "image": new_item.image,
-                    },
-                )
-                episodes_to_create.append(Episode(
-                    related_season=new_season,
-                    item=ep_item,
-                    end_date=old_instance.end_date or now,
-                ))
-            Episode.objects.bulk_create(episodes_to_create)
+        _move_to_tv(request, new_item, old_instance)
     else:
         # Check if the user already has this media tracked in the target type
         if target_model.objects.filter(item=new_item, user=request.user).exists():
@@ -950,17 +972,16 @@ def media_move(request):
             return helpers.redirect_back(request)
 
         # Create new tracking entry, bypassing save() hooks
-        fields = {
-            "item": new_item,
-            "user": request.user,
-            "score": old_instance.score,
-            "status": old_instance.status,
-            "notes": old_instance.notes,
-            "progress": old_instance.progress,
-            "start_date": old_instance.start_date,
-            "end_date": old_instance.end_date,
-        }
-        new_instance = target_model(**fields)
+        new_instance = target_model(
+            item=new_item,
+            user=request.user,
+            score=old_instance.score,
+            status=old_instance.status,
+            notes=old_instance.notes,
+            progress=old_instance.progress,
+            start_date=old_instance.start_date,
+            end_date=old_instance.end_date,
+        )
         db_models.Model.save(new_instance)
 
     # Delete the old entry
