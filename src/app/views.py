@@ -793,6 +793,7 @@ def media_move(request):
             .order_by("item__season_number")
         )
         last_item = None
+        moved_seasons = []
         for season in seasons:
             season_key = f"target_media_id_{season.item.season_number}"
             target_media_id = request.POST.get(season_key)
@@ -832,10 +833,17 @@ def media_move(request):
             }
             new_instance = target_model(**fields)
             new_instance.save()
+            moved_seasons.append(season)
             last_item = new_item
 
-        # Delete the TV entry (cascades to seasons/episodes)
-        old_instance.delete()
+        # Only delete moved seasons; delete TV entry only if all seasons were moved
+        if moved_seasons:
+            for season in moved_seasons:
+                season.delete()
+            remaining_seasons = old_instance.seasons.exclude(item__season_number=0)
+            if not remaining_seasons.exists():
+                old_instance.delete()
+
         logger.info("Moved %s (TV) to %s.", old_item.title, target_type)
         messages.success(
             request,
