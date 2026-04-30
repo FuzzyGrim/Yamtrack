@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db import IntegrityError
 from django.db import models as db_models
 from django.db.models import prefetch_related_objects
@@ -755,6 +756,7 @@ def media_move_search(request):
 
 
 @require_POST
+@transaction.atomic
 def media_move(request):
     """Move a media entry from one type to another, preserving tracking data."""
     instance_id = request.POST["instance_id"]
