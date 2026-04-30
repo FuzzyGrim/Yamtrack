@@ -482,10 +482,11 @@
             <div x-show="moveOpen"
                  x-cloak
                  @keydown.escape.window="moveOpen = false"
-                 class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
-                   @click.outside="moveOpen = false">
-                <div class="bg-[#2a2f35] rounded-lg p-6 shadow-xl">
+                 class="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+              <div class="min-h-full flex items-center justify-center p-4">
+                <div class="w-96 md:w-[32rem] relative z-60"
+                     @click.outside="moveOpen = false">
+                  <div class="bg-[#2a2f35] rounded-lg p-6 shadow-xl">
                   <h3 class="text-lg font-bold text-white mb-4">Move to another type</h3>
                   <p class="text-sm text-gray-400 mb-3">Select a type and pick the matching entry:</p>
                   <select id="move-target-type"
@@ -494,6 +495,7 @@
                           hx-target="#move-search-results"
                           hx-trigger="change"
                           hx-include="#move-target-type, #move-search-query"
+                          hx-indicator="#move-search-loading"
                           hx-vals='{"instance_id": "{{ current_instance.id }}", "media_type": "{{ media_type }}"}'
                           name="target_type">
                     <option value="" disabled selected>Select target type...</option>
@@ -514,14 +516,20 @@
                            hx-target="#move-search-results"
                            hx-trigger="keyup changed delay:300ms"
                            hx-include="#move-target-type, #move-search-query"
+                           hx-indicator="#move-search-loading"
                            hx-vals='{"instance_id": "{{ current_instance.id }}", "media_type": "{{ media_type }}"}'
                     >
+                  </div>
+                  <div id="move-search-loading" class="htmx-indicator flex items-center justify-center gap-2 py-4">
+                    {% include "app/icons/circle-spinning-clockwise.svg" with classes="w-5 h-5 text-sky-400 animate-spin" %}
+                    <span class="text-sm text-gray-400">Searching and comparing images...</span>
                   </div>
                   <div id="move-search-results"></div>
                   <div class="flex justify-end mt-4">
                     <button type="button"
                             @click="moveOpen = false"
                             class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-300 cursor-pointer">Cancel</button>
+                  </div>
                   </div>
                 </div>
               </div>

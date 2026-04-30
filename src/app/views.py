@@ -1,4 +1,6 @@
 import logging
+from difflib import SequenceMatcher
+from io import BytesIO
 from pathlib import Path
 
 from django.apps import apps
@@ -7,6 +9,7 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
+from django.db import models as db_models
 from django.db.models import prefetch_related_objects
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, render
@@ -604,6 +607,31 @@ def media_delete(request):
     return helpers.redirect_back(request)
 
 
+def _compute_image_hash(image_url, hash_size=8):
+    """Compute average hash of an image from URL. Returns a list of bits."""
+    try:
+        from PIL import Image  # noqa: PLC0415
+
+        response = services.session.get(image_url, timeout=5)
+        response.raise_for_status()
+        img = Image.open(BytesIO(response.content)).convert("L").resize(
+            (hash_size, hash_size), Image.Resampling.LANCZOS
+        )
+        pixels = list(img.getdata())
+        avg = sum(pixels) / len(pixels)
+        return [1 if p > avg else 0 for p in pixels]
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _image_similarity(hash1, hash2):
+    """Return similarity (0-1) between two image hashes."""
+    if not hash1 or not hash2 or len(hash1) != len(hash2):
+        return 0.0
+    matching = sum(a == b for a, b in zip(hash1, hash2))
+    return matching / len(hash1)
+
+
 # Media types that support moving (no Season/Episode)
 MOVABLE_MEDIA_TYPES = {
     MediaTypes.MOVIE.value,
@@ -630,7 +658,90 @@ def media_move_search(request):
     old_instance = BasicMedia.objects.get_media(request.user, media_type, instance_id)
     query = request.GET.get("query") or old_instance.item.title
 
-    # Search the target source for the query
+    # For TV shows with tracked seasons, show per-season search
+    if media_type == MediaTypes.TV.value:
+        seasons = (
+            old_instance.seasons.select_related("item")
+            .exclude(item__season_number=0)
+            .order_by("item__season_number")
+        )
+        if seasons.exists():
+            results = services.search(target_type, query, 1)
+            search_results = results["results"]
+
+            # Compute image hashes for comparison
+            season_hashes = {}
+            for season in seasons:
+                if season.item.image:
+                    season_hashes[season.item.season_number] = _compute_image_hash(
+                        season.item.image
+                    )
+
+            result_hashes = {}
+            for result in search_results:
+                if result.get("image"):
+                    result_hashes[str(result["media_id"])] = _compute_image_hash(
+                        result["image"]
+                    )
+
+            # Compute best match per season based on title + image similarity
+            recommendations = {}
+            for season in seasons:
+                season_num = season.item.season_number
+                season_title = season.item.title.lower()
+                season_hash = season_hashes.get(season_num)
+                best_score = 0
+                best_id = None
+                for result in search_results:
+                    # Title similarity (0-1)
+                    title_ratio = SequenceMatcher(
+                        None, season_title, result["title"].lower()
+                    ).ratio()
+                    # Boost results that contain the season number
+                    season_indicators = [
+                        f"season {season_num}",
+                        f"s{season_num}",
+                        f"part {season_num}",
+                    ]
+                    ordinals = {
+                        1: "1st", 2: "2nd", 3: "3rd",
+                    }
+                    ordinal = ordinals.get(season_num, f"{season_num}th")
+                    season_indicators.append(f"{ordinal} season")
+                    result_lower = result["title"].lower()
+                    if any(ind in result_lower for ind in season_indicators):
+                        title_ratio = min(title_ratio + 0.2, 1.0)
+                    # First season often matches the base title exactly
+                    if season_num == 1 and title_ratio > 0.7:
+                        title_ratio = min(title_ratio + 0.1, 1.0)
+
+                    # Image similarity (0-1)
+                    result_hash = result_hashes.get(str(result["media_id"]))
+                    img_ratio = _image_similarity(season_hash, result_hash)
+
+                    # Combined score: 20% title, 80% image
+                    combined = (title_ratio * 0.3) + (img_ratio * 0.7)
+
+                    if combined > best_score:
+                        best_score = combined
+                        best_id = str(result["media_id"])
+                if best_score >= 0.3:
+                    recommendations[season_num] = best_id
+
+            context = {
+                "results": search_results,
+                "seasons": seasons,
+                "recommendations": recommendations,
+                "instance_id": instance_id,
+                "media_type": media_type,
+                "target_type": target_type,
+                "is_tv_move": True,
+            }
+            return render(
+                request, "app/components/move_search_results.html", context
+            )
+
+    # Standard search for flat types
     results = services.search(target_type, query, 1)
 
     context = {
@@ -648,8 +759,6 @@ def media_move(request):
     instance_id = request.POST["instance_id"]
     media_type = request.POST["media_type"]
     target_type = request.POST["target_type"]
-    target_media_id = request.POST["target_media_id"]
-    target_source = request.POST["target_source"]
 
     if media_type not in MOVABLE_MEDIA_TYPES or target_type not in MOVABLE_MEDIA_TYPES:
         messages.error(request, "Cannot move this media type.")
@@ -658,9 +767,72 @@ def media_move(request):
     if media_type == target_type:
         return helpers.redirect_back(request)
 
-    # Get the current tracking entry
     old_instance = BasicMedia.objects.get_media(request.user, media_type, instance_id)
     old_item = old_instance.item
+    target_model = apps.get_model(app_label="app", model_name=target_type)
+
+    # Handle TV shows with per-season move
+    if media_type == MediaTypes.TV.value:
+        seasons = (
+            old_instance.seasons.select_related("item")
+            .exclude(item__season_number=0)
+            .order_by("item__season_number")
+        )
+        last_item = None
+        for season in seasons:
+            season_key = f"target_media_id_{season.item.season_number}"
+            target_media_id = request.POST.get(season_key)
+            if not target_media_id:
+                continue  # Skip seasons not mapped
+
+            source_key = f"target_source_{season.item.season_number}"
+            target_source = request.POST.get(source_key, "")
+
+            new_item, _ = Item.objects.get_or_create(
+                media_id=target_media_id,
+                source=target_source,
+                media_type=target_type,
+                defaults={
+                    "title": season.item.title,
+                    "image": season.item.image,
+                },
+            )
+
+            fields = {
+                "item": new_item,
+                "user": request.user,
+                "score": season.score,
+                "status": season.status,
+                "notes": season.notes,
+                "progress": season.progress,
+                "start_date": season.start_date,
+                "end_date": season.end_date,
+            }
+            new_instance = target_model(**fields)
+            db_models.Model.save(new_instance)
+            last_item = new_item
+
+        # Delete the TV entry (cascades to seasons/episodes)
+        old_instance.delete()
+        logger.info("Moved %s (TV) to %s.", old_item.title, target_type)
+        messages.success(
+            request,
+            f"Moved \"{old_item.title}\" from {MediaTypes(media_type).label} to {MediaTypes(target_type).label}.",
+        )
+
+        if last_item:
+            return redirect(
+                "media_details",
+                source=last_item.source,
+                media_type=target_type,
+                media_id=last_item.media_id,
+                title=slugify(last_item.title) or "untitled",
+            )
+        return helpers.redirect_back(request)
+
+    # Standard move for flat types
+    target_media_id = request.POST["target_media_id"]
+    target_source = request.POST["target_source"]
 
     # Get or create the Item from the selected search result
     new_item, _ = Item.objects.get_or_create(
@@ -673,8 +845,9 @@ def media_move(request):
         },
     )
 
-    # Create new tracking entry in target model
-    target_model = apps.get_model(app_label="app", model_name=target_type)
+    # Create new tracking entry in target model, bypassing save() hooks
+    # to preserve original tracking data (dates, progress) without triggering
+    # process_status/process_progress which would reset dates and mark episodes
     fields = {
         "item": new_item,
         "user": request.user,
@@ -688,7 +861,7 @@ def media_move(request):
         fields["start_date"] = old_instance.start_date
         fields["end_date"] = old_instance.end_date
     new_instance = target_model(**fields)
-    new_instance.save()
+    db_models.Model.save(new_instance)
 
     # Delete the old entry
     old_instance.delete()

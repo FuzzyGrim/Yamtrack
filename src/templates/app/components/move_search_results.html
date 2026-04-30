@@ -1,4 +1,67 @@
-{% if results %}
+{% load app_tags %}
+{% if is_tv_move %}
+  {# TV show per-season move: user picks a target for each season #}
+  <form method="post" action="{% url 'media_move' %}" x-data="{ selections: { {% for s in seasons %}{% with rec=recommendations|dict_get:s.item.season_number %}{% if rec %}'{{ s.item.season_number }}': true,{% endif %}{% endwith %}{% endfor %} } }">
+    {% csrf_token %}
+    <input type="hidden" name="instance_id" value="{{ instance_id }}">
+    <input type="hidden" name="media_type" value="{{ media_type }}">
+    <input type="hidden" name="target_type" value="{{ target_type }}">
+
+    <div class="space-y-4 mb-4 pr-1">
+      {% for season in seasons %}
+        {% with rec_id=recommendations|dict_get:season.item.season_number %}
+        <div class="bg-[#1e2228] rounded-lg p-3 season-block">
+          <div class="flex items-start gap-3 mb-3">
+            <img src="{{ season.item.image }}"
+                 alt="Season {{ season.item.season_number }}"
+                 class="w-10 h-14 rounded object-cover bg-[#2a2f35] flex-shrink-0">
+            <div>
+              <h4 class="text-white text-sm font-medium">Season {{ season.item.season_number }}</h4>
+              <p class="text-gray-400 text-xs mt-0.5">{{ season.item.title }}</p>
+              <p class="text-gray-500 text-xs mt-1">{{ season.progress }} eps &middot; {{ season.status }}</p>
+            </div>
+            <span x-show="selections['{{ season.item.season_number }}']"
+                  class="ml-auto text-xs text-emerald-400 flex-shrink-0">&#10003;</span>
+          </div>
+          <div class="space-y-1">
+            {% for result in results %}
+              {% with is_rec=result.media_id|stringformat:"s" %}
+              <label class="flex items-center gap-3 p-2 rounded-md hover:bg-[#2a2f35] transition duration-200 cursor-pointer {% if rec_id and is_rec == rec_id %}ring-1 ring-sky-500/50 bg-[#2a2f35]/50{% endif %}">
+                <input type="radio"
+                       name="target_media_id_{{ season.item.season_number }}"
+                       value="{{ result.media_id }}"
+                       data-source="{{ result.source }}"
+                       class="accent-sky-500 flex-shrink-0"
+                       {% if rec_id and is_rec == rec_id %}checked{% endif %}
+                       @change="selections['{{ season.item.season_number }}'] = true; $el.closest('.season-block').querySelector('.source-input').value = '{{ result.source }}'">
+                <img src="{{ result.image }}"
+                     alt="{{ result.title }}"
+                     class="w-8 h-11 rounded object-cover bg-[#2a2f35] flex-shrink-0">
+                <div class="min-w-0 flex-1">
+                  <span class="text-white text-xs block truncate">{{ result.title }}</span>
+                  {% if rec_id and is_rec == rec_id %}
+                    <span class="text-sky-400 text-xs">Recommended match</span>
+                  {% endif %}
+                </div>
+              </label>
+              {% endwith %}
+            {% endfor %}
+            <input type="hidden"
+                   name="target_source_{{ season.item.season_number }}"
+                   value="{% for result in results %}{% with is_rec=result.media_id|stringformat:'s' %}{% if rec_id and is_rec == rec_id %}{{ result.source }}{% endif %}{% endwith %}{% endfor %}"
+                   class="source-input">
+          </div>
+        </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+
+    <button type="submit"
+            class="w-full px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 transition duration-300 cursor-pointer">
+      Move Selected Seasons
+    </button>
+  </form>
+{% elif results %}
   <div class="space-y-2 max-h-64 overflow-y-auto">
     {% for result in results %}
       <form method="post" action="{% url 'media_move' %}">

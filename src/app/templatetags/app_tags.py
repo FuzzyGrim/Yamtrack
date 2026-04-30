@@ -449,3 +449,11 @@ def show_media_score(rating, user):
         True if we should show the media score
     """
     return rating is not None and (not user.hide_zero_rating or rating > 0)
+
+
+@register.filter
+def dict_get(d, key):
+    """Look up a key in a dictionary."""
+    if isinstance(d, dict):
+        return d.get(key)
+    return None
