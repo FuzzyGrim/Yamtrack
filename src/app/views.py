@@ -840,8 +840,8 @@ def media_move(request):
         source=target_source,
         media_type=target_type,
         defaults={
-            "title": old_item.title,
-            "image": old_item.image,
+            "title": request.POST.get("target_title", old_item.title),
+            "image": request.POST.get("target_image", old_item.image),
         },
     )
 
