@@ -729,9 +729,12 @@ def _compute_season_recommendations(seasons, search_results, season_hashes, resu
 @require_GET
 def media_move_search(request):
     """Search the target source for matching media to move to."""
-    instance_id = request.GET["instance_id"]
-    media_type = request.GET["media_type"]
-    target_type = request.GET["target_type"]
+    instance_id = request.GET.get("instance_id")
+    media_type = request.GET.get("media_type")
+    target_type = request.GET.get("target_type")
+
+    if not all([instance_id, media_type, target_type]):
+        return HttpResponseBadRequest("Missing required parameters.")
 
     if media_type not in MOVABLE_MEDIA_TYPES or target_type not in MOVABLE_MEDIA_TYPES:
         return HttpResponseBadRequest("Invalid media type.")
