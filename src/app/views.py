@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from difflib import SequenceMatcher
 from io import BytesIO
 from pathlib import Path
@@ -671,20 +672,27 @@ def media_move_search(request):
             results = services.search(target_type, query, 1)
             search_results = results["results"]
 
-            # Compute image hashes for comparison
-            season_hashes = {}
-            for season in seasons:
-                if season.item.image:
-                    season_hashes[season.item.season_number] = _compute_image_hash(
-                        season.item.image
-                    )
+            # Compute image hashes in parallel
+            hash_tasks = {}
+            with ThreadPoolExecutor() as executor:
+                for season in seasons:
+                    if season.item.image:
+                        hash_tasks[("season", season.item.season_number)] = (
+                            executor.submit(_compute_image_hash, season.item.image)
+                        )
+                for result in search_results:
+                    if result.get("image"):
+                        hash_tasks[("result", str(result["media_id"]))] = (
+                            executor.submit(_compute_image_hash, result["image"])
+                        )
 
+            season_hashes = {}
             result_hashes = {}
-            for result in search_results:
-                if result.get("image"):
-                    result_hashes[str(result["media_id"])] = _compute_image_hash(
-                        result["image"]
-                    )
+            for (kind, key), future in hash_tasks.items():
+                if kind == "season":
+                    season_hashes[key] = future.result()
+                else:
+                    result_hashes[key] = future.result()
 
             # Compute best match per season based on title + image similarity
             recommendations = {}
