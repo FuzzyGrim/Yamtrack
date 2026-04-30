@@ -374,7 +374,7 @@
 
       {# Actions #}
       <h2 class="text-xl font-bold mb-4">Actions</h2>
-      <div class="bg-[#2a2f35] p-4 md:p-2 lg:p-4 rounded-lg flex items-center justify-center gap-x-5 md:gap-x-2 lg:gap-x-5 mb-6">
+      <div class="bg-[#2a2f35] p-4 md:p-2 lg:p-4 rounded-lg flex items-center justify-center gap-x-2 md:gap-x-2 lg:gap-x-2 mb-6">
         {# Custom Lists #}
         <div x-data="{ listsOpen: false }">
           <button class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
@@ -431,6 +431,63 @@
             {% include "app/icons/circle-spinning-clockwise.svg" with classes="w-4 h-4" %}
           </div>
         </button>
+
+        {# Move media type #}
+        {% if current_instance and media_type in movable_media_types %}
+          <div x-data="{ moveOpen: false }">
+            <button class="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 transition duration-300 cursor-pointer"
+                    title="Move to another media type"
+                    @click="moveOpen = true">{% include "app/icons/arrows-right-left.svg" with classes="w-4 h-4" %}</button>
+
+            <div x-show="moveOpen"
+                 x-cloak
+                 @keydown.escape.window="moveOpen = false"
+                 class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+                   @click.outside="moveOpen = false">
+                <div class="bg-[#2a2f35] rounded-lg p-6 shadow-xl">
+                  <h3 class="text-lg font-bold text-white mb-4">Move to another type</h3>
+                  <p class="text-sm text-gray-400 mb-3">Select a type and pick the matching entry:</p>
+                  <select id="move-target-type"
+                          class="w-full p-2 rounded-md bg-[#2a2f35] text-white border border-gray-600 mb-4"
+                          hx-get="{% url 'media_move_search' %}"
+                          hx-target="#move-search-results"
+                          hx-trigger="change"
+                          hx-include="#move-target-type, #move-search-query"
+                          hx-vals='{"instance_id": "{{ current_instance.id }}", "media_type": "{{ media_type }}"}'
+                          name="target_type">
+                    <option value="" disabled selected>Select target type...</option>
+                    {% for mt in MediaTypes %}
+                      {% if mt.value in movable_media_types and mt.value != media_type %}
+                        <option value="{{ mt.value }}">{{ mt.label }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                  <div class="relative mb-4">
+                    <input type="text"
+                           id="move-search-query"
+                           name="query"
+                           value="{{ media.title }}"
+                           placeholder="Search..."
+                           class="w-full p-2 rounded-md bg-[#2a2f35] text-white border border-gray-600 placeholder-gray-500"
+                           hx-get="{% url 'media_move_search' %}"
+                           hx-target="#move-search-results"
+                           hx-trigger="keyup changed delay:300ms"
+                           hx-include="#move-target-type, #move-search-query"
+                           hx-vals='{"instance_id": "{{ current_instance.id }}", "media_type": "{{ media_type }}"}'
+                    >
+                  </div>
+                  <div id="move-search-results"></div>
+                  <div class="flex justify-end mt-4">
+                    <button type="button"
+                            @click="moveOpen = false"
+                            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-300 cursor-pointer">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
       </div>
 
       {# Media Details #}

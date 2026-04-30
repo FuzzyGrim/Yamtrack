@@ -52,6 +52,8 @@ urlpatterns = [
     ),
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
+    path("media_move", views.media_move, name="media_move"),
+    path("media_move_search", views.media_move_search, name="media_move_search"),
     path(
         "user_messages/mark_shown",
         views.mark_user_messages_shown,

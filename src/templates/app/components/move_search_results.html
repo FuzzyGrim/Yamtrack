@@ -1,0 +1,23 @@
+{% if results %}
+  <div class="space-y-2 max-h-64 overflow-y-auto">
+    {% for result in results %}
+      <form method="post" action="{% url 'media_move' %}">
+        {% csrf_token %}
+        <input type="hidden" name="instance_id" value="{{ instance_id }}">
+        <input type="hidden" name="media_type" value="{{ media_type }}">
+        <input type="hidden" name="target_type" value="{{ target_type }}">
+        <input type="hidden" name="target_media_id" value="{{ result.media_id }}">
+        <input type="hidden" name="target_source" value="{{ result.source }}">
+        <button type="submit"
+                class="w-full flex items-center gap-3 p-2 rounded-md hover:bg-[#2a2f35] transition duration-200 cursor-pointer text-left">
+          <img src="{{ result.image }}"
+               alt="{{ result.title }}"
+               class="w-10 h-14 rounded object-cover bg-[#2a2f35] flex-shrink-0">
+          <span class="text-white text-sm truncate">{{ result.title }}</span>
+        </button>
+      </form>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-gray-400 text-sm">No results found. Cannot move this entry.</p>
+{% endif %}

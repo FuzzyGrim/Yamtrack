@@ -263,6 +263,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "current_instance": current_instance,
         "watch_providers": watch_providers,
         "watch_provider_region": request.user.watch_provider_region,
+        "movable_media_types": MOVABLE_MEDIA_TYPES,
     }
     return render(request, "app/media_details.html", context)
 
@@ -601,6 +602,109 @@ def media_delete(request):
         logger.warning("The %s was already deleted before.", media_type)
 
     return helpers.redirect_back(request)
+
+
+# Media types that support moving (no Season/Episode)
+MOVABLE_MEDIA_TYPES = {
+    MediaTypes.MOVIE.value,
+    MediaTypes.TV.value,
+    MediaTypes.ANIME.value,
+    MediaTypes.MANGA.value,
+    MediaTypes.GAME.value,
+    MediaTypes.BOOK.value,
+    MediaTypes.COMIC.value,
+    MediaTypes.BOARDGAME.value,
+}
+
+
+@require_GET
+def media_move_search(request):
+    """Search the target source for matching media to move to."""
+    instance_id = request.GET["instance_id"]
+    media_type = request.GET["media_type"]
+    target_type = request.GET["target_type"]
+
+    if media_type not in MOVABLE_MEDIA_TYPES or target_type not in MOVABLE_MEDIA_TYPES:
+        return HttpResponseBadRequest("Invalid media type.")
+
+    old_instance = BasicMedia.objects.get_media(request.user, media_type, instance_id)
+    query = request.GET.get("query") or old_instance.item.title
+
+    # Search the target source for the query
+    results = services.search(target_type, query, 1)
+
+    context = {
+        "results": results["results"],
+        "instance_id": instance_id,
+        "media_type": media_type,
+        "target_type": target_type,
+    }
+    return render(request, "app/components/move_search_results.html", context)
+
+
+@require_POST
+def media_move(request):
+    """Move a media entry from one type to another, preserving tracking data."""
+    instance_id = request.POST["instance_id"]
+    media_type = request.POST["media_type"]
+    target_type = request.POST["target_type"]
+    target_media_id = request.POST["target_media_id"]
+    target_source = request.POST["target_source"]
+
+    if media_type not in MOVABLE_MEDIA_TYPES or target_type not in MOVABLE_MEDIA_TYPES:
+        messages.error(request, "Cannot move this media type.")
+        return helpers.redirect_back(request)
+
+    if media_type == target_type:
+        return helpers.redirect_back(request)
+
+    # Get the current tracking entry
+    old_instance = BasicMedia.objects.get_media(request.user, media_type, instance_id)
+    old_item = old_instance.item
+
+    # Get or create the Item from the selected search result
+    new_item, _ = Item.objects.get_or_create(
+        media_id=target_media_id,
+        source=target_source,
+        media_type=target_type,
+        defaults={
+            "title": old_item.title,
+            "image": old_item.image,
+        },
+    )
+
+    # Create new tracking entry in target model
+    target_model = apps.get_model(app_label="app", model_name=target_type)
+    fields = {
+        "item": new_item,
+        "user": request.user,
+        "score": old_instance.score,
+        "status": old_instance.status,
+        "notes": old_instance.notes,
+    }
+    # TV has progress/start_date/end_date as computed properties, skip them
+    if target_type != MediaTypes.TV.value:
+        fields["progress"] = old_instance.progress
+        fields["start_date"] = old_instance.start_date
+        fields["end_date"] = old_instance.end_date
+    new_instance = target_model(**fields)
+    new_instance.save()
+
+    # Delete the old entry
+    old_instance.delete()
+    logger.info("Moved %s from %s to %s.", old_item.title, media_type, target_type)
+    messages.success(
+        request,
+        f"Moved \"{old_item.title}\" from {MediaTypes(media_type).label} to {MediaTypes(target_type).label}.",
+    )
+
+    return redirect(
+        "media_details",
+        source=new_item.source,
+        media_type=target_type,
+        media_id=new_item.media_id,
+        title=slugify(new_item.title) or "untitled",
+    )
 
 
 @require_POST
