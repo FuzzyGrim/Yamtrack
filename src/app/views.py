@@ -610,21 +610,24 @@ def media_delete(request):
     return helpers.redirect_back(request)
 
 
-def _compute_image_hash(image_url, hash_size=8):
+def _compute_image_hash(image_url, hash_size=8, retries=3):
     """Compute average hash of an image from URL. Returns a list of bits."""
-    try:
-        from PIL import Image  # noqa: PLC0415
+    from PIL import Image  # noqa: PLC0415
 
-        response = services.session.get(image_url, timeout=5)
-        response.raise_for_status()
-        img = Image.open(BytesIO(response.content)).convert("L").resize(
-            (hash_size, hash_size), Image.Resampling.LANCZOS
-        )
-        pixels = list(img.getdata())
-        avg = sum(pixels) / len(pixels)
-        return [1 if p > avg else 0 for p in pixels]
-    except Exception:  # noqa: BLE001
-        return None
+    for attempt in range(1 + retries):
+        try:
+            response = services.session.get(image_url, timeout=5)
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content)).convert("L").resize(
+                (hash_size, hash_size), Image.Resampling.LANCZOS
+            )
+            pixels = list(img.getdata())
+            avg = sum(pixels) / len(pixels)
+            return [1 if p > avg else 0 for p in pixels]
+        except Exception:  # noqa: BLE001
+            if attempt < retries:
+                continue
+            return None
 
 
 def _image_similarity(hash1, hash2):
