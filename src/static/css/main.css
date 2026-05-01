@@ -1216,12 +1216,6 @@
   .border-red-500 {
     border-color: var(--color-red-500);
   }
-  .border-red-600\/30 {
-    border-color: color-mix(in srgb, oklch(57.7% 0.245 27.325) 30%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      border-color: color-mix(in oklab, var(--color-red-600) 30%, transparent);
-    }
-  }
   .border-red-700 {
     border-color: var(--color-red-700);
   }
@@ -1410,12 +1404,6 @@
   }
   .bg-red-600 {
     background-color: var(--color-red-600);
-  }
-  .bg-red-600\/10 {
-    background-color: color-mix(in srgb, oklch(57.7% 0.245 27.325) 10%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-red-600) 10%, transparent);
-    }
   }
   .bg-red-600\/20 {
     background-color: color-mix(in srgb, oklch(57.7% 0.245 27.325) 20%, transparent);

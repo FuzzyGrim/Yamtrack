@@ -78,7 +78,8 @@
             x-data="{
               inputDateTime: '{% if TRACK_TIME %}{% now "Y-m-d\TH:i" %}{% else %}{% now "Y-m-d" %}{% endif %}',
               inputType: '{% if TRACK_TIME %}datetime-local{% else %}date{% endif %}',
-              dropdownOpen: false
+              dropdownOpen: false,
+              pointerOnPickerIcon: false
             }">
         {% csrf_token %}
         <input type="hidden" name="media_id" value="{{ media.media_id }}">
@@ -95,17 +96,14 @@
           <input class="w-full p-3 bg-[#343a40] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                  x-bind:type="inputType"
                  name="end_date"
-                 onfocus="this.showPicker?.()"
+                 @pointerdown="pointerOnPickerIcon = $event.clientX >= $el.getBoundingClientRect().right - 40"
+                 @focus="if (!pointerOnPickerIcon) { $el.showPicker?.() }"
+                 @click="pointerOnPickerIcon = false"
                  x-model="inputDateTime">
         </div>
 
         {# Submit Area #}
         <div class="mt-6 flex items-center justify-end gap-3">
-          {# Clear Button #}
-          <button type="reset"
-                  class="px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-colors bg-red-600/10 hover:bg-red-600/20 rounded-md cursor-pointer border border-red-600/30"
-                  title="Clear date and time">Clear</button>
-
           <div class="relative inline-flex shadow-sm rounded-md"
                @click.outside="dropdownOpen = false">
 
