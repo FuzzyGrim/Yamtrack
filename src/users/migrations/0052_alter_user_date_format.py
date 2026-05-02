@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("users", "0049_add_hide_zero_rating"),
+        ("users", "0051_user_obfuscate_unseen_episodes"),
     ]
 
     operations = [
