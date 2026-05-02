@@ -104,6 +104,7 @@ if BASE_URL:
     CSRF_COOKIE_PATH = BASE_URL + "/"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = config("USE_X_FORWARDED_HOST", default=False, cast=bool)
 
 # Application definition
 
