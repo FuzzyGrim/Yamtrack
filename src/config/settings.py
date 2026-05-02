@@ -103,8 +103,11 @@ for url in URLS:
 if BASE_URL:
     CSRF_COOKIE_PATH = BASE_URL + "/"
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-USE_X_FORWARDED_HOST = config("USE_X_FORWARDED_HOST", default=False, cast=bool)
+USE_X_FORWARDED = config("USE_X_FORWARDED", default=False, cast=bool)
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if (config("USE_X_FORWARDED_PROTO", default=USE_X_FORWARDED, cast=bool)) else None
+USE_X_FORWARDED_HOST = config("USE_X_FORWARDED_HOST", default=USE_X_FORWARDED, cast=bool)
+USE_X_FORWARDED_PORT = config("USE_X_FORWARDED_PORT", default=USE_X_FORWARDED, cast=bool)
 
 # Application definition
 
