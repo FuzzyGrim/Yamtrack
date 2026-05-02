@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.test import TestCase
@@ -11,6 +13,13 @@ class SidebarViewTests(TestCase):
 
     def setUp(self):
         """Create user for the tests."""
+        self.watch_regions_patcher = patch(
+            "users.views.tmdb.watch_provider_regions",
+            return_value=[("UNSET", "Disabled"), ("US", "United States")],
+        )
+        self.watch_regions_patcher.start()
+        self.addCleanup(self.watch_regions_patcher.stop)
+
         self.credentials = {"username": "testuser", "password": "testpass123"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
@@ -68,6 +77,89 @@ class SidebarViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.tv_enabled)
         self.assertFalse(self.user.movie_enabled)
+
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("view-only for demo accounts", str(messages[0]))
+
+    def test_obfuscate_unseen_episodes_post_enable(self):
+        """Test enabling obfuscate_unseen_episodes via preferences."""
+        self.user.obfuscate_unseen_episodes = False
+        self.user.save()
+
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "obfuscate_unseen_episodes": "on",
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.obfuscate_unseen_episodes)
+
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Settings updated", str(messages[0]))
+
+    def test_obfuscate_unseen_episodes_post_disable(self):
+        """Test disabling obfuscate_unseen_episodes via preferences."""
+        self.user.obfuscate_unseen_episodes = True
+        self.user.save()
+
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.obfuscate_unseen_episodes)
+
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Settings updated", str(messages[0]))
+
+    def test_clickable_media_cards_and_obfuscate_unseen_episodes(self):
+        """Test updating both clickable_media_cards and obfuscate_unseen_episodes."""
+        self.user.clickable_media_cards = False
+        self.user.obfuscate_unseen_episodes = False
+        self.user.save()
+
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "clickable_media_cards": "on",
+                "obfuscate_unseen_episodes": "on",
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.clickable_media_cards)
+        self.assertTrue(self.user.obfuscate_unseen_episodes)
+
+    def test_obfuscate_unseen_episodes_post_demo_user(self):
+        """Test that demo users cannot update obfuscate_unseen_episodes."""
+        self.user.is_demo = True
+        self.user.obfuscate_unseen_episodes = False
+        self.user.save()
+
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "obfuscate_unseen_episodes": "on",
+                "media_types_checkboxes": [MediaTypes.TV.value],
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.obfuscate_unseen_episodes)
 
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)

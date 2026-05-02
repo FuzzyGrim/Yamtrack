@@ -1,4 +1,4 @@
-from fakeredis import FakeConnection
+from fakeredis import FakeRedisConnection
 
 from .settings import *  # noqa: F403
 
@@ -8,7 +8,7 @@ CACHES = {
         "LOCATION": REDIS_URL,  # noqa: F405
         "TIMEOUT": 18000,  # 5 hours
         "OPTIONS": {
-            "CONNECTION_POOL_KWARGS": {"connection_class": FakeConnection},
+            "CONNECTION_POOL_KWARGS": {"connection_class": FakeRedisConnection},
         },
     },
 }

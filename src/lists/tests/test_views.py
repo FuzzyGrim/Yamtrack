@@ -136,10 +136,7 @@ class ListsViewTests(TestCase):
         self.client.login(**self.credentials)
 
         # Make an HTMX request
-        response = self.client.get(
-            reverse("lists"),
-            HTTP_HX_REQUEST="true",
-        )
+        response = self.client.get(reverse("lists"), headers={"hx-request": "true"})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "lists/components/list_grid.html")
 
@@ -496,7 +493,7 @@ class ListDetailViewTests(TestCase):
         # Make an HTMX request
         response = self.client.get(
             reverse("list_detail", args=[self.custom_list.id]),
-            HTTP_HX_REQUEST="true",
+            headers={"hx-request": "true"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "lists/components/media_grid.html")

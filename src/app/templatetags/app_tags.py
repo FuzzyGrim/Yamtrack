@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 from django import template
@@ -111,6 +112,16 @@ def datetime_format(datetime, user):
         formatted_time = formats.time_format(local_dt, user.time_format)
         return f"{formatted_date} {formatted_time}"
     return formatted_date
+
+
+@register.simple_tag
+def now_plus_minutes(minutes):
+    """Return a date/datetime-local value for now plus minutes."""
+    minutes = int(minutes)
+    local_dt = timezone.localtime(timezone.now() + timedelta(minutes=minutes))
+    if settings.TRACK_TIME:
+        return local_dt.strftime("%Y-%m-%dT%H:%M")
+    return local_dt.strftime("%Y-%m-%d")
 
 
 @register.filter
@@ -237,22 +248,23 @@ def status_background_color(status):
 @register.filter
 def natural_day(datetime, user):
     """Format date with natural language (Today, Tomorrow, etc.)."""
+    if not datetime:
+        return None
+
     today = timezone.localdate()
 
     local_dt = timezone.localtime(datetime)
     datetime_date = local_dt.date()
-
-    # Calculate the difference in days
-    diff = datetime_date - today
-    days = diff.days
+    formatted_date = formats.date_format(local_dt, user.date_format)
+    formatted_time = formats.time_format(local_dt, user.time_format)
+    days = (datetime_date - today).days
 
     if days == 0:
-        return "Today"
+        return f"Today {formatted_time}"
     if days == 1:
-        return "Tomorrow"
+        return f"Tomorrow {formatted_time}"
 
-    # For dates further away
-    return datetime_format(datetime, user)
+    return f"{formatted_date} {formatted_time}"
 
 
 @register.filter

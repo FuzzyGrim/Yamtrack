@@ -435,6 +435,31 @@
 
       {# Media Details #}
       <h2 class="text-xl font-bold mb-4">Details</h2>
+      {% if watch_provider_region == "UNSET" or watch_providers is not None %}
+        <div class="bg-[#2a2f35] p-4 rounded-lg my-4">
+          <h3 class="text-sm font-semibold text-gray-400 mb-2">STREAMING</h3>
+          {% if watch_provider_region == "UNSET" %}
+            {% url 'preferences' as preferences_url %}
+            <p class="text-gray-200">
+              Watch provider region is not configured. Set a region or disable this feature in the
+              <a href="{{ preferences_url }}"
+                 class="hover:text-indigo-500 hover:underline">preferences</a>.
+            </p>
+          {% elif watch_providers %}
+            <div class="grid grid-cols-[repeat(auto-fill,48px)] gap-2 items-center justify-between">
+              {% for provider in watch_providers %}
+                <img class="rounded-md"
+                     src="{{ provider.image }}"
+                     title="{{ provider.provider_name }}"
+                     alt="{{ provider.provider_name }}" />
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-gray-200">No watch providers</p>
+          {% endif %}
+        </div>
+      {% endif %}
+
       <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
         {% if media.details.items %}
           {% for key, value in media.details.items %}
@@ -448,7 +473,7 @@
             </div>
           {% endfor %}
           <div>
-            <h3 class="text-sm font-semibold text-gray-400">Source</h3>
+            <h3 class="text-sm font-semibold text-gray-400">SOURCE</h3>
             <a href="{{ media.source_url }}"
                class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
                target="_blank">{{ media.source|source_readable }}</a>
@@ -473,11 +498,21 @@
       {% if media.cast %}
         <section class="mb-8">
           <h2 class="text-xl font-bold mb-4">Cast</h2>
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+          <div class="flex overflow-x-auto gap-x-4 pb-5">
             {% for cast in media.cast %}
-
-              {% include "app/components/cast_card.html" with cast=cast only %}
+              {% include "app/components/cast_card.html" with cast=cast %}
             {% endfor %}
+            {% if media.total_cast_count > 30 %}
+              <a href="{{ media.source_url }}/cast"
+                 target="_blank"
+                 class="bg-[#2a2f35] rounded-lg shadow-lg flex flex-col items-center justify-center hover:bg-[#343a40] transition-colors duration-200 min-w-44">
+                <div class="p-2.5 bg-indigo-600 text-white rounded-full mb-3">
+                  {% include "app/icons/external-link.svg" with classes="w-6 h-6" %}
+                </div>
+                <span class="text-sm font-semibold text-white">View all</span>
+                <span class="text-xs text-gray-400 mt-1">{{ media.total_cast_count }} cast members</span>
+              </a>
+            {% endif %}
           </div>
         </section>
       {% endif %}
@@ -516,11 +551,25 @@
           <div class="space-y-6">
             {% for episode in media.episodes %}
               <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
-                <div class="flex flex-col md:flex-row">
+                <div class="flex flex-col md:flex-row" x-data="{ obfuscated:
+                  {% if user.obfuscate_unseen_episodes and not episode.history %}
+                    true
+                  {% else %}
+                    false
+                  {% endif %}
+                  , hasImage:
+                  {% if episode.image != IMG_NONE %}
+                    true
+                  {% else %}
+                    false
+                  {% endif %}
+                  }">
                   <img src="{{ IMG_NONE }}"
                        alt="E{{ episode.episode_number }}"
                        data-src="{{ episode.image }}"
-                       class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}">
+                       class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %} {% if user.obfuscate_unseen_episodes and not episode.history and episode.image != IMG_NONE %}blur cursor-pointer{% else %}cursor-default{% endif %}"
+                       :class="{ 'blur': obfuscated && hasImage, 'cursor-pointer': obfuscated && hasImage, 'cursor-default': !obfuscated || !hasImage }"
+                       @click="obfuscated = false">
                   <div class="py-3 flex-1 flex flex-col">
                     <div class="flex-1">
                       <div class="flex justify-between items-start mb-2 space-x-2 px-4">
@@ -593,13 +642,19 @@
                         </div>
                       </div>
                       <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
-                        <p class="text-sm text-gray-300 leading-relaxed text-pretty">{{ episode.overview }}</p>
+                        <p class="text-sm text-gray-300 leading-relaxed text-pretty {% if user.obfuscate_unseen_episodes and not episode.history %}blur cursor-pointer{% else %}cursor-text{% endif %}"
+                           :class="{ 'blur': obfuscated, 'cursor-pointer': obfuscated, 'cursor-text': !obfuscated }"
+                           @click="obfuscated = false">{{ episode.overview }}</p>
                       </div>
                     </div>
                     {% if episode.history %}
                       <p class="text-xs text-gray-400 mt-2 px-4">
-                        Last watched: {{ episode.history.0.end_date|datetime_format:user }}
-                        {% if not episode.history.0.end_date %}No date provided{% endif %}
+                        Last watched:
+                        {% if episode.history.0.end_date %}
+                          {{ episode.history.0.end_date|datetime_format:user }}
+                        {% else %}
+                          No date provided
+                        {% endif %}
                         {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                       </p>
                     {% endif %}

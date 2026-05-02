@@ -17,6 +17,7 @@ class CustomUserCreationForm(UserCreationForm):
         fields = ("username",)
 
 
+@admin.register(User)
 class CustomUserAdmin(UserAdmin):
     """Custom admin interface for the User model."""
 
@@ -66,5 +67,4 @@ class CustomUserAdmin(UserAdmin):
     ordering = ("username",)
 
 
-admin.site.register(User, CustomUserAdmin)
 admin.site.unregister(Group)
