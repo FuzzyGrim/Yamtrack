@@ -5,6 +5,7 @@ from collections import defaultdict
 from csv import DictReader
 
 from django.apps import apps
+from django.utils import timezone
 
 from app.models import MediaTypes, Sources, Status
 from app.providers.services import ProviderAPIError, get_media_metadata, search
@@ -28,14 +29,16 @@ def importer(file, user, mode):
 
 ###
 # amazon prime watch history csv:
-# should be exported with langauage set to english, as csv, with unix timestamps (epoch ms)
+# should be exported with langauage set to english, as csv,
+# with unix timestamps (epoch ms)
 #
 # relevant columns format:
 # Column	Description
 # Date Watched	When the item was watched. e.g 1771455569000
 # Type	Whether the item is a 'movie' or a 'series' episode.
 # Title	The movie title or series name. e.g 'Two and a Half Men, Season 11'
-# Episode Title	The episode title (empty for movies). e.g. 'Episode 21: Dial 1-900-mix-a-lot'
+# Episode Title    The episode title (empty for movies).
+# e.g. 'Episode 21: Dial 1-900-mix-a-lot'
 # ##
 class AmazonImporter:
     """Class to handle importing user data from Amazon CSV."""
@@ -92,52 +95,146 @@ class AmazonImporter:
         return imported_counts, None
 
     def _update_season_and_show_status(self):
-        """Mark seasons as COMPLETED only if all episodes are present, and shows only if all seasons are completed."""
-        Season = apps.get_model(app_label="app", model_name="season")
-        Episode = apps.get_model(app_label="app", model_name="episode")
-        TV = apps.get_model(app_label="app", model_name="tv")
+        """
+        Update the progress/completed status for tv.
+
+        Mark seasons as COMPLETED only if all episodes are present,
+        and shows only if all seasons are completed.
+        """
+        season = apps.get_model(app_label="app", model_name="season")
+        episode = apps.get_model(app_label="app", model_name="episode")
+        tv = apps.get_model(app_label="app", model_name="tv")
 
         # Update seasons
-        for season in Season.objects.filter(user=self.user):
-            episodes = Episode.objects.filter(related_season=season)
-            item = season.item
+        for season_obj in season.objects.filter(user=self.user):
+            episodes = episode.objects.filter(related_season=season_obj)
+            item = season_obj.item
             # Get expected episode count from item metadata
-            try:
-                metadata = get_media_metadata(
-                    MediaTypes.SEASON.value,
-                    item.media_id,
-                    Sources.TMDB.value,
-                    [item.season_number],
-                )
-                expected_count = metadata[f"season/{item.season_number}"]["details"][
-                    "episodes"
-                ]
-            except KeyError:
+
+            metadata = get_media_metadata(
+                MediaTypes.SEASON.value,
+                item.media_id,
+                Sources.TMDB.value,
+                [item.season_number],
+            )
+            if metadata is None:
                 logger.warning(
-                    f"Could not find season/{item.season_number} in TMDB metadata for media_id={item.media_id}. Skipping status update for this season."
+                    "Could not find season/%s in TMDB metadata for media_id=%s."
+                    "Skipping status update for this season.",
+                    item.season_number,
+                    item.media_id,
                 )
                 continue
+            expected_count = metadata[f"season/{item.season_number}"]["details"][
+                "episodes"
+            ]
+
             if episodes.count() == expected_count:
-                if season.status != Status.COMPLETED.value:
-                    season.status = Status.COMPLETED.value
-                    season.save(update_fields=["status"])
-            elif season.status != Status.IN_PROGRESS.value:
-                season.status = Status.IN_PROGRESS.value
-                season.save(update_fields=["status"])
+                if season_obj.status != Status.COMPLETED.value:
+                    season_obj.status = Status.COMPLETED.value
+                    season_obj.save(update_fields=["status"])
+            elif season_obj.status != Status.IN_PROGRESS.value:
+                season_obj.status = Status.IN_PROGRESS.value
+                season_obj.save(update_fields=["status"])
 
         # Update shows
-        for tv in TV.objects.filter(user=self.user):
-            seasons = tv.seasons.all()
+        for tv_obj in tv.objects.filter(user=self.user):
+            seasons = tv_obj.seasons.all()
             if (
                 all(season.status == Status.COMPLETED.value for season in seasons)
                 and seasons
             ):
-                if tv.status != Status.COMPLETED.value:
-                    tv.status = Status.COMPLETED.value
-                    tv.save(update_fields=["status"])
-            elif tv.status != Status.IN_PROGRESS.value:
-                tv.status = Status.IN_PROGRESS.value
-                tv.save(update_fields=["status"])
+                if tv_obj.status != Status.COMPLETED.value:
+                    tv_obj.status = Status.COMPLETED.value
+                    tv_obj.save(update_fields=["status"])
+            elif tv_obj.status != Status.IN_PROGRESS.value:
+                tv_obj.status = Status.IN_PROGRESS.value
+                tv_obj.save(update_fields=["status"])
+
+    def _parse_date_watched(self, date_watched_raw):
+        """Parse the date watched from Amazon CSV, return aware datetime or None."""
+        if not date_watched_raw:
+            return None
+        try:
+            dt = datetime.datetime.fromtimestamp(
+                int(date_watched_raw) / 1000, tz=datetime.UTC
+            )
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, timezone.get_current_timezone())
+        except (ValueError, OSError, OverflowError) as e:
+            logger.warning("Could not parse date_watched '%s': %r", date_watched_raw, e)
+            return None
+        else:
+            return dt
+
+    def _ensure_tv_and_season(self, tmdb_data):
+        """Ensure TV and Season exist for episode imports."""
+        # 1. Ensure TV exists
+        tv_tmdb_data = {
+            "media_id": tmdb_data["media_id"],
+            "media_type": MediaTypes.TV.value,
+            "title": tmdb_data["title"],
+            "image": tmdb_data.get("image"),
+        }
+        tv_item, _ = self._create_or_update_item(tv_tmdb_data, MediaTypes.TV.value)
+        tv_model = apps.get_model(app_label="app", model_name=MediaTypes.TV.value)
+        tv_already_queued = any(
+            queued_tv.item == tv_item and queued_tv.user == self.user
+            for queued_tv in self.bulk_media[MediaTypes.TV.value]
+        )
+        tv_exists_in_db = tv_model.objects.filter(item=tv_item, user=self.user).exists()
+        if not tv_already_queued and not tv_exists_in_db:
+            tv_instance = tv_model(
+                item=tv_item,
+                user=self.user,
+                status=Status.IN_PROGRESS.value,
+                score=None,
+            )
+            self.bulk_media[MediaTypes.TV.value].append(tv_instance)
+        else:
+            tv_instance = next(
+                (
+                    queued_tv
+                    for queued_tv in self.bulk_media[MediaTypes.TV.value]
+                    if queued_tv.item == tv_item and queued_tv.user == self.user
+                ),
+                None,
+            )
+            if tv_instance is None:
+                tv_instance = tv_model.objects.filter(
+                    item=tv_item, user=self.user
+                ).first()
+
+        # 2. Ensure Season exists
+        season_tmdb_data = {
+            "media_id": tmdb_data["media_id"],
+            "media_type": MediaTypes.SEASON.value,
+            "season_number": tmdb_data["season_number"],
+            "title": tmdb_data["title"],
+            "image": tmdb_data.get("image"),
+        }
+        season_item, _ = self._create_or_update_item(
+            season_tmdb_data, MediaTypes.SEASON.value
+        )
+        season_model = apps.get_model(
+            app_label="app", model_name=MediaTypes.SEASON.value
+        )
+        season_already_queued = any(
+            queued_season.item == season_item and queued_season.user == self.user
+            for queued_season in self.bulk_media[MediaTypes.SEASON.value]
+        )
+        season_exists_in_db = season_model.objects.filter(
+            item=season_item, user=self.user, related_tv=tv_instance
+        ).exists()
+        if not season_already_queued and not season_exists_in_db:
+            season_instance = season_model(
+                item=season_item,
+                user=self.user,
+                status=Status.IN_PROGRESS.value,
+                score=None,
+                related_tv=tv_instance,
+            )
+            self.bulk_media[MediaTypes.SEASON.value].append(season_instance)
 
     def _process_row(self, row):
         logger.info("amazon importer: processing row:\n%s", row)
@@ -146,23 +243,7 @@ class AmazonImporter:
         title = row.get("Title", "").strip()
         episode_title = row.get("Episode Title", "").strip()
         date_watched_raw = row.get("Date Watched", "").strip()
-        date_watched = None
-        if date_watched_raw:
-            try:
-                # Amazon exports as epoch ms
-                from django.utils import timezone
-
-                dt = datetime.datetime.fromtimestamp(int(date_watched_raw) / 1000)
-                if timezone.is_naive(dt):
-                    date_watched = timezone.make_aware(
-                        dt, timezone.get_current_timezone()
-                    )
-                else:
-                    date_watched = dt
-            except Exception as e:
-                logger.warning(
-                    "Could not parse date_watched '%s': %r", date_watched_raw, e
-                )
+        date_watched = self._parse_date_watched(date_watched_raw)
 
         if not media_type:
             logger.warning(
@@ -198,75 +279,7 @@ class AmazonImporter:
 
         # --- Ensure TV and Season exist for episodes ---
         if resolved_media_type == MediaTypes.EPISODE.value:
-            # 1. Ensure TV exists
-            tv_tmdb_data = {
-                "media_id": tmdb_data["media_id"],
-                "media_type": MediaTypes.TV.value,
-                "title": tmdb_data["title"],
-                "image": tmdb_data.get("image"),
-            }
-            tv_item, _ = self._create_or_update_item(tv_tmdb_data, MediaTypes.TV.value)
-            tv_model = apps.get_model(app_label="app", model_name=MediaTypes.TV.value)
-            tv_already_queued = any(
-                queued_tv.item == tv_item and queued_tv.user == self.user
-                for queued_tv in self.bulk_media[MediaTypes.TV.value]
-            )
-            tv_exists_in_db = tv_model.objects.filter(
-                item=tv_item, user=self.user
-            ).exists()
-            if not tv_already_queued and not tv_exists_in_db:
-                tv_instance = tv_model(
-                    item=tv_item,
-                    user=self.user,
-                    status=Status.IN_PROGRESS.value,
-                    score=None,
-                )
-                self.bulk_media[MediaTypes.TV.value].append(tv_instance)
-            else:
-                # Get the existing TV instance (from batch or DB)
-                tv_instance = next(
-                    (
-                        queued_tv
-                        for queued_tv in self.bulk_media[MediaTypes.TV.value]
-                        if queued_tv.item == tv_item and queued_tv.user == self.user
-                    ),
-                    None,
-                )
-                if tv_instance is None:
-                    tv_instance = tv_model.objects.filter(
-                        item=tv_item, user=self.user
-                    ).first()
-
-            # 2. Ensure Season exists
-            season_tmdb_data = {
-                "media_id": tmdb_data["media_id"],
-                "media_type": MediaTypes.SEASON.value,
-                "season_number": tmdb_data["season_number"],
-                "title": tmdb_data["title"],
-                "image": tmdb_data.get("image"),
-            }
-            season_item, _ = self._create_or_update_item(
-                season_tmdb_data, MediaTypes.SEASON.value
-            )
-            season_model = apps.get_model(
-                app_label="app", model_name=MediaTypes.SEASON.value
-            )
-            season_already_queued = any(
-                queued_season.item == season_item and queued_season.user == self.user
-                for queued_season in self.bulk_media[MediaTypes.SEASON.value]
-            )
-            season_exists_in_db = season_model.objects.filter(
-                item=season_item, user=self.user, related_tv=tv_instance
-            ).exists()
-            if not season_already_queued and not season_exists_in_db:
-                season_instance = season_model(
-                    item=season_item,
-                    user=self.user,
-                    status=Status.IN_PROGRESS.value,
-                    score=None,
-                    related_tv=tv_instance,
-                )
-                self.bulk_media[MediaTypes.SEASON.value].append(season_instance)
+            self._ensure_tv_and_season(tmdb_data)
 
         item, _ = self._create_or_update_item(tmdb_data, resolved_media_type)
         instance = self._create_media_instance(item, resolved_media_type, date_watched)
@@ -335,20 +348,20 @@ class AmazonImporter:
             }
         return None
 
-    seriesTitleRegex = re.compile(r"(?P<title>.+?)[\s\-,]+Season (?P<number>\d+)")
-    episodeTitleRegex = re.compile(r"Episode (?P<number>\d+): (?P<title>.+)")
+    series_title_regex = re.compile(r"(?P<title>.+?)[\s\-,]+Season (?P<number>\d+)")
+    episode_title_regex = re.compile(r"Episode (?P<number>\d+): (?P<title>.+)")
 
     def extract_episode_info(
         self, title: str, episode_title: str
     ) -> tuple[str | None, int | None, int | None, str | None]:
         """Parse Series Title and Season Number."""
-        m = self.seriesTitleRegex.match(title)
+        m = self.series_title_regex.match(title)
         d = m.groupdict() if m else {}
         show_title = d.get("title")
         season_raw = d.get("number") or ""
         season_number = int(season_raw) if season_raw.isdigit() else None
         # Parse Episode Number and Episode Title
-        m = self.episodeTitleRegex.match(episode_title)
+        m = self.episode_title_regex.match(episode_title)
         d = m.groupdict() if m else {}
         episode_title_str = d.get("title")
         ep_num_raw = d.get("number") or ""
@@ -356,10 +369,10 @@ class AmazonImporter:
         return (show_title, season_number, episode_number, episode_title_str)
 
     def _lookup_series_in_tmdb(self, title: str, episode_title: str):
-        showTitle, seasonNumber, episodeNumber, episodeTitle = (
-            self.extract_episode_info(title, episode_title)
+        show_title, season_number, episode_number, _ = self.extract_episode_info(
+            title, episode_title
         )
-        response = search(MediaTypes.TV.value, showTitle, 1)
+        response = search(MediaTypes.TV.value, show_title, 1)
         results = response.get("results", [])
 
         logger.info(
@@ -373,7 +386,7 @@ class AmazonImporter:
 
         best = None
         for show in results:
-            if show["title"].strip().lower() == (showTitle or title).strip().lower():
+            if show["title"].strip().lower() == (show_title or title).strip().lower():
                 best = show
                 logger.info("title match: using %s", best)
                 break
@@ -384,27 +397,27 @@ class AmazonImporter:
             logger.warning("no result at all for %s %s", title, episode_title)
             return None
 
-        mediaId = best["media_id"]
-        episodeMetadata = (
+        media_id = best["media_id"]
+        episode_metadata = (
             get_media_metadata(
                 MediaTypes.EPISODE.value,
-                mediaId,
+                media_id,
                 Sources.TMDB.value,
-                season_numbers=[seasonNumber],
-                episode_number=episodeNumber,
+                season_numbers=[season_number],
+                episode_number=episode_number,
             )
             or {}
         )
 
         return {
-            "media_id": mediaId,
+            "media_id": media_id,
             "media_type": MediaTypes.EPISODE.value,
-            "season_number": seasonNumber,
-            "episode_number": episodeNumber,
+            "season_number": season_number,
+            "episode_number": episode_number,
             "title": best["title"],
-            "image": episodeMetadata.get("image") or best.get("image"),
-            "season_title": episodeMetadata.get("season_title"),
-            "episode_title": episodeMetadata.get("episode_title"),
+            "image": episode_metadata.get("image") or best.get("image"),
+            "season_title": episode_metadata.get("season_title"),
+            "episode_title": episode_metadata.get("episode_title"),
         }
 
     def _create_or_update_item(self, tmdb_data, media_type):

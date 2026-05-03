@@ -166,13 +166,18 @@ def update_episode_references(episodes, user):
             str(episode.item.media_id),
             episode.item.season_number,
         )
-        logger.info(f"Trying to link episode {episode} with season_key={season_key}")
+        logger.info("Trying to link episode %s with season_key=%s", episode, season_key)
         if season_key in season_map:
             episode.related_season = season_map[season_key]
-            logger.info(f"Linked episode {episode} to season {season_map[season_key]}")
+            logger.info(
+                "Linked episode %s to season %s", episode, season_map[season_key]
+            )
         else:
             logger.warning(
-                f"Could not find season for episode {episode} with key {season_key}. Available keys: {list(season_map.keys())}"
+                "Could not find season for episode %s with key %s. Available keys: %s",
+                episode,
+                season_key,
+                list(season_map.keys()),
             )
 
 
