@@ -173,7 +173,7 @@ def bulk_create_media(bulk_media_list, user):
 
         model = apps.get_model(app_label="app", model_name=media_type)
 
-        logger.info("Bulk importing %s", media_type)
+        logger.info("Bulk importing %s with %d items", media_type, len(bulk_media))
 
         # Update references for seasons and episodes
         if media_type == MediaTypes.SEASON.value:

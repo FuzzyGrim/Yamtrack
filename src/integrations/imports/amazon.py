@@ -1,3 +1,4 @@
+import datetime
 import logging
 import re
 from collections import defaultdict
@@ -5,7 +6,7 @@ from csv import DictReader
 
 from django.apps import apps
 
-from app.models import MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 from app.providers.services import ProviderAPIError, get_media_metadata, search
 from app.providers.tmdb import movie as tmdb_movie
 from integrations.imports import helpers
@@ -74,9 +75,7 @@ class AmazonImporter:
                     row,
                     error,
                 )
-        logger.info(
-            "processed %d rows. importing %d media", len(rows), len(self.bulk_media)
-        )
+        logger.info("processed %d rows", len(rows))
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
 
@@ -92,6 +91,24 @@ class AmazonImporter:
         logger.info("type: %s", media_type)
         title = row.get("Title", "").strip()
         episode_title = row.get("Episode Title", "").strip()
+        date_watched_raw = row.get("Date Watched", "").strip()
+        date_watched = None
+        if date_watched_raw:
+            try:
+                # Amazon exports as epoch ms
+                from django.utils import timezone
+
+                dt = datetime.datetime.fromtimestamp(int(date_watched_raw) / 1000)
+                if timezone.is_naive(dt):
+                    date_watched = timezone.make_aware(
+                        dt, timezone.get_current_timezone()
+                    )
+                else:
+                    date_watched = dt
+            except Exception as e:
+                logger.warning(
+                    "Could not parse date_watched '%s': %r", date_watched_raw, e
+                )
 
         if not media_type:
             logger.warning(
@@ -111,9 +128,35 @@ class AmazonImporter:
             )
             return
 
-        item, _ = self._create_or_update_item(tmdb_data, media_type)
-        instance = self._create_media_instance(item, media_type)
-        self.bulk_media[media_type].append(instance)
+        # Use the resolved media_type from TMDB data (important for episodes)
+        resolved_media_type = tmdb_data.get("media_type", media_type)
+
+        # Only process if not a duplicate (matches IMDB logic)
+        if not helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            resolved_media_type,
+            Sources.TMDB.value,
+            str(tmdb_data["media_id"]),
+            self.mode,
+        ):
+            return
+
+        item, _ = self._create_or_update_item(tmdb_data, resolved_media_type)
+        instance = self._create_media_instance(item, resolved_media_type, date_watched)
+        # Prevent duplicate user/item pairs in current batch
+        already_queued = any(
+            queued_instance.item == item and queued_instance.user == self.user
+            for queued_instance in self.bulk_media[resolved_media_type]
+        )
+        if already_queued:
+            logger.info(
+                "Skipping duplicate in current batch for user %s, item %s",
+                self.user,
+                item,
+            )
+            return
+        self.bulk_media[resolved_media_type].append(instance)
 
     def _lookup_in_tmdb(self, media_type, title, episode_title=None):
         try:
@@ -248,14 +291,20 @@ class AmazonImporter:
             },
         )
 
-    def _create_media_instance(self, item, media_type):
+    def _create_media_instance(self, item, media_type, date_watched=None):
         logger.info("creating instance for type '%s' from item %s", media_type, item)
         model = apps.get_model(app_label="app", model_name=media_type)
         params = {
             "item": item,
             "user": self.user,
             "score": None,  # Amazon does not provide ratings
-            "status": None,  # Could infer from context if needed
-            # "date_watched": None,  # Could parse from row["Date Watched"]
+            "status": Status.COMPLETED.value,  # Could infer from context if needed
         }
-        return model(**params)
+        instance = model(**params)
+        # Set watched date appropriately
+        if date_watched:
+            if hasattr(instance, "end_date"):
+                instance.end_date = date_watched
+            elif hasattr(instance, "date_watched"):
+                instance.date_watched = date_watched
+        return instance
