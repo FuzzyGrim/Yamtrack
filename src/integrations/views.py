@@ -317,6 +317,28 @@ def import_yamtrack(request):
 
 
 @require_POST
+def import_amazon(request):
+    """View for importing media data from Amazon CSV."""
+    file = request.FILES.get("amazon_csv")
+
+    if not file:
+        messages.error(request, "Amazon CSV file is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    tasks.import_amazon.delay(
+        file=request.FILES["amazon_csv"],
+        user_id=request.user.id,
+        mode=mode,
+    )
+    messages.info(
+        request,
+        "The task to import media from Amazon CSV file has been queued.",
+    )
+    return redirect("import_data")
+
+
+@require_POST
 def import_hltb(request):
     """View for importing game date from HowLongToBeat."""
     file = request.FILES.get("hltb_csv")

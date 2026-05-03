@@ -47,6 +47,7 @@ class Sources(models.TextChoices):
     COMICVINE = "comicvine", "Comic Vine"
     BGG = "bgg", "BoardGameGeek"
     MANUAL = "manual", "Manual"
+    AMAZON = "amazon", "Amazon"
 
 
 class MediaTypes(models.TextChoices):
