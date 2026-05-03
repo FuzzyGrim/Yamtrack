@@ -311,7 +311,9 @@
             <a href="https://github.com/FuzzyGrim/Yamtrack/wiki/Media-Import-Configuration#amazon-csv-format"
                target="_blank"
                class="text-gray-400 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-gray-600/50"
-               title="View Amazon CSV format documentation">{% include "app/icons/info.svg" with classes="w-4 h-4" %}</a>
+               title="View Amazon CSV format documentation">
+              {% include "app/icons/info.svg" with classes="w-4 h-4" %}
+            </a>
           </div>
           <p class="text-sm text-gray-400 mb-3"
              x-text="importFrequency === 'once' ? 'Import from Amazon order history' : 'File uploads are not available for periodic imports'">
