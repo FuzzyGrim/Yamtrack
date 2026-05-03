@@ -141,27 +141,38 @@ def update_episode_references(episodes, user):
     the existing seasons in the database, preventing the ValueError about
     unsaved related objects during bulk creation of episodes.
     """
-    # Create mapping of season instances
-    existing_seasons = {
-        (season.item.media_id, season.item.season_number): season
-        for season in app.models.Season.objects.filter(
+    # Gather all possible seasons: from DB and from the current batch (unsaved)
+    db_seasons = list(
+        app.models.Season.objects.filter(
             user=user,
-            item__media_id__in={episode.item.media_id for episode in episodes},
+            item__media_id__in={str(episode.item.media_id) for episode in episodes},
         )
+    )
+    # Also include unsaved batch objects (those in episodes' related_season, if set)
+    batch_seasons = [
+        getattr(ep, "related_season", None)
+        for ep in episodes
+        if getattr(ep, "related_season", None) is not None
+    ]
+    all_seasons = db_seasons + batch_seasons
+    season_map = {
+        (str(season.item.media_id), season.item.season_number): season
+        for season in all_seasons
     }
 
     # Update references
     for episode in episodes:
         season_key = (
-            episode.item.media_id,
+            str(episode.item.media_id),
             episode.item.season_number,
         )
-        if season_key in existing_seasons:
-            episode.related_season = existing_seasons[season_key]
-            logger.debug(
-                "Updated new episode %s with existing season %s",
-                episode,
-                existing_seasons[season_key],
+        logger.info(f"Trying to link episode {episode} with season_key={season_key}")
+        if season_key in season_map:
+            episode.related_season = season_map[season_key]
+            logger.info(f"Linked episode {episode} to season {season_map[season_key]}")
+        else:
+            logger.warning(
+                f"Could not find season for episode {episode} with key {season_key}. Available keys: {list(season_map.keys())}"
             )
 
 
