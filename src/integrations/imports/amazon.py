@@ -61,15 +61,16 @@ class AmazonImporter:
     def import_data(self):
         """Import all user data from CSV."""
         try:
-            decoded_file = self.file.read().decode("utf-8").splitlines()
+        try:
+            # Decode the file line by line to save memory
+            decoded_file = (line.decode("utf-8") for line in self.file)
+            reader = DictReader(decoded_file)
         except UnicodeDecodeError as e:
             msg = "Invalid file format. Please upload a CSV file."
             raise MediaImportError(msg) from e
 
-        reader = DictReader(decoded_file)
-        rows = list(reader)
-        logger.info("amazon importer started with %d lines", len(rows))
-        for row in rows:
+        logger.info("amazon importer started")
+        for row in reader:
             # Skip empty lines/rows
             if not any((v or "").strip() for v in row.values()):
                 continue
