@@ -314,7 +314,7 @@ class AmazonImporter:
 
     def _lookup_movie_in_tmdb(self, title):
         year = None
-        match = re.search(r"\\((\\d{4})\\)", title)
+        match = re.search(r"\((\d{4})\)", title)
         search_title = title
         if match:
             year = match.group(1)
