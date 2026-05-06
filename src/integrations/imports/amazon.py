@@ -158,7 +158,7 @@ class AmazonImporter:
             return None
         try:
             dt = datetime.datetime.fromtimestamp(
-                int(date_watched_raw) / 1000, tz=datetime.UTC
+                int(date_watched_raw) / 1000, tz=timezone.utc
             )
             if timezone.is_naive(dt):
                 dt = timezone.make_aware(dt, timezone.get_current_timezone())
