@@ -325,7 +325,7 @@ def import_amazon(request):
         messages.error(request, "Amazon CSV file is required.")
         return redirect("import_data")
 
-    mode = request.POST["mode"]
+    mode = request.POST.get("mode", "new")
     tasks.import_amazon.delay(
         file=request.FILES["amazon_csv"],
         user_id=request.user.id,
