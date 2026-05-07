@@ -68,7 +68,7 @@
               <li>Name: Yamtrack</li>
               {# djlint:off #}
                 <li>
-                  <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL: 
+                  <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
                     <input readonly id="jellyfin-webhook-url-official" class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono" type="text" value="{{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
                     <span class="flex items-center cursor-pointer group" title="Copy" data-copy-target="#jellyfin-webhook-url-official">
                       {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
@@ -140,7 +140,7 @@
               <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
                 {# djlint:off #}
                 <li>
-                  <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL: 
+                  <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
                     <input readonly id="jellyfin-webhook-url-unofficial" class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono" type="text" value="{{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
                     <span class="flex items-center cursor-pointer group" title="Copy" data-copy-target="#jellyfin-webhook-url-unofficial">
                       {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}

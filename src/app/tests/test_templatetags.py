@@ -171,6 +171,44 @@ class AppTagsTests(TestCase):
             # Check that it returns a non-empty string
             self.assertTrue(isinstance(result, str))
 
+    @override_settings(TRACK_TIME=True)
+    def test_now_plus_minutes_with_time(self):
+        """Test now plus minutes with TRACK_TIME enabled."""
+        with (
+            timezone.override("UTC"),
+            patch("django.utils.timezone.now") as mock_now,
+        ):
+            mock_now.return_value = timezone.datetime(
+                2025,
+                3,
+                29,
+                12,
+                0,
+                0,
+                tzinfo=timezone.get_current_timezone(),
+            )
+
+            self.assertEqual(app_tags.now_plus_minutes(90), "2025-03-29T13:30")
+
+    @override_settings(TRACK_TIME=False)
+    def test_now_plus_minutes_without_time(self):
+        """Test now plus minutes with TRACK_TIME disabled."""
+        with (
+            timezone.override("UTC"),
+            patch("django.utils.timezone.now") as mock_now,
+        ):
+            mock_now.return_value = timezone.datetime(
+                2025,
+                3,
+                29,
+                12,
+                0,
+                0,
+                tzinfo=timezone.get_current_timezone(),
+            )
+
+            self.assertEqual(app_tags.now_plus_minutes(90), "2025-03-29")
+
     @override_settings(TRACK_TIME=False)
     def test_natural_day(self):
         """Test the natural_day filter."""

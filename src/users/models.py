@@ -97,6 +97,7 @@ class DateFormatChoices(models.TextChoices):
     EUROPEAN = "d/m/Y", "18/01/2026 (EU)"
     US = "m/d/Y", "01/18/2026 (US)"
     LONG = "M j, Y", "Jan 18, 2026"
+    LONG_EU = "j M, Y", "18 Jan, 2026"
 
 
 class TimeFormatChoices(models.TextChoices):
@@ -289,6 +290,11 @@ class User(AbstractUser):
     clickable_media_cards = models.BooleanField(
         default=False,
         help_text="Hide hover overlay on touch devices",
+    )
+
+    obfuscate_unseen_episodes = models.BooleanField(
+        default=False,
+        help_text="Blur unseen episode images and descriptions",
     )
 
     # Tracking settings

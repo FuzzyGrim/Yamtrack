@@ -717,6 +717,7 @@ def process_episodes(season_metadata, episodes_in_db):
                 "overview": episode["overview"],
                 "history": tracked_episodes.get(episode_number, []),
                 "runtime": get_readable_duration(episode["runtime"]),
+                "runtime_minutes": episode["runtime"],
             },
         )
     return episodes_metadata

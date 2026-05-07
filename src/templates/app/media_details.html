@@ -473,7 +473,7 @@
             </div>
           {% endfor %}
           <div>
-            <h3 class="text-sm font-semibold text-gray-400">Source</h3>
+            <h3 class="text-sm font-semibold text-gray-400">SOURCE</h3>
             <a href="{{ media.source_url }}"
                class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
                target="_blank">{{ media.source|source_readable }}</a>
@@ -551,18 +551,32 @@
           <div class="space-y-6">
             {% for episode in media.episodes %}
               <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">
-                <div class="flex flex-col md:flex-row">
+                <div class="flex flex-col md:flex-row" x-data="{ obfuscated:
+                  {% if user.obfuscate_unseen_episodes and not episode.history %}
+                    true
+                  {% else %}
+                    false
+                  {% endif %}
+                  , hasImage:
+                  {% if episode.image != IMG_NONE %}
+                    true
+                  {% else %}
+                    false
+                  {% endif %}
+                  }">
                   <img src="{{ IMG_NONE }}"
                        alt="E{{ episode.episode_number }}"
                        data-src="{{ episode.image }}"
-                       class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}">
+                       class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %} {% if user.obfuscate_unseen_episodes and not episode.history and episode.image != IMG_NONE %}blur cursor-pointer{% else %}cursor-default{% endif %}"
+                       :class="{ 'blur': obfuscated && hasImage, 'cursor-pointer': obfuscated && hasImage, 'cursor-default': !obfuscated || !hasImage }"
+                       @click="obfuscated = false">
                   <div class="py-3 flex-1 flex flex-col">
                     <div class="flex-1">
                       <div class="flex justify-between items-start mb-2 space-x-2 px-4">
                         <div>
                           <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
                           <p class="text-sm text-gray-400">
-                            Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
+                            Episode {{ episode.episode_number }} • {{ episode.air_date|iso_date_format:request.user|default_if_none:"Unknown air date" }}
                             {% if episode.runtime %}• {{ episode.runtime }}{% endif %}
                           </p>
                         </div>
@@ -628,7 +642,9 @@
                         </div>
                       </div>
                       <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
-                        <p class="text-sm text-gray-300 leading-relaxed text-pretty">{{ episode.overview }}</p>
+                        <p class="text-sm text-gray-300 leading-relaxed text-pretty {% if user.obfuscate_unseen_episodes and not episode.history %}blur cursor-pointer{% else %}cursor-text{% endif %}"
+                           :class="{ 'blur': obfuscated, 'cursor-pointer': obfuscated, 'cursor-text': !obfuscated }"
+                           @click="obfuscated = false">{{ episode.overview }}</p>
                       </div>
                     </div>
                     {% if episode.history %}

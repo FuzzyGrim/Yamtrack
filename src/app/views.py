@@ -32,7 +32,12 @@ from app.models import (
 )
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
-from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
+from users.models import (
+    DateFormatChoices,
+    HomeSortChoices,
+    MediaSortChoices,
+    MediaStatusChoices,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -934,6 +939,7 @@ def statistics(request):
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
+        "date_format_values": DateFormatChoices.values,
     }
 
     return render(request, "app/statistics.html", context)
