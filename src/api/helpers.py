@@ -23,6 +23,7 @@ from app.models import (
     MediaTypes,
     Movie,
     Season,
+    Sources,
 )
 from lists.models import CustomListItem
 from users.models import MediaStatusChoices
@@ -162,7 +163,16 @@ VALID_SOURCES = {
     MediaTypes.BOARDGAME.value: ["bgg", "manual"],
 }
 
-SOURCES_VALID_LIST = list(VALID_SOURCES.keys())
+SOURCES_VALID_LIST = [
+    Sources.TMDB.value,
+    Sources.MAL.value,
+    Sources.MANGAUPDATES.value,
+    Sources.IGDB.value,
+    Sources.OPENLIBRARY.value,
+    Sources.HARDCOVER.value,
+    Sources.COMICVINE.value,
+    Sources.BGG.value,
+]
 
 
 def build_item_id(item):

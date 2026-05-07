@@ -1,6 +1,11 @@
 from django.conf import settings
 from django.utils.timezone import now
-from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
+from drf_spectacular.utils import (
+    OpenApiExample,
+    PolymorphicProxySerializer,
+    extend_schema_field,
+    extend_schema_serializer,
+)
 from rest_framework import serializers
 
 from app.models import (
@@ -139,6 +144,50 @@ class ApiErrorResponseSerializer(serializers.Serializer):
     errors = serializers.CharField(required=False, allow_blank=True)
 
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            "Basic list creation",
+            description="Basic list creation example.",
+            summary="Basic list creation example",
+            value={"name": "Favourites"},
+        ),
+        OpenApiExample(
+            "Complete list creation",
+            description="Complete list creation example.",
+            summary="Complete list creation example",
+            value={
+                "name": "Favourites",
+                "description": "My favourite items.",
+                "collaborators": [ 1, 2, 3 ],
+            },
+        ),
+    ]
+)
+class ListCreateRequestSerializer(serializers.Serializer):
+    """Request serializer for custom list creation."""
+
+    name = serializers.CharField()
+    description = serializers.CharField(required=False, allow_blank=True)
+    collaborators = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="List of username ids allowed to collaborate on this list.",
+    )
+
+
+class ListUpdateRequestSerializer(serializers.Serializer):
+    """Request serializer for partial custom list updates."""
+
+    name = serializers.CharField(required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    collaborators = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="List of username ids allowed to collaborate on this list."
+    )
+
+
 class PaginationSerializer(serializers.Serializer):
     """Common pagination metadata serializer."""
 
@@ -147,6 +196,13 @@ class PaginationSerializer(serializers.Serializer):
     offset = serializers.IntegerField()
     next = serializers.CharField(allow_null=True)
     previous = serializers.CharField(allow_null=True)
+
+
+class PaginatedChangesHistoryResponseSerializer(serializers.Serializer):
+    """Paginated changes history serializer."""
+
+    pagination = PaginationSerializer()
+    results = ChangesHistoryEntrySerializer(many=True)
 
 
 class StatisticsMediaCountSerializer(serializers.Serializer):
@@ -651,8 +707,111 @@ class InfoSerializer(serializers.Serializer):
         }
 
 
+class ListMinimizedSerializer(serializers.Serializer):
+    """Serializer for minimized list information."""
+
+    list_id = serializers.IntegerField()
+    list_item_id = serializers.IntegerField()
+
+
+class PaginatedListsMinimizedResponseSerializer(serializers.Serializer):
+    """Paginated response serializer for minimized list information."""
+
+    pagination = PaginationSerializer()
+    results = ListMinimizedSerializer(many=True)
+
+
+class UserSerializer(serializers.Serializer):
+    """Serializer for user information."""
+
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+
+
+class MediaSerializer(serializers.ModelSerializer):
+    """Serializer used for media items."""
+
+    id = serializers.IntegerField(source="item.id")
+    consumption_id = serializers.IntegerField(source="id")
+    item = ItemSerializer()
+    item_id = ItemIdField(source="item")
+    parent_id = ParentIdField(source="item")
+    tracked = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+    score = serializers.FloatField(allow_null=True)
+    status = StatusField()
+    progress = serializers.IntegerField(allow_null=True)
+    progressed_at = serializers.DateTimeField(allow_null=True)
+    start_date = serializers.DateField(allow_null=True)
+    end_date = serializers.DateField(allow_null=True)
+    notes = serializers.CharField(allow_null=True)
+    lists = ListMinimizedSerializer(many=True)
+
+    class Meta:  # noqa: D106
+        model = BasicMedia
+        exclude = ("user",)
+
+    def to_representation(self, instance):
+        """Serialize media."""
+        item = getattr(instance, "item", None)
+
+        if hasattr(instance, "lists"):
+            lists = instance.lists
+        else:
+            lists = []
+            if self.context and item is not None:
+                lists_by_item_id = self.context.get("lists_by_item_id", {})
+                lists = lists_by_item_id.get(item.id, [])
+
+        return {
+            "id": item.id if item is not None else None,
+            "consumption_id": instance.id,
+            "item": ItemSerializer(item).data if item is not None else None,
+            "item_id": ItemIdField().to_representation(item)
+            if item is not None
+            else None,
+            "parent_id": ParentIdField().to_representation(item)
+            if item is not None
+            else None,
+            "tracked": getattr(instance, "id", None) is not None,
+            "created_at": instance.created_at,
+            "score": float(instance.score)
+            if hasattr(instance, "score") and instance.score is not None
+            else None,
+            "status": StatusField().to_representation(instance),
+            "progress": instance.progress if hasattr(instance, "progress") else None,
+            "progressed_at": instance.progressed_at
+            if hasattr(instance, "progressed_at")
+            else None,
+            "start_date": instance.start_date
+            if hasattr(instance, "start_date")
+            else None,
+            "end_date": instance.end_date if hasattr(instance, "end_date") else None,
+            "notes": instance.notes if hasattr(instance, "notes") else None,
+            "lists": lists,
+        }
+
+
+class PaginatedMediaResponseSerializer(serializers.Serializer):
+    """Paginated response serializer for media items."""
+
+    pagination = PaginationSerializer()
+    results = MediaSerializer(many=True)
+
+
+
 class ListSerializer(serializers.Serializer):
     """Serializer used for custom lists."""
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    description = serializers.CharField()
+    image = serializers.URLField(allow_null=True)
+    owner = UserSerializer()
+    collaborators = UserSerializer(many=True)
+    items_count = serializers.IntegerField()
+    latest_update = serializers.DateTimeField()
+    items = PaginatedMediaResponseSerializer()
 
     def to_representation(self, instance):
         """Serialize a CustomList."""
@@ -680,12 +839,11 @@ class ListSerializer(serializers.Serializer):
             if isinstance(items_context, dict) and "results" in items_context:
                 items = {
                     "pagination": items_context.get("pagination", {}),
-                    "results": serialize_data(
+                    "results": MixedMediaSerializer(
                         items_context.get("results", []),
                         many=True,
                         context=nested_context,
-                        homogeneous=False,
-                    ),
+                    ).data,
                 }
             else:
                 items = items_context
@@ -713,54 +871,11 @@ class ListSerializer(serializers.Serializer):
         return response
 
 
-class MediaSerializer(serializers.ModelSerializer):
-    """Serializer used for media items."""
+class PaginatedListsResponseSerializer(serializers.Serializer):
+    """Paginated custom lists serializer."""
 
-    class Meta:  # noqa: D106
-        model = BasicMedia
-        exclude = ("user",)
-
-    def to_representation(self, instance):
-        """Serialize media."""
-        item = getattr(instance, "item", None)
-
-        if hasattr(instance, "lists"):
-            lists = instance.lists
-        else:
-            lists = []
-            if self.context and item is not None:
-                lists_by_item_id = self.context.get("lists_by_item_id", {})
-                lists = lists_by_item_id.get(item.id, [])
-
-        return {
-            "id": item.id if item is not None else None,
-            "consumption_id": instance.id,
-            "item": serialize_data(item, serializer_class=ItemSerializer)
-            if item is not None
-            else None,
-            "item_id": ItemIdField().to_representation(item)
-            if item is not None
-            else None,
-            "parent_id": ParentIdField().to_representation(item)
-            if item is not None
-            else None,
-            "tracked": getattr(instance, "id", None) is not None,
-            "created_at": instance.created_at,
-            "score": float(instance.score)
-            if hasattr(instance, "score") and instance.score is not None
-            else None,
-            "status": StatusField().to_representation(instance),
-            "progress": instance.progress if hasattr(instance, "progress") else None,
-            "progressed_at": instance.progressed_at
-            if hasattr(instance, "progressed_at")
-            else None,
-            "start_date": instance.start_date
-            if hasattr(instance, "start_date")
-            else None,
-            "end_date": instance.end_date if hasattr(instance, "end_date") else None,
-            "notes": instance.notes if hasattr(instance, "notes") else None,
-            "lists": lists,
-        }
+    pagination = PaginationSerializer()
+    results = ListSerializer(many=True, context={"include_items": False})
 
 
 # TODO: Complete the mapping of statistics response fields
@@ -849,6 +964,13 @@ class UntrackedMediaSerializer(serializers.Serializer):
             "notes": None,
             "lists": lists,
         }
+
+
+class PaginatedMediaSerializer(serializers.Serializer):
+    """Paginated response serializer for media items."""
+
+    pagination = PaginationSerializer()
+    results = MediaSerializer(many=True)
 
 
 class TimelineItemSerializer(serializers.ModelSerializer):

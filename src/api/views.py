@@ -43,7 +43,6 @@ from .changes_history_processor import (
 )
 from .helpers import (
     MEDIA_TYPE_COMPLETE_MODEL_MAP,
-    MEDIA_TYPE_VALID_LIST,
     SOURCES_VALID_LIST,
     apply_aggregated_sort,
     apply_list_sort,
@@ -65,10 +64,16 @@ from .helpers import (
     validate_body,
 )
 from .schemas import (
+    EpisodeNumberParam,
     ListSearchParam,
     ListSortParam,
+    MediaIdParam,
+    MediaTypeCompleteParam,
+    MediaTypeParam,
     PaginationLimitParam,
     PaginationOffsetParam,
+    SeasonNumberParam,
+    SourceParam,
     forbidden_response,
 )
 from .serializers import (
@@ -77,25 +82,28 @@ from .serializers import (
     ChangesHistoryEntrySerializer,
     CompleteEpisodeSerializer,
     CompleteMediaSerializer,
-    CreateListRequestSerializer,
     EpisodeSerializer,
     EventSerializer,
     GenericObjectSerializer,
     HealthResponseSerializer,
     HistorySerializer,
     InfoSerializer,
+    ListCreateRequestSerializer,
+    ListMinimizedSerializer,
     ListSerializer,
+    ListUpdateRequestSerializer,
     MediaSerializer,
     MixedMediaSerializer,
     PaginatedChangesHistoryResponseSerializer,
     PaginatedEventsSerializer,
     PaginatedGenericResponseSerializer,
-    PaginatedListMembershipResponseSerializer,
+    PaginatedListsMinimizedResponseSerializer,
+    PaginatedListsResponseSerializer,
+    PaginatedMediaSerializer,
     PaginatedPolymorphicMediaResponseSerializer,
     SearchResponseSerializer,
     StatisticsResponseSerializer,
     TimelineItemSerializer,
-    UpdateListRequestSerializer,
     serialize_data,
 )
 
@@ -347,13 +355,7 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
         operation_id="changes_history_entry_get",
         summary="Get changes history record",
         parameters=[
-            OpenApiParameter(
-                name="media_type",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.PATH,
-                description="The type of media for which to retrieve changes history.",
-                enum=[media_type.value for media_type in MediaTypes],
-            ),
+            MediaTypeCompleteParam,
             OpenApiParameter(
                 name="history_id",
                 type=OpenApiTypes.STR,
@@ -706,8 +708,92 @@ class InfoView(drf_views.APIView):
 class ListsView(drf_views.APIView):
     """Lists view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedListsResponseSerializer
 
+    @extend_schema(
+        operation_id="lists_get",
+        summary="Get user's lists",
+        parameters=[
+            ListSearchParam,
+            ListSortParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedListsResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve lists example",
+                        description="Retrieve lists example",
+                        summary="Retrieve lists example",
+                        value={
+                            "pagination": {
+                                "total": 2,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 1,
+                                    "name": "Test1",
+                                    "description": "This is a test list",
+                                    "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                    "owner": {"id": 1, "username": "admin"},
+                                    "collaborators": [],
+                                    "items_count": 17,
+                                    "latest_update": "2026-03-23T21:17:32.705709Z",
+                                },
+                                {
+                                    "id": 2,
+                                    "name": "Test2",
+                                    "description": "Ciaoo",
+                                    "image": "https://image.tmdb.org/t/p/w500/xunXvzFlkf1GGgMkCySA9CCFumB.jpg",
+                                    "owner": {"id": 1, "username": "admin"},
+                                    "collaborators": [],
+                                    "items_count": 27,
+                                    "latest_update": "2026-04-08T15:58:11.652660Z",
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid pagination example",
+                        description="Invalid pagination example",
+                        summary="Invalid pagination example",
+                        value={"detail": "Invalid pagination parameters."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching history record example",
+                        description="Error while fetching history record example",
+                        summary="Error while fetching history record example",
+                        value={
+                            "detail": "An error occurred while fetching the history record.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request):
         """Retrieve the lists for the authenticated user."""
         user = request.user
@@ -732,16 +818,107 @@ class ListsView(drf_views.APIView):
             )
 
         paginated_data = paginate_data(request, sorted_lists, limit, offset)
-        serialized_data = serialize_data(
+        paginated_data["results"] = ListSerializer(
             paginated_data["results"],
             many=True,
             context={"include_items": False},
-        )
-        paginated_data["results"] = serialized_data
+        ).data
         return Response(paginated_data, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="lists_post",
+        summary="Create lists",
+        request=ListCreateRequestSerializer,
+        responses={
+            201: OpenApiResponse(
+                ListSerializer,
+                description="Successfully created",
+                examples=[
+                    OpenApiExample(
+                        "Created list example",
+                        description="Created list example",
+                        summary="Created list example",
+                        value={
+                            "id": 1,
+                            "name": "Test1",
+                            "description": "This is a test list",
+                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                            "owner": {"id": 1, "username": "admin"},
+                            "collaborators": [],
+                            "items_count": 1,
+                            "latest_update": "2026-03-23T21:17:32.705709Z",
+                            "items": {
+                                "pagination": {
+                                    "total": 1,
+                                    "limit": 20,
+                                    "offset": 0,
+                                    "next": None,
+                                    "previous": None,
+                                },
+                                "results": [
+                                    {
+                                        "id": 2902,
+                                        "consumption_id": 1,
+                                        "item": {
+                                            "media_id": "1",
+                                            "source": "manual",
+                                            "media_type": "comic",
+                                            "title": "Comic 1",
+                                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                            "season_number": None,
+                                            "episode_number": None,
+                                        },
+                                        "item_id": "comic/manual/1",
+                                        "parent_id": None,
+                                        "tracked": True,
+                                        "created_at": "2026-03-23T21:16:16.978287Z",
+                                        "score": None,
+                                        "status": 3,
+                                        "progress": 0,
+                                        "progressed_at": "2026-03-23T21:16:16.965721Z",
+                                        "start_date": None,
+                                        "end_date": None,
+                                        "notes": "",
+                                        "lists": [{"list_id": 1, "list_item_id": 16}],
+                                    },
+                                ],
+                            },
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Missing body example",
+                        description="Missing body example",
+                        summary="Missing body example",
+                        value={"detail": "Missing body."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching history record example",
+                        description="Error while fetching history record example",
+                        summary="Error while fetching history record example",
+                        value={
+                            "detail": "An error occurred while fetching the history record.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def post(self, request):
-        """Create a new custom list for the authenticated user."""
+        """Create a new custom list."""
         user = request.user
         body = request.data
 
@@ -790,10 +967,9 @@ class ListsView(drf_views.APIView):
 
                 custom_list.collaborators.set(collaborators)
 
-            serialized_data = serialize_data(
+            serialized_data = ListSerializer(
                 custom_list,
-                context={"include_items": False},
-            )
+            ).data
             return Response(serialized_data, status=HTTP.CREATED)
 
         except Exception as e:  # noqa: BLE001
@@ -810,8 +986,53 @@ class ListsView(drf_views.APIView):
 class ListDetailView(drf_views.APIView):
     """List detail view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ListSerializer
 
+    @extend_schema(
+        operation_id="list_detail_delete",
+        summary="Delete a specific list",
+        parameters=[
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list to delete.",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(description="List deleted successfully"),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while deleting list example",
+                        description="Error while deleting list example",
+                        summary="Error while deleting list example",
+                        value={
+                            "detail": "An error occurred while deleting the list.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def delete(self, request, list_id):
         """Delete a specific custom list."""
         user = request.user
@@ -835,6 +1056,112 @@ class ListDetailView(drf_views.APIView):
         custom_list.delete()
         return Response(status=HTTP.NO_CONTENT)
 
+    @extend_schema(
+        operation_id="list_detail_get",
+        summary="Get details of a specific list",
+        parameters=[
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list to retrieve.",
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Search query to filter list items by title.",
+            ),
+            OpenApiParameter(
+                name="sort",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Sort field and order.",
+                enum=[
+                    suffix_sort
+                    for sort in get_sorts(None, sort_type="all")
+                    for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
+                ],
+            ),
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                ListSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved list example",
+                        description="Retrieved list example",
+                        summary="Retrieved list example",
+                        value={
+                            "id": 1,
+                            "name": "Test1",
+                            "description": "This is a test list",
+                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                            "owner": {"id": 1, "username": "admin"},
+                            "collaborators": [],
+                            "items_count": 1,
+                            "latest_update": "2026-03-23T21:17:32.705709Z",
+                            "items": {
+                                "pagination": {
+                                    "total": 0,
+                                    "limit": 20,
+                                    "offset": 0,
+                                    "next": None,
+                                    "previous": None,
+                                },
+                                "results": [],
+                            },
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid pagination example",
+                        description="Invalid pagination example",
+                        summary="Invalid pagination example",
+                        value={"detail": "Invalid pagination parameters."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching list example",
+                        description="Error while fetching list example",
+                        summary="Error while fetching list example",
+                        value={
+                            "detail": "An error occurred while fetching the list.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, list_id):
         """Retrieve details and paginated items of a specific list."""
         user = request.user
@@ -891,7 +1218,7 @@ class ListDetailView(drf_views.APIView):
             if sort not in get_sorts(None, sort_type="all"):
                 return Response(
                     {"detail": "Invalid sorting"},
-                    status=HTTP.NOT_FOUND,
+                    status=HTTP.BAD_REQUEST,
                 )
             media_objects = apply_aggregated_sort(media_objects, sort)
             if isinstance(media_objects, Response):
@@ -901,16 +1228,104 @@ class ListDetailView(drf_views.APIView):
 
         paginated_data = paginate_data(request, media_objects, limit, offset)
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
-        serialized_list = serialize_data(
+        serialized_list = ListSerializer(
             user_list,
             context={
                 "paginated_items": paginated_data,
                 "lists_by_item_id": lists_by_item_id,
             },
-        )
+        ).data
 
         return Response(serialized_list, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="list_detail_patch",
+        summary="Update a specific list",
+        parameters=[
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list to retrieve.",
+            ),
+        ],
+        request=ListUpdateRequestSerializer,
+        responses={
+            200: OpenApiResponse(
+                ListSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved list example",
+                        description="Retrieved list example",
+                        summary="Retrieved list example",
+                        value={
+                            "id": 1,
+                            "name": "Test1",
+                            "description": "This is a test list",
+                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                            "owner": {"id": 1, "username": "admin"},
+                            "collaborators": [],
+                            "items_count": 1,
+                            "latest_update": "2026-03-23T21:17:32.705709Z",
+                            "items": {
+                                "pagination": {
+                                    "total": 0,
+                                    "limit": 20,
+                                    "offset": 0,
+                                    "next": None,
+                                    "previous": None,
+                                },
+                                "results": [],
+                            },
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid collaborators example",
+                        description="Invalid collaborators example",
+                        summary="Invalid collaborators example",
+                        value={
+                            "detail": "Field 'collaborators' must be an array of user IDs."
+                        },
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching list example",
+                        description="Error while fetching list example",
+                        summary="Error while fetching list example",
+                        value={
+                            "detail": "An error occurred while fetching the list.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def patch(self, request, list_id):
         """Update a specific custom list."""
         user = request.user
@@ -960,10 +1375,7 @@ class ListDetailView(drf_views.APIView):
             custom_list.collaborators.set(collaborators)
 
         custom_list.save()
-        serialized_data = serialize_data(
-            custom_list,
-            context={"request": request},
-        )
+        serialized_data = ListSerializer(custom_list).data
         return Response(serialized_data, status=HTTP.OK)
 
 
@@ -971,6 +1383,132 @@ class ListDetailView(drf_views.APIView):
 class ListItemsView(drf_views.APIView):
     """List items view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedMediaSerializer
+
+    @extend_schema(
+        operation_id="list_items_get",
+        summary="Get items of a list",
+        parameters=[
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list to retrieve items from.",
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Search query to filter list items by title.",
+            ),
+            OpenApiParameter(
+                name="sort",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Sort field and order.",
+                enum=[
+                    suffix_sort
+                    for sort in get_sorts(None, sort_type="all")
+                    for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
+                ],
+            ),
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedMediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved list items example",
+                        description="Retrieved list items example",
+                        summary="Retrieved list items example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 2902,
+                                    "consumption_id": 1,
+                                    "item": {
+                                        "media_id": "1",
+                                        "source": "manual",
+                                        "media_type": "comic",
+                                        "title": "Comic 1",
+                                        "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                        "season_number": None,
+                                        "episode_number": None,
+                                    },
+                                    "item_id": "comic/manual/1",
+                                    "parent_id": None,
+                                    "tracked": True,
+                                    "created_at": "2026-03-23T21:16:16.978287Z",
+                                    "score": None,
+                                    "status": 3,
+                                    "progress": 0,
+                                    "progressed_at": "2026-03-23T21:16:16.965721Z",
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                    "lists": [{"list_id": 1, "list_item_id": 16}],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid pagination example",
+                        description="Invalid pagination example",
+                        summary="Invalid pagination example",
+                        value={"detail": "Invalid pagination parameters."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="List not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching list items example",
+                        description="Error while fetching list items example",
+                        summary="Error while fetching list items example",
+                        value={
+                            "detail": "An error occurred while fetching the list items.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, list_id):
         """Get items of a list."""
         user = request.user
@@ -1037,15 +1575,14 @@ class ListItemsView(drf_views.APIView):
 
         paginated_data = paginate_data(request, media_objects, limit, offset)
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
-        serialized_data = serialize_data(
+        serialized_data = MixedMediaSerializer(
             paginated_data["results"],
             many=True,
             context={
                 "serialize_items_as_media": True,
                 "lists_by_item_id": lists_by_item_id,
             },
-            homogeneous=False,
-        )
+        ).data
         paginated_data["results"] = serialized_data
         return Response(paginated_data, status=HTTP.OK)
 
@@ -1054,6 +1591,79 @@ class ListItemsView(drf_views.APIView):
 class ListItemView(drf_views.APIView):
     """List item detail view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedMediaSerializer
+
+    @extend_schema(
+        operation_id="list_item_delete",
+        summary="Delete item from list",
+        parameters=[
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list to retrieve items from.",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="item_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="ID of the item to delete",
+                required=True,
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(description="Item deleted successfully"),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid item ID example",
+                        description="Invalid item ID example",
+                        summary="Invalid item ID example",
+                        value={"detail": "Invalid item ID."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Item not found in the list example",
+                        description="Item not found in the list example",
+                        summary="Item not found in the list example",
+                        value={"detail": "Item not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while deleting item from list example",
+                        description="Error while deleting item from list example",
+                        summary="Error while deleting item from list example",
+                        value={
+                            "detail": "An error occurred while deleting the item from the list.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def delete(self, request, list_id, item_id):
         """Delete an item from a list."""
         user = request.user
@@ -1090,6 +1700,159 @@ class ListItemView(drf_views.APIView):
         list_item.delete()
         return Response(status=HTTP.NO_CONTENT)
 
+    @extend_schema(
+        operation_id="list_item_get",
+        summary="Get list item details",
+        parameters=[
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list to retrieve items from.",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="item_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="ID of the item to retrieve details of.",
+                required=True,
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                MediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved list item example",
+                        description="Retrieved list item example",
+                        summary="Retrieved list item example",
+                        value={
+                            "id": 313,
+                            "media_id": "105248",
+                            "source": "tmdb",
+                            "source_url": "https://www.themoviedb.org/tv/105248/season/1",
+                            "media_type": "season",
+                            "title": "Cyberpunk: Edgerunners",
+                            "max_progress": 10,
+                            "image": "https://image.tmdb.org/t/p/w500/6MMjX9T0L7eoRfZFTnzC6WXYZLK.jpg",
+                            "synopsis": "In a dystopia riddled with corruption and cybernetic implants, a talented but reckless street kid strives to become a mercenary outlaw — an edgerunner.",
+                            "genres": [
+                                "Animation",
+                                "Action & Adventure",
+                                "Drama",
+                                "Sci-Fi & Fantasy",
+                            ],
+                            "score": 8.3,
+                            "score_count": 688,
+                            "details": {
+                                "first_air_date": "2022-09-12",
+                                "last_air_date": "2022-09-13",
+                                "episodes": 10,
+                                "runtime": "26m",
+                                "total_runtime": "4h 25m",
+                                "tvdb_id": 384541,
+                            },
+                            "related": {
+                                "episodes": [
+                                    {
+                                        "id": None,
+                                        "consumption_id": None,
+                                        "item": {
+                                            "media_id": "105248",
+                                            "source": "tmdb",
+                                            "media_type": "episode",
+                                            "title": "Let You Down",
+                                            "image": "https://image.tmdb.org/t/p/original/egBHU73t79tMg2qrqj3aJof1ibS.jpg",
+                                            "season_number": 1,
+                                            "episode_number": 1,
+                                        },
+                                        "item_id": "tv/tmdb/105248/1/1",
+                                        "parent_id": "tv/tmdb/105248/1",
+                                        "tracked": False,
+                                        "created_at": None,
+                                        "score": None,
+                                        "status": None,
+                                        "progress": None,
+                                        "progressed_at": None,
+                                        "start_date": None,
+                                        "end_date": None,
+                                        "notes": None,
+                                        "lists": [],
+                                    }
+                                ]
+                            },
+                            "item_id": "tv/tmdb/105248/1",
+                            "parent_id": "tv/tmdb/105248",
+                            "tracked": True,
+                            "consumptions_number": 1,
+                            "consumptions": [
+                                {
+                                    "consumption_id": 3,
+                                    "created": "2026-01-15T15:33:03.302349Z",
+                                    "score": None,
+                                    "progress": 1,
+                                    "progressed_at": "2026-01-15T20:13:00Z",
+                                    "status": 1,
+                                    "start_date": "2025-09-17T09:40:00Z",
+                                    "end_date": "2026-01-15T20:13:00Z",
+                                    "notes": "",
+                                }
+                            ],
+                            "lists": [{"list_id": 1, "list_item_id": 1}],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid item ID example",
+                        description="Invalid item ID example",
+                        summary="Invalid item ID example",
+                        value={"detail": "Invalid item ID."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Item not found in the list example",
+                        description="Item not found in the list example",
+                        summary="Item not found in the list example",
+                        value={"detail": "Item not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, list_id, item_id):
         """Get details of a list item."""
         user = request.user
@@ -1710,6 +2473,9 @@ class MediaChangesHistoryView(drf_views.APIView):
         operation_id="media_changes_history_get",
         summary="Get media changes history",
         parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -2090,6 +2856,81 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
 class MediaListsView(drf_views.APIView):
     """Media lists view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedListsMinimizedResponseSerializer
+
+    @extend_schema(
+        operation_id="media_lists_get",
+        summary="Get media lists",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedListsMinimizedResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve lists example",
+                        description="Retrieve lists example",
+                        summary="Retrieve lists example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [{"list_id": 2, "list_item_id": 28}],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id):
         """Retrieve the lists that a specific media is in."""
         user = request.user
@@ -2122,6 +2963,89 @@ class MediaListsView(drf_views.APIView):
 class MediaListDetailView(drf_views.APIView):
     """Media list detail view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ListMinimizedSerializer
+
+    @extend_schema(
+        operation_id="media_list_detail_delete",
+        summary="Remove media from a specific list",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list.",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(
+                description="Media removed from list successfully",
+                examples=[
+                    OpenApiExample(
+                        "Media removed example",
+                        description="Media removed example",
+                        summary="Media removed example",
+                        value=None,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Media not found in list example",
+                        description="Media not found in list example",
+                        summary="Media not found in list example",
+                        value={"detail": "Media not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def delete(self, request, media_type, source, media_id, list_id):
         """Remove a specific media from a specific list."""
         user = request.user
@@ -2173,6 +3097,87 @@ class MediaListDetailView(drf_views.APIView):
         list_item.delete()
         return Response(status=HTTP.NO_CONTENT)
 
+    @extend_schema(
+        operation_id="media_list_detail_put",
+        summary="Put media in a specific list",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list.",
+            ),
+        ],
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                ListMinimizedSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Media added to list example",
+                        description="Media added to list example",
+                        summary="Media addedd to list example",
+                        value=[{"list_id": 2, "list_item_id": 28}],
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Media not found in list example",
+                        description="Media not found in list example",
+                        summary="Media not found in list example",
+                        value={"detail": "Media not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def put(self, request, media_type, source, media_id, list_id):
         """Add a specific media to a specific list."""
         user = request.user
@@ -3383,6 +4388,82 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
 class MediaSeasonListsView(drf_views.APIView):
     """Season lists view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedListsMinimizedResponseSerializer
+
+    @extend_schema(
+        operation_id="season_lists_get",
+        summary="Get season lists",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedListsMinimizedResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve lists example",
+                        description="Retrieve lists example",
+                        summary="Retrieve lists example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [{"list_id": 2, "list_item_id": 28}],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number):
         """Retrieve the lists that a specific season is in."""
         user = request.user
@@ -3429,6 +4510,74 @@ class MediaSeasonListsView(drf_views.APIView):
 class MediaSeasonListDetailView(drf_views.APIView):
     """Season list detail view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ListMinimizedSerializer
+
+    @extend_schema(
+        operation_id="season_list_detail_delete",
+        summary="Remove season from list",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list.",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(
+                description="Season removed from list successfully",
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Media not in list example",
+                        description="Media not in list example",
+                        summary="Media not in list example",
+                        value={"detail": "Media not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def delete(self, request, media_type, source, media_id, season_number, list_id):
         """Remove a specific season from a specific list."""
         user = request.user
@@ -3489,6 +4638,80 @@ class MediaSeasonListDetailView(drf_views.APIView):
         list_item.delete()
         return Response(status=HTTP.NO_CONTENT)
 
+    @extend_schema(
+        operation_id="season_list_detail_put",
+        summary="Add season to list",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list.",
+            ),
+        ],
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                ListMinimizedSerializer,
+                description="Season added to list successfully",
+                examples=[
+                    OpenApiExample(
+                        "Season added to list example",
+                        description="Season added to list example",
+                        summary="Season added to list example",
+                        value={"list_id": 2, "list_item_id": 28},
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Media not in list example",
+                        description="Media not in list example",
+                        summary="Media not in list example",
+                        value={"detail": "Media not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def put(self, request, media_type, source, media_id, season_number, list_id):
         """Add a specific season to a specific list."""
         user = request.user
@@ -4458,8 +5681,85 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
 class MediaEpisodeListsView(drf_views.APIView):
     """Episode lists view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedListsMinimizedResponseSerializer
+
+    @extend_schema(
+        operation_id="episode_lists_get",
+        summary="Get episode lists",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedListsMinimizedResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve lists example",
+                        description="Retrieve lists example",
+                        summary="Retrieve lists example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [{"list_id": 2, "list_item_id": 28}],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
-        """Retrieve the lists that a specific season is in."""
+        """Retrieve the lists that a specific episode is in."""
         user = request.user
 
         limit, offset, err = parse_limit_offset(request)
@@ -4505,6 +5805,75 @@ class MediaEpisodeListsView(drf_views.APIView):
 class MediaEpisodeListDetailView(drf_views.APIView):
     """Episode list detail view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ListMinimizedSerializer
+
+    @extend_schema(
+        operation_id="episode_list_detail_delete",
+        summary="Remove episode from list",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list.",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(
+                description="Episode removed from the list successfully.",
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Media not in list example",
+                        description="Media not in list example",
+                        summary="Media not in list example",
+                        value={"detail": "Media not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def delete(
         self,
         request,
@@ -4575,6 +5944,81 @@ class MediaEpisodeListDetailView(drf_views.APIView):
         list_item.delete()
         return Response(status=HTTP.NO_CONTENT)
 
+    @extend_schema(
+        operation_id="episode_list_detail_put",
+        summary="Add episode to list",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+            OpenApiParameter(
+                name="list_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the list.",
+            ),
+        ],
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                ListMinimizedSerializer,
+                description="Season added to list successfully",
+                examples=[
+                    OpenApiExample(
+                        "Season added to list example",
+                        description="Season added to list example",
+                        summary="Season added to list example",
+                        value={"list_id": 2, "list_item_id": 28},
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Media not in list example",
+                        description="Media not in list example",
+                        summary="Media not in list example",
+                        value={"detail": "Media not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def put(
         self,
         request,
@@ -4700,13 +6144,7 @@ class SearchProviderView(drf_views.APIView):
         operation_id="search_get",
         summary="Search for media",
         parameters=[
-            OpenApiParameter(
-                name="media_type",
-                type=OpenApiTypes.STR,
-                enum=MEDIA_TYPE_VALID_LIST,
-                location=OpenApiParameter.PATH,
-                description="Type of media to search for",
-            ),
+            MediaTypeParam,
             OpenApiParameter(
                 name="search",
                 type=OpenApiTypes.STR,
@@ -4754,7 +6192,7 @@ class SearchProviderView(drf_views.APIView):
                     )
                 ],
             ),
-        }
+        },
     )
     def get(self, request, media_type):
         """Search for media using the specified provider."""
@@ -4892,7 +6330,7 @@ class StatisticsView(drf_views.APIView):
                     )
                 ],
             ),
-        }
+        },
     )
     def get(self, request):
         """Retrieve statistics for the authenticated user."""
