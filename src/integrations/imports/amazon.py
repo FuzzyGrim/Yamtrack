@@ -5,6 +5,7 @@ from collections import defaultdict
 from csv import DictReader
 
 from django.apps import apps
+from django.db.models import Count, Prefetch
 from django.utils import timezone
 
 from app.models import MediaTypes, Sources, Status
@@ -49,9 +50,34 @@ class AmazonImporter:
         self.user = user
         self.mode = mode
         self.warnings = []
+
+        # Fast in-memory lookups to avoid per-row DB queries.
         self.existing_media = helpers.get_existing_media(user)
+
+        # helpers.get_existing_media intentionally excludes seasons/episodes, but episode
+        # imports need to create/link seasons efficiently.
+        season_model = apps.get_model(
+            app_label="app", model_name=MediaTypes.SEASON.value
+        )
+        self.existing_seasons = {
+            (s.item.media_id, s.item.season_number): s
+            for s in season_model.objects.filter(user=user).select_related(
+                "item",
+                "related_tv",
+                "related_tv__item",
+            )
+        }
+
         self.to_delete = defaultdict(lambda: defaultdict(set))
         self.bulk_media = defaultdict(list)
+
+        # Per-run caches to avoid repeated DB/API work in tight loops.
+        self._item_cache = {}
+        self._queued_tv_by_media_id = {}
+        self._queued_seasons_by_key = {}
+        self._affected_tv_media_ids = set()
+        self._affected_season_keys = set()
+
         logger.info(
             "Initialized Amazon importer for user %s with mode %s",
             user.username,
@@ -61,7 +87,6 @@ class AmazonImporter:
     def import_data(self):
         """Import all user data from CSV."""
         try:
-        try:
             # Decode the file line by line to save memory
             decoded_file = (line.decode("utf-8") for line in self.file)
             reader = DictReader(decoded_file)
@@ -70,19 +95,27 @@ class AmazonImporter:
             raise MediaImportError(msg) from e
 
         logger.info("amazon importer started")
+        processed_rows = 0
+        failed_rows = 0
         for row in reader:
             # Skip empty lines/rows
             if not any((v or "").strip() for v in row.values()):
                 continue
+
+            processed_rows += 1
             try:
                 self._process_row(row)
             except Exception as error:  # noqa: BLE001
+                failed_rows += 1
                 logger.warning(
                     "Error processing entry: %r\n%r",
                     row,
                     error,
                 )
-        logger.info("processed %d rows", len(rows))
+
+        logger.info("processed %d rows", processed_rows)
+        if failed_rows > 0:
+            logger.warning("%d failed rows", failed_rows)
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
 
@@ -96,60 +129,163 @@ class AmazonImporter:
         return imported_counts, None
 
     def _update_season_and_show_status(self):
+        """Update season/show completion status for TV affected by this import.
+
+        The Amazon watch-history CSV can contain many episode rows. Updating *all*
+        seasons in a user's library (and calling TMDB per season) becomes an N+1
+        problem and is prone to rate limiting.
+
+        Instead, we only update seasons/shows that appear in the current import and
+        we batch TMDB lookups per show via `tv_with_seasons`.
         """
-        Update the progress/completed status for tv.
-
-        Mark seasons as COMPLETED only if all episodes are present,
-        and shows only if all seasons are completed.
-        """
-        season = apps.get_model(app_label="app", model_name="season")
-        episode = apps.get_model(app_label="app", model_name="episode")
-        tv = apps.get_model(app_label="app", model_name="tv")
-
-        # Update seasons
-        for season_obj in season.objects.filter(user=self.user):
-            episodes = episode.objects.filter(related_season=season_obj)
-            item = season_obj.item
-            # Get expected episode count from item metadata
-
-            metadata = get_media_metadata(
-                MediaTypes.SEASON.value,
-                item.media_id,
-                Sources.TMDB.value,
-                [item.season_number],
+        if not self._affected_tv_media_ids and not self._affected_season_keys:
+            logger.info(
+                "No affected seasons detected from this import; skipping status update",
             )
-            if metadata is None:
-                logger.warning(
-                    "Could not find season/%s in TMDB metadata for media_id=%s."
-                    "Skipping status update for this season.",
-                    item.season_number,
-                    item.media_id,
-                )
-                continue
-            expected_count = metadata[f"season/{item.season_number}"]["details"][
-                "episodes"
+            return
+
+        season_model = apps.get_model(
+            app_label="app", model_name=MediaTypes.SEASON.value
+        )
+        episode_model = apps.get_model(
+            app_label="app", model_name=MediaTypes.EPISODE.value
+        )
+        tv_model = apps.get_model(app_label="app", model_name=MediaTypes.TV.value)
+
+        affected_season_keys = {
+            (media_id, season_number)
+            for (media_id, season_number) in self._affected_season_keys
+            if season_number is not None
+        }
+        affected_tv_media_ids = set(self._affected_tv_media_ids) | {
+            media_id for (media_id, _) in affected_season_keys
+        }
+
+        # ---- Update seasons (only those referenced in this CSV) ----
+        seasons = []
+        if affected_season_keys:
+            affected_media_ids = {media_id for (media_id, _) in affected_season_keys}
+            affected_season_numbers = {
+                season_number for (_, season_number) in affected_season_keys
+            }
+
+            seasons_qs = season_model.objects.filter(
+                user=self.user,
+                item__source=Sources.TMDB.value,
+                item__media_id__in=affected_media_ids,
+                item__season_number__in=affected_season_numbers,
+            ).select_related(
+                "item",
+                "related_tv",
+                "related_tv__item",
+            )
+
+            seasons = [
+                s
+                for s in seasons_qs
+                if (s.item.media_id, s.item.season_number) in affected_season_keys
             ]
 
-            if episodes.count() == expected_count:
-                if season_obj.status != Status.COMPLETED.value:
-                    season_obj.status = Status.COMPLETED.value
-                    season_obj.save(update_fields=["status"])
-            elif season_obj.status != Status.IN_PROGRESS.value:
-                season_obj.status = Status.IN_PROGRESS.value
-                season_obj.save(update_fields=["status"])
+        if seasons:
+            # Episode counts in one query.
+            counts_qs = (
+                episode_model.objects.filter(related_season__in=seasons)
+                .values("related_season_id")
+                .annotate(c=Count("id"))
+            )
+            episode_counts = {row["related_season_id"]: row["c"] for row in counts_qs}
 
-        # Update shows
-        for tv_obj in tv.objects.filter(user=self.user):
-            seasons = tv_obj.seasons.all()
-            if (
-                all(season.status == Status.COMPLETED.value for season in seasons)
-                and seasons
+            # Batch TMDB lookups per show.
+            seasons_by_show = defaultdict(set)
+            for season_obj in seasons:
+                seasons_by_show[season_obj.item.media_id].add(
+                    season_obj.item.season_number,
+                )
+
+            tmdb_metadata_by_show = {}
+            for media_id, season_numbers in seasons_by_show.items():
+                try:
+                    tmdb_metadata_by_show[media_id] = get_media_metadata(
+                        "tv_with_seasons",
+                        media_id,
+                        Sources.TMDB.value,
+                        season_numbers=sorted(season_numbers),
+                    )
+                except ProviderAPIError as e:
+                    logger.warning(
+                        "Could not fetch TMDB metadata for tv media_id=%s seasons=%s: %r",
+                        media_id,
+                        sorted(season_numbers),
+                        e,
+                    )
+                    tmdb_metadata_by_show[media_id] = {}
+
+            for season_obj in seasons:
+                tv_media_id = season_obj.item.media_id
+                season_number = season_obj.item.season_number
+                season_key = f"season/{season_number}"
+
+                show_md = tmdb_metadata_by_show.get(tv_media_id) or {}
+                season_md = show_md.get(season_key)
+                if not season_md:
+                    logger.warning(
+                        "Missing %s in TMDB metadata for tv media_id=%s; skipping",
+                        season_key,
+                        tv_media_id,
+                    )
+                    continue
+
+                expected_count = season_md.get("details", {}).get("episodes")
+                if expected_count is None:
+                    logger.warning(
+                        "TMDB metadata missing episode count for tv media_id=%s %s; skipping",
+                        tv_media_id,
+                        season_key,
+                    )
+                    continue
+
+                actual_count = episode_counts.get(season_obj.id, 0)
+                target_status = (
+                    Status.COMPLETED.value
+                    if actual_count == expected_count
+                    else Status.IN_PROGRESS.value
+                )
+
+                if season_obj.status != target_status:
+                    season_obj.status = target_status
+                    season_obj.save(update_fields=["status"])
+
+        # ---- Update shows (only those referenced in this CSV) ----
+        if not affected_tv_media_ids:
+            return
+
+        tv_qs = (
+            tv_model.objects.filter(
+                user=self.user,
+                item__source=Sources.TMDB.value,
+                item__media_id__in=affected_tv_media_ids,
+            )
+            .select_related("item")
+            .prefetch_related(
+                Prefetch(
+                    "seasons",
+                    queryset=season_model.objects.select_related("item"),
+                )
+            )
+        )
+
+        for tv_obj in tv_qs:
+            seasons = list(tv_obj.seasons.all())
+
+            if seasons and all(
+                season.status == Status.COMPLETED.value for season in seasons
             ):
-                if tv_obj.status != Status.COMPLETED.value:
-                    tv_obj.status = Status.COMPLETED.value
-                    tv_obj.save(update_fields=["status"])
-            elif tv_obj.status != Status.IN_PROGRESS.value:
-                tv_obj.status = Status.IN_PROGRESS.value
+                target_status = Status.COMPLETED.value
+            else:
+                target_status = Status.IN_PROGRESS.value
+
+            if tv_obj.status != target_status:
+                tv_obj.status = target_status
                 tv_obj.save(update_fields=["status"])
 
     def _parse_date_watched(self, date_watched_raw):
@@ -158,7 +294,7 @@ class AmazonImporter:
             return None
         try:
             dt = datetime.datetime.fromtimestamp(
-                int(date_watched_raw) / 1000, tz=timezone.utc
+                int(date_watched_raw) / 1000, tz=datetime.timezone.utc
             )
             if timezone.is_naive(dt):
                 dt = timezone.make_aware(dt, timezone.get_current_timezone())
@@ -169,22 +305,32 @@ class AmazonImporter:
             return dt
 
     def _ensure_tv_and_season(self, tmdb_data):
-        """Ensure TV and Season exist for episode imports."""
-        # 1. Ensure TV exists
+        """Ensure TV and Season exist for episode imports.
+
+        This method runs in the per-row loop, so it must avoid DB queries like
+        `.exists()`/`.first()` on every call.
+        """
+        tv_media_id = str(tmdb_data["media_id"])
+
+        # 1) Ensure TV exists
         tv_tmdb_data = {
-            "media_id": tmdb_data["media_id"],
+            "media_id": tv_media_id,
             "media_type": MediaTypes.TV.value,
             "title": tmdb_data["title"],
             "image": tmdb_data.get("image"),
         }
         tv_item, _ = self._create_or_update_item(tv_tmdb_data, MediaTypes.TV.value)
         tv_model = apps.get_model(app_label="app", model_name=MediaTypes.TV.value)
-        tv_already_queued = any(
-            queued_tv.item == tv_item and queued_tv.user == self.user
-            for queued_tv in self.bulk_media[MediaTypes.TV.value]
-        )
-        tv_exists_in_db = tv_model.objects.filter(item=tv_item, user=self.user).exists()
-        if not tv_already_queued and not tv_exists_in_db:
+
+        tv_instance = self._queued_tv_by_media_id.get(tv_media_id)
+        if tv_instance is None:
+            tv_instance = self.existing_media[MediaTypes.TV.value][
+                Sources.TMDB.value
+            ].get(
+                tv_media_id,
+            )
+
+        if tv_instance is None:
             tv_instance = tv_model(
                 item=tv_item,
                 user=self.user,
@@ -192,50 +338,52 @@ class AmazonImporter:
                 score=None,
             )
             self.bulk_media[MediaTypes.TV.value].append(tv_instance)
-        else:
-            tv_instance = next(
-                (
-                    queued_tv
-                    for queued_tv in self.bulk_media[MediaTypes.TV.value]
-                    if queued_tv.item == tv_item and queued_tv.user == self.user
-                ),
-                None,
-            )
-            if tv_instance is None:
-                tv_instance = tv_model.objects.filter(
-                    item=tv_item, user=self.user
-                ).first()
+            self._queued_tv_by_media_id[tv_media_id] = tv_instance
 
-        # 2. Ensure Season exists
+            # Make it discoverable for subsequent rows in this run.
+            self.existing_media[MediaTypes.TV.value][Sources.TMDB.value][
+                tv_media_id
+            ] = tv_instance
+
+        # 2) Ensure Season exists
+        season_number = tmdb_data.get("season_number")
+        if season_number is None:
+            logger.warning(
+                "Episode row missing season_number for tv media_id=%s; cannot ensure season",
+                tv_media_id,
+            )
+            return
+
         season_tmdb_data = {
-            "media_id": tmdb_data["media_id"],
+            "media_id": tv_media_id,
             "media_type": MediaTypes.SEASON.value,
-            "season_number": tmdb_data["season_number"],
-            "title": tmdb_data["title"],
+            "season_number": season_number,
+            "title": tmdb_data.get("season_title") or tmdb_data["title"],
             "image": tmdb_data.get("image"),
         }
         season_item, _ = self._create_or_update_item(
-            season_tmdb_data, MediaTypes.SEASON.value
+            season_tmdb_data,
+            MediaTypes.SEASON.value,
         )
+
+        season_key = (tv_media_id, season_number)
+        if season_key in self._queued_seasons_by_key:
+            return
+        if season_key in self.existing_seasons:
+            return
+
         season_model = apps.get_model(
             app_label="app", model_name=MediaTypes.SEASON.value
         )
-        season_already_queued = any(
-            queued_season.item == season_item and queued_season.user == self.user
-            for queued_season in self.bulk_media[MediaTypes.SEASON.value]
+        season_instance = season_model(
+            item=season_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            score=None,
+            related_tv=tv_instance,
         )
-        season_exists_in_db = season_model.objects.filter(
-            item=season_item, user=self.user, related_tv=tv_instance
-        ).exists()
-        if not season_already_queued and not season_exists_in_db:
-            season_instance = season_model(
-                item=season_item,
-                user=self.user,
-                status=Status.IN_PROGRESS.value,
-                score=None,
-                related_tv=tv_instance,
-            )
-            self.bulk_media[MediaTypes.SEASON.value].append(season_instance)
+        self.bulk_media[MediaTypes.SEASON.value].append(season_instance)
+        self._queued_seasons_by_key[season_key] = season_instance
 
     def _process_row(self, row):
         logger.info("amazon importer: processing row:\n%s", row)
@@ -280,6 +428,11 @@ class AmazonImporter:
 
         # --- Ensure TV and Season exist for episodes ---
         if resolved_media_type == MediaTypes.EPISODE.value:
+            tv_media_id = str(tmdb_data["media_id"])
+            self._affected_tv_media_ids.add(tv_media_id)
+            season_number = tmdb_data.get("season_number")
+            if season_number is not None:
+                self._affected_season_keys.add((tv_media_id, season_number))
             self._ensure_tv_and_season(tmdb_data)
 
         item, _ = self._create_or_update_item(tmdb_data, resolved_media_type)
@@ -426,8 +579,19 @@ class AmazonImporter:
             "creating item for type '%s' from tmdb data %s", media_type, tmdb_data
         )
         item_model = apps.get_model(app_label="app", model_name="item")
-        return item_model.objects.update_or_create(
-            media_id=tmdb_data["media_id"],
+
+        cache_key = (
+            Sources.TMDB.value,
+            media_type,
+            str(tmdb_data["media_id"]),
+            tmdb_data.get("season_number"),
+            tmdb_data.get("episode_number"),
+        )
+        if cache_key in self._item_cache:
+            return self._item_cache[cache_key], False
+
+        item, created = item_model.objects.update_or_create(
+            media_id=str(tmdb_data["media_id"]),
             source=Sources.TMDB.value,
             media_type=media_type,
             season_number=tmdb_data.get("season_number"),
@@ -437,6 +601,8 @@ class AmazonImporter:
                 "image": tmdb_data["image"],
             },
         )
+        self._item_cache[cache_key] = item
+        return item, created
 
     def _create_media_instance(self, item, media_type, date_watched=None):
         logger.info("creating instance for type '%s' from item %s", media_type, item)
