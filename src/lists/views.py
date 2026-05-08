@@ -318,3 +318,42 @@ def list_item_toggle(request):
         "lists/components/list_item_button.html",
         {"custom_list": custom_list, "item": item, "has_item": has_item},
     )
+
+
+@require_GET
+def bulk_lists_modal(request):
+    """Return the modal showing all custom lists for bulk adding items."""
+    custom_lists = (
+        CustomList.objects.filter(Q(owner=request.user) | Q(collaborators=request.user))
+        .distinct()
+        .order_by("name")
+    )
+    return render(
+        request,
+        "lists/components/bulk_fill_lists.html",
+        {"custom_lists": custom_lists},
+    )
+
+
+@require_POST
+def bulk_list_add(request):
+    """Add multiple items to a custom list at once."""
+    item_ids = request.POST.getlist("item_ids")
+    custom_list_id = request.POST["custom_list_id"]
+
+    custom_list = get_object_or_404(
+        CustomList.objects.filter(
+            Q(owner=request.user) | Q(collaborators=request.user),
+            id=custom_list_id,
+        ).distinct(),  # To prevent duplicates, when user is owner and collaborator
+    )
+
+    items = [CustomListItem(custom_list=custom_list, item_id=i) for i in item_ids]
+
+    CustomListItem.objects.bulk_create(
+        items,
+        ignore_conflicts=True,
+    )
+    logger.info("%d items bulk added to %s.", len(item_ids), custom_list)
+
+    return render(request, "lists/components/bulk_fill_lists_success.html")

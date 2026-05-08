@@ -1,0 +1,7 @@
+<div class="bg-[#2a2f35] p-6 rounded-lg text-center"
+     x-init="setTimeout(() => { bulkListsOpen = false; Alpine.store('bulk').clear() }, 1500)">
+  <div class="flex flex-col items-center gap-3 py-4">
+    {% include "app/icons/states/completed.svg" with classes="w-10 h-10 text-emerald-400" %}
+    <p class="text-white font-medium">Added to list!</p>
+  </div>
+</div>

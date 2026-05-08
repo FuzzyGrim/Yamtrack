@@ -9,7 +9,27 @@
 {% block content %}
   <h1 class="text-3xl font-bold mb-6">{{ media_type|media_type_readable_plural }}</h1>
 
-  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: {
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.store('bulk', {
+        active: false,
+        ids: [],
+        toggle(id) {
+          const i = this.ids.indexOf(id);
+          i === -1 ? this.ids.push(id) : this.ids.splice(i, 1);
+        },
+        selectAll() {
+          document.querySelectorAll('[data-bulk-id]').forEach(function(el) {
+            const id = parseInt(el.dataset.bulkId);
+            if (Alpine.store('bulk').ids.indexOf(id) === -1) Alpine.store('bulk').ids.push(id);
+          });
+        },
+        clear() { this.ids = []; this.active = false; },
+      });
+    });
+  </script>
+
+  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', bulkListsOpen: false, statusLabels: {
     {% for value, label in status_choices %}
       '{{ value }}': '{{ label }}'
       {% if not forloop.last %},{% endif %}
@@ -117,6 +137,16 @@
           </div>
         </div>
 
+        <!-- Bulk Select Toggle -->
+        <button class="flex items-center px-4 py-2 rounded-md transition-colors cursor-pointer"
+                :class="$store.bulk.active ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
+                @click="$store.bulk.active = !$store.bulk.active; if (!$store.bulk.active) $store.bulk.ids = []"
+                type="button"
+                title="Select items">
+          {% include "app/icons/circle-check.svg" with classes="w-4 h-4 mr-2" %}
+          Select
+        </button>
+
         <!-- Layout Toggle -->
         <div class="flex rounded-md overflow-hidden border border-gray-700">
           <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
@@ -130,6 +160,47 @@
              title="Table View"
              @click="layout = 'table'">{% include "app/icons/table.svg" with classes="w-5 h-5" %}</a>
         </div>
+      </div>
+    </div>
+
+    <!-- Hidden form keeping selected IDs and CSRF token in sync for hx-include -->
+    <form id="bulk-ids-form" class="hidden">
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+      <template x-for="id in $store.bulk.ids" :key="id">
+        <input type="hidden" name="item_ids" :value="id">
+      </template>
+    </form>
+
+    <!-- Bulk action bar -->
+    <div x-show="$store.bulk.active"
+         x-cloak
+         class="sticky top-2 z-40 flex items-center gap-3 mb-4 p-3 bg-[#2a2f35] border border-gray-700 rounded-lg shadow-lg">
+      <span class="text-sm text-gray-300">
+        <span x-text="$store.bulk.ids.length"></span> selected
+      </span>
+      <button class="px-3 py-1.5 text-sm bg-[#39404b] hover:bg-[#454d5a] text-white rounded-md transition-colors cursor-pointer"
+              type="button"
+              @click="$store.bulk.selectAll()">Select all visible</button>
+      <button class="px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded-md transition-colors cursor-pointer"
+              type="button"
+              x-show="$store.bulk.ids.length > 0"
+              hx-get="{% url 'bulk_lists_modal' %}"
+              hx-target="#bulk-lists-modal-content"
+              hx-trigger="click"
+              @click="bulkListsOpen = true">Add to list</button>
+      <button class="ml-auto px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer"
+              type="button"
+              @click="$store.bulk.clear()">Cancel</button>
+    </div>
+
+    <!-- Bulk lists modal -->
+    <div x-show="bulkListsOpen"
+         x-cloak
+         @keydown.escape.window="bulkListsOpen = false"
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+           @click.outside="bulkListsOpen = false">
+        <div id="bulk-lists-modal-content"></div>
       </div>
     </div>
 
@@ -157,6 +228,7 @@
         <table class="w-full bg-[#2a2f35]">
           <thead class="text-left text-gray-400 text-sm">
             <tr>
+              <th x-show="$store.bulk.active" class="p-2 w-10"></th>
               <th class="p-2 w-15"></th>
               <th class="p-2 pe-8 w-2/5">Title</th>
               <th class="p-2 text-center">Score</th>
