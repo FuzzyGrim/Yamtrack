@@ -103,6 +103,7 @@ from .serializers import (
     PaginatedListsResponseSerializer,
     PaginatedMediaSerializer,
     PaginatedPolymorphicMediaResponseSerializer,
+    RelatedResponseSerializer,
     SearchResponseSerializer,
     StatisticsResponseSerializer,
     TimelineItemSerializer,
@@ -3598,9 +3599,99 @@ class MediaListDetailView(drf_views.APIView):
 class MediaRecommendationsView(drf_views.APIView):
     """Media recommendations view."""
 
-    serializer_class = MediaSerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RelatedResponseSerializer
 
+    @extend_schema( 
+        operation_id="media_recommendations_get",
+        summary="Get media recommendations",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                RelatedResponseSerializer(many=True),
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve recommendations example",
+                        description="Retrieve recommendations example",
+                        summary="Retrieve recommendations example",
+                        value=[
+                            {
+                                "source": "tmdb",
+                                "media_type": "tv",
+                                "image": "https://image.tmdb.org/t/p/w500/pFao5i4giBsGl7QQBXi7oMUPzCn.jpg",
+                                "media_id": 167,
+                                "title": "La Femme Nikita",
+                            },
+                            {
+                                "source": "tmdb",
+                                "media_type": "tv",
+                                "image": "https://image.tmdb.org/t/p/w500/f7xmk6fNp0hXcGI9k0vXeX69Afq.jpg",
+                                "media_id": 45576,
+                                "title": "Hunted",
+                            },
+                        ],
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "List not found example",
+                        description="List not found example",
+                        summary="List not found example",
+                        value={"detail": "List not found."},
+                    ),
+                    OpenApiExample(
+                        "Media not found in list example",
+                        description="Media not found in list example",
+                        summary="Media not found in list example",
+                        value={"detail": "Media not found in the list."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, _, media_type, source, media_id):
         """Retrieve recommendations for a specific media."""
         if not check_valid_type(media_type):

@@ -32,6 +32,9 @@ from .changes_history_processor import (
 )
 from .helpers import (
     MEDIA_STATUS_CHOICES,
+    MEDIA_TYPE_COMPLETE_VALID_LIST,
+    MEDIA_TYPE_VALID_LIST,
+    SOURCES_VALID_LIST,
     build_item_id,
     build_parent_id,
     get_media_status,
@@ -68,6 +71,39 @@ class MediaStatusChoiceField(serializers.ChoiceField):
         kwargs.setdefault("allow_null", True)
         status_choices = MEDIA_STATUS_CHOICES
         kwargs["choices"] = status_choices
+        super().__init__(**kwargs)
+
+
+class MediaSourceChoiceField(serializers.ChoiceField):
+    """Custom field for media source options."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined source choices."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        kwargs["choices"] = SOURCES_VALID_LIST
+        super().__init__(**kwargs)
+
+
+class MediaTypeChoiceField(serializers.ChoiceField):
+    """Custom field for media type options."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined media type choices."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        kwargs["choices"] = MEDIA_TYPE_VALID_LIST
+        super().__init__(**kwargs)
+
+
+class MediaTypeCompleteChoiceField(serializers.ChoiceField):
+    """Custom field for complete media type options."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined complete media type choices."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        kwargs["choices"] = MEDIA_TYPE_COMPLETE_VALID_LIST
         super().__init__(**kwargs)
 
 
@@ -1010,6 +1046,16 @@ class PaginatedMediaSerializer(serializers.Serializer):
 
     pagination = PaginationSerializer()
     results = MediaSerializer(many=True)
+
+
+class RelatedResponseSerializer(serializers.Serializer):
+    """Serializer for related media endpoint."""
+
+    source = MediaSourceChoiceField()
+    media_type = MediaTypeChoiceField()
+    image = serializers.URLField(allow_null=True)
+    media_id = serializers.CharField()
+    title = serializers.CharField()
 
 
 class TimelineItemSerializer(serializers.ModelSerializer):
