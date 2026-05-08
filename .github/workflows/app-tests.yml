@@ -89,3 +89,21 @@ jobs:
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  nix-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Evaluate flake
+        run: nix flake check --no-build
+
+      - name: Build package
+        run: nix build .#default -L
+
+      - name: Run unit tests
+        run: nix build .#checks.x86_64-linux.yamtrack-unit-tests -L
