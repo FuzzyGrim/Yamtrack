@@ -131,22 +131,18 @@ SourceParam = OpenApiParameter(
     enum=SOURCES_VALID_LIST,
 )
 
-SeasonNumberParam = (
-    OpenApiParameter(
-        "season_number",
-        type=OpenApiTypes.INT,
-        location=OpenApiParameter.PATH,
-        description="Season number for the specified media item.",
-        required=True,
-    ),
+SeasonNumberParam = OpenApiParameter(
+    "season_number",
+    type=OpenApiTypes.INT,
+    location=OpenApiParameter.PATH,
+    description="Season number for the specified media item.",
+    required=True,
 )
 
-EpisodeNumberParam = (
-    OpenApiParameter(
-        "episode_number",
-        type=OpenApiTypes.INT,
-        location=OpenApiParameter.PATH,
-        description="Episode number for the specified media item.",
-        required=True,
-    ),
+EpisodeNumberParam = OpenApiParameter(
+    "episode_number",
+    type=OpenApiTypes.INT,
+    location=OpenApiParameter.PATH,
+    description="Episode number for the specified media item.",
+    required=True,
 )

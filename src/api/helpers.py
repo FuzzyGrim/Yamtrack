@@ -93,6 +93,8 @@ MEDIA_STATUS_MAP = {
     "Dropped": 4,
 }
 
+MEDIA_STATUS_CHOICES = [(value, label) for label, value in MEDIA_STATUS_MAP.items()]
+
 MEDIA_TYPE_COMPLETE_MODEL_MAP = {
     MediaTypes.TV.value: TV,
     MediaTypes.SEASON.value: Season,

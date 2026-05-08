@@ -377,6 +377,9 @@ SPECTACULAR_SETTINGS = {
     "PARSER_WHITELIST": [
         "rest_framework.parsers.JSONParser",
     ],
+    "ENUM_NAME_OVERRIDES": {
+        "MediaStatusEnum": "api.helpers.MEDIA_STATUS_CHOICES",
+    },
 }
 
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)

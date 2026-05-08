@@ -30,7 +30,12 @@ from .changes_history_processor import (
     get_changes_from_diff,
     get_changes_from_new_record,
 )
-from .helpers import build_item_id, build_parent_id, get_media_status
+from .helpers import (
+    MEDIA_STATUS_CHOICES,
+    build_item_id,
+    build_parent_id,
+    get_media_status,
+)
 
 
 class ItemIdField(serializers.CharField):
@@ -52,6 +57,18 @@ class StatusField(serializers.Field):
 
     def to_representation(self, obj):  # noqa: D102
         return get_media_status(getattr(obj, "status", None))
+
+
+class MediaStatusChoiceField(serializers.ChoiceField):
+    """Custom field for media status options."""
+
+    def __init__(self, **kwargs):
+        """Initialize with predefined status choices."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("allow_null", True)
+        status_choices = MEDIA_STATUS_CHOICES
+        kwargs["choices"] = status_choices
+        super().__init__(**kwargs)
 
 
 class ItemSerializer(serializers.ModelSerializer):
@@ -184,7 +201,7 @@ class ListUpdateRequestSerializer(serializers.Serializer):
     collaborators = serializers.ListField(
         child=serializers.IntegerField(),
         required=False,
-        help_text="List of username ids allowed to collaborate on this list."
+        help_text="List of username ids allowed to collaborate on this list.",
     )
 
 
@@ -633,6 +650,22 @@ class HealthResponseSerializer(serializers.Serializer):
 class HistorySerializer(serializers.Serializer):
     """Serializer for watch history entries."""
 
+    consumption_id = serializers.IntegerField(
+        help_text=(
+            "The id of the media consumption (id numbers are global for all "
+            "consumptions of all medias of the same type, they aren't "
+            "sequential per media)."
+        )
+    )
+    created = serializers.DateTimeField(allow_null=True)
+    score = serializers.FloatField(allow_null=True)
+    progress = serializers.IntegerField(allow_null=True)
+    progressed_at = serializers.DateTimeField(allow_null=True)
+    status = MediaStatusChoiceField()
+    start_date = serializers.DateField(allow_null=True)
+    end_date = serializers.DateField(allow_null=True)
+    notes = serializers.CharField(allow_null=True)
+
     def to_representation(self, instance):
         """Transform a user media instance into a watch history entry."""
         # For Episode instances, use simplified structure
@@ -681,6 +714,13 @@ class HistorySerializer(serializers.Serializer):
             if hasattr(instance, "notes") and instance.notes is not None
             else None,
         }
+
+
+class PaginatedHistoryResponseSerializer(serializers.Serializer):
+    """Serializer for paginated watch history."""
+
+    pagination = PaginationSerializer()
+    results = HistorySerializer(many=True)
 
 
 class InfoSerializer(serializers.Serializer):
@@ -797,7 +837,6 @@ class PaginatedMediaResponseSerializer(serializers.Serializer):
 
     pagination = PaginationSerializer()
     results = MediaSerializer(many=True)
-
 
 
 class ListSerializer(serializers.Serializer):
@@ -994,6 +1033,104 @@ class TimelineItemSerializer(serializers.ModelSerializer):
     class Meta:  # noqa: D106
         model = BasicMedia
         exclude = ("user",)
+
+
+class UpdateAnimeSerializer(serializers.Serializer):
+    """Serializer for updating anime media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True)
+
+
+class UpdateBoardGameSerializer(serializers.Serializer):
+    """Serializer for updating board game media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True)
+
+
+class UpdateBookSerializer(serializers.Serializer):
+    """Serializer for updating book media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True)
+
+
+class UpdateComicSerializer(serializers.Serializer):
+    """Serializer for updating comic media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True)
+
+
+class UpdateEpisodeSerializer(serializers.Serializer):
+    """Serializer for updating episode media items."""
+
+    end_date = serializers.DateField(required=False, allow_null=True)
+
+
+class UpdateGameSerializer(serializers.Serializer):
+    """Serializer for updating game media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True)
+
+
+class UpdateMangaSerializer(serializers.Serializer):
+    """Serializer for updating manga media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True)
+
+
+class UpdateMovieSerializer(serializers.Serializer):
+    """Serializer for updating movie media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True)
+
+
+class UpdateSeasonSerializer(serializers.Serializer):
+    """Serializer for updating season media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    notes = serializers.CharField(required=False, allow_null=True)
+
+
+class UpdateTVSerializer(serializers.Serializer):
+    """Serializer for updating TV media items."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    notes = serializers.CharField(required=False, allow_null=True)
 
 
 serializer_map = {

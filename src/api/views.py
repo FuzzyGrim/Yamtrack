@@ -11,6 +11,7 @@ from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
+    PolymorphicProxySerializer,
     extend_schema,
 )
 from health_check.views import HealthCheckView
@@ -97,6 +98,7 @@ from .serializers import (
     PaginatedChangesHistoryResponseSerializer,
     PaginatedEventsSerializer,
     PaginatedGenericResponseSerializer,
+    PaginatedHistoryResponseSerializer,
     PaginatedListsMinimizedResponseSerializer,
     PaginatedListsResponseSerializer,
     PaginatedMediaSerializer,
@@ -104,6 +106,16 @@ from .serializers import (
     SearchResponseSerializer,
     StatisticsResponseSerializer,
     TimelineItemSerializer,
+    UpdateAnimeSerializer,
+    UpdateBoardGameSerializer,
+    UpdateBookSerializer,
+    UpdateComicSerializer,
+    UpdateEpisodeSerializer,
+    UpdateGameSerializer,
+    UpdateMangaSerializer,
+    UpdateMovieSerializer,
+    UpdateSeasonSerializer,
+    UpdateTVSerializer,
     serialize_data,
 )
 
@@ -456,13 +468,7 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
         operation_id="changes_history_entry_delete",
         summary="Delete changes history record",
         parameters=[
-            OpenApiParameter(
-                name="media_type",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.PATH,
-                description="The type of media for which to delete changes history.",
-                enum=[media_type.value for media_type in MediaTypes],
-            ),
+            MediaTypeCompleteParam,
             OpenApiParameter(
                 name="history_id",
                 type=OpenApiTypes.STR,
@@ -2626,9 +2632,93 @@ class MediaChangesHistoryView(drf_views.APIView):
 class MediaConsumptionHistoryView(drf_views.APIView):
     """Media consumption history view."""
 
-    serializer_class = HistorySerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedHistoryResponseSerializer
 
+    @extend_schema(
+        operation_id="media_consumption_history_get",
+        summary="Get media consumption history",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedHistoryResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        description="Example response",
+                        summary="Example response",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "consumption_id": 312,
+                                    "created": "2026-03-19T10:31:55.747255Z",
+                                    "score": 10.0,
+                                    "progress": 26,
+                                    "progressed_at": "2026-03-19T10:41:00Z",
+                                    "status": 1,
+                                    "start_date": "2026-03-19T10:31:00Z",
+                                    "end_date": "2026-03-19T10:41:00Z",
+                                    "notes": "aSDASDF",
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Season not found example",
+                        description="Season not found or not tracked example",
+                        summary="Season not found example",
+                        value={"detail": "Season not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id):
         """Retrieve the history timeline for a specific media."""
         limit, offset, err = parse_limit_offset(request)
@@ -2678,12 +2768,11 @@ class MediaConsumptionHistoryView(drf_views.APIView):
             limit,
             offset,
         )
-        consumptions = serialize_data(
+        consumptions = HistorySerializer(
             paginated_data["results"],
-            serializer_class=HistorySerializer,
             many=True,
         )
-        paginated_data["results"] = consumptions
+        paginated_data["results"] = consumptions.data
         return Response(paginated_data, status=HTTP.OK)
 
 
@@ -2691,9 +2780,89 @@ class MediaConsumptionHistoryView(drf_views.APIView):
 class MediaConsumptionEntryDetailView(drf_views.APIView):
     """Media consumption history entry detail view."""
 
-    serializer_class = HistorySerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = HistorySerializer
 
+    @extend_schema(
+        operation_id="media_consumption_entry_delete",
+        summary="Delete a media consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to delete",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(
+                description="Consumption entry deleted successfully",
+                examples=[
+                    OpenApiExample(
+                        "Consumption entry deleted example",
+                        description="Consumption entry deleted example",
+                        summary="Consumption entry deleted example",
+                        value=None,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                    OpenApiExample(
+                        "Consumption entry not found example",
+                        description="Consumption entry not found example",
+                        summary="Consumption entry not found example",
+                        value={"detail": "Consumption entry not found."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def delete(self, request, media_type, source, media_id, consumption_id):
         """Delete a specific consumption history entry for a specific media."""
         if not check_valid_type(media_type):
@@ -2737,6 +2906,96 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
 
         return Response(status=HTTP.NO_CONTENT)
 
+    @extend_schema(
+        operation_id="media_consumption_entry_get",
+        summary="Get a media consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to retrieve",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                HistorySerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        description="Example response",
+                        summary="Example response",
+                        value={
+                            "consumption_id": 312,
+                            "created": "2026-03-19T10:31:55.747255Z",
+                            "score": 10.0,
+                            "progress": 26,
+                            "progressed_at": "2026-03-19T10:41:00Z",
+                            "status": 1,
+                            "start_date": "2026-03-19T10:31:00Z",
+                            "end_date": "2026-03-19T10:41:00Z",
+                            "notes": "aSDASDF",
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                    OpenApiExample(
+                        "Consumption entry not found example",
+                        description="Consumption entry not found example",
+                        summary="Consumption entry not found example",
+                        value={"detail": "Consumption entry not found"},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, consumption_id):
         """Retrieve a specific consumption history entry for a specific media."""
         if not check_valid_type(media_type):
@@ -2776,12 +3035,109 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        serialized_data = serialize_data(
+        serialized_data = HistorySerializer(
             consumption,
-            serializer_class=HistorySerializer,
-        )
+        ).data
         return Response(serialized_data, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="media_consumption_entry_patch",
+        summary="Update a media consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to update",
+            ),
+        ],
+        request=PolymorphicProxySerializer(
+            component_name="HistoryUpdateRequest",
+            serializers=[
+                UpdateAnimeSerializer,
+                UpdateBoardGameSerializer,
+                UpdateBookSerializer,
+                UpdateComicSerializer,
+                UpdateGameSerializer,
+                UpdateMangaSerializer,
+                UpdateMovieSerializer,
+                UpdateTVSerializer,
+            ],
+            resource_type_field_name=None,
+        ),
+        responses={
+            200: OpenApiResponse(
+                HistorySerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        description="Example response",
+                        summary="Example response",
+                        value={
+                            "consumption_id": 312,
+                            "created": "2026-03-19T10:31:55.747255Z",
+                            "score": 10.0,
+                            "progress": 26,
+                            "progressed_at": "2026-03-19T10:41:00Z",
+                            "status": 1,
+                            "start_date": "2026-03-19T10:31:00Z",
+                            "end_date": "2026-03-19T10:41:00Z",
+                            "notes": "aSDASDF",
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def patch(self, request, media_type, source, media_id, consumption_id):
         """Update a specific consumption history entry for a specific media."""
         if not check_valid_type(media_type):
@@ -2845,10 +3201,9 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
 
         consumption.refresh_from_db()
 
-        serialized_data = serialize_data(
+        serialized_data = HistorySerializer(
             consumption,
-            serializer_class=HistorySerializer,
-        )
+        ).data
         return Response(serialized_data, status=HTTP.OK)
 
 
@@ -3818,6 +4173,10 @@ class MediaSeasonChangesHistoryView(drf_views.APIView):
         operation_id="season_changes_history_get",
         summary="Get season changes history",
         parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -4112,9 +4471,92 @@ class MediaSeasonEpisodesView(drf_views.APIView):
 class MediaSeasonConsumptionHistoryView(drf_views.APIView):
     """Season consumption history view."""
 
-    serializer_class = HistorySerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedHistoryResponseSerializer
 
+    @extend_schema(
+        operation_id="season_consumption_history_get",
+        summary="Get season consumption history",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedHistoryResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "consumption_id": 138,
+                                    "created": "2026-03-19T10:31:55.759835Z",
+                                    "score": None,
+                                    "progress": 23,
+                                    "progressed_at": "2026-03-19T10:31:00Z",
+                                    "status": 3,
+                                    "start_date": "2026-03-19T10:31:00Z",
+                                    "end_date": "2026-03-19T10:31:00Z",
+                                    "notes": "",
+                                }
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Season not found example",
+                        description="Season not found or not tracked example",
+                        summary="Season not found example",
+                        value={"detail": "Season not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number):
         """Retrieve the history timeline for a specific season of a tv serie."""
         limit, offset, err = parse_limit_offset(request)
@@ -4167,11 +4609,10 @@ class MediaSeasonConsumptionHistoryView(drf_views.APIView):
             limit,
             offset,
         )
-        consumptions = serialize_data(
+        consumptions = HistorySerializer(
             paginated_data["results"],
-            serializer_class=HistorySerializer,
             many=True,
-        )
+        ).data
         paginated_data["results"] = consumptions
         return Response(paginated_data, status=HTTP.OK)
 
@@ -4180,9 +4621,90 @@ class MediaSeasonConsumptionHistoryView(drf_views.APIView):
 class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
     """Season consumption history entry detail view."""
 
-    serializer_class = HistorySerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = HistorySerializer
 
+    @extend_schema(
+        operation_id="season_consumption_entry_delete",
+        summary="Delete a season consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to delete",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(
+                description="Consumption entry deleted successfully",
+                examples=[
+                    OpenApiExample(
+                        "Consumption entry deleted example",
+                        description="Consumption entry deleted example",
+                        summary="Consumption entry deleted example",
+                        value=None,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                    OpenApiExample(
+                        "Consumption entry not found example",
+                        description="Consumption entry not found example",
+                        summary="Consumption entry not found example",
+                        value={"detail": "Consumption entry not found."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def delete(
         self,
         request,
@@ -4243,6 +4765,97 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
 
         return Response(status=HTTP.NO_CONTENT)
 
+    @extend_schema(
+        operation_id="season_consumption_entry_get",
+        summary="Get a season consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to retrieve",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                HistorySerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        description="Example response",
+                        summary="Example response",
+                        value={
+                            "consumption_id": 312,
+                            "created": "2026-03-19T10:31:55.747255Z",
+                            "score": 10.0,
+                            "progress": 26,
+                            "progressed_at": "2026-03-19T10:41:00Z",
+                            "status": 1,
+                            "start_date": "2026-03-19T10:31:00Z",
+                            "end_date": "2026-03-19T10:41:00Z",
+                            "notes": "aSDASDF",
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                    OpenApiExample(
+                        "Consumption entry not found example",
+                        description="Consumption entry not found example",
+                        summary="Consumption entry not found example",
+                        value={"detail": "Consumption entry not found"},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number, consumption_id):
         """Retrieve a specific consumption history entry for a specific season."""
         if not check_valid_type(media_type):
@@ -4297,6 +4910,92 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
         )
         return Response(serialized_data, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="season_consumption_entry_patch",
+        summary="Update a season consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to update",
+            ),
+        ],
+        request=UpdateSeasonSerializer,
+        responses={
+            200: OpenApiResponse(
+                HistorySerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        description="Example response",
+                        summary="Example response",
+                        value={
+                            "consumption_id": 312,
+                            "created": "2026-03-19T10:31:55.747255Z",
+                            "score": 10.0,
+                            "progress": 26,
+                            "progressed_at": "2026-03-19T10:41:00Z",
+                            "status": 1,
+                            "start_date": "2026-03-19T10:31:00Z",
+                            "end_date": "2026-03-19T10:41:00Z",
+                            "notes": "aSDASDF",
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def patch(
         self,
         request,
@@ -5249,6 +5948,11 @@ class MediaEpisodeChangesHistoryView(drf_views.APIView):
         operation_id="episode_changes_history_get",
         summary="Get episode changes history",
         parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
             PaginationLimitParam,
             PaginationOffsetParam,
         ],
@@ -5399,9 +6103,93 @@ class MediaEpisodeChangesHistoryView(drf_views.APIView):
 class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
     """Episode consumption history view."""
 
-    serializer_class = HistorySerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedHistoryResponseSerializer
 
+    @extend_schema(
+        operation_id="episode_consumption_history_get",
+        summary="Get episode consumption history",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedHistoryResponseSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "consumption_id": 138,
+                                    "created": "2026-03-19T10:31:55.759835Z",
+                                    "score": None,
+                                    "progress": 23,
+                                    "progressed_at": "2026-03-19T10:31:00Z",
+                                    "status": 3,
+                                    "start_date": "2026-03-19T10:31:00Z",
+                                    "end_date": "2026-03-19T10:31:00Z",
+                                    "notes": "",
+                                }
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    )
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Season not found example",
+                        description="Season not found or not tracked example",
+                        summary="Season not found example",
+                        value={"detail": "Season not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
         """Retrieve the history timeline for a specific episode of a tv serie."""
         limit, offset, err = parse_limit_offset(request)
@@ -5468,9 +6256,91 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
 class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
     """Episode consumption history entry detail view."""
 
-    serializer_class = HistorySerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = HistorySerializer
 
+    @extend_schema(
+        operation_id="episode_consumption_entry_delete",
+        summary="Delete an episode consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to delete",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(
+                description="Consumption entry deleted successfully",
+                examples=[
+                    OpenApiExample(
+                        "Consumption entry deleted example",
+                        description="Consumption entry deleted example",
+                        summary="Consumption entry deleted example",
+                        value=None,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                    OpenApiExample(
+                        "Consumption entry not found example",
+                        description="Consumption entry not found example",
+                        summary="Consumption entry not found example",
+                        value={"detail": "Consumption entry not found."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def delete(
         self,
         request,
@@ -5530,6 +6400,98 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
 
         return Response(status=HTTP.NO_CONTENT)
 
+    @extend_schema(
+        operation_id="episode_consumption_entry_get",
+        summary="Get an episode consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to retrieve",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                HistorySerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        description="Example response",
+                        summary="Example response",
+                        value={
+                            "consumption_id": 312,
+                            "created": "2026-03-19T10:31:55.747255Z",
+                            "score": 10.0,
+                            "progress": 26,
+                            "progressed_at": "2026-03-19T10:41:00Z",
+                            "status": 1,
+                            "start_date": "2026-03-19T10:31:00Z",
+                            "end_date": "2026-03-19T10:41:00Z",
+                            "notes": "aSDASDF",
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                    OpenApiExample(
+                        "Consumption entry not found example",
+                        description="Consumption entry not found example",
+                        summary="Consumption entry not found example",
+                        value={"detail": "Consumption entry not found"},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(
         self,
         request,
@@ -5591,6 +6553,93 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         )
         return Response(serialized_data, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="episode_consumption_entry_patch",
+        summary="Update an episode consumption history entry",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+            OpenApiParameter(
+                name="consumption_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="The ID of the consumption entry to update",
+            ),
+        ],
+        request=UpdateEpisodeSerializer,
+        responses={
+            200: OpenApiResponse(
+                HistorySerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        description="Example response",
+                        summary="Example response",
+                        value={
+                            "consumption_id": 312,
+                            "created": "2026-03-19T10:31:55.747255Z",
+                            "score": 10.0,
+                            "progress": 26,
+                            "progressed_at": "2026-03-19T10:41:00Z",
+                            "status": 1,
+                            "start_date": "2026-03-19T10:31:00Z",
+                            "end_date": "2026-03-19T10:41:00Z",
+                            "notes": "aSDASDF",
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot query `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    ),
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def patch(
         self,
         request,
