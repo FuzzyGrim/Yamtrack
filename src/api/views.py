@@ -96,6 +96,7 @@ from .serializers import (
     MediaSerializer,
     MixedMediaSerializer,
     PaginatedChangesHistoryResponseSerializer,
+    PaginatedEpisodesSerializer,
     PaginatedEventsSerializer,
     PaginatedGenericResponseSerializer,
     PaginatedHistoryResponseSerializer,
@@ -3603,7 +3604,7 @@ class MediaRecommendationsView(drf_views.APIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = RelatedResponseSerializer
 
-    @extend_schema( 
+    @extend_schema(
         operation_id="media_recommendations_get",
         summary="Get media recommendations",
         parameters=[
@@ -3734,8 +3735,115 @@ class MediaRecommendationsView(drf_views.APIView):
 class MediaSeasonsView(drf_views.APIView):
     """Media seasons view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedMediaSerializer
 
+    @extend_schema(
+        operation_id="media_seasons_get",
+        summary="Get media seasons",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedMediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieve seasons example",
+                        description="Retrieve seasons example",
+                        summary="Retrieve seasons example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 2892,
+                                    "consumption_id": None,
+                                    "item": {
+                                        "media_id": "32868",
+                                        "source": "tmdb",
+                                        "media_type": "season",
+                                        "title": "Nikita",
+                                        "image": "https://image.tmdb.org/t/p/w500/t1X9TyxfB9qlqML7EF8IGqQuOIP.jpg",
+                                        "season_number": 1,
+                                        "episode_number": None,
+                                    },
+                                    "item_id": "tv/tmdb/32868/1",
+                                    "parent_id": "tv/tmdb/32868",
+                                    "tracked": False,
+                                    "created_at": None,
+                                    "score": None,
+                                    "status": None,
+                                    "progress": None,
+                                    "progressed_at": None,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": None,
+                                    "lists": [{"list_id": 1, "list_item_id": 14}],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot sync `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id):
         """Retrieve the history timeline for a specific media."""
         user = request.user
@@ -3877,14 +3985,10 @@ class MediaSeasonsView(drf_views.APIView):
                 )(),
             )
 
-        paginated_data["results"] = serialize_data(
+        paginated_data["results"] = MediaSerializer(
             season_media_entries,
             many=True,
-            context={
-                "request": request,
-            },
-            serializer_class=MediaSerializer,
-        )
+        ).data
         return Response(paginated_data, status=HTTP.OK)
 
 
@@ -3940,9 +4044,7 @@ class MediaSyncView(drf_views.APIView):
                         "Manual source sync attempt example",
                         description="Manual source sync attempt example",
                         summary="Manual source sync attempt example",
-                        value={
-                            "detail": "Manual items cannot be synced."
-                        },
+                        value={"detail": "Manual items cannot be synced."},
                     ),
                 ],
             ),
@@ -3987,7 +4089,7 @@ class MediaSyncView(drf_views.APIView):
                     )
                 ],
             ),
-        }
+        },
     )
     def post(self, _, media_type, source, media_id):
         """Trigger sync of metadata from provider (non-manual sources only)."""
@@ -4546,8 +4648,114 @@ class MediaSeasonChangesHistoryView(drf_views.APIView):
 class MediaSeasonEpisodesView(drf_views.APIView):
     """Season episodes view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedEpisodesSerializer
 
+    @extend_schema(
+        operation_id="season_episodes_get",
+        summary="Get season episodes",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedEpisodesSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Example response",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": None,
+                                    "consumption_id": None,
+                                    "item": {
+                                        "media_id": "32868",
+                                        "source": "tmdb",
+                                        "media_type": "episode",
+                                        "title": "Pilot",
+                                        "image": "https://image.tmdb.org/t/p/original/tmuqJdVHsbInNFKvfCfVxYt9iMW.jpg",
+                                        "season_number": 1,
+                                        "episode_number": 1,
+                                    },
+                                    "item_id": "tv/tmdb/32868/1/1",
+                                    "parent_id": "tv/tmdb/32868/1",
+                                    "tracked": False,
+                                    "created_at": None,
+                                    "score": None,
+                                    "status": None,
+                                    "progress": None,
+                                    "progressed_at": None,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": None,
+                                    "lists": [],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot sync `invalid_source` for `tv` media type"
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number):
         """Retrieve the episodes for a specific season of a tv serie."""
         user = request.user
@@ -4640,7 +4848,7 @@ class MediaSeasonEpisodesView(drf_views.APIView):
                 ):
                     tracked_by_number[tracked_number] = tracked
 
-        paginated["results"] = serialize_data(
+        paginated["results"] = EpisodeSerializer(
             paginated["results"],
             many=True,
             context={
@@ -4648,8 +4856,7 @@ class MediaSeasonEpisodesView(drf_views.APIView):
                 "tracked_episodes": tracked_by_number,
                 "lists_by_number": lists_by_number,
             },
-            serializer_class=EpisodeSerializer,
-        )
+        ).data
         return Response(paginated, status=HTTP.OK)
 
 
@@ -5726,9 +5933,7 @@ class MediaSeasonSyncView(drf_views.APIView):
                         "Manual source sync attempt example",
                         description="Manual source sync attempt example",
                         summary="Manual source sync attempt example",
-                        value={
-                            "detail": "Manual items cannot be synced."
-                        },
+                        value={"detail": "Manual items cannot be synced."},
                     ),
                 ],
             ),
@@ -5773,7 +5978,7 @@ class MediaSeasonSyncView(drf_views.APIView):
                     )
                 ],
             ),
-        }
+        },
     )
     def post(self, _, media_type, source, media_id, season_number):
         """Trigger sync of metadata from provider (non-manual sources only)."""
@@ -7491,9 +7696,7 @@ class MediaEpisodeSyncView(drf_views.APIView):
                         "Manual source sync attempt example",
                         description="Manual source sync attempt example",
                         summary="Manual source sync attempt example",
-                        value={
-                            "detail": "Manual items cannot be synced."
-                        },
+                        value={"detail": "Manual items cannot be synced."},
                     ),
                 ],
             ),
@@ -7538,7 +7741,7 @@ class MediaEpisodeSyncView(drf_views.APIView):
                     )
                 ],
             ),
-        }
+        },
     )
     def post(
         self,

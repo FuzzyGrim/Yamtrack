@@ -55,13 +55,6 @@ class ParentIdField(serializers.CharField):
         return build_parent_id(item)
 
 
-class StatusField(serializers.Field):
-    """Custom field to convert status string to numeric value."""
-
-    def to_representation(self, obj):  # noqa: D102
-        return get_media_status(getattr(obj, "status", None))
-
-
 class MediaStatusChoiceField(serializers.ChoiceField):
     """Custom field for media status options."""
 
@@ -72,6 +65,9 @@ class MediaStatusChoiceField(serializers.ChoiceField):
         status_choices = MEDIA_STATUS_CHOICES
         kwargs["choices"] = status_choices
         super().__init__(**kwargs)
+
+    def to_representation(self, obj):  # noqa: D102
+        return get_media_status(getattr(obj, "status", None))
 
 
 class MediaSourceChoiceField(serializers.ChoiceField):
@@ -162,7 +158,7 @@ class ChangesHistoryEntrySerializer(serializers.Serializer):
                     def __init__(self, status_value):
                         self.status = status_value
 
-                status_field = StatusField()
+                status_field = MediaStatusChoiceField()
                 if change.get("old_value") is not None:
                     change["old_value"] = status_field.to_representation(
                         TempObj(change["old_value"]),
@@ -507,8 +503,31 @@ class CompleteMediaSerializer(serializers.Serializer):
         }
 
 
-class EpisodeSerializer(serializers.ModelSerializer):
+class ListMinimizedSerializer(serializers.Serializer):
+    """Serializer for minimized list information."""
+
+    list_id = serializers.IntegerField()
+    list_item_id = serializers.IntegerField()
+
+
+class EpisodeSerializer(serializers.Serializer):
     """Serializer used for Episode items."""
+
+    id = serializers.IntegerField(source="item.id")
+    consumption_id = serializers.IntegerField(source="id")
+    item = ItemSerializer()
+    item_id = ItemIdField(source="item")
+    parent_id = ParentIdField(source="item")
+    tracked = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+    score = serializers.FloatField(allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(allow_null=True)
+    progressed_at = serializers.DateTimeField(allow_null=True)
+    start_date = serializers.DateField(allow_null=True)
+    end_date = serializers.DateField(allow_null=True)
+    notes = serializers.CharField(allow_null=True)
+    lists = ListMinimizedSerializer(many=True)
 
     def to_representation(self, instance):
         """Serialize an Episode with item details."""
@@ -601,6 +620,13 @@ class EpisodeSerializer(serializers.ModelSerializer):
             "notes": None,
             "lists": lists,
         }
+
+
+class PaginatedEpisodesSerializer(serializers.Serializer):
+    """Serializer for paginated episodes."""
+
+    pagination = PaginationSerializer()
+    results = EpisodeSerializer(many=True)
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -725,7 +751,7 @@ class HistorySerializer(serializers.Serializer):
                 else None,
                 "notes": "",
             }
-        status = StatusField().to_representation(instance)
+        status = MediaStatusChoiceField().to_representation(instance)
 
         return {
             "consumption_id": instance.id,
@@ -783,13 +809,6 @@ class InfoSerializer(serializers.Serializer):
         }
 
 
-class ListMinimizedSerializer(serializers.Serializer):
-    """Serializer for minimized list information."""
-
-    list_id = serializers.IntegerField()
-    list_item_id = serializers.IntegerField()
-
-
 class PaginatedListsMinimizedResponseSerializer(serializers.Serializer):
     """Paginated response serializer for minimized list information."""
 
@@ -815,7 +834,7 @@ class MediaSerializer(serializers.ModelSerializer):
     tracked = serializers.BooleanField()
     created_at = serializers.DateTimeField()
     score = serializers.FloatField(allow_null=True)
-    status = StatusField()
+    status = MediaStatusChoiceField()
     progress = serializers.IntegerField(allow_null=True)
     progressed_at = serializers.DateTimeField(allow_null=True)
     start_date = serializers.DateField(allow_null=True)
@@ -854,7 +873,7 @@ class MediaSerializer(serializers.ModelSerializer):
             "score": float(instance.score)
             if hasattr(instance, "score") and instance.score is not None
             else None,
-            "status": StatusField().to_representation(instance),
+            "status": MediaStatusChoiceField().to_representation(instance),
             "progress": instance.progress if hasattr(instance, "progress") else None,
             "progressed_at": instance.progressed_at
             if hasattr(instance, "progressed_at")
