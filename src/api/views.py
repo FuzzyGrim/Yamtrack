@@ -3892,8 +3892,103 @@ class MediaSeasonsView(drf_views.APIView):
 class MediaSyncView(drf_views.APIView):
     """Sync media view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ApiMessageResponseSerializer
 
+    @extend_schema(
+        operation_id="media_sync_post",
+        summary="Sync media metadata",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+        ],
+        request=None,
+        responses={
+            202: OpenApiResponse(
+                ApiMessageResponseSerializer,
+                description="Accepted",
+                examples=[
+                    OpenApiExample(
+                        "Metadata sync accepted example",
+                        description="Metadata sync accepted example",
+                        summary="Metadata sync accepted example",
+                        value={"detail": "Metadata synced successfully."},
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot sync `invalid_source` for `tv` media type"
+                        },
+                    ),
+                    OpenApiExample(
+                        "Manual source sync attempt example",
+                        description="Manual source sync attempt example",
+                        summary="Manual source sync attempt example",
+                        value={
+                            "detail": "Manual items cannot be synced."
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            429: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Too Many Requests",
+                examples=[
+                    OpenApiExample(
+                        "Sync too soon example",
+                        description="Sync too soon example",
+                        summary="Sync too soon example",
+                        value={
+                            "detail": (
+                                "The data was recently synced, please wait a few seconds."
+                            )
+                        },
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        }
+    )
     def post(self, _, media_type, source, media_id):
         """Trigger sync of metadata from provider (non-manual sources only)."""
         if not check_valid_type(media_type):
@@ -5582,8 +5677,104 @@ class MediaSeasonListDetailView(drf_views.APIView):
 class MediaSeasonSyncView(drf_views.APIView):
     """Sync season."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ApiMessageResponseSerializer
 
+    @extend_schema(
+        operation_id="season_sync_post",
+        summary="Sync season metadata",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        request=None,
+        responses={
+            202: OpenApiResponse(
+                ApiMessageResponseSerializer,
+                description="Accepted",
+                examples=[
+                    OpenApiExample(
+                        "Metadata sync accepted example",
+                        description="Metadata sync accepted example",
+                        summary="Metadata sync accepted example",
+                        value={"detail": "Metadata synced successfully."},
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot sync `invalid_source` for `tv` media type"
+                        },
+                    ),
+                    OpenApiExample(
+                        "Manual source sync attempt example",
+                        description="Manual source sync attempt example",
+                        summary="Manual source sync attempt example",
+                        value={
+                            "detail": "Manual items cannot be synced."
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            429: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Too Many Requests",
+                examples=[
+                    OpenApiExample(
+                        "Sync too soon example",
+                        description="Sync too soon example",
+                        summary="Sync too soon example",
+                        value={
+                            "detail": (
+                                "The data was recently synced, please wait a few seconds."
+                            )
+                        },
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        }
+    )
     def post(self, _, media_type, source, media_id, season_number):
         """Trigger sync of metadata from provider (non-manual sources only)."""
         # TODO: see if it can be simplified reducing the number of return statements
@@ -7250,8 +7441,105 @@ class MediaEpisodeListDetailView(drf_views.APIView):
 class MediaEpisodeSyncView(drf_views.APIView):
     """Sync episode view."""
 
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ApiMessageResponseSerializer
 
+    @extend_schema(
+        operation_id="media_sync_post",
+        summary="Sync media metadata",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+        ],
+        request=None,
+        responses={
+            202: OpenApiResponse(
+                ApiMessageResponseSerializer,
+                description="Accepted",
+                examples=[
+                    OpenApiExample(
+                        "Metadata sync accepted example",
+                        description="Metadata sync accepted example",
+                        summary="Metadata sync accepted example",
+                        value={"detail": "Metadata synced successfully."},
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid source example",
+                        description="Invalid source example",
+                        summary="Invalid source example",
+                        value={
+                            "detail": "Cannot sync `invalid_source` for `tv` media type"
+                        },
+                    ),
+                    OpenApiExample(
+                        "Manual source sync attempt example",
+                        description="Manual source sync attempt example",
+                        summary="Manual source sync attempt example",
+                        value={
+                            "detail": "Manual items cannot be synced."
+                        },
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found or not tracked example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found or not tracked."},
+                    )
+                ],
+            ),
+            429: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Too Many Requests",
+                examples=[
+                    OpenApiExample(
+                        "Sync too soon example",
+                        description="Sync too soon example",
+                        summary="Sync too soon example",
+                        value={
+                            "detail": (
+                                "The data was recently synced, please wait a few seconds."
+                            )
+                        },
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal Server Error",
+                examples=[
+                    OpenApiExample(
+                        "Internal server error example",
+                        description="Internal server error example",
+                        summary="Internal server error example",
+                        value={"detail": "Internal Server Error."},
+                    )
+                ],
+            ),
+        }
+    )
     def post(
         self,
         request,
