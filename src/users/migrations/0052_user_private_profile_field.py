@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
             model_name="user",
             name="profile_private",
             field=models.BooleanField(
-                default=False,
+                default=True,
                 help_text="Toggle profile visibility to anonymous users",
             ),
         ),
