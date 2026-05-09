@@ -112,6 +112,10 @@ class User(AbstractUser):
 
     is_demo = models.BooleanField(default=False)
 
+    profile_private = models.BooleanField(
+        default=True, help_text="Toggle profile visibility to anonymous users"
+    )
+
     last_search_type = models.CharField(
         max_length=10,
         default=MediaTypes.TV.value,
@@ -529,6 +533,26 @@ class User(AbstractUser):
         Returns:
             The value that was set (or the original value if invalid)
         """
+        current_value = getattr(self, field_name)
+        preference_value = self.get_valid_preference(field_name, new_value)
+
+        if preference_value != current_value:
+            setattr(self, field_name, preference_value)
+            self.save(update_fields=[field_name])
+
+        return preference_value
+
+    def get_valid_preference(self, field_name, new_value):
+        """
+        Return a valid preference value without saving it.
+
+        Args:
+            field_name: The name of the field to validate against
+            new_value: The new value to check
+
+        Returns:
+            The new value if valid, otherwise the current field value.
+        """
         # If no new value provided, return current value
         if new_value is None:
             return getattr(self, field_name)
@@ -546,14 +570,6 @@ class User(AbstractUser):
             # If the new value is not valid, return current value
             if new_value not in valid_values:
                 return getattr(self, field_name)
-
-        # Get current value
-        current_value = getattr(self, field_name)
-
-        # Update if different
-        if new_value != current_value:
-            setattr(self, field_name, new_value)
-            self.save(update_fields=[field_name])
 
         return new_value
 

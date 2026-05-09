@@ -35,6 +35,18 @@
             <p class="mt-1 text-sm text-red-400">{{ user_form.username.errors.0 }}</p>
           {% endif %}
         </div>
+
+        <div class="flex items-center">
+          <input type="checkbox"
+                 id="{{ user_form.profile_private.id_for_label }}"
+                 name="{{ user_form.profile_private.html_name }}"
+                 class="h-4 w-4 text-indigo-600 bg-[#39404b] border-gray-600 rounded focus:ring-indigo-500"
+                 {% if user_form.profile_private.value %}checked{% endif %}>
+
+          <label for="{{ user_form.profile_private.id_for_label }}"
+                 class="ml-2 text-sm text-gray-300">Private profile</label>
+        </div>
+
         <div class="pt-2">
           <button type="submit"
                   class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">

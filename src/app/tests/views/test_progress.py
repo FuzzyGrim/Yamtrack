@@ -112,7 +112,11 @@ class ProgressEditAnime(TestCase):
     def setUp(self):
         """Prepare the database with an anime."""
         self.credentials = {"username": "test", "password": "12345"}
+        self.external_credentials = {"username": "test2", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.external_user = get_user_model().objects.create_user(
+            **self.external_credentials
+        )
         self.client.login(**self.credentials)
 
         self.item = Item.objects.create(
@@ -162,6 +166,38 @@ class ProgressEditAnime(TestCase):
         )
 
         self.assertEqual(Anime.objects.get(item__media_id="1").progress, 1)
+
+    def test_cannot_edit_another_users_progress(self):
+        """Test users cannot edit another user's media progress by instance ID."""
+        item = Item.objects.create(
+            media_id="2",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Samurai Champloo",
+            image="http://example.com/image.jpg",
+        )
+        anime = Anime(
+            item=item,
+            user=self.external_user,
+            status=Status.IN_PROGRESS.value,
+            progress=2,
+        )
+        Anime.save_base(anime)
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": anime.id,
+                },
+            ),
+            {"operation": "increase"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        anime.refresh_from_db()
+        self.assertEqual(anime.progress, 2)
 
 
 class ProgressEditPersistentMessages(TestCase):

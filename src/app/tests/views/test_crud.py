@@ -23,7 +23,11 @@ class CreateMedia(TestCase):
     def setUp(self):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
+        self.external_credentials = {"username": "test2", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.external_user = get_user_model().objects.create_user(
+            **self.external_credentials
+        )
         self.client.login(**self.credentials)
 
     @override_settings(MEDIA_ROOT=("create_media"))
@@ -129,7 +133,11 @@ class EditMedia(TestCase):
     def setUp(self):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
+        self.external_credentials = {"username": "test2", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.external_user = get_user_model().objects.create_user(
+            **self.external_credentials
+        )
         self.client.login(**self.credentials)
 
     def test_edit_movie_score(self):
@@ -167,6 +175,75 @@ class EditMedia(TestCase):
         )
         self.assertEqual(Movie.objects.get(item__media_id="10494").score, 10)
 
+    def test_cannot_edit_another_users_media(self):
+        """Test users cannot edit another user's media by instance ID."""
+        item = Item.objects.create(
+            media_id="10494",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Perfect Blue",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(
+            item=item,
+            user=self.external_user,
+            score=9,
+            progress=0,
+            status=Status.PLANNING.value,
+            notes="Nice",
+        )
+
+        response = self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie.id,
+                "media_id": "10494",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "score": 10,
+                "progress": 0,
+                "status": Status.PLANNING.value,
+                "notes": "Changed",
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        movie.refresh_from_db()
+        self.assertEqual(movie.score, 9)
+        self.assertEqual(movie.notes, "Nice")
+
+    def test_cannot_update_another_users_media_score(self):
+        """Test users cannot update another user's score by instance ID."""
+        item = Item.objects.create(
+            media_id="10494",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Perfect Blue",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(
+            item=item,
+            user=self.external_user,
+            score=9,
+            progress=0,
+            status=Status.PLANNING.value,
+        )
+
+        response = self.client.post(
+            reverse(
+                "update_media_score",
+                kwargs={
+                    "media_type": MediaTypes.MOVIE.value,
+                    "instance_id": movie.id,
+                },
+            ),
+            {"score": 10},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        movie.refresh_from_db()
+        self.assertEqual(movie.score, 9)
+
 
 class DeleteMedia(TestCase):
     """Test the deletion of media objects through views."""
@@ -174,7 +251,11 @@ class DeleteMedia(TestCase):
     def setUp(self):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
+        self.external_credentials = {"username": "test2", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.external_user = get_user_model().objects.create_user(
+            **self.external_credentials
+        )
         self.client.login(**self.credentials)
 
         self.item_season = Item.objects.create(
@@ -235,6 +316,33 @@ class DeleteMedia(TestCase):
             Episode.objects.filter(related_season__user=self.user).count(),
             0,
         )
+
+    def test_cannot_delete_another_users_media(self):
+        """Test users cannot delete another user's media by instance ID."""
+        item = Item.objects.create(
+            media_id="10494",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Perfect Blue",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(
+            item=item,
+            user=self.external_user,
+            progress=0,
+            status=Status.PLANNING.value,
+        )
+
+        response = self.client.post(
+            reverse("media_delete"),
+            data={
+                "instance_id": movie.id,
+                "media_type": MediaTypes.MOVIE.value,
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Movie.objects.filter(id=movie.id).exists())
 
     def test_unwatch_episode(self):
         """Test unwatching of an episode through views."""

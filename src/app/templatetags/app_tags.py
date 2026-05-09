@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_date
 from django.utils.html import format_html
 from unidecode import unidecode
 
-from app import config
+from app import config, helpers
 from app.models import MediaTypes, Sources, Status
 
 register = template.Library()
@@ -26,6 +26,12 @@ def get_static_file_mtime(file_path):
         return ""
     else:
         return f"?{mtime}"
+
+
+@register.simple_tag(takes_context=True)
+def absolute_app_url(context, path):
+    """Return an absolute app URL for links copied into external services."""
+    return helpers.build_absolute_app_url(context.get("request"), path)
 
 
 @register.filter

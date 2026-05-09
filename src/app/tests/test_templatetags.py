@@ -80,6 +80,16 @@ class AppTagsTests(TestCase):
         result = app_tags.get_static_file_mtime("nonexistent.css")
         self.assertEqual(result, "")
 
+    @override_settings(URLS=["https://yamtrack.example.com:8924"])
+    def test_absolute_app_url(self):
+        """Test the absolute_app_url tag."""
+        result = app_tags.absolute_app_url({}, "/webhook/jellyfin/token")
+
+        self.assertEqual(
+            result,
+            "https://yamtrack.example.com:8924/webhook/jellyfin/token",
+        )
+
     def test_no_underscore(self):
         """Test the no_underscore filter."""
         self.assertEqual(app_tags.no_underscore("hello_world"), "hello world")
