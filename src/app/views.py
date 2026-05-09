@@ -17,13 +17,6 @@ from django.utils.dateparse import parse_date
 from django.utils.text import slugify
 from django.utils.timezone import datetime
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
-from users.models import (
-    DateFormatChoices,
-    HomeSortChoices,
-    MediaSortChoices,
-    MediaStatusChoices,
-    User,
-)
 
 from app import config, helpers, history_processor
 from app import statistics as stats
@@ -40,6 +33,13 @@ from app.models import (
 )
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
+from users.models import (
+    DateFormatChoices,
+    HomeSortChoices,
+    MediaSortChoices,
+    MediaStatusChoices,
+    User,
+)
 
 logger = logging.getLogger(__name__)
 
