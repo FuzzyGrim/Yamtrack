@@ -191,7 +191,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still1.jpg",
                     "name": "Pilot",
                     "overview": "overview of the episode",
-                    "runtime": 23,
+                    "runtime": 90,
                 },
                 {
                     "episode_number": 2,
@@ -239,11 +239,15 @@ class Metadata(TestCase):
         self.assertEqual(result[0]["episode_number"], 1)
         self.assertEqual(result[0]["title"], "Pilot")
         self.assertEqual(result[0]["air_date"], "2008-01-20")
+        self.assertEqual(result[0]["runtime"], "1h 30m")
+        self.assertEqual(result[0]["runtime_minutes"], 90)
         self.assertTrue(result[0]["history"], [episode_1])
 
         self.assertEqual(result[1]["episode_number"], 2)
         self.assertEqual(result[1]["title"], "Cat's in the Bag...")
         self.assertEqual(result[1]["air_date"], "2008-01-27")
+        self.assertEqual(result[1]["runtime"], "23m")
+        self.assertEqual(result[1]["runtime_minutes"], 23)
         self.assertTrue(result[1]["history"], [episode_2])
 
         self.assertEqual(result[2]["episode_number"], 3)

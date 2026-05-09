@@ -576,7 +576,7 @@
                         <div>
                           <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
                           <p class="text-sm text-gray-400">
-                            Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
+                            Episode {{ episode.episode_number }} • {{ episode.air_date|iso_date_format:request.user|default_if_none:"Unknown air date" }}
                             {% if episode.runtime %}• {{ episode.runtime }}{% endif %}
                           </p>
                         </div>

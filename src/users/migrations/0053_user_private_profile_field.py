@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("users", "0051_user_obfuscate_unseen_episodes"),
+        ("users", "0052_alter_user_date_format"),
     ]
 
     operations = [

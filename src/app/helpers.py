@@ -1,7 +1,8 @@
 from datetime import date, datetime
-from urllib.parse import parse_qsl, urlencode, urlparse
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import Q
 from django.http import HttpResponseRedirect
@@ -14,6 +15,36 @@ from app.models import BasicMedia, MediaTypes, Status
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
+
+
+def get_configured_app_url():
+    """Return the configured public application origin, if one is available."""
+    for url in getattr(settings, "URLS", []):
+        if url:
+            return url.rstrip("/")
+
+    base_url = getattr(settings, "BASE_URL", None)
+    parsed_base_url = urlparse(base_url or "")
+    if parsed_base_url.scheme and parsed_base_url.netloc:
+        return base_url.rstrip("/")
+
+    return None
+
+
+def build_absolute_app_url(request, path):
+    """Build an absolute URL using the configured public origin when possible."""
+    parsed_path = urlparse(path)
+    if parsed_path.scheme and parsed_path.netloc:
+        return path
+
+    configured_app_url = get_configured_app_url()
+    if configured_app_url:
+        return urljoin(f"{configured_app_url}/", path.lstrip("/"))
+
+    if request is None:
+        return None
+
+    return request.build_absolute_uri(path)
 
 
 def minutes_to_hhmm(total_minutes):

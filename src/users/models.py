@@ -1,11 +1,11 @@
 import secrets
 
+from app.models import Item, MediaTypes, Status
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
-from app.models import Item, MediaTypes, Status
 from users import helpers
 
 EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
@@ -97,6 +97,7 @@ class DateFormatChoices(models.TextChoices):
     EUROPEAN = "d/m/Y", "18/01/2026 (EU)"
     US = "m/d/Y", "01/18/2026 (US)"
     LONG = "M j, Y", "Jan 18, 2026"
+    LONG_EU = "j M, Y", "18 Jan, 2026"
 
 
 class TimeFormatChoices(models.TextChoices):

@@ -80,6 +80,16 @@ class AppTagsTests(TestCase):
         result = app_tags.get_static_file_mtime("nonexistent.css")
         self.assertEqual(result, "")
 
+    @override_settings(URLS=["https://yamtrack.example.com:8924"])
+    def test_absolute_app_url(self):
+        """Test the absolute_app_url tag."""
+        result = app_tags.absolute_app_url({}, "/webhook/jellyfin/token")
+
+        self.assertEqual(
+            result,
+            "https://yamtrack.example.com:8924/webhook/jellyfin/token",
+        )
+
     def test_no_underscore(self):
         """Test the no_underscore filter."""
         self.assertEqual(app_tags.no_underscore("hello_world"), "hello world")
@@ -170,6 +180,44 @@ class AppTagsTests(TestCase):
 
             # Check that it returns a non-empty string
             self.assertTrue(isinstance(result, str))
+
+    @override_settings(TRACK_TIME=True)
+    def test_now_plus_minutes_with_time(self):
+        """Test now plus minutes with TRACK_TIME enabled."""
+        with (
+            timezone.override("UTC"),
+            patch("django.utils.timezone.now") as mock_now,
+        ):
+            mock_now.return_value = timezone.datetime(
+                2025,
+                3,
+                29,
+                12,
+                0,
+                0,
+                tzinfo=timezone.get_current_timezone(),
+            )
+
+            self.assertEqual(app_tags.now_plus_minutes(90), "2025-03-29T13:30")
+
+    @override_settings(TRACK_TIME=False)
+    def test_now_plus_minutes_without_time(self):
+        """Test now plus minutes with TRACK_TIME disabled."""
+        with (
+            timezone.override("UTC"),
+            patch("django.utils.timezone.now") as mock_now,
+        ):
+            mock_now.return_value = timezone.datetime(
+                2025,
+                3,
+                29,
+                12,
+                0,
+                0,
+                tzinfo=timezone.get_current_timezone(),
+            )
+
+            self.assertEqual(app_tags.now_plus_minutes(90), "2025-03-29")
 
     @override_settings(TRACK_TIME=False)
     def test_natural_day(self):

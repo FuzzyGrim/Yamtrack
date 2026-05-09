@@ -12,7 +12,7 @@ from app.models import (
 from integrations.imports import (
     helpers,
 )
-from integrations.imports.trakt import TraktImporter, importer
+from integrations.imports.trakt import TraktImporter, get_access_token, importer
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 app_mock_path = (
@@ -273,3 +273,25 @@ class ImportTrakt(TestCase):
         self.assertEqual(importer.username, "testuser")
         self.assertIsNone(importer.refresh_token)
         self.assertEqual(importer.mode, "new")
+
+    @patch("integrations.imports.trakt.update_refresh_token")
+    @patch("app.providers.services.api_request")
+    def test_get_access_token_uses_redirect_uri(self, mock_api_request, _):
+        """Test refreshing Trakt tokens sends the configured redirect URI."""
+        mock_api_request.return_value = {
+            "access_token": "access-token",
+            "refresh_token": "new-refresh-token",
+        }
+        encrypted_token = helpers.encrypt("refresh-token")
+
+        access_token = get_access_token(
+            encrypted_token,
+            redirect_uri="https://yamtrack.example.com/import/trakt/private",
+        )
+
+        self.assertEqual(access_token, "access-token")
+        params = mock_api_request.call_args.kwargs["params"]
+        self.assertEqual(
+            params["redirect_uri"],
+            "https://yamtrack.example.com/import/trakt/private",
+        )
