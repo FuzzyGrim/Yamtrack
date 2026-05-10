@@ -329,7 +329,7 @@
                     <div class="space-y-2">
                       <div class="text-xs text-gray-400">Status: {{ user_media.status|media_status_readable }}</div>
 
-                      {% if media.media_type != MediaTypes.MOVIE.value %}
+                      {% if media.media_type != MediaTypes.MOVIE.value and media.media_type != MediaTypes.CONCERT.value %}
                         <div class="text-xs text-gray-400">
                           Progress: {{ user_media.formatted_progress }}
                           {% if media.media_type != MediaTypes.GAME.value %}
@@ -542,6 +542,40 @@
             </section>
           {% endif %}
         {% endfor %}
+      {% endif %}
+
+      {# Concert Setlist #}
+      {% if media_type == 'concert' and media.setlist %}
+        <div class="w-full {% if media.cast or media.related or media.episodes %}mt-8{% endif %}">
+          <h2 class="text-xl font-bold mb-4">Setlist</h2>
+          <div class="bg-[#2a2f35] rounded-lg overflow-hidden">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-gray-400 border-b border-gray-600 text-left">
+                  <th class="px-4 py-3 w-12">#</th>
+                  <th class="px-4 py-3">Song</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entry in media.setlist %}
+                  {% if entry.type == "divider" %}
+                    <tr class="border-b border-gray-700 bg-[#1e2329]">
+                      <td colspan="2"
+                          class="px-4 py-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+                        {{ entry.label }}
+                      </td>
+                    </tr>
+                  {% else %}
+                    <tr class="border-b border-gray-700 last:border-0 hover:bg-[#343a40]">
+                      <td class="px-4 py-3 text-gray-500 tabular-nums">{{ entry.position }}</td>
+                      <td class="px-4 py-3 text-gray-200">{{ entry.song }}</td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
       {% endif %}
 
       {# Episodes List #}

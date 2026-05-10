@@ -149,10 +149,10 @@
             <p class="text-gray-400 mb-6">
               Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
             </p>
-            <a href="{{ media_type|sample_search }}"
-               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-              Browse {{ media_type|media_type_readable_plural }}
-            </a>
+              <a href="{{ media_type|sample_search }}"
+                 class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+                Browse {{ media_type|media_type_readable_plural }}
+              </a>
           {% endif %}
         </div>
       </div>
@@ -166,7 +166,7 @@
               <th class="p-2 w-15"></th>
               <th class="p-2 pe-8 w-2/5">Title</th>
               <th class="p-2 text-center">Score</th>
-              {% if media_type != MediaTypes.MOVIE.value %}<th class="p-2 text-center">Progress</th>{% endif %}
+              {% if media_type != MediaTypes.MOVIE.value and media_type != MediaTypes.CONCERT.value %}<th class="p-2 text-center">Progress</th>{% endif %}
               {% if media_type == MediaTypes.TV.value %}<th class="p-2 text-center">Last Watched</th>{% endif %}
               <th class="p-2 text-center">Status</th>
               <th class="p-2 text-center">Start Date</th>

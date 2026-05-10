@@ -30,6 +30,16 @@
               {% include "app/icons/cube.svg" with classes="w-4 h-4" %}
               {{ item.media_type|default_source }}
             </span>
+
+            {% if item.details.location %}
+              <span class="flex items-center gap-1">
+                {% include "app/icons/globe.svg" with classes="w-4 h-4" %}
+                {{ item.details.location }}
+              </span>
+            {% endif %}
+            {% if item.details.date %}
+              <span>{{ item.details.date }}</span>
+            {% endif %}
           </div>
         </div>
 

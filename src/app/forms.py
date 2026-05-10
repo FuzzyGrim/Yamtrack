@@ -10,6 +10,7 @@ from app.models import (
     BoardGame,
     Book,
     Comic,
+    Concert,
     Episode,
     Game,
     Item,
@@ -329,6 +330,35 @@ class BoardgameForm(MediaForm):
                 f"({config.get_unit(MediaTypes.BOARDGAME.value, short=False)}s)"
             ),
         }
+
+
+class ConcertForm(MediaForm):
+    """Form for concerts."""
+
+    poster_url = forms.URLField(
+        required=False,
+        label="Tour Poster URL",
+        widget=forms.URLInput(attrs={"placeholder": "https://..."}),
+    )
+
+    class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
+        model = Concert
+        fields = ["score", "status", "date", "notes"]
+        widgets = {
+            **MediaForm.Meta.widgets,
+            "date": forms.DateInput(attrs={"type": "date"}),
+        }
+        labels = {"date": "Concert Date"}
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        poster_url = self.cleaned_data.get("poster_url", "")
+        if poster_url and commit:
+            instance.item.image = poster_url
+            instance.item.save(update_fields=["image"])
+        return instance
 
 
 class TvForm(MediaForm):

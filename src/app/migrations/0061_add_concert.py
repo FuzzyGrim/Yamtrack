@@ -1,0 +1,188 @@
+import django.core.validators
+import django.db.models.deletion
+import django.utils.timezone
+import model_utils.fields
+import simple_history.models
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('app', '0060_fix_reopened_completed_tv_seasons'),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
+
+    operations = [
+        migrations.RemoveConstraint(
+            model_name='item',
+            name='app_item_media_type_valid',
+        ),
+        migrations.AlterField(
+            model_name='item',
+            name='media_type',
+            field=models.CharField(
+                choices=[
+                    ('tv', 'TV Show'),
+                    ('season', 'TV Season'),
+                    ('episode', 'Episode'),
+                    ('movie', 'Movie'),
+                    ('anime', 'Anime'),
+                    ('manga', 'Manga'),
+                    ('game', 'Game'),
+                    ('book', 'Book'),
+                    ('comic', 'Comic'),
+                    ('boardgame', 'Boardgame'),
+                    ('concert', 'Concert'),
+                ],
+                default='movie',
+                max_length=10,
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name='item',
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    media_type__in=[
+                        'tv', 'season', 'episode', 'movie', 'anime',
+                        'manga', 'game', 'book', 'comic', 'boardgame', 'concert',
+                    ],
+                ),
+                name='app_item_media_type_valid',
+            ),
+        ),
+        migrations.RemoveConstraint(
+            model_name='item',
+            name='app_item_source_valid',
+        ),
+        migrations.AlterField(
+            model_name='item',
+            name='source',
+            field=models.CharField(
+                choices=[
+                    ('tmdb', 'The Movie Database'),
+                    ('mal', 'MyAnimeList'),
+                    ('mangaupdates', 'MangaUpdates'),
+                    ('igdb', 'Internet Game Database'),
+                    ('openlibrary', 'Open Library'),
+                    ('hardcover', 'Hardcover'),
+                    ('comicvine', 'Comic Vine'),
+                    ('bgg', 'BoardGameGeek'),
+                    ('setlistfm', 'Setlist.fm'),
+                    ('manual', 'Manual'),
+                ],
+                max_length=20,
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name='item',
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    source__in=[
+                        'tmdb', 'mal', 'mangaupdates', 'igdb',
+                        'openlibrary', 'hardcover', 'comicvine',
+                        'bgg', 'setlistfm', 'manual',
+                    ],
+                ),
+                name='app_item_source_valid',
+            ),
+        ),
+        migrations.CreateModel(
+            name='Concert',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('score', models.DecimalField(
+                    blank=True,
+                    decimal_places=1,
+                    max_digits=3,
+                    null=True,
+                    validators=[
+                        django.core.validators.DecimalValidator(3, 1),
+                        django.core.validators.MinValueValidator(0),
+                        django.core.validators.MaxValueValidator(10),
+                    ],
+                )),
+                ('progress', models.PositiveIntegerField(default=0)),
+                ('progressed_at', model_utils.fields.MonitorField(
+                    default=django.utils.timezone.now,
+                    monitor='progress',
+                )),
+                ('status', models.CharField(
+                    choices=[
+                        ('Completed', 'Completed'),
+                        ('In progress', 'In Progress'),
+                        ('Planning', 'Planning'),
+                        ('Paused', 'Paused'),
+                        ('Dropped', 'Dropped'),
+                    ],
+                    default='Completed',
+                    max_length=20,
+                )),
+                ('start_date', models.DateTimeField(blank=True, null=True)),
+                ('end_date', models.DateTimeField(blank=True, null=True)),
+                ('notes', models.TextField(blank=True, default='')),
+                ('date', models.DateField(blank=True, null=True)),
+                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='app.item')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ['user', 'item', '-created_at'],
+                'abstract': False,
+            },
+        ),
+        migrations.CreateModel(
+            name='HistoricalConcert',
+            fields=[
+                ('id', models.BigIntegerField(auto_created=True, blank=True, db_index=True, verbose_name='ID')),
+                ('score', models.DecimalField(
+                    blank=True,
+                    decimal_places=1,
+                    max_digits=3,
+                    null=True,
+                    validators=[
+                        django.core.validators.DecimalValidator(3, 1),
+                        django.core.validators.MinValueValidator(0),
+                        django.core.validators.MaxValueValidator(10),
+                    ],
+                )),
+                ('progress', models.PositiveIntegerField(default=0)),
+                ('status', models.CharField(
+                    choices=[
+                        ('Completed', 'Completed'),
+                        ('In progress', 'In Progress'),
+                        ('Planning', 'Planning'),
+                        ('Paused', 'Paused'),
+                        ('Dropped', 'Dropped'),
+                    ],
+                    default='Completed',
+                    max_length=20,
+                )),
+                ('start_date', models.DateTimeField(blank=True, null=True)),
+                ('end_date', models.DateTimeField(blank=True, null=True)),
+                ('notes', models.TextField(blank=True, default='')),
+                ('date', models.DateField(blank=True, null=True)),
+                ('history_id', models.AutoField(primary_key=True, serialize=False)),
+                ('history_date', models.DateTimeField(db_index=True)),
+                ('history_change_reason', models.CharField(max_length=100, null=True)),
+                ('history_type', models.CharField(
+                    choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')],
+                    max_length=1,
+                )),
+                ('history_user', models.ForeignKey(
+                    null=True,
+                    on_delete=django.db.models.deletion.SET_NULL,
+                    related_name='+',
+                    to=settings.AUTH_USER_MODEL,
+                )),
+            ],
+            options={
+                'verbose_name': 'historical concert',
+                'verbose_name_plural': 'historical concerts',
+                'ordering': ('-history_date', '-history_id'),
+                'get_latest_by': ('history_date', 'history_id'),
+            },
+            bases=(simple_history.models.HistoricalChanges, models.Model),
+        ),
+    ]

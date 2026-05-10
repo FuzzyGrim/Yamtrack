@@ -57,7 +57,7 @@
     {% endif %}
 
     {# Progress field #}
-    {% if media_type != MediaTypes.MOVIE.value %}
+    {% if media_type != MediaTypes.MOVIE.value and media_type != MediaTypes.CONCERT.value %}
       <td class="p-2 text-center">
         {{ media.formatted_progress }}
         {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}

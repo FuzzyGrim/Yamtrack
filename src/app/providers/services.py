@@ -19,6 +19,7 @@ from app.providers import (
     mangaupdates,
     manual,
     openlibrary,
+    setlistfm,
     tmdb,
 )
 
@@ -76,6 +77,10 @@ session.mount(
 )
 session.mount(
     "https://boardgamegeek.com/xmlapi2",
+    LimiterAdapter(per_second=2),
+)
+session.mount(
+    "https://api.setlist.fm/rest/1.0",
     LimiterAdapter(per_second=2),
 )
 
@@ -241,6 +246,7 @@ def get_media_metadata(
         ),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
         MediaTypes.BOARDGAME.value: lambda: bgg.boardgame(media_id),
+        MediaTypes.CONCERT.value: lambda: setlistfm.concert(media_id),
     }
     return metadata_retrievers[media_type]()
 
@@ -266,5 +272,6 @@ def search(media_type, query, page, source=None):
         ),
         MediaTypes.COMIC.value: lambda: comicvine.search(query, page),
         MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
+        MediaTypes.CONCERT.value: lambda: setlistfm.search(query, page),
     }
     return search_handlers[media_type]()
