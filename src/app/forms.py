@@ -124,6 +124,119 @@ class ManualItemForm(forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if self.user:
+            self.fields["parent_tv"].queryset = TV.objects.filter(
+                user=self.user,
+                item__source=Sources.MANUAL.value,
+                item__media_type=MediaTypes.TV.value,
+            )
+            self.fields["parent_season"].queryset = Season.objects.filter(
+                user=self.user,
+                item__source=Sources.MANUAL.value,
+                item__media_type=MediaTypes.SEASON.value,
+            )
+        self.fields["image"].required = False
+        self.fields["title"].required = False
+
+    def clean(self):
+        """Validate the form."""
+        cleaned_data = super().clean()
+        image = cleaned_data.get("image")
+        media_type = cleaned_data.get("media_type")
+
+        if not image:
+            cleaned_data["image"] = settings.IMG_NONE
+
+        # Title not required for season/episode
+        if media_type in [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]:
+            if media_type == MediaTypes.SEASON.value:
+                parent = cleaned_data.get("parent_tv")
+                if not parent:
+                    self.add_error(
+                        "parent_tv",
+                        "Parent TV show is required for seasons",
+                    )
+                    return cleaned_data
+                cleaned_data["title"] = parent.item.title
+                cleaned_data["episode_number"] = None
+            else:  # episode
+                parent = cleaned_data.get("parent_season")
+                if not parent:
+                    self.add_error(
+                        "parent_season",
+                        "Parent season is required for episodes",
+                    )
+                    return cleaned_data
+                cleaned_data["title"] = parent.item.title
+                cleaned_data["season_number"] = parent.item.season_number
+        else:
+            # For standalone media, title is required
+            if not cleaned_data.get("title"):
+                self.add_error("title", "Title is required for this media type")
+            cleaned_data["season_number"] = None
+            cleaned_data["episode_number"] = None
+
+        return cleaned_data
+
+    def save(self, commit=True):  # noqa: FBT002
+        """Save the form and handle manual media ID generation."""
+        instance = super().save(commit=False)
+        instance.source = Sources.MANUAL.value
+
+        if instance.media_type == MediaTypes.SEASON.value:
+            parent_tv = self.cleaned_data["parent_tv"]
+            instance.media_id = parent_tv.item.media_id
+        elif instance.media_type == MediaTypes.EPISODE.value:
+            parent_season = self.cleaned_data["parent_season"]
+            instance.media_id = parent_season.item.media_id
+            instance.season_number = parent_season.item.season_number
+        else:
+            instance.media_id = Item.generate_manual_id()
+
+        if commit:
+            instance.save()
+        return instance
+
+
+class MediaForm(forms.ModelForm):
+    """Base form for all media types."""
+
+    instance_id = forms.CharField(widget=forms.HiddenInput(), required=False)
+    media_type = forms.CharField(widget=forms.HiddenInput(), required=True)
+    source = forms.CharField(widget=forms.HiddenInput(), required=True)
+    media_id = forms.CharField(widget=forms.HiddenInput(), required=True)
+
+    class Meta:
+        """Define fields and input types."""
+
+        fields = [
+            "score",
+            "progress",
+            "status",
+            "start_date",
+            "end_date",
+            "notes",
+        ]
+        widgets = {
+            "score": forms.NumberInput(
+                attrs={"min": 0, "max": 10, "step": 0.1, "placeholder": "0-10"},
+            ),
+            "progress": forms.NumberInput(attrs={"min": 0}),
+            "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
+            if settings.TRACK_TIME
+            else forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
+            if settings.TRACK_TIME
+            else forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(
+                attrs={"placeholder": "Add any notes or comments...", "rows": "5"},
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
         """Initialize form and keep submitted custom links for processing."""
         self.custom_link_entries = kwargs.pop("custom_link_entries", None)
         super().__init__(*args, **kwargs)
