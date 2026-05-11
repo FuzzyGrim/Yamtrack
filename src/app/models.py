@@ -826,7 +826,7 @@ class CustomLink(models.Model):
     label = models.CharField(max_length=100)
     url = models.URLField(max_length=500)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
+    object_id = models.PositiveBigIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
     created_at = models.DateTimeField(auto_now_add=True)
 

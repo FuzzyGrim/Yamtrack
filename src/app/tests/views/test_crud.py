@@ -208,6 +208,20 @@ class EditMedia(TestCase):
 
         self.assertEqual(CustomLink.objects.filter(user=self.user, object_id=movie.id).count(), 1)
 
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "10495",
+                    "title": "paprika",
+                },
+            ),
+        )
+        self.assertContains(response, "Netflix")
+        self.assertContains(response, "https://www.netflix.com/title/800")
+
     def test_cannot_edit_another_users_media(self):
         """Test users cannot edit another user's media by instance ID."""
         item = Item.objects.create(

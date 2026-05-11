@@ -272,6 +272,8 @@ class MediaForm(forms.ModelForm):
                 continue
             if not label or not url:
                 raise forms.ValidationError("Each link requires both a label and URL.")
+            if len(url) > 500:
+                raise forms.ValidationError(f"URL is too long for '{label}'.")
             try:
                 url_validator(url)
             except forms.ValidationError as e:
