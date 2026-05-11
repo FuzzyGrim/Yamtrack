@@ -100,7 +100,6 @@ def episode(episode_id):
         "series_id": episode_data.get("seriesId"),
         "season_number": episode_data.get("seasonNumber"),
         "episode_number": episode_data.get("number"),
-        "absolute_number": episode_data.get("absoluteNumber") or None,
     }
 
     if not all(

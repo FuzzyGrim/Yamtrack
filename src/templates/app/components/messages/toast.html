@@ -1,7 +1,7 @@
 {# djlint:off #}
 <div class="flex items-center gap-2 rounded-md border px-3 py-2 shadow-lg text-white toast-{{ message.tags }} opacity-0"
-     x-data="{ 
-         init() { 
+     x-data="{
+         init() {
            setTimeout(() => this.$el.classList.add('opacity-100', 'transform-none'), 10);
            this.$el.classList.add('transition-all', 'duration-300', 'ease-out', 'transform', 'translate-y-[-1rem]');
 

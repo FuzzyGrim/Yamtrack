@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 import app
+from app import helpers as app_helpers
 from app.models import MediaTypes, Sources, Status
 from app.providers import services
 from integrations.imports import helpers
@@ -29,7 +30,10 @@ def get_token(request):
         "client_secret": settings.ANILIST_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": request.build_absolute_uri(reverse("import_anilist_private")),
+        "redirect_uri": app_helpers.build_absolute_app_url(
+            request,
+            reverse("import_anilist_private"),
+        ),
     }
 
     try:

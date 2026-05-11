@@ -157,7 +157,9 @@ function dateRangePicker() {
 
     updateDateRange() {
       // Ensure end date is not before start date
-      if (new Date(this.endDate) < new Date(this.startDate)) {
+      if (
+        this.parseInputDate(this.endDate) < this.parseInputDate(this.startDate)
+      ) {
         this.endDate = this.startDate;
       }
 
@@ -183,27 +185,102 @@ function dateRangePicker() {
     },
 
     formatDisplayDate(dateString) {
-      const date = new Date(dateString);
-      // Get format from the script tag's data attribute
-      const scriptTag = document.querySelector('script[data-date-format]');
-      const format = scriptTag?.dataset.dateFormat || "Y-m-d";
+      const date = this.parseInputDate(dateString);
+      const format = this.getDateFormat();
 
-      // Map Django date format to Intl.DateTimeFormat options
-      const options = this.getDateFormatOptions(format);
-      return date.toLocaleDateString(undefined, options);
+      return this.formatDateByDjangoFormat(date, format);
     },
 
-    getDateFormatOptions(djangoFormat) {
-      // Map common Django format strings to Intl.DateTimeFormat options
-      switch (djangoFormat) {
-        case "d/m/Y": // European: 18/01/2026
-        case "m/d/Y": // US: 01/18/2026
-        case "Y-m-d": // ISO: 2026-01-18
-          return { year: "numeric", month: "2-digit", day: "2-digit" };
-        case "M j, Y": // Long: Jan 18, 2026
-          return { year: "numeric", month: "short", day: "numeric" };
+    getDateFormat() {
+      const scriptTag = document.querySelector('script[data-date-format]');
+      const selectedFormat = scriptTag?.dataset.dateFormat;
+      const dateFormats = this.getDateFormatValues();
+
+      if (
+        selectedFormat &&
+        (!dateFormats.length || dateFormats.includes(selectedFormat))
+      ) {
+        return selectedFormat;
+      }
+
+      return dateFormats[0] || "Y-m-d";
+    },
+
+    getDateFormatValues() {
+      const formatsElement = document.getElementById("date_format_values");
+
+      if (!formatsElement?.textContent) {
+        return [];
+      }
+
+      try {
+        const dateFormats = JSON.parse(formatsElement.textContent);
+        return Array.isArray(dateFormats) ? dateFormats : [];
+      } catch {
+        return [];
+      }
+    },
+
+    parseInputDate(dateString) {
+      const [year, month, day] = dateString.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    },
+
+    formatDateByDjangoFormat(date, djangoFormat) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const shortMonth = date.toLocaleString(undefined, { month: "short" });
+      const longMonth = date.toLocaleString(undefined, { month: "long" });
+      const shortWeekday = date.toLocaleString(undefined, { weekday: "short" });
+      const longWeekday = date.toLocaleString(undefined, { weekday: "long" });
+      const ordinalSuffix = this.getOrdinalSuffix(date.getDate());
+
+      const formatters = {
+        d: () => day,
+        D: () => shortWeekday,
+        F: () => longMonth,
+        j: () => String(date.getDate()),
+        l: () => longWeekday,
+        m: () => month,
+        M: () => shortMonth,
+        n: () => String(date.getMonth() + 1),
+        S: () => ordinalSuffix,
+        y: () => String(year).slice(-2),
+        Y: () => String(year),
+      };
+
+      let formattedDate = "";
+      let isEscaped = false;
+
+      for (const character of djangoFormat) {
+        if (isEscaped) {
+          formattedDate += character;
+          isEscaped = false;
+        } else if (character === "\\") {
+          isEscaped = true;
+        } else {
+          formattedDate += formatters[character]?.() ?? character;
+        }
+      }
+
+      return formattedDate;
+    },
+
+    getOrdinalSuffix(day) {
+      if (day >= 11 && day <= 13) {
+        return "th";
+      }
+
+      switch (day % 10) {
+        case 1:
+          return "st";
+        case 2:
+          return "nd";
+        case 3:
+          return "rd";
         default:
-          return { year: "numeric", month: "short", day: "numeric" };
+          return "th";
       }
     },
 
@@ -214,8 +291,8 @@ function dateRangePicker() {
         return;
       }
       // Parse the current start and end dates
-      const startDate = new Date(this.startDate);
-      const endDate = new Date(this.endDate);
+      const startDate = this.parseInputDate(this.startDate);
+      const endDate = this.parseInputDate(this.endDate);
 
       // Get today's date with time set to 00:00:00
       const today = new Date();

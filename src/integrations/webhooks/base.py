@@ -1,11 +1,12 @@
 import logging
 
-from django.core.cache import cache
 from django.utils import timezone
 
 import app
 from app.models import MediaTypes, Sources, Status
 from app.providers import tvdb as tvdb_provider
+
+from . import anime_mappings
 
 logger = logging.getLogger(__name__)
 
@@ -64,31 +65,39 @@ class BaseWebhookProcessor:
     def _process_tv(self, payload, user, ids):
         anidb_id = ids.get("anidb_id")
         if user.anime_enabled and anidb_id:
-            mapping_data = self._fetch_mapping_data()
-            matching_entry = mapping_data.get(anidb_id)
+            mapping_data = anime_mappings.fetch_mapping_data()
             episode_number = self._get_episode_number(payload)
+            mal_id = None
+            mal_episode_number = None
 
-            if not matching_entry:
-                logger.info(
-                    "AniDB ID %s not found in mapping, "
-                    "falling through to TV processing",
-                    anidb_id,
-                )
-            elif not episode_number:
+            if not episode_number:
                 logger.warning(
                     "No episode number found for AniDB ID: %s",
                     anidb_id,
                 )
             else:
+                mal_id, mal_episode_number = anime_mappings.get_mal_id_from_anidb(
+                    mapping_data,
+                    anidb_id,
+                    episode_number,
+                )
+
+            if episode_number and not mal_id:
+                logger.info(
+                    "AniDB ID %s not found in mapping, "
+                    "falling through to TV processing",
+                    anidb_id,
+                )
+            elif episode_number:
                 logger.info(
                     "Detected anime via AniDB ID: %s. Matching MAL ID: %s, Episode: %d",
                     anidb_id,
-                    matching_entry["mal_id"],
-                    episode_number,
+                    mal_id,
+                    mal_episode_number,
                 )
                 self._handle_anime(
-                    matching_entry["mal_id"],
-                    episode_number,
+                    mal_id,
+                    mal_episode_number,
                     payload,
                     user,
                 )
@@ -108,13 +117,12 @@ class BaseWebhookProcessor:
             return
 
         if user.anime_enabled:
-            mapping_data = self._fetch_mapping_data()
-            mal_id, episode_offset = self._get_mal_id_from_tvdb(
+            mapping_data = anime_mappings.fetch_mapping_data()
+            mal_id, episode_offset = anime_mappings.get_mal_id_from_tvdb(
                 mapping_data,
                 tvdb_episode["series_id"],
                 tvdb_episode["season_number"],
                 tvdb_episode["episode_number"],
-                absolute_episode_number=tvdb_episode["absolute_number"],
             )
             if mal_id:
                 logger.info(
@@ -148,16 +156,19 @@ class BaseWebhookProcessor:
 
         # Try to detect anime first if user has anime enabled
         if user.anime_enabled:
-            mapping_data = self._fetch_mapping_data()
+            mapping_data = anime_mappings.fetch_mapping_data()
             mal_id = None
             source = None
 
             if tmdb_id:
-                mal_id = self._get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
+                mal_id = anime_mappings.get_mal_id_from_tmdb_movie(
+                    mapping_data,
+                    tmdb_id,
+                )
                 source = "TMDB"
 
             if not mal_id and imdb_id:
-                mal_id = self._get_mal_id_from_imdb(mapping_data, imdb_id)
+                mal_id = anime_mappings.get_mal_id_from_imdb(mapping_data, imdb_id)
                 source = "IMDB"
 
             if mal_id:
@@ -201,91 +212,6 @@ class BaseWebhookProcessor:
                     result.get("episode_number"),
                 )
         return None, None, None
-
-    def _fetch_mapping_data(self):
-        """Fetch anime mapping data with caching."""
-        data = cache.get("anime_mapping_data")
-        if data is None:
-            url = "https://raw.githubusercontent.com/Kometa-Team/Anime-IDs/refs/heads/master/anime_ids.json"
-            data = app.providers.services.api_request("GITHUB", "GET", url)
-            cache.set("anime_mapping_data", data)
-        return data
-
-    def _get_mal_id_from_tvdb(
-        self,
-        mapping_data,
-        tvdb_id,
-        season_number,
-        episode_number,
-        absolute_episode_number,
-    ):
-        """Find a MAL ID from Kometa's TVDB-based anime mappings.
-
-        Kometa stores Anime-Lists absolute-order entries as ``tvdb_season = -1``.
-        When available we prefer TVDB's absolute episode number for that fallback.
-        For season 1, if TVDB does not provide one, the regular episode number is
-        usually equivalent and can be used as a safe fallback.
-        """
-
-        def find_matching_entries(target_season):
-            return [
-                entry
-                for entry in mapping_data.values()
-                if entry.get("tvdb_id") == tvdb_id
-                and entry.get("tvdb_season") == target_season
-                and "mal_id" in entry
-            ]
-
-        def match_entries(entries, mapped_episode_number):
-            if not entries or mapped_episode_number is None:
-                return None, None
-
-            entries.sort(key=lambda x: x.get("tvdb_epoffset", 0))
-            for i, entry in enumerate(entries):
-                current_offset = entry.get("tvdb_epoffset", 0)
-                next_offset = (
-                    entries[i + 1].get("tvdb_epoffset", float("inf"))
-                    if i < len(entries) - 1
-                    else float("inf")
-                )
-
-                if current_offset < mapped_episode_number <= next_offset:
-                    mal_id = self._parse_mal_id(entry["mal_id"])
-                    return mal_id, mapped_episode_number - current_offset
-
-            return None, None
-
-        mal_id, mapped_episode_number = match_entries(
-            find_matching_entries(season_number),
-            episode_number,
-        )
-        if mal_id:
-            return mal_id, mapped_episode_number
-
-        return match_entries(find_matching_entries(-1), absolute_episode_number)
-
-    def _get_mal_id_from_tmdb_movie(self, mapping_data, tmdb_movie_id):
-        """Find MAL ID from TMDB movie mapping."""
-        for entry in mapping_data.values():
-            if entry.get("tmdb_movie_id") == tmdb_movie_id and "mal_id" in entry:
-                return self._parse_mal_id(entry["mal_id"])
-        return None
-
-    def _get_mal_id_from_imdb(self, mapping_data, imdb_id):
-        """Find MAL ID from IMDB ID mapping."""
-        for entry in mapping_data.values():
-            if entry.get("imdb_id") == imdb_id and "mal_id" in entry:
-                return self._parse_mal_id(entry["mal_id"])
-        return None
-
-    def _parse_mal_id(self, mal_id):
-        """Parse MAL ID from potentially comma-separated string.
-
-        mal_id: Either a single ID (int) or comma-separated string of IDs
-        """
-        if isinstance(mal_id, str) and "," in mal_id:
-            return mal_id.split(",")[0].strip()
-        return mal_id
 
     def _handle_movie(self, media_id, payload, user):
         """Handle movie playback event."""

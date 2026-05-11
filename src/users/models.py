@@ -98,6 +98,7 @@ class DateFormatChoices(models.TextChoices):
     EUROPEAN = "d/m/Y", _("18/01/2026 (EU)")
     US = "m/d/Y", _("01/18/2026 (US)")
     LONG = "M j, Y", _("Jan 18, 2026")
+    LONG_EU = "j M, Y", _("18 Jan, 2026")
 
 
 class TimeFormatChoices(models.TextChoices):
@@ -111,6 +112,10 @@ class User(AbstractUser):
     """Custom user model."""
 
     is_demo = models.BooleanField(default=False)
+
+    profile_private = models.BooleanField(
+        default=True, help_text="Toggle profile visibility to anonymous users"
+    )
 
     last_search_type = models.CharField(
         max_length=10,
@@ -290,6 +295,11 @@ class User(AbstractUser):
     clickable_media_cards = models.BooleanField(
         default=False,
         help_text=_("Hide hover overlay on touch devices"),
+    )
+
+    obfuscate_unseen_episodes = models.BooleanField(
+        default=False,
+        help_text="Blur unseen episode images and descriptions",
     )
 
     # Tracking settings
@@ -524,6 +534,26 @@ class User(AbstractUser):
         Returns:
             The value that was set (or the original value if invalid)
         """
+        current_value = getattr(self, field_name)
+        preference_value = self.get_valid_preference(field_name, new_value)
+
+        if preference_value != current_value:
+            setattr(self, field_name, preference_value)
+            self.save(update_fields=[field_name])
+
+        return preference_value
+
+    def get_valid_preference(self, field_name, new_value):
+        """
+        Return a valid preference value without saving it.
+
+        Args:
+            field_name: The name of the field to validate against
+            new_value: The new value to check
+
+        Returns:
+            The new value if valid, otherwise the current field value.
+        """
         # If no new value provided, return current value
         if new_value is None:
             return getattr(self, field_name)
@@ -541,14 +571,6 @@ class User(AbstractUser):
             # If the new value is not valid, return current value
             if new_value not in valid_values:
                 return getattr(self, field_name)
-
-        # Get current value
-        current_value = getattr(self, field_name)
-
-        # Update if different
-        if new_value != current_value:
-            setattr(self, field_name, new_value)
-            self.save(update_fields=[field_name])
 
         return new_value
 
