@@ -202,7 +202,8 @@ class EditMedia(TestCase):
                 "media_type": MediaTypes.MOVIE.value,
                 "score": 8,
                 "status": Status.PLANNING.value,
-                "links_data": '[{"label":"Netflix","url":"https://www.netflix.com/title/800"}]',
+                "custom_link_label[]": ["Netflix"],
+                "custom_link_url[]": ["https://www.netflix.com/title/800"],
             },
         )
 
@@ -221,6 +222,46 @@ class EditMedia(TestCase):
         )
         self.assertContains(response, "Netflix")
         self.assertContains(response, "https://www.netflix.com/title/800")
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "10495",
+                },
+                query={"instance_id": movie.id, "return_url": "/"},
+            ),
+        )
+        self.assertContains(modal_response, "custom_link_label[]")
+        self.assertContains(modal_response, "Netflix")
+
+
+    def test_edit_movie_without_link_fields_does_not_wipe_existing_links(self):
+        """Saving without link arrays should preserve existing custom links."""
+        item = Item.objects.create(
+            media_id="10496",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Millennium Actress",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(item=item, user=self.user, status=Status.PLANNING.value)
+        CustomLink.objects.create(user=self.user, label="YouTube", url="https://youtube.com/", content_object=movie)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie.id,
+                "media_id": "10496",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.COMPLETED.value,
+                "notes": "Updated",
+            },
+        )
+
+        self.assertEqual(CustomLink.objects.filter(user=self.user, object_id=movie.id).count(), 1)
 
     def test_cannot_edit_another_users_media(self):
         """Test users cannot edit another user's media by instance ID."""

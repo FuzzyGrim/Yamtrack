@@ -563,6 +563,7 @@ def track_modal(
             "title": title,
             "form": form,
             "media": media,
+            "custom_links": list(media.custom_links.filter(user=request.user)) if media else [],
             "return_url": request.GET["return_url"],
         },
     )
@@ -599,9 +600,23 @@ def media_save(request):
         model = apps.get_model(app_label="app", model_name=media_type)
         instance = model(item=item, user=request.user)
 
+    # Parse user-submitted custom links from normal form arrays
+    custom_link_entries = None
+    if "custom_link_label[]" in request.POST or "custom_link_url[]" in request.POST:
+        labels = request.POST.getlist("custom_link_label[]")
+        urls = request.POST.getlist("custom_link_url[]")
+        max_len = max(len(labels), len(urls))
+        custom_link_entries = [
+            {
+                "label": labels[idx] if idx < len(labels) else "",
+                "url": urls[idx] if idx < len(urls) else "",
+            }
+            for idx in range(max_len)
+        ]
+
     # Validate the form and save the instance if it's valid
     form_class = get_form_class(media_type)
-    form = form_class(request.POST, instance=instance)
+    form = form_class(request.POST, instance=instance, custom_link_entries=custom_link_entries)
     if form.is_valid():
         form.save()
         logger.info("%s saved successfully.", form.instance)
