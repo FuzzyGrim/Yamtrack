@@ -377,6 +377,7 @@ SPECTACULAR_SETTINGS = {
     "PARSER_WHITELIST": [
         "rest_framework.parsers.JSONParser",
     ],
+    "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
     "ENUM_NAME_OVERRIDES": {
         "MediaStatusEnum": "api.helpers.MEDIA_STATUS_CHOICES",
     },
