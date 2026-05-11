@@ -12,7 +12,7 @@ from app.providers import services
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.myanimelist.net/v2"
-base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status,genres,mean,num_scoring_users,recommendations"  # noqa: E501
+base_fields = "title,alternative_titles,main_picture,media_type,start_date,end_date,synopsis,status,genres,mean,num_scoring_users,recommendations"  # noqa: E501
 
 
 def handle_error(error):
@@ -49,7 +49,7 @@ def search(media_type, query, page):
         url = f"{base_url}/{media_type}"
         params = {
             "q": query,
-            "fields": "media_type",
+            "fields": "media_type,alternative_titles",
             "limit": settings.PER_PAGE,
         }
         if settings.MAL_NSFW:
@@ -72,7 +72,7 @@ def search(media_type, query, page):
                 "media_id": media["node"]["id"],
                 "source": Sources.MAL.value,
                 "media_type": media_type,
-                "title": media["node"]["title"],
+                "title": get_title(media["node"]),
                 "image": get_image_url(media["node"]),
             }
             for media in response
@@ -119,7 +119,7 @@ def anime(media_id):
             "source": Sources.MAL.value,
             "source_url": f"https://myanimelist.net/anime/{media_id}",
             "media_type": MediaTypes.ANIME.value,
-            "title": response["title"],
+            "title": get_title(response),
             "max_progress": num_episodes,
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
@@ -184,7 +184,7 @@ def manga(media_id):
             "source": Sources.MAL.value,
             "source_url": f"https://myanimelist.net/manga/{media_id}",
             "media_type": MediaTypes.MANGA.value,
-            "title": response["title"],
+            "title": get_title(response),
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
             "max_progress": num_chapters,
@@ -225,6 +225,15 @@ def get_format(response):
     if media_format in ("ova", "ona"):
         return media_format.upper()
     return media_format.replace("_", " ").title()
+
+
+def get_title(response):
+    """Return title based on configured MAL title language preference."""
+    if settings.MAL_TITLE_LANG == "en":
+        english_title = response.get("alternative_titles", {}).get("en")
+        if english_title:
+            return english_title
+    return response["title"]
 
 
 def get_image_url(response):
@@ -388,7 +397,7 @@ def get_related(related_medias, media_type):
             {
                 "media_id": media["node"]["id"],
                 "source": Sources.MAL.value,
-                "title": media["node"]["title"],
+                "title": get_title(media["node"]),
                 "media_type": media_type,
                 "image": get_image_url(media["node"]),
             }

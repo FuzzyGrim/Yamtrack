@@ -365,6 +365,7 @@ MAL_API = config(
     ),
 )
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
+MAL_TITLE_LANG = config("MAL_TITLE_LANG", default="en")
 
 MU_NSFW = config("MU_NSFW", default=False, cast=bool)
 

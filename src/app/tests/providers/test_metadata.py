@@ -34,6 +34,24 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["status"], "Finished")
         self.assertEqual(response["details"]["episodes"], 26)
 
+    @patch("app.providers.mal.settings.MAL_TITLE_LANG", "en")
+    def test_get_title_prefers_english_title(self):
+        """Test that MAL english title is used when configured."""
+        response = {
+            "title": "Shingeki no Kyojin",
+            "alternative_titles": {"en": "Attack on Titan"},
+        }
+        self.assertEqual(mal.get_title(response), "Attack on Titan")
+
+    @patch("app.providers.mal.settings.MAL_TITLE_LANG", "ja")
+    def test_get_title_fallback_to_default_title(self):
+        """Test fallback to MAL default title for non-english preference."""
+        response = {
+            "title": "Shingeki no Kyojin",
+            "alternative_titles": {"en": "Attack on Titan"},
+        }
+        self.assertEqual(mal.get_title(response), "Shingeki no Kyojin")
+
     @patch("requests.Session.get")
     def test_anime_unknown(self, mock_data):
         """Test the metadata method for anime with mostly unknown data."""
