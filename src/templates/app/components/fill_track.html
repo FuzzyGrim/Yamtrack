@@ -88,8 +88,7 @@
              this.input = '';
              this.open = false;
            }
-         }"
-         @click.away="open = false">
+         }">
       <div class="flex items-center justify-between mb-2">
         <label class="block text-sm font-medium text-gray-300">Tags</label>
       </div>
@@ -101,7 +100,7 @@
           </span>
         </template>
       </div>
-      <div class="flex gap-2 relative">
+      <div class="flex gap-2 relative" @click.outside="open = false">
         <input type="text"
                x-model="input"
                placeholder="Add tag and press Enter"
@@ -112,7 +111,7 @@
                @keydown.escape.prevent="open = false">
         <div x-show="open"
              x-cloak
-             class="absolute z-30 top-full left-0 right-0 mt-1 bg-[#2a2f35] border border-gray-600 rounded-md shadow-xl max-h-48 overflow-y-auto">
+             class="absolute z-30 top-full left-0 right-0 mt-1 bg-[#2a2f35] border border-indigo-500/70 rounded-md shadow-xl shadow-indigo-900/30 ring-1 ring-indigo-500/40 max-h-48 overflow-y-auto">
           <template x-if="filteredSuggestions.length > 0">
             <ul class="py-1">
               <template x-for="suggestion in filteredSuggestions" :key="suggestion">
