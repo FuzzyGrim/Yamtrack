@@ -127,7 +127,7 @@ SourceParam = OpenApiParameter(
     type=OpenApiTypes.STR,
     location=OpenApiParameter.PATH,
     description="Source of media item data for import operations.",
-    required=False,
+    required=True,
     enum=SOURCES_VALID_LIST,
 )
 

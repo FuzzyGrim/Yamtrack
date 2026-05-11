@@ -293,13 +293,15 @@ class ListMinimizedSerializer(serializers.Serializer):
 class EpisodeSerializer(serializers.Serializer):
     """Serializer used for Episode items."""
 
-    id = serializers.IntegerField(source="item.id")
-    consumption_id = serializers.IntegerField(source="id")
+    id = serializers.IntegerField(source="item.id", allow_null=True, required=False)
+    consumption_id = serializers.IntegerField(
+        source="id", allow_null=True, required=False
+    )
     item = ItemSerializer()
     item_id = ItemIdField(source="item")
     parent_id = ParentIdField(source="item")
     tracked = serializers.BooleanField()
-    created_at = serializers.DateTimeField()
+    created_at = serializers.DateTimeField(allow_null=True, required=False)
     score = serializers.FloatField(allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(allow_null=True)
@@ -464,7 +466,7 @@ class HealthResponseSerializer(serializers.Serializer):
 
     status = serializers.ChoiceField(choices=["ok", "unavailable"])
     timestamp = serializers.DateTimeField()
-    checks = HealthCheckSerializer(many=True)
+    checks = serializers.DictField(child=HealthCheckSerializer())
 
     def to_representation(self, instance):
         """Transform reports from health-check library to json."""
@@ -504,8 +506,8 @@ class HistorySerializer(serializers.Serializer):
     progress = serializers.IntegerField(allow_null=True)
     progressed_at = serializers.DateTimeField(allow_null=True)
     status = MediaStatusChoiceField()
-    start_date = serializers.DateField(allow_null=True)
-    end_date = serializers.DateField(allow_null=True)
+    start_date = serializers.DateTimeField(allow_null=True)
+    end_date = serializers.DateTimeField(allow_null=True)
     notes = serializers.CharField(allow_null=True)
 
     def to_representation(self, instance):
@@ -606,13 +608,15 @@ class UserSerializer(serializers.Serializer):
 class MediaSerializer(serializers.ModelSerializer):
     """Serializer used for media items."""
 
-    id = serializers.IntegerField(source="item.id")
-    consumption_id = serializers.IntegerField(source="id")
+    id = serializers.IntegerField(source="item.id", allow_null=True, required=False)
+    consumption_id = serializers.IntegerField(
+        source="id", allow_null=True, required=False
+    )
     item = ItemSerializer()
-    item_id = ItemIdField(source="item")
-    parent_id = ParentIdField(source="item")
+    item_id = ItemIdField(source="item", allow_null=True, required=False)
+    parent_id = ParentIdField(source="item", allow_null=True, required=False)
     tracked = serializers.BooleanField()
-    created_at = serializers.DateTimeField()
+    created_at = serializers.DateTimeField(allow_null=True, required=False)
     score = serializers.FloatField(allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(allow_null=True)
@@ -1233,7 +1237,7 @@ class ListSerializer(serializers.Serializer):
     collaborators = UserSerializer(many=True)
     items_count = serializers.IntegerField()
     latest_update = serializers.DateTimeField()
-    items = PaginatedMediaResponseSerializer()
+    items = PaginatedMediaResponseSerializer(required=False, allow_null=True)
 
     def to_representation(self, instance):
         """Serialize a CustomList."""
@@ -1304,8 +1308,8 @@ class PaginatedListsResponseSerializer(serializers.Serializer):
 class StatisticsResponseSerializer(serializers.Serializer):
     """Serializer for statistics endpoint payload."""
 
-    start_date = serializers.DateTimeField()
-    end_date = serializers.DateTimeField()
+    start_date = serializers.DateTimeField(allow_null=True, required=False)
+    end_date = serializers.DateTimeField(allow_null=True, required=False)
     media_count = StatisticsMediaCountSerializer()
     activity_data = serializers.JSONField()
     media_type_distribution = serializers.DictField()
@@ -1574,8 +1578,8 @@ class TrackMediaSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField(required=False)
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateField(required=False, allow_null=True)
-    end_date = serializers.DateField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
     season_number = serializers.IntegerField(required=False, allow_null=True)
     episode_number = serializers.IntegerField(required=False, allow_null=True)

@@ -478,14 +478,6 @@ class MediaTypeChangesHistoryDetailView(drf_views.APIView):
         responses={
             204: OpenApiResponse(
                 description="History record deleted successfully",
-                examples=[
-                    OpenApiExample(
-                        "History record deleted example",
-                        description="History record deleted example",
-                        summary="History record deleted example",
-                        value=None,
-                    )
-                ],
             ),
             400: OpenApiResponse(
                 ApiErrorResponseSerializer,

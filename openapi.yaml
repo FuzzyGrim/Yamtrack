@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Yamtrack API
-  version: 0.1.0
+  version: 0.1.1
   description: OpenAPI schema for Yamtrack's API
   license:
     name: GNU AFFERO GENERAL PUBLIC LICENSE v3.0
@@ -8317,8 +8317,10 @@ components:
       properties:
         id:
           type: integer
+          nullable: true
         consumption_id:
           type: integer
+          nullable: true
         item:
           $ref: '#/components/schemas/Item'
         item_id:
@@ -8330,6 +8332,7 @@ components:
         created_at:
           type: string
           format: date-time
+          nullable: true
         score:
           type: number
           format: double
@@ -8361,10 +8364,7 @@ components:
           items:
             $ref: '#/components/schemas/ListMinimized'
       required:
-      - consumption_id
-      - created_at
       - end_date
-      - id
       - item
       - item_id
       - lists
@@ -8564,8 +8564,8 @@ components:
           type: string
           format: date-time
         checks:
-          type: array
-          items:
+          type: object
+          additionalProperties:
             $ref: '#/components/schemas/HealthCheck'
       required:
       - checks
@@ -8609,11 +8609,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -8761,13 +8761,14 @@ components:
           type: string
           format: date-time
         items:
-          $ref: '#/components/schemas/PaginatedMediaResponse'
+          allOf:
+          - $ref: '#/components/schemas/PaginatedMediaResponse'
+          nullable: true
       required:
       - collaborators
       - description
       - id
       - image
-      - items
       - items_count
       - latest_update
       - name
@@ -8805,19 +8806,24 @@ components:
       properties:
         id:
           type: integer
+          nullable: true
         consumption_id:
           type: integer
+          nullable: true
         item:
           $ref: '#/components/schemas/Item'
         item_id:
           type: string
+          nullable: true
         parent_id:
           type: string
+          nullable: true
         tracked:
           type: boolean
         created_at:
           type: string
           format: date-time
+          nullable: true
         score:
           type: number
           format: double
@@ -8849,15 +8855,10 @@ components:
           items:
             $ref: '#/components/schemas/ListMinimized'
       required:
-      - consumption_id
-      - created_at
       - end_date
-      - id
       - item
-      - item_id
       - lists
       - notes
-      - parent_id
       - progress
       - progressed_at
       - score
@@ -9500,9 +9501,11 @@ components:
         start_date:
           type: string
           format: date-time
+          nullable: true
         end_date:
           type: string
           format: date-time
+          nullable: true
         media_count:
           $ref: '#/components/schemas/StatisticsMediaCount'
         activity_data: {}
@@ -9529,11 +9532,9 @@ components:
               additionalProperties: {}
       required:
       - activity_data
-      - end_date
       - media_count
       - media_type_distribution
       - score_distribution
-      - start_date
       - status_distribution
       - status_pie_chart_data
       - timeline
@@ -9633,11 +9634,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
