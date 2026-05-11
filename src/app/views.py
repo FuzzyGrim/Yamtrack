@@ -602,7 +602,11 @@ def media_save(request):
 
     # Parse user-submitted custom links from normal form arrays
     custom_link_entries = None
-    if "custom_link_label[]" in request.POST or "custom_link_url[]" in request.POST:
+    if (
+        "custom_links_submitted" in request.POST
+        or "custom_link_label[]" in request.POST
+        or "custom_link_url[]" in request.POST
+    ):
         labels = request.POST.getlist("custom_link_label[]")
         urls = request.POST.getlist("custom_link_url[]")
         max_len = max(len(labels), len(urls))

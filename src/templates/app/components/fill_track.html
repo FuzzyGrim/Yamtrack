@@ -65,6 +65,7 @@
     <div class="mb-5"
          x-data="{ rows: [{% for link in custom_links %}{ label: '{{ link.label|escapejs }}', url: '{{ link.url|escapejs }}' }{% if not forloop.last %}, {% endif %}{% endfor %}] }"
          x-init="if (rows.length === 0) rows = [{ label: '', url: '' }]">
+      <input type="hidden" name="custom_links_submitted" value="1">
       <div class="flex items-center justify-between mb-2">
         <label class="block text-sm font-medium text-gray-300">Links</label>
         <button type="button"

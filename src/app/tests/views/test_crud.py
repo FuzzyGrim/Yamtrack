@@ -263,6 +263,63 @@ class EditMedia(TestCase):
 
         self.assertEqual(CustomLink.objects.filter(user=self.user, object_id=movie.id).count(), 1)
 
+    def test_edit_movie_remove_saved_custom_link(self):
+        """Submitting track form after removing a saved row should delete the link."""
+        item = Item.objects.create(
+            media_id="10497",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tokyo Godfathers",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(item=item, user=self.user, status=Status.PLANNING.value)
+        CustomLink.objects.create(
+            user=self.user,
+            label="Netflix",
+            url="https://www.netflix.com/title/123",
+            content_object=movie,
+        )
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie.id,
+                "media_id": "10497",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "custom_links_submitted": "1",
+            },
+        )
+
+        self.assertEqual(CustomLink.objects.filter(user=self.user, object_id=movie.id).count(), 0)
+
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "10497",
+                },
+                query={"instance_id": movie.id, "return_url": "/"},
+            ),
+        )
+        self.assertNotContains(modal_response, "Netflix")
+
+        details_response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "10497",
+                    "title": "tokyo-godfathers",
+                },
+            ),
+        )
+        self.assertNotContains(details_response, "Netflix")
+
     def test_cannot_edit_another_users_media(self):
         """Test users cannot edit another user's media by instance ID."""
         item = Item.objects.create(
