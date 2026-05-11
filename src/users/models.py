@@ -114,7 +114,7 @@ class User(AbstractUser):
     is_demo = models.BooleanField(default=False)
 
     profile_private = models.BooleanField(
-        default=True, help_text="Toggle profile visibility to anonymous users"
+        default=True, help_text=_("Toggle profile visibility to anonymous users")
     )
 
     last_search_type = models.CharField(
@@ -299,7 +299,7 @@ class User(AbstractUser):
 
     obfuscate_unseen_episodes = models.BooleanField(
         default=False,
-        help_text="Blur unseen episode images and descriptions",
+        help_text=_("Blur unseen episode images and descriptions"),
     )
 
     # Tracking settings

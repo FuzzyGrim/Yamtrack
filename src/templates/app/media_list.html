@@ -39,7 +39,7 @@
     <div class="flex flex-col md:flex-row gap-4 mb-6">
       <!-- Search -->
       <div class="relative grow">
-        <input placeholder="{% blocktrans %}Search {{ media_type_plural }} in {% if target_user != request.user %}{{ target_user.username }}'s {% else %}your {% endif %}list...{% endblocktrans %}"
+        <input placeholder="{% if target_user != request.user %}{% blocktrans with media_type_plural=media_type_plural target_username=target_user.username %}Search {{ media_type_plural }} in {{ target_username }}'s list...{% endblocktrans %}{% else %}{% blocktrans with media_type_plural=media_type_plural %}Search {{ media_type_plural }} in your list...{% endblocktrans %}{% endif %}"
                class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="search"
@@ -197,7 +197,7 @@
   {% if target_user != request.user %}
     <ul class="space-y-1 mb-6 {% if request.user.is_authenticated %}border-t border-[#2c3136] pt-4{% endif %}">
       <li>
-        <span class="flex font-bold items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-white">{{ target_user.username }}'s Media:</span>
+        <span class="flex font-bold items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-white">{% blocktrans with username=target_user.username %}{{ username }}'s Media:{% endblocktrans %}</span>
       </li>
       {% get_sidebar_media_types target_user as sidebar_media_types %}
       {% for item in sidebar_media_types %}

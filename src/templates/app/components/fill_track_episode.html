@@ -24,7 +24,7 @@
                src="{{ episode.image }}">
           <div>
             <h3 class="text-lg font-semibold mb-1 line-clamp-1">{{ episode_title }}</h3>
-            <p class="text-sm text-gray-400">Episode {{ episode.episode_number }}</p>
+            <p class="text-sm text-gray-400">{% blocktrans with episode_number=episode.episode_number %}Episode {{ episode_number }}{% endblocktrans %}</p>
             {% if episode.history %}
               {% if episode.history|length == 1 %}
                 <p class="text-sm text-gray-400 mt-1">{% trans "Watched once" %}</p>
@@ -90,7 +90,7 @@
                name="episode_number"
                value="{{ episode.episode_number }}">
 
-        <label class="block text-sm font-medium text-gray-300 mb-2">Watch Date</label>
+        <label class="block text-sm font-medium text-gray-300 mb-2">{% trans "Watch Date" %}</label>
 
         {# Watch Date Input with Inline Clear Button #}
         <div class="relative">
@@ -137,15 +137,15 @@
               <button type="button"
                       @click="inputDateTime = '{% if TRACK_TIME %}{% now "Y-m-d\TH:i" %}{% else %}{% now "Y-m-d" %}{% endif %}'; dropdownOpen = false"
                       class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
-                      title="Fills in the current date and time">Fill in current time</button>
+                      title="{% trans 'Fills in the current date and time' %}">{% trans "Fill in current time" %}</button>
 
               {% if episode.runtime_minutes %}
                 {# Option B - Finish Time #}
                 <button type="button"
                         @click="inputDateTime = '{{ finish_datetime|escapejs }}'; dropdownOpen = false"
                         class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
-                        title="Fills in the date and time the episode will be finished if started now">
-                  Fill in end time
+                        title="{% trans 'Fills in the date and time the episode will be finished if started now' %}">
+                  {% trans "Fill in end time" %}
                 </button>
               {% endif %}
 
@@ -154,7 +154,7 @@
                 <button type="button"
                         @click="inputDateTime = '{% if TRACK_TIME %}{{ episode.air_date|escapejs }}T{% now "H:i" %}{% else %}{{ episode.air_date|escapejs }}{% endif %}'; dropdownOpen = false"
                         class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
-                        title="Fills in the air date of the episode, if available">Fill in air date</button>
+                        title="{% trans 'Fills in the air date of the episode, if available' %}">{% trans "Fill in air date" %}</button>
               {% endif %}
             </div>
 

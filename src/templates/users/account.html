@@ -26,7 +26,7 @@
         {% csrf_token %}
         <div>
           <label for="{{ user_form.username.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Username</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Username" %}</label>
           <input id="{{ user_form.username.id_for_label }}"
                  name="{{ user_form.username.html_name }}"
                  class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.username.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
@@ -39,14 +39,14 @@
 
         <div>
           <label for="{{ user_form.profile_private.id_for_label }}"
-                 class="block text-sm font-medium mb-2 text-gray-300">Profile visibility</label>
+                 class="block text-sm font-medium mb-2 text-gray-300">{% trans "Profile visibility" %}</label>
           <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
             <div class="flex-1">
               <div class="flex items-center text-gray-200 mb-1">
                 {% include "app/icons/hat-glasses.svg" with classes="w-5 h-5 mr-2" %}
-                <span class="text-sm font-medium">Private profile</span>
+                <span class="text-sm font-medium">{% trans "Private profile" %}</span>
               </div>
-              <p class="text-xs text-gray-400 ml-7">Hide your profile and media lists from anonymous visitors.</p>
+              <p class="text-xs text-gray-400 ml-7">{% trans "Hide your profile and media lists from anonymous visitors." %}</p>
             </div>
             <label for="{{ user_form.profile_private.id_for_label }}"
                    class="relative inline-flex items-center cursor-pointer ml-4">
