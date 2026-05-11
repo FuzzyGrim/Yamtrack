@@ -52,7 +52,7 @@ class BasicMediaForm(TestCase):
             "end_date": "2023-06-30",
             "notes": "New notes",
         }
-        form = AnimeForm(data=form_data)
+        form = AnimeForm(data=form_data, custom_link_entries=[{"label":"Netflix","url":"https://www.netflix.com/title/1"}])
         self.assertTrue(form.is_valid())
 
     def test_valid_tv_form(self):
@@ -109,6 +109,52 @@ class BasicMediaForm(TestCase):
         form = EpisodeForm(data=form_data)
         self.assertTrue(form.is_valid())
 
+
+    def test_links_data_accepts_valid_urls(self):
+        form_data = {
+            "media_id": "1",
+            "source": Sources.MAL.value,
+            "media_type": MediaTypes.ANIME.value,
+            "status": Status.PAUSED.value,
+        }
+        form = AnimeForm(
+            data=form_data,
+            custom_link_entries=[
+                {"label": "Netflix", "url": "https://www.netflix.com/title/1"},
+            ],
+        )
+        self.assertTrue(form.is_valid())
+
+    def test_links_data_rejects_invalid_url(self):
+        form_data = {
+            "media_id": "1",
+            "source": Sources.MAL.value,
+            "media_type": MediaTypes.ANIME.value,
+            "status": Status.PAUSED.value,
+        }
+        form = AnimeForm(
+            data=form_data,
+            custom_link_entries=[{"label": "Bad", "url": "not-a-url"}],
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("__all__", form.errors)
+
+
+    def test_links_data_rejects_too_long_url(self):
+        form_data = {
+            "media_id": "1",
+            "source": Sources.MAL.value,
+            "media_type": MediaTypes.ANIME.value,
+            "status": Status.PAUSED.value,
+        }
+        form = AnimeForm(
+            data=form_data,
+            custom_link_entries=[
+                {"label": "Long", "url": f"https://example.com/{'a' * 510}"},
+            ],
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("__all__", form.errors)
 
 class BasicGameForm(TestCase):
     """Test the game form."""

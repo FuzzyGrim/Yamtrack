@@ -1,6 +1,7 @@
 import math
 
 from django import forms
+from django.core.validators import URLValidator
 from django.conf import settings
 
 from app import config
@@ -19,6 +20,8 @@ from app.models import (
     Season,
     Sources,
 )
+
+url_validator = URLValidator()
 
 
 def get_form_class(media_type):
@@ -233,6 +236,57 @@ class MediaForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        """Initialize form and keep submitted custom links for processing."""
+        self.custom_link_entries = kwargs.pop("custom_link_entries", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_custom_link_entries(self):
+        """Validate custom link pairs passed from request.POST.getlist."""
+        if self.custom_link_entries is None:
+            return None
+
+        cleaned = []
+        for entry in self.custom_link_entries:
+            label = (entry.get("label") or "").strip()
+            url = (entry.get("url") or "").strip()
+            if not label and not url:
+                continue
+            if not label or not url:
+                raise forms.ValidationError("Each link requires both a label and URL.")
+            if len(url) > 500:
+                raise forms.ValidationError(f"URL is too long for '{label}'.")
+            try:
+                url_validator(url)
+            except forms.ValidationError as e:
+                raise forms.ValidationError(f"Invalid URL for '{label}'.") from e
+            cleaned.append({"label": label[:100], "url": url})
+        return cleaned
+
+    def clean(self):
+        """Run base clean and validate custom links payload."""
+        cleaned_data = super().clean()
+        cleaned_data["custom_link_entries"] = self.clean_custom_link_entries()
+        return cleaned_data
+
+    def save(self, commit=True):  # noqa: FBT002
+        """Save media and synchronize custom links when submitted."""
+        instance = super().save(commit=commit)
+        submitted_links = self.cleaned_data.get("custom_link_entries")
+        if commit and instance.pk and submitted_links is not None:
+            instance.custom_links.filter(user=instance.user).delete()
+            instance.custom_links.model.objects.bulk_create(
+                [
+                    instance.custom_links.model(
+                        user=instance.user,
+                        label=entry["label"],
+                        url=entry["url"],
+                        content_object=instance,
+                    )
+                    for entry in submitted_links
+                ]
+            )
+        return instance
 
 class MangaForm(MediaForm):
     """Form for manga."""

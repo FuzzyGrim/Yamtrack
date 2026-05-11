@@ -8,6 +8,8 @@ from django.core.validators import (
     MaxValueValidator,
     MinValueValidator,
 )
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import (
     CheckConstraint,
@@ -815,6 +817,27 @@ class UserMessage(models.Model):
         return self.level
 
 
+
+
+class CustomLink(models.Model):
+    """User-defined links associated with tracked media entries."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    label = models.CharField(max_length=100)
+    url = models.URLField(max_length=500)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveBigIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+        indexes = [
+            models.Index(fields=["content_type", "object_id"], name="app_clink_target_idx"),
+            models.Index(fields=["user"], name="app_clink_user_idx"),
+        ]
+
+
 class Media(models.Model):
     """Abstract model for all media types."""
 
@@ -854,6 +877,7 @@ class Media(models.Model):
     start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
+    custom_links = GenericRelation("CustomLink", related_query_name="media")
 
     class Meta:
         """Meta options for the model."""
