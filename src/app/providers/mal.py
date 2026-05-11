@@ -230,9 +230,11 @@ def get_format(response):
 def get_title(response):
     """Return title based on configured MAL title language preference."""
     if settings.MAL_TITLE_LANG == "en":
-        english_title = response.get("alternative_titles", {}).get("en")
-        if english_title:
-            return english_title
+        alternative_titles = response.get("alternative_titles")
+        if isinstance(alternative_titles, dict):
+            english_title = alternative_titles.get("en")
+            if english_title:
+                return english_title
     return response["title"]
 
 

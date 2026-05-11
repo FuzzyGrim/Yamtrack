@@ -43,6 +43,16 @@ class Metadata(TestCase):
         }
         self.assertEqual(mal.get_title(response), "Attack on Titan")
 
+
+    @patch("app.providers.mal.settings.MAL_TITLE_LANG", "en")
+    def test_get_title_handles_null_alternative_titles(self):
+        """Test fallback when MAL returns null alternative_titles."""
+        response = {
+            "title": "Shingeki no Kyojin",
+            "alternative_titles": None,
+        }
+        self.assertEqual(mal.get_title(response), "Shingeki no Kyojin")
+
     @patch("app.providers.mal.settings.MAL_TITLE_LANG", "ja")
     def test_get_title_fallback_to_default_title(self):
         """Test fallback to MAL default title for non-english preference."""
