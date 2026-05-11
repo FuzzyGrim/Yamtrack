@@ -8,6 +8,7 @@ from app.models import (
     Episode,
     Item,
     UserMessage,
+    CustomLink,
 )
 
 
@@ -45,6 +46,16 @@ class UserMessageAdmin(admin.ModelAdmin):
     list_filter = ["level", "shown_at"]
 
 
+
+
+@admin.register(CustomLink)
+class CustomLinkAdmin(admin.ModelAdmin):
+    """Admin for user custom links."""
+
+    search_fields = ["label", "url", "user__username"]
+    list_display = ["label", "url", "user", "content_type", "object_id"]
+    list_filter = ["content_type"]
+
 class MediaAdmin(admin.ModelAdmin):
     """Custom admin for regular media model with search and filter options."""
 
@@ -58,7 +69,7 @@ class MediaAdmin(admin.ModelAdmin):
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia", "UserMessage"]
+SpecialModels = ["Item", "Episode", "BasicMedia", "UserMessage", "CustomLink"]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

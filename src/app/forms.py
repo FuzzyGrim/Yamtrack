@@ -1,6 +1,8 @@
+import json
 import math
 
 from django import forms
+from django.core.validators import URLValidator
 from django.conf import settings
 
 from app import config
@@ -19,6 +21,8 @@ from app.models import (
     Season,
     Sources,
 )
+
+url_validator = URLValidator()
 
 
 def get_form_class(media_type):
@@ -202,6 +206,7 @@ class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
     instance_id = forms.CharField(widget=forms.HiddenInput(), required=False)
+    links_data = forms.CharField(widget=forms.HiddenInput(), required=False)
     media_type = forms.CharField(widget=forms.HiddenInput(), required=True)
     source = forms.CharField(widget=forms.HiddenInput(), required=True)
     media_id = forms.CharField(widget=forms.HiddenInput(), required=True)
@@ -233,6 +238,65 @@ class MediaForm(forms.ModelForm):
             ),
         }
 
+
+
+    def __init__(self, *args, **kwargs):
+        """Initialize form and preload custom links JSON."""
+        super().__init__(*args, **kwargs)
+        links = []
+        if self.instance and self.instance.pk:
+            links = [
+                {"label": link.label, "url": link.url}
+                for link in self.instance.custom_links.filter(user=self.instance.user)
+            ]
+        self.fields["links_data"].initial = json.dumps(links)
+
+    def clean_links_data(self):
+        """Validate links payload and normalize values."""
+        raw = self.cleaned_data.get("links_data") or "[]"
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as e:
+            raise forms.ValidationError("Invalid links payload.") from e
+
+        if not isinstance(parsed, list):
+            raise forms.ValidationError("Invalid links payload.")
+
+        cleaned = []
+        for entry in parsed:
+            if not isinstance(entry, dict):
+                continue
+            label = (entry.get("label") or "").strip()
+            url = (entry.get("url") or "").strip()
+            if not label and not url:
+                continue
+            if not label or not url:
+                raise forms.ValidationError("Each link requires both a label and URL.")
+            try:
+                url_validator(url)
+            except forms.ValidationError as e:
+                raise forms.ValidationError(f"Invalid URL for '{label}'.") from e
+            cleaned.append({"label": label[:100], "url": url})
+
+        return cleaned
+
+    def save(self, commit=True):  # noqa: FBT002
+        """Save media and synchronize custom links."""
+        instance = super().save(commit=commit)
+        if commit and instance.pk:
+            instance.custom_links.filter(user=instance.user).delete()
+            instance.custom_links.model.objects.bulk_create(
+                [
+                    instance.custom_links.model(
+                        user=instance.user,
+                        label=entry["label"],
+                        url=entry["url"],
+                        content_object=instance,
+                    )
+                    for entry in self.cleaned_data.get("links_data", [])
+                ]
+            )
+        return instance
 
 class MangaForm(MediaForm):
     """Form for manga."""

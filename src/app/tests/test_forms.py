@@ -110,6 +110,29 @@ class BasicMediaForm(TestCase):
         self.assertTrue(form.is_valid())
 
 
+    def test_links_data_accepts_valid_urls(self):
+        form_data = {
+            "media_id": "1",
+            "source": Sources.MAL.value,
+            "media_type": MediaTypes.ANIME.value,
+            "status": Status.PAUSED.value,
+            "links_data": '[{"label":"Netflix","url":"https://www.netflix.com/title/1"}]',
+        }
+        form = AnimeForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_links_data_rejects_invalid_url(self):
+        form_data = {
+            "media_id": "1",
+            "source": Sources.MAL.value,
+            "media_type": MediaTypes.ANIME.value,
+            "status": Status.PAUSED.value,
+            "links_data": '[{"label":"Bad","url":"not-a-url"}]',
+        }
+        form = AnimeForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("links_data", form.errors)
+
 class BasicGameForm(TestCase):
     """Test the game form."""
 

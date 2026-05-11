@@ -7,13 +7,14 @@
             @click="trackOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
   </div>
 
-  <form method="post" x-data="mediaForm" x-init="init">
+  <form method="post" x-data="{ ...mediaForm, links: [] }" x-init="init" @submit="$refs.linksInput.value = JSON.stringify(links.filter(l => (l.label || "").trim() || (l.url || "").trim()))">
     {% csrf_token %}
     {{ form.instance_id }}
     {{ form.media_type }}
     {{ form.source }}
     {{ form.media_id }}
     {{ form.season_number }}
+    {{ form.links_data|add_class:"hidden"|attr:"x-ref:linksInput" }}
 
     {% with total_fields=form.fields|length %}
       {% if total_fields > 8 %}<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">{% endif %}
@@ -61,6 +62,26 @@
         {{ form.notes|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]" }}
       </div>
     {% endif %}
+
+    <div class="mb-5">
+      <div class="flex items-center justify-between mb-2">
+        <label class="block text-sm font-medium text-gray-300">Links</label>
+        <button type="button"
+                class="text-xs px-2 py-1 rounded bg-gray-700 text-white hover:bg-gray-600"
+                @click="links.push({label: '', url: ''})">+ Add link</button>
+      </div>
+
+      <div class="space-y-2" x-init="links = (JSON.parse($refs.linksInput.value || '[]'))">
+        <template x-for="(link, index) in links" :key="index">
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-2 items-start">
+            <input type="text" x-model="link.label" placeholder="Label (e.g. Netflix)" class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]">
+            <input type="url" x-model="link.url" placeholder="https://..." class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]">
+            <button type="button" class="px-3 py-2 rounded bg-red-700 text-white hover:bg-red-800" @click="links.splice(index,1)">Remove</button>
+          </div>
+        </template>
+        <p x-show="links.length === 0" class="text-sm text-gray-400">No custom links yet.</p>
+      </div>
+    </div>
 
     <div class="flex flex-row-reverse justify-between mt-6">
       <button type="submit"

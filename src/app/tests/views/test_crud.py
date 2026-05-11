@@ -14,6 +14,7 @@ from app.models import (
     Season,
     Sources,
     Status,
+    CustomLink,
 )
 
 
@@ -174,6 +175,38 @@ class EditMedia(TestCase):
             },
         )
         self.assertEqual(Movie.objects.get(item__media_id="10494").score, 10)
+
+
+    def test_edit_movie_custom_links(self):
+        """Test editing a movie with custom links."""
+        item = Item.objects.create(
+            media_id="10495",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Paprika",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(
+            item=item,
+            user=self.user,
+            score=8,
+            status=Status.PLANNING.value,
+        )
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie.id,
+                "media_id": "10495",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "score": 8,
+                "status": Status.PLANNING.value,
+                "links_data": '[{"label":"Netflix","url":"https://www.netflix.com/title/800"}]',
+            },
+        )
+
+        self.assertEqual(CustomLink.objects.filter(user=self.user, object_id=movie.id).count(), 1)
 
     def test_cannot_edit_another_users_media(self):
         """Test users cannot edit another user's media by instance ID."""
