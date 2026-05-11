@@ -19,6 +19,7 @@ from app.models import (
     Movie,
     Season,
     Sources,
+    Tag,
 )
 
 url_validator = URLValidator()
@@ -239,6 +240,7 @@ class MediaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Initialize form and keep submitted custom links for processing."""
         self.custom_link_entries = kwargs.pop("custom_link_entries", None)
+        self.tag_names = kwargs.pop("tag_names", None)
         super().__init__(*args, **kwargs)
 
     def clean_custom_link_entries(self):
@@ -267,7 +269,26 @@ class MediaForm(forms.ModelForm):
         """Run base clean and validate custom links payload."""
         cleaned_data = super().clean()
         cleaned_data["custom_link_entries"] = self.clean_custom_link_entries()
+        cleaned_data["tag_names"] = self.clean_tag_names()
         return cleaned_data
+
+    def clean_tag_names(self):
+        """Validate submitted tag names and deduplicate case-insensitively."""
+        if self.tag_names is None:
+            return None
+
+        cleaned = []
+        seen_normalized = set()
+        for raw_name in self.tag_names:
+            name = (raw_name or "").strip()
+            if not name:
+                continue
+            normalized = name.casefold()
+            if normalized in seen_normalized:
+                continue
+            seen_normalized.add(normalized)
+            cleaned.append({"name": name[:100], "normalized_name": normalized})
+        return cleaned
 
     def save(self, commit=True):  # noqa: FBT002
         """Save media and synchronize custom links when submitted."""
@@ -286,6 +307,30 @@ class MediaForm(forms.ModelForm):
                     for entry in submitted_links
                 ]
             )
+
+        submitted_tags = self.cleaned_data.get("tag_names")
+        if commit and instance.pk and submitted_tags is not None:
+            instance.tagged_media.filter(user=instance.user).delete()
+            tag_ids = []
+            for entry in submitted_tags:
+                tag, _ = Tag.objects.get_or_create(
+                    user=instance.user,
+                    normalized_name=entry["normalized_name"],
+                    defaults={"name": entry["name"]},
+                )
+                tag_ids.append(tag.id)
+
+            if tag_ids:
+                instance.tagged_media.model.objects.bulk_create(
+                    [
+                        instance.tagged_media.model(
+                            user=instance.user,
+                            tag_id=tag_id,
+                            content_object=instance,
+                        )
+                        for tag_id in tag_ids
+                    ]
+                )
         return instance
 
 class MangaForm(MediaForm):

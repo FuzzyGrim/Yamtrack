@@ -63,6 +63,38 @@
     {% endif %}
 
     <div class="mb-5"
+         x-data="{ input: '', tags: [{% for tag in selected_tags %}'{{ tag|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}] }">
+      <div class="flex items-center justify-between mb-2">
+        <label class="block text-sm font-medium text-gray-300">Tags</label>
+      </div>
+      <div class="flex flex-wrap gap-2 mb-2" x-show="tags.length > 0">
+        <template x-for="(tag, index) in tags" :key="`${tag}-${index}`">
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-indigo-700 text-white">
+            <span x-text="tag"></span>
+            <button type="button" class="text-white/80 hover:text-white" @click="tags.splice(index, 1)">×</button>
+          </span>
+        </template>
+      </div>
+      <div class="flex gap-2">
+        <input type="text"
+               x-model="input"
+               list="tag-suggestions"
+               placeholder="Add tag and press Enter"
+               class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]"
+               @keydown.enter.prevent="const value=input.trim(); if(value && !tags.some(t => t.toLowerCase() === value.toLowerCase())) { tags.push(value); } input='';">
+        <button type="button"
+                class="text-xs px-3 py-2 rounded bg-gray-700 text-white hover:bg-gray-600"
+                @click="const value=input.trim(); if(value && !tags.some(t => t.toLowerCase() === value.toLowerCase())) { tags.push(value); } input='';">Add</button>
+      </div>
+      <datalist id="tag-suggestions">
+        {% for tag in existing_tags %}<option value="{{ tag }}"></option>{% endfor %}
+      </datalist>
+      <template x-for="(tag, index) in tags" :key="`hidden-${tag}-${index}`">
+        <input type="hidden" name="tag_names[]" :value="tag">
+      </template>
+    </div>
+
+    <div class="mb-5"
          x-data="{ rows: [{% for link in custom_links %}{ label: '{{ link.label|escapejs }}', url: '{{ link.url|escapejs }}' }{% if not forloop.last %}, {% endif %}{% endfor %}] }"
          x-init="if (rows.length === 0) rows = [{ label: '', url: '' }]">
       <input type="hidden" name="custom_links_submitted" value="1">

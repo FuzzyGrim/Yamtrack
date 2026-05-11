@@ -5,6 +5,8 @@ from django.contrib import admin
 from django.contrib.admin.sites import AlreadyRegistered
 
 from app.models import (
+    Tag,
+    TaggedMedia,
     Episode,
     Item,
     UserMessage,
@@ -56,6 +58,23 @@ class CustomLinkAdmin(admin.ModelAdmin):
     list_display = ["label", "url", "user", "content_type", "object_id"]
     list_filter = ["content_type"]
 
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    """Admin for user tags."""
+
+    search_fields = ["name", "normalized_name", "user__username"]
+    list_display = ["name", "user", "created_at"]
+
+
+@admin.register(TaggedMedia)
+class TaggedMediaAdmin(admin.ModelAdmin):
+    """Admin for tagged media relations."""
+
+    search_fields = ["tag__name", "user__username"]
+    list_display = ["tag", "user", "content_type", "object_id", "created_at"]
+    list_filter = ["content_type"]
+
 class MediaAdmin(admin.ModelAdmin):
     """Custom admin for regular media model with search and filter options."""
 
@@ -69,7 +88,7 @@ class MediaAdmin(admin.ModelAdmin):
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia", "UserMessage", "CustomLink"]
+SpecialModels = ["Item", "Episode", "BasicMedia", "UserMessage", "CustomLink", "Tag", "TaggedMedia"]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

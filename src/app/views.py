@@ -23,6 +23,7 @@ from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
+    Tag,
     BasicMedia,
     Item,
     MediaTypes,
@@ -564,6 +565,16 @@ def track_modal(
             "form": form,
             "media": media,
             "custom_links": list(media.custom_links.filter(user=request.user)) if media else [],
+            "existing_tags": list(Tag.objects.filter(user=request.user).order_by("name").values_list("name", flat=True)),
+            "selected_tags": (
+                list(
+                    media.tagged_media.filter(user=request.user)
+                    .select_related("tag")
+                    .values_list("tag__name", flat=True)
+                )
+                if media
+                else []
+            ),
             "return_url": request.GET["return_url"],
         },
     )
@@ -618,9 +629,16 @@ def media_save(request):
             for idx in range(max_len)
         ]
 
+    tag_names = request.POST.getlist("tag_names[]")
+
     # Validate the form and save the instance if it's valid
     form_class = get_form_class(media_type)
-    form = form_class(request.POST, instance=instance, custom_link_entries=custom_link_entries)
+    form = form_class(
+        request.POST,
+        instance=instance,
+        custom_link_entries=custom_link_entries,
+        tag_names=tag_names,
+    )
     if form.is_valid():
         form.save()
         logger.info("%s saved successfully.", form.instance)
