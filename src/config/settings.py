@@ -380,6 +380,10 @@ SPECTACULAR_SETTINGS = {
     "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
     "ENUM_NAME_OVERRIDES": {
         "MediaStatusEnum": "api.helpers.MEDIA_STATUS_CHOICES",
+        "SourceEnum": "api.helpers.SOURCES_VALID_LIST",
+        "SourceCompleteEnum": "api.helpers.SOURCES_COMPLETE_VALID_LIST",
+        "MediaTypeEnum": "api.helpers.MEDIA_TYPE_VALID_LIST",
+        "MediaTypeCompleteEnum": "api.helpers.MEDIA_TYPE_COMPLETE_VALID_LIST",
     },
 }
 

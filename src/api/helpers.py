@@ -176,6 +176,8 @@ SOURCES_VALID_LIST = [
     Sources.BGG.value,
 ]
 
+SOURCES_COMPLETE_VALID_LIST = [*SOURCES_VALID_LIST, "manual"]
+
 
 def build_item_id(item):
     """Build the item_id string for the given item."""

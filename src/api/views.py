@@ -85,7 +85,6 @@ from .serializers import (
     CompleteMediaSerializer,
     EpisodeSerializer,
     EventSerializer,
-    GenericObjectSerializer,
     HealthResponseSerializer,
     HistorySerializer,
     InfoSerializer,
@@ -98,16 +97,15 @@ from .serializers import (
     PaginatedChangesHistoryResponseSerializer,
     PaginatedEpisodesSerializer,
     PaginatedEventsSerializer,
-    PaginatedGenericResponseSerializer,
     PaginatedHistoryResponseSerializer,
     PaginatedListsMinimizedResponseSerializer,
     PaginatedListsResponseSerializer,
     PaginatedMediaSerializer,
-    PaginatedPolymorphicMediaResponseSerializer,
     RelatedResponseSerializer,
     SearchResponseSerializer,
     StatisticsResponseSerializer,
     TimelineItemSerializer,
+    TrackMediaSerializer,
     UpdateAnimeSerializer,
     UpdateBoardGameSerializer,
     UpdateBookSerializer,
@@ -118,7 +116,6 @@ from .serializers import (
     UpdateMovieSerializer,
     UpdateSeasonSerializer,
     UpdateTVSerializer,
-    serialize_data,
 )
 
 # TODO!: check sorters and filters in paginate_data since data is not serialized yet. Maybe data should be serialized first and then sorted/paginated later?? Sorting/filtering should occur at db search level, pagination should be done right after, always at the db search level, then the data should be serialized.  # noqa: E501, W505
@@ -780,7 +777,7 @@ class ListsView(drf_views.APIView):
                         "Invalid pagination example",
                         description="Invalid pagination example",
                         summary="Invalid pagination example",
-                        value={"detail": "Invalid pagination parameters."},
+                        value={"detail": "Invalid limit parameter."},
                     )
                 ],
             ),
@@ -1136,7 +1133,7 @@ class ListDetailView(drf_views.APIView):
                         "Invalid pagination example",
                         description="Invalid pagination example",
                         summary="Invalid pagination example",
-                        value={"detail": "Invalid pagination parameters."},
+                        value={"detail": "Invalid limit parameter."},
                     )
                 ],
             ),
@@ -1483,7 +1480,7 @@ class ListItemsView(drf_views.APIView):
                         "Invalid pagination example",
                         description="Invalid pagination example",
                         summary="Invalid pagination example",
-                        value={"detail": "Invalid pagination parameters."},
+                        value={"detail": "Invalid limit parameter."},
                     )
                 ],
             ),
@@ -1925,9 +1922,152 @@ class ListItemView(drf_views.APIView):
 class MediaListView(drf_views.APIView):
     """List media view."""
 
-    serializer_class = MediaSerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedMediaSerializer
 
+    @extend_schema(
+        operation_id="media_list_get",
+        summary="Get media list",
+        parameters=[
+            OpenApiParameter(
+                name="exclude",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Comma-separated list of media types to exclude (excluded"
+                    "by default are seasons and episodes)."
+                ),
+                enum=[media_type.value for media_type in MediaTypes],
+            ),
+            MediaTypeCompleteParam,
+            OpenApiParameter(
+                name="status",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by tracking status.",
+                enum=[status.value for status in MediaStatusChoices],
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Search query to filter media by title, case insensitive.",
+            ),
+            OpenApiParameter(
+                name="sort",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Sort field and order.",
+                enum=[
+                    suffix_sort
+                    for sort in get_sorts(None, sort_type="all")
+                    for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
+                ],
+            ),
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedMediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved media list example",
+                        description="Retrieved media list example",
+                        summary="Retrieved media list example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 1,
+                                    "consumption_id": 1,
+                                    "item": {
+                                        "media_id": "100088",
+                                        "source": "tmdb",
+                                        "media_type": "tv",
+                                        "title": "The Last of Us",
+                                        "image": "https://image.tmdb.org/t/p/original//dmo6TYuuJgaYinXBPjrgG9mB5od.jpg",
+                                        "season_number": None,
+                                        "episode_number": None,
+                                    },
+                                    "item_id": "tv/tmdb/100088",
+                                    "parent_id": None,
+                                    "tracked": True,
+                                    "created_at": "2026-01-15T15:33:03.209328Z",
+                                    "score": None,
+                                    "status": 0,
+                                    "progress": 0,
+                                    "progressed_at": None,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                    "lists": [{"list_id": 1, "list_item_id": 10}],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid status example",
+                        description="Invalid status example",
+                        summary="Invalid status example",
+                        value={"detail": "Invalid status."},
+                    ),
+                    OpenApiExample(
+                        "Invalid sorting example",
+                        description="Invalid sorting example",
+                        summary="Invalid sorting example",
+                        value={"detail": "Invalid sorting."},
+                    ),
+                    OpenApiExample(
+                        "Invalid pagination example",
+                        description="Invalid pagination example",
+                        summary="Invalid pagination example",
+                        value={"detail": "Invalid limit parameter."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request):
         """Retrieve the list of media for the authenticated user."""
         # TODO: check progress sort might not be working
@@ -1992,15 +2132,14 @@ class MediaListView(drf_views.APIView):
         # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505
         # TODO: see if lists infos can be saved in the `results` object to avoid using `context` to pass additional parameters  # noqa: E501, W505
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
-        serialized_data = serialize_data(
+        serialized_data = MixedMediaSerializer(
             paginated_data["results"],
             context={
                 "request": request,
                 "lists_by_item_id": lists_by_item_id,
             },
             many=True,
-            homogeneous=False,
-        )
+        ).data
         paginated_data["results"] = serialized_data
         return Response(paginated_data, status=HTTP.OK)
 
@@ -2009,9 +2148,141 @@ class MediaListView(drf_views.APIView):
 class MediaTypeListView(drf_views.APIView):
     """List media by type view."""
 
-    serializer_class = MediaSerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaginatedMediaSerializer
 
+    @extend_schema(
+        operation_id="media_type_list_get",
+        summary="Get media list by type",
+        parameters=[
+            MediaTypeCompleteParam,
+            OpenApiParameter(
+                name="status",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by tracking status.",
+                enum=[status.value for status in MediaStatusChoices],
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Search query to filter media by title, case insensitive.",
+            ),
+            OpenApiParameter(
+                name="sort",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Sort field and order.",
+                enum=[
+                    suffix_sort
+                    for sort in get_sorts(None, sort_type="all")
+                    for suffix_sort in (f"{sort}_asc", f"{sort}_desc")
+                ],
+            ),
+            PaginationLimitParam,
+            PaginationOffsetParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                PaginatedMediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved media list example",
+                        description="Retrieved media list example",
+                        summary="Retrieved media list example",
+                        value={
+                            "pagination": {
+                                "total": 1,
+                                "limit": 20,
+                                "offset": 0,
+                                "next": None,
+                                "previous": None,
+                            },
+                            "results": [
+                                {
+                                    "id": 1,
+                                    "consumption_id": 1,
+                                    "item": {
+                                        "media_id": "100088",
+                                        "source": "tmdb",
+                                        "media_type": "tv",
+                                        "title": "The Last of Us",
+                                        "image": "https://image.tmdb.org/t/p/original//dmo6TYuuJgaYinXBPjrgG9mB5od.jpg",
+                                        "season_number": None,
+                                        "episode_number": None,
+                                    },
+                                    "item_id": "tv/tmdb/100088",
+                                    "parent_id": None,
+                                    "tracked": True,
+                                    "created_at": "2026-01-15T15:33:03.209328Z",
+                                    "score": None,
+                                    "status": 0,
+                                    "progress": 0,
+                                    "progressed_at": None,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                    "lists": [{"list_id": 1, "list_item_id": 10}],
+                                },
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                    OpenApiExample(
+                        "Invalid status example",
+                        description="Invalid status example",
+                        summary="Invalid status example",
+                        value={"detail": "Invalid status."},
+                    ),
+                    OpenApiExample(
+                        "Invalid sorting example",
+                        description="Invalid sorting example",
+                        summary="Invalid sorting example",
+                        value={"detail": "Invalid sorting."},
+                    ),
+                    OpenApiExample(
+                        "Invalid pagination example",
+                        description="Invalid pagination example",
+                        summary="Invalid pagination example",
+                        value={"detail": "Invalid limit parameter."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type):
         """Retrieve the list of media of a specific media type."""
         user = request.user
@@ -2060,17 +2331,103 @@ class MediaTypeListView(drf_views.APIView):
         # TODO: see if this can be optimized with a single query for all medias instead of one per episode  # noqa: E501, W505
         # TODO: see if lists infos can be saved in the `results` object to avoid using `context` to pass additional parameters  # noqa: E501, W505
         lists_by_item_id = build_lists_by_item_id(user, paginated_data["results"])
-        serialized_data = serialize_data(
+        serialized_data = MediaSerializer(
             paginated_data["results"],
             context={
                 "request": request,
                 "lists_by_item_id": lists_by_item_id,
             },
             many=True,
-        )
+        ).data
         paginated_data["results"] = serialized_data
         return Response(paginated_data, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="media_type_list_post",
+        summary="Track a new media item",
+        parameters=[
+            MediaTypeCompleteParam,
+        ],
+        request=TrackMediaSerializer,
+        responses={
+            201: OpenApiResponse(
+                MediaSerializer,
+                description="Media item tracked successfully",
+                examples=[
+                    OpenApiExample(
+                        "Tracked media item example",
+                        description="Tracked media item example",
+                        summary="Tracked media item example",
+                        value={
+                            "id": 3599,
+                            "consumption_id": 322,
+                            "item": {
+                                "media_id": "12345",
+                                "source": "tmdb",
+                                "media_type": "tv",
+                                "title": "Van der Valk",
+                                "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                                "season_number": None,
+                                "episode_number": None,
+                            },
+                            "item_id": "tv/tmdb/12345",
+                            "parent_id": None,
+                            "tracked": True,
+                            "created_at": "2026-05-11T17:20:38.252187Z",
+                            "score": None,
+                            "status": 0,
+                            "progress": 0,
+                            "progressed_at": None,
+                            "start_date": None,
+                            "end_date": None,
+                            "notes": "",
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def post(self, request, media_type):
         """Track a new media item of a specific media type."""
         if not check_valid_type(media_type, complete=True):
@@ -2143,7 +2500,7 @@ class MediaTypeListView(drf_views.APIView):
                 )
 
             media_form.save()
-            serialized_data = serialize_data(media_form.instance)
+            serialized_data = MediaSerializer(media_form.instance).data
             return Response(serialized_data, status=HTTP.CREATED)
 
         media_id = body.get("media_id")
@@ -2215,7 +2572,7 @@ class MediaTypeListView(drf_views.APIView):
             )
 
         media_form.save()
-        serialized_data = serialize_data(media_form.instance)
+        serialized_data = MixedMediaSerializer(media_form.instance).data
         return Response(serialized_data, status=HTTP.CREATED)
 
 
@@ -2223,9 +2580,62 @@ class MediaTypeListView(drf_views.APIView):
 class MediaDetailView(drf_views.APIView):
     """Media view."""
 
-    serializer_class = MediaSerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CompleteMediaSerializer
 
+    @extend_schema(
+        operation_id="media_detail_delete",
+        summary="Delete media",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+        ],
+        responses={
+            204: OpenApiResponse(description="Media item deleted successfully"),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def delete(self, request, media_type, source, media_id):
         """Delete a tracked media item and all its consumptions."""
         user = request.user
@@ -2273,6 +2683,144 @@ class MediaDetailView(drf_views.APIView):
             status=HTTP.NO_CONTENT,
         )
 
+    @extend_schema(
+        operation_id="media_detail_get",
+        summary="Get media details",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                CompleteMediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved media details example",
+                        description="Retrieved media details example",
+                        summary="Retrieved media details example",
+                        value={
+                            "id": 3599,
+                            "media_id": "12345",
+                            "source": "tmdb",
+                            "source_url": "https://www.themoviedb.org/tv/12345",
+                            "media_type": "tv",
+                            "title": "Van der Valk",
+                            "max_progress": 32,
+                            "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                            "synopsis": "Van der Valk is a British television...",
+                            "genres": ["Drama"],
+                            "score": 6.2,
+                            "score_count": 10,
+                            "details": {
+                                "format": "TV",
+                                "first_air_date": "1972-09-13",
+                                "last_air_date": "1992-02-19",
+                                "status": "Ended",
+                                "seasons": 5,
+                                "episodes": 32,
+                                "runtime": "50m",
+                                "studios": None,
+                                "country": None,
+                                "languages": ["English"],
+                                "tvdb_id": 78290,
+                                "last_episode_season": 5,
+                                "next_episode_season": None,
+                            },
+                            "related": {
+                                "seasons": [
+                                    {
+                                        "id": None,
+                                        "consumption_id": None,
+                                        "item": {
+                                            "media_id": "12345",
+                                            "source": "tmdb",
+                                            "media_type": "season",
+                                            "title": "Season 1",
+                                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                            "season_number": 1,
+                                            "episode_number": None,
+                                        },
+                                        "item_id": "tv/tmdb/12345/1",
+                                        "parent_id": "tv/tmdb/12345",
+                                        "tracked": False,
+                                        "created_at": None,
+                                        "score": None,
+                                        "status": None,
+                                        "progress": None,
+                                        "progressed_at": None,
+                                        "start_date": None,
+                                        "end_date": None,
+                                        "notes": None,
+                                        "lists": [],
+                                    },
+                                ]
+                            },
+                            "item_id": "tv/tmdb/12345",
+                            "parent_id": None,
+                            "tracked": True,
+                            "consumptions_number": 1,
+                            "consumptions": [
+                                {
+                                    "consumption_id": 322,
+                                    "created": "2026-05-11T17:20:38.252187Z",
+                                    "score": None,
+                                    "progress": 0,
+                                    "progressed_at": None,
+                                    "status": 0,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                }
+                            ],
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id):
         """Retrieve details of a specific media for the authenticated user."""
         user = request.user
@@ -2361,12 +2909,163 @@ class MediaDetailView(drf_views.APIView):
             "lists": lists,
         }
 
-        serialized = serialize_data(
+        serialized = CompleteMediaSerializer(
             data,
-            serializer_class=CompleteMediaSerializer,
-        )
+        ).data
         return Response(serialized, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="media_detail_patch",
+        summary="Update media",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+        ],
+        request=PolymorphicProxySerializer(
+            component_name="HistoryUpdateRequest",
+            serializers=[
+                UpdateAnimeSerializer,
+                UpdateBoardGameSerializer,
+                UpdateBookSerializer,
+                UpdateComicSerializer,
+                UpdateGameSerializer,
+                UpdateMangaSerializer,
+                UpdateMovieSerializer,
+                UpdateTVSerializer,
+            ],
+            resource_type_field_name=None,
+        ),
+        responses={
+            200: OpenApiResponse(
+                CompleteMediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved media details example",
+                        description="Retrieved media details example",
+                        summary="Retrieved media details example",
+                        value={
+                            "id": 3599,
+                            "media_id": "12345",
+                            "source": "tmdb",
+                            "source_url": "https://www.themoviedb.org/tv/12345",
+                            "media_type": "tv",
+                            "title": "Van der Valk",
+                            "max_progress": 32,
+                            "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                            "synopsis": "Van der Valk is a British television...",
+                            "genres": ["Drama"],
+                            "score": 6.2,
+                            "score_count": 10,
+                            "details": {
+                                "format": "TV",
+                                "first_air_date": "1972-09-13",
+                                "last_air_date": "1992-02-19",
+                                "status": "Ended",
+                                "seasons": 5,
+                                "episodes": 32,
+                                "runtime": "50m",
+                                "studios": None,
+                                "country": None,
+                                "languages": ["English"],
+                                "tvdb_id": 78290,
+                                "last_episode_season": 5,
+                                "next_episode_season": None,
+                            },
+                            "related": {
+                                "seasons": [
+                                    {
+                                        "id": None,
+                                        "consumption_id": None,
+                                        "item": {
+                                            "media_id": "12345",
+                                            "source": "tmdb",
+                                            "media_type": "season",
+                                            "title": "Season 1",
+                                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                            "season_number": 1,
+                                            "episode_number": None,
+                                        },
+                                        "item_id": "tv/tmdb/12345/1",
+                                        "parent_id": "tv/tmdb/12345",
+                                        "tracked": False,
+                                        "created_at": None,
+                                        "score": None,
+                                        "status": None,
+                                        "progress": None,
+                                        "progressed_at": None,
+                                        "start_date": None,
+                                        "end_date": None,
+                                        "notes": None,
+                                        "lists": [],
+                                    },
+                                ]
+                            },
+                            "item_id": "tv/tmdb/12345",
+                            "parent_id": None,
+                            "tracked": True,
+                            "consumptions_number": 1,
+                            "consumptions": [
+                                {
+                                    "consumption_id": 322,
+                                    "created": "2026-05-11T17:20:38.252187Z",
+                                    "score": None,
+                                    "progress": 0,
+                                    "progressed_at": None,
+                                    "status": 0,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                }
+                            ],
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def patch(self, request, media_type, source, media_id):
         """Update a tracked media item."""
         user = request.user
@@ -2462,10 +3161,9 @@ class MediaDetailView(drf_views.APIView):
             "lists": lists,
         }
 
-        serialized = serialize_data(
+        serialized = CompleteMediaSerializer(
             data,
-            serializer_class=CompleteMediaSerializer,
-        )
+        ).data
         return Response(serialized, status=HTTP.OK)
 
 
@@ -4168,9 +4866,63 @@ class MediaSyncView(drf_views.APIView):
 class MediaSeasonDetailView(drf_views.APIView):
     """Season view."""
 
-    serializer_class = MediaSerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CompleteMediaSerializer
 
+    @extend_schema(
+        operation_id="season_detail_delete",
+        summary="Delete season",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        responses={
+            204: OpenApiResponse(description="Media item deleted successfully"),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def delete(self, request, media_type, source, media_id, season_number):
         """Delete a tracked season item for the authenticated user."""
         user = request.user
@@ -4227,6 +4979,145 @@ class MediaSeasonDetailView(drf_views.APIView):
             status=HTTP.NO_CONTENT,
         )
 
+    @extend_schema(
+        operation_id="season_detail_get",
+        summary="Get season details",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                CompleteMediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved media details example",
+                        description="Retrieved media details example",
+                        summary="Retrieved media details example",
+                        value={
+                            "id": 3599,
+                            "media_id": "12345",
+                            "source": "tmdb",
+                            "source_url": "https://www.themoviedb.org/tv/12345",
+                            "media_type": "tv",
+                            "title": "Van der Valk",
+                            "max_progress": 32,
+                            "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                            "synopsis": "Van der Valk is a British television...",
+                            "genres": ["Drama"],
+                            "score": 6.2,
+                            "score_count": 10,
+                            "details": {
+                                "format": "TV",
+                                "first_air_date": "1972-09-13",
+                                "last_air_date": "1992-02-19",
+                                "status": "Ended",
+                                "seasons": 5,
+                                "episodes": 32,
+                                "runtime": "50m",
+                                "studios": None,
+                                "country": None,
+                                "languages": ["English"],
+                                "tvdb_id": 78290,
+                                "last_episode_season": 5,
+                                "next_episode_season": None,
+                            },
+                            "related": {
+                                "seasons": [
+                                    {
+                                        "id": None,
+                                        "consumption_id": None,
+                                        "item": {
+                                            "media_id": "12345",
+                                            "source": "tmdb",
+                                            "media_type": "season",
+                                            "title": "Season 1",
+                                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                            "season_number": 1,
+                                            "episode_number": None,
+                                        },
+                                        "item_id": "tv/tmdb/12345/1",
+                                        "parent_id": "tv/tmdb/12345",
+                                        "tracked": False,
+                                        "created_at": None,
+                                        "score": None,
+                                        "status": None,
+                                        "progress": None,
+                                        "progressed_at": None,
+                                        "start_date": None,
+                                        "end_date": None,
+                                        "notes": None,
+                                        "lists": [],
+                                    },
+                                ]
+                            },
+                            "item_id": "tv/tmdb/12345",
+                            "parent_id": None,
+                            "tracked": True,
+                            "consumptions_number": 1,
+                            "consumptions": [
+                                {
+                                    "consumption_id": 322,
+                                    "created": "2026-05-11T17:20:38.252187Z",
+                                    "score": None,
+                                    "progress": 0,
+                                    "progressed_at": None,
+                                    "status": 0,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                }
+                            ],
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number):
         """Retrieve details of a specific season for the authenticated user."""
         user = request.user
@@ -4331,12 +5222,151 @@ class MediaSeasonDetailView(drf_views.APIView):
             "lists": lists,
         }
 
-        serialized = serialize_data(
+        serialized = CompleteMediaSerializer(
             data,
-            serializer_class=CompleteMediaSerializer,
-        )
+        ).data
         return Response(serialized, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="season_detail_patch",
+        summary="Update season",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+        ],
+        request=UpdateSeasonSerializer,
+        responses={
+            200: OpenApiResponse(
+                CompleteMediaSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved media details example",
+                        description="Retrieved media details example",
+                        summary="Retrieved media details example",
+                        value={
+                            "id": 3599,
+                            "media_id": "12345",
+                            "source": "tmdb",
+                            "source_url": "https://www.themoviedb.org/tv/12345",
+                            "media_type": "tv",
+                            "title": "Van der Valk",
+                            "max_progress": 32,
+                            "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                            "synopsis": "Van der Valk is a British television...",
+                            "genres": ["Drama"],
+                            "score": 6.2,
+                            "score_count": 10,
+                            "details": {
+                                "format": "TV",
+                                "first_air_date": "1972-09-13",
+                                "last_air_date": "1992-02-19",
+                                "status": "Ended",
+                                "seasons": 5,
+                                "episodes": 32,
+                                "runtime": "50m",
+                                "studios": None,
+                                "country": None,
+                                "languages": ["English"],
+                                "tvdb_id": 78290,
+                                "last_episode_season": 5,
+                                "next_episode_season": None,
+                            },
+                            "related": {
+                                "seasons": [
+                                    {
+                                        "id": None,
+                                        "consumption_id": None,
+                                        "item": {
+                                            "media_id": "12345",
+                                            "source": "tmdb",
+                                            "media_type": "season",
+                                            "title": "Season 1",
+                                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                            "season_number": 1,
+                                            "episode_number": None,
+                                        },
+                                        "item_id": "tv/tmdb/12345/1",
+                                        "parent_id": "tv/tmdb/12345",
+                                        "tracked": False,
+                                        "created_at": None,
+                                        "score": None,
+                                        "status": None,
+                                        "progress": None,
+                                        "progressed_at": None,
+                                        "start_date": None,
+                                        "end_date": None,
+                                        "notes": None,
+                                        "lists": [],
+                                    },
+                                ]
+                            },
+                            "item_id": "tv/tmdb/12345",
+                            "parent_id": None,
+                            "tracked": True,
+                            "consumptions_number": 1,
+                            "consumptions": [
+                                {
+                                    "consumption_id": 322,
+                                    "created": "2026-05-11T17:20:38.252187Z",
+                                    "score": None,
+                                    "progress": 0,
+                                    "progressed_at": None,
+                                    "status": 0,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                }
+                            ],
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def patch(self, request, media_type, source, media_id, season_number):
         """Update a tracked season item."""
         user = request.user
@@ -4442,10 +5472,9 @@ class MediaSeasonDetailView(drf_views.APIView):
             "lists": lists,
         }
 
-        serialized = serialize_data(
+        serialized = CompleteMediaSerializer(
             data,
-            serializer_class=CompleteMediaSerializer,
-        )
+        ).data
         return Response(serialized, status=HTTP.OK)
 
 
@@ -5297,10 +6326,9 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        serialized_data = serialize_data(
+        serialized_data = HistorySerializer(
             consumption,
-            serializer_class=HistorySerializer,
-        )
+        ).data
         return Response(serialized_data, status=HTTP.OK)
 
     @extend_schema(
@@ -5469,10 +6497,7 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
 
         consumption.refresh_from_db()
 
-        serialized_data = serialize_data(
-            consumption,
-            serializer_class=HistorySerializer,
-        )
+        serialized_data = HistorySerializer(consumption).data
         return Response(serialized_data, status=HTTP.OK)
 
 
@@ -6099,9 +7124,64 @@ class MediaSeasonSyncView(drf_views.APIView):
 class MediaEpisodeDetailView(drf_views.APIView):
     """Episode view."""
 
-    serializer_class = MediaSerializer
+    authentication_classes = [BearerAuthentication, APIKeyAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CompleteEpisodeSerializer
 
+    @extend_schema(
+        operation_id="episode_detail_delete",
+        summary="Delete episode",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+        ],
+        responses={
+            204: OpenApiResponse(description="Media item deleted successfully"),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def delete(
         self,
         request,
@@ -6169,6 +7249,146 @@ class MediaEpisodeDetailView(drf_views.APIView):
             status=HTTP.NO_CONTENT,
         )
 
+    @extend_schema(
+        operation_id="episode_detail_get",
+        summary="Get episode details",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+        ],
+        responses={
+            200: OpenApiResponse(
+                CompleteEpisodeSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved media details example",
+                        description="Retrieved media details example",
+                        summary="Retrieved media details example",
+                        value={
+                            "id": 3599,
+                            "media_id": "12345",
+                            "source": "tmdb",
+                            "source_url": "https://www.themoviedb.org/tv/12345",
+                            "media_type": "tv",
+                            "title": "Van der Valk",
+                            "max_progress": 32,
+                            "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                            "synopsis": "Van der Valk is a British television...",
+                            "genres": ["Drama"],
+                            "score": 6.2,
+                            "score_count": 10,
+                            "details": {
+                                "format": "TV",
+                                "first_air_date": "1972-09-13",
+                                "last_air_date": "1992-02-19",
+                                "status": "Ended",
+                                "seasons": 5,
+                                "episodes": 32,
+                                "runtime": "50m",
+                                "studios": None,
+                                "country": None,
+                                "languages": ["English"],
+                                "tvdb_id": 78290,
+                                "last_episode_season": 5,
+                                "next_episode_season": None,
+                            },
+                            "related": {
+                                "seasons": [
+                                    {
+                                        "id": None,
+                                        "consumption_id": None,
+                                        "item": {
+                                            "media_id": "12345",
+                                            "source": "tmdb",
+                                            "media_type": "season",
+                                            "title": "Season 1",
+                                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                            "season_number": 1,
+                                            "episode_number": None,
+                                        },
+                                        "item_id": "tv/tmdb/12345/1",
+                                        "parent_id": "tv/tmdb/12345",
+                                        "tracked": False,
+                                        "created_at": None,
+                                        "score": None,
+                                        "status": None,
+                                        "progress": None,
+                                        "progressed_at": None,
+                                        "start_date": None,
+                                        "end_date": None,
+                                        "notes": None,
+                                        "lists": [],
+                                    },
+                                ]
+                            },
+                            "item_id": "tv/tmdb/12345",
+                            "parent_id": None,
+                            "tracked": True,
+                            "consumptions_number": 1,
+                            "consumptions": [
+                                {
+                                    "consumption_id": 322,
+                                    "created": "2026-05-11T17:20:38.252187Z",
+                                    "score": None,
+                                    "progress": 0,
+                                    "progressed_at": None,
+                                    "status": 0,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                }
+                            ],
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def get(self, request, media_type, source, media_id, season_number, episode_number):
         """Retrieve details of a specific episode for the authenticated user."""
         user = request.user
@@ -6269,12 +7489,152 @@ class MediaEpisodeDetailView(drf_views.APIView):
             "lists": lists,
         }
 
-        serialized = serialize_data(
+        serialized = CompleteEpisodeSerializer(
             data,
-            serializer_class=CompleteEpisodeSerializer,
-        )
+        ).data
         return Response(serialized, status=HTTP.OK)
 
+    @extend_schema(
+        operation_id="episode_detail_patch",
+        summary="Update episode",
+        parameters=[
+            MediaTypeParam,
+            SourceParam,
+            MediaIdParam,
+            SeasonNumberParam,
+            EpisodeNumberParam,
+        ],
+        request=UpdateEpisodeSerializer,
+        responses={
+            200: OpenApiResponse(
+                CompleteEpisodeSerializer,
+                description="Successful response",
+                examples=[
+                    OpenApiExample(
+                        "Retrieved media details example",
+                        description="Retrieved media details example",
+                        summary="Retrieved media details example",
+                        value={
+                            "id": 3599,
+                            "media_id": "12345",
+                            "source": "tmdb",
+                            "source_url": "https://www.themoviedb.org/tv/12345",
+                            "media_type": "tv",
+                            "title": "Van der Valk",
+                            "max_progress": 32,
+                            "image": "https://image.tmdb.org/t/p/w500/7cSyT7qrAVHOdiaUqcZAdj4Jny1.jpg",
+                            "synopsis": "Van der Valk is a British television...",
+                            "genres": ["Drama"],
+                            "score": 6.2,
+                            "score_count": 10,
+                            "details": {
+                                "format": "TV",
+                                "first_air_date": "1972-09-13",
+                                "last_air_date": "1992-02-19",
+                                "status": "Ended",
+                                "seasons": 5,
+                                "episodes": 32,
+                                "runtime": "50m",
+                                "studios": None,
+                                "country": None,
+                                "languages": ["English"],
+                                "tvdb_id": 78290,
+                                "last_episode_season": 5,
+                                "next_episode_season": None,
+                            },
+                            "related": {
+                                "seasons": [
+                                    {
+                                        "id": None,
+                                        "consumption_id": None,
+                                        "item": {
+                                            "media_id": "12345",
+                                            "source": "tmdb",
+                                            "media_type": "season",
+                                            "title": "Season 1",
+                                            "image": "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg",
+                                            "season_number": 1,
+                                            "episode_number": None,
+                                        },
+                                        "item_id": "tv/tmdb/12345/1",
+                                        "parent_id": "tv/tmdb/12345",
+                                        "tracked": False,
+                                        "created_at": None,
+                                        "score": None,
+                                        "status": None,
+                                        "progress": None,
+                                        "progressed_at": None,
+                                        "start_date": None,
+                                        "end_date": None,
+                                        "notes": None,
+                                        "lists": [],
+                                    },
+                                ]
+                            },
+                            "item_id": "tv/tmdb/12345",
+                            "parent_id": None,
+                            "tracked": True,
+                            "consumptions_number": 1,
+                            "consumptions": [
+                                {
+                                    "consumption_id": 322,
+                                    "created": "2026-05-11T17:20:38.252187Z",
+                                    "score": None,
+                                    "progress": 0,
+                                    "progressed_at": None,
+                                    "status": 0,
+                                    "start_date": None,
+                                    "end_date": None,
+                                    "notes": "",
+                                }
+                            ],
+                            "lists": [],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Bad request",
+                examples=[
+                    OpenApiExample(
+                        "Invalid media type example",
+                        description="Invalid media type example",
+                        summary="Invalid media type example",
+                        value={"detail": "Unsupported media type."},
+                    ),
+                ],
+            ),
+            403: forbidden_response,
+            404: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Not found",
+                examples=[
+                    OpenApiExample(
+                        "Media not found example",
+                        description="Media not found example",
+                        summary="Media not found example",
+                        value={"detail": "Media not found."},
+                    )
+                ],
+            ),
+            500: OpenApiResponse(
+                ApiErrorResponseSerializer,
+                description="Internal server error",
+                examples=[
+                    OpenApiExample(
+                        "Error while fetching item details example",
+                        description="Error while fetching item details example",
+                        summary="Error while fetching item details example",
+                        value={
+                            "detail": "An error occurred while fetching the item details.",
+                            "errors": "",
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     def patch(
         self,
         request,
@@ -6416,10 +7776,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
             "lists": lists,
         }
 
-        serialized = serialize_data(
-            data,
-            serializer_class=CompleteEpisodeSerializer,
-        )
+        serialized = CompleteEpisodeSerializer(data).data
         return Response(serialized, status=HTTP.OK)
 
 
@@ -6730,11 +8087,10 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
             limit,
             offset,
         )
-        consumptions = serialize_data(
+        consumptions = HistorySerializer(
             paginated_data["results"],
-            serializer_class=HistorySerializer,
             many=True,
-        )
+        ).data
         paginated_data["results"] = consumptions
         return Response(paginated_data, status=HTTP.OK)
 
@@ -7034,10 +8390,9 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        serialized_data = serialize_data(
+        serialized_data = HistorySerializer(
             consumption,
-            serializer_class=HistorySerializer,
-        )
+        ).data
         return Response(serialized_data, status=HTTP.OK)
 
     @extend_schema(
@@ -7206,10 +8561,9 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
 
         consumption.refresh_from_db()
 
-        serialized_data = serialize_data(
+        serialized_data = HistorySerializer(
             consumption,
-            serializer_class=HistorySerializer,
-        )
+        ).data
         return Response(serialized_data, status=HTTP.OK)
 
 
@@ -7651,8 +9005,8 @@ class MediaEpisodeSyncView(drf_views.APIView):
     serializer_class = ApiMessageResponseSerializer
 
     @extend_schema(
-        operation_id="media_sync_post",
-        summary="Sync media metadata",
+        operation_id="episode_sync_post",
+        summary="Sync episode metadata",
         parameters=[
             MediaTypeParam,
             SourceParam,
@@ -8022,16 +9376,14 @@ class StatisticsView(drf_views.APIView):
             "activity_data": activity_data,
             "media_type_distribution": media_type_distribution,
             "score_distribution": score_distribution,
-            "top_rated": serialize_data(top_rated, many=True),
+            "top_rated": MixedMediaSerializer(top_rated, many=True).data,
             "status_distribution": status_distribution,
             "status_pie_chart_data": status_pie_chart_data,
             "timeline": {
-                month: serialize_data(
+                month: TimelineItemSerializer(
                     items,
                     many=True,
-                    context={"request": request},
-                    serializer_class=TimelineItemSerializer,
-                )
+                ).data
                 for month, items in (timeline or {}).items()
             },
         }
