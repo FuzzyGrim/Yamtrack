@@ -21,6 +21,8 @@ from app.models import (
     Season,
     Sources,
     Status,
+    Tag,
+    TaggedMedia,
 )
 from events.models import Event
 from users.models import HomeSortChoices, MediaStatusChoices
@@ -290,6 +292,57 @@ class MediaManagerTests(TestCase):
         )
 
         self.assertEqual(len(media_list), 0)
+
+    def test_get_media_list_with_tag_filter(self):
+        """Test media filtering by tags with AND semantics and per-user isolation."""
+        manager = MediaManager()
+        other_user = get_user_model().objects.create_user(
+            username="other",
+            password="12345",
+        )
+        other_tag = Tag.objects.create(
+            user=other_user,
+            name="Comedy",
+            normalized_name="comedy",
+        )
+        TaggedMedia.objects.create(
+            user=other_user,
+            tag=other_tag,
+            content_object=self.anime,
+        )
+
+        comedy = Tag.objects.create(user=self.user, name="Comedy", normalized_name="comedy")
+        french = Tag.objects.create(user=self.user, name="French", normalized_name="french")
+        TaggedMedia.objects.create(user=self.user, tag=comedy, content_object=self.anime)
+
+        media_list = manager.get_media_list(
+            user=self.user,
+            media_type=MediaTypes.ANIME.value,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter="score",
+            tag_names=["Comedy"],
+        )
+        self.assertEqual(len(media_list), 1)
+        self.assertEqual(media_list[0], self.anime)
+
+        media_list = manager.get_media_list(
+            user=self.user,
+            media_type=MediaTypes.ANIME.value,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter="score",
+            tag_names=["French"],
+        )
+        self.assertEqual(len(media_list), 0)
+
+        TaggedMedia.objects.create(user=self.user, tag=french, content_object=self.anime)
+        media_list = manager.get_media_list(
+            user=self.user,
+            media_type=MediaTypes.ANIME.value,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter="score",
+            tag_names=["Comedy", "French"],
+        )
+        self.assertEqual(len(media_list), 1)
 
     def test_apply_prefetch_related(self):
         """Test the _apply_prefetch_related method."""

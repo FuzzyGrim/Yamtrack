@@ -5,6 +5,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
@@ -177,6 +178,12 @@ def media_list(request, username, media_type):
         )
 
     search_query = request.GET.get("search", "")
+    selected_tags = [
+        tag.strip()
+        for tag in request.GET.get("tags", "").split(",")
+        if tag.strip()
+    ]
+    selected_tags = list(dict.fromkeys(selected_tags))
     page = request.GET.get("page", 1)
 
     # Prepare status filter for database query
@@ -190,6 +197,21 @@ def media_list(request, username, media_type):
         status_filter=status_filter,
         sort_filter=sort_filter,
         search=search_query,
+        tag_names=selected_tags,
+    )
+
+    media_model = apps.get_model(app_label="app", model_name=media_type)
+    content_type = ContentType.objects.get_for_model(media_model)
+    available_tags = (
+        Tag.objects.filter(
+            user=target_user,
+            tagged_media__content_type=content_type,
+            tagged_media__object_id__in=media_model.objects.filter(
+                user=target_user
+            ).values("id"),
+        )
+        .distinct()
+        .order_by("name")
     )
 
     # Paginate results
@@ -213,6 +235,8 @@ def media_list(request, username, media_type):
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
         "target_user": target_user,
+        "available_tags": available_tags,
+        "selected_tags": selected_tags,
     }
 
     # Handle HTMX requests for partial updates

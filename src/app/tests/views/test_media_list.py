@@ -8,6 +8,8 @@ from app.models import (
     Movie,
     Sources,
     Status,
+    Tag,
+    TaggedMedia,
 )
 from app.templatetags import app_tags
 from users.forms import UserUpdateForm
@@ -113,6 +115,37 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_table_items.html")
+
+    def test_media_list_filter_by_single_tag_and_clear(self):
+        """Test filtering by a tag and clearing the filter."""
+        comedy = Tag.objects.create(user=self.user, name="Comedy", normalized_name="comedy")
+        TaggedMedia.objects.create(user=self.user, tag=comedy, content_object=Movie.objects.first())
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]) + "?tags=Comedy"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["media_list"].paginator.count, 1)
+        self.assertEqual(response.context["selected_tags"], ["Comedy"])
+
+        clear_response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+        )
+        self.assertEqual(clear_response.status_code, 200)
+        self.assertEqual(clear_response.context["media_list"].paginator.count, 5)
+
+    def test_media_list_tag_filter_combines_with_search_and_status(self):
+        """Test tag filter combines with search/status filters."""
+        comedy = Tag.objects.create(user=self.user, name="Comedy", normalized_name="comedy")
+        movie = Movie.objects.filter(status=Status.COMPLETED.value).first()
+        TaggedMedia.objects.create(user=self.user, tag=comedy, content_object=movie)
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + f"?tags=Comedy&status={Status.COMPLETED.value}&search={movie.item.title}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["media_list"].paginator.count, 1)
 
     def test_public_media_list_ignores_invalid_filters(self):
         """Test invalid public filters fall back to the target user's preferences."""

@@ -225,7 +225,15 @@ class MediaManager(models.Manager):
         """Return list of historical model names."""
         return [f"historical{media_type}" for media_type in MediaTypes.values]
 
-    def get_media_list(self, user, media_type, status_filter, sort_filter, search=None):
+    def get_media_list(
+        self,
+        user,
+        media_type,
+        status_filter,
+        sort_filter,
+        search=None,
+        tag_names=None,
+    ):
         """Get media list based on filters, sorting and search."""
         model = apps.get_model(app_label="app", model_name=media_type)
         queryset = model.objects.filter(user=user.id)
@@ -235,6 +243,12 @@ class MediaManager(models.Manager):
 
         if search:
             queryset = queryset.filter(item__title__icontains=search)
+        if tag_names:
+            for tag_name in tag_names:
+                queryset = queryset.filter(
+                    tagged_media__tag__user=user,
+                    tagged_media__tag__normalized_name=tag_name.lower(),
+                )
 
         queryset = queryset.annotate(
             repeats=Window(
