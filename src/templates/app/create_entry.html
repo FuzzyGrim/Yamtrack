@@ -64,6 +64,11 @@
           return ['parentSeason', 'image', 'episodeNumber', 'endDate'].includes(field);
         }
     
+        // Experience fields
+        else if (this.mediaType === 'experience') {
+          return ['title', 'image', 'score', 'status', 'startDate', 'endDate', 'location', 'notes'].includes(field);
+        }
+
         // Movie, Anime, Manga, Game, Book fields
         else {
           return ['title', 'image', 'score', 'progress', 'status', 'startDate', 'endDate', 'notes'].includes(field);
@@ -331,6 +336,15 @@
           <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                  name="end_date"
                  type="date"
+                 value="">
+        </div>
+
+        <div x-show="showField('location')">
+          <label class="block text-sm font-medium mb-2 text-gray-300">Location</label>
+          <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+                 name="location"
+                 type="text"
+                 placeholder="Enter location"
                  value="">
         </div>
 
