@@ -64,6 +64,7 @@ class MediaTypes(models.TextChoices):
     BOOK = "book", "Book"
     COMIC = "comic", "Comic"
     BOARDGAME = "boardgame", "Boardgame"
+    EXPERIENCE = "experience", "Experience"
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -1976,3 +1977,56 @@ class BoardGame(Media):
     """Model for board games."""
 
     tracker = FieldTracker()
+
+
+class Experience(Media):
+    """Model for real-life experiences."""
+
+    tracker = FieldTracker()
+    location = models.CharField(max_length=255, blank=True, default="")
+
+    @property
+    def progress(self):
+        """Experiences do not use progress tracking."""
+        return None
+
+    @property
+    def total_visits(self):
+        """Return total number of recorded visits."""
+        return self.visits.count()
+
+    @property
+    def last_visited_date(self):
+        """Return most recent visit start datetime."""
+        last_visit = self.visits.order_by("-visit_start").first()
+        return last_visit.visit_start if last_visit else None
+
+
+class ExperienceVisit(models.Model):
+    """A single occurrence/visit for an experience."""
+
+    experience = models.ForeignKey(
+        Experience,
+        on_delete=models.CASCADE,
+        related_name="visits",
+    )
+    visit_start = models.DateTimeField()
+    visit_end = models.DateTimeField(null=True, blank=True)
+    location_override = models.CharField(max_length=255, blank=True, default="")
+    score = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(10),
+            DecimalValidator(max_digits=3, decimal_places=1),
+        ],
+    )
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-visit_start", "-created_at"]

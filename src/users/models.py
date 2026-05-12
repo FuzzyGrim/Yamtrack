@@ -290,6 +290,24 @@ class User(AbstractUser):
         choices=MediaStatusChoices,
     )
 
+    # Media type preferences: Experiences
+    experience_enabled = models.BooleanField(default=True)
+    experience_layout = models.CharField(
+        max_length=20,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices,
+    )
+    experience_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.END_DATE,
+        choices=MediaSortChoices,
+    )
+    experience_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices,
+    )
+
     # UI preferences
     clickable_media_cards = models.BooleanField(
         default=False,

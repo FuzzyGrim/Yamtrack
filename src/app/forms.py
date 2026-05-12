@@ -11,6 +11,7 @@ from app.models import (
     BoardGame,
     Book,
     Comic,
+    Experience,
     Episode,
     Game,
     Item,
@@ -429,6 +430,25 @@ class BoardgameForm(MediaForm):
                 f"({config.get_unit(MediaTypes.BOARDGAME.value, short=False)}s)"
             ),
         }
+
+
+class ExperienceForm(MediaForm):
+    """Form for experiences."""
+
+    location = forms.CharField(required=False, max_length=255)
+
+    class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
+        model = Experience
+        fields = [
+            "score",
+            "status",
+            "start_date",
+            "end_date",
+            "notes",
+            "location",
+        ]
 
 
 class TvForm(MediaForm):
