@@ -2,5 +2,5 @@ mkdocs-git-authors-plugin==0.10.0
 mkdocs-git-committers-plugin-2==2.5.0
 mkdocs-include-markdown-plugin==7.2.2
 mkdocs-git-revision-date-localized-plugin==1.5.1
-mkdocs-material==9.7.1
-pymdown-extensions==10.20.1
+mkdocs-material==9.7.6
+pymdown-extensions==10.21.2
