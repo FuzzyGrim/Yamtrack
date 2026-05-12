@@ -565,7 +565,12 @@ def track_modal(
             "form": form,
             "media": media,
             "custom_links": list(media.custom_links.filter(user=request.user)) if media else [],
-            "existing_tags": list(Tag.objects.filter(user=request.user).order_by("name").values_list("name", flat=True)),
+            "existing_tags": list(
+                Tag.objects.filter(user=request.user, tagged_media__isnull=False)
+                .order_by("name")
+                .distinct()
+                .values_list("name", flat=True)
+            ),
             "selected_tags": (
                 list(
                     media.tagged_media.filter(user=request.user)

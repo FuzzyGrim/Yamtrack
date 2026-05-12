@@ -331,6 +331,7 @@ class MediaForm(forms.ModelForm):
                         for tag_id in tag_ids
                     ]
                 )
+            Tag.objects.filter(user=instance.user, tagged_media__isnull=True).delete()
         return instance
 
 class MangaForm(MediaForm):

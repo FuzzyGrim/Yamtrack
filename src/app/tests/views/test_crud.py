@@ -529,6 +529,119 @@ class EditMedia(TestCase):
         self.assertFalse(TaggedMedia.objects.filter(user=self.user, object_id=movie_a.id).exists())
         self.assertTrue(TaggedMedia.objects.filter(user=self.user, object_id=movie_b.id).exists())
         self.assertTrue(Tag.objects.filter(id=shared_tag.id).exists())
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20006"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertContains(modal_response, "Comedy")
+
+    def test_remove_tag_from_last_item_removes_suggestion_and_can_recreate(self):
+        """Test removing a tag from last item removes it from suggestions and allows recreating."""
+        item_a = Item.objects.create(
+            media_id="20008",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie H",
+            image="http://example.com/image.jpg",
+        )
+        movie_a = Movie.objects.create(item=item_a, user=self.user, status=Status.PLANNING.value)
+        item_b = Item.objects.create(
+            media_id="20009",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie I",
+            image="http://example.com/image.jpg",
+        )
+        movie_b = Movie.objects.create(item=item_b, user=self.user, status=Status.PLANNING.value)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_a.id,
+                "media_id": "20008",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Cleanup Me"],
+            },
+        )
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_b.id,
+                "media_id": "20009",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Cleanup Me"],
+            },
+        )
+
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20009"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertContains(modal_response, "Cleanup Me")
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_a.id,
+                "media_id": "20008",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": [],
+            },
+        )
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20009"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertContains(modal_response, "Cleanup Me")
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_b.id,
+                "media_id": "20009",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": [],
+            },
+        )
+        self.assertFalse(Tag.objects.filter(user=self.user, normalized_name="cleanup me").exists())
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20009"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertNotContains(modal_response, "Cleanup Me")
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_b.id,
+                "media_id": "20009",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Cleanup Me"],
+            },
+        )
+        self.assertTrue(Tag.objects.filter(user=self.user, normalized_name="cleanup me").exists())
 
     def test_display_tags_on_detail_page(self):
         """Test tags are shown on media details page."""
