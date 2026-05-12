@@ -105,19 +105,23 @@
                x-model="input"
                placeholder="Add tag and press Enter"
                class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]"
+               autocomplete="off"
+               autocapitalize="off"
+               autocorrect="off"
+               spellcheck="false"
                @focus="open = true"
                @input="open = true"
                @keydown.enter.prevent="addTag(input)"
                @keydown.escape.prevent="open = false">
         <div x-show="open"
              x-cloak
-             class="absolute z-30 top-full left-0 right-0 mt-1 bg-[#2a2f35] border border-indigo-500/70 rounded-md shadow-xl shadow-indigo-900/30 ring-1 ring-indigo-500/40 max-h-48 overflow-y-auto">
+             class="absolute z-40 top-full left-0 right-0 mt-1.5 bg-[#1f242b] border border-indigo-500 rounded-md shadow-2xl shadow-indigo-900/40 ring-1 ring-indigo-500/60 max-h-52 overflow-y-auto">
           <template x-if="filteredSuggestions.length > 0">
-            <ul class="py-1">
+            <ul class="py-1 divide-y divide-gray-700/60">
               <template x-for="suggestion in filteredSuggestions" :key="suggestion">
                 <li>
                   <button type="button"
-                          class="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-[#39404b] hover:text-white transition-colors"
+                          class="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-indigo-500/15 hover:text-indigo-200 transition-colors"
                           @click="addTag(suggestion)"
                           x-text="suggestion"></button>
                 </li>
