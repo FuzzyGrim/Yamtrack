@@ -214,7 +214,7 @@ def get_search_media_types(user):
             "value": media_type,
         }
         for media_type in enabled_types
-        if media_type != MediaTypes.SEASON.value
+        if media_type not in [MediaTypes.SEASON.value, MediaTypes.EXPERIENCE.value]
     ]
 
 

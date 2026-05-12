@@ -12,6 +12,15 @@
     {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
     {{ media_type|media_type_readable_plural }}
   </h1>
+  {% if request.user == target_user and media_type == MediaTypes.EXPERIENCE.value %}
+    <div class="mb-4">
+      <a href="{% url 'create_entry' %}?media_type=experience"
+         class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+        {% include "app/icons/plus.svg" with classes="w-4 h-4" %}
+        <span>Add Experience</span>
+      </a>
+    </div>
+  {% endif %}
 
   <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:''|escapejs }}', tags: '{{ request.GET.tags|default:''|escapejs }}'.split(',').filter(Boolean), get tagsParam() { return this.tags.join(','); }, toggleTag(tag) { this.tags.includes(tag) ? this.tags = this.tags.filter(t => t !== tag) : this.tags.push(tag); }, clearTags() { this.tags = []; }, statusLabels: {
     {% for value, label in status_choices %}
@@ -174,9 +183,9 @@
             <p class="text-gray-400 mb-6">
               Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
             </p>
-            <a href="{{ media_type|sample_search }}"
+            <a href="{% if media_type == MediaTypes.EXPERIENCE.value %}{% url 'create_entry' %}?media_type=experience{% else %}{{ media_type|sample_search }}{% endif %}"
                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-              Browse {{ media_type|media_type_readable_plural }}
+              {% if media_type == MediaTypes.EXPERIENCE.value %}Create Experience{% else %}Browse {{ media_type|media_type_readable_plural }}{% endif %}
             </a>
           {% endif %}
         </div>
@@ -191,7 +200,7 @@
               <th class="p-2 w-15"></th>
               <th class="p-2 pe-8 w-2/5">Title</th>
               <th class="p-2 text-center">Score</th>
-              {% if media_type != MediaTypes.MOVIE.value %}<th class="p-2 text-center">Progress</th>{% endif %}
+              {% if media_type != MediaTypes.MOVIE.value and media_type != MediaTypes.EXPERIENCE.value %}<th class="p-2 text-center">Progress</th>{% endif %}
               {% if media_type == MediaTypes.TV.value %}<th class="p-2 text-center">Last Watched</th>{% endif %}
               <th class="p-2 text-center">Status</th>
               <th class="p-2 text-center">Start Date</th>

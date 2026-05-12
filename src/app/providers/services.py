@@ -266,5 +266,11 @@ def search(media_type, query, page, source=None):
         ),
         MediaTypes.COMIC.value: lambda: comicvine.search(query, page),
         MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
+        MediaTypes.EXPERIENCE.value: lambda: {
+            "results": [],
+            "total_results": 0,
+            "total_pages": 0,
+            "page": page,
+        },
     }
     return search_handlers[media_type]()

@@ -535,6 +535,7 @@ def track_modal(
     season_number=None,
 ):
     """Return the tracking form for a media item."""
+    is_visit_mode = request.GET.get("is_visit") == "1"
     instance_id = request.GET.get("instance_id")
     if instance_id:
         media = BasicMedia.objects.get_media(
@@ -605,6 +606,9 @@ def track_modal(
                 else []
             ),
             "return_url": request.GET["return_url"],
+            "show_taxonomy_fields": not (
+                media_type == MediaTypes.EXPERIENCE.value and is_visit_mode
+            ),
         },
     )
 
@@ -774,7 +778,17 @@ def create_entry(request):
     """Return the form for manually adding media items."""
     if request.method == "GET":
         media_types = MediaTypes.values
-        return render(request, "app/create_entry.html", {"media_types": media_types})
+        selected_media_type = request.GET.get("media_type", MediaTypes.TV.value)
+        if selected_media_type not in media_types:
+            selected_media_type = MediaTypes.TV.value
+        return render(
+            request,
+            "app/create_entry.html",
+            {
+                "media_types": media_types,
+                "selected_media_type": selected_media_type,
+            },
+        )
 
     # Process the form submission
     form = ManualItemForm(request.POST, user=request.user)

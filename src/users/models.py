@@ -8,7 +8,11 @@ from django_celery_results.models import TaskResult
 from app.models import Item, MediaTypes, Status
 from users import helpers
 
-EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
+EXCLUDED_SEARCH_TYPES = [
+    MediaTypes.SEASON.value,
+    MediaTypes.EPISODE.value,
+    MediaTypes.EXPERIENCE.value,
+]
 
 VALID_SEARCH_TYPES = [
     value for value in MediaTypes.values if value not in EXCLUDED_SEARCH_TYPES
@@ -285,6 +289,24 @@ class User(AbstractUser):
         choices=MediaSortChoices,
     )
     boardgame_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices,
+    )
+
+    # Media type preferences: Experiences
+    experience_enabled = models.BooleanField(default=True)
+    experience_layout = models.CharField(
+        max_length=20,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices,
+    )
+    experience_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.END_DATE,
+        choices=MediaSortChoices,
+    )
+    experience_status = models.CharField(
         max_length=20,
         default=MediaStatusChoices.ALL,
         choices=MediaStatusChoices,
