@@ -13,7 +13,7 @@
     </div>
     {# djlint:off #}
     <form method="post" class="space-y-6" x-data="{
-      mediaType: 'tv',
+      mediaType: '{{ selected_media_type|default:"tv" }}',
       placeholderHtml: null,
 
       init() {

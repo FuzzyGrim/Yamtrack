@@ -14,7 +14,7 @@
   </h1>
   {% if request.user == target_user and media_type == MediaTypes.EXPERIENCE.value %}
     <div class="mb-4">
-      <a href="{% url 'create_entry' %}"
+      <a href="{% url 'create_entry' %}?media_type=experience"
          class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
         {% include "app/icons/plus.svg" with classes="w-4 h-4" %}
         <span>Add Experience</span>
@@ -183,7 +183,7 @@
             <p class="text-gray-400 mb-6">
               Start tracking your {{ media_type_plural }} to keep a record of what you've {{ media_type|media_past_verb }}.
             </p>
-            <a href="{% if media_type == MediaTypes.EXPERIENCE.value %}{% url 'create_entry' %}{% else %}{{ media_type|sample_search }}{% endif %}"
+            <a href="{% if media_type == MediaTypes.EXPERIENCE.value %}{% url 'create_entry' %}?media_type=experience{% else %}{{ media_type|sample_search }}{% endif %}"
                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
               {% if media_type == MediaTypes.EXPERIENCE.value %}Create Experience{% else %}Browse {{ media_type|media_type_readable_plural }}{% endif %}
             </a>

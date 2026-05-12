@@ -774,7 +774,17 @@ def create_entry(request):
     """Return the form for manually adding media items."""
     if request.method == "GET":
         media_types = MediaTypes.values
-        return render(request, "app/create_entry.html", {"media_types": media_types})
+        selected_media_type = request.GET.get("media_type", MediaTypes.TV.value)
+        if selected_media_type not in media_types:
+            selected_media_type = MediaTypes.TV.value
+        return render(
+            request,
+            "app/create_entry.html",
+            {
+                "media_types": media_types,
+                "selected_media_type": selected_media_type,
+            },
+        )
 
     # Process the form submission
     form = ManualItemForm(request.POST, user=request.user)
