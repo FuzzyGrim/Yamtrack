@@ -482,7 +482,7 @@ class MediaManager(models.Manager):
         return [
             media_type
             for media_type in user.get_active_media_types()
-            if media_type != MediaTypes.TV.value
+            if media_type not in [MediaTypes.TV.value, MediaTypes.EXPERIENCE.value]
         ]
 
     def _annotate_next_event(self, media_list):
