@@ -115,13 +115,14 @@
                @keydown.escape.prevent="open = false">
         <div x-show="open"
              x-cloak
-             class="absolute z-40 top-full left-0 right-0 mt-1.5 bg-[#1f242b] border border-indigo-500 rounded-md shadow-2xl shadow-indigo-900/40 ring-1 ring-indigo-500/60 max-h-52 overflow-y-auto">
+             class="absolute z-[100] top-full left-0 right-0 mt-1.5 rounded-md max-h-52 overflow-y-auto border border-indigo-500 ring-1 ring-indigo-500/60 shadow-2xl shadow-indigo-900/50"
+             style="background-color: #1f242b; opacity: 1;">
           <template x-if="filteredSuggestions.length > 0">
             <ul class="py-1 divide-y divide-gray-700/60">
               <template x-for="suggestion in filteredSuggestions" :key="suggestion">
                 <li>
                   <button type="button"
-                          class="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-indigo-500/15 hover:text-indigo-200 transition-colors"
+                          class="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-indigo-900/40 hover:text-indigo-200 transition-colors"
                           @click="addTag(suggestion)"
                           x-text="suggestion"></button>
                 </li>
