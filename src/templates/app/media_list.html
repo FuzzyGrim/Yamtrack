@@ -13,7 +13,7 @@
     {{ media_type|media_type_readable_plural }}
   </h1>
 
-  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: {
+  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:''|escapejs }}', tags: '{{ request.GET.tags|default:''|escapejs }}'.split(',').filter(Boolean), get tagsParam() { return this.tags.join(','); }, toggleTag(tag) { this.tags.includes(tag) ? this.tags = this.tags.filter(t => t !== tag) : this.tags.push(tag); }, clearTags() { this.tags = []; }, statusLabels: {
     {% for value, label in status_choices %}
       '{{ value }}': '{{ label }}'
       {% if not forloop.last %},{% endif %}
@@ -33,6 +33,7 @@
       <input type="hidden" name="status" x-model="status">
       <input type="hidden" name="search" x-model="search">
       <input type="hidden" name="layout" x-model="layout">
+      <input type="hidden" name="tags" :value="tagsParam">
     </form>
 
     <div class="flex flex-col md:flex-row gap-4 mb-6">
@@ -123,12 +124,12 @@
 
         <!-- Layout Toggle -->
         <div class="flex rounded-md overflow-hidden border border-gray-700">
-          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + encodeURIComponent(search) + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${tags.length ? 'tags=' + encodeURIComponent(tagsParam) + '&' : ''}layout=grid`"
              class="p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Grid View"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
-          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + encodeURIComponent(search) + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${tags.length ? 'tags=' + encodeURIComponent(tagsParam) + '&' : ''}layout=table`"
              class="p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Table View"
@@ -136,6 +137,30 @@
         </div>
       </div>
     </div>
+    {% if available_tags %}
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-sm text-gray-300">Tags (AND)</span>
+          <button type="button"
+                  class="text-xs text-gray-400 hover:text-white underline"
+                  @click="clearTags()"
+                  hx-get="{% url 'medialist' target_user.username media_type %}"
+                  {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
+                  hx-include="#filter-form">Clear</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          {% for tag in available_tags %}
+            <button type="button"
+                    class="px-3 py-1 text-sm rounded-full border transition-colors cursor-pointer"
+                    :class="tags.includes('{{ tag.name|escapejs }}') ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-[#39404b] border-gray-700 text-gray-200 hover:bg-[#454d5a]'"
+                    @click="toggleTag('{{ tag.name|escapejs }}')"
+                    hx-get="{% url 'medialist' target_user.username media_type %}"
+                    {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
+                    hx-include="#filter-form">{{ tag.name }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
 
     {% if not media_list %}
       <div id="empty_list"
