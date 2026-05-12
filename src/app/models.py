@@ -838,6 +838,53 @@ class CustomLink(models.Model):
         ]
 
 
+class Tag(models.Model):
+    """User-defined tags that can be reused across tracked media entries."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    normalized_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "normalized_name"],
+                name="unique_tag_per_user_normalized_name",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "name"], name="app_tag_user_name_idx"),
+            models.Index(fields=["user", "normalized_name"], name="app_tag_user_norm_idx"),
+        ]
+
+
+class TaggedMedia(models.Model):
+    """Relation connecting user tags to tracked media objects."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name="tagged_media")
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveBigIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "tag", "content_type", "object_id"],
+                name="unique_tagged_media_per_target",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["content_type", "object_id"], name="app_tmedia_target_idx"),
+            models.Index(fields=["user"], name="app_tmedia_user_idx"),
+            models.Index(fields=["tag"], name="app_tmedia_tag_idx"),
+        ]
+
+
 class Media(models.Model):
     """Abstract model for all media types."""
 
@@ -878,6 +925,7 @@ class Media(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
     custom_links = GenericRelation("CustomLink", related_query_name="media")
+    tagged_media = GenericRelation("TaggedMedia", related_query_name="media")
 
     class Meta:
         """Meta options for the model."""

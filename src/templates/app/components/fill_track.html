@@ -63,6 +63,91 @@
     {% endif %}
 
     <div class="mb-5"
+         x-data="{
+           input: '',
+           open: false,
+           tags: [{% for tag in selected_tags %}'{{ tag|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+           suggestions: [{% for tag in existing_tags %}'{{ tag|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+           get filteredSuggestions() {
+             const query = this.input.trim().toLowerCase();
+             return this.suggestions.filter((suggestion) => {
+               const alreadySelected = this.tags.some((tag) => tag.toLowerCase() === suggestion.toLowerCase());
+               if (alreadySelected) return false;
+               if (!query) return true;
+               return suggestion.toLowerCase().includes(query);
+             });
+           },
+           addTag(value) {
+             const normalizedValue = value.trim();
+             if (!normalizedValue) return;
+             if (this.tags.some((tag) => tag.toLowerCase() === normalizedValue.toLowerCase())) {
+               this.input = '';
+               return;
+             }
+             this.tags.push(normalizedValue);
+             this.input = '';
+             this.open = false;
+           }
+         }">
+      <div class="flex items-center justify-between mb-2">
+        <label class="block text-sm font-medium text-gray-300">Tags</label>
+      </div>
+      <div class="flex flex-wrap gap-2 mb-2" x-show="tags.length > 0">
+        <template x-for="(tag, index) in tags" :key="`${tag}-${index}`">
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-indigo-700 text-white">
+            <span x-text="tag"></span>
+            <button type="button" class="text-white/80 hover:text-white" @click="tags.splice(index, 1)">×</button>
+          </span>
+        </template>
+      </div>
+      <div class="flex gap-2 relative"
+           x-ref="tagDropdown"
+           @click.outside="open = false"
+           @focusout="if (!$refs.tagDropdown.contains($event.relatedTarget)) open = false">
+        <input type="text"
+               x-model="input"
+               placeholder="Add tag and press Enter"
+               class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]"
+               autocomplete="off"
+               autocapitalize="off"
+               autocorrect="off"
+               spellcheck="false"
+               @focus="open = true"
+               @input="open = true"
+               @keydown.tab="open = false"
+               @keydown.enter.prevent="addTag(input)"
+               @keydown.escape.prevent="open = false">
+        <div x-show="open"
+             x-cloak
+             class="absolute z-[100] top-full left-0 right-0 mt-1.5 rounded-md max-h-52 overflow-y-auto border border-indigo-500 ring-1 ring-indigo-500/60 shadow-2xl shadow-indigo-900/50"
+             style="background-color: #1f242b; opacity: 1;">
+          <template x-if="filteredSuggestions.length > 0">
+            <ul class="py-1 divide-y divide-gray-700/60">
+              <template x-for="suggestion in filteredSuggestions" :key="suggestion">
+                <li>
+                  <button type="button"
+                          class="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-indigo-900/40 hover:text-indigo-200 transition-colors"
+                          @mousedown.prevent
+                          @click="addTag(suggestion)"
+                          x-text="suggestion"></button>
+                </li>
+              </template>
+            </ul>
+          </template>
+          <template x-if="filteredSuggestions.length === 0">
+            <div class="px-3 py-2 text-sm text-gray-400">No matching tags</div>
+          </template>
+        </div>
+        <button type="button"
+                class="text-xs px-3 py-2 rounded bg-gray-700 text-white hover:bg-gray-600"
+                @click="addTag(input)">Add</button>
+      </div>
+      <template x-for="(tag, index) in tags" :key="`hidden-${tag}-${index}`">
+        <input type="hidden" name="tag_names[]" :value="tag">
+      </template>
+    </div>
+
+    <div class="mb-5"
          x-data="{ rows: [{% for link in custom_links %}{ label: '{{ link.label|escapejs }}', url: '{{ link.url|escapejs }}' }{% if not forloop.last %}, {% endif %}{% endfor %}] }"
          x-init="if (rows.length === 0) rows = [{ label: '', url: '' }]">
       <input type="hidden" name="custom_links_submitted" value="1">

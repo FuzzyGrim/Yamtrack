@@ -15,6 +15,8 @@ from app.models import (
     Sources,
     Status,
     CustomLink,
+    Tag,
+    TaggedMedia,
 )
 
 
@@ -386,6 +388,281 @@ class EditMedia(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_create_new_tag_while_saving_media(self):
+        """Test creating and persisting a new tag on media save."""
+        item = Item.objects.create(
+            media_id="20001",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie A",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(item=item, user=self.user, status=Status.PLANNING.value)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie.id,
+                "media_id": "20001",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Comedy"],
+            },
+        )
+
+        self.assertTrue(Tag.objects.filter(user=self.user, normalized_name="comedy").exists())
+        self.assertTrue(TaggedMedia.objects.filter(user=self.user, object_id=movie.id).exists())
+
+    def test_reuse_existing_tag_and_preload_modal(self):
+        """Test existing tag is reusable and preloaded when reopening modal."""
+        item_a = Item.objects.create(
+            media_id="20002",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie B",
+            image="http://example.com/image.jpg",
+        )
+        movie_a = Movie.objects.create(item=item_a, user=self.user, status=Status.PLANNING.value)
+        item_b = Item.objects.create(
+            media_id="20003",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie C",
+            image="http://example.com/image.jpg",
+        )
+        movie_b = Movie.objects.create(item=item_b, user=self.user, status=Status.PLANNING.value)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_a.id,
+                "media_id": "20002",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Comedy"],
+            },
+        )
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_b.id,
+                "media_id": "20003",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Comedy", "Paul Recommendation"],
+            },
+        )
+
+        self.assertEqual(Tag.objects.filter(user=self.user, normalized_name="comedy").count(), 1)
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20003"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertContains(modal_response, 'option value="Comedy"')
+        self.assertContains(modal_response, "Paul Recommendation")
+
+    def test_prevent_duplicate_tags_for_same_user(self):
+        """Test case-insensitive duplicate tags collapse to one tag per user."""
+        item = Item.objects.create(
+            media_id="20004",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie D",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(item=item, user=self.user, status=Status.PLANNING.value)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie.id,
+                "media_id": "20004",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Comedy", "comedy", " COMEDY "],
+            },
+        )
+        self.assertEqual(Tag.objects.filter(user=self.user, normalized_name="comedy").count(), 1)
+        self.assertEqual(TaggedMedia.objects.filter(user=self.user, object_id=movie.id).count(), 1)
+
+    def test_remove_tag_from_one_item_only(self):
+        """Test removing tag from one item keeps tag and other item relation intact."""
+        shared_tag = Tag.objects.create(user=self.user, name="Comedy", normalized_name="comedy")
+        item_a = Item.objects.create(
+            media_id="20005",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie E",
+            image="http://example.com/image.jpg",
+        )
+        movie_a = Movie.objects.create(item=item_a, user=self.user, status=Status.PLANNING.value)
+        item_b = Item.objects.create(
+            media_id="20006",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie F",
+            image="http://example.com/image.jpg",
+        )
+        movie_b = Movie.objects.create(item=item_b, user=self.user, status=Status.PLANNING.value)
+        TaggedMedia.objects.create(user=self.user, tag=shared_tag, content_object=movie_a)
+        TaggedMedia.objects.create(user=self.user, tag=shared_tag, content_object=movie_b)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_a.id,
+                "media_id": "20005",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": [],
+            },
+        )
+        self.assertFalse(TaggedMedia.objects.filter(user=self.user, object_id=movie_a.id).exists())
+        self.assertTrue(TaggedMedia.objects.filter(user=self.user, object_id=movie_b.id).exists())
+        self.assertTrue(Tag.objects.filter(id=shared_tag.id).exists())
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20006"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertContains(modal_response, "Comedy")
+
+    def test_remove_tag_from_last_item_removes_suggestion_and_can_recreate(self):
+        """Test removing a tag from last item removes it from suggestions and allows recreating."""
+        item_a = Item.objects.create(
+            media_id="20008",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie H",
+            image="http://example.com/image.jpg",
+        )
+        movie_a = Movie.objects.create(item=item_a, user=self.user, status=Status.PLANNING.value)
+        item_b = Item.objects.create(
+            media_id="20009",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie I",
+            image="http://example.com/image.jpg",
+        )
+        movie_b = Movie.objects.create(item=item_b, user=self.user, status=Status.PLANNING.value)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_a.id,
+                "media_id": "20008",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Cleanup Me"],
+            },
+        )
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_b.id,
+                "media_id": "20009",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Cleanup Me"],
+            },
+        )
+
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20009"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertContains(modal_response, "Cleanup Me")
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_a.id,
+                "media_id": "20008",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": [],
+            },
+        )
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20009"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertContains(modal_response, "Cleanup Me")
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_b.id,
+                "media_id": "20009",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": [],
+            },
+        )
+        self.assertFalse(Tag.objects.filter(user=self.user, normalized_name="cleanup me").exists())
+        modal_response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20009"},
+                query={"instance_id": movie_b.id, "return_url": "/"},
+            ),
+        )
+        self.assertNotContains(modal_response, "Cleanup Me")
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": movie_b.id,
+                "media_id": "20009",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Cleanup Me"],
+            },
+        )
+        self.assertTrue(Tag.objects.filter(user=self.user, normalized_name="cleanup me").exists())
+
+    def test_display_tags_on_detail_page(self):
+        """Test tags are shown on media details page."""
+        item = Item.objects.create(
+            media_id="20007",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tag Movie G",
+            image="http://example.com/image.jpg",
+        )
+        movie = Movie.objects.create(item=item, user=self.user, status=Status.PLANNING.value)
+        tag = Tag.objects.create(user=self.user, name="Anime Club", normalized_name="anime club")
+        TaggedMedia.objects.create(user=self.user, tag=tag, content_object=movie)
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={"source": Sources.TMDB.value, "media_type": MediaTypes.MOVIE.value, "media_id": "20007", "title": "tag-movie-g"},
+            ),
+        )
+        self.assertContains(response, "YOUR TAGS")
+        self.assertContains(response, "Anime Club")
         movie.refresh_from_db()
         self.assertEqual(movie.score, 9)
 
