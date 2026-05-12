@@ -82,7 +82,9 @@ class Item(CalendarTriggerMixin, models.Model):
         default=MediaTypes.MOVIE.value,
     )
     title = models.TextField()
-    image = models.URLField()  # if add default, custom media entry will show the value
+    image = models.URLField(
+        max_length=500,
+    )  # if add default, custom media entry will show the value
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -954,10 +956,11 @@ class Media(models.Model):
 
     def save(self, *args, **kwargs):
         """Save the media instance."""
-        if self.tracker.has_changed("progress"):
+        tracked_fields = set(getattr(self.tracker, "fields", []))
+        if "progress" in tracked_fields and self.tracker.has_changed("progress"):
             self.process_progress()
 
-        if self.tracker.has_changed("status"):
+        if "status" in tracked_fields and self.tracker.has_changed("status"):
             self.process_status()
 
         super().save(*args, **kwargs)

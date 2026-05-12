@@ -8,7 +8,11 @@ from django_celery_results.models import TaskResult
 from app.models import Item, MediaTypes, Status
 from users import helpers
 
-EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
+EXCLUDED_SEARCH_TYPES = [
+    MediaTypes.SEASON.value,
+    MediaTypes.EPISODE.value,
+    MediaTypes.EXPERIENCE.value,
+]
 
 VALID_SEARCH_TYPES = [
     value for value in MediaTypes.values if value not in EXCLUDED_SEARCH_TYPES
