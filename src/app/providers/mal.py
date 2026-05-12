@@ -98,7 +98,7 @@ def anime(media_id):
     if data is None:
         url = f"{base_url}/anime/{media_id}"
         params = {
-            "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,broadcast,source,related_anime",  # noqa: E501
+            "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,broadcast,source,related_anime{{node{{alternative_titles}}}},recommendations{{node{{alternative_titles}}}}",  # noqa: E501
         }
 
         try:
@@ -163,7 +163,7 @@ def manga(media_id):
     if data is None:
         url = f"{base_url}/manga/{media_id}"
         params = {
-            "fields": f"{base_fields},num_chapters,related_manga,recommendations",
+            "fields": f"{base_fields},num_chapters,related_manga{{node{{alternative_titles}}}},recommendations{{node{{alternative_titles}}}}",
         }
 
         try:
