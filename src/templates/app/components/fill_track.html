@@ -100,7 +100,10 @@
           </span>
         </template>
       </div>
-      <div class="flex gap-2 relative" @click.outside="open = false">
+      <div class="flex gap-2 relative"
+           x-ref="tagDropdown"
+           @click.outside="open = false"
+           @focusout="if (!$refs.tagDropdown.contains($event.relatedTarget)) open = false">
         <input type="text"
                x-model="input"
                placeholder="Add tag and press Enter"
@@ -111,6 +114,7 @@
                spellcheck="false"
                @focus="open = true"
                @input="open = true"
+               @keydown.tab="open = false"
                @keydown.enter.prevent="addTag(input)"
                @keydown.escape.prevent="open = false">
         <div x-show="open"
@@ -123,6 +127,7 @@
                 <li>
                   <button type="button"
                           class="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-indigo-900/40 hover:text-indigo-200 transition-colors"
+                          @mousedown.prevent
                           @click="addTag(suggestion)"
                           x-text="suggestion"></button>
                 </li>
