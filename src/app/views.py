@@ -535,6 +535,7 @@ def track_modal(
     season_number=None,
 ):
     """Return the tracking form for a media item."""
+    is_visit_mode = request.GET.get("is_visit") == "1"
     instance_id = request.GET.get("instance_id")
     if instance_id:
         media = BasicMedia.objects.get_media(
@@ -605,6 +606,9 @@ def track_modal(
                 else []
             ),
             "return_url": request.GET["return_url"],
+            "show_taxonomy_fields": not (
+                media_type == MediaTypes.EXPERIENCE.value and is_visit_mode
+            ),
         },
     )
 
