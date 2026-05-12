@@ -62,6 +62,52 @@ class Metadata(TestCase):
         }
         self.assertEqual(mal.get_title(response), "Shingeki no Kyojin")
 
+
+    @patch("app.providers.mal.settings.MAL_TITLE_LANG", "en")
+    def test_get_related_prefers_english_titles(self):
+        """Test related/recommendation titles prefer english when available."""
+        related = [
+            {
+                "node": {
+                    "id": 1,
+                    "title": "Yakusoku no Neverland 2nd Season",
+                    "alternative_titles": {"en": "The Promised Neverland Season 2"},
+                    "main_picture": {"large": "https://example.com/1.jpg"},
+                },
+            },
+        ]
+
+        response = mal.get_related(related, MediaTypes.ANIME.value)
+
+        self.assertEqual(response[0]["title"], "The Promised Neverland Season 2")
+        self.assertEqual(response[0]["media_id"], 1)
+
+    @patch("app.providers.mal.settings.MAL_TITLE_LANG", "en")
+    def test_get_related_falls_back_when_alternative_titles_missing_or_null(self):
+        """Test related titles fallback safely when alternative titles are missing."""
+        related = [
+            {
+                "node": {
+                    "id": 1,
+                    "title": "Default One",
+                    "main_picture": {"large": "https://example.com/1.jpg"},
+                },
+            },
+            {
+                "node": {
+                    "id": 2,
+                    "title": "Default Two",
+                    "alternative_titles": None,
+                    "main_picture": {"large": "https://example.com/2.jpg"},
+                },
+            },
+        ]
+
+        response = mal.get_related(related, MediaTypes.MANGA.value)
+
+        self.assertEqual(response[0]["title"], "Default One")
+        self.assertEqual(response[1]["title"], "Default Two")
+
     @patch("requests.Session.get")
     def test_anime_unknown(self, mock_data):
         """Test the metadata method for anime with mostly unknown data."""
