@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from io import BytesIO
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
@@ -67,6 +68,18 @@ class ImportYamtrack(TestCase):
             tv.history.first().history_date,
             datetime(2024, 2, 9, 12, 0, 0, tzinfo=UTC),
         )
+
+    def test_multiline_notes_are_preserved(self):
+        """Test that quoted multiline notes keep embedded newlines."""
+        csv_content = b""""media_id","source","media_type","title","image","season_number","episode_number","score","status","notes","start_date","end_date","progress","created_at","progressed_at"
+"123192","tmdb","tv","The Crowded Room","https://image.tmdb.org/t/p/w500/vRmopCFp0j1eJGbILLsYsYzxmL8.jpg","","","","Completed","test
+test","2026-05-14 11:09:00+00:00","2026-05-14 11:09:00+00:00","10","2026-05-14 11:09:26.617144+00:00","2026-05-14 11:09:00+00:00"
+"""  # noqa: E501
+
+        yamtrack.importer(BytesIO(csv_content), self.user, "new")
+
+        tv = TV.objects.get(user=self.user, item__media_id="123192")
+        self.assertEqual(tv.notes, "test\ntest")
 
     def test_missing_metadata_handling(self):
         """Test _handle_missing_metadata method directly."""
