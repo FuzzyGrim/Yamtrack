@@ -151,6 +151,16 @@ def is_released_date(air_date, current_date=None):
     return normalized_air_date <= current_date
 
 
+def refresh_item_image_if_missing(item, new_image):
+    """Update an Item's stored image when it's missing and a real one is available."""
+    if item is None or not new_image or new_image == settings.IMG_NONE:
+        return
+    if item.image and item.image != settings.IMG_NONE:
+        return
+    item.image = new_image
+    item.save(update_fields=["image"])
+
+
 def enrich_items_with_user_data(request, items, section_name):
     """Enrich a list of items with user tracking data."""
     if not items:
@@ -211,6 +221,9 @@ def enrich_items_with_user_data(request, items, section_name):
             and media_item.status == Status.COMPLETED.value
         ):
             continue
+
+        if media_item is not None:
+            refresh_item_image_if_missing(media_item.item, item.get("image"))
 
         enriched_item = {
             "item": item,

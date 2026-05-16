@@ -283,6 +283,11 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     )
     current_instance = user_medias[0] if user_medias else None
 
+    if current_instance is not None:
+        helpers.refresh_item_image_if_missing(
+            current_instance.item, media_metadata.get("image")
+        )
+
     # Enrich related items with user tracking data
     if media_metadata.get("related"):
         for section_name, related_items in media_metadata["related"].items():
@@ -332,6 +337,11 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
 
     current_instance = user_medias[0] if user_medias else None
     episodes_in_db = current_instance.episodes.all() if current_instance else []
+
+    if current_instance is not None:
+        helpers.refresh_item_image_if_missing(
+            current_instance.item, season_metadata.get("image")
+        )
 
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(

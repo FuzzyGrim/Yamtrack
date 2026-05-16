@@ -1,12 +1,16 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
+    Item,
     MediaTypes,
+    Movie,
     Sources,
+    Status,
 )
 
 
@@ -114,3 +118,91 @@ class MediaDetailsViewTests(TestCase):
             Sources.TMDB.value,
             [1],
         )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_details_refreshes_missing_item_image(self, mock_get_metadata):
+        """Item.image is updated when missing and live metadata has one."""
+        live_image = "http://example.com/fresh.jpg"
+        mock_get_metadata.return_value = {
+            "media_id": "238",
+            "title": "Test Movie",
+            "media_type": MediaTypes.MOVIE.value,
+            "source": Sources.TMDB.value,
+            "image": live_image,
+            "max_progress": 1,
+            "overview": "Test overview",
+            "release_date": "2023-01-01",
+        }
+
+        item = Item.objects.create(
+            media_id="238",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Test Movie",
+            image=settings.IMG_NONE,
+        )
+        Movie.objects.create(
+            item=item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "238",
+                    "title": "test-movie",
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        item.refresh_from_db()
+        self.assertEqual(item.image, live_image)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_details_keeps_existing_item_image(self, mock_get_metadata):
+        """Item.image is left alone when already set."""
+        existing_image = "http://example.com/stored.jpg"
+        mock_get_metadata.return_value = {
+            "media_id": "238",
+            "title": "Test Movie",
+            "media_type": MediaTypes.MOVIE.value,
+            "source": Sources.TMDB.value,
+            "image": "http://example.com/fresh.jpg",
+            "max_progress": 1,
+            "overview": "Test overview",
+            "release_date": "2023-01-01",
+        }
+
+        item = Item.objects.create(
+            media_id="238",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Test Movie",
+            image=existing_image,
+        )
+        Movie.objects.create(
+            item=item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "238",
+                    "title": "test-movie",
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        item.refresh_from_db()
+        self.assertEqual(item.image, existing_image)
