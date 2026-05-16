@@ -8,6 +8,14 @@
 
 Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games.
 
+<!-- docs-site-link:start -->
+
+## 📚 Documentation
+
+The full documentation is available at [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/).
+
+<!-- docs-site-link:end -->
+
 ## 🚀 Demo
 
 You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) using the username `demo` and password `demo`.
@@ -57,74 +65,17 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 
 ## 🐳 Installing with Docker
 
-Copy the default `docker-compose.yml` file from the repository and set the environment variables. This would use a SQlite database, which is enough for most use cases.
-
-To start the containers run:
+Download the default `docker-compose.yml` file from the repository, update the environment values, and start Yamtrack:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-Alternatively, if you need a PostgreSQL database, you can use the `docker-compose.postgres.yml` file.
-
-### 🌊 Reverse Proxy Setup
-
-When using a reverse proxy, if you see a `403 - Forbidden` error, you need to set the `URLS` environment variable to the URL you are using for the app.
-
-```bash
-services:
-  yamtrack:
-    ...
-    environment:
-      - URLS=https://yamtrack.mydomain.com
-    ...
-```
-
-Note that the setting must include the correct protocol (`https` or `http`), and must not include the application `/` context path. Multiple origins can be specified by separating them with a comma (`,`).
-
-### ⚙️ Environment variables
-
-For detailed information on environment variables, please refer to the [Environment Variables wiki page](https://github.com/FuzzyGrim/Yamtrack/wiki/Environment-Variables).
+The default Compose file uses SQLite, which is enough for most personal installs. For PostgreSQL, reverse proxy settings, and local development instructions, see the [Setup documentation](https://fuzzygrim.github.io/Yamtrack/setup/).
 
 ## 💻 Local development
 
-Clone the repository and change directory to it.
-
-```bash
-git clone https://github.com/FuzzyGrim/Yamtrack.git
-cd Yamtrack
-```
-
-Install Redis or spin up a bare redis container:
-
-```bash
-docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:8-alpine
-```
-
-Create a `.env` file in the root directory and add the following variables.
-
-```bash
-TMDB_API=API_KEY
-MAL_API=API_KEY
-IGDB_ID=IGDB_ID
-IGDB_SECRET=IGDB_SECRET
-STEAM_API_KEY=STEAM_API_SECRET
-BGG_API_TOKEN=BGG_API_TOKEN
-SECRET=SECRET
-DEBUG=True
-```
-
-Then run the following commands.
-
-```bash
-python -m pip install -U -r requirements-dev.txt
-pre-commit install
-cd src
-python manage.py migrate
-python manage.py runserver & celery -A config worker --beat --scheduler django --loglevel DEBUG & tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
-```
-
-Go to: http://localhost:8000
+Local development instructions are also available in the [Setup documentation](https://fuzzygrim.github.io/Yamtrack/setup/#local-development).
 
 ## 💪 Support the Project
 

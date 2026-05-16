@@ -33,14 +33,14 @@ def account(request):
 
             if user_form.is_valid():
                 user_form.save()
-                messages.success(request, "Your username has been updated!")
+                messages.success(request, "Your profile has been updated!")
                 logger.info(
-                    "Successful username change for user: %s",
+                    "Successful profile change for user: %s",
                     request.user.username,
                 )
                 return redirect("account")
             logger.warning(
-                "Failed username change for user: %s - %s",
+                "Failed profile change for user: %s - %s",
                 request.user.username,
                 list(user_form.errors.keys()),
             )
@@ -236,6 +236,7 @@ def preferences(request):
 
     # Process form submission
     request.user.clickable_media_cards = "clickable_media_cards" in request.POST
+    request.user.obfuscate_unseen_episodes = "obfuscate_unseen_episodes" in request.POST
     request.user.quick_watch_date = request.POST.get(
         "quick_watch_date",
         QuickWatchDateChoices.CURRENT_DATE,

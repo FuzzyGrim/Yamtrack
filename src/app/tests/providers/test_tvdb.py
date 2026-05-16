@@ -57,7 +57,6 @@ class TVDBProviderTests(TestCase):
                 "seriesId": 74796,
                 "seasonNumber": 2,
                 "number": 2,
-                "absoluteNumber": 22,
             },
         }
 
@@ -70,7 +69,6 @@ class TVDBProviderTests(TestCase):
                 "series_id": 74796,
                 "season_number": 2,
                 "episode_number": 2,
-                "absolute_number": 22,
             },
         )
         mock_api_request.assert_called_once_with(
@@ -86,6 +84,5 @@ class TVDBProviderTests(TestCase):
                 "series_id": 74796,
                 "season_number": 2,
                 "episode_number": 2,
-                "absolute_number": 22,
             },
         )

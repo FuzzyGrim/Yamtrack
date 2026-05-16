@@ -670,7 +670,7 @@ class MediaManager(models.Manager):
         queryset = self._apply_prefetch_related(queryset, media_type)
         self.annotate_max_progress(queryset, media_type)
 
-        return queryset[0]
+        return queryset.get()
 
     def _get_media_params(
         self,

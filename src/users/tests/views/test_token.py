@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 
@@ -48,3 +48,21 @@ class RegenerateTokenTests(TestCase):
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn("Token regenerated successfully", str(messages[0]))
+
+    @override_settings(URLS=["https://yamtrack.example.com:8924"])
+    def test_integrations_uses_configured_webhook_urls(self):
+        """Test copied webhook URLs use the configured public app URL."""
+        response = self.client.get(reverse("integrations"))
+
+        self.assertContains(
+            response,
+            "https://yamtrack.example.com:8924/webhook/jellyfin/initial_token",
+        )
+        self.assertContains(
+            response,
+            "https://yamtrack.example.com:8924/webhook/plex/initial_token",
+        )
+        self.assertContains(
+            response,
+            "https://yamtrack.example.com:8924/webhook/emby/initial_token",
+        )

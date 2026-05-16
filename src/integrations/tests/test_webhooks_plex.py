@@ -380,19 +380,8 @@ class PlexWebhookTests(TestCase):
                     self.assertEqual(Movie.objects.count(), 0)
 
     @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_anime")
-    @patch("integrations.webhooks.base.BaseWebhookProcessor._fetch_mapping_data")
-    def test_anime_episode_anidb_guid_mark_played(
-        self,
-        mock_fetch_mapping_data,
-        mock_handle_anime,
-    ):
+    def test_anime_episode_anidb_guid_mark_played(self, mock_handle_anime):
         """Test webhook handles anime episode with anidb guid."""
-        mock_fetch_mapping_data.return_value = {
-            "3651": {
-                "mal_id": 849,
-            },
-        }
-
         payload = {
             "event": "media.scrobble",
             "Account": {"title": "testuser"},

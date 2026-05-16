@@ -11,6 +11,12 @@ from app.providers import services
 logger = logging.getLogger(__name__)
 
 base_url = "https://api.hardcover.app/v1/graphql"
+MAX_SEARCH_QUERY_LENGTH = 80
+
+
+def cap_search_query(query):
+    """Limit long book queries before sending them to Hardcover search."""
+    return str(query or "")[:MAX_SEARCH_QUERY_LENGTH]
 
 
 def handle_error(error):
@@ -33,6 +39,7 @@ def handle_error(error):
 
 def search(query, page):
     """Search for books on Hardcover."""
+    query = cap_search_query(query)
     cache_key = (
         f"search_{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{query}_{page}"
     )
