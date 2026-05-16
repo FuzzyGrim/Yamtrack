@@ -31,7 +31,7 @@ docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:8-alpine
 uv manages the Python environment and dependencies:
 
 ```bash
-uv sync --all-extras
+uv sync
 uv run pre-commit install
 ```
 

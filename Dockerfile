@@ -20,7 +20,7 @@ RUN sed 's/listen 8000;/listen 8000; listen [::]:8000;/' /etc/nginx/nginx.conf >
 
 WORKDIR /yamtrack
 
-RUN apk add --no-cache nginx shadow \
+RUN apk add --no-cache nginx shadow supervisor \
     && uv sync --locked \
     && rm -rf /root/.cache /tmp/* \
     && find /usr/local -type d -name __pycache__ -exec rm -rf {} + \

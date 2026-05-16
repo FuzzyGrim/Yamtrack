@@ -57,8 +57,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          uv sync --locked --all-extras --dev
-          playwright install
+          uv sync --locked --dev
+          uv run playwright install
 
       - name: Ruff
         run: |
