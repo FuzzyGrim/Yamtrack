@@ -427,6 +427,15 @@ COMICVINE_API = config(
     ),
 )
 
+# Setlist.fm API Key - Get one at https://api.setlist.fm/docs/1.0/index.html
+SETLISTFM_API_KEY = config(
+    "SETLISTFM_API_KEY",
+    default=secret(
+        "SETLISTFM_API_KEY_FILE",
+        "",
+    ),
+)
+
 TRAKT_API = config(
     "TRAKT_API",
     default=secret(

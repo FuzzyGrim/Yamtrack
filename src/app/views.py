@@ -283,6 +283,10 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     )
     current_instance = user_medias[0] if user_medias else None
 
+    # Support for custom URLs
+    if current_instance and current_instance.item.image != settings.IMG_NONE:
+        media_metadata["image"] = current_instance.item.image
+
     # Enrich related items with user tracking data
     if media_metadata.get("related"):
         for section_name, related_items in media_metadata["related"].items():
@@ -544,6 +548,8 @@ def track_modal(
         title = media.item
         if media_type == MediaTypes.GAME.value:
             initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
+        if media_type == MediaTypes.CONCERT.value and media.item.image != settings.IMG_NONE:
+            initial_data["poster_url"] = media.item.image
     else:
         title = services.get_media_metadata(
             media_type,

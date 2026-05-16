@@ -46,6 +46,7 @@ class Sources(models.TextChoices):
     HARDCOVER = "hardcover", "Hardcover"
     COMICVINE = "comicvine", "Comic Vine"
     BGG = "bgg", "BoardGameGeek"
+    SETLISTFM = "setlistfm", "Setlist.fm"
     MANUAL = "manual", "Manual"
 
 
@@ -62,6 +63,7 @@ class MediaTypes(models.TextChoices):
     BOOK = "book", "Book"
     COMIC = "comic", "Comic"
     BOARDGAME = "boardgame", "Boardgame"
+    CONCERT = "concert", "Concert"
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -1890,3 +1892,11 @@ class BoardGame(Media):
     """Model for board games."""
 
     tracker = FieldTracker()
+
+
+class Concert(Media):
+    """Model for concerts."""
+
+    tracker = FieldTracker()
+
+    date = models.DateField(null=True, blank=True)

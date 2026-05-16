@@ -53,17 +53,22 @@
         if (this.mediaType === 'tv') {
           return ['title', 'image', 'score', 'status', 'notes'].includes(field);
         }
-    
+
         // Season fields
         else if (this.mediaType === 'season') {
           return ['parentShow', 'image', 'seasonNumber', 'score', 'status', 'notes'].includes(field);
         }
-    
+
         // Episode fields
         else if (this.mediaType === 'episode') {
           return ['parentSeason', 'image', 'episodeNumber', 'endDate'].includes(field);
         }
-    
+
+        // Concert fields (no progress)
+        else if (this.mediaType === 'concert') {
+          return ['title', 'image', 'score', 'status', 'concertDate', 'notes'].includes(field);
+        }
+
         // Movie, Anime, Manga, Game, Book fields
         else {
           return ['title', 'image', 'score', 'progress', 'status', 'startDate', 'endDate', 'notes'].includes(field);
@@ -314,6 +319,15 @@
               {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
             </div>
           </div>
+        </div>
+
+        <!-- Concert Date field -->
+        <div x-show="showField('concertDate')">
+          <label class="block text-sm font-medium mb-2 text-gray-300">Concert Date</label>
+          <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+                 name="date"
+                 type="date"
+                 value="">
         </div>
 
         <!-- Start Date field (Movie, Anime, Manga, Game, Book) -->

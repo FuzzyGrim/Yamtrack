@@ -218,6 +218,20 @@ MEDIA_TYPE_CONFIG = {
         "unit": ("#", "Play"),
         "date_key": "year",
     },
+    MediaTypes.CONCERT.value: {
+        "sources": [Sources.SETLISTFM],
+        "default_source": Sources.SETLISTFM,
+        "sample_query": "Radiohead",
+        "unicode_icon": "🎵",
+        "verb": ("attend", "attended"),
+        "text_color": COLORS["sky"]["text"],
+        "stats_color": COLORS["sky"]["hex"],
+        "svg_icon": """
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="18" cy="16" r="3"/>""",
+        "date_key": "date",
+    },
 }
 
 # --- Status Configuration ---
