@@ -75,8 +75,7 @@ def get_seasons_to_process(tv_item):
 
     events_per_season = {}
     seasons_with_events = set()
-    for event in existing_season_events:
-        sn = event.item.season_number
+    for sn in existing_season_events.values_list("item__season_number", flat=True):
         seasons_with_events.add(sn)
         events_per_season[sn] = events_per_season.get(sn, 0) + 1
 
