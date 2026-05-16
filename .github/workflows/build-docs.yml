@@ -20,7 +20,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           python-version: 3.x
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
@@ -30,9 +30,9 @@ jobs:
           path: ~/.cache
           restore-keys: |
             zensical-
-      - run: pip install -r docs/requirements.txt
+      - run: uv sync --locked --only-group docs
       - name: Deploy versioned docs
-        run: mike deploy --push ${{ github.ref_name }}
+        run: uv run mike deploy --push ${{ github.ref_name }}
       - name: Set default docs version
         if: github.ref_name == 'release'
-        run: mike set-default --push release
+        run: uv run mike set-default --push release

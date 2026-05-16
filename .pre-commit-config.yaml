@@ -36,3 +36,13 @@ repos:
         language: system
         types: [html]
         require_serial: true
+      - id: validate-pyproject
+        name: validate-pyproject
+        entry: validate-pyproject
+        language: system
+        files: ^pyproject\.toml$
+      - id: pyproject-fmt
+        name: pyproject-fmt
+        entry: pyproject-fmt
+        language: system
+        files: ^pyproject\.toml$
