@@ -9,6 +9,8 @@ ARG VERSION=dev
 ENV VERSION=$VERSION
 # Disable development dependencies
 ENV UV_NO_DEV=1
+# Put the uv-managed virtualenv on PATH so python/gunicorn/celery resolve directly
+ENV PATH="/.venv/bin:$PATH"
 
 COPY ./pyproject.toml /pyproject.toml
 COPY ./uv.lock /uv.lock
