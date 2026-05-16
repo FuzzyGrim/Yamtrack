@@ -727,7 +727,7 @@ class MediaManager(models.Manager):
             source,
             season_number,
             episode_number,
-        )
+        ).select_related("item")
         queryset = self._apply_prefetch_related(queryset, media_type)
         self.annotate_max_progress(queryset, media_type)
 
