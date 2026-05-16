@@ -280,6 +280,9 @@ def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
     season_data["genres"] = tv_data["genres"]
     if season_data["synopsis"] == "No synopsis available.":
         season_data["synopsis"] = tv_data["synopsis"]
+    # Fallback to the TV show image when the season has no image of its own
+    if season_data["image"] == settings.IMG_NONE:
+        season_data["image"] = tv_data["image"]
     return season_data
 
 
@@ -627,6 +630,9 @@ def get_related(related_medias, media_type, parent_response=None):
             "image": get_image_url(media["poster_path"]),
         }
         if media_type == MediaTypes.SEASON.value:
+            # Fallback to the TV show image when the season has no image of its own
+            if data["image"] == settings.IMG_NONE:
+                data["image"] = get_image_url(parent_response["poster_path"])
             data["media_id"] = parent_response["id"]
             data["title"] = parent_response["name"]
             data["season_number"] = media["season_number"]

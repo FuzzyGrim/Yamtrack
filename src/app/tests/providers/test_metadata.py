@@ -293,6 +293,73 @@ class Metadata(TestCase):
 
         mock_tv_with_seasons.assert_called_with("1396", ["1"])
 
+    def test_tmdb_season_image_falls_back_to_tv_image(self):
+        """A season with no image inherits the parent TV show's image."""
+        season_data = {
+            "synopsis": "Season synopsis.",
+            "image": settings.IMG_NONE,
+        }
+        tv_data = {
+            "title": "Test Show",
+            "tvdb_id": 42,
+            "external_links": {},
+            "genres": ["Drama"],
+            "synopsis": "Show synopsis.",
+            "image": "https://image.tmdb.org/t/p/w500/show.jpg",
+        }
+
+        enriched = tmdb.enrich_season_with_tv_data(season_data, tv_data, "1396", 1)
+
+        self.assertEqual(enriched["image"], "https://image.tmdb.org/t/p/w500/show.jpg")
+
+    def test_tmdb_season_image_preserved_when_present(self):
+        """A season with its own image keeps it instead of using the TV image."""
+        season_data = {
+            "synopsis": "Season synopsis.",
+            "image": "https://image.tmdb.org/t/p/w500/season.jpg",
+        }
+        tv_data = {
+            "title": "Test Show",
+            "tvdb_id": 42,
+            "external_links": {},
+            "genres": ["Drama"],
+            "synopsis": "Show synopsis.",
+            "image": "https://image.tmdb.org/t/p/w500/show.jpg",
+        }
+
+        enriched = tmdb.enrich_season_with_tv_data(season_data, tv_data, "1396", 1)
+
+        self.assertEqual(
+            enriched["image"],
+            "https://image.tmdb.org/t/p/w500/season.jpg",
+        )
+
+    def test_tmdb_get_related_season_image_fallback(self):
+        """Related seasons with no image inherit the parent TV show's image."""
+        related_medias = [
+            {
+                "poster_path": None,
+                "season_number": 1,
+                "name": "Season 1",
+                "air_date": "2020-01-01",
+                "episode_count": 10,
+            }
+        ]
+        parent_response = {
+            "id": 123,
+            "name": "Test Show",
+            "poster_path": "/show.jpg",
+        }
+
+        related = tmdb.get_related(
+            related_medias, MediaTypes.SEASON.value, parent_response
+        )
+
+        self.assertEqual(len(related), 1)
+        self.assertEqual(
+            related[0]["image"], "https://image.tmdb.org/t/p/w500/show.jpg"
+        )
+
     def test_tmdb_find_next_episode(self):
         """Test the find_next_episode function."""
         episodes_metadata = [
