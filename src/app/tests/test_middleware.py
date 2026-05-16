@@ -1,5 +1,9 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.contrib.auth.middleware import AuthenticationMiddleware
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.test import RequestFactory, TestCase, override_settings
+
+from app.middleware import AutoLoginMiddleware
 
 UserModel = get_user_model()
 
@@ -9,6 +13,7 @@ class AutoLoginMiddlewareTest(TestCase):
 
     def setUp(self):
         """Create test users."""
+        self.factory = RequestFactory()
         self.existing_active_user = UserModel.objects.create_user(
             username="active_user",
             password="active_user_password",  # noqa: S106
@@ -20,36 +25,51 @@ class AutoLoginMiddlewareTest(TestCase):
             is_active=False,
         )
 
+    def get_request(self):
+        """Return a request with session and user middleware applied."""
+        request = self.factory.get("/")
+        SessionMiddleware(lambda _request: None).process_request(request)
+        AuthenticationMiddleware(lambda _request: None).process_request(request)
+        return request
+
+    def run_middleware(self, request):
+        """Run auto-login middleware against the request."""
+        middleware = AutoLoginMiddleware(lambda _request: None)
+        middleware(request)
+
+    @override_settings(YAMTRACK_AUTO_LOGIN_USERNAME=None)
     def test_env_var_unset(self):
         """Test that no auto-login occurs when YAMTRACK_AUTO_LOGIN_USERNAME is unset."""
-        response = self.client.get("/")
+        request = self.get_request()
 
-        # expect redirect to login page
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, "/accounts/login/?next=/")
+        self.run_middleware(request)
+
+        self.assertFalse(request.user.is_authenticated)
 
     @override_settings(YAMTRACK_AUTO_LOGIN_USERNAME="active_user")
     def test_existing_active_user(self):
         """Test that auto-login works with an existing active user."""
-        response = self.client.get("/")
+        request = self.get_request()
 
-        # expect successful login
-        self.assertEqual(response.status_code, 200)
+        self.run_middleware(request)
+
+        self.assertTrue(request.user.is_authenticated)
+        self.assertEqual(request.user, self.existing_active_user)
 
     @override_settings(YAMTRACK_AUTO_LOGIN_USERNAME="missing_user")
     def test_missing_user(self):
         """Test that no auto-login occurs with a missing user."""
-        response = self.client.get("/")
+        request = self.get_request()
 
-        # expect redirect to login page
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, "/accounts/login/?next=/")
+        self.run_middleware(request)
+
+        self.assertFalse(request.user.is_authenticated)
 
     @override_settings(YAMTRACK_AUTO_LOGIN_USERNAME="inactive_user")
     def test_inactive_user(self):
         """Test that no auto-login occurs with an inactive user."""
-        response = self.client.get("/")
+        request = self.get_request()
 
-        # expect redirect to login page
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, "/accounts/login/?next=/")
+        self.run_middleware(request)
+
+        self.assertFalse(request.user.is_authenticated)
