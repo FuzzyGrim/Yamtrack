@@ -4,6 +4,7 @@ __pycache__
 .coverage*
 .venv
 src/staticfiles
+src/.django_tailwind_cli
 site
 src/db/db.sqlite3
 db.sqlite3-shm

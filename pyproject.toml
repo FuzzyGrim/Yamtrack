@@ -1,6 +1,6 @@
 [project]
 name = "yamtrack"
-dynamic = ["version"]
+version = "0.0.0"  # required for development
 description = "A self hosted media tracker."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -26,6 +26,7 @@ dependencies = [
   "django-redis~=6.0.0",
   "django-select2~=8.4.8",
   "django-simple-history~=3.11.0",
+  "django-tailwind-cli~=4.6.2",
   "django-widget-tweaks~=1.5.1",
   "gunicorn~=25.3.0",
   "icalendar~=7.0.3",
