@@ -13,11 +13,10 @@ WORKDIR /yamtrack
 COPY ./pyproject.toml ./pyproject.toml
 COPY ./uv.lock ./uv.lock
 
-RUN uv sync --locked \
-    && find /yamtrack/.venv -type d -name __pycache__ -exec rm -rf {} +
+RUN uv sync --locked
 
 # --- Final stage: minimal runtime image ---
-FROM python:3.12-alpine
+FROM python:3.12-alpine3.21
 
 # https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
 ENV PYTHONUNBUFFERED=1
