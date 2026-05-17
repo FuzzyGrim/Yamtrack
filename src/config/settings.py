@@ -123,6 +123,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_celery_results",
     "django_select2",
+    "django_tailwind_cli",
     "simple_history",
     "widget_tweaks",
     "health_check",
@@ -310,6 +311,11 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# django-tailwind-cli
+TAILWIND_CLI_VERSION = "4.1.4"
+TAILWIND_CLI_SRC_CSS = "static/css/input.css"
+TAILWIND_CLI_DIST_CSS = "css/main.css"
 
 if BASE_URL:
     STATIC_URL = f"{BASE_URL}/static/"

@@ -1,5 +1,6 @@
 {% load static %}
 {% load app_tags %}
+{% load tailwind_cli %}
 
 <!DOCTYPE html>
 <html lang="en" class="scheme-dark bg-[#212529]">
@@ -23,9 +24,7 @@
     {% block extra_head %}
     {% endblock extra_head %}
 
-    <link rel="stylesheet"
-          type="text/css"
-          href="{% static 'css/main.css' %}{% get_static_file_mtime 'css/main.css' %}">
+    {% tailwind_css %}
 
     <script src="{% static 'js/libraries/htmx-2.0.4.min.js' %}"></script>
     <script defer src="{% static 'js/libraries/alpinejs-3.14.9.min.js' %}"></script>
