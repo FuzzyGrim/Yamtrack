@@ -695,15 +695,15 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.2.2"
+version = "4.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f2/0a/9f9083ea06a55ef963060c0a1a6833e8a2ba755f9cfd9e7d10038d06b0e7/django_health_check-4.2.2.tar.gz", hash = "sha256:66f9861be1c53607fd26037eb8c9dae58db8c23e34af0792bc6f9d78f28fa64c", size = 21286, upload-time = "2026-04-09T16:04:34.652Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/c3/99dbf858f939cbf709bf82648daa63632a81484d59b888e92ec687601091/django_health_check-4.4.1.tar.gz", hash = "sha256:2658c21710c09632f75318bb66b5865ff0721f82bab812193d479680773e4c0b", size = 21751, upload-time = "2026-05-15T16:08:37.517Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/d4/ab733626a041fd45eaa4e3c590f4ca77691887874298e682a0e2be6789a1/django_health_check-4.2.2-py3-none-any.whl", hash = "sha256:86689c6d5f1cdfe7d9ca6830df17b26fdd920fb1b1d221314cb1e6d60eaeecd8", size = 26355, upload-time = "2026-04-09T16:04:33.218Z" },
+    { url = "https://files.pythonhosted.org/packages/26/df/697390fe7bdfefd1e48e29c190ebe255c45db4c1819d58b76fbc826bc5a8/django_health_check-4.4.1-py3-none-any.whl", hash = "sha256:363d94e839c90a75e822694f260ca31bd42978d948ad77ea1df18c7f68ff9021", size = 26877, upload-time = "2026-05-15T16:08:36.192Z" },
 ]
 
 [package.optional-dependencies]
@@ -2428,7 +2428,7 @@ requires-dist = [
     { name = "django-celery-beat", specifier = "~=2.9.0" },
     { name = "django-celery-results", specifier = "~=2.6.0" },
     { name = "django-debug-toolbar", specifier = "~=6.3.0" },
-    { name = "django-health-check", extras = ["celery", "redis"], specifier = "~=4.2.2" },
+    { name = "django-health-check", extras = ["celery", "redis"], specifier = "~=4.4.1" },
     { name = "django-model-utils", specifier = "~=5.0.0" },
     { name = "django-redis", specifier = "~=6.0.0" },
     { name = "django-select2", specifier = "~=8.4.8" },
