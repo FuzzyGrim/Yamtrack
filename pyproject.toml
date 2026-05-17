@@ -1,6 +1,6 @@
 [project]
 name = "yamtrack"
-dynamic = ["version"]
+version = "0.0.0"  # required for development
 description = "A self hosted media tracker."
 readme = "README.md"
 requires-python = ">=3.12"
