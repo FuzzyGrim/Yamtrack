@@ -1,6 +1,6 @@
 [project]
 name = "yamtrack"
-version = "0"
+dynamic = ["version"]
 description = "A self hosted media tracker."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -46,12 +46,10 @@ dev = [
   "djlint~=1.36.4",
   "fakeredis[lua]~=2.35.1",
   "pre-commit~=4.5.1",
-  "pyproject-fmt~=2.6.0",
   "pytest-django~=4.12.0",
   "pytest-playwright~=0.7.2",
   "ruff~=0.15.10",
   "tblib~=3.2.2",
-  "validate-pyproject~=0.24.1",
 ]
 docs = [
   "mike~=2.1.3",
@@ -66,25 +64,30 @@ docs = [
   "pymdown-extensions~=10.20.1",
 ]
 
-[tool.ruff]
-target-version = "py312"
-extend-exclude = [ "migrations" ]
-force-exclude = true
-
-lint.select = [ "ALL" ]
-lint.ignore = [ "ANN", "COM812", "D100", "D104", "PD", "PLR0913", "PT", "RUF012", "SLF001" ]
-lint.pycodestyle.max-doc-length = 88
-lint.pydocstyle.convention = "pep257"
-
-[tool.coverage.run]
-concurrency = [ "multiprocessing" ]
-omit = [ "*/migrations/*", "*/tests/*", "*/__init__.py", "*/admin.py" ]
-
 [tool.uv]
 package = false
+
+[tool.ruff]
+target-version = "py312"
+extend-exclude = ["migrations"]
+force-exclude = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["ANN", "PT", "PD", "D100", "D104", "RUF012", "PLR0913", "SLF001", "COM812"]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 88
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
 
 [tool.djlint]
 custom_blocks = "element,slot,setvar"
 preserve_blank_lines = true
 ignore = "H006,H021"
 indent = 2
+
+[tool.coverage.run]
+concurrency = ["multiprocessing"]
+omit = ["*/migrations/*", "*/tests/*", "*/__init__.py", "*/admin.py"]
