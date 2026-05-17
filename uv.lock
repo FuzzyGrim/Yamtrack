@@ -2729,6 +2729,19 @@ docs = [
     { name = "pygments" },
     { name = "pymdown-extensions" },
 ]
+lint = [
+    { name = "django-upgrade" },
+    { name = "djlint" },
+    { name = "pre-commit" },
+    { name = "ruff" },
+]
+test = [
+    { name = "coverage" },
+    { name = "fakeredis", extra = ["lua"] },
+    { name = "pytest-django" },
+    { name = "pytest-playwright" },
+    { name = "tblib" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -2783,6 +2796,19 @@ docs = [
     { name = "mkdocs-material", specifier = "~=9.7.1" },
     { name = "pygments", specifier = "==2.19.2" },
     { name = "pymdown-extensions", specifier = "~=10.20.1" },
+]
+lint = [
+    { name = "django-upgrade", specifier = "~=1.30.0" },
+    { name = "djlint", specifier = "~=1.36.4" },
+    { name = "pre-commit", specifier = "~=4.5.1" },
+    { name = "ruff", specifier = "~=0.15.10" },
+]
+test = [
+    { name = "coverage", specifier = "~=7.13.5" },
+    { name = "fakeredis", extras = ["lua"], specifier = "~=2.35.1" },
+    { name = "pytest-django", specifier = "~=4.12.0" },
+    { name = "pytest-playwright", specifier = "~=0.7.2" },
+    { name = "tblib", specifier = "~=3.2.2" },
 ]
 
 [[package]]

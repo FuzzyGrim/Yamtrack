@@ -41,16 +41,22 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-  "coverage~=7.13.5",
+lint = [
   "django-upgrade~=1.30.0",
   "djlint~=1.36.4",
-  "fakeredis[lua]~=2.35.1",
   "pre-commit~=4.5.1",
+  "ruff~=0.15.10",
+]
+test = [
+  "coverage~=7.13.5",
+  "fakeredis[lua]~=2.35.1",
   "pytest-django~=4.12.0",
   "pytest-playwright~=0.7.2",
-  "ruff~=0.15.10",
   "tblib~=3.2.2",
+]
+dev = [
+  {include-group = "lint"},
+  {include-group = "test"},
 ]
 docs = [
   "mike~=2.1.3",
