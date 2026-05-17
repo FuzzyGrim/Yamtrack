@@ -1,4 +1,23 @@
-FROM ghcr.io/astral-sh/uv:python3.12-alpine
+# --- Builder stage: build the virtualenv with uv ---
+FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
+
+# Disable development dependencies
+ENV UV_NO_DEV=1
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
+# Copy from cache instead of symlinking (cache is discarded with the builder)
+ENV UV_LINK_MODE=copy
+
+WORKDIR /yamtrack
+
+COPY ./pyproject.toml ./pyproject.toml
+COPY ./uv.lock ./uv.lock
+
+RUN uv sync --locked \
+    && find /yamtrack/.venv -type d -name __pycache__ -exec rm -rf {} +
+
+# --- Final stage: minimal runtime image ---
+FROM python:3.12-alpine
 
 # https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
 ENV PYTHONUNBUFFERED=1
@@ -7,17 +26,11 @@ ENV PYTHONUNBUFFERED=1
 ARG VERSION=dev
 # Set it as an environment variable
 ENV VERSION=$VERSION
-# Disable development dependencies
-ENV UV_NO_DEV=1
-# Enable bytecode compilation
-ENV UV_COMPILE_BYTECODE=1
-# Put the uv-managed virtualenv on PATH so python/gunicorn/celery resolve directly
+# Put the virtualenv on PATH so python/gunicorn/celery/supervisord resolve directly
 ENV PATH="/yamtrack/.venv/bin:$PATH"
 
 WORKDIR /yamtrack
 
-COPY ./pyproject.toml ./pyproject.toml
-COPY ./uv.lock ./uv.lock
 COPY ./entrypoint.sh /entrypoint.sh
 COPY ./supervisord.conf /etc/supervisord.conf
 COPY ./nginx.conf /etc/nginx/nginx.conf
@@ -25,9 +38,6 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 RUN sed 's/listen 8000;/listen 8000; listen [::]:8000;/' /etc/nginx/nginx.conf > /etc/nginx/nginx.ipv6.conf
 
 RUN apk add --no-cache nginx shadow \
-    && uv sync --locked \
-    && rm -rf /root/.cache /tmp/* \
-    && find /usr/local -type d -name __pycache__ -exec rm -rf {} + \
     && chmod +x /entrypoint.sh \
     # create user abc for later PUID/PGID mapping
     && useradd -U -M -s /bin/sh abc \
@@ -35,9 +45,12 @@ RUN apk add --no-cache nginx shadow \
     && mkdir -p /var/log/nginx \
     && mkdir -p /var/lib/nginx/body
 
+# Copy the pre-built virtualenv from the builder stage
+COPY --from=builder /yamtrack/.venv /yamtrack/.venv
+
 # Django app
 COPY src ./
-RUN uv run manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
