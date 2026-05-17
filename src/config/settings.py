@@ -123,7 +123,6 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_celery_results",
     "django_select2",
-    "django_tailwind_cli",
     "simple_history",
     "widget_tweaks",
     "health_check",
@@ -314,12 +313,6 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 if BASE_URL:
     STATIC_URL = f"{BASE_URL}/static/"
-
-# django-tailwind-cli
-# https://django-tailwind-cli.readthedocs.io/
-TAILWIND_CLI_VERSION = "4.1.4"
-TAILWIND_CLI_SRC_CSS = "static/css/input.css"
-TAILWIND_CLI_DIST_CSS = "css/main.css"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
