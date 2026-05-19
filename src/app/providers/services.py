@@ -249,7 +249,12 @@ def search(media_type, query, page, source=None, limit=None, offset=None, user=N
     """Search for media based on the query and return the results."""
     if source == Sources.MANUAL.value:
         return manual.search(
-            media_type, query, page=page, limit=limit, offset=offset, user=user,
+            media_type,
+            query,
+            page=page,
+            limit=limit,
+            offset=offset,
+            user=user,
         )
 
     search_handlers = {
