@@ -52,6 +52,10 @@ SOURCES_CONFIG = {
         "name": "GoodReads",
         "logo": static("img/logo-goodreads.svg"),
     },
+    "amazon": {
+        "name": "Amazon",
+        "logo": static("img/amazon-prime-logo.svg"),
+    },
 }
 
 
