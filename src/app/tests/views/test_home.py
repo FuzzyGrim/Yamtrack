@@ -113,6 +113,7 @@ class HomeViewTests(TestCase):
             status=Status.IN_PROGRESS.value,
         )
 
+        base_watched_at = timezone.now()
         for i in range(1, 6):  # Create 5 episodes
             episode_item = Item.objects.create(
                 media_id="1668",
@@ -126,7 +127,7 @@ class HomeViewTests(TestCase):
             Episode.objects.create(
                 item=episode_item,
                 related_season=season,
-                end_date=timezone.now() - timezone.timedelta(days=i),
+                end_date=base_watched_at - timezone.timedelta(days=6 - i),
             )
 
         anime_item = Item.objects.create(

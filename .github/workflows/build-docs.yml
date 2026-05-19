@@ -1,0 +1,38 @@
+name: build-docs
+on:
+  push:
+    branches:
+      - dev
+      - release
+permissions:
+  contents: write
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        with:
+          key: zensical-${{ env.cache_id }}
+          path: ~/.cache
+          restore-keys: |
+            zensical-
+      - run: uv sync --locked --only-group docs
+      - name: Deploy versioned docs
+        run: uv run mike deploy --push ${{ github.ref_name }}
+      - name: Set default docs version
+        if: github.ref_name == 'release'
+        run: uv run mike set-default --push release

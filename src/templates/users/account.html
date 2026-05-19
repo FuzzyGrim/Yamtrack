@@ -35,6 +35,31 @@
             <p class="mt-1 text-sm text-red-400">{{ user_form.username.errors.0 }}</p>
           {% endif %}
         </div>
+
+        <div>
+          <label for="{{ user_form.profile_private.id_for_label }}"
+                 class="block text-sm font-medium mb-2 text-gray-300">Profile visibility</label>
+          <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+            <div class="flex-1">
+              <div class="flex items-center text-gray-200 mb-1">
+                {% include "app/icons/hat-glasses.svg" with classes="w-5 h-5 mr-2" %}
+                <span class="text-sm font-medium">Private profile</span>
+              </div>
+              <p class="text-xs text-gray-400 ml-7">Hide your profile and media lists from anonymous visitors.</p>
+            </div>
+            <label for="{{ user_form.profile_private.id_for_label }}"
+                   class="relative inline-flex items-center cursor-pointer ml-4">
+              <input type="checkbox"
+                     id="{{ user_form.profile_private.id_for_label }}"
+                     name="{{ user_form.profile_private.html_name }}"
+                     class="sr-only peer"
+                     {% if user_form.profile_private.value %}checked{% endif %}>
+              <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-indigo-400 peer-focus:ring-offset-2 peer-focus:ring-offset-[#39404b] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+              </div>
+            </label>
+          </div>
+        </div>
+
         <div class="pt-2">
           <button type="submit"
                   class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">

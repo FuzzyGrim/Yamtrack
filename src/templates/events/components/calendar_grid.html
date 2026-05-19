@@ -2,13 +2,9 @@
 {% load events_tags %}
 
 <div class="grid grid-cols-7 gap-1 mb-2">
-  <div class="text-center text-sm font-medium text-gray-400 py-2">Mon</div>
-  <div class="text-center text-sm font-medium text-gray-400 py-2">Tue</div>
-  <div class="text-center text-sm font-medium text-gray-400 py-2">Wed</div>
-  <div class="text-center text-sm font-medium text-gray-400 py-2">Thu</div>
-  <div class="text-center text-sm font-medium text-gray-400 py-2">Fri</div>
-  <div class="text-center text-sm font-medium text-gray-400 py-2">Sat</div>
-  <div class="text-center text-sm font-medium text-gray-400 py-2">Sun</div>
+  {% for header in weekday_headers %}
+    <div class="text-center text-sm font-medium text-gray-400 py-2">{{ header }}</div>
+  {% endfor %}
 </div>
 
 <div class="grid grid-cols-7 gap-1">

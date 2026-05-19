@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from app.models import Item, MediaTypes, Sources
 from events.models import Event
+from users.models import WeekStartDayChoices
 
 
 class CalendarViewTests(TestCase):
@@ -403,3 +404,63 @@ class DownloadCalendarViewTests(TestCase):
         """Test that POST requests are not allowed."""
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 405)
+
+
+class CalendarWeekStartDayTests(TestCase):
+    """Tests for the calendar view honoring the user's week_start_day."""
+
+    def setUp(self):
+        """Set up test user/client."""
+        self.credentials = {"username": "wsuser", "password": "testpassword"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+    @patch("events.models.Event.objects.get_user_events")
+    @patch.object(get_user_model(), "update_preference")
+    def test_calendar_monday_start(
+        self,
+        mock_update_preference,
+        mock_get_user_events,
+    ):
+        """Calendar with Monday week-start has Monday-first headers and grid."""
+        mock_update_preference.return_value = "month"
+        mock_get_user_events.return_value = []
+        self.user.week_start_day = WeekStartDayChoices.MONDAY
+        self.user.save()
+
+        response = self.client.get(reverse("calendar") + "?month=6&year=2024")
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(
+            response.context["weekday_headers"],
+            ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        )
+        # June 2024 starts on Saturday; under a Monday-first layout the first
+        # row places 1 in the Saturday column and 2 in the Sunday column.
+        first_row = response.context["calendar"][0]
+        self.assertEqual(first_row, [0, 0, 0, 0, 0, 1, 2])
+
+    @patch("events.models.Event.objects.get_user_events")
+    @patch.object(get_user_model(), "update_preference")
+    def test_calendar_sunday_start(
+        self,
+        mock_update_preference,
+        mock_get_user_events,
+    ):
+        """Calendar with Sunday week-start has Sunday-first headers and grid."""
+        mock_update_preference.return_value = "month"
+        mock_get_user_events.return_value = []
+        self.user.week_start_day = WeekStartDayChoices.SUNDAY
+        self.user.save()
+
+        response = self.client.get(reverse("calendar") + "?month=6&year=2024")
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(
+            response.context["weekday_headers"],
+            ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        )
+        # June 2024 starts on Saturday; under a Sunday-first layout the first
+        # row places 1 in the Saturday column with all earlier columns empty.
+        first_row = response.context["calendar"][0]
+        self.assertEqual(first_row, [0, 0, 0, 0, 0, 0, 1])

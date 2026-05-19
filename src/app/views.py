@@ -4,12 +4,13 @@ from pathlib import Path
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
-from django.shortcuts import redirect, render
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -32,7 +33,13 @@ from app.models import (
 )
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
-from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
+from users.models import (
+    DateFormatChoices,
+    HomeSortChoices,
+    MediaSortChoices,
+    MediaStatusChoices,
+    User,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +100,8 @@ def progress_edit(request, media_type, instance_id):
     """Increase or decrease the progress of a media item from home page."""
     operation = request.POST["operation"]
 
-    media = BasicMedia.objects.get_media_prefetch(
-        request.user,
-        media_type,
-        instance_id,
+    media = helpers.get_owned_media_or_404(
+        request, media_type, instance_id, prefetch=True
     )
 
     if operation == "increase":
@@ -119,21 +124,57 @@ def progress_edit(request, media_type, instance_id):
     )
 
 
+@login_not_required
 @require_GET
-def media_list(request, media_type):
+def media_list(request, username, media_type):
     """Return the media list page."""
-    layout = request.user.update_preference(
-        f"{media_type}_layout",
-        request.GET.get("layout"),
-    )
-    sort_filter = request.user.update_preference(
-        f"{media_type}_sort",
-        request.GET.get("sort"),
-    )
-    status_filter = request.user.update_preference(
-        f"{media_type}_status",
-        request.GET.get("status"),
-    )
+    target_user = get_object_or_404(User, username=username)
+
+    # if user is looking at own page then update preferences
+    if request.user == target_user:
+        layout = target_user.update_preference(
+            f"{media_type}_layout",
+            request.GET.get("layout"),
+        )
+        sort_filter = target_user.update_preference(
+            f"{media_type}_sort",
+            request.GET.get("sort"),
+        )
+        status_filter = target_user.update_preference(
+            f"{media_type}_status",
+            request.GET.get("status"),
+        )
+    else:
+        # privacy check then media type check
+        if target_user.profile_private:
+            msg = "User not found"
+            raise Http404(msg)
+
+        enabled_media_types = target_user.get_enabled_media_types()
+        if not enabled_media_types:
+            msg = "User doesn't have any media types enabled"
+            raise Http404(msg)
+
+        if media_type not in enabled_media_types:
+            return redirect(
+                "medialist",
+                username=target_user.username,
+                media_type=enabled_media_types[0],
+            )
+
+        layout = target_user.get_valid_preference(
+            f"{media_type}_layout",
+            request.GET.get("layout"),
+        )
+        sort_filter = target_user.get_valid_preference(
+            f"{media_type}_sort",
+            request.GET.get("sort"),
+        )
+        status_filter = target_user.get_valid_preference(
+            f"{media_type}_status",
+            request.GET.get("status"),
+        )
+
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
 
@@ -143,7 +184,7 @@ def media_list(request, media_type):
 
     # Get media list with filters applied
     media_queryset = BasicMedia.objects.get_media_list(
-        user=request.user,
+        user=target_user,
         media_type=media_type,
         status_filter=status_filter,
         sort_filter=sort_filter,
@@ -170,6 +211,7 @@ def media_list(request, media_type):
         "current_status": status_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
+        "target_user": target_user,
     }
 
     # Handle HTMX requests for partial updates
@@ -180,7 +222,9 @@ def media_list(request, media_type):
             if not media_page.object_list:
                 return HttpResponse(status=204)
             response = HttpResponse()
-            response["HX-Redirect"] = reverse("medialist", args=[media_type])
+            response["HX-Redirect"] = reverse(
+                "medialist", args=[target_user.username, media_type]
+            )
             return response
         if layout == "grid":
             template_name = "app/components/media_grid_items.html"
@@ -239,6 +283,11 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     )
     current_instance = user_medias[0] if user_medias else None
 
+    if current_instance is not None:
+        helpers.refresh_item_image_if_missing(
+            current_instance.item, media_metadata.get("image")
+        )
+
     # Enrich related items with user tracking data
     if media_metadata.get("related"):
         for section_name, related_items in media_metadata["related"].items():
@@ -289,6 +338,11 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     current_instance = user_medias[0] if user_medias else None
     episodes_in_db = current_instance.episodes.all() if current_instance else []
 
+    if current_instance is not None:
+        helpers.refresh_item_image_if_missing(
+            current_instance.item, season_metadata.get("image")
+        )
+
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(
             season_metadata,
@@ -329,11 +383,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
 @require_POST
 def update_media_score(request, media_type, instance_id):
     """Update the user's score for a media item."""
-    media = BasicMedia.objects.get_media(
-        request.user,
-        media_type,
-        instance_id,
-    )
+    media = helpers.get_owned_media_or_404(request, media_type, instance_id)
 
     score = float(request.POST.get("score"))
     media.score = score
@@ -538,11 +588,7 @@ def media_save(request):
     instance_id = request.POST.get("instance_id")
 
     if instance_id:
-        instance = BasicMedia.objects.get_media(
-            request.user,
-            media_type,
-            instance_id,
-        )
+        instance = helpers.get_owned_media_or_404(request, media_type, instance_id)
     else:
         metadata = services.get_media_metadata(
             media_type,
@@ -586,19 +632,9 @@ def media_delete(request):
     """Delete media data from the database."""
     instance_id = request.POST["instance_id"]
     media_type = request.POST["media_type"]
-    model = apps.get_model(app_label="app", model_name=media_type)
-
-    try:
-        media = BasicMedia.objects.get_media(
-            request.user,
-            media_type,
-            instance_id,
-        )
-        media.delete()
-        logger.info("%s deleted successfully.", media)
-
-    except model.DoesNotExist:
-        logger.warning("The %s was already deleted before.", media_type)
+    media = helpers.get_owned_media_or_404(request, media_type, instance_id)
+    media.delete()
+    logger.info("%s deleted successfully.", media)
 
     return helpers.redirect_back(request)
 
@@ -934,6 +970,7 @@ def statistics(request):
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
+        "date_format_values": DateFormatChoices.values,
     }
 
     return render(request, "app/statistics.html", context)
