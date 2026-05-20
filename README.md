@@ -14,7 +14,7 @@ Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, vide
 
 ## 📚 Documentation
 
-The full documentation is available at [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/).
+The full documentation is available at [https://66bunz.github.io/Yamtrack/](https://66bunz.github.io/Yamtrack/).
 
 <!-- --8<-- [start:docs-index-body] -->
 
