@@ -107,9 +107,9 @@ From the repository root, run:
 
 ```bash
 cd src
-python manage.py makemessages -d django -l en -l it
-python manage.py makemessages -d djangojs -l en -l it
-python manage.py compilemessages
+uv run manage.py makemessages -d django -l en -l it
+uv run manage.py makemessages -d djangojs -l en -l it
+uv run manage.py compilemessages
 ```
 
 You need to add all the supported languages with the `-l` flag.
