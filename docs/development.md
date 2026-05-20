@@ -94,6 +94,35 @@ Open the development server at:
 http://localhost:8000
 ```
 
+## Localization (i18n)
+
+Yamtrack uses Django i18n with message catalogs stored in the `/src/locale` directory.
+
+Currently configured languages:
+
+- `en` (default)
+- `it`
+
+From the repository root, run:
+
+```bash
+cd src
+python manage.py makemessages -d django -l en -l it
+python manage.py makemessages -d djangojs -l en -l it
+python manage.py compilemessages
+```
+
+You need to add all the supported languages with the `-l` flag.
+
+After editing templates/python strings, regenerate message files and compile catalogs again.
+
+Recommended contribution flow:
+
+1. Mark strings with `{% trans %}`, `{% blocktranslate %}`, or `gettext_lazy` / `gettext` (can be imported as `_`).
+2. Run `makemessages` for supported locales.
+3. Update translations in `locale/<lang>/LC_MESSAGES/django.po`.
+4. Run `compilemessages` and verify UI language switching from the app language selector.
+
 ## Documentation
 
 Install the docs dependency group, then serve the docs from the current checkout:
