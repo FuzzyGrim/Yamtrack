@@ -133,6 +133,10 @@ document.addEventListener("alpine:init", () => {
       field.required = false;
       field.removeAttribute("required");
       field.setCustomValidity("");
+
+      const value = field.value;
+      field.defaultValue = "";
+      field.value = value;
     },
 
     getCurrentDateTime(field) {

@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import MediaTypes
+from users.models import WeekStartDayChoices
 
 
 class SidebarViewTests(TestCase):
@@ -164,3 +165,35 @@ class SidebarViewTests(TestCase):
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn("view-only for demo accounts", str(messages[0]))
+
+    def test_post_updates_week_start_day_valid(self):
+        """Posting a valid week_start_day updates the user preference."""
+        self.assertEqual(self.user.week_start_day, WeekStartDayChoices.MONDAY)
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+                "week_start_day": WeekStartDayChoices.SUNDAY,
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.week_start_day, WeekStartDayChoices.SUNDAY)
+
+    def test_post_ignores_invalid_week_start_day(self):
+        """Posting an invalid week_start_day leaves the value unchanged."""
+        self.user.week_start_day = WeekStartDayChoices.SUNDAY
+        self.user.save()
+
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+                "week_start_day": "saturday",
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.week_start_day, WeekStartDayChoices.SUNDAY)

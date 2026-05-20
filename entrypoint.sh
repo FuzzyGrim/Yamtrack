@@ -17,4 +17,4 @@ chown -R abc:abc staticfiles
 chown -R abc:abc /var/log/nginx
 chown -R abc:abc /var/lib/nginx
 
-exec /usr/local/bin/supervisord -c /etc/supervisord.conf
+exec supervisord -c /etc/supervisord.conf

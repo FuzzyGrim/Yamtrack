@@ -178,13 +178,13 @@
           <div class="flex">
             <!-- Weekday labels -->
             <div class="flex flex-col justify-between pr-2 text-sm text-gray-400">
-              <div class="h-4 flex items-center">{% trans "Mon" %}</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">{% trans "Wed" %}</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">{% trans "Fri" %}</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">{% trans "Sun" %}</div>
+              {% for label in activity_data.weekday_labels %}
+                {% if forloop.counter|divisibleby:2 %}
+                  <div class="h-4"></div>
+                {% else %}
+                  <div class="h-4 flex items-center">{{ label }}</div>
+                {% endif %}
+              {% endfor %}
             </div>
 
             <!-- Weeks grid -->

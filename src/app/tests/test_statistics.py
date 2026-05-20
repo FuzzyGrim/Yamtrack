@@ -16,6 +16,7 @@ from app.models import (
     Sources,
     Status,
 )
+from users.models import WeekStartDayChoices
 
 User = get_user_model()
 
@@ -956,3 +957,63 @@ class StatisticsTests(TestCase):
         )
         self.assertEqual(current_streak, 0)
         self.assertEqual(longest_streak, 0)
+
+
+class GetActivityDataWeekStartTests(TestCase):
+    """Tests verifying get_activity_data respects the user's week_start_day."""
+
+    def setUp(self):
+        """Create users with different week-start preferences."""
+        mon_credentials = {"username": "mon_user", "password": "testpassword"}
+        sun_credentials = {"username": "sun_user", "password": "testpassword"}
+        self.user_monday = get_user_model().objects.create_user(
+            **mon_credentials,
+            week_start_day=WeekStartDayChoices.MONDAY,
+        )
+        self.user_sunday = get_user_model().objects.create_user(
+            **sun_credentials,
+            week_start_day=WeekStartDayChoices.SUNDAY,
+        )
+
+    @patch("app.statistics.get_filtered_historical_data")
+    def test_monday_week_start_labels_and_alignment(self, mock_get_filtered_data):
+        """Monday-start users get Monday-led weekday labels."""
+        mock_get_filtered_data.return_value = []
+        # Wednesday -> Friday range; Monday alignment back to Dec 30, 2024
+        start_date = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 1, 17, 0, 0, tzinfo=datetime.UTC)
+
+        result = statistics.get_activity_data(
+            self.user_monday,
+            start_date,
+            end_date,
+        )
+
+        self.assertEqual(
+            result["weekday_labels"],
+            ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        )
+        # First day of first calendar week should be the aligned Monday
+        first_day = result["calendar_weeks"][0][0]["date"]
+        self.assertEqual(first_day, "2024-12-30")
+
+    @patch("app.statistics.get_filtered_historical_data")
+    def test_sunday_week_start_labels_and_alignment(self, mock_get_filtered_data):
+        """Sunday-start users get Sunday-led weekday labels and Sunday alignment."""
+        mock_get_filtered_data.return_value = []
+        # Wednesday start -> aligns back to Sunday 2024-12-29
+        start_date = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 1, 17, 0, 0, tzinfo=datetime.UTC)
+
+        result = statistics.get_activity_data(
+            self.user_sunday,
+            start_date,
+            end_date,
+        )
+
+        self.assertEqual(
+            result["weekday_labels"],
+            ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        )
+        first_day = result["calendar_weeks"][0][0]["date"]
+        self.assertEqual(first_day, "2024-12-29")

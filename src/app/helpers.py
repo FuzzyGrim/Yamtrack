@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from app.models import BasicMedia, MediaTypes, Status
+from app.models import BasicMedia, Item, MediaTypes, Status
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
@@ -151,6 +151,21 @@ def is_released_date(air_date, current_date=None):
     return normalized_air_date <= current_date
 
 
+def _needs_image_refresh(item, new_image):
+    """Return True when ``item.image`` should be replaced with ``new_image``."""
+    if item is None or not new_image or new_image == settings.IMG_NONE:
+        return False
+    return not item.image or item.image == settings.IMG_NONE
+
+
+def refresh_item_image_if_missing(item, new_image):
+    """Update an Item's stored image when it's missing and a real one is available."""
+    if not _needs_image_refresh(item, new_image):
+        return
+    item.image = new_image
+    item.save(update_fields=["image"])
+
+
 def enrich_items_with_user_data(request, items, section_name):
     """Enrich a list of items with user tracking data."""
     if not items:
@@ -158,9 +173,41 @@ def enrich_items_with_user_data(request, items, section_name):
 
     # All items are the same media type
     media_type = items[0]["media_type"]
+    media_lookup = _build_user_media_lookup(request.user, items, media_type)
+
+    # Enrich items with matched media
+    enriched_items = []
+    items_to_refresh = []
+    for item in items:
+        if media_type == MediaTypes.SEASON.value:
+            key = (str(item["media_id"]), item["source"], item.get("season_number"))
+        else:
+            key = (str(item["media_id"]), item["source"])
+
+        media_item = media_lookup.get(key)
+        if _should_skip_completed_recommendation(
+            request.user, section_name, media_item
+        ):
+            continue
+
+        if media_item is not None and _needs_image_refresh(
+            media_item.item, item.get("image")
+        ):
+            media_item.item.image = item["image"]
+            items_to_refresh.append(media_item.item)
+
+        enriched_items.append({"item": item, "media": media_item})
+
+    if items_to_refresh:
+        Item.objects.bulk_update(items_to_refresh, ["image"])
+
+    return enriched_items
+
+
+def _build_user_media_lookup(user, items, media_type):
+    """Fetch the user's media for ``items`` and return a {key: media} lookup."""
     source = items[0]["source"]
 
-    # Build Q objects for all items
     q_objects = Q()
     for item in items:
         filter_params = {
@@ -168,15 +215,12 @@ def enrich_items_with_user_data(request, items, section_name):
             "item__media_type": media_type,
             "item__source": source,
         }
-
         if media_type == MediaTypes.SEASON.value:
             filter_params["item__season_number"] = item.get("season_number")
-
         q_objects |= Q(**filter_params)
 
-    q_objects &= Q(user=request.user)
+    q_objects &= Q(user=user)
 
-    # Bulk fetch all media with prefetch
     model = apps.get_model(app_label="app", model_name=media_type)
     media_queryset = model.objects.filter(q_objects).select_related("item")
     media_queryset = BasicMedia.objects._apply_prefetch_related(
@@ -185,37 +229,22 @@ def enrich_items_with_user_data(request, items, section_name):
     )
     BasicMedia.objects.annotate_max_progress(media_queryset, media_type)
 
-    # Create a lookup dictionary for fast matching
     media_lookup = {}
     for media in media_queryset:
         if media_type == MediaTypes.SEASON.value:
             key = (media.item.media_id, media.item.source, media.item.season_number)
         else:
             key = (media.item.media_id, media.item.source)
-
         media_lookup[key] = media
 
-    # Enrich items with matched media
-    enriched_items = []
-    for item in items:
-        if media_type == MediaTypes.SEASON.value:
-            key = (str(item["media_id"]), item["source"], item.get("season_number"))
-        else:
-            key = (str(item["media_id"]), item["source"])
+    return media_lookup
 
-        media_item = media_lookup.get(key)
-        if (
-            request.user.hide_completed_recommendations
-            and section_name == "recommendations"
-            and media_item
-            and media_item.status == Status.COMPLETED.value
-        ):
-            continue
 
-        enriched_item = {
-            "item": item,
-            "media": media_item,
-        }
-        enriched_items.append(enriched_item)
-
-    return enriched_items
+def _should_skip_completed_recommendation(user, section_name, media_item):
+    """Return True when a completed recommendation should be hidden."""
+    return (
+        user.hide_completed_recommendations
+        and section_name == "recommendations"
+        and media_item is not None
+        and media_item.status == Status.COMPLETED.value
+    )
