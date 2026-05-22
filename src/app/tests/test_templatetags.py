@@ -381,12 +381,20 @@ class AppTagsTests(TestCase):
         self.assertFalse(app_tags.show_media_score(None, mock_user_hide))
 
     def test_seconds_to_duration(self):
-        """Test conversion of seconds to human-readable duration, rounded to 30 min."""
+        """Test conversion of seconds to human-readable duration."""
         self.assertIsNone(app_tags.seconds_to_duration(None))
         self.assertIsNone(app_tags.seconds_to_duration(0))
 
         cases = [
-            (5 * 60, "30m"),  # 5m -> 30m
+            (5 * 60, "5m"),  # exactly 5m
+            (10 * 60, "10m"),  # exactly 10m
+            (12 * 60, "10m"),  # 12m -> 10m (< 13m)
+            (13 * 60, "15m"),  # 13m -> 15m
+            (15 * 60, "15m"),  # exactly 15m
+            (20 * 60, "20m"),  # exactly 20m
+            (25 * 60, "25m"),  # exactly 25m
+            (27 * 60, "25m"),  # 27m -> 25m (< 28m)
+            (28 * 60, "30m"),  # 28m -> 30m
             (30 * 60, "30m"),  # exactly 30m
             (40 * 60, "30m"),  # 40m -> 30m (< 45m)
             (45 * 60, "1h"),  # 45m -> 1h
