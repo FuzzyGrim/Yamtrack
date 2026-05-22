@@ -453,19 +453,18 @@ def show_media_score(rating, user):
 
 @register.filter
 def seconds_to_duration(seconds):
-    """Convert seconds to human-readable duration, rounded to nearest 30 min."""
+    """Convert seconds to human-readable duration.
+
+    Under 30 min: rounds to nearest 5 min. 30 min and above: rounds to nearest 30 min.
+    """
     if not seconds:
         return None
     total_minutes = seconds // 60
+    if total_minutes < 30:  # noqa: PLR2004
+        return f"{max(5, round(total_minutes / 5) * 5)}m"
     hours, minutes = divmod(total_minutes, 60)
-    match hours, minutes:
-        case (0, m) if m < 45:  # noqa: PLR2004
-            return "30m"
-        case (0, _):
-            return "1h"
-        case (h, m) if m < 15:  # noqa: PLR2004
-            return f"{h}h"
-        case (h, m) if m >= 45:  # noqa: PLR2004
-            return f"{h + 1}h"
-        case (h, _):
-            return f"{h}h 30m"
+    if hours == 0:
+        return "30m" if minutes < 45 else "1h"  # noqa: PLR2004
+    if minutes >= 45:  # noqa: PLR2004
+        return f"{hours + 1}h"
+    return f"{hours}h" if minutes < 15 else f"{hours}h 30m"  # noqa: PLR2004
