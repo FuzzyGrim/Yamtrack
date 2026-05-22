@@ -94,6 +94,17 @@ Open the development server at:
 http://localhost:8000
 ```
 
+## API
+
+Generate the OpenAPI schema with the following command:
+
+```bash
+cd src
+uv run manage.py generate_openapi --validate
+```
+
+The schema is generated at every commit by the pre-commit hook, so it should always be up to date.
+
 ## Documentation
 
 Install the docs dependency group, then serve the docs from the current checkout:
