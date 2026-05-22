@@ -492,6 +492,29 @@
           <div class="text-gray-200">No details available</div>
         {% endif %}
       </div>
+      {% if media.time_to_beat %}
+        <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start mt-4">
+          <h3 class="text-sm font-semibold text-gray-400 mb-4">TIME TO BEAT</h3>
+          {% if media.time_to_beat.hastily %}
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-gray-400">HASTILY</h3>
+              <p class="text-gray-200">{{ media.time_to_beat.hastily|seconds_to_duration }}</p>
+            </div>
+          {% endif %}
+          {% if media.time_to_beat.normally %}
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-gray-400">NORMALLY</h3>
+              <p class="text-gray-200">{{ media.time_to_beat.normally|seconds_to_duration }}</p>
+            </div>
+          {% endif %}
+          {% if media.time_to_beat.completely %}
+            <div>
+              <h3 class="text-sm font-semibold text-gray-400">COMPLETELY</h3>
+              <p class="text-gray-200">{{ media.time_to_beat.completely|seconds_to_duration }}</p>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
 
     <div class="w-full md:w-3/4">

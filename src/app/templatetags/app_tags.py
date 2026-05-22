@@ -449,3 +449,23 @@ def show_media_score(rating, user):
         True if we should show the media score
     """
     return rating is not None and (not user.hide_zero_rating or rating > 0)
+
+
+@register.filter
+def seconds_to_duration(seconds):
+    """Convert seconds to human-readable duration, rounded to nearest 30 min."""
+    if not seconds:
+        return None
+    total_minutes = seconds // 60
+    hours, minutes = divmod(total_minutes, 60)
+    match hours, minutes:
+        case (0, m) if m < 45:  # noqa: PLR2004
+            return "30m"
+        case (0, _):
+            return "1h"
+        case (h, m) if m < 15:  # noqa: PLR2004
+            return f"{h}h"
+        case (h, m) if m >= 45:  # noqa: PLR2004
+            return f"{h + 1}h"
+        case (h, _):
+            return f"{h}h 30m"

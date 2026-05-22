@@ -265,6 +265,52 @@ def search(query, page):
     return data
 
 
+def get_time_to_beat(game_id):
+    """Return time-to-beat data for a game from IGDB."""
+    cache_key = f"ttb_{Sources.IGDB.value}_{game_id}"
+    data = cache.get(cache_key)
+    if data is None:
+        access_token = get_access_token()
+        url = f"{base_url}/game_time_to_beats"
+        query = f"fields hastily, normally, completely; where game_id = {game_id};"
+        headers = {
+            "Client-ID": settings.IGDB_ID,
+            "Authorization": f"Bearer {access_token}",
+        }
+        try:
+            response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                data=query,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            error_resp = handle_error(error)
+            if error_resp and error_resp.get("retry"):
+                headers["Authorization"] = f"Bearer {get_access_token()}"
+                response = services.api_request(
+                    Sources.IGDB.value,
+                    "POST",
+                    url,
+                    data=query,
+                    headers=headers,
+                )
+        if response:
+            entry = response[0]
+            data = {
+                stat_name: seconds
+                for stat_name, seconds in entry.items()
+                if stat_name != "id" and seconds is not None
+            }
+            if not data:
+                data = None
+        else:
+            data = None
+        cache.set(cache_key, data)
+    return data
+
+
 def game(media_id):
     """Return the metadata for the selected game from IGDB."""
     cache_key = f"{Sources.IGDB.value}_{MediaTypes.GAME.value}_{media_id}"
@@ -352,6 +398,7 @@ def game(media_id):
                 "expanded_games": get_related(response.get("expanded_games")),
                 "recommendations": get_related(response.get("similar_games")),
             },
+            "time_to_beat": get_time_to_beat(response["id"]),
         }
         cache.set(cache_key, data)
     return data
