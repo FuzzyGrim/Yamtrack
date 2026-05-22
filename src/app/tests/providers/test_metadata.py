@@ -342,6 +342,12 @@ class Metadata(TestCase):
             response["details"]["themes"],
             ["Action", "Fantasy", "Open world"],
         )
+        self.assertIsNotNone(response["time_to_beat"])
+        self.assertIn("normally", response["time_to_beat"])
+        self.assertEqual(
+            list(response["time_to_beat"].keys()),
+            ["hastily", "normally", "completely"],
+        )
 
     def test_external_game_steam(self):
         """Test the external_game method for Steam games."""
