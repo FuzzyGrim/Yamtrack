@@ -443,15 +443,21 @@ class MediaManager(models.Manager):
     def _sort_generic_media_list(self, queryset, sort_filter, is_ascending=False):
         """Apply generic sorting logic for all media types."""
         if sort_filter == "last_updated":
-            queryset = queryset.annotate(
-                calculated_last_activity=Coalesce("progressed_at", "created_at"),
-            )
-            direction = (
-                models.F("calculated_last_activity").asc
+            progressed_direction = (
+                models.F("progressed_at").asc
                 if is_ascending
-                else models.F("calculated_last_activity").desc
+                else models.F("progressed_at").desc
             )
-            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
+            created_direction = (
+                models.F("created_at").asc
+                if is_ascending
+                else models.F("created_at").desc
+            )
+            return queryset.order_by(
+                progressed_direction(nulls_last=True),
+                created_direction(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
 
         if sort_filter in ("start_date", "end_date"):
             direction = models.F(sort_filter).asc if is_ascending else models.F(sort_filter).desc
