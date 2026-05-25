@@ -11,6 +11,7 @@ from app.models import (
     Item,
     UserMessage,
     CustomLink,
+    CategoryLink,
 )
 
 
@@ -59,6 +60,15 @@ class CustomLinkAdmin(admin.ModelAdmin):
     list_filter = ["content_type"]
 
 
+@admin.register(CategoryLink)
+class CategoryLinkAdmin(admin.ModelAdmin):
+    """Admin for per-user category links."""
+
+    search_fields = ["label", "url", "user__username"]
+    list_display = ["label", "url", "user", "media_type"]
+    list_filter = ["media_type"]
+
+
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     """Admin for user tags."""
@@ -94,6 +104,7 @@ SpecialModels = [
     "BasicMedia",
     "UserMessage",
     "CustomLink",
+    "CategoryLink",
     "Tag",
     "TaggedMedia",
     "ExperienceVisit",

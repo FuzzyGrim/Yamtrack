@@ -247,6 +247,43 @@
         </div>
       </div>
 
+      <div class="border-t border-gray-600 my-5"></div>
+
+      {# Category Links Settings #}
+      <div class="mb-5"
+           x-data="{ rows: [{% for link in category_links %}{ media_type: '{{ link.media_type }}', label: '{{ link.label|escapejs }}', url: '{{ link.url|escapejs }}' }{% if not forloop.last %}, {% endif %}{% endfor %}] }">
+        <div class="flex items-center mb-4">
+          {% include "app/icons/link.svg" with classes="w-5 h-5 text-yellow-400 mr-2" %}
+          <h3 class="text-lg font-semibold">Category Links</h3>
+        </div>
+        <p class="text-gray-400 mb-4 text-sm">Add reusable links per media type that appear on detail pages under CATEGORY LINKS.</p>
+
+        <div class="space-y-3">
+          <template x-for="(row, index) in rows" :key="index">
+            <div class="grid grid-cols-1 md:grid-cols-11 gap-2 items-center bg-[#39404b] p-3 rounded-md">
+              <select name="category_link_media_type[]"
+                      x-model="row.media_type"
+                      class="md:col-span-2 p-2 bg-[#2a2f35] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                {% for media_type in media_types %}
+                  <option value="{{ media_type }}">{{ media_type|media_type_readable_plural }}</option>
+                {% endfor %}
+              </select>
+              <input type="text" name="category_link_label[]" x-model="row.label" placeholder="Label" class="md:col-span-3 p-2 bg-[#2a2f35] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+              <input type="url" name="category_link_url[]" x-model="row.url" placeholder="https://..." class="md:col-span-5 p-2 bg-[#2a2f35] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+              <button type="button"
+                      @click="rows.splice(index, 1)"
+                      class="md:col-span-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm cursor-pointer">Remove</button>
+            </div>
+          </template>
+        </div>
+
+        <button type="button"
+                @click="rows.push({ media_type: '{{ media_types.0 }}', label: '', url: '' })"
+                class="mt-3 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md text-sm cursor-pointer">
+          Add Category Link
+        </button>
+      </div>
+
       <div class="mt-5 pt-4 border-gray-600">
         <button type="submit"
                 class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">

@@ -15,6 +15,7 @@ from app.models import (
     Sources,
     Status,
     CustomLink,
+    CategoryLink,
     Tag,
     TaggedMedia,
 )
@@ -237,6 +238,57 @@ class EditMedia(TestCase):
         )
         self.assertContains(modal_response, "custom_link_label[]")
         self.assertContains(modal_response, "Netflix")
+
+    def test_media_details_shows_only_matching_category_links(self):
+        """Category links should render only for their assigned media type."""
+        movie_item = Item.objects.create(
+            media_id="5555",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie",
+            image="http://example.com/image.jpg",
+        )
+        anime_item = Item.objects.create(
+            media_id="7777",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Anime",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(item=movie_item, user=self.user, status=Status.PLANNING.value)
+        Anime.objects.create(item=anime_item, user=self.user, status=Status.PLANNING.value)
+        CategoryLink.objects.create(
+            user=self.user,
+            media_type=MediaTypes.ANIME.value,
+            label="AniChart",
+            url="https://anichart.net/",
+        )
+
+        movie_response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "5555",
+                    "title": "movie",
+                },
+            ),
+        )
+        anime_response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.MAL.value,
+                    "media_type": MediaTypes.ANIME.value,
+                    "media_id": "7777",
+                    "title": "anime",
+                },
+            ),
+        )
+        self.assertNotContains(movie_response, "AniChart")
+        self.assertContains(anime_response, "CATEGORY LINKS")
+        self.assertContains(anime_response, "AniChart")
 
 
     def test_edit_movie_without_link_fields_does_not_wipe_existing_links(self):

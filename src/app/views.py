@@ -26,6 +26,7 @@ from app.models import (
     TV,
     Tag,
     BasicMedia,
+    CategoryLink,
     Item,
     MediaTypes,
     Season,
@@ -332,6 +333,10 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "current_instance": current_instance,
         "watch_providers": watch_providers,
         "watch_provider_region": request.user.watch_provider_region,
+        "category_links": CategoryLink.objects.filter(
+            user=request.user,
+            media_type=media_type,
+        ),
     }
     return render(request, "app/media_details.html", context)
 
@@ -391,6 +396,10 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata.get("providers"), request.user.watch_provider_region
         ),
         "watch_provider_region": request.user.watch_provider_region,
+        "category_links": CategoryLink.objects.filter(
+            user=request.user,
+            media_type=MediaTypes.SEASON.value,
+        ),
     }
     return render(request, "app/media_details.html", context)
 

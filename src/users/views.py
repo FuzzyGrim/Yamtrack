@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.core.cache import cache
+from django.core.validators import URLValidator
 from django.db import IntegrityError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,12 +13,13 @@ from django.template.defaultfilters import pluralize
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
-from app.models import Item, MediaTypes
+from app.models import CategoryLink, Item, MediaTypes
 from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import DateFormatChoices, QuickWatchDateChoices, TimeFormatChoices
 
 logger = logging.getLogger(__name__)
+url_validator = URLValidator()
 
 
 @require_http_methods(["GET", "POST"])
@@ -222,6 +224,7 @@ def preferences(request):
             "users/preferences.html",
             {
                 "media_types": media_types,
+                "category_links": list(CategoryLink.objects.filter(user=request.user)),
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
                 "date_format_choices": DateFormatChoices.choices,
                 "time_format_choices": TimeFormatChoices.choices,
@@ -255,6 +258,32 @@ def preferences(request):
         TimeFormatChoices.HOUR_24,
     )
     media_types_checked = request.POST.getlist("media_types_checkboxes")
+    category_link_entries = []
+    labels = request.POST.getlist("category_link_label[]")
+    urls = request.POST.getlist("category_link_url[]")
+    media_type_values = request.POST.getlist("category_link_media_type[]")
+    max_len = max(len(labels), len(urls), len(media_type_values))
+    for idx in range(max_len):
+        label = labels[idx].strip() if idx < len(labels) else ""
+        url = urls[idx].strip() if idx < len(urls) else ""
+        media_type_value = media_type_values[idx].strip() if idx < len(media_type_values) else ""
+        if not label and not url:
+            continue
+        if not label or not url or media_type_value not in media_types:
+            messages.error(request, "Each category link requires a valid media type, label, and URL.")
+            return redirect("preferences")
+        try:
+            url_validator(url)
+        except Exception:
+            messages.error(request, f"Invalid URL for '{label or 'category link'}'.")
+            return redirect("preferences")
+        category_link_entries.append(
+            {
+                "media_type": media_type_value,
+                "label": label[:100],
+                "url": url[:500],
+            }
+        )
 
     provider_region = request.POST.get("watch_provider_region", "")
     if provider_region in [region[0] for region in watch_provider_regions]:
@@ -272,6 +301,10 @@ def preferences(request):
 
     # Save changes and redirect
     request.user.save()
+    CategoryLink.objects.filter(user=request.user).delete()
+    CategoryLink.objects.bulk_create(
+        [CategoryLink(user=request.user, **entry) for entry in category_link_entries]
+    )
     messages.success(request, "Settings updated.")
 
     return redirect("preferences")
