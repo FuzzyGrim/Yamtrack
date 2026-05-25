@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import app
+from app.providers import mal as mal_provider
 from app.models import MediaTypes, Sources, Status
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
@@ -75,7 +76,7 @@ class MyAnimeListImporter:
         logger.info("Fetching %s from MyAnimeList", media_type)
         params = {
             "fields": (
-                "num_episodes,num_chapters,"
+                "num_episodes,num_chapters,alternative_titles,"
                 "list_status{comments,num_times_rewatched,num_times_reread}"
             ),
             "nsfw": "true",
@@ -150,7 +151,7 @@ class MyAnimeListImporter:
             source=Sources.MAL.value,
             media_type=media_type,
             defaults={
-                "title": content["node"]["title"],
+                "title": mal_provider.get_title(content["node"]),
                 "image": image_url,
             },
         )
