@@ -186,6 +186,9 @@ def media_list(request, username, media_type):
     ]
     selected_tags = list(dict.fromkeys(selected_tags))
     page = request.GET.get("page", 1)
+    sort_direction = request.GET.get("sort_direction", "desc")
+    if sort_direction not in {"asc", "desc"}:
+        sort_direction = "desc"
 
     # Prepare status filter for database query
     if not status_filter:
@@ -1065,6 +1068,3 @@ def service_worker():
         response = HttpResponse(f.read(), content_type="application/javascript")
         response["Service-Worker-Allowed"] = "/"
         return response
-    sort_direction = request.GET.get("sort_direction", "desc")
-    if sort_direction not in {"asc", "desc"}:
-        sort_direction = "desc"
