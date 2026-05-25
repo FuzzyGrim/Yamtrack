@@ -4,13 +4,13 @@
   <tr class="hover:bg-[#39404b] transition-colors cursor-pointer hover-tap"
       x-data="{ trackOpen: false }"
       {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' target_user.username media_type %}?page={{ media_list.next_page_number }}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
-    <td class="p-2 relative">
+    <td class="p-3 relative align-middle">
       <img alt="{{ media.item }}"
-           class="lazyload min-w-10 w-10 h-10 object-cover rounded-md {% if request.user == target_user %}parent-hover-tap:hidden{% endif %}"
+           class="lazyload min-w-20 w-20 h-20 object-cover rounded-md {% if request.user == target_user %}parent-hover-tap:hidden{% endif %}"
            data-src="{{ media.item.image }}"
            src="{{ IMG_NONE }}">
       {% if request.user == target_user %}
-        <button class="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
+        <button class="w-20 h-20 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
                 hx-get="{% media_view_url 'track_modal' media.item %}"
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
                 hx-target="#{% component_id 'track' media.item media.id %}"
@@ -28,7 +28,7 @@
         </div>
       {% endif %}
     </td>
-    <td class="p-2 pe-8 font-medium">
+    <td class="p-3 pe-8 font-medium align-middle">
       <div class=" flex justify-between items-center">
         <a href="{{ media.item|media_url }}"
            class="hover:text-indigo-400 transition-colors line-clamp-1">{{ media.item }}</a>
@@ -42,14 +42,14 @@
       </div>
     </td>
     {% if media.score is not None %}
-      <td class="p-2 text-center">
+      <td class="p-3 text-center align-middle">
         <div class="flex items-center justify-center">
           {% include "app/icons/star.svg" with classes="w-4 h-4 text-yellow-400 mr-1 fill-current" %}
           <span class="text-white -mt-[3px]">{{ media.formatted_score }}</span>
         </div>
       </td>
     {% else %}
-      <td class="p-2 text-center">
+      <td class="p-3 text-center align-middle">
         <div class="flex items-center justify-center">
           {% include "app/icons/star.svg" with classes="w-4 h-4 text-gray-400 mr-1 fill-current" %}
         </div>
@@ -58,27 +58,27 @@
 
     {# Progress field #}
     {% if media_type != MediaTypes.MOVIE.value %}
-      <td class="p-2 text-center">
+      <td class="p-3 text-center align-middle">
         {{ media.formatted_progress }}
         {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
       </td>
-      {% if media_type == MediaTypes.TV.value %}<td class="p-2 text-center">{{ media.last_watched }}</td>{% endif %}
+      {% if media_type == MediaTypes.TV.value %}<td class="p-3 text-center align-middle">{{ media.last_watched }}</td>{% endif %}
     {% endif %}
 
-    <td class="p-2 text-center">{{ media.status|media_status_readable }}</td>
+    <td class="p-3 text-center align-middle">{{ media.status|media_status_readable }}</td>
 
     {% if media.start_date %}
-      <td class="p-2 text-center">{{ media.start_date|date_format:target_user }}</td>
+      <td class="p-3 text-center align-middle">{{ media.start_date|date_format:target_user }}</td>
     {% else %}
-      <td class="p-2 text-center">
+      <td class="p-3 text-center align-middle">
         <span class="text-gray-500">-</span>
       </td>
     {% endif %}
 
     {% if media.end_date %}
-      <td class="p-2 text-center">{{ media.end_date|date_format:target_user }}</td>
+      <td class="p-3 text-center align-middle">{{ media.end_date|date_format:target_user }}</td>
     {% else %}
-      <td class="p-2 text-center">
+      <td class="p-3 text-center align-middle">
         <span class="text-gray-500">-</span>
       </td>
     {% endif %}
