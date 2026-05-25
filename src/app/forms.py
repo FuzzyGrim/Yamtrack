@@ -4,6 +4,7 @@ from django import forms
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import URLValidator
+from django.db.models import Q
 
 from app import config
 from app.models import (
@@ -332,14 +333,14 @@ class MediaForm(forms.ModelForm):
         if commit and instance.pk and submitted_tags is not None:
             sync_targets = self._get_tv_season_sync_targets(instance)
             if sync_targets:
-                target_content_filters = forms.models.Q()
+                target_content_filters = Q()
                 if sync_targets["tv_ids"]:
-                    target_content_filters |= forms.models.Q(
+                    target_content_filters |= Q(
                         content_type=ContentType.objects.get_for_model(TV),
                         object_id__in=sync_targets["tv_ids"],
                     )
                 if sync_targets["season_ids"]:
-                    target_content_filters |= forms.models.Q(
+                    target_content_filters |= Q(
                         content_type=ContentType.objects.get_for_model(Season),
                         object_id__in=sync_targets["season_ids"],
                     )
