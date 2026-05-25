@@ -167,7 +167,7 @@
           </div>
           <div class="mt-2 flex flex-wrap gap-2">
             {% for tagged in current_instance.tagged_media.all %}
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-600 text-white">{{ tagged.tag.name }}</span>
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-500 text-white border border-blue-300/40 shadow-sm">{{ tagged.tag.name }}</span>
             {% endfor %}
           </div>
         {% endif %}
