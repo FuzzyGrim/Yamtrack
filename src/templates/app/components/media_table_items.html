@@ -4,13 +4,13 @@
   <tr class="hover:bg-[#39404b] transition-colors cursor-pointer hover-tap"
       x-data="{ trackOpen: false }"
       {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' target_user.username media_type %}?page={{ media_list.next_page_number }}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
-    <td class="p-3 relative align-middle">
+    <td class="p-3 relative align-middle w-[50px] min-w-[50px] max-w-[50px]">
       <img alt="{{ media.item }}"
-           class="lazyload min-w-20 w-20 h-20 object-cover rounded-md {% if request.user == target_user %}parent-hover-tap:hidden{% endif %}"
+           class="lazyload min-w-[50px] w-[50px] h-[70px] object-cover rounded-md {% if request.user == target_user %}parent-hover-tap:hidden{% endif %}"
            data-src="{{ media.item.image }}"
            src="{{ IMG_NONE }}">
       {% if request.user == target_user %}
-        <button class="w-20 h-20 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
+        <button class="min-w-[50px] w-[50px] h-[70px] bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
                 hx-get="{% media_view_url 'track_modal' media.item %}"
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
                 hx-target="#{% component_id 'track' media.item media.id %}"
