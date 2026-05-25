@@ -60,7 +60,8 @@ def calendar(request):
     ) - timedelta(days=1)
 
     # Get calendar data
-    calendar_format = cal.monthcalendar(year, month)
+    calendar_obj = cal.Calendar(firstweekday=cal.SUNDAY)
+    calendar_format = calendar_obj.monthdayscalendar(year, month)
     month_name = cal.month_name[month]
 
     # Get events and organize by day
