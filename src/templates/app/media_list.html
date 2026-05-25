@@ -22,7 +22,7 @@
     </div>
   {% endif %}
 
-  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:''|escapejs }}', tags: '{{ request.GET.tags|default:''|escapejs }}'.split(',').filter(Boolean), get tagsParam() { return this.tags.join(','); }, toggleTag(tag) { this.tags.includes(tag) ? this.tags = this.tags.filter(t => t !== tag) : this.tags.push(tag); }, clearTags() { this.tags = []; }, statusLabels: {
+  <div x-data="{ sort: '{{ current_sort }}', sortDirection: '{{ current_sort_direction|default:"desc" }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:''|escapejs }}', tags: '{{ request.GET.tags|default:''|escapejs }}'.split(',').filter(Boolean), get tagsParam() { return this.tags.join(','); }, toggleTag(tag) { this.tags.includes(tag) ? this.tags = this.tags.filter(t => t !== tag) : this.tags.push(tag); }, clearTags() { this.tags = []; }, statusLabels: {
     {% for value, label in status_choices %}
       '{{ value }}': '{{ label }}'
       {% if not forloop.last %},{% endif %}
@@ -39,6 +39,7 @@
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
       <input type="hidden" name="sort" x-model="sort">
+      <input type="hidden" name="sort_direction" x-model="sortDirection">
       <input type="hidden" name="status" x-model="status">
       <input type="hidden" name="search" x-model="search">
       <input type="hidden" name="layout" x-model="layout">
@@ -132,13 +133,25 @@
         </div>
 
         <!-- Layout Toggle -->
+        <button class="flex items-center px-3 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+                type="button"
+                :title="sortDirection === 'desc' ? 'Descending' : 'Ascending'"
+                @click="sortDirection = sortDirection === 'desc' ? 'asc' : 'desc'"
+                hx-get="{% url 'medialist' target_user.username media_type %}"
+                {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
+                hx-include="#filter-form"
+                hx-indicator="#loading-indicator">
+          <span class="text-sm mr-2" x-text="sortDirection === 'desc' ? 'Desc' : 'Asc'"></span>
+          {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
+        </button>
+
         <div class="flex rounded-md overflow-hidden border border-gray-700">
-          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + encodeURIComponent(search) + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${tags.length ? 'tags=' + encodeURIComponent(tagsParam) + '&' : ''}layout=grid`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + encodeURIComponent(search) + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${sortDirection !== 'desc' ? 'sort_direction=' + sortDirection + '&' : ''}${tags.length ? 'tags=' + encodeURIComponent(tagsParam) + '&' : ''}layout=grid`"
              class="p-2 cursor-pointer"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Grid View"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
-          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + encodeURIComponent(search) + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${tags.length ? 'tags=' + encodeURIComponent(tagsParam) + '&' : ''}layout=table`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + encodeURIComponent(search) + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${sortDirection !== 'desc' ? 'sort_direction=' + sortDirection + '&' : ''}${tags.length ? 'tags=' + encodeURIComponent(tagsParam) + '&' : ''}layout=table`"
              class="p-2 cursor-pointer"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
              title="Table View"

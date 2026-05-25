@@ -186,6 +186,9 @@ def media_list(request, username, media_type):
     ]
     selected_tags = list(dict.fromkeys(selected_tags))
     page = request.GET.get("page", 1)
+    sort_direction = request.GET.get("sort_direction", "desc")
+    if sort_direction not in {"asc", "desc"}:
+        sort_direction = "desc"
 
     # Prepare status filter for database query
     if not status_filter:
@@ -197,6 +200,7 @@ def media_list(request, username, media_type):
         media_type=media_type,
         status_filter=status_filter,
         sort_filter=sort_filter,
+        sort_direction=sort_direction,
         search=search_query,
         tag_names=selected_tags,
     )
@@ -232,6 +236,7 @@ def media_list(request, username, media_type):
         "current_layout": layout,
         "layout_class": ".media-grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,
+        "current_sort_direction": sort_direction,
         "current_status": status_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,

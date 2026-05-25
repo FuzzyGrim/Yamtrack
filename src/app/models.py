@@ -21,7 +21,8 @@ from django.db.models import (
     UniqueConstraint,
     Window,
 )
-from django.db.models.functions import RowNumber
+from django.db.models.functions import Greatest, RowNumber
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
@@ -234,6 +235,7 @@ class MediaManager(models.Manager):
         media_type,
         status_filter,
         sort_filter,
+        sort_direction="desc",
         search=None,
         tag_names=None,
     ):
@@ -269,7 +271,12 @@ class MediaManager(models.Manager):
         queryset = self._apply_prefetch_related(queryset, media_type)
 
         if sort_filter:
-            return self._sort_media_list(queryset, sort_filter, media_type)
+            return self._sort_media_list(
+                queryset,
+                sort_filter,
+                sort_direction,
+                media_type,
+            )
         return queryset
 
     def _apply_prefetch_related(self, queryset, media_type):
@@ -305,16 +312,24 @@ class MediaManager(models.Manager):
 
         return base_queryset
 
-    def _sort_media_list(self, queryset, sort_filter, media_type=None):
+    def _sort_media_list(
+        self,
+        queryset,
+        sort_filter,
+        sort_direction="desc",
+        media_type=None,
+    ):
         """Sort media list using SQL sorting with annotations for calculated fields."""
+        is_ascending = sort_direction == "asc"
+
         if media_type == MediaTypes.TV.value:
-            return self._sort_tv_media_list(queryset, sort_filter)
+            return self._sort_tv_media_list(queryset, sort_filter, is_ascending)
         if media_type == MediaTypes.SEASON.value:
-            return self._sort_season_media_list(queryset, sort_filter)
+            return self._sort_season_media_list(queryset, sort_filter, is_ascending)
 
-        return self._sort_generic_media_list(queryset, sort_filter)
+        return self._sort_generic_media_list(queryset, sort_filter, is_ascending)
 
-    def _sort_tv_media_list(self, queryset, sort_filter):
+    def _sort_tv_media_list(self, queryset, sort_filter, is_ascending=False):
         """Sort TV media list based on the sort criteria."""
         if sort_filter == "start_date":
             # Annotate with the minimum start_date from related seasons/episodes
@@ -324,10 +339,8 @@ class MediaManager(models.Manager):
                     filter=models.Q(seasons__item__season_number__gt=0),
                 ),
             )
-            return queryset.order_by(
-                models.F("calculated_start_date").asc(nulls_last=True),
-                models.functions.Lower("item__title"),
-            )
+            direction = models.F("calculated_start_date").asc if is_ascending else models.F("calculated_start_date").desc
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
         if sort_filter == "end_date":
             # Annotate with the maximum end_date from related seasons/episodes
@@ -337,10 +350,8 @@ class MediaManager(models.Manager):
                     filter=models.Q(seasons__item__season_number__gt=0),
                 ),
             )
-            return queryset.order_by(
-                models.F("calculated_end_date").desc(nulls_last=True),
-                models.functions.Lower("item__title"),
-            )
+            direction = models.F("calculated_end_date").asc if is_ascending else models.F("calculated_end_date").desc
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
         if sort_filter == "progress":
             # Annotate with the sum of episodes watched (excluding season 0)
@@ -351,82 +362,119 @@ class MediaManager(models.Manager):
                     filter=models.Q(seasons__item__season_number__gt=0),
                 ),
             )
-            return queryset.order_by(
-                "-calculated_progress",
-                models.functions.Lower("item__title"),
+            direction = models.F("calculated_progress").asc if is_ascending else models.F("calculated_progress").desc
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
+
+        if sort_filter == "last_updated":
+            queryset = queryset.annotate(
+                calculated_last_activity=models.Max(
+                    Coalesce(
+                        Greatest(
+                            "seasons__episodes__end_date",
+                            "seasons__episodes__created_at",
+                        ),
+                        "seasons__episodes__end_date",
+                        "seasons__episodes__created_at",
+                        "seasons__created_at",
+                    ),
+                    filter=models.Q(seasons__item__season_number__gt=0),
+                ),
             )
+            direction = (
+                models.F("calculated_last_activity").asc
+                if is_ascending
+                else models.F("calculated_last_activity").desc
+            )
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
         # Default to generic sorting
-        return self._sort_generic_media_list(queryset, sort_filter)
+        return self._sort_generic_media_list(queryset, sort_filter, is_ascending)
 
-    def _sort_season_media_list(self, queryset, sort_filter):
+    def _sort_season_media_list(self, queryset, sort_filter, is_ascending=False):
         """Sort Season media list based on the sort criteria."""
         if sort_filter == "start_date":
             # Annotate with the minimum end_date from related episodes
             queryset = queryset.annotate(
                 calculated_start_date=models.Min("episodes__end_date"),
             )
-            return queryset.order_by(
-                models.F("calculated_start_date").asc(nulls_last=True),
-                models.functions.Lower("item__title"),
-            )
+            direction = models.F("calculated_start_date").asc if is_ascending else models.F("calculated_start_date").desc
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
         if sort_filter == "end_date":
             # Annotate with the maximum end_date from related episodes
             queryset = queryset.annotate(
                 calculated_end_date=models.Max("episodes__end_date"),
             )
-            return queryset.order_by(
-                models.F("calculated_end_date").desc(nulls_last=True),
-                models.functions.Lower("item__title"),
-            )
+            direction = models.F("calculated_end_date").asc if is_ascending else models.F("calculated_end_date").desc
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
         if sort_filter == "progress":
             # Annotate with the maximum episode number
             queryset = queryset.annotate(
                 calculated_progress=models.Max("episodes__item__episode_number"),
             )
-            return queryset.order_by(
-                "-calculated_progress",
-                models.functions.Lower("item__title"),
+            direction = models.F("calculated_progress").asc if is_ascending else models.F("calculated_progress").desc
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
+
+        if sort_filter == "last_updated":
+            queryset = queryset.annotate(
+                calculated_last_activity=models.Max(
+                    Coalesce(
+                        Greatest(
+                            "episodes__end_date",
+                            "episodes__created_at",
+                        ),
+                        "episodes__end_date",
+                        "episodes__created_at",
+                        "created_at",
+                    ),
+                ),
             )
+            direction = (
+                models.F("calculated_last_activity").asc
+                if is_ascending
+                else models.F("calculated_last_activity").desc
+            )
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
         # Default to generic sorting
-        return self._sort_generic_media_list(queryset, sort_filter)
+        return self._sort_generic_media_list(queryset, sort_filter, is_ascending)
 
-    def _sort_generic_media_list(self, queryset, sort_filter):
+    def _sort_generic_media_list(self, queryset, sort_filter, is_ascending=False):
         """Apply generic sorting logic for all media types."""
-        # Handle sorting by date fields with special null handling
-        if sort_filter in ("start_date", "end_date"):
-            # For start_date, sort ascending (earliest first)
-            if sort_filter == "start_date":
-                return queryset.order_by(
-                    models.F(sort_filter).asc(nulls_last=True),
-                    models.functions.Lower("item__title"),
-                )
-            # For other date fields, sort descending (latest first)
+        if sort_filter == "last_updated":
+            progressed_direction = (
+                models.F("progressed_at").asc
+                if is_ascending
+                else models.F("progressed_at").desc
+            )
+            created_direction = (
+                models.F("created_at").asc
+                if is_ascending
+                else models.F("created_at").desc
+            )
             return queryset.order_by(
-                models.F(sort_filter).desc(nulls_last=True),
+                progressed_direction(nulls_last=True),
+                created_direction(nulls_last=True),
                 models.functions.Lower("item__title"),
             )
+
+        if sort_filter in ("start_date", "end_date"):
+            direction = models.F(sort_filter).asc if is_ascending else models.F(sort_filter).desc
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
         # Handle sorting by Item fields
         item_fields = [f.name for f in Item._meta.fields]
         if sort_filter in item_fields:
             if sort_filter == "title":
-                # Case-insensitive title sorting
-                return queryset.order_by(models.functions.Lower("item__title"))
-            # Default sorting for other Item fields
-            return queryset.order_by(
-                f"-item__{sort_filter}",
-                models.functions.Lower("item__title"),
-            )
+                direction = models.functions.Lower("item__title").asc if is_ascending else models.functions.Lower("item__title").desc
+                return queryset.order_by(direction())
+            direction = models.F(f"item__{sort_filter}").asc if is_ascending else models.F(f"item__{sort_filter}").desc
+            return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
         # Default sorting by media field
-        return queryset.order_by(
-            models.F(sort_filter).desc(nulls_last=True),
-            models.functions.Lower("item__title"),
-        )
+        direction = models.F(sort_filter).asc if is_ascending else models.F(sort_filter).desc
+        return queryset.order_by(direction(nulls_last=True), models.functions.Lower("item__title"))
 
     def get_home_status(
         self,

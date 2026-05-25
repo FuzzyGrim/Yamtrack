@@ -79,7 +79,7 @@ class MediaListViewTests(TestCase):
         """Test the media list view with filters."""
         response = self.client.get(
             reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
-            + "?status=Completed&sort=score&layout=table",
+            + "?status=Completed&sort=score&sort_direction=asc&layout=table",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -89,6 +89,7 @@ class MediaListViewTests(TestCase):
             Status.COMPLETED.value,
         )
         self.assertEqual(response.context["current_sort"], "score")
+        self.assertEqual(response.context["current_sort_direction"], "asc")
         self.assertEqual(response.context["current_layout"], "table")
 
         self.assertEqual(response.context["media_list"].paginator.count, 2)
@@ -97,6 +98,51 @@ class MediaListViewTests(TestCase):
         self.assertEqual(self.user.movie_status, Status.COMPLETED.value)
         self.assertEqual(self.user.movie_sort, "score")
         self.assertEqual(self.user.movie_layout, "table")
+
+    def test_media_list_sort_direction_applies(self):
+        """Test sort direction can reverse title ordering."""
+        item_a = Item.objects.create(
+            media_id="9991",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="AAA Movie",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=item_a,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=0,
+            score=2,
+        )
+        item_z = Item.objects.create(
+            media_id="9992",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="ZZZ Movie",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=item_z,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=0,
+            score=2,
+        )
+
+        asc_response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?sort=title&sort_direction=asc"
+        )
+        desc_response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?sort=title&sort_direction=desc"
+        )
+
+        asc_titles = [media.item.title for media in asc_response.context["media_list"].object_list]
+        desc_titles = [media.item.title for media in desc_response.context["media_list"].object_list]
+        self.assertLess(asc_titles.index("AAA Movie"), asc_titles.index("ZZZ Movie"))
+        self.assertLess(desc_titles.index("ZZZ Movie"), desc_titles.index("AAA Movie"))
 
     def test_media_list_htmx_request(self):
         """Test the media list view with HTMX request."""

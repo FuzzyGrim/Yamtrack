@@ -42,6 +42,7 @@ class MediaSortChoices(models.TextChoices):
     PROGRESS = "progress", "Progress"
     START_DATE = "start_date", "Start Date"
     END_DATE = "end_date", "End Date"
+    LAST_UPDATED = "last_updated", "Last Updated"
 
 
 class MediaStatusChoices(models.TextChoices):
@@ -493,6 +494,18 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="book_sort_valid",
                 condition=models.Q(book_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="comic_sort_valid",
+                condition=models.Q(comic_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="boardgame_sort_valid",
+                condition=models.Q(boardgame_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="experience_sort_valid",
+                condition=models.Q(experience_sort__in=MediaSortChoices.values),
             ),
             models.CheckConstraint(
                 name="calendar_layout_valid",
