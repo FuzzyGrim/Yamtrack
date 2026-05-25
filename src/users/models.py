@@ -496,6 +496,18 @@ class User(AbstractUser):
                 condition=models.Q(book_sort__in=MediaSortChoices.values),
             ),
             models.CheckConstraint(
+                name="comic_sort_valid",
+                condition=models.Q(comic_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="boardgame_sort_valid",
+                condition=models.Q(boardgame_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="experience_sort_valid",
+                condition=models.Q(experience_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
                 name="calendar_layout_valid",
                 condition=models.Q(calendar_layout__in=CalendarLayoutChoices.values),
             ),
