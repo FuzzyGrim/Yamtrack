@@ -1,8 +1,9 @@
 import math
 
 from django import forms
-from django.core.validators import URLValidator
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
+from django.core.validators import URLValidator
 
 from app import config
 from app.models import (
@@ -291,6 +292,24 @@ class MediaForm(forms.ModelForm):
             cleaned.append({"name": name[:100], "normalized_name": normalized})
         return cleaned
 
+    def _get_tv_season_sync_targets(self, instance):
+        """Return TV/season sibling targets for tag synchronization."""
+        media_type = instance.item.media_type
+        if media_type not in [MediaTypes.TV.value, MediaTypes.SEASON.value]:
+            return None
+
+        shared_item_filters = {
+            "item__media_id": instance.item.media_id,
+            "item__source": instance.item.source,
+            "user": instance.user,
+        }
+        tv_targets = TV.objects.filter(**shared_item_filters)
+        season_targets = Season.objects.filter(**shared_item_filters)
+        return {
+            "tv_ids": list(tv_targets.values_list("id", flat=True)),
+            "season_ids": list(season_targets.values_list("id", flat=True)),
+        }
+
     def save(self, commit=True):  # noqa: FBT002
         """Save media and synchronize custom links when submitted."""
         instance = super().save(commit=commit)
@@ -311,7 +330,27 @@ class MediaForm(forms.ModelForm):
 
         submitted_tags = self.cleaned_data.get("tag_names")
         if commit and instance.pk and submitted_tags is not None:
-            instance.tagged_media.filter(user=instance.user).delete()
+            sync_targets = self._get_tv_season_sync_targets(instance)
+            if sync_targets:
+                target_content_filters = forms.models.Q()
+                if sync_targets["tv_ids"]:
+                    target_content_filters |= forms.models.Q(
+                        content_type=ContentType.objects.get_for_model(TV),
+                        object_id__in=sync_targets["tv_ids"],
+                    )
+                if sync_targets["season_ids"]:
+                    target_content_filters |= forms.models.Q(
+                        content_type=ContentType.objects.get_for_model(Season),
+                        object_id__in=sync_targets["season_ids"],
+                    )
+
+                if target_content_filters:
+                    instance.tagged_media.model.objects.filter(
+                        user=instance.user,
+                    ).filter(target_content_filters).delete()
+            else:
+                instance.tagged_media.filter(user=instance.user).delete()
+
             tag_ids = []
             for entry in submitted_tags:
                 tag, _ = Tag.objects.get_or_create(
@@ -322,8 +361,31 @@ class MediaForm(forms.ModelForm):
                 tag_ids.append(tag.id)
 
             if tag_ids:
-                instance.tagged_media.model.objects.bulk_create(
-                    [
+                tagged_media_to_create = []
+                if sync_targets:
+                    tv_content_type = ContentType.objects.get_for_model(TV)
+                    season_content_type = ContentType.objects.get_for_model(Season)
+                    for tag_id in tag_ids:
+                        for tv_id in sync_targets["tv_ids"]:
+                            tagged_media_to_create.append(
+                                instance.tagged_media.model(
+                                    user=instance.user,
+                                    tag_id=tag_id,
+                                    content_type=tv_content_type,
+                                    object_id=tv_id,
+                                )
+                            )
+                        for season_id in sync_targets["season_ids"]:
+                            tagged_media_to_create.append(
+                                instance.tagged_media.model(
+                                    user=instance.user,
+                                    tag_id=tag_id,
+                                    content_type=season_content_type,
+                                    object_id=season_id,
+                                )
+                            )
+                else:
+                    tagged_media_to_create = [
                         instance.tagged_media.model(
                             user=instance.user,
                             tag_id=tag_id,
@@ -331,7 +393,8 @@ class MediaForm(forms.ModelForm):
                         )
                         for tag_id in tag_ids
                     ]
-                )
+
+                instance.tagged_media.model.objects.bulk_create(tagged_media_to_create)
             Tag.objects.filter(user=instance.user, tagged_media__isnull=True).delete()
         return instance
 

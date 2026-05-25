@@ -666,6 +666,136 @@ class EditMedia(TestCase):
         movie.refresh_from_db()
         self.assertEqual(movie.score, 9)
 
+    def test_tags_sync_from_tv_to_all_seasons(self):
+        """Test TV tag updates sync to all sibling seasons."""
+        tv_item = Item.objects.create(
+            media_id="30001",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Sync Show",
+            image="http://example.com/tv.jpg",
+        )
+        season1_item = Item.objects.create(
+            media_id="30001",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Sync Show",
+            image="http://example.com/season1.jpg",
+            season_number=1,
+        )
+        season2_item = Item.objects.create(
+            media_id="30001",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Sync Show",
+            image="http://example.com/season2.jpg",
+            season_number=2,
+        )
+        tv = TV.objects.create(item=tv_item, user=self.user, status=Status.PLANNING.value)
+        season1 = Season.objects.create(item=season1_item, user=self.user, status=Status.PLANNING.value)
+        season2 = Season.objects.create(item=season2_item, user=self.user, status=Status.PLANNING.value)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": tv.id,
+                "media_id": "30001",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.TV.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["KDrama"],
+            },
+        )
+
+        for media_obj in [tv, season1, season2]:
+            self.assertTrue(
+                TaggedMedia.objects.filter(
+                    user=self.user,
+                    object_id=media_obj.id,
+                    tag__normalized_name="kdrama",
+                ).exists()
+            )
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": tv.id,
+                "media_id": "30001",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.TV.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": [],
+            },
+        )
+
+        for media_obj in [tv, season1, season2]:
+            self.assertFalse(TaggedMedia.objects.filter(user=self.user, object_id=media_obj.id).exists())
+
+    def test_tags_sync_from_season_to_tv_and_other_seasons(self):
+        """Test season tag updates sync to TV and sibling seasons only."""
+        tv_item = Item.objects.create(
+            media_id="30002",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Sync Show Two",
+            image="http://example.com/tv2.jpg",
+        )
+        season1_item = Item.objects.create(
+            media_id="30002",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Sync Show Two",
+            image="http://example.com/season21.jpg",
+            season_number=1,
+        )
+        season2_item = Item.objects.create(
+            media_id="30002",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Sync Show Two",
+            image="http://example.com/season22.jpg",
+            season_number=2,
+        )
+        tv = TV.objects.create(item=tv_item, user=self.user, status=Status.PLANNING.value)
+        season1 = Season.objects.create(item=season1_item, user=self.user, status=Status.PLANNING.value)
+        season2 = Season.objects.create(item=season2_item, user=self.user, status=Status.PLANNING.value)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": season1.id,
+                "media_id": "30002",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.SEASON.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": ["Watch With Friends"],
+            },
+        )
+
+        for media_obj in [tv, season1, season2]:
+            self.assertTrue(
+                TaggedMedia.objects.filter(
+                    user=self.user,
+                    object_id=media_obj.id,
+                    tag__normalized_name="watch with friends",
+                ).exists()
+            )
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": season1.id,
+                "media_id": "30002",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.SEASON.value,
+                "status": Status.PLANNING.value,
+                "tag_names[]": [],
+            },
+        )
+
+        for media_obj in [tv, season1, season2]:
+            self.assertFalse(TaggedMedia.objects.filter(user=self.user, object_id=media_obj.id).exists())
+
 
 class DeleteMedia(TestCase):
     """Test the deletion of media objects through views."""
