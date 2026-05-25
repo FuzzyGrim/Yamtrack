@@ -21,7 +21,7 @@ from django.db.models import (
     UniqueConstraint,
     Window,
 )
-from django.db.models.functions import RowNumber
+from django.db.models.functions import Greatest, RowNumber
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from model_utils import FieldTracker
@@ -368,7 +368,15 @@ class MediaManager(models.Manager):
         if sort_filter == "last_updated":
             queryset = queryset.annotate(
                 calculated_last_activity=models.Max(
-                    Coalesce("seasons__episodes__end_date", "seasons__created_at"),
+                    Coalesce(
+                        Greatest(
+                            "seasons__episodes__end_date",
+                            "seasons__episodes__created_at",
+                        ),
+                        "seasons__episodes__end_date",
+                        "seasons__episodes__created_at",
+                        "seasons__created_at",
+                    ),
                     filter=models.Q(seasons__item__season_number__gt=0),
                 ),
             )
@@ -411,7 +419,15 @@ class MediaManager(models.Manager):
         if sort_filter == "last_updated":
             queryset = queryset.annotate(
                 calculated_last_activity=models.Max(
-                    Coalesce("episodes__end_date", "created_at"),
+                    Coalesce(
+                        Greatest(
+                            "episodes__end_date",
+                            "episodes__created_at",
+                        ),
+                        "episodes__end_date",
+                        "episodes__created_at",
+                        "created_at",
+                    ),
                 ),
             )
             direction = (
