@@ -159,6 +159,22 @@
           </div>
         {% endif %}
 
+        {% if category_links %}
+          <div class="my-3 border-t border-gray-700"></div>
+          <div class="flex items-start mt-2">
+            {% include "app/icons/link.svg" with classes="w-5 h-5 mr-2 text-yellow-400 shrink-0 mt-0.5" %}
+            <div class="font-medium text-gray-400 mb-1">CATEGORY LINKS</div>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-2">
+            {% for category_link in category_links %}
+              <a href="{{ category_link.url }}"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="inline-flex items-center px-3 py-1.5 rounded-md bg-yellow-900/40 hover:bg-yellow-800/50 text-sm text-yellow-200 border border-yellow-700">{{ category_link.label }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+
         {% if current_instance.tagged_media.all %}
           <div class="my-3 border-t border-gray-700"></div>
           <div class="flex items-start mt-2">

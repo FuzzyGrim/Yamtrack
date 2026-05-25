@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import MediaTypes
+from app.models import CategoryLink
 
 
 class SidebarViewTests(TestCase):
@@ -118,6 +119,26 @@ class SidebarViewTests(TestCase):
 
         self.user.refresh_from_db()
         self.assertFalse(self.user.obfuscate_unseen_episodes)
+
+    def test_preferences_post_saves_category_links(self):
+        """Test category links are persisted per user from preferences."""
+        response = self.client.post(
+            reverse("preferences"),
+            {
+                "media_types_checkboxes": [MediaTypes.TV.value],
+                "category_link_media_type[]": [MediaTypes.ANIME.value],
+                "category_link_label[]": ["AniChart"],
+                "category_link_url[]": ["https://anichart.net/"],
+            },
+        )
+        self.assertRedirects(response, reverse("preferences"))
+        self.assertTrue(
+            CategoryLink.objects.filter(
+                user=self.user,
+                media_type=MediaTypes.ANIME.value,
+                label="AniChart",
+            ).exists()
+        )
 
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)

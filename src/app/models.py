@@ -855,6 +855,22 @@ class CustomLink(models.Model):
         ]
 
 
+class CategoryLink(models.Model):
+    """User-defined links associated with a media type/category."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    media_type = models.CharField(max_length=10, choices=MediaTypes)
+    label = models.CharField(max_length=100)
+    url = models.URLField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+        indexes = [
+            models.Index(fields=["user", "media_type"], name="app_catlink_user_type_idx"),
+        ]
+
+
 class Tag(models.Model):
     """User-defined tags that can be reused across tracked media entries."""
 
