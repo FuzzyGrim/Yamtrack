@@ -1,13 +1,20 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from difflib import SequenceMatcher
+from io import BytesIO
 from pathlib import Path
 
+import requests
+from PIL import Image, UnidentifiedImageError
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db import IntegrityError
+from django.db import models as db_models
 from django.db.models import prefetch_related_objects
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -24,6 +31,7 @@ from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
+    Episode,
     Item,
     MediaTypes,
     Season,
@@ -312,6 +320,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "current_instance": current_instance,
         "watch_providers": watch_providers,
         "watch_provider_region": request.user.watch_provider_region,
+        "movable_media_types": MOVABLE_MEDIA_TYPES,
     }
     return render(request, "app/media_details.html", context)
 
@@ -637,6 +646,458 @@ def media_delete(request):
     logger.info("%s deleted successfully.", media)
 
     return helpers.redirect_back(request)
+
+
+def _compute_image_hash(image_url, hash_size=8, retries=3):
+    """Compute average hash of an image from URL. Returns a list of bits."""
+    for attempt in range(1 + retries):
+        try:
+            response = services.session.get(image_url, timeout=5)
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content)).convert("L").resize(
+                (hash_size, hash_size), Image.Resampling.LANCZOS
+            )
+            pixels = list(img.getdata())
+            avg = sum(pixels) / len(pixels)
+            return [1 if p > avg else 0 for p in pixels]
+        except (requests.RequestException, UnidentifiedImageError, OSError):
+            if attempt < retries:
+                continue
+            return None
+
+
+def _image_similarity(hash1, hash2):
+    """Return similarity (0-1) between two image hashes."""
+    if not hash1 or not hash2 or len(hash1) != len(hash2):
+        return 0.0
+    matching = sum(a == b for a, b in zip(hash1, hash2))
+    return matching / len(hash1)
+
+
+# Media types that support moving (no Season/Episode)
+MOVABLE_MEDIA_TYPES = {
+    MediaTypes.MOVIE.value,
+    MediaTypes.TV.value,
+    MediaTypes.ANIME.value,
+    MediaTypes.MANGA.value,
+    MediaTypes.GAME.value,
+    MediaTypes.BOOK.value,
+    MediaTypes.COMIC.value,
+    MediaTypes.BOARDGAME.value,
+}
+
+
+def _compute_image_hashes(seasons, search_results):
+    """Compute image hashes for seasons and search results in parallel."""
+    hash_tasks = {}
+    with ThreadPoolExecutor() as executor:
+        for season in seasons:
+            if season.item.image:
+                hash_tasks[("season", season.item.season_number)] = (
+                    executor.submit(_compute_image_hash, season.item.image)
+                )
+        for result in search_results:
+            if result.get("image"):
+                hash_tasks[("result", str(result["media_id"]))] = (
+                    executor.submit(_compute_image_hash, result["image"])
+                )
+
+    season_hashes = {}
+    result_hashes = {}
+    for (kind, key), future in hash_tasks.items():
+        if kind == "season":
+            season_hashes[key] = future.result()
+        else:
+            result_hashes[key] = future.result()
+    return season_hashes, result_hashes
+
+
+def _score_result_for_season(result, season_num, season_title, season_hash, result_hashes):
+    """Compute a combined similarity score for a search result against a season."""
+    title_ratio = SequenceMatcher(
+        None, season_title, result["title"].lower()
+    ).ratio()
+
+    # Boost results that contain the season number
+    season_indicators = [
+        f"season {season_num}",
+        f"s{season_num}",
+        f"part {season_num}",
+    ]
+    ordinals = {1: "1st", 2: "2nd", 3: "3rd"}
+    ordinal = ordinals.get(season_num, f"{season_num}th")
+    season_indicators.append(f"{ordinal} season")
+
+    result_lower = result["title"].lower()
+    if any(ind in result_lower for ind in season_indicators):
+        title_ratio = min(title_ratio + 0.2, 1.0)
+    if season_num == 1 and title_ratio > 0.7:
+        title_ratio = min(title_ratio + 0.1, 1.0)
+
+    # Image similarity (0-1)
+    result_hash = result_hashes.get(str(result["media_id"]))
+    img_ratio = _image_similarity(season_hash, result_hash)
+
+    return (title_ratio * 0.3) + (img_ratio * 0.7)
+
+
+def _compute_season_recommendations(seasons, search_results, season_hashes, result_hashes):
+    """Compute best matching search result for each season."""
+    recommendations = {}
+    for season in seasons:
+        season_num = season.item.season_number
+        season_title = season.item.title.lower()
+        season_hash = season_hashes.get(season_num)
+        best_score = 0
+        best_id = None
+        for result in search_results:
+            combined = _score_result_for_season(
+                result, season_num, season_title, season_hash, result_hashes
+            )
+            if combined > best_score:
+                best_score = combined
+                best_id = str(result["media_id"])
+        if best_score >= 0.3:
+            recommendations[season_num] = best_id
+    return recommendations
+
+
+@require_GET
+def media_move_search(request):
+    """Search the target source for matching media to move to."""
+    instance_id = request.GET.get("instance_id")
+    media_type = request.GET.get("media_type")
+    target_type = request.GET.get("target_type")
+
+    if not all([instance_id, media_type, target_type]):
+        return HttpResponseBadRequest("Missing required parameters.")
+
+    if media_type not in MOVABLE_MEDIA_TYPES or target_type not in MOVABLE_MEDIA_TYPES:
+        return HttpResponseBadRequest("Invalid media type.")
+
+    old_instance = BasicMedia.objects.get_media(request.user, media_type, instance_id)
+    query = request.GET.get("query") or old_instance.item.title
+
+    # For TV shows with tracked seasons, show per-season search
+    if media_type == MediaTypes.TV.value:
+        seasons = (
+            old_instance.seasons.select_related("item")
+            .exclude(item__season_number=0)
+            .order_by("item__season_number")
+        )
+        if seasons.exists():
+            results = services.search(target_type, query, 1)
+            search_results = results["results"]
+
+            season_hashes, result_hashes = _compute_image_hashes(
+                seasons, search_results
+            )
+            recommendations = _compute_season_recommendations(
+                seasons, search_results, season_hashes, result_hashes
+            )
+
+            context = {
+                "results": search_results,
+                "seasons": seasons,
+                "recommendations": recommendations,
+                "instance_id": instance_id,
+                "media_type": media_type,
+                "target_type": target_type,
+                "is_tv_move": True,
+            }
+            return render(
+                request, "app/components/move_search_results.html", context
+            )
+
+    # Standard search for flat types
+    results = services.search(target_type, query, 1)
+
+    context = {
+        "results": results["results"],
+        "instance_id": instance_id,
+        "media_type": media_type,
+        "target_type": target_type,
+    }
+    return render(request, "app/components/move_search_results.html", context)
+
+
+def _move_tv_seasons(request, old_instance, target_type, target_model):
+    """Move individual seasons from a TV show to the target type."""
+    seasons = (
+        old_instance.seasons.select_related("item")
+        .exclude(item__season_number=0)
+        .order_by("item__season_number")
+    )
+    last_item = None
+    moved_seasons = []
+    for season in seasons:
+        season_key = f"target_media_id_{season.item.season_number}"
+        target_media_id = request.POST.get(season_key)
+        if not target_media_id:
+            continue
+
+        source_key = f"target_source_{season.item.season_number}"
+        target_source = request.POST.get(source_key, "")
+
+        new_item, _ = Item.objects.get_or_create(
+            media_id=target_media_id,
+            source=target_source,
+            media_type=target_type,
+            defaults={
+                "title": season.item.title,
+                "image": season.item.image,
+            },
+        )
+
+        if target_model.objects.filter(item=new_item, user=request.user).exists():
+            messages.warning(
+                request,
+                f"Skipped S{season.item.season_number}: \"{new_item.title}\" already in your {MediaTypes(target_type).label} list.",
+            )
+            continue
+
+        new_instance = target_model(
+            item=new_item,
+            user=request.user,
+            score=season.score,
+            status=season.status,
+            notes=season.notes,
+            progress=season.progress,
+            start_date=season.start_date,
+            end_date=season.end_date,
+        )
+        new_instance.save()
+        moved_seasons.append(season)
+        last_item = new_item
+
+    # Only delete moved seasons; delete TV entry only if all seasons were moved
+    if moved_seasons:
+        Season.objects.filter(id__in=[s.id for s in moved_seasons]).delete()
+        remaining_seasons = old_instance.seasons.exclude(item__season_number=0)
+        if not remaining_seasons.exists():
+            old_instance.delete()
+
+    return last_item
+
+
+def _move_to_tv(request, new_item, old_instance):
+    """Move a flat media entry to a TV show, creating season and episodes."""
+    existing_tv = TV.objects.filter(
+        item=new_item, user=request.user
+    ).first()
+    if existing_tv:
+        tv_instance = existing_tv
+    else:
+        tv_instance = TV(
+            item=new_item,
+            user=request.user,
+            score=old_instance.score,
+            status=old_instance.status,
+            notes=old_instance.notes,
+        )
+        db_models.Model.save(tv_instance)
+
+    # Use user-selected season number, or determine next available
+    selected_season = request.POST.get("target_season_number")
+    if selected_season:
+        season_number = int(selected_season)
+    else:
+        existing_season_nums = list(
+            Season.objects.filter(related_tv=tv_instance)
+            .values_list("item__season_number", flat=True)
+        )
+        season_number = max(existing_season_nums, default=0) + 1
+
+    if old_instance.progress:
+        season_item, _ = Item.objects.get_or_create(
+            media_id=new_item.media_id,
+            source=new_item.source,
+            media_type=MediaTypes.SEASON.value,
+            season_number=season_number,
+            defaults={
+                "title": new_item.title,
+                "image": new_item.image,
+            },
+        )
+        new_season = Season(
+            item=season_item,
+            user=request.user,
+            status=old_instance.status,
+            related_tv=tv_instance,
+        )
+        db_models.Model.save(new_season)
+
+        now = timezone.now().replace(second=0, microsecond=0)
+        episodes_to_create = []
+        for ep_num in range(1, old_instance.progress + 1):
+            ep_item, _ = Item.objects.get_or_create(
+                media_id=new_item.media_id,
+                source=new_item.source,
+                media_type=MediaTypes.EPISODE.value,
+                season_number=season_number,
+                episode_number=ep_num,
+                defaults={
+                    "title": new_item.title,
+                    "image": new_item.image,
+                },
+            )
+            episodes_to_create.append(Episode(
+                related_season=new_season,
+                item=ep_item,
+                end_date=old_instance.end_date or now,
+            ))
+        Episode.objects.bulk_create(episodes_to_create)
+
+
+@require_POST
+@transaction.atomic
+def media_move(request):
+    """Move a media entry from one type to another, preserving tracking data."""
+    instance_id = request.POST["instance_id"]
+    media_type = request.POST["media_type"]
+    target_type = request.POST["target_type"]
+
+    if media_type not in MOVABLE_MEDIA_TYPES or target_type not in MOVABLE_MEDIA_TYPES:
+        messages.error(request, "Cannot move this media type.")
+        return helpers.redirect_back(request)
+
+    if media_type == target_type:
+        return helpers.redirect_back(request)
+
+    old_instance = BasicMedia.objects.get_media(request.user, media_type, instance_id)
+    old_item = old_instance.item
+    target_model = apps.get_model(app_label="app", model_name=target_type)
+
+    # Handle TV shows with per-season move
+    if media_type == MediaTypes.TV.value:
+        last_item = _move_tv_seasons(request, old_instance, target_type, target_model)
+
+        logger.info("Moved %s (TV) to %s.", old_item.title, target_type)
+        messages.success(
+            request,
+            f"Moved \"{old_item.title}\" from {MediaTypes(media_type).label} to {MediaTypes(target_type).label}.",
+        )
+
+        if last_item:
+            return redirect(
+                "media_details",
+                source=last_item.source,
+                media_type=target_type,
+                media_id=last_item.media_id,
+                title=slugify(last_item.title) or "untitled",
+            )
+        return helpers.redirect_back(request)
+
+    # Standard move for flat types
+    target_media_id = request.POST["target_media_id"]
+    target_source = request.POST["target_source"]
+
+    new_item, _ = Item.objects.get_or_create(
+        media_id=target_media_id,
+        source=target_source,
+        media_type=target_type,
+        defaults={
+            "title": request.POST.get("target_title", old_item.title),
+            "image": request.POST.get("target_image", old_item.image),
+        },
+    )
+
+    if target_type == MediaTypes.TV.value:
+        _move_to_tv(request, new_item, old_instance)
+    else:
+        # Check if the user already has this media tracked in the target type
+        if target_model.objects.filter(item=new_item, user=request.user).exists():
+            messages.error(
+                request,
+                f"You already have \"{new_item.title}\" in your {MediaTypes(target_type).label} list.",
+            )
+            return helpers.redirect_back(request)
+
+        # Create new tracking entry, bypassing save() hooks
+        new_instance = target_model(
+            item=new_item,
+            user=request.user,
+            score=old_instance.score,
+            status=old_instance.status,
+            notes=old_instance.notes,
+            progress=old_instance.progress,
+            start_date=old_instance.start_date,
+            end_date=old_instance.end_date,
+        )
+        db_models.Model.save(new_instance)
+
+    # Delete the old entry
+    old_instance.delete()
+    logger.info("Moved %s from %s to %s.", old_item.title, media_type, target_type)
+    messages.success(
+        request,
+        f"Moved \"{old_item.title}\" from {MediaTypes(media_type).label} to {MediaTypes(target_type).label}.",
+    )
+
+    return redirect(
+        "media_details",
+        source=new_item.source,
+        media_type=target_type,
+        media_id=new_item.media_id,
+        title=slugify(new_item.title) or "untitled",
+    )
+
+
+@require_GET
+def media_relink_search(request):
+    """Search the current media type's source for relinking."""
+    instance_id = request.GET["instance_id"]
+    media_type = request.GET["media_type"]
+    query = request.GET.get("query", "").strip()
+
+    if not query:
+        return render(request, "app/components/relink_search_results.html", {"results": []})
+
+    results = services.search(media_type, query, 1)
+
+    context = {
+        "results": results["results"],
+        "instance_id": instance_id,
+        "media_type": media_type,
+    }
+    return render(request, "app/components/relink_search_results.html", context)
+
+
+@require_POST
+def media_relink(request):
+    """Change the linked Item for a tracking entry."""
+    instance_id = request.POST["instance_id"]
+    media_type = request.POST["media_type"]
+    new_media_id = request.POST["new_media_id"]
+    new_source = request.POST["new_source"]
+
+    old_instance = BasicMedia.objects.get_media(request.user, media_type, instance_id)
+
+    # Get or create the new Item
+    new_item, _ = Item.objects.get_or_create(
+        media_id=new_media_id,
+        source=new_source,
+        media_type=media_type,
+        defaults={
+            "title": old_instance.item.title,
+            "image": old_instance.item.image,
+        },
+    )
+
+    # Update the tracking entry to point to the new Item
+    old_instance.item = new_item
+    old_instance.save()
+
+    logger.info("Relinked %s to %s/%s.", old_instance, new_source, new_media_id)
+    messages.success(request, "Media link updated successfully.")
+
+    return redirect(
+        "media_details",
+        source=new_item.source,
+        media_type=media_type,
+        media_id=new_item.media_id,
+        title=slugify(new_item.title) or "untitled",
+    )
 
 
 @require_POST
