@@ -69,14 +69,11 @@
       {% endif %}
 
       {# Episode track form #}
-      {% if episode.runtime_minutes %}
-        {% now_plus_minutes episode.runtime_minutes as finish_datetime %}
-      {% endif %}
       {# djlint:off #}
       <form method="post"
             action="{% url 'episode_save' %}?next={{ request.path }}"
             x-data="{
-              inputDateTime: '{% if TRACK_TIME %}{% now "Y-m-d\TH:i" %}{% else %}{% now "Y-m-d" %}{% endif %}',
+              inputDateTime: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, {% if TRACK_TIME %}16{% else %}10{% endif %}),
               inputType: '{% if TRACK_TIME %}datetime-local{% else %}date{% endif %}',
               dropdownOpen: false,
               pointerOnPickerIcon: false
@@ -134,14 +131,14 @@
 
               {# Option A - Current Time #}
               <button type="button"
-                      @click="inputDateTime = '{% if TRACK_TIME %}{% now "Y-m-d\TH:i" %}{% else %}{% now "Y-m-d" %}{% endif %}'; dropdownOpen = false"
+                      @click="inputDateTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, {% if TRACK_TIME %}16{% else %}10{% endif %}); dropdownOpen = false"
                       class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                       title="Fills in the current date and time">Fill in current time</button>
 
               {% if episode.runtime_minutes %}
                 {# Option B - Finish Time #}
                 <button type="button"
-                        @click="inputDateTime = '{{ finish_datetime|escapejs }}'; dropdownOpen = false"
+                        @click="inputDateTime = new Date(Date.now() + {{ episode.runtime_minutes }} * 60000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, {% if TRACK_TIME %}16{% else %}10{% endif %}); dropdownOpen = false"
                         class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                         title="Fills in the date and time the episode will be finished if started now">
                   Fill in end time
@@ -151,7 +148,7 @@
               {# Option C - Air Date #}
               {% if episode.air_date %}
                 <button type="button"
-                        @click="inputDateTime = '{% if TRACK_TIME %}{{ episode.air_date|escapejs }}T{% now "H:i" %}{% else %}{{ episode.air_date|escapejs }}{% endif %}'; dropdownOpen = false"
+                        @click="inputDateTime = {% if TRACK_TIME %}'{{ episode.air_date|escapejs }}T' + new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(11, 16){% else %}'{{ episode.air_date|escapejs }}'{% endif %}; dropdownOpen = false"
                         class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                         title="Fills in the air date of the episode, if available">Fill in air date</button>
               {% endif %}
