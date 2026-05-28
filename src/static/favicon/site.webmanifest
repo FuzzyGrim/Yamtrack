@@ -75,7 +75,7 @@
             "name": "TV Shows",
             "short_name": "TV",
             "description": "View your TV Shows",
-            "url": "/medialist/tv",
+            "url": "/~/tv",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/tv.svg",
@@ -87,7 +87,7 @@
             "name": "Movies",
             "short_name": "Movies",
             "description": "View your Movies",
-            "url": "/medialist/movie",
+            "url": "/~/movie",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/movies.svg",
@@ -99,7 +99,7 @@
             "name": "Anime",
             "short_name": "Anime",
             "description": "View your Anime",
-            "url": "/medialist/anime",
+            "url": "/~/anime",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/anime.svg",
@@ -111,7 +111,7 @@
             "name": "Manga",
             "short_name": "Manga",
             "description": "View your Mangas",
-            "url": "/medialist/manga",
+            "url": "/~/manga",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/manga.svg",
@@ -123,7 +123,7 @@
             "name": "Games",
             "short_name": "Games",
             "description": "View your Games",
-            "url": "/medialist/game",
+            "url": "/~/game",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/games.svg",
@@ -135,7 +135,7 @@
             "name": "Books",
             "short_name": "Books",
             "description": "View your Books",
-            "url": "/medialist/book",
+            "url": "/~/book",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/books.svg",
@@ -147,7 +147,7 @@
             "name": "Comics",
             "short_name": "Comics",
             "description": "View your Comics",
-            "url": "/medialist/comic",
+            "url": "/~/comic",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/comics.svg",
@@ -159,7 +159,7 @@
             "name": "Boardgames",
             "short_name": "Boardgames",
             "description": "View your Boardgames",
-            "url": "/medialist/boardgame",
+            "url": "/~/boardgame",
             "icons": [
                 {
                     "src": "/static/img/shortcuts/boardgames.svg",

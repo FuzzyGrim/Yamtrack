@@ -8,13 +8,14 @@ from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import Http404, HttpResponse, HttpResponseRedirect
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from app.models import BasicMedia, Item, MediaTypes, Status
+from users.models import User
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
@@ -37,6 +38,14 @@ def get_owned_media_or_404(request, media_type, instance_id, *, prefetch=False):
     except ObjectDoesNotExist as exc:
         msg = "Media not found"
         raise Http404(msg) from exc
+
+
+def get_user_or_404(request, username):
+    """Return user or raise 404."""
+    if request.user.is_authenticated and username == "~":
+        return request.user
+
+    return get_object_or_404(User, username=username)
 
 
 def get_configured_app_url():
