@@ -22,7 +22,7 @@
     </div>
   {% endif %}
 
-  <div x-data="{ sort: '{{ current_sort }}', sortDirection: '{{ current_sort_direction|default:"desc" }}', status: '{{ current_status }}', ratingFilter: '{{ current_rating_filter }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:''|escapejs }}', tags: '{{ request.GET.tags|default:''|escapejs }}'.split(',').filter(Boolean), get tagsParam() { return this.tags.join(','); }, toggleTag(tag) { this.tags.includes(tag) ? this.tags = this.tags.filter(t => t !== tag) : this.tags.push(tag); }, clearTags() { this.tags = []; }, get baseQuery() { const params = new URLSearchParams(); if (this.search) params.set('search', this.search); if (this.status !== 'All') params.set('status', this.status); if (this.ratingFilter !== 'any') params.set('rating_filter', this.ratingFilter); if (this.sort !== 'score') params.set('sort', this.sort); if (this.sortDirection !== 'desc') params.set('sort_direction', this.sortDirection); if (this.tags.length) params.set('tags', this.tagsParam); return params.toString(); }, layoutUrl(nextLayout) { const query = this.baseQuery; return `{% url 'medialist' target_user.username media_type %}?${query ? query + '&' : ''}layout=${nextLayout}`; }, statusLabels: {
+  <div x-data="{ sort: '{{ current_sort }}', sortDirection: '{{ current_sort_direction|default:"desc" }}', status: '{{ current_status }}', ratingFilter: '{{ current_rating_filter }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:''|escapejs }}', tags: '{{ request.GET.tags|default:''|escapejs }}'.split(',').filter(Boolean), resultCountText: '{{ result_count_text|escapejs }}', get tagsParam() { return this.tags.join(','); }, toggleTag(tag) { this.tags.includes(tag) ? this.tags = this.tags.filter(t => t !== tag) : this.tags.push(tag); }, clearTags() { this.tags = []; }, get baseQuery() { const params = new URLSearchParams(); if (this.search) params.set('search', this.search); if (this.status !== 'All') params.set('status', this.status); if (this.ratingFilter !== 'any') params.set('rating_filter', this.ratingFilter); if (this.sort !== 'score') params.set('sort', this.sort); if (this.sortDirection !== 'desc') params.set('sort_direction', this.sortDirection); if (this.tags.length) params.set('tags', this.tagsParam); return params.toString(); }, layoutUrl(nextLayout) { const query = this.baseQuery; return `{% url 'medialist' target_user.username media_type %}?${query ? query + '&' : ''}layout=${nextLayout}`; }, statusLabels: {
     {% for value, label in status_choices %}
       '{{ value }}': '{{ label }}'
       {% if not forloop.last %},{% endif %}
@@ -40,7 +40,8 @@
       {% if not forloop.last %},{% endif %}
 
     {% endfor %}
-    } }">
+    } }"
+       @media-result-count-updated.window="resultCountText = $event.detail.text">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
@@ -200,6 +201,10 @@
         </div>
       </div>
     </div>
+    <div class="-mt-2 mb-4">
+      {% include "app/components/media_result_count.html" %}
+    </div>
+
     {% if available_tags %}
       <div class="mb-6">
         <div class="flex items-center gap-2 mb-2">

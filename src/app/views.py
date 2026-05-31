@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -128,6 +129,48 @@ def progress_edit(request, media_type, instance_id):
     )
 
 
+def _get_result_count_context(filtered_count, *, has_active_filters):
+    if not filtered_count and has_active_filters:
+        result_count_text = "No matching items"
+    else:
+        item_label = "item" if filtered_count == 1 else "items"
+        matching_label = " matching" if has_active_filters else ""
+        result_count_text = f"{filtered_count}{matching_label} {item_label}"
+
+    return {
+        "filtered_count": filtered_count,
+        "result_count_text": result_count_text,
+    }
+
+
+def _has_active_media_filters(
+    search_query,
+    selected_tags,
+    status_filter,
+    rating_filter,
+):
+    return bool(
+        search_query
+        or selected_tags
+        or status_filter != MediaStatusChoices.ALL
+        or rating_filter != MediaRatingChoices.ANY
+    )
+
+
+def _add_result_count_trigger(response, result_count_text):
+    response["HX-Trigger"] = json.dumps(
+        {"media-result-count-updated": {"text": result_count_text}},
+    )
+    return response
+
+
+def _render_media_list_response(request, template_name, context):
+    response = render(request, template_name, context)
+    if request.headers.get("HX-Request"):
+        _add_result_count_trigger(response, context["result_count_text"])
+    return response
+
+
 @login_not_required
 @require_GET
 def media_list(request, username, media_type):
@@ -238,6 +281,15 @@ def media_list(request, username, media_type):
         "media_type": media_type,
         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
         "media_list": media_page,
+        **_get_result_count_context(
+            paginator.count,
+            has_active_filters=_has_active_media_filters(
+                search_query,
+                selected_tags,
+                status_filter,
+                rating_filter,
+            ),
+        ),
         "current_layout": layout,
         "layout_class": ".media-grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,
@@ -258,7 +310,10 @@ def media_list(request, username, media_type):
         if request.headers.get("HX-Target") == "empty_list":
             # If still empty, keep user in the same page
             if not media_page.object_list:
-                return HttpResponse(status=204)
+                return _add_result_count_trigger(
+                    HttpResponse(status=204),
+                    context["result_count_text"],
+                )
             response = HttpResponse()
             response["HX-Redirect"] = reverse(
                 "medialist", args=[target_user.username, media_type]
@@ -271,7 +326,7 @@ def media_list(request, username, media_type):
     else:
         template_name = "app/media_list.html"
 
-    return render(request, template_name, context)
+    return _render_media_list_response(request, template_name, context)
 
 
 @require_GET
