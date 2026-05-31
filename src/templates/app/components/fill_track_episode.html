@@ -155,6 +155,12 @@
                         class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
                         title="Fills in the air date of the episode, if available">Fill in air date</button>
               {% endif %}
+                 
+              {# Option D - No Date #}
+              <button type="button"
+                      @click="inputDateTime = ''; dropdownOpen = false"
+                      class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer"
+                      title="Fills in nothing as the date and time">Fill in no date</button>
             </div>
 
           </div>
