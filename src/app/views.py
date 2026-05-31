@@ -24,7 +24,6 @@ from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
-    Tag,
     BasicMedia,
     CategoryLink,
     Item,
@@ -32,6 +31,7 @@ from app.models import (
     Season,
     Sources,
     Status,
+    Tag,
     UserMessage,
 )
 from app.providers import manual, services, tmdb
@@ -39,6 +39,7 @@ from app.templatetags import app_tags
 from users.models import (
     DateFormatChoices,
     HomeSortChoices,
+    MediaRatingChoices,
     MediaSortChoices,
     MediaStatusChoices,
     User,
@@ -189,6 +190,9 @@ def media_list(request, username, media_type):
     sort_direction = request.GET.get("sort_direction", "desc")
     if sort_direction not in {"asc", "desc"}:
         sort_direction = "desc"
+    rating_filter = request.GET.get("rating_filter", MediaRatingChoices.ANY)
+    if rating_filter not in MediaRatingChoices.values:
+        rating_filter = MediaRatingChoices.ANY
 
     # Prepare status filter for database query
     if not status_filter:
@@ -203,6 +207,7 @@ def media_list(request, username, media_type):
         sort_direction=sort_direction,
         search=search_query,
         tag_names=selected_tags,
+        rating_filter=rating_filter,
     )
 
     media_model = apps.get_model(app_label="app", model_name=media_type)
@@ -238,8 +243,10 @@ def media_list(request, username, media_type):
         "current_sort": sort_filter,
         "current_sort_direction": sort_direction,
         "current_status": status_filter,
+        "current_rating_filter": rating_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
+        "rating_filter_choices": MediaRatingChoices.choices,
         "target_user": target_user,
         "available_tags": available_tags,
         "selected_tags": selected_tags,

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
 
@@ -25,7 +26,7 @@ from app.models import (
     TaggedMedia,
 )
 from events.models import Event
-from users.models import HomeSortChoices, MediaStatusChoices
+from users.models import HomeSortChoices, MediaRatingChoices, MediaStatusChoices
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 
@@ -268,6 +269,67 @@ class MediaManagerTests(TestCase):
         )
 
         self.assertEqual(len(media_list), 1)
+
+    def test_get_media_list_with_rating_filter(self):
+        """Test rating filters use null checks and decimal rating buckets."""
+        manager = MediaManager()
+        rating_user = get_user_model().objects.create_user(username="rating-user")
+        ratings = [None, 0, 1, 4.9, 5, 7.9, 8, 8.5, 8.9, 9, 9.9, 10]
+        for index, rating in enumerate(ratings):
+            item = Item.objects.create(
+                media_id=f"rating-{index}",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Rating {rating}",
+                image="http://example.com/image.jpg",
+            )
+            Movie.objects.create(
+                item=item,
+                user=rating_user,
+                status=Status.COMPLETED.value,
+                score=rating,
+            )
+
+        def scores_for(rating_filter):
+            return [
+                media.score
+                for media in manager.get_media_list(
+                    user=rating_user,
+                    media_type=MediaTypes.MOVIE.value,
+                    status_filter=MediaStatusChoices.ALL,
+                    sort_filter="score",
+                    sort_direction="asc",
+                    rating_filter=rating_filter,
+                )
+            ]
+
+        self.assertEqual(scores_for(MediaRatingChoices.UNRATED), [None])
+        self.assertNotIn(None, scores_for(MediaRatingChoices.RATED))
+        self.assertEqual(
+            scores_for(MediaRatingChoices.HIGH),
+            [
+                Decimal("8.0"),
+                Decimal("8.5"),
+                Decimal("8.9"),
+                Decimal("9.0"),
+                Decimal("9.9"),
+                Decimal("10.0"),
+            ],
+        )
+        self.assertEqual(
+            scores_for(MediaRatingChoices.MEDIUM),
+            [Decimal("5.0"), Decimal("7.9")],
+        )
+        self.assertEqual(
+            scores_for(MediaRatingChoices.LOW),
+            [Decimal("1.0"), Decimal("4.9")],
+        )
+        self.assertEqual(
+            scores_for(MediaRatingChoices.EIGHT),
+            [Decimal("8.0"), Decimal("8.5"), Decimal("8.9")],
+        )
+        self.assertEqual(scores_for(MediaRatingChoices.TEN), [Decimal("10.0")])
+        self.assertEqual(scores_for(MediaRatingChoices.ZERO), [Decimal("0.0")])
 
     def test_get_media_list_with_search(self):
         """Test the get_media_list method with search parameter."""

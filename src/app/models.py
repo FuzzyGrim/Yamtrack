@@ -3,13 +3,13 @@ import uuid
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.core.validators import (
     DecimalValidator,
     MaxValueValidator,
     MinValueValidator,
 )
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import (
     CheckConstraint,
@@ -21,8 +21,7 @@ from django.db.models import (
     UniqueConstraint,
     Window,
 )
-from django.db.models.functions import Greatest, RowNumber
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, Greatest, RowNumber
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
@@ -238,6 +237,7 @@ class MediaManager(models.Manager):
         sort_direction="desc",
         search=None,
         tag_names=None,
+        rating_filter=None,
     ):
         """Get media list based on filters, sorting and search."""
         model = apps.get_model(app_label="app", model_name=media_type)
@@ -254,6 +254,8 @@ class MediaManager(models.Manager):
                     tagged_media__tag__user=user,
                     tagged_media__tag__normalized_name=tag_name.lower(),
                 )
+
+        queryset = self._apply_rating_filter(queryset, rating_filter)
 
         queryset = queryset.annotate(
             repeats=Window(
@@ -278,6 +280,46 @@ class MediaManager(models.Manager):
                 media_type,
             )
         return queryset
+
+    def _apply_rating_filter(self, queryset, rating_filter):
+        """Apply score-based rating filters to a media queryset."""
+        rating_filters = {
+            users.models.MediaRatingChoices.UNRATED.value: models.Q(
+                score__isnull=True,
+            ),
+            users.models.MediaRatingChoices.RATED.value: models.Q(
+                score__isnull=False,
+            ),
+            users.models.MediaRatingChoices.HIGH.value: models.Q(
+                score__gte=8,
+                score__lte=10,
+            ),
+            users.models.MediaRatingChoices.MEDIUM.value: models.Q(
+                score__gte=5,
+                score__lt=8,
+            ),
+            users.models.MediaRatingChoices.LOW.value: models.Q(
+                score__gte=1,
+                score__lt=5,
+            ),
+            users.models.MediaRatingChoices.TEN.value: models.Q(
+                score__gte=10,
+                score__lte=10,
+            ),
+        }
+
+        if rating_filter in {str(bucket) for bucket in range(10)}:
+            bucket_start = int(rating_filter)
+            rating_filters[rating_filter] = models.Q(
+                score__gte=bucket_start,
+                score__lt=bucket_start + 1,
+            )
+
+        query = rating_filters.get(rating_filter)
+        if query is None:
+            return queryset
+
+        return queryset.filter(query)
 
     def _apply_prefetch_related(self, queryset, media_type):
         """Apply appropriate prefetch_related based on media type."""
