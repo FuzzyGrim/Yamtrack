@@ -1,5 +1,7 @@
 {% load app_tags %}
 
+{% include "app/components/media_result_count.html" %}
+
 {% for media in media_list %}
   <tr class="hover:bg-[#39404b] transition-colors cursor-pointer hover-tap"
       x-data="{ trackOpen: false }"

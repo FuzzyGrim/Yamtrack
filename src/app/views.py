@@ -128,6 +128,22 @@ def progress_edit(request, media_type, instance_id):
     )
 
 
+def _get_page_result_count(media_page):
+    filtered_count = media_page.paginator.count
+    if not filtered_count:
+        return {
+            "filtered_count": 0,
+            "visible_start_index": 0,
+            "visible_end_index": 0,
+        }
+
+    return {
+        "filtered_count": filtered_count,
+        "visible_start_index": media_page.start_index(),
+        "visible_end_index": media_page.end_index(),
+    }
+
+
 @login_not_required
 @require_GET
 def media_list(request, username, media_type):
@@ -238,6 +254,7 @@ def media_list(request, username, media_type):
         "media_type": media_type,
         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
         "media_list": media_page,
+        **_get_page_result_count(media_page),
         "current_layout": layout,
         "layout_class": ".media-grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,

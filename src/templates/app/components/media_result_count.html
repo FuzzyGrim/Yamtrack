@@ -1,0 +1,7 @@
+<p id="media-result-count" hx-swap-oob="true" class="text-sm text-gray-400">
+  {% if filtered_count %}
+    Showing {{ visible_start_index }}–{{ visible_end_index }} of {{ filtered_count }} items
+  {% else %}
+    Showing 0 of 0 items
+  {% endif %}
+</p>

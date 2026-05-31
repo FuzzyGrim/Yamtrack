@@ -6,7 +6,6 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
-    Anime,
     Item,
     MediaTypes,
     Movie,
@@ -75,6 +74,10 @@ class MediaListViewTests(TestCase):
 
         self.assertIn("media_list", response.context)
         self.assertEqual(response.context["media_list"].paginator.count, 5)
+        self.assertEqual(response.context["filtered_count"], 5)
+        self.assertEqual(response.context["visible_start_index"], 1)
+        self.assertEqual(response.context["visible_end_index"], 5)
+        self.assertContains(response, "Showing 1\u20135 of 5 items")
 
         self.assertIn("sort_choices", response.context)
         self.assertIn("status_choices", response.context)
@@ -102,6 +105,8 @@ class MediaListViewTests(TestCase):
         self.assertEqual(response.context["current_layout"], "table")
 
         self.assertEqual(response.context["media_list"].paginator.count, 2)
+        self.assertEqual(response.context["filtered_count"], 2)
+        self.assertContains(response, "Showing 1\u20132 of 2 items")
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.movie_status, Status.COMPLETED.value)
@@ -137,6 +142,7 @@ class MediaListViewTests(TestCase):
         )
         self.assertIn("rating_filter_choices", response.context)
         self.assertEqual(response.context["media_list"].paginator.count, 1)
+        self.assertContains(response, "Showing 1\u20131 of 1 items")
         self.assertIsNone(response.context["media_list"].object_list[0].score)
 
     def test_media_list_rating_filter_buckets_decimals(self):
@@ -247,8 +253,14 @@ class MediaListViewTests(TestCase):
             + "?sort=title&sort_direction=desc"
         )
 
-        asc_titles = [media.item.title for media in asc_response.context["media_list"].object_list]
-        desc_titles = [media.item.title for media in desc_response.context["media_list"].object_list]
+        asc_titles = [
+            media.item.title
+            for media in asc_response.context["media_list"].object_list
+        ]
+        desc_titles = [
+            media.item.title
+            for media in desc_response.context["media_list"].object_list
+        ]
         self.assertLess(asc_titles.index("AAA Movie"), asc_titles.index("ZZZ Movie"))
         self.assertLess(desc_titles.index("ZZZ Movie"), desc_titles.index("AAA Movie"))
 
@@ -261,6 +273,9 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_grid_items.html")
+        self.assertContains(response, 'id="media-result-count"')
+        self.assertContains(response, 'hx-swap-oob="true"')
+        self.assertContains(response, "Showing 1\u20135 of 5 items")
 
         response = self.client.get(
             reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
@@ -269,6 +284,57 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_table_items.html")
+        self.assertContains(response, "Showing 1\u20135 of 5 items")
+
+    def test_media_list_count_uses_pagination_range(self):
+        """Test count text uses the current page range and total filtered count."""
+        for i in range(6, 36):
+            item = Item.objects.create(
+                media_id=f"page-{i}",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Paged Movie {i}",
+                image="http://example.com/image.jpg",
+            )
+            Movie.objects.create(
+                item=item,
+                user=self.user,
+                status=Status.COMPLETED.value,
+                progress=1,
+                score=1,
+            )
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["filtered_count"], 35)
+        self.assertEqual(response.context["visible_start_index"], 1)
+        self.assertEqual(response.context["visible_end_index"], 32)
+        self.assertContains(response, "Showing 1\u201332 of 35 items")
+
+        page_two_response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?page=2"
+        )
+        self.assertEqual(page_two_response.status_code, 200)
+        self.assertEqual(page_two_response.context["filtered_count"], 35)
+        self.assertEqual(page_two_response.context["visible_start_index"], 33)
+        self.assertEqual(page_two_response.context["visible_end_index"], 35)
+        self.assertContains(page_two_response, "Showing 33\u201335 of 35 items")
+
+    def test_media_list_zero_result_count(self):
+        """Test zero-result filters show a clean count."""
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?search=definitely-no-matching-title"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["filtered_count"], 0)
+        self.assertEqual(response.context["visible_start_index"], 0)
+        self.assertEqual(response.context["visible_end_index"], 0)
+        self.assertContains(response, "Showing 0 of 0 items")
 
     def test_media_list_filter_by_single_tag_and_clear(self):
         """Test filtering by a tag and clearing the filter."""
@@ -313,6 +379,32 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["media_list"].paginator.count, 1)
+
+
+    def test_media_list_count_renders_for_all_category_pages(self):
+        """Test category pages render the empty count without server errors."""
+        category_media_types = [
+            MediaTypes.TV.value,
+            MediaTypes.SEASON.value,
+            MediaTypes.MOVIE.value,
+            MediaTypes.ANIME.value,
+            MediaTypes.MANGA.value,
+            MediaTypes.GAME.value,
+            MediaTypes.BOOK.value,
+            MediaTypes.COMIC.value,
+            MediaTypes.BOARDGAME.value,
+            MediaTypes.EXPERIENCE.value,
+        ]
+
+        for media_type in category_media_types:
+            with self.subTest(media_type=media_type):
+                response = self.client.get(
+                    reverse("medialist", args=[self.user.username, media_type])
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("filtered_count", response.context)
+                self.assertContains(response, "Showing")
 
     def test_public_media_list_ignores_invalid_filters(self):
         """Test invalid public filters fall back to the target user's preferences."""
