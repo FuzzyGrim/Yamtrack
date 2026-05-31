@@ -1,8 +1,12 @@
+from decimal import Decimal
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
+    Anime,
     Item,
     MediaTypes,
     Movie,
@@ -13,6 +17,7 @@ from app.models import (
 )
 from app.templatetags import app_tags
 from users.forms import UserUpdateForm
+from users.models import MediaRatingChoices
 
 
 class MediaListViewTests(TestCase):
@@ -30,6 +35,10 @@ class MediaListViewTests(TestCase):
         self.external_user = get_user_model().objects.create_user(
             **self.external_credentials
         )
+        self.metadata_patcher = patch("app.providers.services.get_media_metadata")
+        self.mock_get_media_metadata = self.metadata_patcher.start()
+        self.mock_get_media_metadata.return_value = {"max_progress": 1}
+        self.addCleanup(self.metadata_patcher.stop)
         self.client.login(**self.credentials)
 
         movies_id = ["278", "238", "129", "424", "680"]
@@ -99,6 +108,105 @@ class MediaListViewTests(TestCase):
         self.assertEqual(self.user.movie_sort, "score")
         self.assertEqual(self.user.movie_layout, "table")
 
+
+    def test_media_list_with_rating_filter(self):
+        """Test rating filter is applied and exposed in the media list view."""
+        unrated_item = Item.objects.create(
+            media_id="unrated",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Unrated Movie",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=unrated_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+            score=None,
+        )
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?rating_filter=unrated&search=Unrated"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context["current_rating_filter"],
+            MediaRatingChoices.UNRATED,
+        )
+        self.assertIn("rating_filter_choices", response.context)
+        self.assertEqual(response.context["media_list"].paginator.count, 1)
+        self.assertIsNone(response.context["media_list"].object_list[0].score)
+
+    def test_media_list_rating_filter_buckets_decimals(self):
+        """Test decimal rating buckets include only the matching rating range."""
+        ratings = [7.9, 8, 8.1, 8.5, 8.9, 9, 10]
+        for index, rating in enumerate(ratings):
+            item = Item.objects.create(
+                media_id=f"bucket-{index}",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Bucket {rating}",
+                image="http://example.com/image.jpg",
+            )
+            Movie.objects.create(
+                item=item,
+                user=self.user,
+                status=Status.COMPLETED.value,
+                score=rating,
+            )
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?rating_filter=8&sort=score&sort_direction=asc"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        scores = [
+            media.score
+            for media in response.context["media_list"].object_list
+        ]
+        self.assertEqual(
+            scores,
+            [Decimal("8.0"), Decimal("8.1"), Decimal("8.5"), Decimal("8.9")],
+        )
+
+    def test_media_list_rating_filter_works_with_tags(self):
+        """Test rating filter combines with tag filters."""
+        comedy = Tag.objects.create(
+            user=self.user,
+            name="Comedy",
+            normalized_name="comedy",
+        )
+        unrated_item = Item.objects.create(
+            media_id="tag-unrated",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Tagged Unrated",
+            image="http://example.com/image.jpg",
+        )
+        unrated_movie = Movie.objects.create(
+            item=unrated_item,
+            user=self.user,
+            status=Status.COMPLETED.value,
+            score=None,
+        )
+        TaggedMedia.objects.create(
+            user=self.user,
+            tag=comedy,
+            content_object=unrated_movie,
+        )
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?rating_filter=unrated&tags=Comedy"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["media_list"].paginator.count, 1)
+        self.assertEqual(response.context["selected_tags"], ["Comedy"])
+
     def test_media_list_sort_direction_applies(self):
         """Test sort direction can reverse title ordering."""
         item_a = Item.objects.create(
@@ -164,11 +272,20 @@ class MediaListViewTests(TestCase):
 
     def test_media_list_filter_by_single_tag_and_clear(self):
         """Test filtering by a tag and clearing the filter."""
-        comedy = Tag.objects.create(user=self.user, name="Comedy", normalized_name="comedy")
-        TaggedMedia.objects.create(user=self.user, tag=comedy, content_object=Movie.objects.first())
+        comedy = Tag.objects.create(
+            user=self.user,
+            name="Comedy",
+            normalized_name="comedy",
+        )
+        TaggedMedia.objects.create(
+            user=self.user,
+            tag=comedy,
+            content_object=Movie.objects.first(),
+        )
 
         response = self.client.get(
-            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]) + "?tags=Comedy"
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+            + "?tags=Comedy"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["media_list"].paginator.count, 1)
@@ -182,7 +299,11 @@ class MediaListViewTests(TestCase):
 
     def test_media_list_tag_filter_combines_with_search_and_status(self):
         """Test tag filter combines with search/status filters."""
-        comedy = Tag.objects.create(user=self.user, name="Comedy", normalized_name="comedy")
+        comedy = Tag.objects.create(
+            user=self.user,
+            name="Comedy",
+            normalized_name="comedy",
+        )
         movie = Movie.objects.filter(status=Status.COMPLETED.value).first()
         TaggedMedia.objects.create(user=self.user, tag=comedy, content_object=movie)
 

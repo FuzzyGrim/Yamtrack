@@ -56,6 +56,28 @@ class MediaStatusChoices(models.TextChoices):
     DROPPED = Status.DROPPED.value, Status.DROPPED.label
 
 
+class MediaRatingChoices(models.TextChoices):
+    """Choices for media list rating filters."""
+
+    ANY = "any", "Any rating"
+    UNRATED = "unrated", "Unrated"
+    RATED = "rated", "Rated"
+    HIGH = "high", "High: 8-10"
+    MEDIUM = "medium", "Medium: 5-7.9"
+    LOW = "low", "Low: 1-4.9"
+    TEN = "10", "10"
+    NINE = "9", "9.x"
+    EIGHT = "8", "8.x"
+    SEVEN = "7", "7.x"
+    SIX = "6", "6.x"
+    FIVE = "5", "5.x"
+    FOUR = "4", "4.x"
+    THREE = "3", "3.x"
+    TWO = "2", "2.x"
+    ONE = "1", "1.x"
+    ZERO = "0", "0"
+
+
 class LayoutChoices(models.TextChoices):
     """Choices for media list layout options."""
 
