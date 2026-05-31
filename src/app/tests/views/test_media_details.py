@@ -3,11 +3,19 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from app.models import (
+    TV,
+    Anime,
+    Experience,
+    Item,
     MediaTypes,
+    Season,
     Sources,
+    Status,
 )
+from events.models import Event
 
 
 class MediaDetailsViewTests(TestCase):
@@ -114,3 +122,279 @@ class MediaDetailsViewTests(TestCase):
             Sources.TMDB.value,
             [1],
         )
+
+
+class DetailProgressControlTests(TestCase):
+    """Test progress controls on tracked media detail pages."""
+
+    def setUp(self):
+        """Create a user and log in."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+    def test_tracked_season_details_show_progress_control(self):
+        """Tracked season details should render the HTMX progress changer."""
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/tv.jpg",
+        )
+        tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        TV.save_base(tv)
+        season_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Friends",
+            image="http://example.com/season.jpg",
+            season_number=1,
+        )
+        season = Season(
+            item=season_item,
+            user=self.user,
+            related_tv=tv,
+            status=Status.IN_PROGRESS.value,
+        )
+        Season.save_base(season)
+        Event.objects.create(
+            item=season_item,
+            content_number=29,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+
+        with patch("app.providers.services.get_media_metadata") as mock_get_metadata:
+            mock_get_metadata.return_value = {
+                "title": "Friends",
+                "media_id": "1668",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.TV.value,
+                "image": "http://example.com/tv.jpg",
+                "related": {
+                    "seasons": [
+                        {
+                            "season_number": 1,
+                            "season_title": "Season 1",
+                            "max_progress": 29,
+                            "first_air_date": "2023-01-01",
+                        },
+                    ],
+                },
+                "season/1": {
+                    "title": "Friends",
+                    "season_title": "Season 1",
+                    "media_id": "1668",
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.SEASON.value,
+                    "image": "http://example.com/season.jpg",
+                    "genres": [],
+                    "overview": "",
+                    "details": {},
+                    "episodes": [],
+                    "related": {},
+                    "providers": None,
+                },
+            }
+
+            response = self.client.get(
+                reverse(
+                    "season_details",
+                    kwargs={
+                        "source": Sources.TMDB.value,
+                        "media_id": "1668",
+                        "title": "friends",
+                        "season_number": 1,
+                    },
+                ),
+            )
+
+        self.assertEqual(response.status_code, 200)
+        progress_target = f'id="progress-season-{season.id}"'
+        self.assertContains(response, progress_target, count=1)
+        self.assertContains(
+            response,
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": season.id,
+                },
+            ),
+            count=2,
+        )
+        self.assertContains(response, "0")
+        self.assertContains(response, "/ 29 Episodes")
+
+    def test_untracked_details_do_not_show_progress_control(self):
+        """Untracked media details should not render progress editing controls."""
+        with patch("app.providers.services.get_media_metadata") as mock_get_metadata:
+            mock_get_metadata.return_value = {
+                "media_id": "1",
+                "title": "Cowboy Bebop",
+                "media_type": MediaTypes.ANIME.value,
+                "source": Sources.MAL.value,
+                "image": "http://example.com/image.jpg",
+                "genres": [],
+                "overview": "",
+                "details": {},
+            }
+
+            response = self.client.get(
+                reverse(
+                    "media_details",
+                    kwargs={
+                        "source": Sources.MAL.value,
+                        "media_type": MediaTypes.ANIME.value,
+                        "media_id": "1",
+                        "title": "cowboy-bebop",
+                    },
+                ),
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "progress-anime-")
+        self.assertNotContains(response, reverse("progress_edit", args=["anime", 1]))
+
+    def test_tracked_anime_details_show_progress_control(self):
+        """Tracked anime details should render the reusable progress changer."""
+        item = Item.objects.create(
+            media_id="1",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            title="Cowboy Bebop",
+            image="http://example.com/image.jpg",
+        )
+        anime = Anime(
+            item=item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=7,
+        )
+        Anime.save_base(anime)
+        Event.objects.create(
+            item=item,
+            content_number=12,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+
+        with patch("app.providers.services.get_media_metadata") as mock_get_metadata:
+            mock_get_metadata.return_value = {
+                "media_id": "1",
+                "title": "Cowboy Bebop",
+                "media_type": MediaTypes.ANIME.value,
+                "source": Sources.MAL.value,
+                "image": "http://example.com/image.jpg",
+                "genres": [],
+                "overview": "",
+                "details": {},
+            }
+
+            response = self.client.get(
+                reverse(
+                    "media_details",
+                    kwargs={
+                        "source": Sources.MAL.value,
+                        "media_type": MediaTypes.ANIME.value,
+                        "media_id": "1",
+                        "title": "cowboy-bebop",
+                    },
+                ),
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'id="progress-anime-{anime.id}"', count=1)
+        self.assertContains(response, "7")
+        self.assertContains(response, "/ 12 Episodes")
+        self.assertContains(
+            response,
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": anime.id,
+                },
+            ),
+            count=2,
+        )
+
+    def test_unsupported_tracked_tv_and_experience_hide_progress_control(self):
+        """Read-only and unsupported progress media should not render controls."""
+        tv_item = Item.objects.create(
+            media_id="2",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Test TV",
+            image="http://example.com/tv.jpg",
+        )
+        tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        TV.save_base(tv)
+        experience_item = Item.objects.create(
+            media_id="3",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.EXPERIENCE.value,
+            title="Museum",
+            image="http://example.com/museum.jpg",
+        )
+        experience = Experience(
+            item=experience_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        Experience.save_base(experience)
+
+        metadata_by_type = {
+            MediaTypes.TV.value: {
+                "media_id": "2",
+                "title": "Test TV",
+                "media_type": MediaTypes.TV.value,
+                "source": Sources.TMDB.value,
+                "image": "http://example.com/tv.jpg",
+                "genres": [],
+                "overview": "",
+                "details": {},
+            },
+            MediaTypes.EXPERIENCE.value: {
+                "media_id": "3",
+                "title": "Museum",
+                "media_type": MediaTypes.EXPERIENCE.value,
+                "source": Sources.MANUAL.value,
+                "image": "http://example.com/museum.jpg",
+                "genres": [],
+                "overview": "",
+                "details": {},
+            },
+        }
+
+        with patch("app.providers.services.get_media_metadata") as mock_get_metadata:
+            mock_get_metadata.side_effect = (
+                lambda media_type, _media_id, _source: metadata_by_type[media_type]
+            )
+            for media_type, source, media_id in [
+                (MediaTypes.TV.value, Sources.TMDB.value, "2"),
+                (MediaTypes.EXPERIENCE.value, Sources.MANUAL.value, "3"),
+            ]:
+                response = self.client.get(
+                    reverse(
+                        "media_details",
+                        kwargs={
+                            "source": source,
+                            "media_type": media_type,
+                            "media_id": media_id,
+                            "title": "test",
+                        },
+                    ),
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, f"progress-{media_type}-")
+                self.assertNotContains(response, f"/progress_edit/{media_type}/")

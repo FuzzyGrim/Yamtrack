@@ -35,6 +35,13 @@
           {% include "app/icons/edit.svg" with classes="w-5 h-5 shrink-0" %}
         </button>
 
+        {% if current_instance and media_type != MediaTypes.TV.value and media_type != MediaTypes.EXPERIENCE.value %}
+          <div class="mt-4 overflow-hidden rounded-lg bg-[#2a2f35] pt-3"
+               id="progress-{{ current_instance.item.media_type }}-{{ current_instance.id }}">
+            {% include "app/components/progress_changer.html" with media=current_instance user=user csrf_token=csrf_token MediaTypes=MediaTypes only %}
+          </div>
+        {% endif %}
+
         {# Track Modal #}
         <div x-show="trackOpen"
              @keydown.escape.window="trackOpen = false"
