@@ -7,6 +7,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
+    Book,
+    BookProgressUnits,
     Item,
     MediaTypes,
     Movie,
@@ -344,6 +346,31 @@ class MediaListViewTests(TestCase):
         self.assertEqual(response.context["filtered_count"], 0)
         self.assertEqual(response.context["result_count_text"], "No matching items")
         self.assertContains(response, "No matching items")
+
+    def test_book_list_displays_selected_progress_unit(self):
+        """Book category pages display the selected progress unit."""
+        item = Item.objects.create(
+            media_id="book-1",
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Book One",
+            image="http://example.com/book.jpg",
+        )
+        Book.objects.create(
+            item=item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=7,
+            progress_unit=BookProgressUnits.CHAPTERS.value,
+        )
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.BOOK.value])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "7 Chapters")
+        self.assertNotContains(response, "7 / 1 Chapters")
 
     def test_media_list_filter_by_single_tag_and_clear(self):
         """Test filtering by a tag and clearing the filter."""

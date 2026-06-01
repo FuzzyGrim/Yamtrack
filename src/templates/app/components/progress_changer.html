@@ -14,19 +14,11 @@
   </button>
 
   <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
-    {{ media.formatted_progress }}
-
-    {% if media.item.media_type != MediaTypes.GAME.value and media.item.media_type != MediaTypes.MOVIE.value %}
-      {% if media.max_progress %}
-        / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
-      {% else %}
-        {{ media.item.media_type|long_unit }}{{ media.progress|pluralize }}
-      {% endif %}
-    {% endif %}
+    {{ media.progress_display }}
   </div>
 
   <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
-          {% if media.progress == media.max_progress %}disabled{% endif %}
+          {% if media.get_display_max_progress and media.progress == media.get_display_max_progress %}disabled{% endif %}
           hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
           hx-vals='{"operation": "increase"}'
