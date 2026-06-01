@@ -1042,7 +1042,7 @@ class Media(models.Model):
     status = models.CharField(
         max_length=20,
         choices=Status,
-        default=Status.COMPLETED.value,
+        default=Status.PLANNING.value,
     )
     start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
