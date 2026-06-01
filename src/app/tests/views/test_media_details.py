@@ -8,6 +8,8 @@ from django.utils import timezone
 from app.models import (
     TV,
     Anime,
+    Book,
+    BookProgressUnits,
     Experience,
     Item,
     MediaTypes,
@@ -322,6 +324,54 @@ class DetailProgressControlTests(TestCase):
             ),
             count=2,
         )
+
+
+    def test_tracked_book_details_show_selected_progress_unit(self):
+        """Tracked Book details display progress with the selected unit."""
+        item = Item.objects.create(
+            media_id="book-1",
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Book One",
+            image="http://example.com/book.jpg",
+        )
+        book = Book.objects.create(
+            item=item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=7,
+            progress_unit=BookProgressUnits.CHAPTERS.value,
+        )
+
+        with patch("app.providers.services.get_media_metadata") as mock_get_metadata:
+            mock_get_metadata.return_value = {
+                "media_id": "book-1",
+                "title": "Book One",
+                "media_type": MediaTypes.BOOK.value,
+                "source": Sources.HARDCOVER.value,
+                "image": "http://example.com/book.jpg",
+                "genres": [],
+                "overview": "",
+                "details": {},
+                "max_progress": 350,
+            }
+
+            response = self.client.get(
+                reverse(
+                    "media_details",
+                    kwargs={
+                        "source": Sources.HARDCOVER.value,
+                        "media_type": MediaTypes.BOOK.value,
+                        "media_id": "book-1",
+                        "title": "book-one",
+                    },
+                ),
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'id="progress-book-{book.id}"', count=1)
+        self.assertContains(response, "7 Chapters")
+        self.assertNotContains(response, "7 / 350 Chapters")
 
     def test_unsupported_tracked_tv_and_experience_hide_progress_control(self):
         """Read-only and unsupported progress media should not render controls."""

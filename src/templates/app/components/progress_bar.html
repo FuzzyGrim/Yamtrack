@@ -3,8 +3,8 @@
 {% if media.status and user.progress_bar %}
   <div>
     {% if media.status == 'In progress' %}
-      {% if media.max_progress and media.max_progress > 0 %}
-        {% widthratio media.progress media.max_progress 100 as progress_width %}
+      {% if media.get_display_max_progress and media.get_display_max_progress > 0 %}
+        {% widthratio media.progress media.get_display_max_progress 100 as progress_width %}
         <div class="{{ media.status|status_background_color }} h-[5px]"
              style="width: {{ progress_width }}%"></div>
       {% else %}

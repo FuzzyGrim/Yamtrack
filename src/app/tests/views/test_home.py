@@ -7,6 +7,8 @@ from django.utils import timezone
 
 from app.models import (
     Anime,
+    Book,
+    BookProgressUnits,
     Episode,
     Item,
     MediaTypes,
@@ -190,6 +192,29 @@ class HomeViewTests(TestCase):
         planning_movies = planning_section["media_types"][MediaTypes.MOVIE.value]
         self.assertEqual(len(planning_movies["items"]), 1)
         self.assertEqual(planning_movies["items"][0].status, Status.PLANNING.value)
+
+    def test_home_book_cards_display_selected_progress_unit(self):
+        """Home screen Book cards display the selected progress unit."""
+        item = Item.objects.create(
+            media_id="book-1",
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Book One",
+            image="http://example.com/book.jpg",
+        )
+        Book.objects.create(
+            item=item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=7,
+            progress_unit=BookProgressUnits.CHAPTERS.value,
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "7 Chapters")
+        self.assertNotContains(response, "7 / 350 Chapters")
 
     def test_home_view_with_sort(self):
         """Test the home view with sorting parameter."""

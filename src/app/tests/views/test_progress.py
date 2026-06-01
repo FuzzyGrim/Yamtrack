@@ -8,6 +8,8 @@ from django.urls import reverse
 from app.models import (
     TV,
     Anime,
+    Book,
+    BookProgressUnits,
     Episode,
     Item,
     MediaTypes,
@@ -198,6 +200,85 @@ class ProgressEditAnime(TestCase):
         self.assertEqual(response.status_code, 404)
         anime.refresh_from_db()
         self.assertEqual(anime.progress, 2)
+
+
+class ProgressEditBook(TestCase):
+    """Test progress editing for books with configurable units."""
+
+    def setUp(self):
+        """Prepare a tracked book."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+        self.item = Item.objects.create(
+            media_id="book-1",
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Book One",
+            image="http://example.com/book.jpg",
+        )
+
+    def test_chapter_progress_increase_and_decrease(self):
+        """Book chapter progress uses the regular +/- controls."""
+        book = Book.objects.create(
+            item=self.item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=7,
+            progress_unit=BookProgressUnits.CHAPTERS.value,
+        )
+
+        self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.BOOK.value,
+                    "instance_id": book.id,
+                },
+            ),
+            {"operation": "increase"},
+        )
+        book.refresh_from_db()
+        self.assertEqual(book.progress, 8)
+
+        self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.BOOK.value,
+                    "instance_id": book.id,
+                },
+            ),
+            {"operation": "decrease"},
+        )
+        book.refresh_from_db()
+        self.assertEqual(book.progress, 7)
+
+    def test_percent_progress_clamps_at_100(self):
+        """Percent Book progress does not exceed 100."""
+        book = Book.objects.create(
+            item=self.item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=99,
+            progress_unit=BookProgressUnits.PERCENT.value,
+        )
+
+        self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.BOOK.value,
+                    "instance_id": book.id,
+                },
+            ),
+            {"operation": "increase"},
+        )
+
+        book.refresh_from_db()
+        self.assertEqual(book.progress, 100)
+        self.assertEqual(book.progress_display, "100%")
 
 
 class ProgressEditPersistentMessages(TestCase):

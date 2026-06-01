@@ -65,8 +65,7 @@
     {# Progress field #}
     {% if media_type != MediaTypes.MOVIE.value %}
       <td class="p-3 text-center align-middle">
-        {{ media.formatted_progress }}
-        {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
+        {{ media.progress_display }}
       </td>
       {% if media_type == MediaTypes.TV.value %}<td class="p-3 text-center align-middle">{{ media.last_watched }}</td>{% endif %}
     {% endif %}

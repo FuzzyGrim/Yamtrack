@@ -8,13 +8,15 @@ from django.db.models import Q
 
 from app import config
 from app.models import (
+    PERCENT_COMPLETE,
     TV,
     Anime,
     BoardGame,
     Book,
+    BookProgressUnits,
     Comic,
-    Experience,
     Episode,
+    Experience,
     Game,
     Item,
     Manga,
@@ -460,11 +462,33 @@ class BookForm(MediaForm):
         """Bind form to model."""
 
         model = Book
+        fields = [
+            "score",
+            "progress",
+            "progress_unit",
+            "status",
+            "start_date",
+            "end_date",
+            "notes",
+        ]
         labels = {
-            "progress": (
-                f"Progress ({config.get_unit(MediaTypes.BOOK.value, short=False)}s)"
-            ),
+            "progress_unit": "Progress Unit",
         }
+        widgets = {
+            **MediaForm.Meta.widgets,
+            "progress_unit": forms.Select(),
+        }
+
+    def clean_progress(self):
+        """Clamp percent progress to a valid range."""
+        progress = self.cleaned_data["progress"]
+        progress_unit = self.data.get(
+            self.add_prefix("progress_unit"),
+            self.initial.get("progress_unit") or self.instance.progress_unit,
+        )
+        if progress_unit == BookProgressUnits.PERCENT.value:
+            return min(progress, PERCENT_COMPLETE)
+        return progress
 
 
 class ComicForm(MediaForm):

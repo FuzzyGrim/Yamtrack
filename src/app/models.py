@@ -22,6 +22,7 @@ from django.db.models import (
     Window,
 )
 from django.db.models.functions import Coalesce, Greatest, RowNumber
+from django.template.defaultfilters import pluralize
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
@@ -35,6 +36,8 @@ from app import providers
 from app.mixins import CalendarTriggerMixin
 
 logger = logging.getLogger(__name__)
+
+PERCENT_COMPLETE = 100
 
 
 class Sources(models.TextChoices):
@@ -65,6 +68,15 @@ class MediaTypes(models.TextChoices):
     COMIC = "comic", "Comic"
     BOARDGAME = "boardgame", "Boardgame"
     EXPERIENCE = "experience", "Experience"
+
+
+class BookProgressUnits(models.TextChoices):
+    """Choices for book progress measurement units."""
+
+    PAGES = "pages", "Pages"
+    CHAPTERS = "chapters", "Chapters"
+    PERCENT = "percent", "Percent"
+    HOURS = "hours", "Hours"
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -667,7 +679,14 @@ class MediaManager(models.Manager):
                 max_progress_dict[item_id] = max(current_max, content_number)
 
         for media in media_list:
-            media.max_progress = max_progress_dict.get(media.item.id)
+            if (
+                media_type == MediaTypes.BOOK.value
+                and getattr(media, "progress_unit", None)
+                != BookProgressUnits.PAGES.value
+            ):
+                media.max_progress = None
+            else:
+                media.max_progress = max_progress_dict.get(media.item.id)
 
     def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
@@ -1134,6 +1153,38 @@ class Media(models.Model):
     def formatted_progress(self):
         """Return the progress of the media in a formatted string."""
         return str(self.progress)
+
+    def get_display_max_progress(self):
+        """Return the max progress value that should be displayed."""
+        return getattr(self, "max_progress", None)
+
+    @property
+    def progress_unit_label(self):
+        """Return the display label for this media's progress unit."""
+        unit_labels = {
+            MediaTypes.SEASON.value: "Episode",
+            MediaTypes.ANIME.value: "Episode",
+            MediaTypes.MANGA.value: "Chapter",
+            MediaTypes.COMIC.value: "Issue",
+            MediaTypes.BOARDGAME.value: "Play",
+            MediaTypes.EXPERIENCE.value: "Visit",
+        }
+        return unit_labels.get(self.item.media_type, "")
+
+    @property
+    def progress_display(self):
+        """Return formatted progress with the appropriate unit and total."""
+        max_progress = self.get_display_max_progress()
+        unit = self.progress_unit_label
+        progress = self.formatted_progress
+
+        if max_progress:
+            if unit:
+                return f"{progress} / {max_progress} {unit}{pluralize(max_progress)}"
+            return f"{progress} / {max_progress}"
+        if unit:
+            return f"{progress} {unit}{pluralize(self.progress)}"
+        return progress
 
     def increase_progress(self):
         """Increase the progress of the media by one."""
@@ -2074,6 +2125,67 @@ class Book(Media):
     """Model for books."""
 
     tracker = FieldTracker()
+    progress_unit = models.CharField(
+        max_length=20,
+        choices=BookProgressUnits,
+        default=BookProgressUnits.CHAPTERS.value,
+    )
+
+    def process_progress(self):
+        """Update fields depending on book progress and selected unit."""
+        if self.progress < 0:
+            self.progress = 0
+            return
+
+        if self.progress_unit == BookProgressUnits.PERCENT.value:
+            self.progress = min(self.progress, PERCENT_COMPLETE)
+            if (
+                self.status == Status.IN_PROGRESS.value
+                and self.progress == PERCENT_COMPLETE
+            ):
+                self.status = Status.COMPLETED.value
+                self.end_date = timezone.now().replace(second=0, microsecond=0)
+            return
+
+        if self.progress_unit == BookProgressUnits.PAGES.value:
+            super().process_progress()
+
+    def process_status(self):
+        """Update book progress from status without using page counts for every unit."""
+        if self.status == Status.COMPLETED.value:
+            if self.progress_unit == BookProgressUnits.PERCENT.value:
+                self.progress = PERCENT_COMPLETE
+            elif self.progress_unit == BookProgressUnits.PAGES.value:
+                max_progress = providers.services.get_media_metadata(
+                    self.item.media_type,
+                    self.item.media_id,
+                    self.item.source,
+                )["max_progress"]
+
+                if max_progress:
+                    self.progress = max_progress
+
+        self.item.fetch_releases(delay=True)
+
+    def get_display_max_progress(self):
+        """Return the max progress value appropriate for the selected book unit."""
+        if self.progress_unit == BookProgressUnits.PAGES.value:
+            return getattr(self, "max_progress", None)
+        if self.progress_unit == BookProgressUnits.PERCENT.value:
+            return PERCENT_COMPLETE
+        return None
+
+    @property
+    def progress_unit_label(self):
+        """Return the selected book progress unit label."""
+        return BookProgressUnits(self.progress_unit).label
+
+    @property
+    def progress_display(self):
+        """Return book progress formatted for the selected unit."""
+        if self.progress_unit == BookProgressUnits.PERCENT.value:
+            return f"{self.progress}%"
+        return super().progress_display
 
 
 class Comic(Media):

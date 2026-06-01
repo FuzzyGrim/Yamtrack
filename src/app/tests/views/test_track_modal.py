@@ -10,6 +10,7 @@ from app.models import (
     Anime,
     BoardGame,
     Book,
+    BookProgressUnits,
     Comic,
     Experience,
     Game,
@@ -157,6 +158,92 @@ class TrackModalViewTests(TestCase):
         self.assertEqual(
             response.context["form"]["status"].value(), Status.COMPLETED.value
         )
+
+    def test_new_book_forms_default_to_chapters(self):
+        """New Book tracker forms default progress units to Chapters."""
+        form = get_form_class(MediaTypes.BOOK.value)(
+            initial={
+                "media_id": "new-book",
+                "source": Sources.MANUAL.value,
+                "media_type": MediaTypes.BOOK.value,
+            },
+        )
+
+        self.assertIn("progress_unit", form.fields)
+        self.assertEqual(
+            form["progress_unit"].value(), BookProgressUnits.CHAPTERS.value
+        )
+        self.assertEqual(Book().progress_unit, BookProgressUnits.CHAPTERS.value)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_media_save_preserves_book_progress_when_unit_changes(
+        self, mock_get_metadata
+    ):
+        """Changing a Book progress unit does not reset the saved progress number."""
+        mock_get_metadata.return_value = {
+            "media_id": "book-1",
+            "title": "Book One",
+            "media_type": MediaTypes.BOOK.value,
+            "source": Sources.HARDCOVER.value,
+            "image": "http://example.com/book.jpg",
+            "max_progress": 350,
+        }
+        item = Item.objects.create(
+            media_id="book-1",
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            title="Book One",
+            image="http://example.com/book.jpg",
+        )
+        book = Book.objects.create(
+            item=item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=7,
+            progress_unit=BookProgressUnits.CHAPTERS.value,
+        )
+
+        response = self.client.post(
+            reverse("media_save") + "?next=/home",
+            {
+                "instance_id": book.id,
+                "media_id": "book-1",
+                "source": Sources.HARDCOVER.value,
+                "media_type": MediaTypes.BOOK.value,
+                "score": "",
+                "progress": 7,
+                "progress_unit": BookProgressUnits.PAGES.value,
+                "status": Status.IN_PROGRESS.value,
+                "start_date": "",
+                "end_date": "",
+                "notes": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        book.refresh_from_db()
+        self.assertEqual(book.progress, 7)
+        self.assertEqual(book.progress_unit, BookProgressUnits.PAGES.value)
+
+    def test_percent_book_form_clamps_progress(self):
+        """Percent Book tracker form clamps progress to 100."""
+        form = get_form_class(MediaTypes.BOOK.value)(
+            data={
+                "media_id": "book-2",
+                "source": Sources.HARDCOVER.value,
+                "media_type": MediaTypes.BOOK.value,
+                "score": "",
+                "progress": 142,
+                "progress_unit": BookProgressUnits.PERCENT.value,
+                "status": Status.IN_PROGRESS.value,
+                "start_date": "",
+                "end_date": "",
+                "notes": "",
+            },
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["progress"], 100)
 
     @patch("app.providers.services.get_media_metadata")
     def test_media_save_creates_new_media_as_planning(self, mock_get_metadata):
