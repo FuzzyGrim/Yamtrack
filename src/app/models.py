@@ -1160,7 +1160,7 @@ class Media(models.Model):
 
     @property
     def progress_unit_label(self):
-        """Return the display label for this media's progress unit."""
+        """Return the singular display label for this media's progress unit."""
         unit_labels = {
             MediaTypes.SEASON.value: "Episode",
             MediaTypes.ANIME.value: "Episode",
@@ -1171,19 +1171,28 @@ class Media(models.Model):
         }
         return unit_labels.get(self.item.media_type, "")
 
+    def progress_unit_label_for(self, value):
+        """Return this media's progress unit label pluralized for a value."""
+        unit = self.progress_unit_label
+        if not unit:
+            return ""
+        return f"{unit}{pluralize(value)}"
+
     @property
     def progress_display(self):
         """Return formatted progress with the appropriate unit and total."""
         max_progress = self.get_display_max_progress()
-        unit = self.progress_unit_label
         progress = self.formatted_progress
 
         if max_progress:
+            unit = self.progress_unit_label_for(max_progress)
             if unit:
-                return f"{progress} / {max_progress} {unit}{pluralize(max_progress)}"
+                return f"{progress} / {max_progress} {unit}"
             return f"{progress} / {max_progress}"
+
+        unit = self.progress_unit_label_for(self.progress)
         if unit:
-            return f"{progress} {unit}{pluralize(self.progress)}"
+            return f"{progress} {unit}"
         return progress
 
     def increase_progress(self):
@@ -2177,8 +2186,13 @@ class Book(Media):
 
     @property
     def progress_unit_label(self):
-        """Return the selected book progress unit label."""
-        return BookProgressUnits(self.progress_unit).label
+        """Return the singular label for the selected book progress unit."""
+        unit_labels = {
+            BookProgressUnits.PAGES.value: "Page",
+            BookProgressUnits.CHAPTERS.value: "Chapter",
+            BookProgressUnits.HOURS.value: "Hour",
+        }
+        return unit_labels.get(self.progress_unit, "")
 
     @property
     def progress_display(self):
