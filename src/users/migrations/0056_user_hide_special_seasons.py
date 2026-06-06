@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='hide_special_seasons',
-            field=models.BooleanField(default=False, help_text='Hide Special Seasons (Season 0) from the Progress tab in Home page.'),
+            field=models.BooleanField(default=False, help_text='Hide special seasons (Season 0) from the home page'),
         ),
     ]
