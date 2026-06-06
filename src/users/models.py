@@ -348,6 +348,12 @@ class User(AbstractUser):
         help_text="Hide completed media in recommendations",
     )
 
+    # Hide special seasons
+    hide_special_seasons = models.BooleanField(
+        default=False,
+        help_text="Hide special seasons (Season 0) from the home page",
+    )
+
     # Hide zero ratings
     hide_zero_rating = models.BooleanField(
         default=False,

@@ -430,6 +430,11 @@ class MediaManager(models.Manager):
                 sort_filter=None,
             )
 
+            if media_type == MediaTypes.SEASON.value and getattr(
+                user, "hide_special_seasons", False
+            ):
+                media_list = media_list.exclude(item__season_number=0)
+
             if not media_list:
                 continue
 
