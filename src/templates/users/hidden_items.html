@@ -41,7 +41,9 @@
               </div>
             </div>
             <form method="post"
-                  action="{% url 'toggle_hide_from_home' entry.media_type entry.media.id %}">
+                  action="{% url 'unhide_from_home' entry.media_type entry.media.id %}"
+                  hx-post="{% url 'unhide_from_home' entry.media_type entry.media.id %}"
+                  hx-swap="none">
               {% csrf_token %}
               <button type="submit"
                       class="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 cursor-pointer">

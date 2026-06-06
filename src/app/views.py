@@ -988,8 +988,8 @@ def service_worker():
 
 
 @require_POST
-def toggle_hide_from_home(request, media_type, instance_id):
-    """Toggle the hide_from_home status of a media item."""
+def unhide_from_home(request, media_type, instance_id):
+    """Unhide a media item from the home page."""
     media = helpers.get_owned_media_or_404(request, media_type, instance_id)
     media.hide_from_home = HideFromHome.NOT_HIDDEN.value
     media.save(update_fields=["hide_from_home"])
@@ -1007,11 +1007,7 @@ def toggle_hide_from_home(request, media_type, instance_id):
 def hidden_items(request):
     """Display all media items hidden from the home page."""
     hidden_media = []
-    media_types = [
-        mt
-        for mt in MediaTypes.values
-        if mt not in (MediaTypes.TV.value, MediaTypes.EPISODE.value)
-    ]
+    media_types = [mt for mt in MediaTypes.values if mt != MediaTypes.EPISODE.value]
 
     for media_type in media_types:
         model = apps.get_model(app_label="app", model_name=media_type)
@@ -1028,21 +1024,6 @@ def hidden_items(request):
             }
             for item in items
         )
-
-    # Also check TV shows
-    tv_items = (
-        TV.objects.filter(user=request.user)
-        .exclude(hide_from_home=HideFromHome.NOT_HIDDEN.value)
-        .select_related("item")
-    )
-    hidden_media.extend(
-        {
-            "media": item,
-            "media_type": MediaTypes.TV.value,
-            "hide_scope": item.get_hide_from_home_display(),
-        }
-        for item in tv_items
-    )
 
     context = {
         "hidden_media": hidden_media,
