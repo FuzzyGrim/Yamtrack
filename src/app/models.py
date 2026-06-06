@@ -430,6 +430,19 @@ class MediaManager(models.Manager):
                 sort_filter=None,
             )
 
+            # Exclude items hidden from the home page
+            if status == Status.IN_PROGRESS.value:
+                media_list = media_list.exclude(
+                    hide_from_home__in=[
+                        HideFromHome.IN_PROGRESS.value,
+                        HideFromHome.BOTH.value,
+                    ],
+                )
+            elif status == Status.PLANNING.value:
+                media_list = media_list.exclude(
+                    hide_from_home=HideFromHome.BOTH.value,
+                )
+
             if not media_list:
                 continue
 
@@ -815,6 +828,14 @@ class UserMessage(models.Model):
         return self.level
 
 
+class HideFromHome(models.TextChoices):
+    """Choices for hiding media from home page sections."""
+
+    NOT_HIDDEN = "", "Not Hidden"
+    IN_PROGRESS = "in_progress", "Hide from In Progress"
+    BOTH = "both", "Hide from Both (In Progress and Planning)"
+
+
 class Media(models.Model):
     """Abstract model for all media types."""
 
@@ -827,6 +848,7 @@ class Media(models.Model):
             "user",
             "related_tv",
             "created_at",
+            "hide_from_home",
         ],
     )
 
@@ -854,6 +876,12 @@ class Media(models.Model):
     start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
+    hide_from_home = models.CharField(
+        max_length=20,
+        choices=HideFromHome,
+        default=HideFromHome.NOT_HIDDEN.value,
+        blank=True,
+    )
 
     class Meta:
         """Meta options for the model."""

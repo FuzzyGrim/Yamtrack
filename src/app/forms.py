@@ -216,6 +216,7 @@ class MediaForm(forms.ModelForm):
             "start_date",
             "end_date",
             "notes",
+            "hide_from_home",
         ]
         widgets = {
             "score": forms.NumberInput(
@@ -270,6 +271,7 @@ class MovieForm(MediaForm):
             "start_date",
             "end_date",
             "notes",
+            "hide_from_home",
         ]
 
 
@@ -338,7 +340,7 @@ class TvForm(MediaForm):
         """Bind form to model."""
 
         model = TV
-        fields = ["score", "status", "notes"]
+        fields = ["score", "status", "notes", "hide_from_home"]
 
 
 class SeasonForm(MediaForm):
@@ -354,6 +356,7 @@ class SeasonForm(MediaForm):
             "score",
             "status",
             "notes",
+            "hide_from_home",
         ]
 
 

@@ -24,6 +24,7 @@ from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
+    HideFromHome,
     Item,
     MediaTypes,
     Season,
@@ -984,3 +985,48 @@ def service_worker():
         response = HttpResponse(f.read(), content_type="application/javascript")
         response["Service-Worker-Allowed"] = "/"
         return response
+
+
+@require_POST
+def unhide_from_home(request, media_type, instance_id):
+    """Unhide a media item from the home page."""
+    media = helpers.get_owned_media_or_404(request, media_type, instance_id)
+    media.hide_from_home = HideFromHome.NOT_HIDDEN.value
+    media.save(update_fields=["hide_from_home"])
+    logger.info("Unhid %s from home for user %s", media, request.user)
+
+    if request.headers.get("HX-Request"):
+        return HttpResponse(
+            status=204,
+            headers={"HX-Refresh": "true"},
+        )
+    return redirect("hidden_items")
+
+
+@require_GET
+def hidden_items(request):
+    """Display all media items hidden from the home page."""
+    hidden_media = []
+    media_types = [mt for mt in MediaTypes.values if mt != MediaTypes.EPISODE.value]
+
+    for media_type in media_types:
+        model = apps.get_model(app_label="app", model_name=media_type)
+        items = (
+            model.objects.filter(user=request.user)
+            .exclude(hide_from_home=HideFromHome.NOT_HIDDEN.value)
+            .select_related("item")
+        )
+        hidden_media.extend(
+            {
+                "media": item,
+                "media_type": media_type,
+                "hide_scope": item.get_hide_from_home_display(),
+            }
+            for item in items
+        )
+
+    context = {
+        "hidden_media": hidden_media,
+        "hide_choices": HideFromHome.choices,
+    }
+    return render(request, "users/hidden_items.html", context)
