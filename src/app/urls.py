@@ -85,6 +85,12 @@ urlpatterns = [
         views.search_parent_season,
         name="search_parent_season",
     ),
+    path(
+        "toggle_hide/<media_type:media_type>/<int:instance_id>",
+        views.toggle_hide_from_home,
+        name="toggle_hide_from_home",
+    ),
+    path("settings/hidden_items", views.hidden_items, name="hidden_items"),
     path("statistics", views.statistics, name="statistics"),
     path("serviceworker.js", views.service_worker, name="service_worker"),
 ]

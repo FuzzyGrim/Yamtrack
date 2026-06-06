@@ -182,14 +182,18 @@
             <div class="p-4 border-t border-[#2c3136] mt-auto">
               <div class="space-y-2">
                 {% url 'account' as account_url %}
+                {% url 'preferences' as preferences_url %}
+                {% url 'hidden_items' as hidden_items_url %}
                 {% url 'notifications' as notifications_url %}
                 {% url 'sidebar' as sidebar_url %}
                 {% url 'integrations' as integrations_url %}
                 {% url 'import_data' as import_url %}
                 {% url 'export_data' as export_url %}
+                {% url 'advanced' as advanced_url %}
+                {% url 'about' as about_url %}
                 <a href="{{ account_url }}"
-                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                  {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
+                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == preferences_url or request.path == hidden_items_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url or request.path == advanced_url or request.path == about_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                  {% if request.path == account_url or request.path == preferences_url or request.path == hidden_items_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url or request.path == advanced_url or request.path == about_url %}
                     {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
                   {% else %}
