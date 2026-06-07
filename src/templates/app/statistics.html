@@ -356,9 +356,9 @@
                         <div class="shrink-0 order-0">
                           <a href="{{ media.item|media_url }}">
                             <img alt="{{ media.item }}"
-                                 class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.image != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
+                                 class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.display_image != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
                                  src="{{ IMG_NONE }}"
-                                 data-src="{{ media.item.image }}">
+                                 data-src="{{ media.item.display_image }}">
                           </a>
                         </div>
                         <div class="flex-1 min-w-0">

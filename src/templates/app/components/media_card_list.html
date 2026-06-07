@@ -4,12 +4,14 @@
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="flex items-center p-4 gap-4">
     <div class="shrink-0 relative">
-      <a href="{{ item|media_url }}">
-        <img alt="{{ title }}"
-             class="lazyload w-16 h-24 object-cover rounded shadow-md bg-[#3e454d]"
-             data-src="{{ item.image }}"
-             src="{{ IMG_NONE }}">
-      </a>
+      {% with display_image=item.display_image|default:item.image %}
+        <a href="{{ item|media_url }}">
+          <img alt="{{ title }}"
+               class="lazyload w-16 h-24 object-cover rounded shadow-md bg-[#3e454d]"
+               data-src="{{ display_image }}"
+               src="{{ IMG_NONE }}">
+        </a>
+      {% endwith %}
     </div>
 
     <div class="flex-1 min-w-0">

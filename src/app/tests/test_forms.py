@@ -1,16 +1,21 @@
+from io import BytesIO
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
+from PIL import Image
 
 from app.forms import (
     AnimeForm,
     EpisodeForm,
     GameForm,
     ManualItemForm,
+    MovieForm,
     SeasonForm,
     TvForm,
 )
-from app.models import TV, Item, MediaTypes, Season, Sources, Status
+from app.models import TV, Anime, Item, MediaTypes, Movie, Season, Sources, Status
 
 
 class BasicMediaForm(TestCase):
@@ -37,6 +42,39 @@ class BasicMediaForm(TestCase):
             image="http://example.com/image.jpg",
         )
 
+    def test_provider_media_form_hides_manual_image_fields(self):
+        """Provider-backed items should not expose manual image upload controls."""
+        anime = Anime.objects.create(
+            item=Item.objects.get(source=Sources.MAL.value),
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
+        form = AnimeForm(instance=anime)
+
+        self.assertNotIn("uploaded_image", form.fields)
+        self.assertNotIn("clear_uploaded_image", form.fields)
+
+    def test_manual_media_form_shows_manual_image_fields(self):
+        """Manual items should expose optional local image controls."""
+        item = Item.objects.create(
+            media_id="manual_movie",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Manual Movie",
+            image="http://example.com/manual.jpg",
+        )
+        movie = Movie.objects.create(
+            item=item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
+        form = MovieForm(instance=movie)
+
+        self.assertIn("uploaded_image", form.fields)
+        self.assertIn("clear_uploaded_image", form.fields)
+
     def test_valid_media_form(self):
         """Test the standard media form with valid data."""
         form_data = {
@@ -52,7 +90,12 @@ class BasicMediaForm(TestCase):
             "end_date": "2023-06-30",
             "notes": "New notes",
         }
-        form = AnimeForm(data=form_data, custom_link_entries=[{"label":"Netflix","url":"https://www.netflix.com/title/1"}])
+        form = AnimeForm(
+            data=form_data,
+            custom_link_entries=[
+                {"label": "Netflix", "url": "https://www.netflix.com/title/1"},
+            ],
+        )
         self.assertTrue(form.is_valid())
 
     def test_valid_tv_form(self):
@@ -503,6 +546,55 @@ class ManualItemFormTest(TestCase):
         # Save and verify
         item = form.save()
         self.assertEqual(item.image, settings.IMG_NONE)
+
+    @override_settings(MEDIA_ROOT="/tmp/yamtrack-test-media")  # noqa: S108
+    def test_uploaded_manual_image_takes_display_priority(self):
+        """Uploaded images are saved and used ahead of the URL for manual items."""
+        image_file = BytesIO()
+        Image.new("RGB", (1, 1), color="red").save(image_file, format="JPEG")
+        image_file.seek(0)
+        image = SimpleUploadedFile(
+            "cover.jpg",
+            image_file.read(),
+            content_type="image/jpeg",
+        )
+        form_data = {
+            "media_type": MediaTypes.MOVIE.value,
+            "title": "Uploaded Manual Movie",
+            "image": "http://example.com/movie.jpg",
+        }
+
+        form = ManualItemForm(
+            data=form_data,
+            files={"uploaded_image": image},
+            user=self.user,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        item = form.save()
+        self.assertTrue(item.uploaded_image.name.startswith("manual_items/"))
+        self.assertEqual(item.display_image, item.uploaded_image.url)
+
+    def test_unsupported_manual_image_type_is_rejected(self):
+        """Unsupported local image uploads fail validation instead of crashing."""
+        upload = SimpleUploadedFile(
+            "not-image.txt",
+            b"not an image",
+            content_type="text/plain",
+        )
+        form_data = {
+            "media_type": MediaTypes.MOVIE.value,
+            "title": "Bad Upload",
+        }
+
+        form = ManualItemForm(
+            data=form_data,
+            files={"uploaded_image": upload},
+            user=self.user,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("uploaded_image", form.errors)
 
     def test_manual_id_generation(self):
         """Test that unique manual IDs are generated."""

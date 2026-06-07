@@ -3,7 +3,7 @@ import math
 from django import forms
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.core.validators import URLValidator
+from django.core.validators import FileExtensionValidator, URLValidator
 from django.db.models import Q
 
 from app import config
@@ -28,6 +28,20 @@ from app.models import (
 )
 
 url_validator = URLValidator()
+ALLOWED_MANUAL_IMAGE_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def validate_manual_item_uploaded_image(uploaded_file):
+    """Validate manual item image content type and size."""
+    if uploaded_file.size > settings.MANUAL_ITEM_IMAGE_MAX_SIZE:
+        max_mb = settings.MANUAL_ITEM_IMAGE_MAX_SIZE // (1024 * 1024)
+        msg = f"Image file must be {max_mb} MB or smaller."
+        raise forms.ValidationError(msg)
+
+    content_type = getattr(uploaded_file, "content_type", "")
+    if content_type and content_type not in ALLOWED_MANUAL_IMAGE_CONTENT_TYPES:
+        msg = "Upload a JPG, PNG, or WebP image."
+        raise forms.ValidationError(msg)
 
 
 def get_form_class(media_type):
@@ -117,6 +131,15 @@ class ManualItemForm(forms.ModelForm):
         label="Parent Season",
     )
 
+    uploaded_image = forms.ImageField(
+        required=False,
+        label="Upload local image",
+        validators=[
+            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"]),
+            validate_manual_item_uploaded_image,
+        ],
+    )
+
     class Meta:
         """Bind form to model."""
 
@@ -125,6 +148,7 @@ class ManualItemForm(forms.ModelForm):
             "media_type",
             "title",
             "image",
+            "uploaded_image",
             "season_number",
             "episode_number",
         ]
@@ -210,6 +234,18 @@ class ManualItemForm(forms.ModelForm):
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
+    uploaded_image = forms.ImageField(
+        required=False,
+        label="Replace local image",
+        validators=[
+            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"]),
+            validate_manual_item_uploaded_image,
+        ],
+    )
+    clear_uploaded_image = forms.BooleanField(
+        required=False,
+        label="Remove local image",
+    )
     instance_id = forms.CharField(widget=forms.HiddenInput(), required=False)
     media_type = forms.CharField(widget=forms.HiddenInput(), required=True)
     source = forms.CharField(widget=forms.HiddenInput(), required=True)
@@ -247,6 +283,10 @@ class MediaForm(forms.ModelForm):
         self.custom_link_entries = kwargs.pop("custom_link_entries", None)
         self.tag_names = kwargs.pop("tag_names", None)
         super().__init__(*args, **kwargs)
+        item = getattr(self.instance, "item", None)
+        if not item or item.source != Sources.MANUAL.value:
+            self.fields.pop("uploaded_image", None)
+            self.fields.pop("clear_uploaded_image", None)
 
     def clean_custom_link_entries(self):
         """Validate custom link pairs passed from request.POST.getlist."""
@@ -316,6 +356,21 @@ class MediaForm(forms.ModelForm):
     def save(self, commit=True):  # noqa: FBT002
         """Save media and synchronize custom links when submitted."""
         instance = super().save(commit=commit)
+        item = getattr(instance, "item", None)
+        if commit and item and item.source == Sources.MANUAL.value:
+            if self.cleaned_data.get("clear_uploaded_image") and item.uploaded_image:
+                item.uploaded_image.delete(save=False)
+                item.uploaded_image = None
+            if uploaded_image := self.cleaned_data.get("uploaded_image"):
+                if item.uploaded_image:
+                    item.uploaded_image.delete(save=False)
+                item.uploaded_image = uploaded_image
+            image_changed = self.cleaned_data.get(
+                "clear_uploaded_image",
+            ) or self.cleaned_data.get("uploaded_image")
+            if image_changed:
+                item.save(update_fields=["uploaded_image"])
+
         submitted_links = self.cleaned_data.get("custom_link_entries")
         if commit and instance.pk and submitted_links is not None:
             instance.custom_links.filter(user=instance.user).delete()

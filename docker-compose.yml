@@ -11,6 +11,7 @@ services:
       - REDIS_URL=redis://redis:6379
     volumes:
       - ./db:/yamtrack/db
+      - ./media:/yamtrack/media
     ports:
       - "8000:8000"
 
