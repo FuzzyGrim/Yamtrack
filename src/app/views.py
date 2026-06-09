@@ -114,6 +114,11 @@ def progress_edit(request, media_type, instance_id):
         media.refresh_from_db()
         prefetch_related_objects([media], "episodes")
 
+    BasicMedia.objects.annotate_max_progress(             
+        [media],                                          
+        media_type,                                              
+    )
+
     context = {
         "media": media,
     }
