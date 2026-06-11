@@ -20,7 +20,7 @@ import users
 from app import helpers as app_helpers
 from integrations import exports, tasks
 from integrations.imports import anilist, helpers, simkl, trakt
-from integrations.webhooks import emby, jellyfin, plex
+from integrations.webhooks import emby, jellyfin, kodi, plex
 
 logger = logging.getLogger(__name__)
 
@@ -563,5 +563,36 @@ def emby_webhook(request, token):
 
     payload = json.loads(data)
     processor = emby.EmbyWebhookProcessor()
+    processor.process_payload(payload, user)
+    return HttpResponse(status=200)
+
+
+@login_not_required
+@csrf_exempt
+@require_POST
+def kodi_webhook(request, token):
+    """Handle Kodi webhook notifications for media playback."""
+    try:
+        user = users.models.User.objects.get(token=token)
+    except ObjectDoesNotExist:
+        logger.warning(
+            "Could not process Kodi webhook: Invalid token: %s",
+            token,
+        )
+        return HttpResponse(status=401)
+
+    # Attach User instance so history_user_id is populated
+    request.user = user
+
+    # The payload is sent in JSON format as the body of a
+    # HTTP POST request.
+
+    data = request.body
+    if not data:
+        logger.warning("Missing payload in Kodi webhook request")
+        return HttpResponse("Missing payload", status=400)
+
+    payload = json.loads(data)
+    processor = kodi.KodiWebhookProcessor()
     processor.process_payload(payload, user)
     return HttpResponse(status=200)

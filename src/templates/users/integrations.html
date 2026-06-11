@@ -13,6 +13,8 @@
   {% absolute_app_url plex_webhook_path as plex_webhook_url %}
   {% url 'emby_webhook' request.user.token as emby_webhook_path %}
   {% absolute_app_url emby_webhook_path as emby_webhook_url %}
+  {% url 'kodi_webhook' request.user.token as kodi_webhook_path %}
+  {% absolute_app_url kodi_webhook_path as kodi_webhook_url %}
   <div class="space-y-6">
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-4">
@@ -87,6 +89,15 @@
                   :aria-selected="activeIntegration === 'emby'">
             {% include "app/icons/server.svg" with classes="w-4 h-4 mr-2" %}
             Emby
+          </button>
+          <button type="button"
+                  class="flex items-center px-4 py-2 rounded-md transition-colors text-sm cursor-pointer"
+                  :class="activeIntegration === 'kodi' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] text-gray-300 hover:bg-[#454d59]'"
+                  @click="activeIntegration = 'kodi'"
+                  role="tab"
+                  :aria-selected="activeIntegration === 'kodi'">
+            {% include "app/icons/server.svg" with classes="w-4 h-4 mr-2" %}
+            Kodi
           </button>
         </div>
         <div x-cloak x-show="activeIntegration === 'jellyfin'" role="tabpanel">
@@ -348,6 +359,87 @@
                       <li>"Limit library events to" and "Limit devices events to" are optional</li>
                     </ul>
                   </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          <div x-cloak x-show="activeIntegration === 'kodi'" role="tabpanel">
+            <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+              <div class="flex items-center mb-3">
+                {% include "app/icons/server.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+                <h3 class="text-base font-medium">Kodi</h3>
+              </div>
+              <p class="text-gray-400 mb-4 text-sm">Connect Kodi to automatically track your watching progress.</p>
+              <div class="bg-[#262a2f] p-4 rounded-md">
+                <h4 class="text-sm font-medium mb-3">Get the Kodi Add-on</h4>
+                <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+                  <li>
+                    Download the
+                    <a href="https://github.com/Programie/KodiAddon-HttpScrobbler/archive/refs/heads/main.zip"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="text-indigo-400 hover:underline">KodiAddon-HttpScrobbler</a>.
+                  </li>
+                  <li>
+                    Follow the
+                    <a href="https://github.com/Programie/KodiAddon-HttpScrobbler"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="text-indigo-400 hover:underline">Installation instructions</a>
+                    in the README.
+                  </li>
+                </ol>
+                <br />
+                <h4 class="text-sm font-medium mb-3">Setup Instructions</h4>
+                <p class="text-gray-400 mb-4 text-sm">
+                  Entering big long API keys in Kodi is painful, and copy and paste doesn't work, but there is a trick to doing it easily.
+                </p>
+                <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+                  <li>In Kodi, go to Settings > Services > Control</li>
+                  <li>Set 'Allow remote control via HTTP' - you will have to set a password first if 'Require authentication' is on.</li>
+                  <li>
+                    Open the Kodi web interface in a browser. If you are using the defaults it will be something like:
+                    {# djlint:off #}
+                    <a href="http://localhost:1234/"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="text-indigo-400 hover:underline">http://localhost:1234/</a>
+                    {# djlint:on #}
+                  </li>
+                  <li>In Kodi, go to Settings > Add-ons > My add-ons > Services > HTTP Scrobbler > Configure</li>
+                  <li>Click or activate the URL field, so it is the only field on screen with the on-screen keyboard.</li>
+                  <li>In the Kodi web interface click the triple-dot menu in the lower left, and select 'Send text to Kodi'.</li>
+                  <li>
+                    Now paste the following URL into the Kodi web browser, and it will paste the text into the Kodi application.
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-2 text-gray-400">
+                      {# djlint:off #}
+                      <li>
+                        <div class="inline-flex items-center gap-2 w-[calc(100%-30px)]">URL:
+                          <input readonly
+                                 id="kodi-webhook-url"
+                                 class="w-full bg-[#262a2f] rounded-md text-gray-400 text-sm border-0 focus:ring-0 outline-none font-mono"
+                                 type="text"
+                                 value="{{ kodi_webhook_url }}">
+                          <span class="flex items-center cursor-pointer group"
+                                title="Copy"
+                                data-copy-target="#kodi-webhook-url">
+                            {% include "app/icons/copy.svg" with classes="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" %}
+                          </span>
+                        </div>
+                      </li>
+                      {# djlint:on #}
+                    </ul>
+                  </li>
+                  <li>
+                    Finally, back in the Kodi application, you can set the following:
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-2 text-gray-400">
+                      <li>Username and Password left blank.</li>
+                      <li>Limit Scrobbling Events to: Start, Stopped and Finished (others should be off as they are not used.)</li>
+                      <li>Ignore Update Interval</li>
+                      <li>Keep both types on</li>
+                    </ul>
+                  </li>
+                  <li>Remember to go back and disable the Kodi web interface if you do not intend to use it.</li>
                 </ol>
               </div>
             </div>

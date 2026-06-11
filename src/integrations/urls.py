@@ -50,4 +50,9 @@ urlpatterns = [
         views.emby_webhook,
         name="emby_webhook",
     ),
+    path(
+        "webhook/kodi/<str:token>",
+        views.kodi_webhook,
+        name="kodi_webhook",
+    ),
 ]
