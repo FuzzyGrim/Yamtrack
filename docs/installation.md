@@ -30,6 +30,8 @@ For the full list of environment variables, see [env-variables.md](env-variables
 docker-compose up -d
 ```
 
+The default Compose setup mounts `./media` to `/yamtrack/media` so uploaded custom/manual item images survive container rebuilds and recreates.
+
 ## 4) Open the app
 
 ```bash

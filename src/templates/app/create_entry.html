@@ -12,7 +12,7 @@
       <p class="text-gray-400">Add a custom media entry to your collection if it's not available in the database.</p>
     </div>
     {# djlint:off #}
-    <form method="post" class="space-y-6" x-data="{
+    <form method="post" enctype="multipart/form-data" class="space-y-6" x-data="{
       mediaType: '{{ selected_media_type|default:"tv" }}',
       placeholderHtml: null,
 
@@ -230,7 +230,7 @@
           </div>
         </div>
 
-        <!-- Image URL field (All types) -->
+        <!-- Image fields (custom/manual items only) -->
         <div x-show="showField('image')">
           <label class="block text-sm font-medium mb-2 text-gray-300">Image URL</label>
           <div class="flex gap-4">
@@ -248,6 +248,14 @@
             </div>
             <!-- Hidden error icon template -->
             <div id="error-icon" class="hidden">{% include "app/icons/circle-x.svg" with classes="w-8 h-8 text-red-500" %}</div>
+          </div>
+          <div class="mt-3">
+            <label class="block text-sm font-medium mb-2 text-gray-300">Upload local image</label>
+            <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-indigo-600 file:text-white file:cursor-pointer"
+                   name="uploaded_image"
+                   type="file"
+                   accept="image/jpeg,image/png,image/webp">
+            <p class="mt-1 text-xs text-gray-400">Optional for custom/manual items. JPG, PNG, or WebP up to 5 MB. Uploaded images are stored locally and take priority over the Image URL.</p>
           </div>
         </div>
 

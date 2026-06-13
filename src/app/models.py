@@ -1,12 +1,15 @@
 import logging
 import uuid
+from pathlib import Path
 
 from django.apps import apps
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     DecimalValidator,
+    FileExtensionValidator,
     MaxValueValidator,
     MinValueValidator,
 )
@@ -38,6 +41,20 @@ from app.mixins import CalendarTriggerMixin
 logger = logging.getLogger(__name__)
 
 PERCENT_COMPLETE = 100
+
+
+def manual_item_image_upload_path(instance, filename):
+    """Return a safe upload path for manual item images."""
+    suffix = Path(filename).suffix.lower()
+    return f"manual_items/{uuid.uuid4()}{suffix}"
+
+
+def validate_manual_item_image_size(uploaded_file):
+    """Reject manual item images larger than the configured upload limit."""
+    max_size = settings.MANUAL_ITEM_IMAGE_MAX_SIZE
+    if uploaded_file.size > max_size:
+        msg = f"Image file must be {max_size // (1024 * 1024)} MB or smaller."
+        raise ValidationError(msg)
 
 
 class Sources(models.TextChoices):
@@ -97,6 +114,15 @@ class Item(CalendarTriggerMixin, models.Model):
     image = models.URLField(
         max_length=500,
     )  # if add default, custom media entry will show the value
+    uploaded_image = models.ImageField(
+        upload_to=manual_item_image_upload_path,
+        null=True,
+        blank=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"]),
+            validate_manual_item_image_size,
+        ],
+    )
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -175,6 +201,13 @@ class Item(CalendarTriggerMixin, models.Model):
             ),
         ]
         ordering = ["media_id"]
+
+    @property
+    def display_image(self):
+        """Return the preferred image URL for displaying this item."""
+        if self.source == Sources.MANUAL.value and self.uploaded_image:
+            return self.uploaded_image.url
+        return self.image
 
     def __str__(self):
         """Return the name of the item."""

@@ -744,6 +744,7 @@ def media_save(request):
     form_class = get_form_class(media_type)
     form = form_class(
         request.POST,
+        request.FILES,
         instance=instance,
         custom_link_entries=custom_link_entries,
         tag_names=tag_names,
@@ -867,7 +868,7 @@ def create_entry(request):
         )
 
     # Process the form submission
-    form = ManualItemForm(request.POST, user=request.user)
+    form = ManualItemForm(request.POST, request.FILES, user=request.user)
     if not form.is_valid():
         # Handle form validation errors
         logger.error(form.errors.as_json())

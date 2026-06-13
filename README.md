@@ -65,6 +65,8 @@ To start the containers run:
 docker-compose up -d
 ```
 
+The compose file mounts `./media` into the container so uploaded custom/manual item images persist across container rebuilds and recreates.
+
 Alternatively, if you need a PostgreSQL database, you can use the `docker-compose.postgres.yml` file.
 
 ### 🌊 Reverse Proxy Setup

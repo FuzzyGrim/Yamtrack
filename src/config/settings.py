@@ -308,6 +308,12 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 if BASE_URL:
     STATIC_URL = f"{BASE_URL}/static/"
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+if BASE_URL:
+    MEDIA_URL = f"{BASE_URL}/media/"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
 
@@ -323,8 +329,10 @@ AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
 
-# For CSV imports
+# For CSV imports and manual item image uploads
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+MANUAL_ITEM_IMAGE_MAX_SIZE = 5 * 1024 * 1024  # 5 MB
 
 VERSION = config("VERSION", default="dev")
 

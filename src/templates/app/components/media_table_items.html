@@ -9,7 +9,7 @@
            style="width: 50px; height: 70px;">
         <img alt="{{ media.item }}"
              class="lazyload object-cover rounded-md {% if request.user == target_user %}parent-hover-tap:hidden{% endif %}"
-             data-src="{{ media.item.image }}"
+             data-src="{{ media.item.display_image }}"
              src="{{ IMG_NONE }}"
              style="width: 50px; height: 70px;">
       {% if request.user == target_user %}
