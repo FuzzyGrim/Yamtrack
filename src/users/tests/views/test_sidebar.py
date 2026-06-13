@@ -36,14 +36,12 @@ class SidebarViewTests(TestCase):
         response = self.client.post(
             reverse("preferences"),
             {
-                "home_separate_incoming": "on",
                 "media_types_checkboxes": [MediaTypes.TV.value, MediaTypes.ANIME.value],
             },
         )
         self.assertRedirects(response, reverse("preferences"))
 
         self.user.refresh_from_db()
-        self.assertTrue(self.user.home_separate_incoming)
         self.assertTrue(self.user.tv_enabled)
         self.assertFalse(self.user.movie_enabled)
         self.assertTrue(self.user.anime_enabled)

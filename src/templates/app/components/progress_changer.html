@@ -7,7 +7,7 @@
           {% if media.progress == 0 %}disabled{% endif %}
           hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-          hx-vals='{"operation": "decrease"}'
+          hx-vals='{"operation": "decrease", "hide_unreleased": "{% if hide_unreleased %}1{% else %}0{% endif %}", "home_status": "{{ home_status }}"}'
           hx-swap="innerHTML"
           hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
     {% include "app/icons/minus.svg" with classes="w-3 h-3" %}
@@ -29,7 +29,7 @@
           {% if media.progress == media.max_progress %}disabled{% endif %}
           hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-          hx-vals='{"operation": "increase"}'
+          hx-vals='{"operation": "increase", "hide_unreleased": "{% if hide_unreleased %}1{% else %}0{% endif %}", "home_status": "{{ home_status }}"}'
           hx-swap="innerHTML"
           hx-target="#progress-{{ media.item.media_type }}-{{ media.id }}">
     {% include "app/icons/plus.svg" with classes="w-3 h-3" %}

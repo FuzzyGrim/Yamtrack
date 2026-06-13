@@ -290,10 +290,6 @@ class User(AbstractUser):
         default=False,
         help_text="Hide hover overlay on touch devices",
     )
-    home_separate_incoming = models.BooleanField(
-        default=False,
-        help_text="Separate incoming media from in-progress on home page",
-    )
 
     # Tracking settings
     quick_watch_date = models.CharField(

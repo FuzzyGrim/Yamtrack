@@ -217,35 +217,29 @@ class HomeViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.home_sort, "completion")
 
-    def test_home_view_separates_incoming_when_enabled(self):
-        """Test home view splits incoming media from in-progress."""
-        self.user.home_separate_incoming = True
-        self.user.save(update_fields=["home_separate_incoming"])
-
-        response = self.client.get(reverse("home"))
+    def test_home_view_hides_unreleased_when_filter_enabled(self):
+        """Test home view can hide unreleased media in existing sections."""
+        response = self.client.get(reverse("home") + "?hide_unreleased=1")
 
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["hide_unreleased"])
 
         sections_by_key = {
             section["key"]: section for section in response.context["home_sections"]
         }
-        self.assertIn("incoming", sections_by_key)
+        self.assertNotIn("incoming", sections_by_key)
         self.assertIn(Status.IN_PROGRESS.value, sections_by_key)
 
-        incoming_section = sections_by_key["incoming"]
         in_progress_section = sections_by_key[Status.IN_PROGRESS.value]
+        planning_section = sections_by_key[Status.PLANNING.value]
 
-        self.assertEqual(incoming_section["count"], 2)
         self.assertEqual(in_progress_section["count"], 1)
-        self.assertIn(MediaTypes.SEASON.value, incoming_section["media_types"])
-        self.assertIn(MediaTypes.ANIME.value, incoming_section["media_types"])
         self.assertIn(MediaTypes.ANIME.value, in_progress_section["media_types"])
+        self.assertNotIn(MediaTypes.SEASON.value, in_progress_section["media_types"])
+        self.assertEqual(planning_section["count"], 1)
 
-    def test_home_view_htmx_load_more_for_incoming(self):
-        """Test HTMX load more for incoming section."""
-        self.user.home_separate_incoming = True
-        self.user.save(update_fields=["home_separate_incoming"])
-
+    def test_home_view_htmx_load_more_preserves_hide_unreleased(self):
+        """Test HTMX load more applies hide unreleased filter."""
         for i in range(6, 36):
             anime_item = Item.objects.create(
                 media_id=f"incoming-{i}",
@@ -268,15 +262,17 @@ class HomeViewTests(TestCase):
 
         response = self.client.get(
             reverse("home")
-            + f"?load_status=incoming&load_media_type={MediaTypes.ANIME.value}",
+            + "?hide_unreleased=1"
+            + f"&load_status={Status.IN_PROGRESS.value}"
+            + f"&load_media_type={MediaTypes.ANIME.value}",
             headers={"hx-request": "true"},
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/home_grid.html")
-        self.assertEqual(response.context["home_status"], "incoming")
-        self.assertEqual(len(response.context["media_list"]["items"]), 17)
-        self.assertEqual(response.context["media_list"]["total"], 31)
+        self.assertEqual(response.context["home_status"], Status.IN_PROGRESS.value)
+        self.assertEqual(len(response.context["media_list"]["items"]), 0)
+        self.assertEqual(response.context["media_list"]["total"], 1)
 
     @patch("app.providers.services.get_media_metadata")
     def test_home_view_htmx_load_more(self, mock_get_media_metadata):

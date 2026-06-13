@@ -4,7 +4,8 @@
   {% component_id 'track' media.item media.id as track_component_id %}
   {% component_id 'lists' media.item as lists_component_id %}
   {% component_id 'history' media.item as history_component_id %}
-  <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg transition-all duration-300"
+  <div id="home-media-{{ media.item.media_type }}-{{ media.id }}"
+       class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg transition-all duration-300"
        x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
     <div class="relative">
       <a href="{{ media.item|media_url }}">
@@ -38,7 +39,7 @@
                   title="Add to tracker"
                   hx-get="{% media_view_url 'track_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
-                  hx-target="#{{ track_component_id }}{% if home_status == 'incoming' %}-incoming{% endif %}"
+                  hx-target="#{{ track_component_id }}"
                   hx-trigger="click once"
                   @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
 
@@ -46,7 +47,7 @@
                   title="Add to custom lists"
                   hx-get="{% media_view_url 'lists_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                  hx-target="#{{ lists_component_id }}{% if home_status == 'incoming' %}-incoming{% endif %}"
+                  hx-target="#{{ lists_component_id }}"
                   hx-trigger="click once"
                   @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
 
@@ -54,7 +55,7 @@
                   title="View your activity history"
                   hx-get="{% media_view_url 'history_modal' media.item %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                  hx-target="#{{ history_component_id }}{% if home_status == 'incoming' %}-incoming{% endif %}"
+                  hx-target="#{{ history_component_id }}"
                   hx-trigger="click once"
                   @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
         </div>
@@ -67,11 +68,11 @@
          title="{{ media }}">{{ media }}</a>
     </div>
 
-    {% if home_status == Status.PLANNING.value or home_status == 'incoming' %}
+    {% if home_status == Status.PLANNING.value %}
       {% if user.progress_bar %}<div class="h-[5px] {{ Status.PLANNING.value|status_background_color }}"></div>{% endif %}
     {% else %}
       <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
-        {% include "app/components/progress_changer.html" with media=media user=user csrf_token=csrf_token MediaTypes=MediaTypes only %}
+        {% include "app/components/progress_changer.html" with media=media user=user csrf_token=csrf_token MediaTypes=MediaTypes hide_unreleased=hide_unreleased home_status=home_status only %}
       </div>
     {% endif %}
 
@@ -80,7 +81,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="relative z-60 max-h-[90vh] w-152 px-4 md:px-0"
            @click.outside="trackOpen = false">
-        <div id="{{ track_component_id }}{% if home_status == 'incoming' %}-incoming{% endif %}"></div>
+        <div id="{{ track_component_id }}"></div>
       </div>
     </div>
 
@@ -89,7 +90,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
            @click.outside="listsOpen = false">
-        <div id="{{ lists_component_id }}{% if home_status == 'incoming' %}-incoming{% endif %}"></div>
+        <div id="{{ lists_component_id }}"></div>
       </div>
     </div>
 
@@ -98,7 +99,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
            @click.outside="historyOpen = false">
-        <div id="{{ history_component_id }}{% if home_status == 'incoming' %}-incoming{% endif %}"></div>
+        <div id="{{ history_component_id }}"></div>
       </div>
     </div>
   </div>
