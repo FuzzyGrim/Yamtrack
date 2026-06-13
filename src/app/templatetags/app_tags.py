@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 from django import template
@@ -8,7 +9,7 @@ from django.utils.dateparse import parse_date
 from django.utils.html import format_html
 from unidecode import unidecode
 
-from app import config
+from app import config, helpers
 from app.models import MediaTypes, Sources, Status
 
 register = template.Library()
@@ -25,6 +26,12 @@ def get_static_file_mtime(file_path):
         return ""
     else:
         return f"?{mtime}"
+
+
+@register.simple_tag(takes_context=True)
+def absolute_app_url(context, path):
+    """Return an absolute app URL for links copied into external services."""
+    return helpers.build_absolute_app_url(context.get("request"), path)
 
 
 @register.filter
@@ -111,6 +118,16 @@ def datetime_format(datetime, user):
         formatted_time = formats.time_format(local_dt, user.time_format)
         return f"{formatted_date} {formatted_time}"
     return formatted_date
+
+
+@register.simple_tag
+def now_plus_minutes(minutes):
+    """Return a date/datetime-local value for now plus minutes."""
+    minutes = int(minutes)
+    local_dt = timezone.localtime(timezone.now() + timedelta(minutes=minutes))
+    if settings.TRACK_TIME:
+        return local_dt.strftime("%Y-%m-%dT%H:%M")
+    return local_dt.strftime("%Y-%m-%d")
 
 
 @register.filter
@@ -449,3 +466,22 @@ def show_media_score(rating, user):
         True if we should show the media score
     """
     return rating is not None and (not user.hide_zero_rating or rating > 0)
+
+
+@register.filter
+def seconds_to_duration(seconds):
+    """Convert seconds to human-readable duration.
+
+    Under 30 min: rounds to nearest 5 min. 30 min and above: rounds to nearest 30 min.
+    """
+    if not seconds:
+        return None
+    total_minutes = seconds // 60
+    if total_minutes < 30:  # noqa: PLR2004
+        return f"{max(5, round(total_minutes / 5) * 5)}m"
+    hours, minutes = divmod(total_minutes, 60)
+    if hours == 0:
+        return "30m" if minutes < 45 else "1h"  # noqa: PLR2004
+    if minutes >= 45:  # noqa: PLR2004
+        return f"{hours + 1}h"
+    return f"{hours}h" if minutes < 15 else f"{hours}h 30m"  # noqa: PLR2004

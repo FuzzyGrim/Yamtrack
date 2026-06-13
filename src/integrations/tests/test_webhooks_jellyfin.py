@@ -4,8 +4,19 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
+from app.models import (
+    TV,
+    Anime,
+    Episode,
+    Item,
+    MediaTypes,
+    Movie,
+    Season,
+    Sources,
+    Status,
+)
 from integrations.webhooks.jellyfin import JellyfinWebhookProcessor
 
 
@@ -70,6 +81,435 @@ class JellyfinWebhookTests(TestCase):
             item__episode_number=1,
         )
         self.assertIsNotNone(episode.end_date)
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("integrations.webhooks.tv.tvdb_provider.series_tmdb_id")
+    @patch("app.providers.tmdb.find")
+    @patch("integrations.webhooks.tv.tvdb_provider.episode")
+    def test_tv_episode_uses_imdb_fallback_when_tvdb_missing(
+        self,
+        mock_tvdb_episode,
+        mock_tmdb_find,
+        mock_series_tmdb_id,
+        mock_handle_tv_episode,
+    ):
+        """Test TV episodes can resolve through IMDB when TVDB is missing."""
+        mock_tmdb_find.return_value = {
+            "tv_episode_results": [
+                {
+                    "show_id": 12345,
+                    "season_number": 2,
+                    "episode_number": 8,
+                },
+            ],
+        }
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {
+                    "Tmdb": "",
+                    "Imdb": "tt38990690",
+                    "Tvdb": "",
+                },
+                "SeriesName": "Test Show",
+                "ParentIndexNumber": 2,
+                "IndexNumber": 8,
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_tvdb_episode.assert_not_called()
+        mock_series_tmdb_id.assert_not_called()
+        mock_tmdb_find.assert_called_once_with("tt38990690", "imdb_id")
+        mock_handle_tv_episode.assert_called_once_with(
+            12345,
+            2,
+            8,
+            payload,
+            self.user,
+        )
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("integrations.webhooks.tv.tvdb_provider.series_tmdb_id")
+    @patch("app.providers.tmdb.find")
+    @patch("integrations.webhooks.tv.tvdb_provider.episode")
+    def test_tv_episode_uses_imdb_fallback_when_tvdb_tmdb_lookup_misses(
+        self,
+        mock_tvdb_episode,
+        mock_tmdb_find,
+        mock_series_tmdb_id,
+        mock_handle_tv_episode,
+    ):
+        """Test IMDB is used after TVDB when TMDB cannot match the TVDB ID."""
+        self.user.anime_enabled = False
+        self.user.save(update_fields=["anime_enabled"])
+        mock_series_tmdb_id.return_value = None
+        mock_tvdb_episode.return_value = {
+            "episode_id": 999,
+            "series_id": 123,
+            "season_number": 2,
+            "episode_number": 8,
+        }
+        mock_tmdb_find.side_effect = [
+            {"tv_episode_results": []},
+            {
+                "tv_episode_results": [
+                    {
+                        "show_id": 12345,
+                        "season_number": 2,
+                        "episode_number": 8,
+                    },
+                ],
+            },
+        ]
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {
+                    "Imdb": "tt38990690",
+                    "Tvdb": "999",
+                },
+                "SeriesName": "Test Show",
+                "ParentIndexNumber": 2,
+                "IndexNumber": 8,
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_tvdb_episode.assert_called_once_with(999)
+        self.assertEqual(mock_tmdb_find.call_count, 2)
+        mock_tmdb_find.assert_any_call("999", "tvdb_id")
+        mock_tmdb_find.assert_any_call("tt38990690", "imdb_id")
+        mock_series_tmdb_id.assert_called_once_with(123)
+        mock_handle_tv_episode.assert_called_once_with(
+            12345,
+            2,
+            8,
+            payload,
+            self.user,
+        )
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("integrations.webhooks.tv.tvdb_provider.series_tmdb_id")
+    @patch("app.providers.tmdb.find")
+    @patch("integrations.webhooks.tv.tvdb_provider.episode")
+    def test_tv_episode_uses_tvdb_series_tmdb_id_when_tmdb_find_misses(
+        self,
+        mock_tvdb_episode,
+        mock_tmdb_find,
+        mock_series_tmdb_id,
+        mock_handle_tv_episode,
+    ):
+        """Test TVDB series remote IDs are used when TMDB cannot find the episode."""
+        self.user.anime_enabled = False
+        self.user.save(update_fields=["anime_enabled"])
+        mock_tvdb_episode.return_value = {
+            "episode_id": 999,
+            "series_id": 459821,
+            "season_number": 1,
+            "episode_number": 3,
+        }
+        mock_tmdb_find.return_value = {"tv_episode_results": []}
+        mock_series_tmdb_id.return_value = "283657"
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {
+                    "Imdb": "tt35668375",
+                    "Tvdb": "999",
+                },
+                "SeriesName": "Glory",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 3,
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_tvdb_episode.assert_called_once_with(999)
+        mock_tmdb_find.assert_called_once_with("999", "tvdb_id")
+        mock_series_tmdb_id.assert_called_once_with(459821)
+        mock_handle_tv_episode.assert_called_once_with(
+            "283657",
+            1,
+            3,
+            payload,
+            self.user,
+        )
+
+    def test_mark_played_ignored_when_disabled(self):
+        """Test Jellyfin MarkPlayed events are ignored by default."""
+        payload = {
+            "Event": "MarkPlayed",
+            "Item": {
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "Type": "Movie",
+                "ProviderIds": {"Tmdb": "603"},
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Movie.objects.count(), 0)
+
+    def test_mark_played_enabled(self):
+        """Test Jellyfin MarkPlayed events are handled when enabled."""
+        self.user.jellyfin_mark_played_enabled = True
+        self.user.save(update_fields=["jellyfin_mark_played_enabled"])
+        payload = {
+            "Event": "MarkPlayed",
+            "Item": {
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "Type": "Movie",
+                "ProviderIds": {"Tmdb": "603"},
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        movie = Movie.objects.get(
+            item__media_id="603",
+            user=self.user,
+        )
+        self.assertEqual(movie.status, Status.COMPLETED.value)
+        self.assertEqual(movie.progress, 1)
+
+    def test_mark_unplayed_enabled_deletes_movie_instance(self):
+        """Test Jellyfin MarkUnplayed removes a watched movie when enabled."""
+        self.user.jellyfin_mark_played_enabled = True
+        self.user.jellyfin_mark_unplayed_enabled = True
+        self.user.save(
+            update_fields=[
+                "jellyfin_mark_played_enabled",
+                "jellyfin_mark_unplayed_enabled",
+            ],
+        )
+        payload = {
+            "Event": "MarkPlayed",
+            "Item": {
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "Type": "Movie",
+                "ProviderIds": {"Tmdb": "603"},
+                "UserData": {"Played": True},
+            },
+        }
+
+        self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        payload["Event"] = "MarkUnplayed"
+        payload["Item"]["UserData"]["Played"] = False
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Movie.objects.count(), 0)
+
+    def test_mark_unplayed_enabled_deletes_tv_episode(self):
+        """Test Jellyfin MarkUnplayed removes a watched episode when enabled."""
+        self.user.jellyfin_mark_played_enabled = True
+        self.user.jellyfin_mark_unplayed_enabled = True
+        self.user.save(
+            update_fields=[
+                "jellyfin_mark_played_enabled",
+                "jellyfin_mark_unplayed_enabled",
+            ],
+        )
+        payload = {
+            "Event": "MarkPlayed",
+            "Item": {
+                "Type": "Episode",
+                "Name": "The One Where Monica Gets a Roommate",
+                "ProviderIds": {
+                    "Tvdb": "303821",
+                    "Imdb": "tt0583459",
+                },
+                "SeriesName": "Friends",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 1,
+                "UserData": {"Played": True},
+            },
+        }
+
+        self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        payload["Event"] = "MarkUnplayed"
+        payload["Item"]["UserData"]["Played"] = False
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Episode.objects.count(), 0)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_mark_unplayed_completed_episode_updates_parent_statuses(
+        self,
+        mock_get_metadata,
+    ):
+        """Test unplaying a finale moves completed parents back to in progress."""
+        mock_get_metadata.return_value = {
+            "season/1": {
+                "episodes": [{"episode_number": 1}],
+            },
+            "related": {
+                "seasons": [{"season_number": 1}],
+            },
+        }
+        tv_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+        )
+        tv = TV.objects.create(
+            item=tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        season_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        season = Season.objects.create(
+            item=season_item,
+            user=self.user,
+            related_tv=tv,
+            status=Status.PLANNING.value,
+        )
+        episode_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test Episode",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+        Episode.objects.create(
+            item=episode_item,
+            related_season=season,
+            end_date=timezone.now(),
+        )
+        season.refresh_from_db()
+        tv.refresh_from_db()
+        self.assertEqual(season.status, Status.COMPLETED.value)
+        self.assertEqual(tv.status, Status.COMPLETED.value)
+
+        JellyfinWebhookProcessor()._delete_tv_episode("123", 1, 1, self.user)
+
+        self.assertEqual(Episode.objects.count(), 0)
+        season.refresh_from_db()
+        tv.refresh_from_db()
+        self.assertEqual(season.status, Status.IN_PROGRESS.value)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+
+    def test_mark_unplayed_untracked_movie_does_not_create_item(self):
+        """Test Jellyfin MarkUnplayed does not create metadata for missing media."""
+        self.user.jellyfin_mark_unplayed_enabled = True
+        self.user.save(update_fields=["jellyfin_mark_unplayed_enabled"])
+        payload = {
+            "Event": "MarkUnplayed",
+            "Item": {
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "Type": "Movie",
+                "ProviderIds": {"Tmdb": "603"},
+                "UserData": {"Played": False},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Movie.objects.count(), 0)
+        self.assertFalse(
+            Item.objects.filter(
+                media_id="603",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+            ).exists(),
+        )
+
+    def test_mark_unplayed_untracked_anime_does_not_create_item(self):
+        """Test anime MarkUnplayed does not create metadata for missing media."""
+        payload = {
+            "Event": "MarkUnplayed",
+            "Item": {
+                "UserData": {"Played": False},
+            },
+        }
+
+        JellyfinWebhookProcessor()._handle_anime("437", 1, payload, self.user)
+
+        self.assertEqual(Anime.objects.count(), 0)
+        self.assertFalse(
+            Item.objects.filter(
+                media_id="437",
+                source=Sources.MAL.value,
+                media_type=MediaTypes.ANIME.value,
+            ).exists(),
+        )
 
     def test_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
@@ -346,164 +786,3 @@ class JellyfinWebhookTests(TestCase):
         result = JellyfinWebhookProcessor()._get_episode_number(payload)
 
         self.assertEqual(result, 7)
-
-    def test_get_mal_id_from_tvdb_uses_exact_season_match(self):
-        """Test TVDB lookups respect exact season mappings and episode offsets."""
-        mapping_data = {
-            "2369": {
-                "tvdb_id": 74796,
-                "tvdb_season": -1,
-                "tvdb_epoffset": 0,
-                "mal_id": 269,
-            },
-            "15449": {
-                "tvdb_id": 74796,
-                "tvdb_season": 17,
-                "tvdb_epoffset": 0,
-                "mal_id": 41467,
-            },
-            "17765": {
-                "tvdb_id": 74796,
-                "tvdb_season": 17,
-                "tvdb_epoffset": 13,
-                "mal_id": 53998,
-            },
-            "18220": {
-                "tvdb_id": 74796,
-                "tvdb_season": 17,
-                "tvdb_epoffset": 26,
-                "mal_id": 56784,
-            },
-        }
-
-        mal_id, episode_offset = JellyfinWebhookProcessor()._get_mal_id_from_tvdb(
-            mapping_data,
-            74796,
-            17,
-            14,
-            None,
-        )
-
-        self.assertEqual(mal_id, 53998)
-        self.assertEqual(episode_offset, 1)
-
-    def test_get_mal_id_from_tvdb_falls_back_to_absolute_order(self):
-        """Test season 1 episodes can resolve through Kometa absolute mappings."""
-        mapping_data = {
-            "2369": {
-                "tvdb_id": 74796,
-                "tvdb_season": -1,
-                "tvdb_epoffset": 0,
-                "mal_id": 269,
-            },
-        }
-
-        mal_id, episode_offset = JellyfinWebhookProcessor()._get_mal_id_from_tvdb(
-            mapping_data,
-            74796,
-            1,
-            9,
-            9,
-        )
-
-        self.assertEqual(mal_id, 269)
-        self.assertEqual(episode_offset, 9)
-
-    def test_get_mal_id_from_tvdb_prefers_exact_season_over_absolute_order(self):
-        """Test exact season matches win over absolute-order fallback mappings."""
-        mapping_data = {
-            "2369": {
-                "tvdb_id": 74796,
-                "tvdb_season": -1,
-                "tvdb_epoffset": 0,
-                "mal_id": 269,
-            },
-            "99999": {
-                "tvdb_id": 74796,
-                "tvdb_season": 1,
-                "tvdb_epoffset": 0,
-                "mal_id": 12345,
-            },
-        }
-
-        mal_id, episode_offset = JellyfinWebhookProcessor()._get_mal_id_from_tvdb(
-            mapping_data,
-            74796,
-            1,
-            9,
-            9,
-        )
-
-        self.assertEqual(mal_id, 12345)
-        self.assertEqual(episode_offset, 9)
-
-    def test_get_mal_id_from_tvdb_uses_absolute_episode_number_for_fallback(self):
-        """Test cross-season absolute-order mappings use TVDB absolute numbering."""
-        mapping_data = {
-            "2369": {
-                "tvdb_id": 74796,
-                "tvdb_season": -1,
-                "tvdb_epoffset": 0,
-                "mal_id": 269,
-            },
-        }
-
-        mal_id, episode_offset = JellyfinWebhookProcessor()._get_mal_id_from_tvdb(
-            mapping_data,
-            74796,
-            2,
-            2,
-            absolute_episode_number=22,
-        )
-
-        self.assertEqual(mal_id, 269)
-        self.assertEqual(episode_offset, 22)
-
-    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_anime")
-    @patch("integrations.webhooks.base.tvdb_provider.episode")
-    @patch("integrations.webhooks.base.BaseWebhookProcessor._find_tv_media_id")
-    @patch("integrations.webhooks.base.BaseWebhookProcessor._fetch_mapping_data")
-    def test_process_tv_uses_tvdb_absolute_order_for_cross_season_match(
-        self,
-        mock_fetch_mapping_data,
-        mock_find_tv_media_id,
-        mock_tvdb_episode,
-        mock_handle_anime,
-    ):
-        """Test webhook anime matching uses TVDB absolute numbering across seasons."""
-        mock_fetch_mapping_data.return_value = {
-            "2369": {
-                "tvdb_id": 74796,
-                "tvdb_season": -1,
-                "tvdb_epoffset": 0,
-                "mal_id": 269,
-            },
-        }
-        mock_find_tv_media_id.return_value = ("1668", 2, 2)
-        mock_tvdb_episode.return_value = {
-            "episode_id": 12345,
-            "series_id": 74796,
-            "season_number": 2,
-            "episode_number": 2,
-            "absolute_number": 22,
-        }
-
-        payload = {
-            "Event": "Stop",
-            "Item": {
-                "Type": "Episode",
-                "Name": "Test Episode",
-                "ProviderIds": {
-                    "Tvdb": "12345",
-                },
-                "UserData": {"Played": True},
-                "SeriesName": "Bleach",
-                "ParentIndexNumber": 2,
-                "IndexNumber": 2,
-            },
-        }
-
-        JellyfinWebhookProcessor().process_payload(payload, self.user)
-
-        mock_tvdb_episode.assert_called_once_with(12345)
-        mock_handle_anime.assert_called_once_with(269, 22, payload, self.user)

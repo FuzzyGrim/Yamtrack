@@ -12,6 +12,8 @@ PROVIDER = "TVDB"
 BASE_URL = "https://api4.thetvdb.com/v4"
 ACCESS_TOKEN_CACHE_KEY = "tvdb_access_token"  # noqa: S105
 ACCESS_TOKEN_TIMEOUT = 60 * 60 * 24 * 29  # tokens are valid for 1 month
+TMDB_REMOTE_ID_TYPE = 12
+TMDB_REMOTE_ID_SOURCE_NAME = "TheMovieDB.com"
 
 
 def handle_error(error):
@@ -100,7 +102,6 @@ def episode(episode_id):
         "series_id": episode_data.get("seriesId"),
         "season_number": episode_data.get("seasonNumber"),
         "episode_number": episode_data.get("number"),
-        "absolute_number": episode_data.get("absoluteNumber") or None,
     }
 
     if not all(
@@ -112,3 +113,58 @@ def episode(episode_id):
 
     cache.set(cache_key, data)
     return data
+
+
+def series_tmdb_id(series_id):
+    """Return the TMDB series ID from a TVDB series extended record."""
+    cache_key = f"tvdb_series_tmdb_id_{series_id}"
+    cached_tmdb_id = cache.get(cache_key)
+    if cached_tmdb_id is not None:
+        return cached_tmdb_id
+
+    access_token = get_access_token()
+    if not access_token:
+        return None
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    url = f"{BASE_URL}/series/{series_id}/extended"
+
+    try:
+        response = services.api_request(
+            PROVIDER,
+            "GET",
+            url,
+            headers=headers,
+        )
+    except requests.exceptions.HTTPError as error:
+        error_resp = handle_error(error)
+        if error_resp and error_resp.get("retry"):
+            headers["Authorization"] = f"Bearer {get_access_token()}"
+            response = services.api_request(
+                PROVIDER,
+                "GET",
+                url,
+                headers=headers,
+            )
+        else:
+            return None
+
+    remote_ids = response.get("data", {}).get("remoteIds") or []
+    tmdb_id = next(
+        (
+            remote_id.get("id")
+            for remote_id in remote_ids
+            if (
+                remote_id.get("type") == TMDB_REMOTE_ID_TYPE
+                or remote_id.get("sourceName") == TMDB_REMOTE_ID_SOURCE_NAME
+            )
+        ),
+        None,
+    )
+
+    if not tmdb_id:
+        logger.debug("TVDB series metadata has no TMDB ID for series ID %s", series_id)
+        return None
+
+    cache.set(cache_key, tmdb_id)
+    return tmdb_id

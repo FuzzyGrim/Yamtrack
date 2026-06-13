@@ -46,6 +46,157 @@ class CalendarAnimeTests(CalendarFixturesMixin, TestCase):
         self.assertEqual(result["437"][0]["episode"], 1)
         self.assertEqual(result["437"][0]["airingAt"], 870739200)
 
+    @patch("events.calendar.anime.services.api_request")
+    def test_get_anime_schedule_bulk_paginated_airing_schedule(
+        self,
+        mock_api_request,
+    ):
+        """Test get_anime_schedule_bulk reads every AniList schedule page."""
+
+        def anilist_response(*_args, **kwargs):
+            airing_page = kwargs["params"]["variables"]["airingPage"]
+            schedule_nodes = {
+                1: [
+                    {"episode": 1, "airingAt": 1748736000},
+                    {"episode": 2, "airingAt": 1749340800},
+                ],
+                2: [
+                    {"episode": 3, "airingAt": 1749945600},
+                ],
+            }[airing_page]
+
+            return {
+                "data": {
+                    "Page": {
+                        "pageInfo": {"hasNextPage": False},
+                        "media": [
+                            {
+                                "idMal": 55809,
+                                "endDate": {
+                                    "year": 2025,
+                                    "month": 6,
+                                    "day": 15,
+                                },
+                                "episodes": 3,
+                                "airingSchedule": {
+                                    "pageInfo": {"hasNextPage": airing_page == 1},
+                                    "nodes": schedule_nodes,
+                                },
+                            },
+                        ],
+                    },
+                },
+            }
+
+        mock_api_request.side_effect = anilist_response
+
+        result = get_anime_schedule_bulk(["55809"])
+
+        self.assertEqual(
+            result["55809"],
+            [
+                {"episode": 1, "airingAt": 1748736000},
+                {"episode": 2, "airingAt": 1749340800},
+                {"episode": 3, "airingAt": 1749945600},
+            ],
+        )
+        self.assertEqual(mock_api_request.call_count, 2)
+        call_variables = [
+            call.kwargs["params"]["variables"]
+            for call in mock_api_request.call_args_list
+        ]
+        self.assertEqual([variables["page"] for variables in call_variables], [1, 1])
+        self.assertEqual(
+            [variables["airingPage"] for variables in call_variables],
+            [1, 2],
+        )
+        self.assertNotIn("perPage", call_variables[0])
+
+    @patch("events.calendar.anime.services.get_media_metadata")
+    @patch("events.calendar.anime.services.api_request")
+    def test_get_anime_schedule_bulk_uses_mal_when_anilist_episodes_unknown(
+        self,
+        mock_api_request,
+        mock_get_media_metadata,
+    ):
+        """Test unknown AniList episode counts do not filter schedule nodes."""
+        mock_api_request.return_value = {
+            "data": {
+                "Page": {
+                    "pageInfo": {"hasNextPage": False},
+                    "media": [
+                        {
+                            "idMal": 61269,
+                            "endDate": {"year": None, "month": None, "day": None},
+                            "episodes": None,
+                            "airingSchedule": {
+                                "pageInfo": {"hasNextPage": False},
+                                "nodes": [
+                                    {"episode": 1, "airingAt": 1759622400},
+                                    {"episode": 2, "airingAt": 1760227200},
+                                    {"episode": 3, "airingAt": 1760832000},
+                                    {"episode": 4, "airingAt": 1761436800},
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        }
+        mock_get_media_metadata.return_value = {"max_progress": 3}
+
+        result = get_anime_schedule_bulk(["61269"])
+
+        self.assertEqual(
+            result["61269"],
+            [
+                {"episode": 1, "airingAt": 1759622400},
+                {"episode": 2, "airingAt": 1760227200},
+                {"episode": 3, "airingAt": 1760832000},
+                {"episode": 4, "airingAt": 1761436800},
+            ],
+        )
+        mock_get_media_metadata.assert_called_once()
+
+    @patch("events.calendar.anime.services.get_media_metadata")
+    @patch("events.calendar.anime.services.api_request")
+    def test_get_anime_schedule_bulk_does_not_add_mal_episode_when_anilist_unknown(
+        self,
+        mock_api_request,
+        mock_get_media_metadata,
+    ):
+        """Test MAL episode counts are not used to create events."""
+        mock_api_request.return_value = {
+            "data": {
+                "Page": {
+                    "pageInfo": {"hasNextPage": False},
+                    "media": [
+                        {
+                            "idMal": 61269,
+                            "endDate": {"year": 2026, "month": 4, "day": 5},
+                            "episodes": None,
+                            "airingSchedule": {
+                                "pageInfo": {"hasNextPage": False},
+                                "nodes": [
+                                    {"episode": 1, "airingAt": 1759622400},
+                                    {"episode": 2, "airingAt": 1760227200},
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        }
+        mock_get_media_metadata.return_value = {"max_progress": 3}
+
+        result = get_anime_schedule_bulk(["61269"])
+
+        self.assertEqual(
+            [episode["episode"] for episode in result["61269"]],
+            [1, 2],
+        )
+        mock_get_media_metadata.assert_called_once()
+
     @patch("events.calendar.anime.services.get_media_metadata")
     @patch("events.calendar.anime.services.api_request")
     def test_get_anime_schedule_bulk_no_airing_schedule(

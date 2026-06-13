@@ -80,6 +80,16 @@ class AppTagsTests(TestCase):
         result = app_tags.get_static_file_mtime("nonexistent.css")
         self.assertEqual(result, "")
 
+    @override_settings(URLS=["https://yamtrack.example.com:8924"])
+    def test_absolute_app_url(self):
+        """Test the absolute_app_url tag."""
+        result = app_tags.absolute_app_url({}, "/webhook/jellyfin/token")
+
+        self.assertEqual(
+            result,
+            "https://yamtrack.example.com:8924/webhook/jellyfin/token",
+        )
+
     def test_no_underscore(self):
         """Test the no_underscore filter."""
         self.assertEqual(app_tags.no_underscore("hello_world"), "hello world")
@@ -170,6 +180,44 @@ class AppTagsTests(TestCase):
 
             # Check that it returns a non-empty string
             self.assertTrue(isinstance(result, str))
+
+    @override_settings(TRACK_TIME=True)
+    def test_now_plus_minutes_with_time(self):
+        """Test now plus minutes with TRACK_TIME enabled."""
+        with (
+            timezone.override("UTC"),
+            patch("django.utils.timezone.now") as mock_now,
+        ):
+            mock_now.return_value = timezone.datetime(
+                2025,
+                3,
+                29,
+                12,
+                0,
+                0,
+                tzinfo=timezone.get_current_timezone(),
+            )
+
+            self.assertEqual(app_tags.now_plus_minutes(90), "2025-03-29T13:30")
+
+    @override_settings(TRACK_TIME=False)
+    def test_now_plus_minutes_without_time(self):
+        """Test now plus minutes with TRACK_TIME disabled."""
+        with (
+            timezone.override("UTC"),
+            patch("django.utils.timezone.now") as mock_now,
+        ):
+            mock_now.return_value = timezone.datetime(
+                2025,
+                3,
+                29,
+                12,
+                0,
+                0,
+                tzinfo=timezone.get_current_timezone(),
+            )
+
+            self.assertEqual(app_tags.now_plus_minutes(90), "2025-03-29")
 
     @override_settings(TRACK_TIME=False)
     def test_natural_day(self):
@@ -379,3 +427,31 @@ class AppTagsTests(TestCase):
         self.assertTrue(app_tags.show_media_score(1, mock_user_hide))
         self.assertFalse(app_tags.show_media_score(0, mock_user_hide))
         self.assertFalse(app_tags.show_media_score(None, mock_user_hide))
+
+    def test_seconds_to_duration(self):
+        """Test conversion of seconds to human-readable duration."""
+        self.assertIsNone(app_tags.seconds_to_duration(None))
+        self.assertIsNone(app_tags.seconds_to_duration(0))
+
+        cases = [
+            (5 * 60, "5m"),  # exactly 5m
+            (10 * 60, "10m"),  # exactly 10m
+            (12 * 60, "10m"),  # 12m -> 10m (< 13m)
+            (13 * 60, "15m"),  # 13m -> 15m
+            (15 * 60, "15m"),  # exactly 15m
+            (20 * 60, "20m"),  # exactly 20m
+            (25 * 60, "25m"),  # exactly 25m
+            (27 * 60, "25m"),  # 27m -> 25m (< 28m)
+            (28 * 60, "30m"),  # 28m -> 30m
+            (30 * 60, "30m"),  # exactly 30m
+            (40 * 60, "30m"),  # 40m -> 30m (< 45m)
+            (45 * 60, "1h"),  # 45m -> 1h
+            (60 * 60, "1h"),  # exactly 1h
+            (65 * 60, "1h"),  # 1h 5m -> 1h
+            (75 * 60, "1h 30m"),  # 1h 15m -> 1h 30m
+            (90 * 60, "1h 30m"),  # exactly 1h 30m
+            (105 * 60, "2h"),  # 1h 45m -> 2h
+        ]
+        for seconds, expected in cases:
+            with self.subTest(seconds=seconds):
+                self.assertEqual(app_tags.seconds_to_duration(seconds), expected)

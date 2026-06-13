@@ -71,129 +71,149 @@
             <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
           </div>
           <nav class="p-4 flex-1 overflow-y-auto">
-            <ul class="space-y-1 mb-6">
-              <li>
-                <a href="{% url 'home' %}"
-                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                  {% if request.path|str_equals:"/" %}
-                    {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                  {% else %}
-                    {% include "app/icons/house.svg" with classes="w-5 h-5" %}
-
-                  {% endif %}
-                  <span>Home</span>
-                </a>
-              </li>
-
-              {% get_sidebar_media_types user as sidebar_media_types %}
-              {% for item in sidebar_media_types %}
+            {% block sidebar_own_media %}
+              <ul class="space-y-1 mb-6">
                 <li>
-                  <a href="{% url 'medialist' media_type=item.media_type %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
-                    <span>{{ item.display_name }}</span>
-                  </a>
-                </li>
-              {% endfor %}
-            </ul>
-
-            <div class="border-t border-[#2c3136] pt-4">
-              <ul class="space-y-1">
-                {% url 'create_entry' as create_entry_url %}
-                <li>
-                  <a href="{{ create_entry_url }}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% if request.path|str_equals:create_entry_url %}
-                      {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+                  <a href="{% url 'home' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% if request.path|str_equals:"/" %}
+                      {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
                     {% else %}
-                      {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
+                      {% include "app/icons/house.svg" with classes="w-5 h-5" %}
 
                     {% endif %}
-                    <span>Create Custom</span>
+                    <span>Home</span>
                   </a>
                 </li>
 
-                {% url 'statistics' as statistics_url %}
-                <li>
-                  <a href="{{ statistics_url }}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% if request.path|str_equals:statistics_url %}
-                      {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
+                {% get_sidebar_media_types user as sidebar_media_types %}
+                {% for item in sidebar_media_types %}
+                  <li>
+                    {% if target_user is None or target_user == request.user %}
+                      <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
+                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                        {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
+                        <span>{{ item.display_name }}</span>
+                      </a>
                     {% else %}
-                      {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
-
+                      <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
+                         class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm text-gray-400 hover:text-white hover:bg-[#23272b]">
+                        {% icon item.media_type is_active=False %}
+                        <span>{{ item.display_name }}</span>
+                      </a>
                     {% endif %}
-                    <span>Statistics</span>
-                  </a>
-                </li>
-
-                {% url 'lists' as lists_url %}
-                <li>
-                  <a href="{{ lists_url }}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% if request.path|str_equals:lists_url %}
-                      {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                    {% else %}
-                      {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
-
-                    {% endif %}
-                    <span>Lists</span>
-                  </a>
-                </li>
-
-                {% url 'calendar' as calendar_url %}
-                <li>
-                  <a href="{{ calendar_url }}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% if request.path|str_equals:calendar_url %}
-                      {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
-
-                    {% else %}
-                      {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
-
-                    {% endif %}
-                    <span>Calendar</span>
-                  </a>
-                </li>
+                  </li>
+                {% endfor %}
               </ul>
-            </div>
+            {% endblock sidebar_own_media %}
+
+            {% block sidebar_external_media_view %}
+            {% endblock sidebar_external_media_view %}
+
+            {% block sidebar_utilities %}
+              <div class="border-t border-[#2c3136] pt-4">
+                <ul class="space-y-1">
+                  {% url 'create_entry' as create_entry_url %}
+                  <li>
+                    <a href="{{ create_entry_url }}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path|str_equals:create_entry_url %}
+                        {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                      {% else %}
+                        {% include "app/icons/circle-plus.svg" with classes="w-5 h-5" %}
+
+                      {% endif %}
+                      <span>Create Custom</span>
+                    </a>
+                  </li>
+
+                  {% url 'statistics' as statistics_url %}
+                  <li>
+                    <a href="{{ statistics_url }}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path|str_equals:statistics_url %}
+                        {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                      {% else %}
+                        {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5" %}
+
+                      {% endif %}
+                      <span>Statistics</span>
+                    </a>
+                  </li>
+
+                  {% url 'lists' as lists_url %}
+                  <li>
+                    <a href="{{ lists_url }}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path|str_equals:lists_url %}
+                        {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                      {% else %}
+                        {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
+
+                      {% endif %}
+                      <span>Lists</span>
+                    </a>
+                  </li>
+
+                  {% url 'calendar' as calendar_url %}
+                  <li>
+                    <a href="{{ calendar_url }}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path|str_equals:calendar_url %}
+                        {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                      {% else %}
+                        {% include "app/icons/calendar.svg" with classes="w-5 h-5" %}
+
+                      {% endif %}
+                      <span>Calendar</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            {% endblock sidebar_utilities %}
           </nav>
 
-          <div class="p-4 border-t border-[#2c3136] mt-auto">
-            <div class="space-y-2">
-              {% url 'account' as account_url %}
-              {% url 'notifications' as notifications_url %}
-              {% url 'sidebar' as sidebar_url %}
-              {% url 'integrations' as integrations_url %}
-              {% url 'import_data' as import_url %}
-              {% url 'export_data' as export_url %}
-              <a href="{{ account_url }}"
-                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
-                  {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
+          {% block sidebar_logout %}
+            <div class="p-4 border-t border-[#2c3136] mt-auto">
+              <div class="space-y-2">
+                {% url 'account' as account_url %}
+                {% url 'notifications' as notifications_url %}
+                {% url 'sidebar' as sidebar_url %}
+                {% url 'integrations' as integrations_url %}
+                {% url 'import_data' as import_url %}
+                {% url 'export_data' as export_url %}
+                <a href="{{ account_url }}"
+                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                  {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
+                    {% include "app/icons/settings.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
-                {% else %}
-                  {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
+                  {% else %}
+                    {% include "app/icons/settings.svg" with classes="w-5 h-5" %}
 
-                {% endif %}
-                <span>Settings</span>
-              </a>
+                  {% endif %}
+                  <span>Settings</span>
+                </a>
 
-              <form method="post" action="{% url 'account_logout' %}" class="w-full">
-                {% csrf_token %}
-                <button type="submit"
-                        class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
-                  {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
+                <form method="post" action="{% url 'account_logout' %}" class="w-full">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
+                    {% include "app/icons/logout.svg" with classes="w-5 h-5" %}
 
-                  <span>Logout</span>
-                </button>
-              </form>
+                    <span>Logout</span>
+                  </button>
+                </form>
+              </div>
             </div>
-          </div>
+          {% endblock sidebar_logout %}
+
+          {% block anonymous_login %}
+          {% endblock anonymous_login %}
         </aside>
 
         {# Main content #}
@@ -217,56 +237,58 @@
                 {% endif %}
 
                 {# Search bar #}
-                <div class="relative w-full max-w-2xl">
-                  <form method="get"
-                        action="{% url 'search' %}"
-                        x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
-                    <div class="flex">
-                      <div class="relative grow">
-                        {# Search input #}
-                        <input type="search"
-                               id="global-search"
-                               name="q"
-                               value="{{ request.GET.q }}"
-                               :placeholder="getPlaceholder()"
-                               class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
-                        <button type="submit"
-                                class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
-                          {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
+                {% block search_bar %}
+                  <div class="relative w-full max-w-2xl">
+                    <form method="get"
+                          action="{% url 'search' %}"
+                          x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
+                      <div class="flex">
+                        <div class="relative grow">
+                          {# Search input #}
+                          <input type="search"
+                                 id="global-search"
+                                 name="q"
+                                 value="{{ request.GET.q }}"
+                                 :placeholder="getPlaceholder()"
+                                 class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
+                          <button type="submit"
+                                  class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
+                            {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
+
+                          </button>
+                        </div>
+
+                        <input type="hidden" name="media_type" :value="selectedType.value">
+
+                        {# Media type dropdown #}
+                        <button type="button"
+                                @click="isOpen = !isOpen"
+                                @click.away="isOpen = false"
+                                class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
+                          <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
+                          {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
 
                         </button>
+                        <ul x-cloak
+                            x-show="isOpen"
+                            @keydown.escape.window="isOpen = false"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="transform opacity-0 scale-95"
+                            x-transition:enter-end="transform opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="transform opacity-100 scale-100"
+                            x-transition:leave-end="transform opacity-0 scale-95"
+                            class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32">
+                          <template x-for="type in mediaTypes" :key="type.value">
+                            <li @click="selectedType = type; isOpen = false"
+                                class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
+                                x-text="type.display"></li>
+                          </template>
+                        </ul>
                       </div>
-
-                      <input type="hidden" name="media_type" :value="selectedType.value">
-
-                      {# Media type dropdown #}
-                      <button type="button"
-                              @click="isOpen = !isOpen"
-                              @click.away="isOpen = false"
-                              class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
-                        <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
-                        {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
-
-                      </button>
-                      <ul x-cloak
-                          x-show="isOpen"
-                          @keydown.escape.window="isOpen = false"
-                          x-transition:enter="transition ease-out duration-100"
-                          x-transition:enter-start="transform opacity-0 scale-95"
-                          x-transition:enter-end="transform opacity-100 scale-100"
-                          x-transition:leave="transition ease-in duration-75"
-                          x-transition:leave-start="transform opacity-100 scale-100"
-                          x-transition:leave-end="transform opacity-0 scale-95"
-                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32">
-                        <template x-for="type in mediaTypes" :key="type.value">
-                          <li @click="selectedType = type; isOpen = false"
-                              class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
-                              x-text="type.display"></li>
-                        </template>
-                      </ul>
-                    </div>
-                  </form>
-                </div>
+                    </form>
+                  </div>
+                {% endblock search_bar %}
               </div>
             </div>
           </div>

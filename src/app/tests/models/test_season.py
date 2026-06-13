@@ -30,6 +30,55 @@ class SeasonModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
+        self.episodes_metadata = [
+            {
+                "episode_number": i,
+                "image": f"img{i}.jpg",
+                "air_date": datetime(2023, 1, i, tzinfo=UTC),
+            }
+            for i in range(1, 25)
+        ]
+
+        def mock_metadata(
+            media_type,
+            _media_id,
+            _source,
+            season_numbers=None,
+            **_kwargs,
+        ):
+            season_numbers = season_numbers or [1]
+            if media_type == "tv_with_seasons":
+                return {
+                    f"season/{s}": {"episodes": self.episodes_metadata}
+                    for s in season_numbers
+                } | {
+                    "related": {
+                        "seasons": [{"season_number": s} for s in season_numbers],
+                    },
+                }
+            return {"episodes": self.episodes_metadata, "image": "season_img.jpg"}
+
+        self.metadata_patcher = patch(
+            "app.models.providers.services.get_media_metadata",
+        )
+        self.mock_get_metadata = self.metadata_patcher.start()
+        self.mock_get_metadata.side_effect = mock_metadata
+        self.addCleanup(self.metadata_patcher.stop)
+
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+        self.tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        TV.save_base(self.tv)
+
         item_season = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -42,6 +91,7 @@ class SeasonModel(TestCase):
         self.season = Season.objects.create(
             item=item_season,
             user=self.user,
+            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
         )
 
@@ -54,11 +104,12 @@ class SeasonModel(TestCase):
             season_number=1,
             episode_number=1,
         )
-        Episode.objects.create(
+        episode = Episode(
             item=item_ep1,
             related_season=self.season,
             end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
         )
+        Episode.save_base(episode)
 
         item_ep2 = Item.objects.create(
             media_id="1668",
@@ -69,15 +120,107 @@ class SeasonModel(TestCase):
             season_number=1,
             episode_number=2,
         )
-        Episode.objects.create(
+        episode = Episode(
             item=item_ep2,
             related_season=self.season,
             end_date=datetime(2023, 6, 2, 0, 0, tzinfo=UTC),
         )
+        Episode.save_base(episode)
 
     def test_season_progress(self):
         """Test the progress property of the Season model."""
         self.assertEqual(self.season.progress, 2)
+
+    def test_season_progress_ignores_rewatch_count(self):
+        """Progress should use watch recency instead of repeat count."""
+        item_ep1 = Item.objects.get(
+            media_id="1668",
+            media_type=MediaTypes.EPISODE.value,
+            season_number=1,
+            episode_number=1,
+        )
+        episode = Episode(
+            item=item_ep1,
+            related_season=self.season,
+            end_date=datetime(2023, 6, 1, 12, 0, tzinfo=UTC),
+        )
+        Episode.save_base(episode)
+
+        self.assertEqual(self.season.progress, 2)
+
+    def test_season_progress_uses_most_recent_watch_date(self):
+        """Progress should follow the latest watched episode."""
+        item_ep1 = Item.objects.get(
+            media_id="1668",
+            media_type=MediaTypes.EPISODE.value,
+            season_number=1,
+            episode_number=1,
+        )
+        episode = Episode(
+            item=item_ep1,
+            related_season=self.season,
+            end_date=datetime(2023, 6, 3, 0, 0, tzinfo=UTC),
+        )
+        Episode.save_base(episode)
+
+        self.assertEqual(self.season.progress, 1)
+
+    def test_season_progress_handles_missing_watch_dates(self):
+        """Progress should fall back to episode number when dates are missing."""
+        undated_item_ep3 = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=3,
+        )
+        undated_episode = Episode(
+            item=undated_item_ep3,
+            related_season=self.season,
+            end_date=None,
+        )
+        Episode.save_base(undated_episode)
+
+        self.assertEqual(self.season.progress, 2)
+
+    def test_season_progress_uses_episode_number_when_all_dates_missing(self):
+        """Progress should not fail when every watch date is missing."""
+        season_item = Item.objects.create(
+            media_id="1234",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Undated",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        season = Season(
+            item=season_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.IN_PROGRESS.value,
+        )
+        Season.save_base(season)
+
+        for episode_number in (1, 2):
+            episode_item = Item.objects.create(
+                media_id="1234",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.EPISODE.value,
+                title="Undated",
+                image="http://example.com/image.jpg",
+                season_number=1,
+                episode_number=episode_number,
+            )
+            episode = Episode(
+                item=episode_item,
+                related_season=season,
+                end_date=None,
+            )
+            Episode.save_base(episode)
+
+        self.assertEqual(season.progress, 2)
 
     def test_season_start_date(self):
         """Test the start_date property of the Season model."""
@@ -183,6 +326,24 @@ class SeasonModel(TestCase):
                 related_season=self.season,
                 item=episode_item,
             )
+
+    def test_delete_episode_updates_completed_parent_statuses(self):
+        """Test deleting progress reopens completed Season and TV parents."""
+        self.season.status = Status.COMPLETED.value
+        Season.save_base(self.season)
+        self.tv.status = Status.COMPLETED.value
+        TV.save_base(self.tv)
+
+        episode = Episode.objects.get(
+            related_season=self.season,
+            item__episode_number=2,
+        )
+        episode.delete()
+
+        self.season.refresh_from_db()
+        self.tv.refresh_from_db()
+        self.assertEqual(self.season.status, Status.IN_PROGRESS.value)
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
 
     @patch("app.models.Season.get_episode_item")
     def test_unwatch_with_repeats(self, mock_get_episode_item):

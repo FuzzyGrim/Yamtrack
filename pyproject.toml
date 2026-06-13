@@ -1,3 +1,70 @@
+[project]
+name = "yamtrack"
+version = "0.25.3"
+description = "A self hosted media tracker."
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "aiohttp~=3.13.5",
+  "apprise~=1.9.9",
+  "beautifulsoup4~=4.14.3",
+  "celery~=5.6.3",
+  "croniter~=6.2.2",
+  "defusedxml~=0.7.1",
+  "django~=5.2.13",
+  "django-allauth[socialaccount]~=65.16.1",
+  "django-celery-beat~=2.9.0",
+  "django-celery-results~=2.6.0",
+  "django-debug-toolbar~=6.3.0",
+  "django-health-check[celery,redis]~=4.4.1",
+  "django-model-utils~=5.0.0",
+  "django-redis~=6.0.0",
+  "django-select2~=8.4.8",
+  "django-simple-history~=3.11.0",
+  "django-widget-tweaks~=1.5.1",
+  "gunicorn~=25.3.0",
+  "icalendar~=7.0.3",
+  "pillow~=12.2.0",
+  "psycopg[binary,pool]~=3.3.4",
+  "python-decouple~=3.8",
+  "redis[hiredis]~=7.4.0",
+  "requests~=2.33.1",
+  "requests-ratelimiter~=0.9.3",
+  "supervisor~=4.3.0",
+  "unidecode~=1.4.0",
+]
+
+[dependency-groups]
+lint = [
+  "django-upgrade~=1.30.0",
+  "djlint~=1.36.4",
+  "pre-commit~=4.5.1",
+  "ruff~=0.15.10",
+]
+test = [
+  "coverage~=7.13.5",
+  "fakeredis[lua]~=2.35.1",
+  "pytest-django~=4.12.0",
+  "pytest-playwright~=0.7.2",
+  "tblib~=3.2.2",
+]
+dev = [
+  {include-group = "lint"},
+  {include-group = "test"},
+]
+docs = [
+  "zensical==0.0.42",
+  "mike @ git+https://github.com/squidfunk/mike.git",
+]
+
+[tool.uv]
+package = false
+
 [tool.ruff]
 target-version = "py312"
 extend-exclude = ["migrations"]

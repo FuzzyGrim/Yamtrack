@@ -2,17 +2,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        ("users", "0050_user_watch_provider_region"),
+        ("users", "0052_alter_user_date_format"),
     ]
 
     operations = [
         migrations.AddField(
             model_name="user",
-            name="home_separate_incoming",
+            name="profile_private",
             field=models.BooleanField(
-                default=False,
-                help_text="Separate incoming media from in-progress on home page",
+                default=True,
+                help_text="Toggle profile visibility to anonymous users",
             ),
         ),
     ]

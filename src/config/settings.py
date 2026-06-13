@@ -18,6 +18,7 @@ from decouple import (
     undefined,
 )
 from django.core.cache import CacheKeyWarning
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
@@ -147,6 +148,12 @@ MIDDLEWARE = [
     "app.middleware.ProviderAPIErrorMiddleware",
 ]
 
+YAMTRACK_AUTO_LOGIN_USERNAME = config("YAMTRACK_AUTO_LOGIN_USERNAME", default=None)
+if YAMTRACK_AUTO_LOGIN_USERNAME:
+    _index = MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware")
+    # This allows auto-login if the user is not already authenticated.
+    MIDDLEWARE.insert(_index + 1, "app.middleware.AutoLoginMiddleware")
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
@@ -224,7 +231,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 15,
+        "VERSION": 16,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -405,16 +412,23 @@ HARDCOVER_API = config(
     "HARDCOVER_API",
     default=secret(
         "HARDCOVER_API_FILE",
-        "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0"
-        "aSI6ImJhNGNjZmUwLTgwZmQtNGI3NC1hZDdhLTlkNDM5ZTA5YWMzOSIsImFwcGxpY2F0aW9uSWQi"
-        "OjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJbiI6dHJ1ZSwi"
-        "aWF0IjoxNzQ2OTc3ODc3LCJleHAiOjE3Nzg1MTM4NzcsImh0dHBzOi8vaGFzdXJhLmlvL2p3dC9j"
-        "bGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1"
-        "bHQtcm9sZSI6InVzZXIiLCJ4LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQi"
-        "OiIzNDk1MSJ9LCJ1c2VyIjp7ImlkIjozNDk1MX19.edcEqLAeO3uH5xxBTFDKtyWwi-B-WfXX_yi"
-        "LFdOAJ3c",
+        "Bearer "
+        "eyJhbGciOiJIUzI1NiJ9."
+        "eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0aSI6IjMzNDhiNGE1"
+        "LWIzYTUtNDAxMy1hODU3LWQ4NGI1OTdmYmI3ZCIsImFwcGxpY2F0aW9uSWQi"
+        "OjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJ"
+        "biI6dHJ1ZSwiaWF0IjoxNzc4ODQzMTE1LCJleHAiOjE4MTAzNzkxMTUsImh0dHBz"
+        "Oi8vaGFzdXJhLmlvL2p3dC9jbGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xl"
+        "cyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6InVzZXIiLCJ4"
+        "LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQiOiIzNDk1MSJ9"
+        "LCJ1c2VyIjp7ImlkIjozNDk1MX19."
+        "j4MVAEi_-w2N7DuiMgAxkfVc6RuKd88AHrOyzF5xLyU",
     ),
 )
+HARDCOVER_API = HARDCOVER_API.strip()
+if not HARDCOVER_API.startswith("Bearer "):
+    msg = "HARDCOVER_API must start with 'Bearer '."
+    raise ImproperlyConfigured(msg)
 
 COMICVINE_API = config(
     "COMICVINE_API",
@@ -627,3 +641,5 @@ if not REGISTRATION:
     ACCOUNT_ADAPTER = "users.account_adapter.NoNewUsersAccountAdapter"
 
 REDIRECT_LOGIN_TO_SSO = config("REDIRECT_LOGIN_TO_SSO", default=False, cast=bool)
+
+SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=60 * 60 * 24 * 14, cast=int)

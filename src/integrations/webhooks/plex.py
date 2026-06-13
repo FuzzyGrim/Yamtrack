@@ -1,12 +1,20 @@
 import json
 import logging
 import re
+from enum import StrEnum
 
 from app.models import MediaTypes
 
 from .base import BaseWebhookProcessor
 
 logger = logging.getLogger(__name__)
+
+
+class PlexEvent(StrEnum):
+    """Plex webhook event names."""
+
+    MEDIA_PLAY = "media.play"
+    MEDIA_SCROBBLE = "media.scrobble"
 
 
 class PlexWebhookProcessor(BaseWebhookProcessor):
@@ -39,7 +47,7 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
         self._process_media(payload, user, ids)
 
     def _is_supported_event(self, event_type):
-        return event_type in ("media.scrobble", "media.play")
+        return event_type in {PlexEvent.MEDIA_PLAY, PlexEvent.MEDIA_SCROBBLE}
 
     def _is_valid_user(self, payload_user, user):
         stored_usernames = [
@@ -55,7 +63,7 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
         return payload_user in stored_usernames
 
     def _is_played(self, payload):
-        return payload["event"] == "media.scrobble"
+        return payload["event"] == PlexEvent.MEDIA_SCROBBLE
 
     def _get_media_type(self, payload):
         media_type = payload["Metadata"].get("type")

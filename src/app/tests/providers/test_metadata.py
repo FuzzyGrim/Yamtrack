@@ -191,7 +191,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still1.jpg",
                     "name": "Pilot",
                     "overview": "overview of the episode",
-                    "runtime": 23,
+                    "runtime": 90,
                 },
                 {
                     "episode_number": 2,
@@ -239,11 +239,15 @@ class Metadata(TestCase):
         self.assertEqual(result[0]["episode_number"], 1)
         self.assertEqual(result[0]["title"], "Pilot")
         self.assertEqual(result[0]["air_date"], "2008-01-20")
+        self.assertEqual(result[0]["runtime"], "1h 30m")
+        self.assertEqual(result[0]["runtime_minutes"], 90)
         self.assertTrue(result[0]["history"], [episode_1])
 
         self.assertEqual(result[1]["episode_number"], 2)
         self.assertEqual(result[1]["title"], "Cat's in the Bag...")
         self.assertEqual(result[1]["air_date"], "2008-01-27")
+        self.assertEqual(result[1]["runtime"], "23m")
+        self.assertEqual(result[1]["runtime_minutes"], 23)
         self.assertTrue(result[1]["history"], [episode_2])
 
         self.assertEqual(result[2]["episode_number"], 3)
@@ -342,6 +346,12 @@ class Metadata(TestCase):
             response["details"]["themes"],
             ["Action", "Fantasy", "Open world"],
         )
+        self.assertIsNotNone(response["time_to_beat"])
+        self.assertIn("normally", response["time_to_beat"])
+        self.assertEqual(
+            list(response["time_to_beat"].keys()),
+            ["hastily", "normally", "completely"],
+        )
 
     def test_external_game_steam(self):
         """Test the external_game method for Steam games."""
@@ -360,6 +370,11 @@ class Metadata(TestCase):
         response = openlibrary.book("OL21733390M")
         self.assertEqual(response["title"], "Nineteen Eighty-Four")
         self.assertEqual(response["details"]["author"], ["George Orwell"])
+
+    def test_openlibrary_publish_date_with_abbreviated_month(self):
+        """Test Open Library publish dates with abbreviated month names."""
+        response = openlibrary.get_publish_date({"publish_date": "Oct 01, 2017"})
+        self.assertEqual(response, "2017-10-01")
 
     def test_comic(self):
         """Test the metadata method for comics."""

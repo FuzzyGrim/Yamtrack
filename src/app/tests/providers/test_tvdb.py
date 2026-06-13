@@ -57,7 +57,6 @@ class TVDBProviderTests(TestCase):
                 "seriesId": 74796,
                 "seasonNumber": 2,
                 "number": 2,
-                "absoluteNumber": 22,
             },
         }
 
@@ -70,7 +69,6 @@ class TVDBProviderTests(TestCase):
                 "series_id": 74796,
                 "season_number": 2,
                 "episode_number": 2,
-                "absolute_number": 22,
             },
         )
         mock_api_request.assert_called_once_with(
@@ -86,6 +84,48 @@ class TVDBProviderTests(TestCase):
                 "series_id": 74796,
                 "season_number": 2,
                 "episode_number": 2,
-                "absolute_number": 22,
             },
+        )
+
+    @patch("app.providers.tvdb.cache")
+    @patch("app.providers.tvdb.get_access_token")
+    @patch("app.providers.tvdb.services.api_request")
+    def test_series_tmdb_id_queries_extended_series_endpoint(
+        self,
+        mock_api_request,
+        mock_get_access_token,
+        mock_cache,
+    ):
+        """Test TVDB extended series lookup returns the TMDB remote ID."""
+        mock_cache.get.return_value = None
+        mock_get_access_token.return_value = "test-token"
+        mock_api_request.return_value = {
+            "data": {
+                "remoteIds": [
+                    {
+                        "id": "tt35668375",
+                        "type": 2,
+                        "sourceName": "IMDB",
+                    },
+                    {
+                        "id": "283657",
+                        "type": 12,
+                        "sourceName": "TheMovieDB.com",
+                    },
+                ],
+            },
+        }
+
+        result = tvdb.series_tmdb_id(459821)
+
+        self.assertEqual(result, "283657")
+        mock_api_request.assert_called_once_with(
+            tvdb.PROVIDER,
+            "GET",
+            f"{tvdb.BASE_URL}/series/459821/extended",
+            headers={"Authorization": "Bearer test-token"},
+        )
+        mock_cache.set.assert_called_once_with(
+            "tvdb_series_tmdb_id_459821",
+            "283657",
         )

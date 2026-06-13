@@ -73,12 +73,6 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-center py-2 px-3 bg-[#343a40] rounded-md">
-            <span class="text-sm text-gray-300" x-text="formatDisplayDate(startDate)"></span>
-            {% include "app/icons/right-arrow.svg" with classes="mx-2 w-4 h-4 text-gray-500" %}
-            <span class="text-sm text-gray-300" x-text="formatDisplayDate(endDate)"></span>
-          </div>
-
           <div class="flex justify-end gap-2 pt-2">
             <button @click="isOpen = false"
                     class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm rounded-md transition-colors cursor-pointer">
@@ -183,13 +177,13 @@
           <div class="flex">
             <!-- Weekday labels -->
             <div class="flex flex-col justify-between pr-2 text-sm text-gray-400">
-              <div class="h-4 flex items-center">Mon</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">Wed</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">Fri</div>
-              <div class="h-4"></div>
-              <div class="h-4 flex items-center">Sun</div>
+              {% for label in activity_data.weekday_labels %}
+                {% if forloop.counter|divisibleby:2 %}
+                  <div class="h-4"></div>
+                {% else %}
+                  <div class="h-4 flex items-center">{{ label }}</div>
+                {% endif %}
+              {% endfor %}
             </div>
 
             <!-- Weeks grid -->
@@ -409,6 +403,7 @@
 {% endblock content %}
 
 {% block js %}
+  {{ date_format_values|json_script:"date_format_values" }}
   <script src="{% static 'js/date-range.js' %}{% get_static_file_mtime 'js/date-range.js' %}"
           data-date-format="{{ user.date_format }}"></script>
 

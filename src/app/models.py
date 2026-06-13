@@ -672,7 +672,7 @@ class MediaManager(models.Manager):
         queryset = self._apply_prefetch_related(queryset, media_type)
         self.annotate_max_progress(queryset, media_type)
 
-        return queryset[0]
+        return queryset.get()
 
     def _get_media_params(
         self,
@@ -729,7 +729,7 @@ class MediaManager(models.Manager):
             source,
             season_number,
             episode_number,
-        )
+        ).select_related("item")
         queryset = self._apply_prefetch_related(queryset, media_type)
         self.annotate_max_progress(queryset, media_type)
 
@@ -1495,19 +1495,15 @@ class Season(Media):
             return 0
 
         if self.status == Status.IN_PROGRESS.value:
-            # Calculate repeat counts for each episode number
-            episode_counts = {}
-            for ep in episodes:
-                ep_num = ep.item.episode_number
-                episode_counts[ep_num] = episode_counts.get(ep_num, 0) + 1
-
-            # Sort by repeat count then episode_number
+            # Sort by most recently watched, then by episode number
             sorted_episodes = sorted(
                 episodes,
                 key=lambda e: (
-                    -episode_counts[e.item.episode_number],
-                    -e.item.episode_number,
+                    e.end_date is not None,
+                    e.end_date.timestamp() if e.end_date else 0,
+                    e.item.episode_number,
                 ),
+                reverse=True,
             )
         else:
             # Default sorting by episode_number
@@ -1758,7 +1754,7 @@ class Episode(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
     related_season = models.ForeignKey(
         Season,
         on_delete=models.CASCADE,
@@ -1832,6 +1828,45 @@ class Episode(models.Model):
                 [self.related_season.related_tv],
                 TV,
                 fields=["status"],
+            )
+
+    def delete(self, *args, **kwargs):
+        """Delete the episode instance and update parent statuses if needed."""
+        season = self.related_season
+        tv = season.related_tv
+        deleted_episode_number = self.item.episode_number
+
+        super().delete(*args, **kwargs)
+
+        self._update_parent_statuses_after_delete(season, tv, deleted_episode_number)
+
+    def _update_parent_statuses_after_delete(self, season, tv, deleted_episode_number):
+        """Move completed parents back to in progress after unwatching progress."""
+        season.refresh_from_db()
+        tv.refresh_from_db()
+
+        if (
+            season.status == Status.COMPLETED.value
+            and season.progress < deleted_episode_number
+        ):
+            season.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [season],
+                Season,
+                fields=["status"],
+                default_user=season.user,
+            )
+
+        if (
+            season.status != Status.COMPLETED.value
+            and tv.status == Status.COMPLETED.value
+        ):
+            tv.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [tv],
+                TV,
+                fields=["status"],
+                default_user=season.user,
             )
 
 
