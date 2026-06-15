@@ -1,6 +1,7 @@
 """Django settings for Yamtrack project."""
 
 import json
+import sys
 import warnings
 import zoneinfo
 from pathlib import Path
@@ -17,6 +18,7 @@ from decouple import (
     undefined,
 )
 from django.core.cache import CacheKeyWarning
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
@@ -125,12 +127,6 @@ INSTALLED_APPS = [
     "simple_history",
     "widget_tweaks",
     "health_check",
-    "health_check.cache",
-    "health_check.storage",
-    "health_check.contrib.migrations",
-    "health_check.contrib.celery_ping",
-    "health_check.contrib.redis",
-    "health_check.contrib.db_heartbeat",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -152,6 +148,12 @@ MIDDLEWARE = [
     "app.middleware.ProviderAPIErrorMiddleware",
 ]
 
+YAMTRACK_AUTO_LOGIN_USERNAME = config("YAMTRACK_AUTO_LOGIN_USERNAME", default=None)
+if YAMTRACK_AUTO_LOGIN_USERNAME:
+    _index = MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware")
+    # This allows auto-login if the user is not already authenticated.
+    MIDDLEWARE.insert(_index + 1, "app.middleware.AutoLoginMiddleware")
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
@@ -168,6 +170,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "app.context_processors.export_vars",
                 "app.context_processors.media_enums",
+                "app.context_processors.persistent_messages",
                 "django.template.context_processors.request",
             ],
         },
@@ -240,7 +243,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 14,
+        "VERSION": 16,
         "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -269,13 +272,19 @@ LOGGING = {
     "disable_existing_loggers": False,
     "loggers": {
         "requests_ratelimiter.requests_ratelimiter": {
-            "level": "DEBUG" if DEBUG else "WARNING",
+            "level": "WARNING",
         },
         "psycopg": {
             "level": "DEBUG" if DEBUG else "WARNING",
         },
         "urllib3": {
-            "level": "DEBUG" if DEBUG else "WARNING",
+            "level": "WARNING",
+        },
+        "celery.utils.functional": {
+            "level": "WARNING",
+        },
+        "fakeredis": {
+            "level": "WARNING",
         },
     },
     "formatters": {
@@ -366,6 +375,14 @@ TMDB_API = config(
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
 
+TVDB_API = config(
+    "TVDB_API",
+    default=secret(
+        "TVDB_API_FILE",
+        "91b5c503-23f1-4181-be23-64ad8b8e8bc1",
+    ),
+)
+
 MAL_API = config(
     "MAL_API",
     default=secret(
@@ -393,6 +410,15 @@ IGDB_SECRET = config(
 )
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+# BoardGameGeek API Token - Register at https://boardgamegeek.com/using_the_xml_api
+BGG_API_TOKEN = config(
+    "BGG_API_TOKEN",
+    default=secret(
+        "BGG_API_TOKEN_FILE",
+        "92f43ab1-d1d5-4e18-8b82-d1f56dc12927",
+    ),
+)
+
 STEAM_API_KEY = config(
     "STEAM_API_KEY",
     default=secret(
@@ -405,16 +431,23 @@ HARDCOVER_API = config(
     "HARDCOVER_API",
     default=secret(
         "HARDCOVER_API_FILE",
-        "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0"
-        "aSI6ImJhNGNjZmUwLTgwZmQtNGI3NC1hZDdhLTlkNDM5ZTA5YWMzOSIsImFwcGxpY2F0aW9uSWQi"
-        "OjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJbiI6dHJ1ZSwi"
-        "aWF0IjoxNzQ2OTc3ODc3LCJleHAiOjE3Nzg1MTM4NzcsImh0dHBzOi8vaGFzdXJhLmlvL2p3dC9j"
-        "bGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1"
-        "bHQtcm9sZSI6InVzZXIiLCJ4LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQi"
-        "OiIzNDk1MSJ9LCJ1c2VyIjp7ImlkIjozNDk1MX19.edcEqLAeO3uH5xxBTFDKtyWwi-B-WfXX_yi"
-        "LFdOAJ3c",
+        "Bearer "
+        "eyJhbGciOiJIUzI1NiJ9."
+        "eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0aSI6IjMzNDhiNGE1"
+        "LWIzYTUtNDAxMy1hODU3LWQ4NGI1OTdmYmI3ZCIsImFwcGxpY2F0aW9uSWQi"
+        "OjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJ"
+        "biI6dHJ1ZSwiaWF0IjoxNzc4ODQzMTE1LCJleHAiOjE4MTAzNzkxMTUsImh0dHBz"
+        "Oi8vaGFzdXJhLmlvL2p3dC9jbGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xl"
+        "cyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6InVzZXIiLCJ4"
+        "LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQiOiIzNDk1MSJ9"
+        "LCJ1c2VyIjp7ImlkIjozNDk1MX19."
+        "j4MVAEi_-w2N7DuiMgAxkfVc6RuKd88AHrOyzF5xLyU",
     ),
 )
+HARDCOVER_API = HARDCOVER_API.strip()
+if not HARDCOVER_API.startswith("Bearer "):
+    msg = "HARDCOVER_API must start with 'Bearer '."
+    raise ImproperlyConfigured(msg)
 
 COMICVINE_API = config(
     "COMICVINE_API",
@@ -510,7 +543,7 @@ SELECT2_THEME = "tailwindcss-4"
 
 # Celery settings
 
-CELERY_BROKER_URL = REDIS_URL
+CELERY_BROKER_URL = config("CELERY_REDIS_URL", default=REDIS_URL)
 CELERY_TIMEZONE = TIME_ZONE
 
 if REDIS_PREFIX:
@@ -544,6 +577,11 @@ DAILY_DIGEST_HOUR = config(
     default=8,
     cast=int,
 )
+USER_MESSAGE_RETENTION_DAYS = config(
+    "USER_MESSAGE_RETENTION_DAYS",
+    default=30,
+    cast=int,
+)
 CELERY_BEAT_SCHEDULE = {
     "reload_calendar": {
         "task": "Reload calendar",
@@ -557,8 +595,15 @@ CELERY_BEAT_SCHEDULE = {
         "task": "Send daily digest",
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
     },
+    "cleanup_user_messages": {
+        "task": "Cleanup user messages",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
 }
-# Allauth settings
+
+IS_PROD = not any(cmd in sys.argv for cmd in ("runserver", "test"))
+if IS_PROD:
+    ALLAUTH_TRUSTED_CLIENT_IP_HEADER = "X-Real-IP"
 if CSRF_TRUSTED_ORIGINS:
     # Check if all origins start with http:// or https://
     all_http = all(
@@ -622,3 +667,5 @@ if not REGISTRATION:
     ACCOUNT_ADAPTER = "users.account_adapter.NoNewUsersAccountAdapter"
 
 REDIRECT_LOGIN_TO_SSO = config("REDIRECT_LOGIN_TO_SSO", default=False, cast=bool)
+
+SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=60 * 60 * 24 * 14, cast=int)

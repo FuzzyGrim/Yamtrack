@@ -4,16 +4,49 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-  - package-ecosystem: "pip"
+    groups:
+      # Group all GitHub Actions together
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 30
+    groups:
+      # General group for all minor and patch updates
+      minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
   - package-ecosystem: "docker-compose"
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

@@ -9,6 +9,7 @@ from django.utils.dateparse import parse_datetime
 from django_celery_beat.models import PeriodicTask
 
 import app
+from app import helpers as app_helpers
 from app.models import MediaTypes, Sources, Status
 from app.providers import services
 from integrations.imports import helpers
@@ -20,18 +21,22 @@ TRAKT_API_BASE_URL = "https://api.trakt.tv"
 BULK_PAGE_SIZE = 1000
 
 
-def handle_oauth_callback(request):
+def handle_oauth_callback(request, redirect_uri=None):
     """View for getting the Trakt OAuth2 token."""
     code = request.GET["code"]
 
     url = "https://api.trakt.tv/oauth/token"
+    redirect_uri = redirect_uri or app_helpers.build_absolute_app_url(
+        request,
+        reverse("import_trakt_private"),
+    )
 
     params = {
         "client_id": settings.TRAKT_API,
         "client_secret": settings.TRAKT_API_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": request.build_absolute_uri(reverse("import_trakt_private")),
+        "redirect_uri": redirect_uri,
     }
 
     try:
@@ -80,19 +85,24 @@ def get_username_from_oauth(access_token):
     return request["username"]
 
 
-def get_access_token(encrypted_refresh_token):
+def get_access_token(encrypted_refresh_token, redirect_uri=None):
     """Get access token from encrypted refresh token."""
     url = "https://api.trakt.tv/oauth/token"
 
     decrypted_token = helpers.decrypt(encrypted_refresh_token)
+    redirect_uri = redirect_uri or app_helpers.build_absolute_app_url(
+        None,
+        reverse("import_trakt_private"),
+    )
 
     params = {
         "client_id": settings.TRAKT_API,
         "client_secret": settings.TRAKT_API_SECRET,
         "refresh_token": decrypted_token,
         "grant_type": "refresh_token",
-        "redirect_uri": f"{settings.BASE_URL}/import/trakt/private",
     }
+    if redirect_uri:
+        params["redirect_uri"] = redirect_uri
 
     try:
         request = app.providers.services.api_request(
@@ -126,7 +136,7 @@ def update_refresh_token(old_token, new_token):
         periodic_task.save()
 
 
-def importer(token, user, mode, username):
+def importer(token, user, mode, username, redirect_uri=None):
     """Import the user's data from Trakt.
 
     Can import using either OAuth (token provided) or public username.
@@ -139,14 +149,20 @@ def importer(token, user, mode, username):
         mode (str): Import mode ("new" or "overwrite")
         username (str): Trakt username to import from
     """
-    trakt_importer = TraktImporter(username, user, mode, refresh_token=token)
+    trakt_importer = TraktImporter(
+        username,
+        user,
+        mode,
+        refresh_token=token,
+        redirect_uri=redirect_uri,
+    )
     return trakt_importer.import_data()
 
 
 class TraktImporter:
     """Class to handle importing user data from Trakt."""
 
-    def __init__(self, username, user, mode, refresh_token=None):
+    def __init__(self, username, user, mode, refresh_token=None, redirect_uri=None):
         """Initialize the importer with user details and mode.
 
         Args:
@@ -160,6 +176,7 @@ class TraktImporter:
         self.user = user
         self.mode = mode
         self.refresh_token = refresh_token
+        self.redirect_uri = redirect_uri
         self.user_base_url = f"{TRAKT_API_BASE_URL}/users/{username}"
         self.warnings = []
 
@@ -211,7 +228,10 @@ class TraktImporter:
                 # already made api_request before, so access_token is set
                 headers["Authorization"] = f"Bearer {self.access_token}"
             except AttributeError:
-                self.access_token = get_access_token(self.refresh_token)
+                self.access_token = get_access_token(
+                    self.refresh_token,
+                    redirect_uri=self.redirect_uri,
+                )
                 headers["Authorization"] = f"Bearer {self.access_token}"
         return services.api_request(
             "TRAKT",
@@ -397,6 +417,7 @@ class TraktImporter:
             user=self.user,
             end_date=watched_at,
             status=Status.COMPLETED.value,
+            progress=1,
         )
         movie_obj._history_date = parse_datetime(watched_at)
 
@@ -605,7 +626,7 @@ class TraktImporter:
                 msg = f"Error processing comment entry: {entry}"
                 raise MediaImportUnexpectedError(msg) from e
 
-    def _process_generic_entry(self, entry, entry_type, attribute_updates=None):
+    def _process_generic_entry(self, entry, entry_type, attribute_updates):
         """Process a generic entry (watchlist, rating, or comment)."""
         if entry["type"] == "movie":
             logger.info(
@@ -613,12 +634,18 @@ class TraktImporter:
                 entry["movie"]["title"],
                 entry_type,
             )
+            # Movies with Completed status (from ratings and comments)
+            # should have progress=1
+            status = attribute_updates.get("status", Status.COMPLETED.value)
+            if status == Status.COMPLETED.value:
+                attribute_updates["progress"] = 1
+
             self._process_media_item(
                 entry,
                 entry["movie"],
                 MediaTypes.MOVIE.value,
                 app.models.Movie,
-                attribute_updates or {},
+                attribute_updates,
             )
         elif entry["type"] == "show":
             logger.info(
@@ -631,7 +658,7 @@ class TraktImporter:
                 entry["show"],
                 MediaTypes.TV.value,
                 app.models.TV,
-                attribute_updates or {},
+                attribute_updates,
             )
         elif entry["type"] == "season":
             logger.info(
@@ -645,7 +672,7 @@ class TraktImporter:
                 entry["show"],
                 MediaTypes.SEASON.value,
                 app.models.Season,
-                attribute_updates or {},
+                attribute_updates,
                 entry["season"]["number"],
             )
 
@@ -655,7 +682,7 @@ class TraktImporter:
         media_data,
         media_type,
         model_class,
-        defaults=None,
+        defaults,
         season_number=None,
     ):
         """Process media items for watchlist, ratings, and comments."""

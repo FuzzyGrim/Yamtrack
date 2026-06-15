@@ -69,7 +69,14 @@ class UserUpdateForm(forms.ModelForm):
         """Allow updating username, bio, pronouns, location and profile picture."""
 
         model = User
-        fields = ["username", "bio", "pronouns", "location", "profile_picture"]
+        fields = [
+            "username",
+            "bio",
+            "pronouns",
+            "location",
+            "profile_picture",
+            "profile_private",
+        ]
         widgets = {
             "bio": forms.Textarea(
                 attrs={

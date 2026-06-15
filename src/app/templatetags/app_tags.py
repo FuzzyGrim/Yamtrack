@@ -7,11 +7,18 @@ from django.utils import formats, timezone
 from django.utils.html import format_html
 from unidecode import unidecode
 
-from app import config
+from app import config, helpers
 from app.models import MediaTypes, Sources, Status
 from django.db.models import Avg
 
 register = template.Library()
+
+
+@register.simple_tag(takes_context=True)
+def absolute_app_url(context, path):
+    """Build an absolute app URL using configured public origin when available."""
+    request = context.get("request")
+    return helpers.build_absolute_app_url(request, path)
 
 
 @register.simple_tag
@@ -718,3 +725,25 @@ def to_five_scale(value):
         return value
 
     return score / 2
+
+
+@register.filter
+def show_media_score(rating, user):
+    """Return whether a media rating should be shown for the user's preferences."""
+    return rating is not None and (not user.hide_zero_rating or rating > 0)
+
+
+@register.filter
+def seconds_to_duration(seconds):
+    """Convert seconds to a compact human-readable duration."""
+    if not seconds:
+        return None
+    total_minutes = seconds // 60
+    if total_minutes < 30:
+        return f"{max(5, round(total_minutes / 5) * 5)}m"
+    hours, minutes = divmod(total_minutes, 60)
+    if hours == 0:
+        return "30m" if minutes < 45 else "1h"
+    if minutes >= 45:
+        return f"{hours + 1}h"
+    return f"{hours}h" if minutes < 15 else f"{hours}h 30m"

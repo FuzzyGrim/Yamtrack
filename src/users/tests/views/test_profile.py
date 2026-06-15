@@ -1,4 +1,3 @@
-
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -50,5 +49,3 @@ class Profile(TestCase):
         )
         self.assertTrue(auth.get_user(self.client).check_password("12345"))
         self.assertContains(response, "Your old password was entered incorrectly")
-
-

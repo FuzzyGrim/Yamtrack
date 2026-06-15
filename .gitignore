@@ -2,8 +2,9 @@ __pycache__
 *.pyc
 .env
 .coverage*
-venv
+.venv
 src/staticfiles
+site
 src/db/db.sqlite3
 db.sqlite3-shm
 db.sqlite3-wal
@@ -16,6 +17,10 @@ tailwindcss
 
 # IDE files
 .vscode/launch.json
+.agents
+AGENTS.md
 CLAUDE.md
 requests.http
 TODO.txt
+.codex
+.cache

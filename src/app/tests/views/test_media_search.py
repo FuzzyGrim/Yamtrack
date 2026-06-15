@@ -53,5 +53,3 @@ class MediaSearchViewTests(TestCase):
             1,
             Sources.TMDB.value,
         )
-
-

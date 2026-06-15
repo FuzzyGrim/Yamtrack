@@ -5,15 +5,61 @@ from app.models import MediaTypes, Sources, Status
 
 # --- Color Constants ---
 COLORS = {
-    "emerald": {"text": "text-emerald-400", "hex": "#10b981"},
-    "purple": {"text": "text-purple-400", "hex": "#a855f7"},
-    "indigo": {"text": "text-indigo-400", "hex": "#6366f1"},
-    "orange": {"text": "text-orange-400", "hex": "#f97316"},
-    "blue": {"text": "text-blue-400", "hex": "#3b82f6"},
-    "red": {"text": "text-red-400", "hex": "#ef4444"},
-    "yellow": {"text": "text-yellow-400", "hex": "#eab308"},
-    "fuchsia": {"text": "text-fuchsia-400", "hex": "#d946ef"},
-    "cyan": {"text": "text-cyan-400", "hex": "#06b6d4"},
+    "emerald": {
+        "text": "text-emerald-400",
+        "background": "bg-emerald-400",
+        "hex": "#10b981",
+    },
+    "purple": {
+        "text": "text-purple-400",
+        "background": "bg-purple-400",
+        "hex": "#a855f7",
+    },
+    "indigo": {
+        "text": "text-indigo-400",
+        "background": "bg-indigo-400",
+        "hex": "#6366f1",
+    },
+    "orange": {
+        "text": "text-orange-400",
+        "background": "bg-orange-400",
+        "hex": "#f97316",
+    },
+    "blue": {
+        "text": "text-blue-400",
+        "background": "bg-blue-400",
+        "hex": "#3b82f6",
+    },
+    "red": {
+        "text": "text-red-400",
+        "background": "bg-red-400",
+        "hex": "#ef4444",
+    },
+    "yellow": {
+        "text": "text-yellow-400",
+        "background": "bg-yellow-400",
+        "hex": "#eab308",
+    },
+    "fuchsia": {
+        "text": "text-fuchsia-400",
+        "background": "bg-fuchsia-400",
+        "hex": "#d946ef",
+    },
+    "cyan": {
+        "text": "text-cyan-400",
+        "background": "bg-cyan-400",
+        "hex": "#06b6d4",
+    },
+    "lime": {
+        "text": "text-lime-400",
+        "background": "bg-lime-400",
+        "hex": "#84cc16",
+    },
+    "sky": {
+        "text": "text-sky-400",
+        "background": "bg-sky-400",
+        "hex": "#87ceeb",
+    },
 }
 
 # --- Central Configuration Dictionary ---
@@ -155,6 +201,23 @@ MEDIA_TYPE_CONFIG = {
             5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>""",
         "unit": ("#", "Issue"),
     },
+    MediaTypes.BOARDGAME.value: {
+        "sources": [Sources.BGG],
+        "default_source": Sources.BGG,
+        "sample_query": "Catan",
+        "unicode_icon": "🎲",
+        "verb": ("play", "played"),
+        "text_color": COLORS["lime"]["text"],
+        "stats_color": COLORS["lime"]["hex"],
+        "svg_icon": """
+            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+            <circle cx="8" cy="8" r="2"/>
+            <path d="M16 8h-2"/>
+            <circle cx="16" cy="16" r="2"/>
+            <path d="M8 16v-2"/>""",
+        "unit": ("#", "Play"),
+        "date_key": "year",
+    },
 }
 
 # --- Status Configuration ---
@@ -162,22 +225,27 @@ STATUS_CONFIG = {
     Status.COMPLETED.value: {
         "text_color": COLORS["emerald"]["text"],
         "stats_color": COLORS["emerald"]["hex"],
+        "background_color": COLORS["emerald"]["background"],
     },
     Status.IN_PROGRESS.value: {
         "text_color": COLORS["indigo"]["text"],
         "stats_color": COLORS["indigo"]["hex"],
+        "background_color": COLORS["indigo"]["background"],
     },
     Status.PAUSED.value: {
         "text_color": COLORS["orange"]["text"],
         "stats_color": COLORS["orange"]["hex"],
+        "background_color": COLORS["orange"]["background"],
     },
     Status.PLANNING.value: {
-        "text_color": COLORS["blue"]["text"],
-        "stats_color": COLORS["blue"]["hex"],
+        "text_color": COLORS["sky"]["text"],
+        "stats_color": COLORS["sky"]["hex"],
+        "background_color": COLORS["sky"]["background"],
     },
     Status.DROPPED.value: {
         "text_color": COLORS["red"]["text"],
         "stats_color": COLORS["red"]["hex"],
+        "background_color": COLORS["red"]["background"],
     },
 }
 
@@ -287,3 +355,8 @@ def get_status_text_color(status):
 def get_status_stats_color(status):
     """Get the stats color for a status."""
     return get_status_property(status, "stats_color")
+
+
+def get_status_background_color(status):
+    """Get the background color for a status."""
+    return get_status_property(status, "background_color")

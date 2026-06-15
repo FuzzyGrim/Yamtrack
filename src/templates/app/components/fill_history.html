@@ -1,3 +1,5 @@
+{% load app_tags %}
+
 <div class="bg-[#2a2f35] p-6 rounded-lg max-h-[70svh] overflow-y-auto">
   <div class="flex items-center justify-between mb-6">
     <h2 class="text-2xl font-bold text-white">Activity History</h2>
@@ -12,7 +14,7 @@
           {% if total_medias > 1 %}
             <span class="text-xs px-2 py-1 rounded bg-gray-600 text-gray-300">Instance #{{ entry.media_entry_number }}</span>
           {% endif %}
-          <span class="text-sm text-gray-400">{{ entry.date|date:"DATETIME_FORMAT" }}</span>
+          <span class="text-sm text-gray-400">{{ entry.date|datetime_format:user }}</span>
 
           <button class="inline-flex items-center justify-center rounded-md h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 cursor-pointer"
                   hx-delete="{% url 'delete_history_record' media_type entry.id %}"

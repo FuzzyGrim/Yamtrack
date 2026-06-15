@@ -1,5 +1,6 @@
 {% extends "users/base.html" %}
 {% load user_tags %}
+{% load app_tags %}
 
 {% block title %}
   Import - Yamtrack
@@ -425,8 +426,8 @@
             <div class="text-sm text-gray-400 space-y-1">
               <div>Username: {{ periodic_import.username }}</div>
               <div>Mode: {{ periodic_import.mode }}</div>
-              <div>Last Import: {{ periodic_import.last_run|date:"DATETIME_FORMAT" }}</div>
-              <div>Next Import: {{ periodic_import.next_run|date:"DATETIME_FORMAT" }}</div>
+              <div>Last Import: {{ periodic_import.last_run|datetime_format:user }}</div>
+              <div>Next Import: {{ periodic_import.next_run|datetime_format:user }}</div>
             </div>
           </div>
         {% empty %}
@@ -469,7 +470,7 @@
 
                 {% source_display result.source %}
               </div>
-              <span class="text-xs text-gray-400">{{ result.date|date:"DATETIME_FORMAT" }}</span>
+              <span class="text-xs text-gray-400">{{ result.date|datetime_format:user }}</span>
             </div>
 
             {% if result.status %}
@@ -488,7 +489,7 @@
                             x-text="showDetails ? 'Hide traceback' : 'Show traceback'">Show traceback</button>
                   {% endif %}
 
-                  <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded"
+                  <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded overflow-x-auto break-words"
                        x-show="showDetails">
                     <div class="text-xs space-y-1 text-red-400">
                       {% for error in result.errors.splitlines %}<div>{{ error }}</div>{% endfor %}

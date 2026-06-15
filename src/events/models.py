@@ -215,8 +215,7 @@ class Event(models.Model):
             return ""
 
         return (
-            f"{config.get_unit(self.item.media_type, short=True)}"
-            f"{self.content_number}"
+            f"{config.get_unit(self.item.media_type, short=True)}{self.content_number}"
         )
 
     @property
@@ -241,12 +240,3 @@ class Event(models.Model):
             and self.datetime.minute == SentinelDatetime.MINUTE
             and self.datetime.second == SentinelDatetime.SECOND
         )
-
-    @property
-    def display_time(self):
-        """Return the display time of the event."""
-        if self.is_sentinel_time:
-            return ""
-
-        localized_value = timezone.localtime(self.datetime)
-        return f"at {localized_value.strftime('%H:%M')}"

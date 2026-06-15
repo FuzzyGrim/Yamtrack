@@ -71,5 +71,3 @@ class MediaModel(TestCase):
             Anime.objects.get(item__media_id="1", user=self.user).progress,
             26,
         )
-
-

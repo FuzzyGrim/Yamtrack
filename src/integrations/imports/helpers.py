@@ -11,7 +11,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
-from simple_history.utils import bulk_create_with_history
+from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 import app
 from app.models import MediaTypes
@@ -37,7 +37,10 @@ def get_existing_media(user):
         media_model = apps.get_model(app_label="app", model_name=media_type)
 
         for media in media_model.objects.filter(user=user).select_related("item"):
-            existing[media_type][media.item.source][media.item.media_id] = media
+            existing[media_type][media.item.source].setdefault(
+                media.item.media_id,
+                media,
+            )
 
     counts = [
         f"{media_type}: {sum(len(source_dict) for source_dict in media_dict.values())}"
@@ -190,6 +193,32 @@ def bulk_create_media(bulk_media_list, user):
         )
 
 
+def bulk_update_media(bulk_media_list, fields_by_media_type, user):
+    """Bulk update media objects with history tracking."""
+    for media_type, bulk_media in bulk_media_list.items():
+        if not bulk_media:
+            continue
+
+        fields = fields_by_media_type.get(media_type)
+        if not fields:
+            logger.warning(
+                "Skipping bulk update for %s without configured fields",
+                media_type,
+            )
+            continue
+
+        model = apps.get_model(app_label="app", model_name=media_type)
+
+        logger.info("Bulk updating %s", media_type)
+        bulk_update_with_history(
+            bulk_media,
+            model,
+            fields=fields,
+            batch_size=500,
+            default_user=user,
+        )
+
+
 def create_import_schedule(
     username,
     request,
@@ -198,6 +227,7 @@ def create_import_schedule(
     import_time,
     source,
     token=None,
+    task_kwargs=None,
 ):
     """Create an import schedule."""
     try:
@@ -235,6 +265,8 @@ def create_import_schedule(
 
     if token:
         kwargs["token"] = token
+    if task_kwargs:
+        kwargs.update(task_kwargs)
 
     # Create new periodic task
     PeriodicTask.objects.create(

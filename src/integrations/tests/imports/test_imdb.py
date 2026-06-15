@@ -137,5 +137,3 @@ class ImportIMDB(TestCase):
         self.assertEqual(imported_counts.get(MediaTypes.MOVIE.value, 0), 5)
 
         self.assertIn("They were matched to the same TMDB ID 155", warnings)
-
-

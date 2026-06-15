@@ -161,7 +161,7 @@ def get_image_url(response):
     """Get the image URL for a media item."""
     # when no image, value from response is null
     url = response["image"]["url"]["original"]
-    return url if url else settings.IMG_NONE
+    return url or settings.IMG_NONE
 
 
 def get_max_progress(response):

@@ -105,6 +105,7 @@ class ImportSimkl(TestCase):
         movie_obj = Movie.objects.get(item=movie_item)
         self.assertEqual(movie_obj.status, Status.COMPLETED.value)
         self.assertEqual(movie_obj.score, 9)
+        self.assertEqual(movie_obj.progress, 1)
 
         anime_item = Item.objects.get(media_type=MediaTypes.ANIME.value)
         self.assertEqual(anime_item.title, "Cowboy Bebop")
@@ -229,5 +230,3 @@ class ImportSimkl(TestCase):
 
         for episode in season1_episodes:
             self.assertIsNotNone(episode.end_date)
-
-

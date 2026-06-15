@@ -1,4 +1,3 @@
-
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.test import TestCase
@@ -230,5 +229,3 @@ class CreateEntryViewTests(TestCase):
             self.client.post(reverse("create_entry"), form_data)
 
         self.assertEqual(Item.objects.count(), initial_count)
-
-

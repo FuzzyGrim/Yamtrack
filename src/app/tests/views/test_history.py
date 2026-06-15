@@ -1,4 +1,3 @@
-
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -132,5 +131,3 @@ class DeleteHistoryRecordViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
-
-

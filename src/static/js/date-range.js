@@ -157,7 +157,9 @@ function dateRangePicker() {
 
     updateDateRange() {
       // Ensure end date is not before start date
-      if (new Date(this.endDate) < new Date(this.startDate)) {
+      if (
+        this.parseInputDate(this.endDate) < this.parseInputDate(this.startDate)
+      ) {
         this.endDate = this.startDate;
       }
 
@@ -183,12 +185,103 @@ function dateRangePicker() {
     },
 
     formatDisplayDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
+      const date = this.parseInputDate(dateString);
+      const format = this.getDateFormat();
+
+      return this.formatDateByDjangoFormat(date, format);
+    },
+
+    getDateFormat() {
+      const scriptTag = document.querySelector('script[data-date-format]');
+      const selectedFormat = scriptTag?.dataset.dateFormat;
+      const dateFormats = this.getDateFormatValues();
+
+      if (
+        selectedFormat &&
+        (!dateFormats.length || dateFormats.includes(selectedFormat))
+      ) {
+        return selectedFormat;
+      }
+
+      return dateFormats[0] || "Y-m-d";
+    },
+
+    getDateFormatValues() {
+      const formatsElement = document.getElementById("date_format_values");
+
+      if (!formatsElement?.textContent) {
+        return [];
+      }
+
+      try {
+        const dateFormats = JSON.parse(formatsElement.textContent);
+        return Array.isArray(dateFormats) ? dateFormats : [];
+      } catch {
+        return [];
+      }
+    },
+
+    parseInputDate(dateString) {
+      const [year, month, day] = dateString.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    },
+
+    formatDateByDjangoFormat(date, djangoFormat) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const shortMonth = date.toLocaleString(undefined, { month: "short" });
+      const longMonth = date.toLocaleString(undefined, { month: "long" });
+      const shortWeekday = date.toLocaleString(undefined, { weekday: "short" });
+      const longWeekday = date.toLocaleString(undefined, { weekday: "long" });
+      const ordinalSuffix = this.getOrdinalSuffix(date.getDate());
+
+      const formatters = {
+        d: () => day,
+        D: () => shortWeekday,
+        F: () => longMonth,
+        j: () => String(date.getDate()),
+        l: () => longWeekday,
+        m: () => month,
+        M: () => shortMonth,
+        n: () => String(date.getMonth() + 1),
+        S: () => ordinalSuffix,
+        y: () => String(year).slice(-2),
+        Y: () => String(year),
+      };
+
+      let formattedDate = "";
+      let isEscaped = false;
+
+      for (const character of djangoFormat) {
+        if (isEscaped) {
+          formattedDate += character;
+          isEscaped = false;
+        } else if (character === "\\") {
+          isEscaped = true;
+        } else {
+          formattedDate += formatters[character]?.() ?? character;
+        }
+      }
+
+      return formattedDate;
+    },
+
+    getOrdinalSuffix(day) {
+      if (day >= 11 && day <= 13) {
+        return "th";
+      }
+
+      switch (day % 10) {
+        case 1:
+          return "st";
+        case 2:
+          return "nd";
+        case 3:
+          return "rd";
+        default:
+          return "th";
+      }
     },
 
     detectRangeFromDates() {
@@ -198,8 +291,8 @@ function dateRangePicker() {
         return;
       }
       // Parse the current start and end dates
-      const startDate = new Date(this.startDate);
-      const endDate = new Date(this.endDate);
+      const startDate = this.parseInputDate(this.startDate);
+      const endDate = this.parseInputDate(this.endDate);
 
       // Get today's date with time set to 00:00:00
       const today = new Date();

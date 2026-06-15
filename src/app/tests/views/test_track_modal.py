@@ -91,5 +91,3 @@ class TrackModalViewTests(TestCase):
             response.context["form"].initial["media_type"],
             MediaTypes.MOVIE.value,
         )
-
-

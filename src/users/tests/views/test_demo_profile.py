@@ -1,4 +1,3 @@
-
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -43,5 +42,3 @@ class DemoProfileTests(TestCase):
         )
         self.assertTrue(auth.get_user(self.client).check_password("testpass123"))
         self.assertContains(response, "not allowed for the demo account")
-
-

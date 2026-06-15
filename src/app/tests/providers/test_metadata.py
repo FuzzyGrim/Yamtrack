@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -72,6 +73,84 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["status"], "Ended")
         self.assertEqual(response["details"]["episodes"], 62)
 
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_changes(self, mock_api_request, mock_localdate):
+        """Test fetching changed TV ids from TMDB."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.return_value = {
+            "results": [{"id": 1}, {"id": 2}],
+            "total_pages": 1,
+        }
+
+        result = tmdb.tv_changes()
+
+        self.assertEqual(result, {"1", "2"})
+        _, kwargs = mock_api_request.call_args
+        self.assertEqual(kwargs["params"]["start_date"], "2026-04-02")
+        self.assertEqual(kwargs["params"]["end_date"], "2026-04-05")
+        self.assertEqual(kwargs["params"]["page"], 1)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_tv_changes_across_pages(self, mock_api_request, mock_localdate):
+        """Test TMDB TV changes pagination and deduplication."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.side_effect = [
+            {
+                "results": [{"id": 1}, {"id": 2}],
+                "total_pages": 2,
+            },
+            {
+                "results": [{"id": 2}, {"id": 3}],
+                "total_pages": 2,
+            },
+        ]
+
+        result = tmdb.tv_changes()
+
+        self.assertEqual(result, {"1", "2", "3"})
+        self.assertEqual(mock_api_request.call_count, 2)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_changes(self, mock_api_request, mock_localdate):
+        """Test fetching changed movie ids from TMDB."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.return_value = {
+            "results": [{"id": 10}, {"id": 20}],
+            "total_pages": 1,
+        }
+
+        result = tmdb.movie_changes()
+
+        self.assertEqual(result, {"10", "20"})
+        _, kwargs = mock_api_request.call_args
+        self.assertEqual(kwargs["params"]["start_date"], "2026-04-02")
+        self.assertEqual(kwargs["params"]["end_date"], "2026-04-05")
+        self.assertEqual(kwargs["params"]["page"], 1)
+
+    @patch("app.providers.tmdb.timezone.localdate")
+    @patch("app.providers.tmdb.services.api_request")
+    def test_movie_changes_across_pages(self, mock_api_request, mock_localdate):
+        """Test TMDB movie changes pagination and deduplication."""
+        mock_localdate.return_value = date(2026, 4, 5)
+        mock_api_request.side_effect = [
+            {
+                "results": [{"id": 10}, {"id": 20}],
+                "total_pages": 2,
+            },
+            {
+                "results": [{"id": 20}, {"id": 30}],
+                "total_pages": 2,
+            },
+        ]
+
+        result = tmdb.movie_changes()
+
+        self.assertEqual(result, {"10", "20", "30"})
+        self.assertEqual(mock_api_request.call_count, 2)
+
     def test_tmdb_process_episodes(self):
         """Test the process_episodes function for TMDB episodes."""
         Item.objects.create(
@@ -112,7 +191,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still1.jpg",
                     "name": "Pilot",
                     "overview": "overview of the episode",
-                    "runtime": 23,
+                    "runtime": 90,
                 },
                 {
                     "episode_number": 2,
@@ -160,11 +239,15 @@ class Metadata(TestCase):
         self.assertEqual(result[0]["episode_number"], 1)
         self.assertEqual(result[0]["title"], "Pilot")
         self.assertEqual(result[0]["air_date"], "2008-01-20")
+        self.assertEqual(result[0]["runtime"], "1h 30m")
+        self.assertEqual(result[0]["runtime_minutes"], 90)
         self.assertTrue(result[0]["history"], [episode_1])
 
         self.assertEqual(result[1]["episode_number"], 2)
         self.assertEqual(result[1]["title"], "Cat's in the Bag...")
         self.assertEqual(result[1]["air_date"], "2008-01-27")
+        self.assertEqual(result[1]["runtime"], "23m")
+        self.assertEqual(result[1]["runtime_minutes"], 23)
         self.assertTrue(result[1]["history"], [episode_2])
 
         self.assertEqual(result[2]["episode_number"], 3)
@@ -263,6 +346,12 @@ class Metadata(TestCase):
             response["details"]["themes"],
             ["Action", "Fantasy", "Open world"],
         )
+        self.assertIsNotNone(response["time_to_beat"])
+        self.assertIn("normally", response["time_to_beat"])
+        self.assertEqual(
+            list(response["time_to_beat"].keys()),
+            ["hastily", "normally", "completely"],
+        )
 
     def test_external_game_steam(self):
         """Test the external_game method for Steam games."""
@@ -281,6 +370,11 @@ class Metadata(TestCase):
         response = openlibrary.book("OL21733390M")
         self.assertEqual(response["title"], "Nineteen Eighty-Four")
         self.assertEqual(response["details"]["author"], ["George Orwell"])
+
+    def test_openlibrary_publish_date_with_abbreviated_month(self):
+        """Test Open Library publish dates with abbreviated month names."""
+        response = openlibrary.get_publish_date({"publish_date": "Oct 01, 2017"})
+        self.assertEqual(response, "2017-10-01")
 
     def test_comic(self):
         """Test the metadata method for comics."""
@@ -631,5 +725,3 @@ class Metadata(TestCase):
             hardcover.handle_error(error)
 
         self.assertEqual(cm.exception.provider, Sources.HARDCOVER.value)
-
-

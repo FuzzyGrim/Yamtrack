@@ -125,7 +125,7 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
         url = f"{base_url}/external_games"
         query = (
             f'fields game; where uid = "{external_id}" & '
-            f'external_game_source = {source};'
+            f"external_game_source = {source};"
         )
         headers = {
             "Client-ID": settings.IGDB_ID,
@@ -229,7 +229,7 @@ def search(query, page):
                     Sources.IGDB.value,
                     "POST",
                     url,
-                    data=data,
+                    data=multiquery,
                     headers=headers,
                 )
 
@@ -271,8 +271,9 @@ def game(media_id):
     data = cache.get(cache_key)
     if data is None:
         access_token = get_access_token()
-        url = f"{base_url}/games"
-        data = (
+        url = f"{base_url}/multiquery"
+        multiquery = (
+            'query games "GameData" {'
             "fields name,cover.image_id,artworks.image_id,"
             "url,summary,game_type,first_release_date,total_rating,total_rating_count,"
             "genres.name,themes.name,platforms.name,involved_companies.company.name,involved_companies.developer,"
@@ -282,8 +283,14 @@ def game(media_id):
             "expansions.name,expansions.cover.image_id,"
             "standalone_expansions.name,standalone_expansions.cover.image_id,"
             "expanded_games.name,expanded_games.cover.image_id,"
-            "similar_games.name,similar_games.cover.image_id;"
+            "similar_games.name,similar_games.cover.image_id,"
+            "dlcs.name,dlcs.cover.image_id;"
             f"where id = {media_id};"
+            "};"
+            'query game_time_to_beats "TTBData" {'
+            "fields hastily,normally,completely;"
+            f"where game_id = {media_id};"
+            "};"
         )
         headers = {
             "Client-ID": settings.IGDB_ID,
@@ -295,7 +302,7 @@ def game(media_id):
                 Sources.IGDB.value,
                 "POST",
                 url,
-                data=data,
+                data=multiquery,
                 headers=headers,
             )
         except requests.exceptions.HTTPError as error:
@@ -307,68 +314,83 @@ def game(media_id):
                     Sources.IGDB.value,
                     "POST",
                     url,
-                    data=data,
+                    data=multiquery,
                     headers=headers,
                 )
 
-        # Check if response is empty (no results found)
-        if not response:
-            services.raise_not_found_error(
-                Sources.IGDB.value, media_id, "game",
-            )
+        results = {item["name"]: item.get("result", []) for item in response}
 
-        response = response[0]  # response is a list with a single element
-        
+        # Check if response is empty (no results found)
+        game_results = results.get("GameData", [])
+        if not game_results:
+            services.raise_not_found_error(
+                Sources.IGDB.value,
+                media_id,
+                "game",
+            )
+        game_response = game_results[0]  # response is a list with a single element
+
+        ttb_results = results.get("TTBData", [])
+        time_to_beat = None
+        if ttb_results:
+            entry = ttb_results[0]  # response is a list with a single element
+            ttb_data = {k: v for k, v in entry.items() if k != "id" and v is not None}
+            time_to_beat = ttb_data or None
+
         # Get all related items individually
-        remasters = get_related(response.get("remasters"))
-        remakes = get_related(response.get("remakes"))
-        expansions = get_related(response.get("expansions"))
+        remasters = get_related(game_response.get("remasters"))
+        remakes = get_related(game_response.get("remakes"))
+        expansions = get_related(game_response.get("expansions"))
+        dlcs = get_related(game_response.get("dlcs"))
         standalone_expansions = get_related(
-            response.get("standalone_expansions"),
+            game_response.get("standalone_expansions"),
         )
-        expanded_games = get_related(response.get("expanded_games"))
-        recommendations = get_related(response.get("similar_games"))
+        expanded_games = get_related(game_response.get("expanded_games"))
+        recommendations = get_related(game_response.get("similar_games"))
         
         # Combine all related items (excluding parent_game) and limit to 7 total
         all_related = (
             remasters
             + remakes
             + expansions
+            + dlcs
             + standalone_expansions
             + expanded_games
             + recommendations
         )[:7]
-        
+
         data = {
-            "media_id": response["id"],
+            "media_id": game_response["id"],
             "source": Sources.IGDB.value,
-            "source_url": response["url"],
+            "source_url": game_response["url"],
             "media_type": MediaTypes.GAME.value,
-            "title": response["name"],
+            "title": game_response["name"],
             "max_progress": None,
-            "image": get_image_url(response),
-            "synopsis": response.get("summary", "No synopsis available."),
-            "genres": get_list(response, "genres"),
-            "score": get_score(response),
-            "score_count": response.get("total_rating_count"),
+            "image": get_image_url(game_response),
+            "synopsis": game_response.get("summary", "No synopsis available."),
+            "genres": get_list(game_response, "genres"),
+            "score": get_score(game_response),
+            "score_count": game_response.get("total_rating_count"),
             "details": {
-                "format": get_game_type(response["game_type"]),
-                "release_date": get_start_date(response),
-                "themes": get_list(response, "themes"),
-                "platforms": get_list(response, "platforms"),
-                "companies": get_companies(response),
-                "developer": get_developer(response),
+                "format": get_game_type(game_response["game_type"]),
+                "release_date": get_start_date(game_response),
+                "themes": get_list(game_response, "themes"),
+                "platforms": get_list(game_response, "platforms"),
+                "companies": get_companies(game_response),
+                "developer": get_developer(game_response),
             },
             "related": {
-                "parent_game": get_parent(response.get("parent_game")),
+                "parent_game": get_parent(game_response.get("parent_game")),
                 "remasters": remasters,
                 "remakes": remakes,
                 "expansions": expansions,
+                "dlcs": dlcs,
                 "standalone_expansions": standalone_expansions,
                 "expanded_games": expanded_games,
                 "recommendations": recommendations,
                 "all_related": all_related,
             },
+            "time_to_beat": time_to_beat,
         }
         cache.set(cache_key, data)
     return data

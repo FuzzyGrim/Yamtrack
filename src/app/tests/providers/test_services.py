@@ -150,6 +150,16 @@ class ServicesTests(TestCase):
 
         self.assertEqual(cm.exception.provider, Sources.MAL.value)
 
+    def test_provider_api_error_without_response(self):
+        """Test ProviderAPIError with network errors that have no response."""
+        error = requests.exceptions.ConnectionError("Connection aborted")
+
+        exception = services.ProviderAPIError(Sources.OPENLIBRARY.value, error)
+
+        self.assertEqual(exception.provider, Sources.OPENLIBRARY.value)
+        self.assertIsNone(exception.status_code)
+        self.assertIn("Open Library API (network error)", str(exception))
+
     @patch("app.providers.mal.anime")
     def test_get_media_metadata_anime(self, mock_anime):
         """Test the get_media_metadata function for anime."""
@@ -373,7 +383,9 @@ class ServicesTests(TestCase):
     def test_get_media_metadata_tmdb_episode_not_found(self, mock_episode):
         """Test the get_media_metadata function for TMDB episodes that don't exist."""
         mock_response = type(
-            "Response", (), {"status_code": 404, "text": "Episode not found"},
+            "Response",
+            (),
+            {"status_code": 404, "text": "Episode not found"},
         )()
         mock_error = type("Error", (), {"response": mock_response})()
         mock_episode.side_effect = services.ProviderAPIError(
@@ -393,7 +405,6 @@ class ServicesTests(TestCase):
         self.assertEqual(cm.exception.provider, Sources.TMDB.value)
 
         mock_episode.assert_called_once_with("1396", 1, "3")
-
 
     @patch("app.providers.hardcover.book")
     def test_get_media_metadata_hardcover_book(self, mock_book):

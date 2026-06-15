@@ -114,5 +114,3 @@ class ImportKitsu(TestCase):
         self.assertEqual(instance.progress, 26)
         self.assertEqual(instance.status, Status.COMPLETED.value)
         self.assertEqual(instance.notes, "Great series!")
-
-

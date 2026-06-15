@@ -1,9 +1,11 @@
 import logging
+from datetime import timedelta
 
 import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.text import slugify
 
 from app import helpers
@@ -43,7 +45,7 @@ def handle_error(error):
     )
 
 
-def get_external_links(external_ids):
+def get_external_links(external_ids, tmdb_id=None):
     """Build external links dictionary from TMDB external_ids response."""
     links = {}
 
@@ -59,6 +61,9 @@ def get_external_links(external_ids):
         links["Wikidata"] = (
             f"https://www.wikidata.org/wiki/{external_ids['wikidata_id']}"
         )
+
+    if tmdb_id:
+        links["Letterboxd"] = f"https://www.letterboxd.com/tmdb/{tmdb_id}"
 
     return links
 
@@ -272,7 +277,9 @@ def movie(media_id):
         url = f"{base_url}/movie/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations,credits,release_dates,external_ids",
+            "append_to_response": (
+                "recommendations,credits,release_dates,external_ids,watch/providers"
+            ),
         }
 
         try:
@@ -282,8 +289,30 @@ def movie(media_id):
                 url,
                 params=params,
             )
+            if response.get("belongs_to_collection", {}) is not None and (
+                collection_id := response.get("belongs_to_collection", {}).get("id")
+            ):
+                try:
+                    collection_response = services.api_request(
+                        Sources.TMDB.value,
+                        "GET",
+                        f"{base_url}/collection/{collection_id}",
+                        params={**base_params},
+                    )
+                except requests.exceptions.HTTPError as error:
+                    logger.warning("Failed to get collection: %s", error)
+                    collection_response = {}
+            else:
+                collection_response = {}
         except requests.exceptions.HTTPError as error:
             handle_error(error)
+
+        collection_items = get_collection(collection_response)
+        collection_ids = [item["media_id"] for item in collection_items]
+        recommended_items = response.get("recommendations", {}).get("results", [])
+        filtered_recommendations = [
+            item for item in recommended_items if item["id"] not in collection_ids
+        ]
 
         data = {
             "media_id": media_id,
@@ -314,12 +343,14 @@ def movie(media_id):
             "cast": get_cast(response.get("credits")),
             "crew": get_crew(response.get("credits")),
             "related": {
+                collection_response.get("name", "collection"): collection_items,
                 "recommendations": get_related(
-                    response.get("recommendations", {}).get("results", [])[:15],
+                    filtered_recommendations[:15],
                     MediaTypes.MOVIE.value,
                 ),
             },
-            "external_links": get_external_links(response.get("external_ids", {})),
+            "external_links": get_external_links(response.get("external_ids", {}), media_id),
+            "providers": response.get("watch/providers", {}).get("results", {}),
         }
 
         cache.set(cache_key, data)
@@ -363,14 +394,19 @@ def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
 def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
     """Fetch uncached seasons from API and cache them."""
     url = f"{base_url}/tv/{media_id}"
-    base_append = "recommendations,external_ids"
+    base_append = "recommendations,external_ids,watch/providers"
     max_seasons_per_request = 18
     fetched_tv_data = tv_data
     result_data = {}
 
     for i in range(0, len(season_numbers), max_seasons_per_request):
         season_subset = season_numbers[i : i + max_seasons_per_request]
-        append_text = ",".join([f"season/{season}" for season in season_subset])
+        append_text = ",".join(
+            [
+                f"season/{season},season/{season}/watch/providers"
+                for season in season_subset
+            ],
+        )
 
         params = {
             **base_params,
@@ -406,7 +442,10 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
                 not_found_error = type("Error", (), {"response": not_found_response})
                 raise services.ProviderAPIError(msg, error=not_found_error, details=msg)
 
-            season_data = process_season(response[season_key])
+            season_data = process_season(
+                response[season_key],
+                response.get(f"{season_key}/watch/providers", {}),
+            )
             season_data = enrich_season_with_tv_data(
                 season_data,
                 fetched_tv_data,
@@ -460,7 +499,9 @@ def tv(media_id):
         url = f"{base_url}/tv/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations,external_ids,credits,content_ratings",
+            "append_to_response": (
+                "recommendations,external_ids,credits,content_ratings,watch/providers"
+            ),
         }
 
         try:
@@ -528,12 +569,13 @@ def process_tv(response):
         },
         "tvdb_id": response.get("external_ids", {}).get("tvdb_id"),
         "external_links": get_external_links(response.get("external_ids", {})),
+        "providers": response.get("watch/providers", {}).get("results", {}),
         "last_episode_season": last_episode["season_number"] if last_episode else None,
         "next_episode_season": next_episode["season_number"] if next_episode else None,
     }
 
 
-def process_season(response):
+def process_season(response, providers_response=None):
     """Process the metadata for the selected season from The Movie Database."""
     episodes = response["episodes"]
     num_episodes = len(episodes)
@@ -570,6 +612,7 @@ def process_season(response):
             "runtime": avg_runtime,
             "total_runtime": total_runtime,
         },
+        "providers": (providers_response or {}).get("results", {}),
         "episodes": response["episodes"],
     }
 
@@ -730,6 +773,41 @@ def get_related(related_medias, media_type, parent_response=None):
             data["title"] = get_title(media)
         related.append(data)
     return related
+
+
+def get_collection(collection_response):
+    """Format media collection list to match related media."""
+    if not collection_response:
+        return []
+
+    def date_key(item):
+        return item.get("release_date") or ""
+
+    parts = sorted(collection_response.get("parts", []), key=date_key)
+    return get_related(parts, MediaTypes.MOVIE.value)
+
+
+def filter_providers(all_providers, region):
+    """Filter watch providers by region."""
+    if not region:
+        return []
+
+    if not all_providers:
+        return []
+
+    region_providers = all_providers.get(region, {})
+    flatrate_providers = region_providers.get("flatrate", [])
+    free_providers = region_providers.get("free", [])
+    providers = {}
+    for provider in [*flatrate_providers, *free_providers]:
+        providers[provider.get("provider_id")] = provider
+
+    providers = list(providers.values())
+    for provider in providers:
+        provider["logo"] = get_image_url(provider.get("logo_path"))
+
+    providers.sort(key=lambda e: e.get("display_priority", 999))
+    return providers
 
 
 def process_episodes(season_metadata, episodes_in_db):
@@ -1091,3 +1169,81 @@ def get_poster_images(media_id, media_type, season_number=None):
         cache.set(cache_key, data, 86400)
         
     return data
+
+
+def watch_provider_regions():
+    """Return the available watch provider regions from The Movie Database."""
+    cache_key = f"{Sources.TMDB.value}_watch_provider_regions"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/watch/providers/regions"
+        params = {**base_params}
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = [("", "Disabled")]
+        regions = response.get("results", [])
+        for region in sorted(regions, key=lambda r: r.get("english_name", "")):
+            key = region.get("iso_3166_1")
+            name = region.get("english_name") or key
+            if key:
+                data.append((key, name))
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def get_changed_ids(media_type):
+    """Return changed TMDB ids for the given media type over the last days."""
+    url = f"{base_url}/{media_type}/changes"
+    end_date = timezone.localdate()
+    start_date = end_date - timedelta(days=3)
+    changed_ids = set()
+    page = 1
+
+    while True:
+        params = {
+            **base_params,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "page": page,
+        }
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        changed_ids.update(str(result["id"]) for result in response.get("results", []))
+
+        total_pages = response.get("total_pages", 1)
+        if page >= total_pages:
+            break
+        page += 1
+
+    return changed_ids
+
+
+def tv_changes():
+    """Return changed TV ids from TMDB for the last days across all pages."""
+    return get_changed_ids(MediaTypes.TV.value)
+
+
+def movie_changes():
+    """Return changed movie ids from TMDB for the last days across all pages."""
+    return get_changed_ids(MediaTypes.MOVIE.value)

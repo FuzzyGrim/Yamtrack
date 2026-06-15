@@ -65,8 +65,14 @@ class GoodReadsImporter:
         for row in reader:
             try:
                 self._process_row(row)
-            except services.ProviderAPIError:
-                error_msg = f"Error processing entry with ID {row['media_id']} "
+            except services.ProviderAPIError as error:
+                row_description = self._row_description(row)
+                logger.warning(
+                    "Error processing Goodreads entry: %s - %s",
+                    row_description,
+                    error,
+                )
+                error_msg = f"Error processing entry: {row_description} - {error}"
                 self.warnings.append(error_msg)
                 continue
             except Exception as error:
@@ -87,6 +93,19 @@ class GoodReadsImporter:
 
         deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
         return imported_counts, deduplicated_messages
+
+    def _row_description(self, row):
+        """Return a useful label for warnings without assuming Yamtrack fields."""
+        title = row.get("Title")
+        book_id = row.get("Book Id")
+
+        if title and book_id:
+            return f"{title} (Goodreads ID {book_id})"
+        if title:
+            return title
+        if book_id:
+            return f"Goodreads ID {book_id}"
+        return str(row)
 
     def _process_row(self, row):
         """Process a single row from the CSV file."""

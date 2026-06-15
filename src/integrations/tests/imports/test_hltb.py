@@ -39,5 +39,3 @@ class ImportHowLongToBeat(TestCase):
             game.history.first().history_date,
             datetime(2024, 2, 9, 15, 54, 48, tzinfo=UTC),
         )
-
-

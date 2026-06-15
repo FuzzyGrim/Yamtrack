@@ -5,17 +5,19 @@ from django.contrib import admin
 from django.contrib.admin.sites import AlreadyRegistered
 
 from app.models import (
-    Episode,
-    Item,
+    BookSession,
     CustomPosterPreference,
     DiaryEntry,
-    Tag,
     DiaryEntryTag,
-    BookSession,
+    Episode,
+    Item,
+    Tag,
+    UserMessage,
 )
 
 
 # Custom ModelAdmin classes with search functionality
+@admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     """Custom admin for Item model with search and filter options."""
 
@@ -31,11 +33,21 @@ class ItemAdmin(admin.ModelAdmin):
     list_filter = ["media_type", "source"]
 
 
+@admin.register(Episode)
 class EpisodeAdmin(admin.ModelAdmin):
     """Custom admin for Episode model with search and filter options."""
 
     search_fields = ["item__title", "related_season__item__title"]
     list_display = ["__str__", "end_date"]
+
+
+@admin.register(UserMessage)
+class UserMessageAdmin(admin.ModelAdmin):
+    """Custom admin for persistent user messages."""
+
+    search_fields = ["user__username", "message"]
+    list_display = ["message", "level", "user", "created_at", "shown_at"]
+    list_filter = ["level", "shown_at"]
 
 
 class MediaAdmin(admin.ModelAdmin):
@@ -88,9 +100,6 @@ class BookSessionAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at"]
 
 
-# Register models with custom admin classes
-admin.site.register(Item, ItemAdmin)
-admin.site.register(Episode, EpisodeAdmin)
 admin.site.register(CustomPosterPreference, CustomPosterPreferenceAdmin)
 admin.site.register(DiaryEntry, DiaryEntryAdmin)
 admin.site.register(Tag, TagAdmin)
@@ -100,7 +109,17 @@ admin.site.register(BookSession, BookSessionAdmin)
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia", "CustomPosterPreference", "DiaryEntry", "Tag", "DiaryEntryTag", "BookSession"]
+SpecialModels = [
+    "Item",
+    "Episode",
+    "BasicMedia",
+    "CustomPosterPreference",
+    "DiaryEntry",
+    "Tag",
+    "DiaryEntryTag",
+    "BookSession",
+    "UserMessage",
+]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

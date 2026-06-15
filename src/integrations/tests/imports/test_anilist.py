@@ -101,5 +101,3 @@ class ImportAniList(TestCase):
             "new",
             "fhdsufdsu",
         )
-
-

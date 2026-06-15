@@ -4,6 +4,7 @@ from pathlib import Path
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
@@ -19,11 +20,11 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import config, helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class, BookProgressForm, BookLogForm, BookStartReadingForm
-from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie, Episode, Book, BookSession
+from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status, Movie, Episode, Book, BookSession, UserMessage
 
 from app.providers import igdb, manual, mdblist, services, tmdb
 from app.templatetags import app_tags
-from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
+from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices, User
 from app.forms import DiaryEntryForm
 from app.models import DiaryEntry
 from app.utils.color import (
@@ -41,17 +42,19 @@ def home(request):
     media_type_to_load = request.GET.get("load_media_type")
     items_limit = 14
 
-    list_by_type = BasicMedia.objects.get_in_progress(
-        request.user,
-        HomeSortChoices.COMPLETION,
-        items_limit,
-        media_type_to_load,
+    list_by_type = BasicMedia.objects.get_home_status(
+        user=request.user,
+        status=Status.IN_PROGRESS.value,
+        sort_by=HomeSortChoices.COMPLETION,
+        items_limit=items_limit,
+        specific_media_type=media_type_to_load,
     )
 
     # If this is an HTMX request to load more items for a specific media type
     if request.headers.get("HX-Request") and media_type_to_load:
         context = {
             "media_list": list_by_type.get(media_type_to_load, []),
+            "home_status": Status.IN_PROGRESS.value,
         }
         return render(request, "app/components/home_grid.html", context)
 
@@ -71,10 +74,11 @@ def progress_edit(request, media_type, instance_id):
     
     operation = request.POST["operation"]
 
-    media = BasicMedia.objects.get_media_prefetch(
-        request.user,
+    media = helpers.get_owned_media_or_404(
+        request,
         media_type,
         instance_id,
+        prefetch=True,
     )
 
     if operation == "increase":
@@ -97,21 +101,52 @@ def progress_edit(request, media_type, instance_id):
     )
 
 
+@login_not_required
 @require_GET
-def media_list(request, media_type):
+def media_list(request, media_type, username=None):
     """Return the media list page."""
-    layout = request.user.update_preference(
-        f"{media_type}_layout",
-        request.GET.get("layout"),
-    )
-    sort_filter = request.user.update_preference(
-        f"{media_type}_sort",
-        request.GET.get("sort"),
-    )
-    status_filter = request.user.update_preference(
-        f"{media_type}_status",
-        request.GET.get("status"),
-    )
+    target_user = get_object_or_404(User, username=username) if username else request.user
+
+    if request.user == target_user:
+        layout = target_user.update_preference(
+            f"{media_type}_layout",
+            request.GET.get("layout"),
+        )
+        sort_filter = target_user.update_preference(
+            f"{media_type}_sort",
+            request.GET.get("sort"),
+        )
+        status_filter = target_user.update_preference(
+            f"{media_type}_status",
+            request.GET.get("status"),
+        )
+    else:
+        if target_user.profile_private:
+            raise Http404("User not found")
+
+        enabled_media_types = target_user.get_enabled_media_types()
+        if not enabled_media_types:
+            raise Http404("User doesn't have any media types enabled")
+
+        if media_type not in enabled_media_types:
+            return redirect(
+                "medialist",
+                username=target_user.username,
+                media_type=enabled_media_types[0],
+            )
+
+        layout = target_user.get_valid_preference(
+            f"{media_type}_layout",
+            request.GET.get("layout"),
+        )
+        sort_filter = target_user.get_valid_preference(
+            f"{media_type}_sort",
+            request.GET.get("sort"),
+        )
+        status_filter = target_user.get_valid_preference(
+            f"{media_type}_status",
+            request.GET.get("status"),
+        )
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
 
@@ -121,7 +156,7 @@ def media_list(request, media_type):
 
     # Get media list with filters applied
     media_queryset = BasicMedia.objects.get_media_list(
-        user=request.user,
+        user=target_user,
         media_type=media_type,
         status_filter=status_filter,
         sort_filter=sort_filter,
@@ -148,6 +183,7 @@ def media_list(request, media_type):
         "current_status": status_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
+        "target_user": target_user,
     }
 
     # Handle HTMX requests for partial updates
@@ -155,7 +191,13 @@ def media_list(request, media_type):
         # Changing from empty list to a status with items
         if request.headers.get("HX-Target") == "empty_list":
             response = HttpResponse()
-            response["HX-Redirect"] = reverse("medialist", args=[media_type])
+            if username:
+                response["HX-Redirect"] = reverse(
+                    "medialist",
+                    args=[target_user.username, media_type],
+                )
+            else:
+                response["HX-Redirect"] = reverse("medialist", args=[media_type])
             return response
         if layout == "grid":
             template_name = "app/components/media_grid_items.html"
@@ -237,6 +279,12 @@ def media_details(request, source, media_type, media_id, title):
     )
     current_instance = user_medias[0] if user_medias else None
 
+    if current_instance is not None:
+        helpers.refresh_item_image_if_missing(
+            current_instance.item,
+            media_metadata.get("image"),
+        )
+
     # Get diary entries for this media (movies, TV, books, and games)
     diary_entries = []
     if media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.BOOK.value, MediaTypes.GAME.value]:
@@ -272,6 +320,14 @@ def media_details(request, source, media_type, media_id, title):
                     )
                 )
 
+    if media_type in [MediaTypes.TV.value, MediaTypes.MOVIE.value]:
+        watch_providers = tmdb.filter_providers(
+            media_metadata.get("providers"),
+            request.user.watch_provider_region,
+        )
+    else:
+        watch_providers = None
+
     context = {
         "media": media_metadata,
         "media_type": media_type,
@@ -282,6 +338,8 @@ def media_details(request, source, media_type, media_id, title):
         "poster_accent_color": poster_accent,
         "poster_accent_contrast": poster_accent_contrast,
         "has_seasons_in_progress": has_seasons_in_progress,
+        "watch_providers": watch_providers,
+        "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
 
@@ -310,6 +368,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         [season_number],
     )
     season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
+    season_metadata["season_number"] = season_number
 
     poster_accent = None
     # First check if there's a season item with custom poster
@@ -359,6 +418,12 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
 
     current_instance = user_medias[0] if user_medias else None
     episodes_in_db = current_instance.episodes.all() if current_instance else []
+
+    if current_instance is not None:
+        helpers.refresh_item_image_if_missing(
+            current_instance.item,
+            season_metadata.get("image"),
+        )
 
     # Get diary entries for this season
     diary_entries = []
@@ -411,6 +476,11 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "mdblist_ratings": mdblist_ratings,
         "poster_accent_color": poster_accent,
         "poster_accent_contrast": poster_accent_contrast,
+        "watch_providers": tmdb.filter_providers(
+            season_metadata.get("providers"),
+            request.user.watch_provider_region,
+        ),
+        "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
 
@@ -690,6 +760,25 @@ def media_delete(request):
         logger.warning("The %s was already deleted before.", media_type)
 
     return helpers.redirect_back(request)
+
+
+@require_POST
+def mark_user_messages_shown(request):
+    """Mark all unseen persistent messages for the user as shown."""
+    message_ids = [
+        int(message_id)
+        for message_id in request.POST.getlist("message_ids")
+        if message_id.isdigit()
+    ]
+    if not message_ids:
+        return HttpResponse(status=204)
+
+    UserMessage.objects.filter(
+        id__in=message_ids,
+        user=request.user,
+        shown_at__isnull=True,
+    ).update(shown_at=timezone.now())
+    return HttpResponse(status=204)
 
 
 @require_POST

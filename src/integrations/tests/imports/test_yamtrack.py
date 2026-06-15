@@ -135,6 +135,57 @@ class ImportYamtrackPartials(TestCase):
         self.assertEqual(Book.objects.filter(user=self.user).count(), 3)
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
 
+    def test_season_episode_search_by_title(self):
+        """Test that seasons and episodes can be resolved by title (no media_id).
+
+        This test verifies the fix that allows searching for SEASON and EPISODE
+        media types by searching for the parent TV show on TMDB. Before the fix,
+        services.search() didn't handle SEASON/EPISODE types and would fail with:
+        UnboundLocalError: cannot access local variable 'response'
+        """
+        test_rows = [
+            # Season with title only (no media_id)
+            {
+                "media_id": "",
+                "source": "",
+                "media_type": "season",
+                "title": "Friends",
+                "image": "",
+                "season_number": "1",
+                "episode_number": "",
+            },
+            # Episode with title only (no media_id)
+            {
+                "media_id": "",
+                "source": "",
+                "media_type": "episode",
+                "title": "Friends",
+                "image": "",
+                "season_number": "1",
+                "episode_number": "1",
+            },
+        ]
+
+        importer = yamtrack.YamtrackImporter(None, self.user, "new")
+
+        for row in test_rows:
+            original_row = row.copy()
+
+            importer._handle_missing_metadata(
+                row,
+                row["media_type"],
+                int(row["season_number"]) if row["season_number"] else None,
+                int(row["episode_number"]) if row["episode_number"] else None,
+            )
+
+            # Verify media_id was resolved from TMDB search
+            self.assertNotEqual(row["media_id"], original_row["media_id"])
+            self.assertEqual(str(row["media_id"]), "1668")  # Friends TV show ID
+            self.assertEqual(row["source"], "tmdb")
+            # Title and image should be populated from TMDB
+            self.assertNotEqual(row["title"], "")
+            self.assertNotEqual(row["image"], "")
+
     def test_end_dates(self):
         """Test end dates during import."""
         book = Book.objects.filter(user=self.user).first()
@@ -158,5 +209,3 @@ class ImportYamtrackPartials(TestCase):
             books[2].end_date,
             datetime(2024, 3, 9, 0, 0, 0, tzinfo=UTC),
         )
-
-

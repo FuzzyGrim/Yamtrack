@@ -15,12 +15,18 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from django_celery_beat.models import PeriodicTask
 
 from app.models import DiaryEntry, Item, MediaTypes
+from app.providers import tmdb
 from users.forms import (
     NotificationSettingsForm,
     PasswordChangeForm,
     UserUpdateForm,
 )
-from users.models import QuickWatchDateChoices
+from users.models import (
+    DateFormatChoices,
+    QuickWatchDateChoices,
+    TimeFormatChoices,
+    WeekStartDayChoices,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -243,6 +249,7 @@ def preferences(request):
     """Render the preferences settings page."""
     media_types = MediaTypes.values
     media_types.remove(MediaTypes.EPISODE.value)
+    watch_provider_regions = tmdb.watch_provider_regions()
 
     if request.method == "GET":
         return render(
@@ -251,6 +258,10 @@ def preferences(request):
             {
                 "media_types": media_types,
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
+                "date_format_choices": DateFormatChoices.choices,
+                "time_format_choices": TimeFormatChoices.choices,
+                "week_start_day_choices": WeekStartDayChoices.choices,
+                "watch_provider_choices": watch_provider_regions,
             },
         )
 
@@ -261,11 +272,34 @@ def preferences(request):
 
     # Process form submission
     request.user.clickable_media_cards = "clickable_media_cards" in request.POST
+    request.user.obfuscate_unseen_episodes = "obfuscate_unseen_episodes" in request.POST
     request.user.quick_watch_date = request.POST.get(
         "quick_watch_date",
         QuickWatchDateChoices.CURRENT_DATE,
     )
+    request.user.progress_bar = "progress_bar" in request.POST
+    request.user.hide_completed_recommendations = (
+        "hide_completed_recommendations" in request.POST
+    )
+    request.user.hide_zero_rating = "hide_zero_rating" in request.POST
+    request.user.date_format = request.POST.get(
+        "date_format",
+        DateFormatChoices.ISO,
+    )
+    request.user.time_format = request.POST.get(
+        "time_format",
+        TimeFormatChoices.HOUR_24,
+    )
+    week_start_day = request.POST.get("week_start_day")
+    if week_start_day in WeekStartDayChoices.values:
+        request.user.week_start_day = week_start_day
     media_types_checked = request.POST.getlist("media_types_checkboxes")
+
+    provider_region = request.POST.get("watch_provider_region", "")
+    if provider_region in [region[0] for region in watch_provider_regions]:
+        request.user.watch_provider_region = provider_region
+    else:
+        request.user.watch_provider_region = "UNSET"
 
     # Update user preferences for each media type
     for media_type in media_types:
@@ -361,6 +395,26 @@ def update_plex_usernames(request):
         request.user.plex_usernames = cleaned_usernames
         request.user.save(update_fields=["plex_usernames"])
         messages.success(request, "Plex usernames updated successfully")
+
+    return redirect("integrations")
+
+
+@require_POST
+def update_jellyfin_webhook_events(request):
+    """Update optional Jellyfin webhook event handling for the user."""
+    request.user.jellyfin_mark_played_enabled = (
+        "jellyfin_mark_played_enabled" in request.POST
+    )
+    request.user.jellyfin_mark_unplayed_enabled = (
+        "jellyfin_mark_unplayed_enabled" in request.POST
+    )
+    request.user.save(
+        update_fields=[
+            "jellyfin_mark_played_enabled",
+            "jellyfin_mark_unplayed_enabled",
+        ],
+    )
+    messages.success(request, "Jellyfin webhook settings updated successfully")
 
     return redirect("integrations")
 

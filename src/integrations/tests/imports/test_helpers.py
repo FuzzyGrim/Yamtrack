@@ -171,5 +171,3 @@ class HelpersTest(TestCase):
 
         schedule = CrontabSchedule.objects.first()
         self.assertEqual(schedule.day_of_week, "*/2")
-
-

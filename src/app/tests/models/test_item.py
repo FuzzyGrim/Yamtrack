@@ -47,5 +47,3 @@ class ItemModel(TestCase):
             episode_number=2,
         )
         self.assertEqual(str(item), "Test Show S1E2")
-
-
