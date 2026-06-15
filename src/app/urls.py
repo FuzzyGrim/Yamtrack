@@ -6,9 +6,9 @@ urlpatterns = [
     path("", views.home, name="home"),
 
     # Lists and search
-    path("<str:username>/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
     path("media/<media_type:media_type>", views.media_list, name="medialist"),
+    path("<str:username>/<media_type:media_type>", views.media_list, name="medialist"),
 
     # Details
     path(
