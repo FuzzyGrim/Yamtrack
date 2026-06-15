@@ -62,7 +62,7 @@ Film-focused users who already understand the Letterboxd model (diary logging, s
 | Background jobs | Celery + Redis |
 | Frontend | Django templates + Tailwind CSS |
 | CSS build | Tailwind CLI |
-| Metadata APIs | TMDB (movies/TV), MAL (anime/manga), IGDB (games), Open Library / Google Books (books), BoardGameGeek (board games) |
+| Metadata APIs | TMDB (movies/TV), MAL (anime/manga), IGDB (games), Open Library / Google Books (books) |
 | Auth | django-allauth (OIDC + 100+ social providers) |
 | Containerization | Docker + docker-compose |
 

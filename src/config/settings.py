@@ -410,15 +410,6 @@ IGDB_SECRET = config(
 )
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
-# BoardGameGeek API Token - Register at https://boardgamegeek.com/using_the_xml_api
-BGG_API_TOKEN = config(
-    "BGG_API_TOKEN",
-    default=secret(
-        "BGG_API_TOKEN_FILE",
-        "92f43ab1-d1d5-4e18-8b82-d1f56dc12927",
-    ),
-)
-
 STEAM_API_KEY = config(
     "STEAM_API_KEY",
     default=secret(

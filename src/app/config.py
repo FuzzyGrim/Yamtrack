@@ -201,23 +201,6 @@ MEDIA_TYPE_CONFIG = {
             5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>""",
         "unit": ("#", "Issue"),
     },
-    MediaTypes.BOARDGAME.value: {
-        "sources": [Sources.BGG],
-        "default_source": Sources.BGG,
-        "sample_query": "Catan",
-        "unicode_icon": "🎲",
-        "verb": ("play", "played"),
-        "text_color": COLORS["lime"]["text"],
-        "stats_color": COLORS["lime"]["hex"],
-        "svg_icon": """
-            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-            <circle cx="8" cy="8" r="2"/>
-            <path d="M16 8h-2"/>
-            <circle cx="16" cy="16" r="2"/>
-            <path d="M8 16v-2"/>""",
-        "unit": ("#", "Play"),
-        "date_key": "year",
-    },
 }
 
 # --- Status Configuration ---

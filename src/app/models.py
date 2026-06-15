@@ -47,7 +47,6 @@ class Sources(models.TextChoices):
     OPENLIBRARY = "openlibrary", "Open Library"
     HARDCOVER = "hardcover", "Hardcover"
     COMICVINE = "comicvine", "Comic Vine"
-    BGG = "bgg", "BoardGameGeek"
     MANUAL = "manual", "Manual"
 
 
@@ -63,7 +62,6 @@ class MediaTypes(models.TextChoices):
     GAME = "game", "Game"
     BOOK = "book", "Book"
     COMIC = "comic", "Comic"
-    BOARDGAME = "boardgame", "Boardgame"
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -2449,8 +2447,3 @@ class DiaryEntryTag(models.Model):
         super().delete(*args, **kwargs)
         tag.decrement_usage()
 
-
-class BoardGame(Media):
-    """Model for board games."""
-
-    tracker = FieldTracker()

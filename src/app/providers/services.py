@@ -9,9 +9,8 @@ from redis import Redis
 from requests.adapters import HTTPAdapter
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
-from app.models import Item, MediaTypes, Sources
+from app.models import MediaTypes, Sources
 from app.providers import (
-    bgg,
     comicvine,
     hardcover,
     igdb,
@@ -74,12 +73,6 @@ session.mount(
     "https://api.hardcover.app/v1/graphql",
     LimiterAdapter(per_minute=50),
 )
-session.mount(
-    "https://boardgamegeek.com/xmlapi2",
-    LimiterAdapter(per_second=2),
-)
-
-
 class ProviderAPIError(Exception):
     """Exception raised when a provider API fails to respond."""
 
@@ -249,7 +242,6 @@ def get_media_metadata(
             else openlibrary.book(media_id)
         ),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
-        MediaTypes.BOARDGAME.value: lambda: bgg.boardgame(media_id),
     }
     return metadata_retrievers[media_type]()
 
@@ -274,7 +266,6 @@ def search(media_type, query, page, source=None):
             else hardcover.search(query, page)
         ),
         MediaTypes.COMIC.value: lambda: comicvine.search(query, page),
-        MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
     }
     return search_handlers[media_type]()
 

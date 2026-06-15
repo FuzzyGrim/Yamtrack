@@ -100,7 +100,6 @@ class MediaManagerTests(TestCase):
                 MediaTypes.MANGA.value: 300,
                 MediaTypes.GAME.value: 240,
                 MediaTypes.BOOK.value: 500,
-                MediaTypes.BOARDGAME.value: 1,
             }
             return {"max_progress": max_progress_by_type.get(media_type)}
 
