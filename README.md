@@ -79,17 +79,6 @@ The default Compose file uses SQLite, which is enough for most personal installs
 
 Development instructions are available in the [Development documentation](https://fuzzygrim.github.io/Yamtrack/development/).
 
-### OpenAPI schema generation
-
-The API spec in [openapi.yaml](openapi.yaml) can be generated automatically from Django/DRF using [`drf-spectacular`](https://github.com/tfranzel/drf-spectacular).
-
-From the project root, run:
-
-```bash
-cd src
-python manage.py generate_openapi --validate
-```
-
 ## 💪 Support the Project
 
 There are many ways you can support Yamtrack's development:
