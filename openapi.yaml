@@ -8350,11 +8350,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -8841,11 +8841,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -9117,11 +9117,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -9144,11 +9144,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -9171,11 +9171,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -9198,11 +9198,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -9214,7 +9214,7 @@ components:
       properties:
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
     PatchedUpdateGameRequest:
       type: object
@@ -9233,11 +9233,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -9260,11 +9260,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string
@@ -9284,11 +9284,11 @@ components:
           nullable: true
         start_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         end_date:
           type: string
-          format: date
+          format: date-time
           nullable: true
         notes:
           type: string

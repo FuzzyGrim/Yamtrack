@@ -222,7 +222,7 @@ class ApiErrorResponseSerializer(serializers.Serializer):
             value={
                 "name": "Favourites",
                 "description": "My favourite items.",
-                "collaborators": [ 1, 2, 3 ],
+                "collaborators": [1, 2, 3],
             },
         ),
     ]
@@ -306,8 +306,8 @@ class EpisodeSerializer(serializers.Serializer):
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(allow_null=True)
     progressed_at = serializers.DateTimeField(allow_null=True)
-    start_date = serializers.DateField(allow_null=True)
-    end_date = serializers.DateField(allow_null=True)
+    start_date = serializers.DateTimeField(allow_null=True)
+    end_date = serializers.DateTimeField(allow_null=True)
     notes = serializers.CharField(allow_null=True)
     lists = ListMinimizedSerializer(many=True)
 
@@ -621,8 +621,8 @@ class MediaSerializer(serializers.ModelSerializer):
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(allow_null=True)
     progressed_at = serializers.DateTimeField(allow_null=True)
-    start_date = serializers.DateField(allow_null=True)
-    end_date = serializers.DateField(allow_null=True)
+    start_date = serializers.DateTimeField(allow_null=True)
+    end_date = serializers.DateTimeField(allow_null=True)
     notes = serializers.CharField(allow_null=True)
     lists = ListMinimizedSerializer(many=True)
 
@@ -1438,8 +1438,8 @@ class UpdateAnimeSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateField(required=False, allow_null=True)
-    end_date = serializers.DateField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
 
 
@@ -1449,8 +1449,8 @@ class UpdateBoardGameSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateField(required=False, allow_null=True)
-    end_date = serializers.DateField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
 
 
@@ -1460,8 +1460,8 @@ class UpdateBookSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateField(required=False, allow_null=True)
-    end_date = serializers.DateField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
 
 
@@ -1471,15 +1471,15 @@ class UpdateComicSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateField(required=False, allow_null=True)
-    end_date = serializers.DateField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
 
 
 class UpdateEpisodeSerializer(serializers.Serializer):
     """Serializer for updating episode media items."""
 
-    end_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
 
 
 class UpdateGameSerializer(serializers.Serializer):
@@ -1488,8 +1488,8 @@ class UpdateGameSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateField(required=False, allow_null=True)
-    end_date = serializers.DateField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
 
 
@@ -1499,8 +1499,8 @@ class UpdateMangaSerializer(serializers.Serializer):
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField()
     progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateField(required=False, allow_null=True)
-    end_date = serializers.DateField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
 
 
@@ -1509,8 +1509,8 @@ class UpdateMovieSerializer(serializers.Serializer):
 
     score = serializers.FloatField(required=False, allow_null=True)
     status = MediaStatusChoiceField()
-    start_date = serializers.DateField(required=False, allow_null=True)
-    end_date = serializers.DateField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_null=True)
 
 
