@@ -90,11 +90,6 @@ cd src
 python manage.py generate_openapi --validate
 ```
 
-When schema serving is enabled (default: `DEBUG=True`, or by setting `SPECTACULAR_ENABLE_SERVE=True`), docs are available at:
-
-- `http://localhost:8000/api/v1/schema/`
-- `http://localhost:8000/api/v1/docs/`
-
 ## 💪 Support the Project
 
 There are many ways you can support Yamtrack's development:
