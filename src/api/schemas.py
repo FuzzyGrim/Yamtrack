@@ -10,6 +10,7 @@ from .helpers import (
     LIST_SORTS,
     MEDIA_TYPE_COMPLETE_VALID_LIST,
     MEDIA_TYPE_VALID_LIST,
+    SOURCES_COMPLETE_VALID_LIST,
     SOURCES_VALID_LIST,
 )
 from .serializers import ApiErrorResponseSerializer
@@ -114,6 +115,15 @@ MediaTypeCompleteParam = OpenApiParameter(
     enum=MEDIA_TYPE_COMPLETE_VALID_LIST,
 )
 
+MediaTypeCompleteQueryParam = OpenApiParameter(
+    name="media_type",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    description="Type of media item.",
+    required=False,
+    enum=MEDIA_TYPE_COMPLETE_VALID_LIST,
+)
+
 MediaIdParam = OpenApiParameter(
     name="media_id",
     type=OpenApiTypes.STR,
@@ -129,6 +139,15 @@ SourceParam = OpenApiParameter(
     description="Source of media item data for import operations.",
     required=True,
     enum=SOURCES_VALID_LIST,
+)
+
+SourceCompleteParam = OpenApiParameter(
+    name="source",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.PATH,
+    description="Source of media item data for import operations.",
+    required=True,
+    enum=SOURCES_COMPLETE_VALID_LIST,
 )
 
 SeasonNumberParam = OpenApiParameter(

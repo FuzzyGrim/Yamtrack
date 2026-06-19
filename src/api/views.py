@@ -70,11 +70,12 @@ from .schemas import (
     ListSortParam,
     MediaIdParam,
     MediaTypeCompleteParam,
+    MediaTypeCompleteQueryParam,
     MediaTypeParam,
     PaginationLimitParam,
     PaginationOffsetParam,
     SeasonNumberParam,
-    SourceParam,
+    SourceCompleteParam,
     forbidden_response,
 )
 from .serializers import (
@@ -1933,7 +1934,7 @@ class MediaListView(drf_views.APIView):
                 ),
                 enum=[media_type.value for media_type in MediaTypes],
             ),
-            MediaTypeCompleteParam,
+            MediaTypeCompleteQueryParam,
             OpenApiParameter(
                 name="status",
                 type=OpenApiTypes.STR,
@@ -2581,7 +2582,7 @@ class MediaDetailView(drf_views.APIView):
         summary="Delete media",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
         ],
         responses={
@@ -2680,7 +2681,7 @@ class MediaDetailView(drf_views.APIView):
         summary="Get media details",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
         ],
         responses={
@@ -2911,7 +2912,7 @@ class MediaDetailView(drf_views.APIView):
         summary="Update media",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
         ],
         request=PolymorphicProxySerializer(
@@ -3172,7 +3173,7 @@ class MediaChangesHistoryView(drf_views.APIView):
         summary="Get media changes history",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             PaginationLimitParam,
             PaginationOffsetParam,
@@ -3333,7 +3334,7 @@ class MediaConsumptionHistoryView(drf_views.APIView):
         summary="Get media consumption history",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             PaginationLimitParam,
             PaginationOffsetParam,
@@ -3481,7 +3482,7 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
         summary="Delete a media consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             OpenApiParameter(
                 name="consumption_id",
@@ -3603,7 +3604,7 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
         summary="Get a media consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             OpenApiParameter(
                 name="consumption_id",
@@ -3737,7 +3738,7 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
         summary="Update a media consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             OpenApiParameter(
                 name="consumption_id",
@@ -3912,7 +3913,7 @@ class MediaListsView(drf_views.APIView):
         summary="Get media lists",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             PaginationLimitParam,
             PaginationOffsetParam,
@@ -4019,7 +4020,7 @@ class MediaListDetailView(drf_views.APIView):
         summary="Remove media from a specific list",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             OpenApiParameter(
                 name="list_id",
@@ -4149,7 +4150,7 @@ class MediaListDetailView(drf_views.APIView):
         summary="Put media in a specific list",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             OpenApiParameter(
                 name="list_id",
@@ -4299,7 +4300,7 @@ class MediaRecommendationsView(drf_views.APIView):
         summary="Get media recommendations",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
         ],
         responses={
@@ -4434,7 +4435,7 @@ class MediaSeasonsView(drf_views.APIView):
         summary="Get media seasons",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             PaginationLimitParam,
             PaginationOffsetParam,
@@ -4695,7 +4696,7 @@ class MediaSyncView(drf_views.APIView):
         summary="Sync media metadata",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
         ],
         request=None,
@@ -4867,7 +4868,7 @@ class MediaSeasonDetailView(drf_views.APIView):
         summary="Delete season",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
         ],
@@ -4976,7 +4977,7 @@ class MediaSeasonDetailView(drf_views.APIView):
         summary="Get season details",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
         ],
@@ -5224,7 +5225,7 @@ class MediaSeasonDetailView(drf_views.APIView):
         summary="Update season",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
         ],
@@ -5483,7 +5484,7 @@ class MediaSeasonChangesHistoryView(drf_views.APIView):
         summary="Get season changes history",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             PaginationLimitParam,
@@ -5678,7 +5679,7 @@ class MediaSeasonEpisodesView(drf_views.APIView):
         summary="Get season episodes",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             PaginationLimitParam,
@@ -5894,7 +5895,7 @@ class MediaSeasonConsumptionHistoryView(drf_views.APIView):
         summary="Get season consumption history",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             PaginationLimitParam,
@@ -6044,7 +6045,7 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
         summary="Delete a season consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             OpenApiParameter(
@@ -6184,7 +6185,7 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
         summary="Get a season consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             OpenApiParameter(
@@ -6328,7 +6329,7 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
         summary="Update a season consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             OpenApiParameter(
@@ -6506,7 +6507,7 @@ class MediaSeasonListsView(drf_views.APIView):
         summary="Get season lists",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             PaginationLimitParam,
@@ -6628,7 +6629,7 @@ class MediaSeasonListDetailView(drf_views.APIView):
         summary="Remove season from list",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             OpenApiParameter(
@@ -6752,7 +6753,7 @@ class MediaSeasonListDetailView(drf_views.APIView):
         summary="Add season to list",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             OpenApiParameter(
@@ -6910,7 +6911,7 @@ class MediaSeasonSyncView(drf_views.APIView):
         summary="Sync season metadata",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
         ],
@@ -7125,7 +7126,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
         summary="Delete episode",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -7246,7 +7247,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
         summary="Get episode details",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -7491,7 +7492,7 @@ class MediaEpisodeDetailView(drf_views.APIView):
         summary="Update episode",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -7785,7 +7786,7 @@ class MediaEpisodeChangesHistoryView(drf_views.APIView):
         summary="Get episode changes history",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -7948,7 +7949,7 @@ class MediaEpisodeConsumptionHistoryView(drf_views.APIView):
         summary="Get episode consumption history",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -8100,7 +8101,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         summary="Delete an episode consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -8240,7 +8241,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         summary="Get an episode consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -8392,7 +8393,7 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
         summary="Update an episode consumption history entry",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -8572,7 +8573,7 @@ class MediaEpisodeListsView(drf_views.APIView):
         summary="Get episode lists",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -8696,7 +8697,7 @@ class MediaEpisodeListDetailView(drf_views.APIView):
         summary="Remove episode from list",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -8831,7 +8832,7 @@ class MediaEpisodeListDetailView(drf_views.APIView):
         summary="Add episode to list",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,
@@ -9001,7 +9002,7 @@ class MediaEpisodeSyncView(drf_views.APIView):
         summary="Sync episode metadata",
         parameters=[
             MediaTypeParam,
-            SourceParam,
+            SourceCompleteParam,
             MediaIdParam,
             SeasonNumberParam,
             EpisodeNumberParam,

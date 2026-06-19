@@ -1481,7 +1481,7 @@ paths:
           minimum: 1
           default: 20
         description: 'Maximum number of results to return (default: 20).'
-      - in: path
+      - in: query
         name: media_type
         schema:
           type: string
@@ -1497,7 +1497,6 @@ paths:
           - season
           - tv
         description: Type of media item.
-        required: true
       - in: query
         name: offset
         schema:
@@ -2029,6 +2028,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -2208,6 +2208,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -2392,6 +2393,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -2502,6 +2504,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -2687,6 +2690,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -2877,6 +2881,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -2993,6 +2998,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -3184,6 +3190,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -3380,6 +3387,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -3510,6 +3518,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -3668,6 +3677,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -3813,6 +3823,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -3961,6 +3972,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -4109,6 +4121,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -4248,6 +4261,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -4387,6 +4401,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -4523,6 +4538,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -4643,6 +4659,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -4798,6 +4815,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -4970,6 +4988,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -5135,6 +5154,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -5274,6 +5294,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -5416,6 +5437,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -5558,6 +5580,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -5691,6 +5714,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -5824,6 +5848,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -5954,6 +5979,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -6068,6 +6094,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -6217,6 +6244,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -6369,6 +6397,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -6503,6 +6532,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -6639,6 +6669,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -6775,6 +6806,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -6902,6 +6934,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -7029,6 +7062,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -7158,6 +7192,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -7271,6 +7306,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -7419,6 +7455,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
@@ -7567,6 +7604,7 @@ paths:
           - igdb
           - mal
           - mangaupdates
+          - manual
           - openlibrary
           - tmdb
         description: Source of media item data for import operations.
