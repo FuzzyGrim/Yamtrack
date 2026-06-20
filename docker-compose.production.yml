@@ -1,0 +1,45 @@
+# Production stack for self-hosting (home server or cloud VM).
+# Usage (from repo root):
+#   cp .env.production.example .env.production
+#   # edit .env.production — set SECRET, DB_PASSWORD, TMDB_API
+#   docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+
+services:
+  app:
+    build: .
+    container_name: spine
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env.production
+    ports:
+      - "8000:8000"
+    volumes:
+      - media_data:/yamtrack/media
+
+  db:
+    image: postgres:16-alpine
+    container_name: spine-db
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_DB: spine
+      POSTGRES_USER: spine
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:8-alpine
+    container_name: spine-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:

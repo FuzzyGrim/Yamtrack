@@ -29,6 +29,20 @@ class EpisodeModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
+        item_tv = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+
+        self.tv = TV.objects.create(
+            item=item_tv,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
         item_season = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -41,12 +55,25 @@ class EpisodeModel(TestCase):
         self.season = Season.objects.create(
             item=item_season,
             user=self.user,
+            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
             notes="",
         )
 
-    def test_episode_save(self):
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_episode_save(self, mock_get_metadata):
         """Test the custom save method of the Episode model."""
+        mock_get_metadata.return_value = {
+            "season/1": {
+                "episodes": [
+                    {"episode_number": episode_number}
+                    for episode_number in range(1, 25)
+                ],
+            },
+            "related": {
+                "seasons": [{"season_number": 1}],
+            },
+        }
         for i in range(1, 25):
             item_episode = Item.objects.create(
                 media_id="1668",
@@ -63,6 +90,7 @@ class EpisodeModel(TestCase):
                 end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
             )
 
+        self.season.refresh_from_db()
         self.assertEqual(self.season.status, Status.COMPLETED.value)
 
 

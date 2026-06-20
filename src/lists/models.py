@@ -1,6 +1,8 @@
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Prefetch, Q
+from django.utils.text import slugify
 
 from app.models import Item
 
@@ -48,8 +50,30 @@ class CustomListManager(models.Manager):
 class CustomList(models.Model):
     """Model for custom lists."""
 
+    class Visibility(models.TextChoices):
+        """Visibility choices for custom lists."""
+
+        PUBLIC = "public", "Public"
+        UNLISTED = "unlisted", "Unlisted"
+        PRIVATE = "private", "Private"
+
     name = models.CharField(max_length=255)
+    slug = models.SlugField(
+        max_length=255,
+        blank=True,
+        validators=[
+            RegexValidator(
+                r"^[a-z0-9-]*$",
+                "Use lowercase letters, numbers, and hyphens only.",
+            ),
+        ],
+    )
     description = models.TextField(blank=True, default="")
+    visibility = models.CharField(
+        max_length=20,
+        choices=Visibility.choices,
+        default=Visibility.PRIVATE,
+    )
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     collaborators = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -64,15 +88,29 @@ class CustomList(models.Model):
     )
 
     objects = CustomListManager()
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         """Meta options for the model."""
 
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "slug"],
+                condition=~Q(slug=""),
+                name="%(app_label)s_customlist_unique_owner_slug",
+            ),
+        ]
 
     def __str__(self):
         """Return the name of the custom list."""
         return self.name
+
+    def save(self, *args, **kwargs):
+        """Save the list with a default slug for shareable URLs."""
+        if not self.slug:
+            self.slug = slugify(self.name)[:255]
+        super().save(*args, **kwargs)
 
     def user_can_view(self, user):
         """Check if the user can view the list."""

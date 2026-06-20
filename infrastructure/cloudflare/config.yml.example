@@ -1,0 +1,10 @@
+# Named Cloudflare Tunnel — copy to ~/.cloudflared/config.yml after setup.
+# Replace TUNNEL_ID and hostname with your values (see setup-cloudflare-tunnel.sh).
+
+tunnel: TUNNEL_ID
+credentials-file: /Users/YOUR_USER/.cloudflared/TUNNEL_ID.json
+
+ingress:
+  - hostname: api.yourdomain.com
+    service: http://127.0.0.1:8000
+  - service: http_status:404

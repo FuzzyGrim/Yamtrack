@@ -14,8 +14,10 @@ dependencies = [
   "apprise~=1.9.9",
   "beautifulsoup4~=4.14.3",
   "celery~=5.6.3",
+  "colorthief~=0.2.1",
   "croniter~=6.2.2",
   "defusedxml~=0.7.1",
+  "django-cors-headers~=4.9.0",
   "django~=5.2.13",
   "django-allauth[socialaccount]~=65.16.1",
   "django-celery-beat~=2.9.0",
@@ -23,7 +25,11 @@ dependencies = [
   "django-debug-toolbar~=6.3.0",
   "django-health-check[celery,redis]~=4.4.1",
   "django-model-utils~=5.0.0",
+  "django-ratelimit~=4.1.0",
   "django-redis~=6.0.0",
+  "djangorestframework~=3.16.1",
+  "djangorestframework-simplejwt~=5.5.1",
+  "drf-spectacular~=0.29.0",
   "django-select2~=8.4.8",
   "django-simple-history~=3.11.0",
   "django-widget-tweaks~=1.5.1",
@@ -77,6 +83,29 @@ ignore = ["ANN", "PT", "PD", "D100", "D104", "RUF012", "PLR0913", "SLF001", "COM
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 88
 
+[tool.ruff.lint.per-file-ignores]
+"src/app/**/*.py" = ["ALL"]
+"src/api/**/*.py" = [
+  "ARG001",
+  "ARG002",
+  "D102",
+  "E501",
+  "EM101",
+  "N806",
+  "PLC0415",
+  "PLR1714",
+  "PLR2004",
+  "RET504",
+  "TRY003",
+]
+"src/api/tests/**/*.py" = ["S106"]
+"src/config/**/*.py" = ["ALL"]
+"src/events/**/*.py" = ["ALL"]
+"src/integrations/**/*.py" = ["ALL"]
+"src/lists/**/*.py" = ["ALL"]
+"src/social/models.py" = ["D106", "DJ008"]
+"src/users/**/*.py" = ["ALL"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
 
@@ -89,6 +118,3 @@ indent = 2
 [tool.coverage.run]
 concurrency = ["multiprocessing"]
 omit = ["*/migrations/*", "*/tests/*", "*/__init__.py", "*/admin.py"]
-
-[tool.poetry.dependencies]
-colorthief = "0.2.1"

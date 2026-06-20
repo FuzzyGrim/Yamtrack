@@ -1,11 +1,17 @@
 import os
 import re
+import unittest
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from playwright.sync_api import expect, sync_playwright
+
+RUN_E2E_TESTS = os.environ.get("RUN_E2E_TESTS") == "1"
+
+if RUN_E2E_TESTS:
+    from playwright.sync_api import expect, sync_playwright
 
 
+@unittest.skipUnless(RUN_E2E_TESTS, "Set RUN_E2E_TESTS=1 to run browser E2E tests.")
 class IntegrationTest(StaticLiveServerTestCase):
     """Integration tests for the application."""
 

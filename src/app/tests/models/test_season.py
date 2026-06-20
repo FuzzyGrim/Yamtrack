@@ -700,8 +700,8 @@ class SeasonStatusTests(TestCase):
 
     def test_status_change_does_not_affect_tv_if_already_same_status(self):
         """Test status change doesn't update TV if already same status."""
-        self.tv.status = Status.IN_PROGRESS.value
-        self.tv.save()
+        TV.objects.filter(pk=self.tv.pk).update(status=Status.IN_PROGRESS.value)
+        self.tv.refresh_from_db()
 
         with patch.object(TV, "save") as mock_tv_save:
             self.season.status = Status.IN_PROGRESS.value

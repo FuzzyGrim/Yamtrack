@@ -15,8 +15,6 @@ from app.models import (
     Sources,
     Status,
 )
-from users.models import HomeSortChoices
-
 
 class HomeViewTests(TestCase):
     """Test the home view."""
@@ -164,43 +162,30 @@ class HomeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/home.html")
 
-        self.assertIn("home_sections", response.context)
+        self.assertIn("list_by_type", response.context)
+        list_by_type = response.context["list_by_type"]
 
-        sections_by_key = {
-            section["key"]: section for section in response.context["home_sections"]
-        }
-        self.assertIn(Status.IN_PROGRESS.value, sections_by_key)
-        self.assertIn(Status.PLANNING.value, sections_by_key)
+        self.assertIn(MediaTypes.SEASON.value, list_by_type)
+        self.assertIn(MediaTypes.ANIME.value, list_by_type)
+        self.assertNotIn(MediaTypes.MOVIE.value, list_by_type)
 
-        in_progress_section = sections_by_key[Status.IN_PROGRESS.value]
-        planning_section = sections_by_key[Status.PLANNING.value]
-
-        self.assertIn(MediaTypes.SEASON.value, in_progress_section["media_types"])
-        self.assertIn(MediaTypes.ANIME.value, in_progress_section["media_types"])
-        self.assertIn(MediaTypes.MOVIE.value, planning_section["media_types"])
-
-        self.assertIn("sort_choices", response.context)
-        self.assertEqual(response.context["sort_choices"], HomeSortChoices.choices)
-        self.assertEqual(in_progress_section["count"], 2)
-        self.assertEqual(planning_section["count"], 1)
-
-        season = in_progress_section["media_types"][MediaTypes.SEASON.value]
+        season = list_by_type[MediaTypes.SEASON.value]
         self.assertEqual(len(season["items"]), 1)
+        self.assertEqual(season["total"], 1)
         self.assertEqual(season["items"][0].progress, 5)
 
-        planning_movies = planning_section["media_types"][MediaTypes.MOVIE.value]
-        self.assertEqual(len(planning_movies["items"]), 1)
-        self.assertEqual(planning_movies["items"][0].status, Status.PLANNING.value)
+        anime = list_by_type[MediaTypes.ANIME.value]
+        self.assertEqual(len(anime["items"]), 1)
+        self.assertEqual(anime["total"], 1)
+        self.assertEqual(anime["items"][0].status, Status.IN_PROGRESS.value)
 
     def test_home_view_with_sort(self):
-        """Test the home view with sorting parameter."""
+        """Test obsolete sort parameters do not break the home view."""
         response = self.client.get(reverse("home") + "?sort=completion")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["current_sort"], "completion")
-
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.home_sort, "completion")
+        self.assertTemplateUsed(response, "app/home.html")
+        self.assertIn("list_by_type", response.context)
 
     @patch("app.providers.services.get_media_metadata")
     def test_home_view_htmx_load_more(self, mock_get_media_metadata):
@@ -270,20 +255,20 @@ class HomeViewTests(TestCase):
             15,
         )  # 15 TV shows total
 
-    def test_home_view_htmx_load_more_for_planning(self):
-        """Test the HTMX load more functionality for planning media."""
+    def test_home_view_htmx_ignores_obsolete_load_status(self):
+        """Test obsolete load_status params do not change the home status."""
         for i in range(1, 16):
             movie_item = Item.objects.create(
-                media_id=f"planning-{i}",
+                media_id=f"in-progress-{i}",
                 source=Sources.TMDB.value,
                 media_type=MediaTypes.MOVIE.value,
-                title=f"Planned Movie {i}",
+                title=f"In Progress Movie {i}",
                 image="http://example.com/image.jpg",
             )
             Movie.objects.create(
                 item=movie_item,
                 user=self.user,
-                status=Status.PLANNING.value,
+                status=Status.IN_PROGRESS.value,
             )
 
         response = self.client.get(
@@ -297,7 +282,7 @@ class HomeViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/home_grid.html")
-        self.assertEqual(response.context["home_status"], Status.PLANNING.value)
+        self.assertEqual(response.context["home_status"], Status.IN_PROGRESS.value)
         self.assertIn("media_list", response.context)
-        self.assertEqual(len(response.context["media_list"]["items"]), 2)
-        self.assertEqual(response.context["media_list"]["total"], 16)
+        self.assertEqual(len(response.context["media_list"]["items"]), 1)
+        self.assertEqual(response.context["media_list"]["total"], 15)

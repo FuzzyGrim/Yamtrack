@@ -13,6 +13,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path, register_converter
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from redis.asyncio import Redis as RedisClient
 
 from app.converters import MediaTypeChecker, SourceChecker
@@ -29,6 +30,13 @@ register_converter(SourceChecker, "source")
 register_converter(MediaTypeChecker, "media_type")
 
 urlpatterns = [
+    path("api/v1/", include("api.urls")),
+    path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="api-schema"),
+        name="api-docs",
+    ),
     path("", include("app.urls")),
     path("", include("integrations.urls")),
     path("", include("users.urls")),

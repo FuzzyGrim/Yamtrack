@@ -34,7 +34,7 @@ class GameModel(TestCase):
             item=self.game_item,
             user=self.user,
             status=Status.IN_PROGRESS.value,
-            progress=60,  # 60 minutes
+            progress=60,
         )
 
     def test_increase_progress(self):
@@ -42,14 +42,14 @@ class GameModel(TestCase):
         initial_progress = self.game.progress
         self.game.increase_progress()
 
-        self.assertEqual(self.game.progress, initial_progress + 30)
+        self.assertEqual(self.game.progress, initial_progress + 1)
 
     def test_decrease_progress(self):
         """Test decreasing the progress of a game."""
         initial_progress = self.game.progress
         self.game.decrease_progress()
 
-        self.assertEqual(self.game.progress, initial_progress - 30)
+        self.assertEqual(self.game.progress, initial_progress - 1)
 
     def test_field_tracker(self):
         """Test that the field tracker is tracking changes."""
@@ -69,9 +69,9 @@ class GameModel(TestCase):
         self.game.increase_progress()
         self.game.increase_progress()
 
-        self.assertEqual(self.game.progress, 120)
+        self.assertEqual(self.game.progress, 62)
 
         # Decrease progress once
         self.game.decrease_progress()
 
-        self.assertEqual(self.game.progress, 90)
+        self.assertEqual(self.game.progress, 61)

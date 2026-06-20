@@ -30,7 +30,63 @@ class ImportIMDB(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         with Path(mock_path / "import_imdb.csv").open("rb") as file:
-            self.import_results = imdb.importer(file, self.user, "new")
+            with patch(
+                "integrations.imports.imdb.app.providers.tmdb.find",
+                side_effect=self._mock_tmdb_find,
+            ):
+                self.import_results = imdb.importer(file, self.user, "new")
+
+    def _mock_tmdb_find(self, imdb_id, _external_source):
+        movie_results = {
+            "tt0468569": {
+                "id": 155,
+                "title": "The Dark Knight",
+                "poster_path": "/dark-knight.jpg",
+            },
+            "tt0111161": {
+                "id": 278,
+                "title": "The Shawshank Redemption",
+                "poster_path": "/shawshank.jpg",
+            },
+            "tt16968450": {
+                "id": 923939,
+                "title": "The Wonderful Story of Henry Sugar",
+                "poster_path": "/henry-sugar.jpg",
+            },
+            "tt0475293": {
+                "id": 10947,
+                "title": "High School Musical",
+                "poster_path": "/high-school-musical.jpg",
+            },
+            "tt13623136": {
+                "id": 774752,
+                "title": "The Guardians of the Galaxy Holiday Special",
+                "poster_path": "/guardians-holiday.jpg",
+            },
+            "tt1117563": {
+                "id": 13851,
+                "title": "Batman: Gotham Knight",
+                "poster_path": "/batman-gotham-knight.jpg",
+            },
+        }
+        tv_results = {
+            "tt0944947": {
+                "id": 1399,
+                "name": "Game of Thrones",
+                "poster_path": "/game-of-thrones.jpg",
+            },
+            "tt7366338": {
+                "id": 87108,
+                "name": "Chernobyl",
+                "poster_path": "/chernobyl.jpg",
+            },
+        }
+
+        if imdb_id in movie_results:
+            return {"movie_results": [movie_results[imdb_id]], "tv_results": []}
+        if imdb_id in tv_results:
+            return {"movie_results": [], "tv_results": [tv_results[imdb_id]]}
+        return {}
 
     def test_import_imdb_csv(self):
         """Test importing movies and TV shows from IMDB CSV."""

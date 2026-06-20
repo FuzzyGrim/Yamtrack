@@ -17,8 +17,4 @@ class Migration(migrations.Migration):
             name='home_sort',
             field=models.CharField(choices=[('upcoming', 'Upcoming'), ('recent', 'Recent'), ('completion', 'Completion'), ('episodes_left', 'Episodes Left'), ('title', 'Title')], default='upcoming', max_length=20),
         ),
-        migrations.AddConstraint(
-            model_name='user',
-            constraint=models.CheckConstraint(condition=models.Q(('home_sort__in', ['upcoming', 'recent', 'completion', 'episodes_left', 'title'])), name='home_sort_valid'),
-        ),
     ]

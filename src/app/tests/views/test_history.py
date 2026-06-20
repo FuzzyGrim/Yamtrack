@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -27,17 +29,25 @@ class HistoryModalViewTests(TestCase):
             title="Test Movie",
             image="http://example.com/image.jpg",
         )
-        self.movie = Movie.objects.create(
-            item=self.item,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-            progress=0,
-        )
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 1},
+        ):
+            self.movie = Movie.objects.create(
+                item=self.item,
+                user=self.user,
+                status=Status.IN_PROGRESS.value,
+                progress=0,
+            )
 
         self.movie.status = Status.COMPLETED.value
         self.movie.progress = 1
         self.movie.score = 8
-        self.movie.save()
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 1},
+        ):
+            self.movie.save()
 
     def test_history_modal_view(self):
         """Test the history modal view."""
@@ -80,17 +90,25 @@ class DeleteHistoryRecordViewTests(TestCase):
             title="Test Movie",
             image="http://example.com/image.jpg",
         )
-        self.movie = Movie.objects.create(
-            item=self.item,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-            progress=0,
-        )
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 1},
+        ):
+            self.movie = Movie.objects.create(
+                item=self.item,
+                user=self.user,
+                status=Status.IN_PROGRESS.value,
+                progress=0,
+            )
 
         self.movie.status = Status.COMPLETED.value
         self.movie.progress = 1
         self.movie.score = 8
-        self.movie.save()
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 1},
+        ):
+            self.movie.save()
 
         self.history = self.movie.history.first()
         self.history_id = self.history.history_id

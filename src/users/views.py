@@ -102,9 +102,6 @@ def account(request):
                 list(password_form.errors.keys()),
             )
 
-    # Ensure we're using the latest user data for the form
-    user_form = UserUpdateForm(instance=request.user)
-    
     context = {
         "user_form": user_form,
         "password_form": password_form,

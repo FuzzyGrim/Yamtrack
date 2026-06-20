@@ -28,6 +28,19 @@ class TVModel(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
+        item_tv = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+        self.tv = TV.objects.create(
+            item=item_tv,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+
         item_season1 = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -40,10 +53,9 @@ class TVModel(TestCase):
         season1 = Season.objects.create(
             item=item_season1,
             user=self.user,
+            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
         )
-
-        self.tv = TV.objects.get(user=self.user)
 
         item_ep1 = Item.objects.create(
             media_id="1668",
@@ -54,12 +66,6 @@ class TVModel(TestCase):
             season_number=1,
             episode_number=1,
         )
-        Episode.objects.create(
-            item=item_ep1,
-            related_season=season1,
-            end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
-        )
-
         item_ep2 = Item.objects.create(
             media_id="1668",
             source=Sources.TMDB.value,
@@ -68,11 +74,6 @@ class TVModel(TestCase):
             image="http://example.com/image.jpg",
             season_number=1,
             episode_number=2,
-        )
-        Episode.objects.create(
-            item=item_ep2,
-            related_season=season1,
-            end_date=datetime(2023, 6, 2, 0, 0, tzinfo=UTC),
         )
 
         item_season2 = Item.objects.create(
@@ -100,11 +101,6 @@ class TVModel(TestCase):
             season_number=2,
             episode_number=1,
         )
-        Episode.objects.create(
-            item=item_ep3,
-            related_season=season2,
-            end_date=datetime(2023, 6, 4, 0, 0, tzinfo=UTC),
-        )
 
         item_ep4 = Item.objects.create(
             media_id="1668",
@@ -115,10 +111,29 @@ class TVModel(TestCase):
             season_number=2,
             episode_number=2,
         )
-        Episode.objects.create(
-            item=item_ep4,
-            related_season=season2,
-            end_date=datetime(2023, 6, 5, 0, 0, tzinfo=UTC),
+        Episode.objects.bulk_create(
+            [
+                Episode(
+                    item=item_ep1,
+                    related_season=season1,
+                    end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
+                ),
+                Episode(
+                    item=item_ep2,
+                    related_season=season1,
+                    end_date=datetime(2023, 6, 2, 0, 0, tzinfo=UTC),
+                ),
+                Episode(
+                    item=item_ep3,
+                    related_season=season2,
+                    end_date=datetime(2023, 6, 4, 0, 0, tzinfo=UTC),
+                ),
+                Episode(
+                    item=item_ep4,
+                    related_season=season2,
+                    end_date=datetime(2023, 6, 5, 0, 0, tzinfo=UTC),
+                ),
+            ],
         )
 
     def test_tv_progress(self):
@@ -139,14 +154,47 @@ class TVModel(TestCase):
             datetime(2023, 6, 5, 0, 0, tzinfo=UTC),
         )
 
-    def test_tv_save(self):
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_tv_save(self, mock_get_metadata):
         """Test the custom save method of the TV model."""
+        mock_get_metadata.side_effect = [
+            {
+                "max_progress": 4,
+                "related": {
+                    "seasons": [
+                        {"season_number": 1, "image": "season1.jpg"},
+                        {"season_number": 2, "image": "season2.jpg"},
+                    ],
+                },
+            },
+            {
+                "season/1": {
+                    "image": "season1.jpg",
+                    "season_number": 1,
+                    "details": {"episodes": 2},
+                    "episodes": [
+                        {"episode_number": 1, "air_date": "2023-06-01"},
+                        {"episode_number": 2, "air_date": "2023-06-02"},
+                    ],
+                },
+                "season/2": {
+                    "image": "season2.jpg",
+                    "season_number": 2,
+                    "details": {"episodes": 2},
+                    "episodes": [
+                        {"episode_number": 1, "air_date": "2023-06-04"},
+                        {"episode_number": 2, "air_date": "2023-06-05"},
+                    ],
+                },
+            },
+        ]
+
         self.tv.status = Status.COMPLETED.value
         self.tv.save(update_fields=["status"])
 
         self.assertEqual(
             self.tv.seasons.filter(status=Status.COMPLETED.value).count(),
-            10,
+            2,
         )
 
 
@@ -226,16 +274,19 @@ class TVStatusTests(TestCase):
             "season/1": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 1,
+                "details": {"episodes": len(released_episodes)},
                 "episodes": released_episodes,
             },
             "season/2": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 2,
+                "details": {"episodes": len(released_episodes)},
                 "episodes": released_episodes,
             },
             "season/3": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 3,
+                "details": {"episodes": len(released_episodes)},
                 "episodes": released_episodes,
             },
         }
@@ -271,6 +322,7 @@ class TVStatusTests(TestCase):
             "season/1": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 1,
+                "details": {"episodes": 1},
                 "episodes": [
                     {"episode_number": 1, "air_date": datetime(2020, 1, 1, tzinfo=UTC)},
                 ],
@@ -278,6 +330,7 @@ class TVStatusTests(TestCase):
             "season/2": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 2,
+                "details": {"episodes": 2},
                 "episodes": [
                     {"episode_number": 1, "air_date": datetime(2020, 1, 1, tzinfo=UTC)},
                     {"episode_number": 2, "air_date": datetime(2999, 1, 1, tzinfo=UTC)},
@@ -286,6 +339,7 @@ class TVStatusTests(TestCase):
             "season/3": {
                 "image": "http://example.com/image.jpg",
                 "season_number": 3,
+                "details": {"episodes": 1},
                 "episodes": [
                     {"episode_number": 1, "air_date": None},
                 ],

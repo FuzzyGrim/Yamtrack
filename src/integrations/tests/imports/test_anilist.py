@@ -1,8 +1,9 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import requests
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
@@ -91,8 +92,14 @@ class ImportAniList(TestCase):
             datetime(2025, 6, 4, 10, 11, 17, tzinfo=UTC),
         )
 
-    def test_user_not_found(self):
+    @patch("integrations.imports.anilist.app.providers.services.api_request")
+    def test_user_not_found(self, mock_api_request):
         """Test that an error is raised if the user is not found."""
+        response = Mock()
+        response.json.return_value = {"errors": [{"message": "User not found"}]}
+        error = requests.exceptions.HTTPError(response=response)
+        mock_api_request.side_effect = error
+
         self.assertRaises(
             helpers.MediaImportError,
             anilist.importer,

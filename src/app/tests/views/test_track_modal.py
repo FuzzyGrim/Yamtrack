@@ -29,12 +29,16 @@ class TrackModalViewTests(TestCase):
             title="Test Movie",
             image="http://example.com/image.jpg",
         )
-        self.movie = Movie.objects.create(
-            item=self.item,
-            user=self.user,
-            status=Status.IN_PROGRESS.value,
-            progress=0,
-        )
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 1},
+        ):
+            self.movie = Movie.objects.create(
+                item=self.item,
+                user=self.user,
+                status=Status.IN_PROGRESS.value,
+                progress=0,
+            )
 
     def test_track_modal_view_existing_media(self):
         """Test the track modal view for existing media."""

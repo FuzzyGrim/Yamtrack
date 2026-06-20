@@ -1,0 +1,118 @@
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from api.serializers.diary import DiaryEntryWriteSerializer
+from api.services import diary as diary_service
+from api.services.social import set_like
+from app.models import DiaryEntry
+from social.models import ContentLike
+
+
+class DiaryListView(APIView):
+    """List or create diary entries."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        entries = (
+            DiaryEntry.objects.filter(user=request.user)
+            .select_related("item", "user")
+            .prefetch_related("tags")
+            .order_by("-created_at")
+        )
+        media_type = request.query_params.get("media_type")
+        year = request.query_params.get("year")
+        item_id = request.query_params.get("item_id")
+        if media_type:
+            entries = entries.filter(item__media_type=media_type)
+        if year:
+            entries = entries.filter(consumed_at__year=year)
+        if item_id:
+            entries = entries.filter(item_id=item_id)
+        return Response(
+            {
+                "count": entries.count(),
+                "next": None,
+                "previous": None,
+                "results": [
+                    diary_service.diary_payload(entry, request=request, viewer=request.user)
+                    for entry in entries[:100]
+                ],
+            },
+        )
+
+    def post(self, request):
+        serializer = DiaryEntryWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        entry = diary_service.create_entry(request.user, serializer.validated_data)
+        entry = DiaryEntry.objects.select_related("item", "user").prefetch_related("tags").get(id=entry.id)
+        return Response(
+            diary_service.diary_payload(entry, request=request, viewer=request.user),
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class DiaryDetailView(APIView):
+    """Read, update, or delete a diary entry."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, entry_id):
+        entry = get_object_or_404(
+            DiaryEntry.objects.select_related("item", "user").prefetch_related("tags"),
+            id=entry_id,
+        )
+        if entry.user != request.user and entry.visibility == "private":
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(diary_service.diary_payload(entry, request=request, viewer=request.user))
+
+    def patch(self, request, entry_id):
+        entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
+        serializer = DiaryEntryWriteSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        entry = diary_service.update_entry(entry, serializer.validated_data)
+        entry = DiaryEntry.objects.select_related("item", "user").prefetch_related("tags").get(id=entry.id)
+        return Response(diary_service.diary_payload(entry, request=request, viewer=request.user))
+
+    def delete(self, request, entry_id):
+        entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
+        entry.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DiaryTagsView(APIView):
+    """Tag autocomplete for diary entries."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"results": diary_service.tag_results(request.query_params.get("q", ""))})
+
+
+class DiaryLikeView(APIView):
+    """Like/unlike a diary entry."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, entry_id):
+        return Response(
+            set_like(
+                request.user,
+                target_type=ContentLike.DIARY_ENTRY,
+                target_id=entry_id,
+                liked=True,
+            ),
+        )
+
+    def delete(self, request, entry_id):
+        return Response(
+            set_like(
+                request.user,
+                target_type=ContentLike.DIARY_ENTRY,
+                target_id=entry_id,
+                liked=False,
+            ),
+        )

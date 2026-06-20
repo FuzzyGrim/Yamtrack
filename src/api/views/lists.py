@@ -1,0 +1,225 @@
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from api.serializers.common import (
+    find_item,
+    get_or_create_item_from_metadata,
+    image_url,
+    media_summary_from_item,
+    user_summary,
+)
+from api.serializers.lists import (
+    CollaboratorSerializer,
+    CustomListWriteSerializer,
+    ListItemWriteSerializer,
+)
+from api.services.social import set_like
+from app.providers import services as provider_services
+from lists.models import CustomList, CustomListItem
+from social.models import Activity, ContentLike
+
+
+def list_payload(custom_list, request=None, *, include_items=False):
+    """Serialize a custom list."""
+    data = {
+        "id": custom_list.id,
+        "name": custom_list.name,
+        "slug": custom_list.slug,
+        "description": custom_list.description,
+        "visibility": custom_list.visibility,
+        "owner": user_summary(custom_list.owner, request=request),
+        "collaborators": [
+            user_summary(user, request=request) for user in custom_list.collaborators.all()
+        ],
+        "image_url": image_url(request, custom_list.image),
+        "items_count": custom_list.items.count(),
+        "updated_at": custom_list.updated_at,
+        "like_count": ContentLike.objects.filter(
+            target_type=ContentLike.CUSTOM_LIST,
+            target_id=custom_list.id,
+        ).count(),
+    }
+    if include_items:
+        data["items"] = [
+            media_summary_from_item(item, request=request, user=request.user)
+            for item in custom_list.items.all()
+        ]
+    return data
+
+
+class ListsView(APIView):
+    """List/create custom lists."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        lists = CustomList.objects.get_user_lists(request.user)
+        query = request.query_params.get("q", "")
+        if query:
+            lists = lists.filter(Q(name__icontains=query) | Q(description__icontains=query))
+        return Response(
+            {
+                "count": lists.count(),
+                "next": None,
+                "previous": None,
+                "results": [list_payload(custom_list, request=request) for custom_list in lists[:100]],
+            },
+        )
+
+    def post(self, request):
+        serializer = CustomListWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        custom_list = CustomList.objects.create(
+            owner=request.user,
+            name=data["name"],
+            slug=data.get("slug", ""),
+            description=data.get("description", ""),
+            visibility=data.get("visibility", CustomList.Visibility.PRIVATE),
+        )
+        if "collaborator_usernames" in data:
+            users = get_user_model().objects.filter(username__in=data["collaborator_usernames"])
+            custom_list.collaborators.set(users)
+        Activity.objects.create(
+            actor=request.user,
+            verb="list_created",
+            target_type="list",
+            target_id=custom_list.id,
+            visibility=custom_list.visibility,
+            snapshot={"name": custom_list.name},
+        )
+        return Response(list_payload(custom_list, request=request), status=status.HTTP_201_CREATED)
+
+
+class ListDetailView(APIView):
+    """Read/update/delete a custom list."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, request, list_id):
+        custom_list = get_object_or_404(
+            CustomList.objects.select_related("owner").prefetch_related("collaborators", "items"),
+            id=list_id,
+        )
+        if custom_list.visibility == CustomList.Visibility.PRIVATE and not custom_list.user_can_view(request.user):
+            return None
+        return custom_list
+
+    def get(self, request, list_id):
+        custom_list = self.get_object(request, list_id)
+        if custom_list is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(list_payload(custom_list, request=request, include_items=True))
+
+    def patch(self, request, list_id):
+        custom_list = get_object_or_404(CustomList, id=list_id)
+        if not custom_list.user_can_edit(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = CustomListWriteSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        for field in ["name", "slug", "description", "visibility"]:
+            if field in data:
+                setattr(custom_list, field, data[field])
+        custom_list.save()
+        if "collaborator_usernames" in data:
+            users = get_user_model().objects.filter(username__in=data["collaborator_usernames"])
+            custom_list.collaborators.set(users)
+        return Response(list_payload(custom_list, request=request, include_items=True))
+
+    def delete(self, request, list_id):
+        custom_list = get_object_or_404(CustomList, id=list_id)
+        if not custom_list.user_can_delete(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        custom_list.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ListItemsView(APIView):
+    """Add an item to a list."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, list_id):
+        custom_list = get_object_or_404(CustomList, id=list_id)
+        if not custom_list.user_can_edit(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        serializer = ListItemWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ref = serializer.validated_data["ref"]
+        item = find_item(ref)
+        if item is None:
+            metadata = provider_services.get_media_metadata(
+                ref["media_type"],
+                ref["media_id"],
+                ref["source"],
+                [ref.get("season_number")] if ref.get("season_number") is not None else None,
+                ref.get("episode_number"),
+            )
+            item = get_or_create_item_from_metadata(ref, metadata)
+        CustomListItem.objects.get_or_create(custom_list=custom_list, item=item)
+        Activity.objects.create(
+            actor=request.user,
+            verb="list_item_added",
+            target_type="list",
+            target_id=custom_list.id,
+            item=item,
+            visibility=custom_list.visibility,
+            snapshot={"list_name": custom_list.name},
+        )
+        return Response({"item": media_summary_from_item(item, request=request, user=request.user)}, status=status.HTTP_201_CREATED)
+
+
+class ListItemDetailView(APIView):
+    """Remove an item from a list."""
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, list_id, item_id):
+        custom_list = get_object_or_404(CustomList, id=list_id)
+        if not custom_list.user_can_edit(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        CustomListItem.objects.filter(custom_list=custom_list, item_id=item_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ListCollaboratorsView(APIView):
+    """Add a collaborator."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, list_id):
+        custom_list = get_object_or_404(CustomList, id=list_id, owner=request.user)
+        serializer = CollaboratorSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = get_object_or_404(get_user_model(), username=serializer.validated_data["username"])
+        custom_list.collaborators.add(user)
+        return Response(list_payload(custom_list, request=request, include_items=True))
+
+
+class ListCollaboratorDetailView(APIView):
+    """Remove a collaborator."""
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, list_id, user_id):
+        custom_list = get_object_or_404(CustomList, id=list_id, owner=request.user)
+        custom_list.collaborators.remove(user_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ListLikeView(APIView):
+    """Like/unlike a list."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, list_id):
+        return Response(set_like(request.user, target_type=ContentLike.CUSTOM_LIST, target_id=list_id, liked=True))
+
+    def delete(self, request, list_id):
+        return Response(set_like(request.user, target_type=ContentLike.CUSTOM_LIST, target_id=list_id, liked=False))

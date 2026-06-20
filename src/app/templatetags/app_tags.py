@@ -1,7 +1,9 @@
+from datetime import timedelta
 from pathlib import Path
 
 from django import template
 from django.conf import settings
+from django.db.models import Avg
 from django.urls import reverse
 from django.utils import formats, timezone
 from django.utils.html import format_html
@@ -9,7 +11,6 @@ from unidecode import unidecode
 
 from app import config, helpers
 from app.models import MediaTypes, Sources, Status
-from django.db.models import Avg
 
 register = template.Library()
 
@@ -65,17 +66,50 @@ def slug(arg1):
 @register.filter
 def date_tracker_format(date):
     """Format a datetime object to a readable string."""
+    return datetime_format(date)
+
+
+@register.filter
+def datetime_format(date, user=None):
+    """Format a datetime object using app or user date/time preferences."""
     if not date:
         return None
 
     local_dt = timezone.localtime(date)
 
-    date_format = "DATETIME_FORMAT" if settings.TRACK_TIME else "DATE_FORMAT"
+    if user and getattr(user, "date_format", None):
+        date_format = user.date_format
+        if settings.TRACK_TIME and getattr(user, "time_format", None):
+            date_format = f"{date_format} {user.time_format}"
+    else:
+        date_format = "DATETIME_FORMAT" if settings.TRACK_TIME else "DATE_FORMAT"
 
     return formats.date_format(
         local_dt,
         date_format,
     )
+
+
+@register.filter
+def time_format(date, user=None):
+    """Format a datetime object using app or user time preferences."""
+    if not date:
+        return None
+
+    local_dt = timezone.localtime(date)
+    return formats.date_format(
+        local_dt,
+        getattr(user, "time_format", None) or "TIME_FORMAT",
+    )
+
+
+@register.simple_tag
+def now_plus_minutes(minutes):
+    """Return a datetime-local compatible value offset by minutes from now."""
+    local_dt = timezone.localtime(timezone.now() + timedelta(minutes=minutes or 0))
+    if settings.TRACK_TIME:
+        return local_dt.strftime("%Y-%m-%dT%H:%M")
+    return local_dt.strftime("%Y-%m-%d")
 
 
 @register.filter
@@ -217,13 +251,15 @@ def status_color(status):
 
 
 @register.filter
-def natural_day(value):
+def natural_day(value, user=None):
     """Format date with natural language (Today, Tomorrow, etc.)."""
+    local_value = timezone.localtime(value)
+
     # Get today's date in the current timezone
     today = timezone.localdate()
 
     # Extract just the date part for comparison
-    value_date = value.date()
+    value_date = local_value.date()
 
     # Calculate the difference in days
     diff = value_date - today
@@ -231,14 +267,21 @@ def natural_day(value):
 
     threshold = 5
     if days == 0:
-        return "Today"
-    if days == 1:
-        return "Tomorrow"
-    if days > 1 and days <= threshold:
-        return f"In {days} days"
+        label = "Today"
+    elif days == 1:
+        label = "Tomorrow"
+    elif days > 1 and days <= threshold:
+        label = f"In {days} days"
+    elif user and getattr(user, "date_format", None):
+        label = formats.date_format(local_value, user.date_format)
+    else:
+        # For dates further away
+        label = local_value.strftime("%b %d")
 
-    # For dates further away
-    return value.strftime("%b %d")
+    if user and getattr(user, "time_format", None):
+        return f"{label} {formats.date_format(local_value, user.time_format)}"
+
+    return label
 
 
 @register.filter
@@ -287,17 +330,18 @@ def media_view_url(view_name, media):
         "media_id": media["media_id"] if is_dict else media.media_id,
     }
 
-    # Handle season/episode numbers if they exist
-    if is_dict:
-        if "season_number" in media:
-            kwargs["season_number"] = media["season_number"]
-        if "episode_number" in media:
-            kwargs["episode_number"] = media["episode_number"]
-    else:
-        if media.season_number is not None:
-            kwargs["season_number"] = media.season_number
-        if media.episode_number is not None:
-            kwargs["episode_number"] = media.episode_number
+    if view_name not in {"history_modal", "track_modal"}:
+        # Handle season/episode numbers if they exist and the target route accepts them.
+        if is_dict:
+            if "season_number" in media:
+                kwargs["season_number"] = media["season_number"]
+            if "episode_number" in media:
+                kwargs["episode_number"] = media["episode_number"]
+        else:
+            if media.season_number is not None:
+                kwargs["season_number"] = media.season_number
+            if media.episode_number is not None:
+                kwargs["episode_number"] = media.episode_number
 
     return reverse(view_name, kwargs=kwargs)
 

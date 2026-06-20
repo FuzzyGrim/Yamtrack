@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -78,8 +79,14 @@ class ImportMAL(TestCase):
             datetime(2022, 12, 28, 19, 20, 54, tzinfo=UTC),
         )
 
-    def test_user_not_found(self):
+    @patch("integrations.imports.mal.app.providers.services.api_request")
+    def test_user_not_found(self, mock_api_request):
         """Test that an error is raised if the user is not found."""
+        response = MagicMock()
+        response.status_code = requests.codes.not_found
+        error = requests.exceptions.HTTPError(response=response)
+        mock_api_request.side_effect = error
+
         self.assertRaises(
             helpers.MediaImportError,
             mal.importer,

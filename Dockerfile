@@ -13,7 +13,8 @@ WORKDIR /yamtrack
 COPY ./pyproject.toml ./pyproject.toml
 COPY ./uv.lock ./uv.lock
 
-RUN uv sync --locked
+# Production image: runtime deps only (skip dev/docs git deps like mike)
+RUN uv sync --frozen --no-dev --no-group docs
 
 # --- Final stage: minimal runtime image ---
 FROM python:3.12-alpine3.23

@@ -28,8 +28,41 @@ class ImportGoodreads(TestCase):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.search_patcher = patch(
+            "integrations.imports.goodreads.services.search",
+            side_effect=self._mock_search,
+        )
+        self.search_patcher.start()
+        self.addCleanup(self.search_patcher.stop)
+
         with Path(mock_path / "import_goodreads.csv").open("rb") as file:
             self.import_results = goodreads.importer(file, self.user, "new")
+
+    def _mock_search(self, _media_type, query, _page, _source):
+        """Return deterministic book search results for the Goodreads CSV fixture."""
+        normalized_query = query.strip('="')
+        if not normalized_query:
+            return {"results": []}
+
+        if normalized_query == "9780756404734":
+            title = "The Wise Man's Fear (The Kingkiller Chronicle, #2)"
+            media_id = "1215032"
+        elif "White Sand" in normalized_query:
+            title = "White Sand, Volume 3 (White Sand, #3)"
+            media_id = "39298848"
+        else:
+            title = "Ghosts of the Tristan Basin (Powder Mage, #0.8)"
+            media_id = "28825810"
+
+        return {
+            "results": [
+                {
+                    "media_id": media_id,
+                    "title": title,
+                    "image": "http://example.com/book.jpg",
+                },
+            ],
+        }
 
     def test_import_counts(self):
         """Test basic counts of imported books."""

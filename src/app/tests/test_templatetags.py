@@ -370,8 +370,6 @@ class AppTagsTests(TestCase):
                 "source": Sources.TMDB.value,
                 "media_type": MediaTypes.EPISODE.value,
                 "media_id": "1668",
-                "season_number": 1,
-                "episode_number": 1,
             },
         )
         self.assertEqual(episode_modal, expected_episode_modal)

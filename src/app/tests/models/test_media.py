@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -12,6 +13,7 @@ from app.models import (
 )
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
+ANIME_METADATA = {"max_progress": 26}
 
 
 class MediaModel(TestCase):
@@ -38,8 +40,12 @@ class MediaModel(TestCase):
 
     def test_completed_progress(self):
         """When completed, the progress should be the total number of episodes."""
-        self.anime.status = Status.COMPLETED.value
-        self.anime.save()
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value=ANIME_METADATA,
+        ):
+            self.anime.status = Status.COMPLETED.value
+            self.anime.save()
         self.assertEqual(
             Anime.objects.get(item__media_id="1", user=self.user).progress,
             26,
@@ -50,9 +56,13 @@ class MediaModel(TestCase):
 
         Status should be completed and end_date the current date if not specified.
         """
-        self.anime.status = Status.IN_PROGRESS.value
-        self.anime.progress = 26
-        self.anime.save()
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value=ANIME_METADATA,
+        ):
+            self.anime.status = Status.IN_PROGRESS.value
+            self.anime.progress = 26
+            self.anime.save()
 
         self.assertEqual(
             Anime.objects.get(item__media_id="1", user=self.user).status,
@@ -64,9 +74,13 @@ class MediaModel(TestCase):
 
     def test_progress_bigger_than_max(self):
         """When progress is bigger than max, it should be set to max."""
-        self.anime.status = Status.IN_PROGRESS.value
-        self.anime.progress = 30
-        self.anime.save()
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value=ANIME_METADATA,
+        ):
+            self.anime.status = Status.IN_PROGRESS.value
+            self.anime.progress = 30
+            self.anime.save()
         self.assertEqual(
             Anime.objects.get(item__media_id="1", user=self.user).progress,
             26,

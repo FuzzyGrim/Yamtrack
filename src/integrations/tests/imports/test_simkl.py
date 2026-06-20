@@ -40,11 +40,38 @@ class ImportSimkl(TestCase):
         )
 
     @patch("integrations.imports.simkl.SimklImporter._get_user_list")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.movie")
+    @patch("app.providers.mal.anime")
     def test_importer(
         self,
+        mock_mal_anime,
+        mock_tmdb_movie,
+        mock_tv_with_seasons,
         user_list,
     ):
         """Test importing media from SIMKL."""
+        mock_tv_with_seasons.return_value = {
+            "title": "Breaking Bad",
+            "image": "https://image.tmdb.org/t/p/w500/breaking-bad.jpg",
+            "season/1": {
+                "image": "https://image.tmdb.org/t/p/w500/season1.jpg",
+                "max_progress": 7,
+                "episodes": [
+                    {"episode_number": 1, "still_path": "/ep1.jpg"},
+                    {"episode_number": 2, "still_path": "/ep2.jpg"},
+                ],
+            },
+        }
+        mock_tmdb_movie.return_value = {
+            "title": "Perfect Blue",
+            "image": "https://image.tmdb.org/t/p/w500/perfect-blue.jpg",
+        }
+        mock_mal_anime.return_value = {
+            "title": "Cowboy Bebop",
+            "image": "https://cdn.myanimelist.net/images/anime/test.jpg",
+        }
+
         user_list.return_value = {
             "shows": [
                 {

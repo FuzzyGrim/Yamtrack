@@ -2328,10 +2328,22 @@ class DiaryEntry(models.Model):
         ],
     )
     review = models.TextField(blank=True, default="")
+    visibility = models.CharField(
+        max_length=20,
+        choices=[
+            ("public", "Public"),
+            ("followers", "Followers"),
+            ("private", "Private"),
+        ],
+        default="public",
+    )
+    contains_spoilers = models.BooleanField(default=False)
+    review_title = models.CharField(max_length=255, blank=True, default="")
     progress_snapshot = models.JSONField(null=True, blank=True)
     liked = models.BooleanField(default=False)
     is_rewatch = models.BooleanField(default=False)
     tags = models.ManyToManyField('Tag', through='DiaryEntryTag', blank=True, related_name='diary_entries')
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         """Meta options for the model."""
@@ -2446,4 +2458,3 @@ class DiaryEntryTag(models.Model):
         tag = self.tag
         super().delete(*args, **kwargs)
         tag.decrement_usage()
-

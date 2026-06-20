@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -25,7 +26,19 @@ class ImportHowLongToBeat(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         with Path(mock_path / "import_hltb_game.csv").open("rb") as file:
-            self.import_results = hltb.importer(file, self.user, "new")
+            with patch(
+                "integrations.imports.hltb.app.providers.services.search",
+                return_value={
+                    "results": [
+                        {
+                            "media_id": "25076",
+                            "title": "Resident Evil 7: Biohazard",
+                            "image": "http://example.com/game.jpg",
+                        },
+                    ],
+                },
+            ):
+                self.import_results = hltb.importer(file, self.user, "new")
 
     def test_import_counts(self):
         """Test basic counts of imported games."""

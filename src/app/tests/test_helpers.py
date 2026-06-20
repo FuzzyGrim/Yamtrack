@@ -148,9 +148,11 @@ class EnrichItemsWithUserDataTest(TestCase):
         self.movie_media = Movie.objects.create(
             item=self.movie_item,
             user=self.user,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             progress=1,
         )
+        Movie.objects.filter(pk=self.movie_media.pk).update(status=Status.COMPLETED.value)
+        self.movie_media.refresh_from_db()
 
     def test_enrich_items_with_user_data(self):
         """Test enriching items with multiple scenarios."""

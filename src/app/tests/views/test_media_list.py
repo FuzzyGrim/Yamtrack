@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -32,26 +34,30 @@ class MediaListViewTests(TestCase):
 
         movies_id = ["278", "238", "129", "424", "680"]
         num_completed = 3
-        for i in range(1, 6):
-            item = Item.objects.create(
-                media_id=movies_id[i - 1],
-                source=Sources.TMDB.value,
-                media_type=MediaTypes.MOVIE.value,
-                title=f"Test Movie {i}",
-                image="http://example.com/image.jpg",
-            )
-            status = (
-                Status.COMPLETED.value
-                if i < num_completed
-                else Status.IN_PROGRESS.value
-            )
-            Movie.objects.create(
-                item=item,
-                user=self.user,
-                status=status,
-                progress=1 if i < num_completed else 0,
-                score=i,
-            )
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 1},
+        ):
+            for i in range(1, 6):
+                item = Item.objects.create(
+                    media_id=movies_id[i - 1],
+                    source=Sources.TMDB.value,
+                    media_type=MediaTypes.MOVIE.value,
+                    title=f"Test Movie {i}",
+                    image="http://example.com/image.jpg",
+                )
+                status = (
+                    Status.COMPLETED.value
+                    if i < num_completed
+                    else Status.IN_PROGRESS.value
+                )
+                Movie.objects.create(
+                    item=item,
+                    user=self.user,
+                    status=status,
+                    progress=1 if i < num_completed else 0,
+                    score=i,
+                )
 
     def test_media_list_view(self):
         """Test the media list view displays media items."""
@@ -152,13 +158,13 @@ class MediaListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("media_list", response.context)
 
-    def test_profile_private_defaults_to_true(self):
-        """Test new users have private profiles by default."""
+    def test_profile_private_defaults_to_false(self):
+        """Test new users have public profiles by default."""
         user = get_user_model().objects.create_user(
             username="private-default",
         )
 
-        self.assertTrue(user.profile_private)
+        self.assertFalse(user.profile_private)
 
     def test_private_media_list(self):
         """Test the private media list view."""

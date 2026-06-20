@@ -115,7 +115,9 @@ class MediaDetailsViewTests(TestCase):
         self.assertIn("media", response.context)
         self.assertEqual(response.context["media"]["title"], "Season 1")
         self.assertEqual(len(response.context["media"]["episodes"]), 1)
-        self.assertContains(response, "line-clamp-1 blur cursor-pointer")
+        self.assertContains(response, "episode-card")
+        self.assertContains(response, "Episode 1")
+        self.assertContains(response, "Mark as watched")
 
         mock_get_metadata.assert_called_once_with(
             "tv_with_seasons",

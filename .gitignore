@@ -1,13 +1,17 @@
 __pycache__
 *.pyc
+.DS_Store
 .env
+.env.production
 .coverage*
 .venv
+venv/
 src/staticfiles
 site
 src/db/db.sqlite3
 db.sqlite3-shm
 db.sqlite3-wal
+default_*.sqlite3
 
 # Media files (user uploads)
 src/media/
@@ -19,8 +23,11 @@ tailwindcss
 .vscode/launch.json
 .agents
 AGENTS.md
+!ios/AGENTS.md
 CLAUDE.md
 requests.http
 TODO.txt
 .codex
 .cache
+*.xcuserstate
+xcuserdata/

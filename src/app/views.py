@@ -703,11 +703,14 @@ def media_save(request):
     instance_id = request.POST.get("instance_id")
 
     if instance_id:
-        instance = BasicMedia.objects.get_media(
-            request.user,
-            media_type,
-            instance_id,
-        )
+        try:
+            instance = BasicMedia.objects.get_media(
+                request.user,
+                media_type,
+                instance_id,
+            )
+        except apps.get_model(app_label="app", model_name=media_type).DoesNotExist as exc:
+            raise Http404 from exc
     else:
         metadata = services.get_media_metadata(
             media_type,
@@ -992,6 +995,7 @@ def history_modal(
                     history,
                     media_type,
                     media_entry_number,
+                    request.user,
                 ),
             )
     return render(

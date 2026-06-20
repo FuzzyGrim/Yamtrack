@@ -2,17 +2,32 @@ import json
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
 from integrations.webhooks import anime_mappings
 
+TEST_MAPPING_DATA = {
+    "tvdb_show:74796:s17": {"mal:53998": {"14": "1"}},
+    "tvdb_show:74796:s1": {"mal:269": {}},
+    "tvdb_show:74796:s2": {"mal:269": {"1-21": "21-41"}},
+    "anidb:3651:R": {"mal:849": {}},
+}
+
 
 class AnimeMappingsTests(TestCase):
     """Tests for AniBridge mapping resolution."""
 
-    def test_fetch_mapping_data_downloads_mapping_data(self):
+    def setUp(self):
+        """Clear cached mapping data between tests."""
+        cache.delete(anime_mappings.CACHE_KEY)
+
+    @patch("integrations.webhooks.anime_mappings.app.providers.services.api_request")
+    def test_fetch_mapping_data_downloads_mapping_data(self, mock_api_request):
         """Test mapping data downloads from AniBridge."""
+        mock_api_request.return_value = TEST_MAPPING_DATA
+
         mapping_data = anime_mappings.fetch_mapping_data()
 
         self.assertIn("tvdb_show:74796:s17", mapping_data)
@@ -21,7 +36,7 @@ class AnimeMappingsTests(TestCase):
     def test_bleach_thousand_year_blood_war_part_two(self):
         """Test Bleach S17E14 maps to Thousand-Year Blood War part two."""
         mal_id, episode_number = anime_mappings.get_mal_id_from_tvdb(
-            anime_mappings.fetch_mapping_data(),
+            TEST_MAPPING_DATA,
             74796,
             17,
             14,
@@ -33,7 +48,7 @@ class AnimeMappingsTests(TestCase):
     def test_bleach_season_one_maps_directly(self):
         """Test Bleach S01E09 maps directly to original Bleach progress."""
         mal_id, episode_number = anime_mappings.get_mal_id_from_tvdb(
-            anime_mappings.fetch_mapping_data(),
+            TEST_MAPPING_DATA,
             74796,
             1,
             9,
@@ -45,7 +60,7 @@ class AnimeMappingsTests(TestCase):
     def test_bleach_season_two_maps_to_continuing_mal_progress(self):
         """Test Bleach S02E02 maps to episode 22 of original Bleach."""
         mal_id, episode_number = anime_mappings.get_mal_id_from_tvdb(
-            anime_mappings.fetch_mapping_data(),
+            TEST_MAPPING_DATA,
             74796,
             2,
             2,
@@ -60,6 +75,7 @@ class AnimeMappingsWebhookPayloadTests(TestCase):
 
     def setUp(self):
         """Set up a user for webhook tests."""
+        cache.set(anime_mappings.CACHE_KEY, TEST_MAPPING_DATA)
         self.client = Client()
         self.credentials = {
             "username": "testuser",

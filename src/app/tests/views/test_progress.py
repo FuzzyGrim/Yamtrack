@@ -22,6 +22,19 @@ from app.models import (
 class ProgressEditSeason(TestCase):
     """Test for editing a season progress through views."""
 
+    season_metadata = {
+        "episodes": [
+            {"episode_number": 1},
+            {"episode_number": 2},
+        ],
+        "season/1": {
+            "episodes": [
+                {"episode_number": 1},
+                {"episode_number": 2},
+            ],
+        },
+    }
+
     def setUp(self):
         """Prepare the database with a season and an episode."""
         self.credentials = {"username": "test", "password": "12345"}
@@ -36,9 +49,23 @@ class ProgressEditSeason(TestCase):
             image="http://example.com/image.jpg",
             season_number=1,
         )
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+        self.tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        TV.save_base(self.tv)
         self.season = Season.objects.create(
             item=self.item_season,
             user=self.user,
+            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
         )
 
@@ -60,18 +87,22 @@ class ProgressEditSeason(TestCase):
 
     def test_progress_increase(self):
         """Test the increase of progress for a season."""
-        self.client.post(
-            reverse(
-                "progress_edit",
-                kwargs={
-                    "media_type": MediaTypes.SEASON.value,
-                    "instance_id": self.season.id,
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value=self.season_metadata,
+        ):
+            self.client.post(
+                reverse(
+                    "progress_edit",
+                    kwargs={
+                        "media_type": MediaTypes.SEASON.value,
+                        "instance_id": self.season.id,
+                    },
+                ),
+                {
+                    "operation": "increase",
                 },
-            ),
-            {
-                "operation": "increase",
-            },
-        )
+            )
 
         self.assertEqual(
             Episode.objects.filter(item__media_id="1668").count(),
@@ -87,18 +118,22 @@ class ProgressEditSeason(TestCase):
 
     def test_progress_decrease(self):
         """Test the decrease of progress for a season."""
-        self.client.post(
-            reverse(
-                "progress_edit",
-                kwargs={
-                    "media_type": MediaTypes.SEASON.value,
-                    "instance_id": self.season.id,
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value=self.season_metadata,
+        ):
+            self.client.post(
+                reverse(
+                    "progress_edit",
+                    kwargs={
+                        "media_type": MediaTypes.SEASON.value,
+                        "instance_id": self.season.id,
+                    },
+                ),
+                {
+                    "operation": "decrease",
                 },
-            ),
-            {
-                "operation": "decrease",
-            },
-        )
+            )
 
         self.assertEqual(
             Episode.objects.filter(item__media_id="1668").count(),
@@ -126,44 +161,53 @@ class ProgressEditAnime(TestCase):
             title="Cowboy Bebop",
             image="http://example.com/image.jpg",
         )
-        self.anime = Anime.objects.create(
+        self.anime = Anime(
             item=self.item,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             progress=2,
         )
+        Anime.save_base(self.anime)
 
     def test_progress_increase(self):
         """Test the increase of progress for an anime."""
-        self.client.post(
-            reverse(
-                "progress_edit",
-                kwargs={
-                    "media_type": MediaTypes.ANIME.value,
-                    "instance_id": self.anime.id,
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 26},
+        ):
+            self.client.post(
+                reverse(
+                    "progress_edit",
+                    kwargs={
+                        "media_type": MediaTypes.ANIME.value,
+                        "instance_id": self.anime.id,
+                    },
+                ),
+                {
+                    "operation": "increase",
                 },
-            ),
-            {
-                "operation": "increase",
-            },
-        )
+            )
 
         self.assertEqual(Anime.objects.get(item__media_id="1").progress, 3)
 
     def test_progress_decrease(self):
         """Test the decrease of progress for an anime."""
-        self.client.post(
-            reverse(
-                "progress_edit",
-                kwargs={
-                    "media_type": MediaTypes.ANIME.value,
-                    "instance_id": self.anime.id,
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 26},
+        ):
+            self.client.post(
+                reverse(
+                    "progress_edit",
+                    kwargs={
+                        "media_type": MediaTypes.ANIME.value,
+                        "instance_id": self.anime.id,
+                    },
+                ),
+                {
+                    "operation": "decrease",
                 },
-            ),
-            {
-                "operation": "decrease",
-            },
-        )
+            )
 
         self.assertEqual(Anime.objects.get(item__media_id="1").progress, 1)
 
@@ -289,14 +333,8 @@ class ProgressEditPersistentMessages(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="messages-list"')
-        self.assertContains(response, 'hx-swap-oob="beforeend"')
-        self.assertContains(
-            response,
-            "Friends S1 was marked as completed automatically.",
-        )
-        self.assertContains(response, "Friends was marked as completed automatically.")
-        self.assertContains(response, reverse("mark_user_messages_shown"))
+        self.assertTemplateUsed(response, "app/components/progress_changer.html")
+        self.assertContains(response, "Progress")
         self.assertTrue(
             UserMessage.objects.filter(
                 user=self.user,

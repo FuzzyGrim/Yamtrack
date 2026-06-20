@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -68,8 +69,24 @@ class ImportYamtrack(TestCase):
             datetime(2024, 2, 9, 12, 0, 0, tzinfo=UTC),
         )
 
-    def test_missing_metadata_handling(self):
+    @patch("integrations.imports.yamtrack.services.get_media_metadata")
+    def test_missing_metadata_handling(self, mock_get_media_metadata):
         """Test _handle_missing_metadata method directly."""
+        mock_get_media_metadata.side_effect = [
+            {
+                "title": "Friends",
+                "image": "https://image.tmdb.org/t/p/w500/friends.jpg",
+            },
+            {
+                "title": "Friends",
+                "image": "https://image.tmdb.org/t/p/w500/friends-s2.jpg",
+            },
+            {
+                "title": "Friends",
+                "image": "https://image.tmdb.org/t/p/w500/friends-s2e5.jpg",
+            },
+        ]
+
         test_rows = [
             # TV Show
             {
@@ -128,7 +145,54 @@ class ImportYamtrackPartials(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         with Path(mock_path / "import_yamtrack_partials.csv").open("rb") as file:
-            self.import_results = yamtrack.importer(file, self.user, "new")
+            with (
+                patch(
+                    "integrations.imports.yamtrack.services.search",
+                    side_effect=self._mock_search,
+                ),
+                patch(
+                    "integrations.imports.yamtrack.services.get_media_metadata",
+                    side_effect=self._mock_metadata,
+                ),
+            ):
+                self.import_results = yamtrack.importer(file, self.user, "new")
+
+    def _mock_search(self, media_type, query, _page, _source):
+        media_id = "1668" if media_type in {"season", "episode"} else "429650"
+        source = "tmdb" if media_type in {"movie", "season", "episode"} else "hardcover"
+        title = "Friends" if media_type in {"season", "episode"} else "Warlock"
+        if media_type == "movie":
+            media_id = "10494"
+            title = "Perfect Blue"
+        elif query == "Warlock":
+            media_id = "429651"
+        elif query == "0312980388":
+            media_id = "429652"
+
+        return {
+            "results": [
+                {
+                    "media_id": media_id,
+                    "source": source,
+                    "title": title,
+                    "image": "http://example.com/media.jpg",
+                },
+            ],
+        }
+
+    def _mock_metadata(self, media_type, _media_id, _source, season_numbers, _episode):
+        title = "Friends" if media_type in {"tv", "season", "episode"} else "Warlock"
+        if media_type == "movie":
+            title = "Perfect Blue"
+
+        suffix = ""
+        if season_numbers and season_numbers[0]:
+            suffix = f"-s{season_numbers[0]}"
+
+        return {
+            "title": title,
+            "image": f"http://example.com/{media_type}{suffix}.jpg",
+        }
 
     def test_import_counts(self):
         """Test basic counts of imported media."""
@@ -168,23 +232,27 @@ class ImportYamtrackPartials(TestCase):
 
         importer = yamtrack.YamtrackImporter(None, self.user, "new")
 
-        for row in test_rows:
-            original_row = row.copy()
+        with patch(
+            "integrations.imports.yamtrack.services.search",
+            side_effect=self._mock_search,
+        ):
+            for row in test_rows:
+                original_row = row.copy()
 
-            importer._handle_missing_metadata(
-                row,
-                row["media_type"],
-                int(row["season_number"]) if row["season_number"] else None,
-                int(row["episode_number"]) if row["episode_number"] else None,
-            )
+                importer._handle_missing_metadata(
+                    row,
+                    row["media_type"],
+                    int(row["season_number"]) if row["season_number"] else None,
+                    int(row["episode_number"]) if row["episode_number"] else None,
+                )
 
-            # Verify media_id was resolved from TMDB search
-            self.assertNotEqual(row["media_id"], original_row["media_id"])
-            self.assertEqual(str(row["media_id"]), "1668")  # Friends TV show ID
-            self.assertEqual(row["source"], "tmdb")
-            # Title and image should be populated from TMDB
-            self.assertNotEqual(row["title"], "")
-            self.assertNotEqual(row["image"], "")
+                # Verify media_id was resolved from TMDB search
+                self.assertNotEqual(row["media_id"], original_row["media_id"])
+                self.assertEqual(str(row["media_id"]), "1668")  # Friends TV show ID
+                self.assertEqual(row["source"], "tmdb")
+                # Title and image should be populated from TMDB
+                self.assertNotEqual(row["title"], "")
+                self.assertNotEqual(row["image"], "")
 
     def test_end_dates(self):
         """Test end dates during import."""

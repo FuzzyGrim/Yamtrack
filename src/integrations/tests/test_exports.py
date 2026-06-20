@@ -1,6 +1,7 @@
 import csv
 from datetime import UTC, datetime
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -19,6 +20,7 @@ from app.models import (
     Season,
     Sources,
     Status,
+    TV,
 )
 
 
@@ -38,15 +40,19 @@ class ExportCSVTest(TestCase):
             title="Perfect Blue",
             image="https://image.url",
         )
-        Movie.objects.create(
-            item=item_movie,
-            user=self.user,
-            score=9,
-            status=Status.COMPLETED.value,
-            notes="Nice",
-            start_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
-            end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
-        )
+        with patch(
+            "app.models.providers.services.get_media_metadata",
+            return_value={"max_progress": 1},
+        ):
+            Movie.objects.create(
+                item=item_movie,
+                user=self.user,
+                score=9,
+                status=Status.COMPLETED.value,
+                notes="Nice",
+                start_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
+                end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
+            )
 
         item_season = Item.objects.create(
             media_id="1668",
@@ -57,9 +63,24 @@ class ExportCSVTest(TestCase):
             season_number=1,
         )
 
+        item_tv = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="https://image.url",
+        )
+        tv = TV(
+            item=item_tv,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        TV.save_base(tv)
+
         season = Season.objects.create(
             item=item_season,
             user=self.user,
+            related_tv=tv,
             score=9,
             status=Status.IN_PROGRESS.value,
             notes="Nice",
@@ -74,11 +95,12 @@ class ExportCSVTest(TestCase):
             season_number=1,
             episode_number=1,
         )
-        Episode.objects.create(
+        episode = Episode(
             item=item_episode,
             related_season=season,
             end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
         )
+        Episode.save_base(episode)
 
         item_anime = Item.objects.create(
             media_id="1",
@@ -87,13 +109,14 @@ class ExportCSVTest(TestCase):
             title="Cowboy Bebop",
             image="https://image.url",
         )
-        Anime.objects.create(
+        anime = Anime(
             item=item_anime,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             progress=2,
             start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
+        Anime.save_base(anime)
 
         item_manga = Item.objects.create(
             media_id="1",
@@ -102,13 +125,14 @@ class ExportCSVTest(TestCase):
             title="Berserk",
             image="https://image.url",
         )
-        Manga.objects.create(
+        manga = Manga(
             item=item_manga,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             progress=2,
             start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
+        Manga.save_base(manga)
 
         item_game = Item.objects.create(
             media_id="1",
@@ -117,13 +141,14 @@ class ExportCSVTest(TestCase):
             title="The Witcher 3: Wild Hunt",
             image="https://image.url",
         )
-        Game.objects.create(
+        game = Game(
             item=item_game,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             progress=120,
             start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
+        Game.save_base(game)
 
         item_book = Item.objects.create(
             media_id="OL21733390M",
@@ -132,13 +157,14 @@ class ExportCSVTest(TestCase):
             title="Fantastic Mr. Fox",
             image="https://image.url",
         )
-        Book.objects.create(
+        book = Book(
             item=item_book,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             progress=120,
             start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
+        Book.save_base(book)
 
     def test_export_csv(self):
         """Basic test exporting media to CSV."""

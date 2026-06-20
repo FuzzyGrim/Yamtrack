@@ -29,6 +29,18 @@ class StatisticsDateFilteringTests(TestCase):
         self.credentials = {"username": "testuser", "password": "testpassword"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
+        self.tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Test TV Show",
+        )
+        self.tv = TV.objects.create(
+            user=self.user,
+            item=self.tv_item,
+            status=Status.PLANNING.value,
+        )
+
         # Create season item
         self.season_item = Item.objects.create(
             media_id="1668",
@@ -117,21 +129,25 @@ class StatisticsDateFilteringTests(TestCase):
         self.season = Season.objects.create(
             user=self.user,
             item=self.season_item,
+            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
             score=8.0,
         )
 
         # Create episodes
-        self.episode1 = Episode.objects.create(
-            item=self.episode1_item,
-            related_season=self.season,
-            end_date=datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC),
-        )
-
-        self.episode2 = Episode.objects.create(
-            item=self.episode2_item,
-            related_season=self.season,
-            end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
+        self.episode1, self.episode2 = Episode.objects.bulk_create(
+            [
+                Episode(
+                    item=self.episode1_item,
+                    related_season=self.season,
+                    end_date=datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC),
+                ),
+                Episode(
+                    item=self.episode2_item,
+                    related_season=self.season,
+                    end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
+                ),
+            ],
         )
 
         # Create movies for different date scenarios
@@ -139,7 +155,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie1 = Movie.objects.create(
             user=self.user,
             item=self.movie1_item,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             score=7.5,
             start_date=datetime.datetime(2025, 2, 10, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 2, 10, 0, 0, tzinfo=datetime.UTC),
@@ -149,7 +165,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie2 = Movie.objects.create(
             user=self.user,
             item=self.movie2_item,
-            status=Status.IN_PROGRESS.value,
+            status=Status.PLANNING.value,
             score=8.0,
             start_date=datetime.datetime(2025, 2, 15, 0, 0, tzinfo=datetime.UTC),
             end_date=None,
@@ -159,7 +175,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie3 = Movie.objects.create(
             user=self.user,
             item=self.movie3_item,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             score=6.5,
             start_date=None,
             end_date=datetime.datetime(2025, 2, 20, 0, 0, tzinfo=datetime.UTC),
@@ -179,7 +195,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie5 = Movie.objects.create(
             user=self.user,
             item=self.movie5_item,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             score=9.0,
             start_date=datetime.datetime(2025, 1, 10, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
@@ -199,7 +215,7 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie7 = Movie.objects.create(
             user=self.user,
             item=self.movie7_item,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             score=7.0,
             start_date=datetime.datetime(2025, 1, 25, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 2, 5, 0, 0, tzinfo=datetime.UTC),
@@ -209,11 +225,21 @@ class StatisticsDateFilteringTests(TestCase):
         self.movie8 = Movie.objects.create(
             user=self.user,
             item=self.movie8_item,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             score=8.5,
             start_date=datetime.datetime(2025, 2, 25, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 3, 5, 0, 0, tzinfo=datetime.UTC),
         )
+        Movie.objects.filter(
+            pk__in=[
+                self.movie1.pk,
+                self.movie3.pk,
+                self.movie5.pk,
+                self.movie7.pk,
+                self.movie8.pk,
+            ],
+        ).update(status=Status.COMPLETED.value)
+        Movie.objects.filter(pk=self.movie2.pk).update(status=Status.IN_PROGRESS.value)
 
     def test_all_time_filtering(self):
         """Test when no date filtering is applied (All Time)."""
@@ -316,12 +342,15 @@ class StatisticsDateFilteringTests(TestCase):
             title="Movie with start date outside range",
         )
 
-        Movie.objects.create(
+        outside_movie = Movie.objects.create(
             user=self.user,
             item=outside_item,
-            status=Status.IN_PROGRESS.value,
+            status=Status.PLANNING.value,
             start_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
             end_date=None,
+        )
+        Movie.objects.filter(pk=outside_movie.pk).update(
+            status=Status.IN_PROGRESS.value,
         )
 
         # Re-run the query
@@ -360,12 +389,15 @@ class StatisticsDateFilteringTests(TestCase):
             title="Movie with end date outside range",
         )
 
-        Movie.objects.create(
+        outside_movie = Movie.objects.create(
             user=self.user,
             item=outside_item,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             start_date=None,
             end_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
+        )
+        Movie.objects.filter(pk=outside_movie.pk).update(
+            status=Status.COMPLETED.value,
         )
 
         # Re-run the query
@@ -433,12 +465,15 @@ class StatisticsDateFilteringTests(TestCase):
             title="Movie that spans the entire range",
         )
 
-        Movie.objects.create(
+        spanning_movie = Movie.objects.create(
             user=self.user,
             item=spanning_item,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             start_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 3, 15, 0, 0, tzinfo=datetime.UTC),
+        )
+        Movie.objects.filter(pk=spanning_movie.pk).update(
+            status=Status.COMPLETED.value,
         )
 
         # Re-run the query
@@ -461,6 +496,18 @@ class StatisticsTests(TestCase):
         """Set up test data."""
         self.credentials = {"username": "testuser", "password": "testpassword"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+
+        self.tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Test TV Show",
+        )
+        self.tv = TV.objects.create(
+            user=self.user,
+            item=self.tv_item,
+            status=Status.PLANNING.value,
+        )
 
         # Create season item
         self.season_item = Item.objects.create(
@@ -507,21 +554,25 @@ class StatisticsTests(TestCase):
         self.season = Season.objects.create(
             user=self.user,
             item=self.season_item,
+            related_tv=self.tv,
             status=Status.IN_PROGRESS.value,
             score=8.0,
         )
 
         # Create episodes
-        self.episode1 = Episode.objects.create(
-            item=self.episode1_item,
-            related_season=self.season,
-            end_date=datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC),
-        )
-
-        self.episode2 = Episode.objects.create(
-            item=self.episode2_item,
-            related_season=self.season,
-            end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
+        self.episode1, self.episode2 = Episode.objects.bulk_create(
+            [
+                Episode(
+                    item=self.episode1_item,
+                    related_season=self.season,
+                    end_date=datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC),
+                ),
+                Episode(
+                    item=self.episode2_item,
+                    related_season=self.season,
+                    end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
+                ),
+            ],
         )
 
         # Create a movie with different dates
@@ -538,11 +589,12 @@ class StatisticsTests(TestCase):
         self.anime = Anime.objects.create(
             user=self.user,
             item=self.anime_item,
-            status=Status.COMPLETED.value,
+            status=Status.PLANNING.value,
             score=None,
             start_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
             end_date=datetime.datetime(2025, 3, 31, 0, 0, tzinfo=datetime.UTC),
         )
+        Anime.objects.filter(pk=self.anime.pk).update(status=Status.COMPLETED.value)
 
     def test_get_media_type_distribution(self):
         """Test the get_media_type_distribution function."""
