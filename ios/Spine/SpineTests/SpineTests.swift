@@ -134,6 +134,18 @@ final class SpineTests: XCTestCase {
             MediaDetail.self,
             from: MockMediaFixtures.richMediaDetailJSON.data(using: .utf8)!
         )
+        let tv = try JSONDecoder.api.decode(
+            MediaDetail.self,
+            from: MockMediaFixtures.tvDetailJSON.data(using: .utf8)!
+        )
+        let season = try JSONDecoder.api.decode(
+            MediaDetail.self,
+            from: MockMediaFixtures.seasonDetailJSON.data(using: .utf8)!
+        )
+        let anime = try JSONDecoder.api.decode(
+            MediaDetail.self,
+            from: MockMediaFixtures.animeDetailJSON.data(using: .utf8)!
+        )
         let reviews = try JSONDecoder.api.decode(
             PagedResponse<MediaReview>.self,
             from: MockMediaFixtures.reviewsJSON.data(using: .utf8)!
@@ -143,6 +155,9 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(detail.externalRatings?.count, 4)
         XCTAssertEqual(detail.cast?.first?.character, "Mika")
         XCTAssertEqual(detail.relatedSections?.first?.items.first?.title, "Pulp Fiction")
+        XCTAssertEqual(tv.seasons?.first?.seasonNumber, 1)
+        XCTAssertEqual(season.episodes?.first?.runtime, "49m")
+        XCTAssertEqual(anime.relatedSections?.count, 2)
         XCTAssertEqual(reviews.results.first?.reviewTitle, "A pulse under glass")
         XCTAssertEqual(reviews.results.last?.containsSpoilers, true)
     }

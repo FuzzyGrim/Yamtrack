@@ -10,7 +10,7 @@
 - Default app environment is `.live` in `AppEnvironment.swift`.
 - Media detail mock data remains available in `Core/Networking/Mock/MockRepositories.swift` for previews/tests.
 - Live media detail still uses `GET /api/v1/media/{source}/{media_type}/{media_id}/`.
-- Live media detail now consumes normalized `related_sections` and `community.rating_distribution` from the API.
+- Live media detail now consumes normalized `cast`, `crew`, `seasons`, `episodes`, `related_sections`, `external_ratings`, `details`, custom posters, backdrop images, and `community.rating_distribution` from the API.
 - Live review fetch still uses `GET /api/v1/media/{source}/{media_type}/{media_id}/reviews/` and renders available review cards.
 - No production-facing fake rating distributions, Goodreads labels, reading progress, author counts, or recommendation placeholders are rendered.
 - Movie detail rating chips hide TMDB for now and use bundled IMDb, Letterboxd, and Rotten Tomatoes logo assets when those sources are present.

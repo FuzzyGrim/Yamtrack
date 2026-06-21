@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from app import config
@@ -152,18 +153,144 @@ def media_summary_from_provider(payload, media_type, source, request=None, user=
     }
 
 
+def details_for_api(metadata):
+    """Return provider details with common top-level fields merged in."""
+    details = dict(metadata.get("details") or {})
+    genres = metadata.get("genres")
+    if genres and "genres" not in details:
+        names = []
+        for genre in genres:
+            name = genre.get("name") if isinstance(genre, dict) else genre
+            if name:
+                names.append(str(name))
+        details["genres"] = names
+    if metadata.get("time_to_beat") and "time_to_beat" not in details:
+        details["time_to_beat"] = metadata["time_to_beat"]
+    if metadata.get("revenue") and "revenue" not in details:
+        details["revenue"] = metadata["revenue"]
+    return details
+
+
+def _credit_id(person):
+    value = person.get("person_id") or person.get("id")
+    return str(value or slugify(person.get("name") or "person"))
+
+
+def _credit_image(request, person):
+    value = person.get("image") or person.get("image_url") or person.get("profile_path")
+    return image_url(request, value) if value else None
+
+
+def cast_from_metadata(metadata, request=None):
+    """Normalize provider cast into the native credit shape."""
+    people = metadata.get("cast") or []
+    return [
+        {
+            "id": _credit_id(person),
+            "name": person.get("name"),
+            "role": None,
+            "character": person.get("character"),
+            "image_url": _credit_image(request, person),
+        }
+        for person in people
+        if isinstance(person, dict) and person.get("name")
+    ]
+
+
+def crew_from_metadata(metadata, request=None):
+    """Normalize provider crew into the native credit shape."""
+    people = metadata.get("crew") or []
+    return [
+        {
+            "id": _credit_id(person),
+            "name": person.get("name"),
+            "role": (person.get("roles") or [None])[0] if person.get("roles") else person.get("job") or person.get("role"),
+            "character": person.get("character"),
+            "image_url": _credit_image(request, person),
+        }
+        for person in people
+        if isinstance(person, dict) and person.get("name")
+    ]
+
+
+def seasons_from_metadata(metadata, request=None):
+    """Normalize TV seasons into the native season summary shape."""
+    seasons = (metadata.get("related") or {}).get("seasons") or []
+    return [
+        {
+            "season_number": season.get("season_number"),
+            "title": season.get("season_title") or season.get("title") or season.get("name") or "",
+            "episode_count": season.get("episode_count") or season.get("episodes") or season.get("max_progress"),
+            "image_url": image_url(request, season.get("image") or season.get("poster_path"))
+            if (season.get("image") or season.get("poster_path"))
+            else None,
+            "release_date": season.get("first_air_date") or season.get("air_date") or season.get("release_date"),
+        }
+        for season in seasons
+        if isinstance(season, dict)
+    ]
+
+
+def episodes_from_metadata(metadata, request=None):
+    """Normalize season episodes into the native episode summary shape."""
+    episodes = metadata.get("episodes") or []
+    return [
+        {
+            "episode_number": episode.get("episode_number"),
+            "title": episode.get("title") or episode.get("name") or "",
+            "overview": episode.get("overview"),
+            "air_date": episode.get("air_date"),
+            "runtime": episode.get("runtime"),
+            "image_url": image_url(request, episode.get("image") or episode.get("still_path"))
+            if (episode.get("image") or episode.get("still_path"))
+            else None,
+            "rating": str(episode.get("vote_average")) if episode.get("vote_average") is not None else episode.get("rating"),
+        }
+        for episode in episodes
+        if isinstance(episode, dict)
+    ]
+
+
+def custom_poster_url_for_user(user, ref, request=None):
+    """Return a viewer's custom poster for an existing Item."""
+    if not user or not user.is_authenticated:
+        return None
+    from app.models import CustomPosterPreference
+
+    item = find_item(ref)
+    if item is None:
+        return None
+    preference = CustomPosterPreference.objects.filter(user=user, item=item).first()
+    return absolute_url(request, preference.custom_image_url) if preference else None
+
+
 def related_sections_from_payload(related, media_type, source, request=None, user=None):
     """Normalize provider related media into mobile section cards."""
     if not related:
         return []
 
     if media_type == MediaTypes.BOOK.value:
-        candidates = [("recommendations", "Recommendations", related.get("recommendations") or [])]
+        candidates = [
+            ("other_editions", "Other Editions", related.get("other_editions") or []),
+            ("recommendations", "Recommendations", related.get("recommendations") or []),
+        ]
     elif media_type == MediaTypes.GAME.value:
-        candidates = [("all_related", "Related", related.get("all_related") or [])]
+        candidates = [
+            (key, key.replace("_", " ").title(), related.get(key) or [])
+            for key in (
+                "dlcs",
+                "expansions",
+                "standalone_expansions",
+                "remasters",
+                "remakes",
+                "expanded_games",
+                "recommendations",
+                "all_related",
+            )
+        ]
     else:
         candidates = [
-            (key, key.replace("_", " ").title(), values)
+            ("collection" if media_type == MediaTypes.MOVIE.value and key not in {"recommendations", "similar"} else key, key.replace("_", " ").title(), values)
             for key, values in related.items()
             if key not in {"seasons", "all_related"} and values
         ]

@@ -137,8 +137,14 @@ struct MediaDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: MediaDetailViewModel
     @State private var presentedSheet: MediaDetailSheet?
+    @State private var presentedRef: MediaRef?
     @State private var topSafeAreaInset: CGFloat = 0
     @State private var edgeDragOffset: CGFloat = 0
+
+    private let mediaRepository: MediaRepository
+    private let trackingRepository: TrackingRepository
+    private let diaryRepository: DiaryRepository
+    private let onUnauthorized: () -> Void
 
     init(
         ref: MediaRef,
@@ -147,6 +153,10 @@ struct MediaDetailView: View {
         diaryRepository: DiaryRepository,
         onUnauthorized: @escaping () -> Void = {}
     ) {
+        self.mediaRepository = mediaRepository
+        self.trackingRepository = trackingRepository
+        self.diaryRepository = diaryRepository
+        self.onUnauthorized = onUnauthorized
         _viewModel = State(initialValue: MediaDetailViewModel(
             ref: ref,
             mediaRepository: mediaRepository,
@@ -212,6 +222,15 @@ struct MediaDetailView: View {
             case .tracking:
                 TrackingEditSheet(viewModel: viewModel)
             }
+        }
+        .fullScreenCover(item: $presentedRef) { ref in
+            MediaDetailView(
+                ref: ref,
+                mediaRepository: mediaRepository,
+                trackingRepository: trackingRepository,
+                diaryRepository: diaryRepository,
+                onUnauthorized: onUnauthorized
+            )
         }
         .task {
             if viewModel.detail == nil {
@@ -298,10 +317,21 @@ struct MediaDetailView: View {
             SpineRatingDistributionSection(community: detail.community)
             MediaFactsSection(rows: detailRows(detail))
             CreditSection(title: creditTitle(detail), people: primaryCredits(detail))
-            SeasonsSection(seasons: detail.seasons ?? [])
+            SeasonsSection(seasons: detail.seasons ?? []) { season in
+                presentedRef = MediaRef(
+                    itemId: nil,
+                    source: detail.ref.source,
+                    mediaType: "season",
+                    mediaId: detail.ref.mediaId,
+                    seasonNumber: season.seasonNumber,
+                    episodeNumber: nil
+                )
+            }
             EpisodesSection(episodes: detail.episodes ?? [])
             ReviewsSection(reviews: viewModel.reviews, isLoading: viewModel.isLoadingReviews, error: viewModel.reviewsErrorMessage)
-            RecommendationsSection(sections: detail.relatedSections ?? [])
+            RecommendationsSection(sections: relatedSections(detail)) { item in
+                presentedRef = item.ref
+            }
         }
         .padding(.horizontal, 14)
         .padding(.top, 8)
@@ -325,11 +355,23 @@ struct MediaDetailView: View {
 
     private func primaryChips(_ detail: MediaDetail) -> [String] {
         var chips = [mediaTypeChipLabel(detail.ref.mediaType), year(detail)].compactMap { $0 }
-        if detail.ref.mediaType == "movie", let runtime = detailString(detail, "runtime"), !runtime.isEmpty {
+        if ["movie", "tv"].contains(detail.ref.mediaType), let runtime = detailString(detail, "runtime"), !runtime.isEmpty {
             chips.append(runtime)
         }
         if let contentRating = contentRating(detail) {
             chips.append(contentRating)
+        }
+        if ["tv", "anime"].contains(detail.ref.mediaType), let episodes = detailString(detail, "episodes") {
+            chips.append("\(episodes) episodes")
+        }
+        if detail.ref.mediaType == "book", let pages = detailString(detail, "number_of_pages") ?? detailString(detail, "pages") {
+            chips.append("\(pages) pages")
+        }
+        if detail.ref.mediaType == "anime", let format = detailString(detail, "format") {
+            chips.append(format)
+        }
+        if detail.ref.mediaType == "game", let platform = detailArray(detail, "platforms").first {
+            chips.append(platform)
         }
         chips += detailArray(detail, "genres")
         return Array(chips.prefix(6))
@@ -383,10 +425,13 @@ struct MediaDetailView: View {
         if let author = authors(detail).first {
             return author
         }
-        for key in ["director", "creator", "developer"] {
+        for key in ["director", "creator", "developer", "publisher"] {
             if let value = detailString(detail, key) {
                 return value
             }
+        }
+        if let person = detailArray(detail, "people").first {
+            return person
         }
         return detail.subtitle
     }
@@ -397,16 +442,65 @@ struct MediaDetailView: View {
 
     private func detailRows(_ detail: MediaDetail) -> [DetailFactRow] {
         let mediaType = detail.ref.mediaType
-        var rows = [
-            DetailFactRow(label: "Release Date", value: formattedReleaseDate(detail)),
-            DetailFactRow(label: "Runtime", value: detailString(detail, "runtime")),
-            DetailFactRow(label: "Certification", value: detailString(detail, "rating")),
-            DetailFactRow(label: "Pages", value: detailString(detail, "number_of_pages") ?? detailString(detail, "pages")),
-            DetailFactRow(label: "Publish Date", value: detailString(detail, "publish_date") ?? detailString(detail, "published_date")),
-            DetailFactRow(label: "Developer", value: detailString(detail, "developer")),
-            DetailFactRow(label: "Creator", value: detailString(detail, "creator")),
-            DetailFactRow(label: "Director", value: detailString(detail, "director")),
+        var rows: [DetailFactRow] = [
+            DetailFactRow(label: "Status", value: detailString(detail, "status")),
+            DetailFactRow(label: "Format", value: detailString(detail, "format")),
         ]
+
+        switch mediaType {
+        case "movie":
+            rows += [
+                DetailFactRow(label: "Release Date", value: formattedReleaseDate(detail)),
+                DetailFactRow(label: "Runtime", value: detailString(detail, "runtime")),
+                DetailFactRow(label: "Certification", value: detailString(detail, "rating")),
+                DetailFactRow(label: "Director", value: detailString(detail, "director")),
+                DetailFactRow(label: "Box Office", value: moneyString(detail, "revenue")),
+            ]
+        case "tv", "season":
+            rows += [
+                DetailFactRow(label: "First Aired", value: formattedDate(detailString(detail, "first_air_date") ?? detail.releaseDate)),
+                DetailFactRow(label: "Last Aired", value: formattedDate(detailString(detail, "last_air_date"))),
+                DetailFactRow(label: "Runtime", value: detailString(detail, "runtime")),
+                DetailFactRow(label: "Certification", value: detailString(detail, "rating")),
+                DetailFactRow(label: "Seasons", value: detailString(detail, "seasons")),
+                DetailFactRow(label: "Episodes", value: detailString(detail, "episodes")),
+                DetailFactRow(label: "Creator", value: detailString(detail, "creator")),
+            ]
+        case "anime":
+            rows += [
+                DetailFactRow(label: "Episodes", value: detailString(detail, "episodes")),
+                DetailFactRow(label: "Aired", value: detailString(detail, "season")),
+                DetailFactRow(label: "Broadcast", value: detailString(detail, "broadcast")),
+                DetailFactRow(label: "Source", value: detailString(detail, "source")),
+            ]
+        case "manga":
+            rows += [
+                DetailFactRow(label: "Chapters", value: detailString(detail, "number_of_chapters")),
+                DetailFactRow(label: "Latest Chapter", value: detailString(detail, "latest_chapter_translated")),
+                DetailFactRow(label: "Year", value: detailString(detail, "year")),
+            ]
+        case "game":
+            rows += [
+                DetailFactRow(label: "Developer", value: detailString(detail, "developer")),
+                DetailFactRow(label: "Themes", value: detailArray(detail, "themes").joinedOrNil),
+                DetailFactRow(label: "Time to Beat", value: timeToBeatString(detail)),
+            ]
+        case "comic":
+            rows += [
+                DetailFactRow(label: "Publisher", value: detailString(detail, "publisher")),
+                DetailFactRow(label: "Issues", value: detailString(detail, "issues_count")),
+                DetailFactRow(label: "Last Issue", value: lastIssueString(detail)),
+            ]
+        case "book":
+            rows += [
+                DetailFactRow(label: "Pages", value: detailString(detail, "number_of_pages") ?? detailString(detail, "pages")),
+                DetailFactRow(label: "Publish Date", value: formattedDate(detailString(detail, "publish_date") ?? detailString(detail, "published_date") ?? detailString(detail, "release_date"))),
+                DetailFactRow(label: "Physical Format", value: detailString(detail, "physical_format")),
+            ]
+        default:
+            rows.append(DetailFactRow(label: "Release Date", value: formattedReleaseDate(detail)))
+        }
+
         for (label, key) in [
             ("Authors", "authors"),
             ("Genres", "genres"),
@@ -423,28 +517,46 @@ struct MediaDetailView: View {
                 rows.append(DetailFactRow(label: label, value: values.joined(separator: ", ")))
             }
         }
-        if mediaType == "tv" || mediaType == "season", let count = detailString(detail, "episodes") {
-            rows.append(DetailFactRow(label: "Episodes", value: count))
-        }
         return rows
         .filter { $0.value?.isEmpty == false }
     }
 
     private func creditTitle(_ detail: MediaDetail) -> String {
-        detail.ref.mediaType == "book" ? "Authors" : "Cast & Crew"
+        switch detail.ref.mediaType {
+        case "book":
+            "Authors"
+        case "comic":
+            "People"
+        default:
+            "Cast & Crew"
+        }
     }
 
     private func primaryCredits(_ detail: MediaDetail) -> [CreditDisplay] {
         if detail.ref.mediaType == "book" {
             return authors(detail).map { CreditDisplay(name: $0, subtitle: "Author", imageUrl: nil) }
         }
-        return ((detail.cast ?? []) + (detail.crew ?? [])).map {
+        let credits = ((detail.cast ?? []) + (detail.crew ?? [])).map {
             CreditDisplay(name: $0.name, subtitle: $0.character ?? $0.role, imageUrl: $0.imageUrl)
         }
+        if credits.isEmpty, detail.ref.mediaType == "comic" {
+            return detailArray(detail, "people").map { CreditDisplay(name: $0, subtitle: nil, imageUrl: nil) }
+        }
+        return credits
     }
 
     private func year(_ detail: MediaDetail) -> String? {
-        let value = detail.releaseDate ?? detailString(detail, "release_date") ?? detailString(detail, "first_air_date") ?? detailString(detail, "publish_date")
+        if detail.ref.mediaType == "tv" {
+            let start = detailString(detail, "first_air_date") ?? detail.releaseDate
+            let end = detailString(detail, "last_air_date")
+            guard let startYear = start?.yearPrefix else { return nil }
+            let status = detailString(detail, "status")?.lowercased()
+            if let status, ["ended", "canceled", "cancelled"].contains(status), let endYear = end?.yearPrefix, endYear != startYear {
+                return "\(startYear)-\(endYear)"
+            }
+            return startYear
+        }
+        let value = detail.releaseDate ?? detailString(detail, "release_date") ?? detailString(detail, "first_air_date") ?? detailString(detail, "start_date") ?? detailString(detail, "publish_date")
         guard let value, value.count >= 4 else { return nil }
         return String(value.prefix(4))
     }
@@ -463,8 +575,42 @@ struct MediaDetailView: View {
     }
 
     private func formattedReleaseDate(_ detail: MediaDetail) -> String? {
-        guard let raw = releaseDate(detail) else { return nil }
+        formattedDate(releaseDate(detail))
+    }
+
+    private func formattedDate(_ raw: String?) -> String? {
+        guard let raw else { return nil }
         return Self.longDateFormatter.string(from: raw) ?? raw
+    }
+
+    private func moneyString(_ detail: MediaDetail, _ key: String) -> String? {
+        guard let value = detail.details?[key]?.numberValue, value > 0 else { return detailString(detail, key) }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        formatter.maximumFractionDigits = 0
+        formatter.usesGroupingSeparator = true
+        return formatter.string(from: NSNumber(value: value))
+    }
+
+    private func timeToBeatString(_ detail: MediaDetail) -> String? {
+        guard let object = detail.details?["time_to_beat"]?.objectValue else { return detailString(detail, "time_to_beat") }
+        let keys = [
+            ("normally", "Main"),
+            ("hastily", "Rush"),
+            ("completely", "Complete"),
+        ]
+        let parts = keys.compactMap { key, label -> String? in
+            guard let value = object[key]?.numberValue, value > 0 else { return nil }
+            return "\(label) \(Int(value / 3600))h"
+        }
+        return parts.joinedOrNil
+    }
+
+    private func lastIssueString(_ detail: MediaDetail) -> String? {
+        let name = detailString(detail, "last_issue_name")
+        let number = detailString(detail, "last_issue_number")
+        return [name, number.map { "#\($0)" }].compactMap { $0 }.joined(separator: " ").nilIfEmpty
     }
 
     private static let longDateFormatter: LongDateFormatter = LongDateFormatter()
@@ -475,6 +621,48 @@ struct MediaDetailView: View {
 
     private func detailArray(_ detail: MediaDetail, _ key: String) -> [String] {
         detail.details?[key]?.displayStrings ?? []
+    }
+
+    private func relatedSections(_ detail: MediaDetail) -> [RelatedMediaSection] {
+        if let sections = detail.relatedSections, !sections.isEmpty {
+            return sections
+        }
+        guard let related = detail.related else { return [] }
+        return related.compactMap { key, value in
+            guard key != "seasons", key != "all_related",
+                  let values = value.arrayValue else { return nil }
+            let items = values.compactMap { rawRelatedSummary($0, parent: detail) }
+            guard !items.isEmpty else { return nil }
+            let id = detail.ref.mediaType == "movie" && key != "recommendations" ? "collection" : key
+            let title = key.replacingOccurrences(of: "_", with: " ").capitalized
+            return RelatedMediaSection(id: id, title: title, items: items)
+        }
+    }
+
+    private func rawRelatedSummary(_ value: JSONValue, parent: MediaDetail) -> MediaSummary? {
+        guard let object = value.objectValue else { return nil }
+        let source = object["source"]?.displayString ?? parent.ref.source
+        let mediaType = object["media_type"]?.displayString ?? parent.ref.mediaType
+        guard let mediaId = object["media_id"]?.displayString ?? object["id"]?.displayString,
+              let title = object["title"]?.displayString ?? object["name"]?.displayString else { return nil }
+        return MediaSummary(
+            ref: MediaRef(
+                itemId: nil,
+                source: source,
+                mediaType: mediaType,
+                mediaId: mediaId,
+                seasonNumber: object["season_number"]?.intValue,
+                episodeNumber: object["episode_number"]?.intValue
+            ),
+            title: title,
+            subtitle: object["year"]?.displayString,
+            overview: object["overview"]?.displayString,
+            imageUrl: object["image"]?.displayString ?? object["image_url"]?.displayString,
+            posterAccentColor: nil,
+            releaseDate: object["release_date"]?.displayString ?? object["first_air_date"]?.displayString,
+            defaultSource: source,
+            userState: nil
+        )
     }
 }
 
@@ -1029,6 +1217,7 @@ private struct CreditSection: View {
 
 private struct SeasonsSection: View {
     let seasons: [SeasonSummary]
+    let onSelect: (SeasonSummary) -> Void
 
     var body: some View {
         if !seasons.isEmpty {
@@ -1037,20 +1226,26 @@ private struct SeasonsSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(seasons) { season in
-                            VStack(alignment: .leading, spacing: 8) {
-                                PosterImage(urlString: season.imageUrl, title: season.title)
-                                    .frame(width: 90)
-                                Text(season.title)
-                                    .font(.system(size: 12, weight: .heavy))
-                                    .foregroundStyle(.white)
-                                    .lineLimit(2)
-                                if let count = season.episodeCount {
-                                    Text("\(count) episodes")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundStyle(.white.opacity(0.55))
+                            Button {
+                                onSelect(season)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    PosterImage(urlString: season.imageUrl, title: season.title)
+                                        .frame(width: 90)
+                                    Text(season.title)
+                                        .font(.system(size: 12, weight: .heavy))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(2)
+                                    if let count = season.episodeCount {
+                                        Text("\(count) episodes")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundStyle(.white.opacity(0.55))
+                                    }
                                 }
+                                .frame(width: 90, alignment: .topLeading)
                             }
-                            .frame(width: 90, alignment: .topLeading)
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Open \(season.title)")
                         }
                     }
                 }
@@ -1148,6 +1343,7 @@ private struct ReviewsSection: View {
 
 private struct RecommendationsSection: View {
     let sections: [RelatedMediaSection]
+    let onSelect: (MediaSummary) -> Void
 
     var body: some View {
         ForEach(sections.filter { !$0.items.isEmpty }) { section in
@@ -1162,15 +1358,21 @@ private struct RecommendationsSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(section.items) { item in
-                            VStack(alignment: .leading, spacing: 8) {
-                                PosterImage(urlString: item.imageUrl, title: item.title)
-                                    .frame(width: 100)
-                                Text(item.title)
-                                    .font(.system(size: 12, weight: .heavy))
-                                    .foregroundStyle(.white)
-                                    .lineLimit(2)
+                            Button {
+                                onSelect(item)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    PosterImage(urlString: item.imageUrl, title: item.title)
+                                        .frame(width: 100)
+                                    Text(item.title)
+                                        .font(.system(size: 12, weight: .heavy))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(2)
+                                }
+                                .frame(width: 100, alignment: .topLeading)
                             }
-                            .frame(width: 100, alignment: .topLeading)
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Open \(item.title)")
                         }
                     }
                 }
@@ -1306,6 +1508,35 @@ private extension JSONValue {
             displayString.map { [$0] } ?? []
         }
     }
+
+    var numberValue: Double? {
+        switch self {
+        case let .number(value):
+            value
+        case let .string(value):
+            Double(value)
+        default:
+            nil
+        }
+    }
+
+    var intValue: Int? {
+        numberValue.map(Int.init)
+    }
+
+    var objectValue: [String: JSONValue]? {
+        if case let .object(value) = self {
+            return value
+        }
+        return nil
+    }
+
+    var arrayValue: [JSONValue]? {
+        if case let .array(value) = self {
+            return value
+        }
+        return nil
+    }
 }
 
 private extension Color {
@@ -1322,6 +1553,14 @@ private extension Color {
 }
 
 private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
+    }
+
+    var yearPrefix: String? {
+        count >= 4 ? String(prefix(4)) : nil
+    }
+
     var ratingAbbreviation: String {
         switch lowercased() {
         case "imdb":
@@ -1363,6 +1602,13 @@ private extension String {
     }
 }
 
+private extension Array where Element == String {
+    var joinedOrNil: String? {
+        let value = joined(separator: ", ")
+        return value.isEmpty ? nil : value
+    }
+}
+
 private struct LongDateFormatter {
     private let isoFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -1387,7 +1633,34 @@ private struct LongDateFormatter {
     }
 }
 
-#Preview {
+#Preview("Movie") {
+    MediaDetailView(
+        ref: MockMediaFixtures.movieDetail.ref,
+        mediaRepository: MockMediaRepository(),
+        trackingRepository: MockTrackingRepository(),
+        diaryRepository: MockDiaryRepository()
+    )
+}
+
+#Preview("TV") {
+    MediaDetailView(
+        ref: MockMediaFixtures.tvDetail.ref,
+        mediaRepository: MockMediaRepository(),
+        trackingRepository: MockTrackingRepository(),
+        diaryRepository: MockDiaryRepository()
+    )
+}
+
+#Preview("Anime") {
+    MediaDetailView(
+        ref: MockMediaFixtures.animeDetail.ref,
+        mediaRepository: MockMediaRepository(),
+        trackingRepository: MockTrackingRepository(),
+        diaryRepository: MockDiaryRepository()
+    )
+}
+
+#Preview("Book") {
     MediaDetailView(
         ref: MockMediaFixtures.bookDetail.ref,
         mediaRepository: MockMediaRepository(),

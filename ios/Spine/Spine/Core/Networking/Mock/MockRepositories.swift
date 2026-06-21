@@ -31,10 +31,18 @@ struct MockMediaRepository: MediaRepository {
     }
 
     func detail(ref: MediaRef) async throws -> MediaDetail {
-        if ref.mediaType == "book" {
-            return MockMediaFixtures.bookDetail
+        switch ref.mediaType {
+        case "book":
+            MockMediaFixtures.bookDetail
+        case "tv":
+            MockMediaFixtures.tvDetail
+        case "season":
+            MockMediaFixtures.seasonDetail
+        case "anime":
+            MockMediaFixtures.animeDetail
+        default:
+            MockMediaFixtures.movieDetail
         }
-        return MockMediaFixtures.movieDetail
     }
 
     func reviews(ref: MediaRef) async throws -> [MediaReview] {
@@ -109,6 +117,9 @@ struct MockProfileRepository: ProfileRepository {
 enum MockMediaFixtures {
     static let movieDetail: MediaDetail = try! JSONDecoder.api.decode(MediaDetail.self, from: richMediaDetailJSON.data(using: .utf8)!)
     static let bookDetail: MediaDetail = try! JSONDecoder.api.decode(MediaDetail.self, from: richBookDetailJSON.data(using: .utf8)!)
+    static let tvDetail: MediaDetail = try! JSONDecoder.api.decode(MediaDetail.self, from: tvDetailJSON.data(using: .utf8)!)
+    static let seasonDetail: MediaDetail = try! JSONDecoder.api.decode(MediaDetail.self, from: seasonDetailJSON.data(using: .utf8)!)
+    static let animeDetail: MediaDetail = try! JSONDecoder.api.decode(MediaDetail.self, from: animeDetailJSON.data(using: .utf8)!)
 
     static let trackingState = TrackingState(
         trackingId: 42,
@@ -123,7 +134,18 @@ enum MockMediaFixtures {
     )
 
     static func ref(for mediaType: String) -> MediaRef {
-        mediaType == "book" ? bookDetail.ref : movieDetail.ref
+        switch mediaType {
+        case "book":
+            bookDetail.ref
+        case "tv":
+            tvDetail.ref
+        case "season":
+            seasonDetail.ref
+        case "anime":
+            animeDetail.ref
+        default:
+            movieDetail.ref
+        }
     }
 
     static let richMediaDetailJSON = """
@@ -222,6 +244,162 @@ enum MockMediaFixtures {
       "related_sections": [],
       "episodes": null,
       "seasons": null,
+      "custom_poster_url": null
+    }
+    """
+
+    static let tvDetailJSON = """
+    {
+      "ref": { "item_id": 303, "source": "tmdb", "media_type": "tv", "media_id": "1399", "season_number": null, "episode_number": null },
+      "title": "The Archive",
+      "subtitle": "2024",
+      "overview": "A serialized mystery about memory, media, and the things people choose to preserve.",
+      "image_url": "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
+      "poster_accent_color": "#487A8F",
+      "release_date": "2024-01-14",
+      "default_source": "tmdb",
+      "user_state": null,
+      "backdrop_url": "https://image.tmdb.org/t/p/original/9xxLWtnFxkpJ2h1uthpvCRK6vta.jpg",
+      "details": {
+        "creator": "Lena Okafor",
+        "format": "TV",
+        "first_air_date": "2024-01-14",
+        "last_air_date": "2025-03-02",
+        "status": "Ended",
+        "seasons": 2,
+        "episodes": 16,
+        "runtime": "48m",
+        "rating": "TV-MA",
+        "studios": ["Spine Studios"],
+        "genres": ["Mystery", "Drama", "Science Fiction"]
+      },
+      "related": {},
+      "providers": null,
+      "community": {
+        "average_rating": "8.4",
+        "rating_count": 812,
+        "diary_count": 220,
+        "review_count": 31,
+        "liked_count": 405,
+        "rating_distribution": [
+          { "rating": "7.0", "count": 20 },
+          { "rating": "8.0", "count": 90 },
+          { "rating": "9.0", "count": 140 }
+        ]
+      },
+      "external_ratings": [
+        { "source": "TMDB", "value": "8.2", "vote_count": 812, "max_value": "10" },
+        { "source": "IMDb", "value": "8.6", "vote_count": 43321, "max_value": "10" }
+      ],
+      "reviews": null,
+      "cast": [
+        { "id": "tv1", "name": "Michaela Coel", "role": null, "character": "Ada Vale", "image_url": null },
+        { "id": "tv2", "name": "Rahul Kohli", "role": null, "character": "Jon Bell", "image_url": null }
+      ],
+      "crew": [
+        { "id": "tv3", "name": "Lena Okafor", "role": "Creator", "character": null, "image_url": null }
+      ],
+      "related_sections": [],
+      "episodes": [],
+      "seasons": [
+        { "season_number": 1, "title": "Season 1", "episode_count": 8, "image_url": "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg", "release_date": "2024-01-14" },
+        { "season_number": 2, "title": "Season 2", "episode_count": 8, "image_url": "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg", "release_date": "2025-01-05" }
+      ],
+      "custom_poster_url": null
+    }
+    """
+
+    static let seasonDetailJSON = """
+    {
+      "ref": { "item_id": 304, "source": "tmdb", "media_type": "season", "media_id": "1399", "season_number": 1, "episode_number": null },
+      "title": "The Archive",
+      "subtitle": "Season 1",
+      "overview": "Ada follows a broken index into a city where every missing thing has been carefully catalogued.",
+      "image_url": "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
+      "poster_accent_color": "#487A8F",
+      "release_date": "2024-01-14",
+      "default_source": "tmdb",
+      "user_state": null,
+      "backdrop_url": "https://image.tmdb.org/t/p/original/9xxLWtnFxkpJ2h1uthpvCRK6vta.jpg",
+      "details": {
+        "format": "Season",
+        "first_air_date": "2024-01-14",
+        "episodes": 8,
+        "runtime": "48m",
+        "genres": ["Mystery", "Drama"]
+      },
+      "related": {},
+      "providers": null,
+      "community": { "average_rating": "8.5", "rating_count": 401, "diary_count": 120, "review_count": 14, "liked_count": 155, "rating_distribution": [] },
+      "external_ratings": [
+        { "source": "IMDb", "value": "8.4", "vote_count": 12000, "max_value": "10" }
+      ],
+      "reviews": null,
+      "cast": [],
+      "crew": [],
+      "related_sections": [],
+      "episodes": [
+        { "episode_number": 1, "title": "Intake", "overview": "Ada finds the first card.", "air_date": "2024-01-14", "runtime": "49m", "image_url": null, "rating": "8.2" },
+        { "episode_number": 2, "title": "Cross Reference", "overview": "A second shelf opens.", "air_date": "2024-01-21", "runtime": "47m", "image_url": null, "rating": "8.5" },
+        { "episode_number": 3, "title": "Missing Holdings", "overview": "Jon rewrites the map.", "air_date": "2024-01-28", "runtime": "51m", "image_url": null, "rating": "8.7" }
+      ],
+      "seasons": [],
+      "custom_poster_url": null
+    }
+    """
+
+    static let animeDetailJSON = """
+    {
+      "ref": { "item_id": 404, "source": "mal", "media_type": "anime", "media_id": "1", "season_number": null, "episode_number": null },
+      "title": "Cowboy Bebop",
+      "subtitle": "1998",
+      "overview": "A crew of bounty hunters drifts through space, chasing marks and old ghosts.",
+      "image_url": "https://cdn.myanimelist.net/images/anime/4/19644.jpg",
+      "poster_accent_color": "#6B5D4B",
+      "release_date": "1998-04-03",
+      "default_source": "mal",
+      "user_state": null,
+      "backdrop_url": null,
+      "details": {
+        "format": "TV",
+        "start_date": "1998-04-03",
+        "end_date": "1999-04-24",
+        "status": "Finished Airing",
+        "episodes": 26,
+        "runtime": "24m",
+        "studios": ["Sunrise"],
+        "season": "Spring 1998",
+        "broadcast": "Saturdays at 01:00",
+        "source": "Original",
+        "genres": ["Action", "Award Winning", "Sci-Fi"]
+      },
+      "related": {},
+      "providers": null,
+      "community": { "average_rating": "9.0", "rating_count": 1800, "diary_count": 721, "review_count": 84, "liked_count": 1133, "rating_distribution": [] },
+      "external_ratings": [
+        { "source": "MAL", "value": "8.75", "vote_count": 1000000, "max_value": "10" }
+      ],
+      "reviews": null,
+      "cast": [],
+      "crew": [],
+      "related_sections": [
+        {
+          "id": "related_anime",
+          "title": "Related Anime",
+          "items": [
+            { "ref": { "item_id": null, "source": "mal", "media_type": "anime", "media_id": "5", "season_number": null, "episode_number": null }, "title": "Cowboy Bebop: The Movie", "subtitle": "2001", "overview": null, "image_url": "https://cdn.myanimelist.net/images/anime/1439/93480.jpg", "poster_accent_color": null, "release_date": "2001-09-01", "default_source": "mal", "user_state": null }
+          ]
+        },
+        {
+          "id": "recommendations",
+          "title": "Recommendations",
+          "items": [
+            { "ref": { "item_id": null, "source": "mal", "media_type": "anime", "media_id": "205", "season_number": null, "episode_number": null }, "title": "Samurai Champloo", "subtitle": "2004", "overview": null, "image_url": "https://cdn.myanimelist.net/images/anime/11/29134.jpg", "poster_accent_color": null, "release_date": "2004-05-20", "default_source": "mal", "user_state": null }
+          ]
+        }
+      ],
+      "episodes": [],
+      "seasons": [],
       "custom_poster_url": null
     }
     """

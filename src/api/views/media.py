@@ -4,6 +4,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.pagination import StandardResultsSetPagination
+from api.services import diary as diary_service
 from api.services import media as media_service
 from api.throttling import SearchRateThrottle
 from app import config
@@ -101,6 +103,44 @@ class MediaDetailView(APIView):
                 request=request,
                 user=request.user if request.user.is_authenticated else None,
             ),
+        )
+
+
+class MediaReviewsView(APIView):
+    """Public diary reviews for a media identity."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, source, media_type, media_id):
+        from app.models import DiaryEntry, Item
+
+        item = Item.objects.filter(
+            source=source,
+            media_type=media_type,
+            media_id=media_id,
+            season_number=request.query_params.get("season_number"),
+            episode_number=request.query_params.get("episode_number"),
+        ).first()
+        if item is None:
+            return Response({"count": 0, "next": None, "previous": None, "results": []})
+
+        entries = (
+            DiaryEntry.objects.filter(item=item)
+            .exclude(visibility="private")
+            .exclude(review="")
+            .select_related("item", "user")
+            .prefetch_related("tags")
+        )
+        if request.query_params.get("sort", "popular") == "recent":
+            entries = entries.order_by("-created_at")
+        else:
+            entries = entries.order_by("-liked", "-created_at")
+
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(entries, request, view=self)
+        viewer = request.user if request.user.is_authenticated else None
+        return paginator.get_paginated_response(
+            [diary_service.diary_payload(entry, request=request, viewer=viewer) for entry in page],
         )
 
 

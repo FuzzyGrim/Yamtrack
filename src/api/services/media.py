@@ -1,17 +1,29 @@
 import hashlib
+from copy import deepcopy
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Count
 
-from api.serializers.common import media_summary_from_provider, related_sections_from_payload, synopsis_from_payload
+from api.serializers.common import (
+    cast_from_metadata,
+    crew_from_metadata,
+    custom_poster_url_for_user,
+    details_for_api,
+    episodes_from_metadata,
+    find_item,
+    media_summary_from_provider,
+    related_sections_from_payload,
+    seasons_from_metadata,
+    synopsis_from_payload,
+)
 from app import config
 from app.models import MediaTypes
 from app.providers import services as provider_services
 
 SEARCH_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
-DETAIL_CACHE_VERSION = "v2"
+DETAIL_CACHE_VERSION = "v3"
 
 
 def default_source_for(media_type):
@@ -80,12 +92,22 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
     synopsis = synopsis_from_payload(metadata) or summary.get("overview")
     if synopsis:
         summary["overview"] = synopsis
+    ref = summary["ref"]
+    if summary.get("poster_accent_color") is None:
+        summary["poster_accent_color"] = poster_accent_color(metadata, ref)
     return {
         **summary,
         "overview": synopsis,
         "synopsis": synopsis,
-        "backdrop_url": metadata.get("backdrop") or metadata.get("backdrop_url"),
-        "details": metadata.get("details", {}),
+        "backdrop_url": backdrop_url(metadata),
+        "details": details_for_api(metadata),
+        "cast": cast_from_metadata(metadata, request=request),
+        "crew": crew_from_metadata(metadata, request=request),
+        "seasons": seasons_from_metadata(metadata, request=request) if media_type == MediaTypes.TV.value else [],
+        "episodes": episodes_from_metadata(enrich_episodes(metadata, source, user), request=request)
+        if media_type == MediaTypes.SEASON.value
+        else [],
+        "custom_poster_url": custom_poster_url_for_user(user, ref, request=request),
         "related": metadata.get("related", {}),
         "related_sections": related_sections_from_payload(
             metadata.get("related", {}),
@@ -94,7 +116,7 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
             request=request,
             user=user,
         ),
-        "providers": metadata.get("providers"),
+        "providers": watch_providers_for_user(metadata, user),
         "community": community_stats(
             source=source,
             media_type=media_type,
@@ -108,6 +130,61 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
             media_id=media_id,
         ),
     }
+
+
+def backdrop_url(metadata):
+    """Return an absolute backdrop URL when available."""
+    value = metadata.get("backdrop") or metadata.get("backdrop_url") or metadata.get("backdrop_path")
+    if isinstance(value, str) and value.startswith("/"):
+        return f"https://image.tmdb.org/t/p/original{value}"
+    return value
+
+
+def poster_accent_color(metadata, ref):
+    """Compute an accent only when there is no stored Item color."""
+    item = find_item(ref)
+    if item is not None and item.poster_accent_color:
+        return item.poster_accent_color
+    return None
+
+
+def watch_providers_for_user(metadata, user):
+    """Return provider availability, region-filtered for authenticated users."""
+    providers = metadata.get("providers")
+    if not providers:
+        return providers
+    region = getattr(user, "watch_provider_region", None) if user and user.is_authenticated else None
+    if not region or region == "UNSET":
+        return providers
+    from app.providers import tmdb
+
+    return tmdb.filter_providers(deepcopy(providers), region)
+
+
+def enrich_episodes(metadata, source, user):
+    """Apply provider episode formatting when tracking rows exist."""
+    if not metadata.get("episodes"):
+        return metadata
+    from app.models import BasicMedia
+    from app.providers import manual, tmdb
+
+    episodes_in_db = []
+    if user and user.is_authenticated:
+        current = BasicMedia.objects.filter_media(
+            user,
+            metadata.get("media_id"),
+            MediaTypes.SEASON.value,
+            source,
+            metadata.get("season_number"),
+        ).first()
+        episodes_in_db = current.episodes.all() if current else []
+
+    payload = dict(metadata)
+    if source == "manual":
+        payload["episodes"] = manual.process_episodes(metadata, episodes_in_db)
+    elif source == "tmdb":
+        payload["episodes"] = tmdb.process_episodes(metadata, episodes_in_db)
+    return payload
 
 
 def external_ratings(*, metadata, source, media_type, media_id):
@@ -178,19 +255,7 @@ def tv_seasons(*, source, media_id, request=None, user=None):
         request=request,
         user=user,
     )
-    seasons = detail.get("related", {}).get("seasons", [])
-    return {
-        "seasons": [
-            {
-                "season_number": season.get("season_number"),
-                "title": season.get("title") or season.get("name"),
-                "episode_count": season.get("episode_count") or season.get("episodes"),
-                "image_url": season.get("image"),
-                "release_date": season.get("first_air_date") or season.get("air_date"),
-            }
-            for season in seasons
-        ],
-    }
+    return {"seasons": detail.get("seasons", [])}
 
 
 def season_detail(*, source, media_id, season_number, request=None, user=None):
@@ -214,19 +279,7 @@ def season_episodes(*, source, media_id, season_number, request=None, user=None)
         request=request,
         user=user,
     )
-    return {
-        "episodes": [
-            {
-                "episode_number": episode.get("episode_number"),
-                "title": episode.get("title") or episode.get("name"),
-                "overview": episode.get("overview"),
-                "air_date": episode.get("air_date"),
-                "runtime_minutes": episode.get("runtime"),
-                "image_url": episode.get("image") or episode.get("still_path"),
-            }
-            for episode in detail.get("episodes", [])
-        ],
-    }
+    return {"episodes": detail.get("episodes", [])}
 
 
 def community_stats(*, source, media_type, media_id, season_number=None):

@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework import status
@@ -13,6 +14,7 @@ class ApiV1FoundationTests(TestCase):
     """Smoke tests for the v1 mobile API foundation."""
 
     def setUp(self):
+        cache.clear()
         self.client = APIClient()
 
     def test_health_is_public(self):
@@ -105,7 +107,20 @@ class ApiV1FoundationTests(TestCase):
             "synopsis": "Soap, clubs, and insomnia.",
             "score": "8.4",
             "score_count": 1000,
+            "genres": [{"name": "Drama"}, "Thriller"],
+            "details": {"runtime": "2h 19m"},
+            "cast": [{"person_id": 819, "name": "Edward Norton", "character": "Narrator", "image": "/ed.jpg"}],
+            "crew": [{"person_id": 7467, "name": "David Fincher", "roles": ["Director"], "job": "Director"}],
             "related": {
+                "Fight Club Collection": [
+                    {
+                        "media_id": "551",
+                        "media_type": "movie",
+                        "source": "tmdb",
+                        "title": "Fight Club 2",
+                        "image": "https://example.com/fight-club-2.jpg",
+                    },
+                ],
                 "recommendations": [
                     {
                         "media_id": "680",
@@ -129,6 +144,7 @@ class ApiV1FoundationTests(TestCase):
         ratings_mock.return_value = {
             "imdb": {"value": "8.8", "votes": 2300000},
             "letterboxd": {"value": "4.3", "votes": 500000},
+            "tomatoes": {"value": "79%", "votes": 100},
         }
 
         response = self.client.get("/api/v1/media/tmdb/movie/550/")
@@ -138,11 +154,126 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["synopsis"], "Soap, clubs, and insomnia.")
         self.assertEqual(
             [(rating["source"], rating["value"]) for rating in response.data["external_ratings"]],
-            [("TMDB", "8.4"), ("IMDb", "8.8"), ("Letterboxd", "4.3")],
+            [("TMDB", "8.4"), ("IMDb", "8.8"), ("Letterboxd", "4.3"), ("Rotten Tomatoes", "79%")],
         )
-        self.assertEqual(response.data["related_sections"][0]["id"], "recommendations")
-        self.assertEqual(response.data["related_sections"][0]["items"][0]["title"], "Pulp Fiction")
+        self.assertEqual(response.data["details"]["genres"], ["Drama", "Thriller"])
+        self.assertEqual(response.data["cast"][0]["name"], "Edward Norton")
+        self.assertEqual(response.data["crew"][0]["role"], "Director")
+        self.assertEqual(response.data["related_sections"][0]["id"], "collection")
+        self.assertEqual(response.data["related_sections"][1]["items"][0]["title"], "Pulp Fiction")
         self.assertNotIn("seasons", [section["id"] for section in response.data["related_sections"]])
+
+    @patch("app.providers.mdblist.get_media_ratings", return_value={})
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_tv_detail_exposes_seasons(self, metadata_mock, _ratings_mock):
+        metadata_mock.return_value = {
+            "media_id": "1399",
+            "media_type": "tv",
+            "source": "tmdb",
+            "title": "Game of Thrones",
+            "image": "https://example.com/got.jpg",
+            "related": {
+                "seasons": [
+                    {
+                        "media_id": "1399",
+                        "media_type": "season",
+                        "source": "tmdb",
+                        "season_number": 1,
+                        "season_title": "Season 1",
+                        "max_progress": 10,
+                        "image": "https://example.com/s1.jpg",
+                        "first_air_date": "2011-04-17",
+                    },
+                ],
+            },
+        }
+
+        detail = self.client.get("/api/v1/media/tmdb/tv/1399/")
+        seasons = self.client.get("/api/v1/media/tmdb/tv/1399/seasons/")
+
+        self.assertEqual(detail.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail.data["seasons"][0]["title"], "Season 1")
+        self.assertEqual(seasons.data["seasons"], detail.data["seasons"])
+
+    @patch("app.providers.mdblist.get_media_ratings", return_value={})
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_season_detail_exposes_episodes_with_runtime_string(self, metadata_mock, _ratings_mock):
+        metadata_mock.return_value = {
+            "media_id": "1399",
+            "media_type": "season",
+            "source": "tmdb",
+            "title": "Game of Thrones",
+            "season_number": 1,
+            "image": "https://example.com/s1.jpg",
+            "episodes": [
+                {
+                    "episode_number": 1,
+                    "name": "Winter Is Coming",
+                    "overview": "The beginning.",
+                    "air_date": "2011-04-17",
+                    "runtime": 62,
+                    "still_path": "/ep1.jpg",
+                    "vote_average": 8.2,
+                },
+            ],
+        }
+
+        detail = self.client.get("/api/v1/media/tmdb/season/1399/?season_number=1")
+        episodes = self.client.get("/api/v1/media/tmdb/tv/1399/seasons/1/episodes/")
+
+        self.assertEqual(detail.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail.data["episodes"][0]["runtime"], "1h 2m")
+        self.assertEqual(episodes.data["episodes"], detail.data["episodes"])
+
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_mal_anime_detail_exposes_genres_related_and_rating(self, metadata_mock):
+        metadata_mock.return_value = {
+            "media_id": "1",
+            "media_type": "anime",
+            "source": "mal",
+            "title": "Cowboy Bebop",
+            "image": "https://example.com/bebop.jpg",
+            "genres": ["Action", {"name": "Sci-Fi"}],
+            "score": "8.75",
+            "score_count": 100,
+            "related": {
+                "related_anime": [
+                    {"media_id": "5", "media_type": "anime", "source": "mal", "title": "Movie"},
+                ],
+                "recommendations": [
+                    {"media_id": "6", "media_type": "anime", "source": "mal", "title": "Champloo"},
+                ],
+            },
+        }
+
+        response = self.client.get("/api/v1/media/mal/anime/1/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["details"]["genres"], ["Action", "Sci-Fi"])
+        self.assertEqual([section["id"] for section in response.data["related_sections"]], ["related_anime", "recommendations"])
+        self.assertEqual(response.data["external_ratings"][0]["source"], "MAL")
+
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_openlibrary_book_detail_exposes_other_editions(self, metadata_mock):
+        metadata_mock.return_value = {
+            "media_id": "OL1M",
+            "media_type": "book",
+            "source": "openlibrary",
+            "title": "A Book",
+            "image": "https://example.com/book.jpg",
+            "score": "4.1",
+            "related": {
+                "other_editions": [
+                    {"media_id": "OL2M", "media_type": "book", "source": "openlibrary", "title": "Paperback"},
+                ],
+            },
+        }
+
+        response = self.client.get("/api/v1/media/openlibrary/book/OL1M/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["related_sections"][0]["id"], "other_editions")
+        self.assertEqual(response.data["external_ratings"][0]["max_value"], "5")
 
     @patch("api.services.media.provider_services.get_media_metadata")
     def test_game_detail_exposes_all_related_as_related_section(self, metadata_mock):
@@ -152,7 +283,16 @@ class ApiV1FoundationTests(TestCase):
             "source": "igdb",
             "title": "Space Game",
             "image": "https://example.com/space.jpg",
+            "score": "8.1",
             "related": {
+                "dlcs": [
+                    {
+                        "media_id": "1022",
+                        "media_type": "game",
+                        "source": "igdb",
+                        "title": "Space Game DLC",
+                    },
+                ],
                 "all_related": [
                     {
                         "media_id": "1021",
@@ -168,9 +308,9 @@ class ApiV1FoundationTests(TestCase):
         response = self.client.get("/api/v1/media/igdb/game/1020/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["related_sections"][0]["id"], "all_related")
-        self.assertEqual(response.data["related_sections"][0]["title"], "Related")
-        self.assertEqual(response.data["related_sections"][0]["items"][0]["title"], "Space Game 2")
+        self.assertEqual(response.data["related_sections"][0]["id"], "dlcs")
+        self.assertEqual(response.data["related_sections"][1]["id"], "all_related")
+        self.assertEqual(response.data["external_ratings"][0]["source"], "IGDB")
 
     def test_community_stats_include_truthful_rating_distribution(self):
         user = get_user_model().objects.create_user(username="rater", password="strong-password-123")
@@ -194,3 +334,35 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["average_rating"], "8.00")
         self.assertEqual(response.data["rating_count"], 2)
         self.assertEqual(response.data["rating_distribution"], [{"rating": "8.0", "count": 2}])
+
+    def test_media_reviews_endpoint_returns_public_review_cards(self):
+        user = get_user_model().objects.create_user(username="reviewer", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Fight Club",
+            image="https://example.com/fight-club.jpg",
+        )
+        DiaryEntry.objects.create(
+            user=user,
+            item=item,
+            consumed_at=timezone.now(),
+            rating="9.0",
+            review="Sharp and strange.",
+            review_title="Mayhem",
+            visibility="public",
+        )
+        DiaryEntry.objects.create(
+            user=user,
+            item=item,
+            consumed_at=timezone.now(),
+            review="Hidden.",
+            visibility="private",
+        )
+
+        response = self.client.get("/api/v1/media/tmdb/movie/550/reviews/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["review"], "Sharp and strange.")

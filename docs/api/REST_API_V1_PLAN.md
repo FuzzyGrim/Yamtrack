@@ -173,12 +173,67 @@ Response shape is a paged list of review cards:
 
 Likes use the existing diary like endpoints: `POST /api/v1/diary/{id}/like/` and `DELETE /api/v1/diary/{id}/like/`, returning `{ "liked": true, "like_count": 43 }`.
 
-## Media Detail Related Sections and Rating Distribution
+## Media Detail
 
-`GET /api/v1/media/{source}/{media_type}/{media_id}/` returns raw provider `related` plus normalized `related_sections` for native clients:
+`GET /api/v1/media/{source}/{media_type}/{media_id}/` returns raw provider fields plus normalized native-client fields:
 
 ```json
 {
+  "ref": {
+    "item_id": null,
+    "source": "tmdb",
+    "media_type": "movie",
+    "media_id": "550",
+    "season_number": null,
+    "episode_number": null
+  },
+  "title": "Fight Club",
+  "subtitle": "1999",
+  "overview": "Soap, clubs, and insomnia.",
+  "synopsis": "Soap, clubs, and insomnia.",
+  "image_url": "https://example.com/fight-club.jpg",
+  "poster_accent_color": null,
+  "release_date": "1999-10-15",
+  "default_source": "tmdb",
+  "user_state": null,
+  "backdrop_url": "https://image.tmdb.org/t/p/original/backdrop.jpg",
+  "custom_poster_url": null,
+  "details": {
+    "runtime": "2h 19m",
+    "rating": "R",
+    "genres": ["Drama", "Thriller"],
+    "revenue": 100853753
+  },
+  "cast": [
+    {
+      "id": "819",
+      "name": "Edward Norton",
+      "role": null,
+      "character": "Narrator",
+      "image_url": "https://example.com/edward.jpg"
+    }
+  ],
+  "crew": [
+    {
+      "id": "7467",
+      "name": "David Fincher",
+      "role": "Director",
+      "character": null,
+      "image_url": null
+    }
+  ],
+  "seasons": [],
+  "episodes": [],
+  "providers": {
+    "US": {
+      "flatrate": [
+        { "provider_id": 8, "provider_name": "Netflix", "logo_path": "/logo.png" }
+      ]
+    }
+  },
+  "related": {
+    "recommendations": []
+  },
   "related_sections": [
     {
       "id": "recommendations",
@@ -198,6 +253,11 @@ Likes use the existing diary like endpoints: `POST /api/v1/diary/{id}/like/` and
       ]
     }
   ],
+  "external_ratings": [
+    { "source": "TMDB", "value": "8.4", "vote_count": 1000, "max_value": "10" },
+    { "source": "IMDb", "value": "8.8", "vote_count": 2300000, "max_value": "10" },
+    { "source": "Rotten Tomatoes", "value": "79%", "vote_count": 100, "max_value": "100%" }
+  ],
   "community": {
     "average_rating": "8.0",
     "rating_count": 2,
@@ -213,7 +273,11 @@ Likes use the existing diary like endpoints: `POST /api/v1/diary/{id}/like/` and
 
 Rules:
 
-- Books expose provider `related.recommendations`; games expose `related.all_related`; other media expose non-empty related lists except `seasons` and `all_related`.
+- Books expose `other_editions` and recommendations when providers return them.
+- Games expose typed sections such as `dlcs`, `expansions`, and canonical `all_related`.
+- Anime and manga expose MAL/MangaUpdates related sections such as `related_anime`, `related_manga`, and recommendations.
+- TV seasons are top-level `seasons`, not `related_sections`.
+- Season detail exposes top-level `episodes` with `runtime` strings.
 - `rating_distribution` uses only actual Spine diary ratings visible outside private scope and returns `[]` when there are no ratings.
 
 ## New Models and Migrations
