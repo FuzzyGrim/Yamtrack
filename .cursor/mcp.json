@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "XcodeBuildMCP": {
+      "command": "npx",
+      "args": ["-y", "xcodebuildmcp@latest", "mcp"],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode-26.5.0.app/Contents/Developer",
+        "XCODEBUILDMCP_ENABLED_WORKFLOWS": "simulator,ui-automation,debugging,logging"
+      }
+    }
+  }
+}

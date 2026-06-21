@@ -152,6 +152,51 @@ def media_summary_from_provider(payload, media_type, source, request=None, user=
     }
 
 
+def related_sections_from_payload(related, media_type, source, request=None, user=None):
+    """Normalize provider related media into mobile section cards."""
+    if not related:
+        return []
+
+    if media_type == MediaTypes.BOOK.value:
+        candidates = [("recommendations", "Recommendations", related.get("recommendations") or [])]
+    elif media_type == MediaTypes.GAME.value:
+        candidates = [("all_related", "Related", related.get("all_related") or [])]
+    else:
+        candidates = [
+            (key, key.replace("_", " ").title(), values)
+            for key, values in related.items()
+            if key not in {"seasons", "all_related"} and values
+        ]
+
+    sections = []
+    for key, title, values in candidates:
+        items = []
+        for value in values[:7]:
+            payload = value.get("item", value) if isinstance(value, dict) else value
+            if not isinstance(payload, dict):
+                continue
+            item_media_type = payload.get("media_type", media_type)
+            item_source = payload.get("source", source)
+            summary = media_summary_from_provider(
+                payload,
+                item_media_type,
+                item_source,
+                request=request,
+                user=user,
+            )
+            if (
+                user
+                and getattr(user, "hide_completed_recommendations", False)
+                and key == "recommendations"
+                and summary.get("user_state", {}).get("status") == "Completed"
+            ):
+                continue
+            items.append(summary)
+        if items:
+            sections.append({"id": key, "title": title, "items": items})
+    return sections
+
+
 def user_state_for_item(user, item):
     """Return compact viewer-specific state for an item."""
     if not user or not user.is_authenticated or item is None:

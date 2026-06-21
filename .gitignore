@@ -31,3 +31,4 @@ TODO.txt
 .cache
 *.xcuserstate
 xcuserdata/
+ios/.derivedData

@@ -3,7 +3,7 @@ import SwiftUI
 struct RootView: View {
     @State private var session: AppSession
 
-    init(repositories: AppRepositories = .live()) {
+    init(repositories: AppRepositories = .current()) {
         _session = State(initialValue: AppSession(repositories: repositories))
     }
 

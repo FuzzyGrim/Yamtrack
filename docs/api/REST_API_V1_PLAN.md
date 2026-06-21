@@ -16,6 +16,8 @@ Core contracts:
 - Ratings remain 0-10 decimal values, serialized as strings.
 - Dates and datetimes use ISO 8601.
 - Provider keys are never exposed to clients.
+- Media detail may expose typed optional `external_ratings`, `cast`, `crew`, `related_sections`, `episodes`, `seasons`, and `custom_poster_url` fields while preserving raw provider `details`, `related`, and `providers` during the transition.
+- `community.rating_distribution` is Spine-only and is derived from public/followers diary ratings, never provider ratings.
 
 ## Architecture
 
@@ -78,6 +80,7 @@ Important files:
 | POST | `/api/v1/media/manual/` | Yes |
 | GET | `/api/v1/media/{source}/{media_type}/{media_id}/` | Optional |
 | GET | `/api/v1/media/{source}/{media_type}/{media_id}/community/` | No |
+| GET | `/api/v1/media/{source}/{media_type}/{media_id}/reviews/` | Optional |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/` | Optional |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/{season_number}/` | Optional |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/{season_number}/episodes/` | Optional |
@@ -139,6 +142,79 @@ Important files:
 3. Send `Authorization: Bearer <access>` on authenticated requests.
 4. Refresh through `/api/v1/auth/refresh/`.
 5. Logout through `/api/v1/auth/logout/`, which blacklists the refresh token.
+
+## Media Reviews
+
+`GET /api/v1/media/{source}/{media_type}/{media_id}/reviews/` returns public community diary reviews for a media identity. Query params: optional `season_number`, optional `episode_number`, and `sort=recent|popular` with `popular` as the mobile default.
+
+Response shape is a paged list of review cards:
+
+```json
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 701,
+      "user": { "id": 7, "username": "mika", "display_name": "Mika", "avatar_url": null },
+      "rating": "9.0",
+      "review_title": "A pulse under glass",
+      "review": "Cold surface, hot center.",
+      "contains_spoilers": false,
+      "like_count": 42,
+      "viewer_has_liked": false,
+      "consumed_at": "2026-06-19T20:30:00Z",
+      "created_at": "2026-06-20T02:11:00Z"
+    }
+  ]
+}
+```
+
+Likes use the existing diary like endpoints: `POST /api/v1/diary/{id}/like/` and `DELETE /api/v1/diary/{id}/like/`, returning `{ "liked": true, "like_count": 43 }`.
+
+## Media Detail Related Sections and Rating Distribution
+
+`GET /api/v1/media/{source}/{media_type}/{media_id}/` returns raw provider `related` plus normalized `related_sections` for native clients:
+
+```json
+{
+  "related_sections": [
+    {
+      "id": "recommendations",
+      "title": "Recommendations",
+      "items": [
+        {
+          "ref": { "item_id": null, "source": "tmdb", "media_type": "movie", "media_id": "680", "season_number": null, "episode_number": null },
+          "title": "Pulp Fiction",
+          "subtitle": null,
+          "overview": null,
+          "image_url": "https://example.com/pulp.jpg",
+          "poster_accent_color": null,
+          "release_date": null,
+          "default_source": "tmdb",
+          "user_state": null
+        }
+      ]
+    }
+  ],
+  "community": {
+    "average_rating": "8.0",
+    "rating_count": 2,
+    "diary_count": 3,
+    "review_count": 1,
+    "liked_count": 0,
+    "rating_distribution": [
+      { "rating": "8.0", "count": 2 }
+    ]
+  }
+}
+```
+
+Rules:
+
+- Books expose provider `related.recommendations`; games expose `related.all_related`; other media expose non-empty related lists except `seasons` and `all_related`.
+- `rating_distribution` uses only actual Spine diary ratings visible outside private scope and returns `[]` when there are no ratings.
 
 ## New Models and Migrations
 

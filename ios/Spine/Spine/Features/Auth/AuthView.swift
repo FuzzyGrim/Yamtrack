@@ -98,8 +98,15 @@ struct AuthView: View {
                         Text(error)
                             .font(.callout)
                             .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
                             .accessibilityLabel("Authentication error")
                     }
+
+                    #if DEBUG
+                    Text("API: \(AppConfig.apiBaseURL.absoluteString)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    #endif
 
                     Button {
                         Task { await submit() }

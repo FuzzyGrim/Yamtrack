@@ -4,7 +4,9 @@ enum AppEnvironment {
     case live
     case mock
 
-    static let current: AppEnvironment = .live
+    static var current: AppEnvironment {
+        ProcessInfo.processInfo.environment["SPINE_APP_ENV"] == "mock" ? .mock : .live
+    }
 
     var apiClient: APIClient {
         switch self {

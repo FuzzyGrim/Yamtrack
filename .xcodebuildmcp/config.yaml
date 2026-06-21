@@ -1,0 +1,20 @@
+schemaVersion: 1
+
+enabledWorkflows:
+  - simulator
+  - ui-automation
+  - debugging
+  - logging
+
+sessionDefaults:
+  projectPath: "./ios/Spine/Spine.xcodeproj"
+  scheme: "Spine"
+  configuration: "Debug"
+  simulatorName: "iPhone 17"
+  useLatestOS: true
+  platform: "iOS"
+  bundleId: "com.armaan.Spine"
+  suppressWarnings: true
+  derivedDataPath: "./ios/.derivedData"
+  env:
+    DEVELOPER_DIR: "/Applications/Xcode-26.5.0.app/Contents/Developer"

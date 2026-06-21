@@ -2,8 +2,9 @@ import hashlib
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Count
 
-from api.serializers.common import media_summary_from_provider, synopsis_from_payload
+from api.serializers.common import media_summary_from_provider, related_sections_from_payload, synopsis_from_payload
 from app import config
 from app.models import MediaTypes
 from app.providers import services as provider_services
@@ -86,6 +87,13 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
         "backdrop_url": metadata.get("backdrop") or metadata.get("backdrop_url"),
         "details": metadata.get("details", {}),
         "related": metadata.get("related", {}),
+        "related_sections": related_sections_from_payload(
+            metadata.get("related", {}),
+            media_type=media_type,
+            source=source,
+            request=request,
+            user=user,
+        ),
         "providers": metadata.get("providers"),
         "community": community_stats(
             source=source,
@@ -239,10 +247,18 @@ def community_stats(*, source, media_type, media_id, season_number=None):
             "diary_count": 0,
             "review_count": 0,
             "liked_count": 0,
+            "rating_distribution": [],
         }
     entries = DiaryEntry.objects.filter(item=item).exclude(visibility="private")
     rating_values = [entry.rating for entry in entries if entry.rating is not None]
     average = round(sum(rating_values) / len(rating_values), 2) if rating_values else None
+    distribution = [
+        {"rating": str(bucket["rating"]), "count": bucket["count"]}
+        for bucket in entries.exclude(rating__isnull=True)
+        .values("rating")
+        .annotate(count=Count("id"))
+        .order_by("rating")
+    ]
     return {
         "average_rating": str(average) if average is not None else None,
         "rating_count": len(rating_values),
@@ -252,4 +268,5 @@ def community_stats(*, source, media_type, media_id, season_number=None):
             target_type=ContentLike.DIARY_ENTRY,
             target_id__in=entries.values("id"),
         ).count(),
+        "rating_distribution": distribution,
     }

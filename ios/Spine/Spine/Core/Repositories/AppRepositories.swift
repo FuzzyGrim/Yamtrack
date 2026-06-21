@@ -12,6 +12,7 @@ protocol MediaRepository {
     func meta() async throws -> MetaResponse
     func search(query: String, mediaType: String) async throws -> [MediaSummary]
     func detail(ref: MediaRef) async throws -> MediaDetail
+    func reviews(ref: MediaRef) async throws -> [MediaReview]
 }
 
 protocol TrackingRepository {
@@ -22,6 +23,7 @@ protocol TrackingRepository {
 protocol DiaryRepository {
     func list() async throws -> [DiaryEntry]
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState
 }
 
 protocol ProfileRepository {
@@ -35,6 +37,15 @@ struct AppRepositories {
     let diary: DiaryRepository
     let profile: ProfileRepository
 
+    static func current() -> AppRepositories {
+        switch AppEnvironment.current {
+        case .live:
+            live()
+        case .mock:
+            mock()
+        }
+    }
+
     static func live(client: APIClient = AppEnvironment.current.apiClient) -> AppRepositories {
         AppRepositories(
             auth: APIAuthRepository(service: AuthService(client: client), tokenStore: client.tokenProvider),
@@ -42,6 +53,16 @@ struct AppRepositories {
             tracking: APITrackingRepository(client: client),
             diary: APIDiaryRepository(client: client),
             profile: APIProfileRepository(client: client)
+        )
+    }
+
+    static func mock() -> AppRepositories {
+        AppRepositories(
+            auth: MockAuthRepository(),
+            media: MockMediaRepository(),
+            tracking: MockTrackingRepository(),
+            diary: MockDiaryRepository(),
+            profile: MockProfileRepository()
         )
     }
 }
@@ -104,6 +125,28 @@ struct APIMediaRepository: MediaRepository {
             authenticated: client.tokenProvider.accessToken != nil
         )
     }
+
+    func reviews(ref: MediaRef) async throws -> [MediaReview] {
+        var query = [
+            URLQueryItem(name: "sort", value: "popular"),
+        ]
+        if let seasonNumber = ref.seasonNumber {
+            query.append(URLQueryItem(name: "season_number", value: String(seasonNumber)))
+        }
+        if let episodeNumber = ref.episodeNumber {
+            query.append(URLQueryItem(name: "episode_number", value: String(episodeNumber)))
+        }
+        do {
+            let response: PagedResponse<MediaReview> = try await client.get(
+                "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/reviews/",
+                query: query,
+                authenticated: client.tokenProvider.accessToken != nil
+            )
+            return response.results
+        } catch APIError.httpStatus(404, _), APIError.httpStatus(501, _) {
+            return []
+        }
+    }
 }
 
 struct APITrackingRepository: TrackingRepository {
@@ -137,6 +180,17 @@ struct APIDiaryRepository: DiaryRepository {
 
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry {
         try await client.post("/diary/", body: request, authenticated: true)
+    }
+
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState {
+        if liked {
+            return try await client.post(
+                "/diary/\(entryId)/like/",
+                body: EmptyResponse(),
+                authenticated: true
+            )
+        }
+        return try await client.delete("/diary/\(entryId)/like/", authenticated: true)
     }
 }
 

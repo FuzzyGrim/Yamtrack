@@ -230,6 +230,19 @@ Use SF Symbols unless custom assets are provided. No web/Tailwind parity require
 - API base URL: `ios/Spine/Spine/Core/Environment/AppConfig.swift`
 - Scheme: **Debug** with live API against `http://127.0.0.1:8000` (Docker on same Mac).
 
+### XcodeBuildMCP (agents)
+
+Session defaults are in `.xcodebuildmcp/config.yaml` at the repo root:
+
+- Project: `ios/Spine/Spine.xcodeproj`
+- Scheme: `Spine`
+- Simulator: `iPhone 17`
+- Bundle ID: `com.armaan.Spine`
+
+Prefer XcodeBuildMCP tools over raw `xcodebuild` when available (Codex `build-ios-apps` plugin or Cursor `.cursor/mcp.json`). After non-trivial UI changes, use `simulator/build-and-run`, not just `simulator/build`. Call `session_show_defaults` first if tools only expose the no-argument `run` tool — defaults may not have loaded.
+
+This Mac uses Xcode at `/Applications/Xcode-26.5.0.app` (not the default `xcode-select` path). MCP env sets `DEVELOPER_DIR` accordingly.
+
 ---
 
 ## 10) Testing

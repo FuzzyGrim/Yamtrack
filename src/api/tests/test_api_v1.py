@@ -2,8 +2,11 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
+
+from app.models import DiaryEntry, Item, MediaTypes, Sources
 
 
 class ApiV1FoundationTests(TestCase):
@@ -102,6 +105,26 @@ class ApiV1FoundationTests(TestCase):
             "synopsis": "Soap, clubs, and insomnia.",
             "score": "8.4",
             "score_count": 1000,
+            "related": {
+                "recommendations": [
+                    {
+                        "media_id": "680",
+                        "media_type": "movie",
+                        "source": "tmdb",
+                        "title": "Pulp Fiction",
+                        "image": "https://example.com/pulp.jpg",
+                    },
+                ],
+                "seasons": [
+                    {
+                        "media_id": "550",
+                        "media_type": "season",
+                        "source": "tmdb",
+                        "season_number": 1,
+                        "title": "Season 1",
+                    },
+                ],
+            },
         }
         ratings_mock.return_value = {
             "imdb": {"value": "8.8", "votes": 2300000},
@@ -117,3 +140,57 @@ class ApiV1FoundationTests(TestCase):
             [(rating["source"], rating["value"]) for rating in response.data["external_ratings"]],
             [("TMDB", "8.4"), ("IMDb", "8.8"), ("Letterboxd", "4.3")],
         )
+        self.assertEqual(response.data["related_sections"][0]["id"], "recommendations")
+        self.assertEqual(response.data["related_sections"][0]["items"][0]["title"], "Pulp Fiction")
+        self.assertNotIn("seasons", [section["id"] for section in response.data["related_sections"]])
+
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_game_detail_exposes_all_related_as_related_section(self, metadata_mock):
+        metadata_mock.return_value = {
+            "media_id": "1020",
+            "media_type": "game",
+            "source": "igdb",
+            "title": "Space Game",
+            "image": "https://example.com/space.jpg",
+            "related": {
+                "all_related": [
+                    {
+                        "media_id": "1021",
+                        "media_type": "game",
+                        "source": "igdb",
+                        "title": "Space Game 2",
+                        "image": "https://example.com/space2.jpg",
+                    },
+                ],
+            },
+        }
+
+        response = self.client.get("/api/v1/media/igdb/game/1020/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["related_sections"][0]["id"], "all_related")
+        self.assertEqual(response.data["related_sections"][0]["title"], "Related")
+        self.assertEqual(response.data["related_sections"][0]["items"][0]["title"], "Space Game 2")
+
+    def test_community_stats_include_truthful_rating_distribution(self):
+        user = get_user_model().objects.create_user(username="rater", password="strong-password-123")
+        other = get_user_model().objects.create_user(username="other", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Fight Club",
+            image="https://example.com/fight-club.jpg",
+        )
+        now = timezone.now()
+        DiaryEntry.objects.create(user=user, item=item, consumed_at=now, rating="8.0", visibility="public")
+        DiaryEntry.objects.create(user=other, item=item, consumed_at=now, rating="8.0", visibility="followers")
+        DiaryEntry.objects.create(user=other, item=item, consumed_at=now, rating="9.0", visibility="private")
+        DiaryEntry.objects.create(user=other, item=item, consumed_at=now, rating=None, visibility="public")
+
+        response = self.client.get("/api/v1/media/tmdb/movie/550/community/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["average_rating"], "8.00")
+        self.assertEqual(response.data["rating_count"], 2)
+        self.assertEqual(response.data["rating_distribution"], [{"rating": "8.0", "count": 2}])

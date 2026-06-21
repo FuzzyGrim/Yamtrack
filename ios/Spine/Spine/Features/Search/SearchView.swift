@@ -54,15 +54,23 @@ final class SearchViewModel {
 
 struct SearchView: View {
     @State private var viewModel: SearchViewModel
+    @State private var selectedRef: MediaRef?
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
+    private let diaryRepository: DiaryRepository
 
     private let onUnauthorized: () -> Void
 
-    init(mediaRepository: MediaRepository, trackingRepository: TrackingRepository, onUnauthorized: @escaping () -> Void = {}) {
+    init(
+        mediaRepository: MediaRepository,
+        trackingRepository: TrackingRepository,
+        diaryRepository: DiaryRepository,
+        onUnauthorized: @escaping () -> Void = {}
+    ) {
         _viewModel = State(initialValue: SearchViewModel(mediaRepository: mediaRepository, onUnauthorized: onUnauthorized))
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
+        self.diaryRepository = diaryRepository
         self.onUnauthorized = onUnauthorized
     }
 
@@ -98,11 +106,12 @@ struct SearchView: View {
             .task {
                 await viewModel.loadMeta()
             }
-            .navigationDestination(for: MediaRef.self) { ref in
+            .fullScreenCover(item: $selectedRef) { ref in
                 MediaDetailView(
                     ref: ref,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
+                    diaryRepository: diaryRepository,
                     onUnauthorized: onUnauthorized
                 )
             }
@@ -127,7 +136,9 @@ struct SearchView: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 16)], spacing: 20) {
                 ForEach(viewModel.results) { result in
-                    NavigationLink(value: result.ref) {
+                    Button {
+                        selectedRef = result.ref
+                    } label: {
                         VStack(alignment: .leading, spacing: 8) {
                             PosterImage(urlString: result.imageUrl, title: result.title)
                             Text(result.title)

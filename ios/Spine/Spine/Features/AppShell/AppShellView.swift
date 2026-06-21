@@ -8,6 +8,7 @@ struct AppShellView: View {
             SearchView(
                 mediaRepository: session.repositories.media,
                 trackingRepository: session.repositories.tracking,
+                diaryRepository: session.repositories.diary,
                 onUnauthorized: unauthorized
             )
             .tabItem {
@@ -51,5 +52,5 @@ struct AppShellView: View {
 }
 
 #Preview {
-    AppShellView(session: AppSession(repositories: .live()))
+    AppShellView(session: AppSession(repositories: .mock()))
 }

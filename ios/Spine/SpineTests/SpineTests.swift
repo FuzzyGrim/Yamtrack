@@ -129,6 +129,126 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder.api.decode(UserProfile.self, from: profile).counts.diaryEntries, 1)
     }
 
+    func testRichMediaDetailAndReviewDecoding() throws {
+        let detail = try JSONDecoder.api.decode(
+            MediaDetail.self,
+            from: MockMediaFixtures.richMediaDetailJSON.data(using: .utf8)!
+        )
+        let reviews = try JSONDecoder.api.decode(
+            PagedResponse<MediaReview>.self,
+            from: MockMediaFixtures.reviewsJSON.data(using: .utf8)!
+        )
+
+        XCTAssertEqual(detail.title, "Liquid Form")
+        XCTAssertEqual(detail.externalRatings?.count, 4)
+        XCTAssertEqual(detail.cast?.first?.character, "Mika")
+        XCTAssertEqual(detail.relatedSections?.first?.items.first?.title, "Pulp Fiction")
+        XCTAssertEqual(reviews.results.first?.reviewTitle, "A pulse under glass")
+        XCTAssertEqual(reviews.results.last?.containsSpoilers, true)
+    }
+
+    func testCommunityStatsDecodesRatingDistribution() throws {
+        let data = """
+        {
+          "average_rating": "8.0",
+          "rating_count": 2,
+          "diary_count": 3,
+          "review_count": 1,
+          "liked_count": 0,
+          "rating_distribution": [
+            { "rating": "8.0", "count": 2 }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let stats = try JSONDecoder.api.decode(CommunityStats.self, from: data)
+
+        XCTAssertEqual(stats.averageRating, "8.0")
+        XCTAssertEqual(stats.ratingDistribution.first?.rating, "8.0")
+        XCTAssertEqual(stats.ratingDistribution.first?.count, 2)
+    }
+
+    func testMediaDetailDecodesSynopsisFallback() throws {
+        let data = """
+        {
+          "ref": { "item_id": null, "source": "tmdb", "media_type": "movie", "media_id": "24428", "season_number": null, "episode_number": null },
+          "title": "The Avengers",
+          "subtitle": "2012",
+          "synopsis": "Earth's mightiest heroes must come together.",
+          "image_url": "https://example.com/poster.jpg",
+          "poster_accent_color": null,
+          "release_date": "2012-05-04",
+          "default_source": "tmdb",
+          "user_state": null,
+          "backdrop_url": null,
+          "details": {},
+          "related": {},
+          "providers": null,
+          "community": null,
+          "external_ratings": null,
+          "reviews": null,
+          "cast": null,
+          "crew": null,
+          "related_sections": null,
+          "episodes": null,
+          "seasons": null,
+          "custom_poster_url": null
+        }
+        """.data(using: .utf8)!
+
+        let detail = try JSONDecoder.api.decode(MediaDetail.self, from: data)
+
+        XCTAssertEqual(detail.synopsis, "Earth's mightiest heroes must come together.")
+        XCTAssertEqual(detail.displaySynopsis, "Earth's mightiest heroes must come together.")
+    }
+
+    func testMediaDetailPrefersOverviewOverSynopsis() throws {
+        let data = """
+        {
+          "ref": { "item_id": null, "source": "tmdb", "media_type": "movie", "media_id": "24428", "season_number": null, "episode_number": null },
+          "title": "The Avengers",
+          "subtitle": "2012",
+          "overview": "When an unexpected enemy emerges.",
+          "synopsis": "Earth's mightiest heroes must come together.",
+          "image_url": null,
+          "poster_accent_color": null,
+          "release_date": "2012-05-04",
+          "default_source": "tmdb",
+          "user_state": null,
+          "backdrop_url": null,
+          "details": {},
+          "related": {},
+          "providers": null,
+          "community": null,
+          "external_ratings": null,
+          "reviews": null,
+          "cast": null,
+          "crew": null,
+          "related_sections": null,
+          "episodes": null,
+          "seasons": null,
+          "custom_poster_url": null
+        }
+        """.data(using: .utf8)!
+
+        let detail = try JSONDecoder.api.decode(MediaDetail.self, from: data)
+
+        XCTAssertEqual(detail.displaySynopsis, "When an unexpected enemy emerges.")
+    }
+
+    func testCloudflareTunnelErrorMessage() {
+        let error = APIError.httpStatus(
+            530,
+            """
+            {"errors":[{"code":1033,"message":"Cloudflare Tunnel error","detail":"Cloudflare is currently unable to resolve the requested application."}]}
+            """
+        )
+
+        let message = error.localizedDescription
+        XCTAssertTrue(message.contains("Can't reach"))
+        XCTAssertTrue(message.contains("Cloudflare tunnel"))
+    }
+
     func testAPIClientBuildsPrefixedPaths() async throws {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [RequestCaptureURLProtocol.self]
@@ -140,7 +260,7 @@ final class SpineTests: XCTestCase {
         )
 
         RequestCaptureURLProtocol.handler = { request in
-            XCTAssertEqual(request.url?.path, "/root/api/v1/health/")
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/root/api/v1/health/")
             return (
                 HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
                 #"{"status":"ok","version":"v1","time":"now"}"#.data(using: .utf8)!
@@ -162,7 +282,7 @@ final class SpineTests: XCTestCase {
         )
 
         RequestCaptureURLProtocol.handler = { request in
-            XCTAssertEqual(request.url?.path, "/api/v1/auth/login/")
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/auth/login/")
             XCTAssertEqual(request.httpMethod, "POST")
             return (
                 HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
@@ -225,6 +345,32 @@ final class SpineTests: XCTestCase {
             XCTFail("Expected signed out state.")
             return
         }
+    }
+
+    @MainActor
+    func testMediaDetailViewModelLoadsReviewsAndTogglesLike() async {
+        let viewModel = MediaDetailViewModel(
+            ref: MockMediaFixtures.movieDetail.ref,
+            mediaRepository: MediaDetailFixtureRepository(),
+            trackingRepository: FakeTrackingRepository(),
+            diaryRepository: LikeFixtureDiaryRepository(),
+            onUnauthorized: {}
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.detail?.title, "Liquid Form")
+        XCTAssertEqual(viewModel.reviews.count, 2)
+        XCTAssertEqual(viewModel.reviews.first?.viewerHasLiked, false)
+
+        guard let review = viewModel.reviews.first else {
+            XCTFail("Expected a review.")
+            return
+        }
+        await viewModel.toggleLike(for: review)
+
+        XCTAssertEqual(viewModel.reviews.first?.viewerHasLiked, true)
+        XCTAssertEqual(viewModel.reviews.first?.likeCount, 99)
     }
 }
 
@@ -303,6 +449,7 @@ private struct FakeMediaRepository: MediaRepository {
     func meta() async throws -> MetaResponse { fatalError("Not used") }
     func search(query: String, mediaType: String) async throws -> [MediaSummary] { fatalError("Not used") }
     func detail(ref: MediaRef) async throws -> MediaDetail { fatalError("Not used") }
+    func reviews(ref: MediaRef) async throws -> [MediaReview] { fatalError("Not used") }
 }
 
 private struct FakeTrackingRepository: TrackingRepository {
@@ -313,8 +460,25 @@ private struct FakeTrackingRepository: TrackingRepository {
 private struct FakeDiaryRepository: DiaryRepository {
     func list() async throws -> [DiaryEntry] { fatalError("Not used") }
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
 }
 
 private struct FakeProfileRepository: ProfileRepository {
     func me() async throws -> UserProfile { fatalError("Not used") }
+}
+
+private struct MediaDetailFixtureRepository: MediaRepository {
+    func meta() async throws -> MetaResponse { fatalError("Not used") }
+    func search(query: String, mediaType: String) async throws -> [MediaSummary] { fatalError("Not used") }
+    func detail(ref: MediaRef) async throws -> MediaDetail { MockMediaFixtures.movieDetail }
+
+    func reviews(ref: MediaRef) async throws -> [MediaReview] {
+        try JSONDecoder.api.decode(PagedResponse<MediaReview>.self, from: MockMediaFixtures.reviewsJSON.data(using: .utf8)!).results
+    }
+}
+
+private struct LikeFixtureDiaryRepository: DiaryRepository {
+    func list() async throws -> [DiaryEntry] { fatalError("Not used") }
+    func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState { LikeState(liked: liked, likeCount: 99) }
 }
