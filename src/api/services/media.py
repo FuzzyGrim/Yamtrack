@@ -3,13 +3,14 @@ import hashlib
 from django.conf import settings
 from django.core.cache import cache
 
-from api.serializers.common import media_summary_from_provider
+from api.serializers.common import media_summary_from_provider, synopsis_from_payload
 from app import config
 from app.models import MediaTypes
 from app.providers import services as provider_services
 
 SEARCH_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
+DETAIL_CACHE_VERSION = "v2"
 
 
 def default_source_for(media_type):
@@ -46,7 +47,7 @@ def search_media(*, media_type, query, page=1, source=None, request=None, user=N
 def media_detail(*, source, media_type, media_id, request=None, user=None, season_number=None, episode_number=None):
     """Fetch provider metadata and normalize it for the API."""
     cache_key = (
-        f"api:v1:detail:{source}:{media_type}:{media_id}:"
+        f"api:{DETAIL_CACHE_VERSION}:detail:{source}:{media_type}:{media_id}:"
         f"s{season_number}:e{episode_number}:u{getattr(settings, 'TMDB_LANG', 'en')}"
     )
     metadata = cache.get(cache_key)
@@ -75,8 +76,13 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
         request=request,
         user=user,
     )
+    synopsis = synopsis_from_payload(metadata) or summary.get("overview")
+    if synopsis:
+        summary["overview"] = synopsis
     return {
         **summary,
+        "overview": synopsis,
+        "synopsis": synopsis,
         "backdrop_url": metadata.get("backdrop") or metadata.get("backdrop_url"),
         "details": metadata.get("details", {}),
         "related": metadata.get("related", {}),
@@ -87,7 +93,72 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
             media_id=media_id,
             season_number=season_number,
         ),
+        "external_ratings": external_ratings(
+            metadata=metadata,
+            source=source,
+            media_type=media_type,
+            media_id=media_id,
+        ),
     }
+
+
+def external_ratings(*, metadata, source, media_type, media_id):
+    """Normalize provider and third-party ratings for media detail."""
+    ratings = []
+    score = metadata.get("score")
+    if score is not None:
+        ratings.append(
+            {
+                "source": source_label(source),
+                "value": str(score),
+                "vote_count": metadata.get("score_count"),
+                "max_value": max_rating_value(source),
+            },
+        )
+
+    if source == "tmdb" and media_type in {MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value}:
+        from app.providers import mdblist
+
+        mdblist_type = MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
+        for rating_source, rating in (mdblist.get_media_ratings(media_id, mdblist_type) or {}).items():
+            value = rating.get("value") or rating.get("score")
+            if value is None:
+                continue
+            ratings.append(
+                {
+                    "source": source_label(rating_source),
+                    "value": str(value),
+                    "vote_count": rating.get("votes"),
+                    "max_value": max_rating_value(rating_source),
+                },
+            )
+
+    return ratings
+
+
+def source_label(source):
+    """Return user-facing source names."""
+    return {
+        "igdb": "IGDB",
+        "imdb": "IMDb",
+        "letterboxd": "Letterboxd",
+        "mal": "MAL",
+        "mangaupdates": "MangaUpdates",
+        "openlibrary": "OpenLibrary",
+        "hardcover": "Hardcover",
+        "tmdb": "TMDB",
+        "tomatoes": "Rotten Tomatoes",
+    }.get(source, source.title())
+
+
+def max_rating_value(source):
+    """Return display max for known rating scales."""
+    return {
+        "hardcover": "5",
+        "letterboxd": "5",
+        "openlibrary": "5",
+        "tomatoes": "100%",
+    }.get(source, "10")
 
 
 def tv_seasons(*, source, media_id, request=None, user=None):

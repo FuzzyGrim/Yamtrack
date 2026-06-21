@@ -102,6 +102,19 @@ def media_summary_from_item(item, request=None, user=None):
     }
 
 
+def synopsis_from_payload(payload):
+    """Return provider synopsis text for API responses."""
+    placeholder = "No synopsis available."
+    for key in ("overview", "synopsis", "description"):
+        value = payload.get(key)
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text and text != placeholder:
+            return text
+    return None
+
+
 def media_summary_from_provider(payload, media_type, source, request=None, user=None):
     """Serialize provider search/detail payload into the common summary shape."""
     media_id = str(payload.get("media_id") or payload.get("id") or "")
@@ -125,7 +138,7 @@ def media_summary_from_provider(payload, media_type, source, request=None, user=
         },
         "title": payload.get("title") or payload.get("name") or "",
         "subtitle": payload.get("year") or payload.get("subtitle"),
-        "overview": payload.get("overview") or payload.get("description"),
+        "overview": synopsis_from_payload(payload),
         "image_url": image_url(request, payload.get("image")),
         "poster_accent_color": getattr(item, "poster_accent_color", None) or None,
         "release_date": (

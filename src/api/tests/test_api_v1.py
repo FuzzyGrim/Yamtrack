@@ -89,3 +89,31 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["results"][0]["ref"]["source"], "tmdb")
         self.assertEqual(response.data["results"][0]["ref"]["media_type"], "movie")
         self.assertEqual(response.data["results"][0]["title"], "Fight Club")
+
+    @patch("app.providers.mdblist.get_media_ratings")
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_media_detail_includes_synopsis_and_external_ratings(self, metadata_mock, ratings_mock):
+        metadata_mock.return_value = {
+            "media_id": "550",
+            "media_type": "movie",
+            "source": "tmdb",
+            "title": "Fight Club",
+            "image": "https://example.com/fight-club.jpg",
+            "synopsis": "Soap, clubs, and insomnia.",
+            "score": "8.4",
+            "score_count": 1000,
+        }
+        ratings_mock.return_value = {
+            "imdb": {"value": "8.8", "votes": 2300000},
+            "letterboxd": {"value": "4.3", "votes": 500000},
+        }
+
+        response = self.client.get("/api/v1/media/tmdb/movie/550/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["overview"], "Soap, clubs, and insomnia.")
+        self.assertEqual(response.data["synopsis"], "Soap, clubs, and insomnia.")
+        self.assertEqual(
+            [(rating["source"], rating["value"]) for rating in response.data["external_ratings"]],
+            [("TMDB", "8.4"), ("IMDb", "8.8"), ("Letterboxd", "4.3")],
+        )
