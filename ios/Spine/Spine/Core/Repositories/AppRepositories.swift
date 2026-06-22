@@ -105,14 +105,20 @@ struct APIMediaRepository: MediaRepository {
 
     func detail(ref: MediaRef) async throws -> MediaDetail {
         var query: [URLQueryItem] = []
-        if let seasonNumber = ref.seasonNumber {
+        if ref.mediaType != "season", let seasonNumber = ref.seasonNumber {
             query.append(URLQueryItem(name: "season_number", value: String(seasonNumber)))
         }
         if let episodeNumber = ref.episodeNumber {
             query.append(URLQueryItem(name: "episode_number", value: String(episodeNumber)))
         }
+        let path: String
+        if ref.mediaType == "season", let seasonNumber = ref.seasonNumber {
+            path = "/media/\(ref.source)/tv/\(ref.mediaId)/seasons/\(seasonNumber)/"
+        } else {
+            path = "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/"
+        }
         return try await client.get(
-            "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/",
+            path,
             query: query,
             authenticated: client.tokenProvider.accessToken != nil
         )
@@ -129,8 +135,9 @@ struct APIMediaRepository: MediaRepository {
             query.append(URLQueryItem(name: "episode_number", value: String(episodeNumber)))
         }
         do {
+            let mediaType = ref.mediaType == "season" ? "tv" : ref.mediaType
             let response: PagedResponse<MediaReview> = try await client.get(
-                "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/reviews/",
+                "/media/\(ref.source)/\(mediaType)/\(ref.mediaId)/reviews/",
                 query: query,
                 authenticated: client.tokenProvider.accessToken != nil
             )

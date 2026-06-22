@@ -2,6 +2,73 @@ import XCTest
 @testable import Spine
 
 final class SpineTests: XCTestCase {
+    func testMediaTypeThemeLookup() {
+        let movie = MediaTypeTheme.theme(for: "movie")
+        let boardGame = MediaTypeTheme.theme(for: "boardgame")
+        let anime = MediaTypeTheme.theme(for: "anime")
+
+        XCTAssertEqual(movie.displayName, "Movies")
+        XCTAssertEqual(movie.symbolName, "film")
+        XCTAssertEqual(movie.gradientColors.count, 2)
+        XCTAssertEqual(boardGame.displayName, "Board Games")
+        XCTAssertEqual(boardGame.symbolName, "dice.fill")
+        XCTAssertEqual(anime.symbolText, "オ")
+        XCTAssertEqual(movie.gradientColors, boardGame.gradientColors)
+    }
+
+    func testMediaTypeThemeUnknownFallback() {
+        let theme = MediaTypeTheme.theme(for: "podcast")
+
+        XCTAssertEqual(theme.slug, "podcast")
+        XCTAssertEqual(theme.displayName, "Podcast")
+        XCTAssertEqual(theme.symbolName, "square.grid.2x2")
+        XCTAssertEqual(theme.gradientColors.count, 2)
+    }
+
+    @MainActor
+    func testSearchLensMediaTypesExcludeEpisodesAndSeasons() {
+        let types = SearchViewModel.lensMediaTypes(from: ["movie", "episode", "season", "book"])
+        let fallback = SearchViewModel.lensMediaTypes(from: ["episode", "season"])
+
+        XCTAssertEqual(types, ["movie", "book"])
+        XCTAssertFalse(fallback.contains("episode"))
+        XCTAssertFalse(fallback.contains("season"))
+    }
+
+    func testRecentSearchesKeepMediaTypeAndReadLegacyText() throws {
+        let searches = [
+            RecentSearch(text: "Halo", mediaType: "game"),
+            RecentSearch(text: "Dune", mediaType: "book")
+        ]
+        let data = try JSONEncoder().encode(searches)
+        let encoded = String(data: data, encoding: .utf8)!
+        let decoded = RecentSearch.decodeList(from: encoded, fallbackMediaType: "movie")
+        let legacy = RecentSearch.decodeList(from: "[\"Alien\"]", fallbackMediaType: "movie")
+
+        XCTAssertEqual(decoded, searches)
+        XCTAssertEqual(legacy, [RecentSearch(text: "Alien", mediaType: "movie")])
+        XCTAssertTrue(RecentSearch(text: "HALO", mediaType: "game").matches(searches[0]))
+        XCTAssertFalse(RecentSearch(text: "HALO", mediaType: "movie").matches(searches[0]))
+    }
+
+    @MainActor
+    func testMediaLensStorePersistsSelectionAndIgnoresNoOp() {
+        let defaults = UserDefaults(suiteName: "MediaLensStoreTests")!
+        defaults.removeObject(forKey: MediaLensStore.persistenceKey)
+
+        let store = MediaLensStore(defaults: defaults)
+        XCTAssertEqual(store.selectedMediaType, "movie")
+
+        store.setMediaType("game")
+        store.setMediaType("game")
+
+        XCTAssertEqual(store.selectedMediaType, "game")
+        XCTAssertEqual(defaults.string(forKey: MediaLensStore.persistenceKey), "game")
+        XCTAssertEqual(MediaLensStore(defaults: defaults).selectedMediaType, "game")
+
+        defaults.removeObject(forKey: MediaLensStore.persistenceKey)
+    }
+
     func testAuthTokenDecoding() throws {
         let data = """
         {
@@ -210,6 +277,7 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(detail.relatedSections?.first?.items.first?.title, "Pulp Fiction")
         XCTAssertEqual(tv.seasons?.first?.seasonNumber, 1)
         XCTAssertEqual(season.episodes?.first?.runtime, "49m")
+        XCTAssertEqual(season.episodes?.first?.overview, "Ada finds the first card.")
         XCTAssertEqual(anime.relatedSections?.count, 2)
         XCTAssertEqual(reviews.results.first?.reviewTitle, "A pulse under glass")
         XCTAssertEqual(reviews.results.last?.containsSpoilers, true)
@@ -413,6 +481,33 @@ final class SpineTests: XCTestCase {
 
         XCTAssertEqual(response.posterUrl, "https://example.com/new.jpg")
         client.tokenProvider.clear()
+    }
+
+    func testMediaRepositoryBuildsSeasonDetailRequest() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        let repository = APIMediaRepository(client: client)
+        let ref = MediaRef(itemId: nil, source: "tmdb", mediaType: "season", mediaId: "1399", seasonNumber: 1, episodeNumber: nil)
+
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/tv/1399/seasons/1/")
+            XCTAssertEqual(request.httpMethod, "GET")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                TestFixtures.seasonDetailJSON.data(using: .utf8)!
+            )
+        }
+
+        let detail = try await repository.detail(ref: ref)
+
+        XCTAssertEqual(detail.ref.mediaType, "season")
+        XCTAssertEqual(detail.episodes?.count, 3)
     }
 
     @MainActor

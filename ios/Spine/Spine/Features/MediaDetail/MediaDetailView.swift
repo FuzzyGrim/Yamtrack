@@ -280,7 +280,7 @@ struct MediaDetailView: View {
     }
 
     private func hero(_ detail: MediaDetail) -> some View {
-        ZStack(alignment: .bottom) {
+        ZStack(alignment: .top) {
             HeroArtwork(detail: detail)
                 .frame(height: MediaDetailLayout.heroHeight)
 
@@ -291,12 +291,11 @@ struct MediaDetailView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, 16)
 
-                HStack(alignment: .bottom, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 11) {
-                        Text(detail.title)
+                        Text(displayTitle(detail))
                             .font(.system(size: 33, weight: .heavy))
                             .foregroundStyle(.white)
-                            .lineLimit(2)
                             .minimumScaleFactor(0.66)
 
                         if let byline = byline(detail) {
@@ -315,11 +314,12 @@ struct MediaDetailView: View {
                         isTracked: currentStatus(detail) != nil,
                         onTrack: { isLogPresented = true }
                     )
-                    .padding(.bottom, 1)
                 }
             }
             .padding(.horizontal, 14)
             .padding(.bottom, 18)
+            .padding(.top, topSafeAreaInset + MediaDetailLayout.heroPosterTopOffset)
+            .frame(minHeight: MediaDetailLayout.heroHeight, alignment: .top)
         }
     }
 
@@ -390,6 +390,9 @@ struct MediaDetailView: View {
 
     private func primaryChips(_ detail: MediaDetail) -> [String] {
         var chips = [mediaTypeChipLabel(detail.ref.mediaType), year(detail)].compactMap { $0 }
+        if let seasonLabel = seasonChipLabel(detail) {
+            chips.append(seasonLabel)
+        }
         if ["movie", "tv"].contains(detail.ref.mediaType), let runtime = detailString(detail, "runtime"), !runtime.isEmpty {
             chips.append(runtime)
         }
@@ -427,9 +430,21 @@ struct MediaDetailView: View {
         switch mediaType {
         case "tv":
             "TV"
+        case "season":
+            "TV"
         default:
             mediaType.capitalized
         }
+    }
+
+    private func displayTitle(_ detail: MediaDetail) -> String {
+        guard let seasonNumber = detail.ref.seasonNumber, detail.ref.mediaType == "season" else { return detail.title }
+        return "\(detail.title) S\(seasonNumber)"
+    }
+
+    private func seasonChipLabel(_ detail: MediaDetail) -> String? {
+        guard let seasonNumber = detail.ref.seasonNumber, detail.ref.mediaType == "season" else { return nil }
+        return "Season \(seasonNumber)"
     }
 
     private func currentStatus(_ detail: MediaDetail) -> String? {
@@ -449,7 +464,7 @@ struct MediaDetailView: View {
             if rating.source.lowercased() == "spine" {
                 continue
             }
-            if ["movie", "tv"].contains(detail.ref.mediaType), rating.source.lowercased() == "tmdb" {
+            if ["movie", "tv", "season"].contains(detail.ref.mediaType), rating.source.lowercased() == "tmdb" {
                 continue
             }
             chips.append(RatingChip(
@@ -477,8 +492,9 @@ struct MediaDetailView: View {
     private func externalRatingOrder(_ source: String) -> Int {
         switch source.lowercased() {
         case "letterboxd": 0
-        case "imdb": 1
-        default: 2
+        case "rotten tomatoes": 1
+        case "imdb": 2
+        default: 3
         }
     }
 
@@ -733,6 +749,7 @@ struct MediaDetailView: View {
 private enum MediaDetailLayout {
     static let heroPosterWidth: CGFloat = 191
     static let heroHeight: CGFloat = 535
+    static let heroPosterTopOffset: CGFloat = 108
     static let genrePillHeight: CGFloat = 31
     static let ratingBadgeSize: CGFloat = 24
     static let ratingPillVerticalPadding: CGFloat = 6
@@ -742,7 +759,6 @@ private enum MediaDetailLayout {
     static let seasonPosterSize = CGSize(width: 90, height: 135)
     static let castImageSize: CGFloat = 84
     static let castCardWidth: CGFloat = 126
-    static let castCardHeight: CGFloat = 182
 }
 
 private enum SpinePalette {
@@ -888,38 +904,43 @@ private struct HeroArtwork: View {
 }
 
 private struct ActionRail: View {
-    private static let iconFont = Font.system(size: 28, weight: .regular)
+    private static let buttonSize: CGFloat = 44
+    private static let buttonSpacing: CGFloat = 10
 
     let isTracked: Bool
     let onTrack: () -> Void
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 18) {
-            Image(systemName: "eye")
-                .font(Self.iconFont)
-                .accessibilityLabel("Mark as watched")
-
-            Image(systemName: "heart")
-                .font(Self.iconFont)
-
-            Button(action: onTrack) {
-                HStack(spacing: 6) {
-                    Text("LOG")
-                        .font(.system(size: 12, weight: .heavy))
-                    Image(systemName: isTracked ? "arrow.clockwise.circle" : "plus")
-                        .font(.system(size: 12, weight: .bold))
-                }
-                .foregroundStyle(SpinePalette.pageBackground)
-                .frame(height: MediaDetailLayout.ratingBadgeSize)
-                .padding(.horizontal, 9)
-                .padding(.vertical, MediaDetailLayout.ratingPillVerticalPadding)
-                .background(.white.opacity(0.92), in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isTracked ? "Edit tracking" : "Log")
+        VStack(spacing: Self.buttonSpacing) {
+            railButton(systemName: "heart", label: "Like", filled: false, action: {})
+            railButton(systemName: "eye", label: "Mark as watched", filled: false, action: {})
+            railButton(
+                systemName: "plus",
+                label: isTracked ? "Edit tracking" : "Log",
+                filled: true,
+                action: onTrack
+            )
         }
-        .foregroundStyle(.white.opacity(0.92))
-        .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
+    }
+
+    private func railButton(
+        systemName: String,
+        label: String,
+        filled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(filled ? Color.black.opacity(0.85) : .white)
+                .frame(width: Self.buttonSize, height: Self.buttonSize)
+                .background {
+                    Circle()
+                        .fill(filled ? .white.opacity(0.92) : .black.opacity(0.34))
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 }
 
@@ -1317,7 +1338,7 @@ private struct CreditSection: View {
                                         .minimumScaleFactor(0.82)
                                 }
                             }
-                            .frame(width: MediaDetailLayout.castCardWidth, height: MediaDetailLayout.castCardHeight, alignment: .top)
+                            .frame(width: MediaDetailLayout.castCardWidth, alignment: .top)
                         }
                     }
                 }
@@ -1380,13 +1401,27 @@ private struct EpisodesSection: View {
                                 .font(.system(size: 12, weight: .heavy))
                                 .foregroundStyle(.white.opacity(0.56))
                                 .frame(width: 24)
+                            if episode.imageUrl != nil {
+                                PosterImage(urlString: episode.imageUrl, title: episode.title)
+                                    .frame(width: 72, height: 42)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(episode.title)
                                     .font(.system(size: 14, weight: .heavy))
                                     .foregroundStyle(.white)
-                                Text([episode.airDate, episode.runtime, episode.rating].compactMap { $0 }.joined(separator: " - "))
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.56))
+                                let metadata = [episode.airDate?.longDateLabel, episode.runtime, episode.rating?.oneDecimalLabel].compactMap { $0 }.joined(separator: " - ")
+                                if !metadata.isEmpty {
+                                    Text(metadata)
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(.white.opacity(0.56))
+                                }
+                                if let overview = episode.overview, !overview.isEmpty {
+                                    Text(overview)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                        .lineLimit(3)
+                                }
                             }
                             Spacer()
                         }
@@ -1645,6 +1680,15 @@ private extension String {
         output.locale = Locale.current
         output.dateFormat = "MMM d, yyyy"
         return output.string(from: date)
+    }
+
+    var longDateLabel: String {
+        LongDateFormatter().string(from: self) ?? self
+    }
+
+    var oneDecimalLabel: String {
+        guard let value = Double(self) else { return self }
+        return String(format: "%.1f", value)
     }
 
     static func starRatingLabel(forStep step: Int) -> String {

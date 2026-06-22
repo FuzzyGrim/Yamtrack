@@ -104,6 +104,7 @@ class ApiV1FoundationTests(TestCase):
             "source": "tmdb",
             "title": "Fight Club",
             "image": "https://example.com/fight-club.jpg",
+            "backdrop_path": "/rr7E0NoGKxvbkb89eR1GwfoYjpA.jpg",
             "synopsis": "Soap, clubs, and insomnia.",
             "score": "8.4",
             "score_count": 1000,
@@ -163,6 +164,10 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["overview"], "Soap, clubs, and insomnia.")
         self.assertEqual(response.data["synopsis"], "Soap, clubs, and insomnia.")
         self.assertEqual(
+            response.data["backdrop_url"],
+            "https://image.tmdb.org/t/p/original/rr7E0NoGKxvbkb89eR1GwfoYjpA.jpg",
+        )
+        self.assertEqual(
             [(rating["source"], rating["value"]) for rating in response.data["external_ratings"]],
             [("TMDB", "8.4"), ("IMDb", "8.8"), ("Letterboxd", "4.3"), ("Rotten Tomatoes", "79%")],
         )
@@ -184,6 +189,7 @@ class ApiV1FoundationTests(TestCase):
             "source": "tmdb",
             "title": "Game of Thrones",
             "image": "https://example.com/got.jpg",
+            "backdrop_path": "/9xxLWtnFxkpJ2h1uthpvCRK6vta.jpg",
             "related": {
                 "seasons": [
                     {
@@ -205,7 +211,27 @@ class ApiV1FoundationTests(TestCase):
 
         self.assertEqual(detail.status_code, status.HTTP_200_OK)
         self.assertEqual(detail.data["seasons"][0]["title"], "Season 1")
+        self.assertEqual(
+            detail.data["backdrop_url"],
+            "https://image.tmdb.org/t/p/original/9xxLWtnFxkpJ2h1uthpvCRK6vta.jpg",
+        )
         self.assertEqual(seasons.data["seasons"], detail.data["seasons"])
+
+    @patch("app.providers.mdblist.get_media_ratings", return_value={})
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_media_detail_backdrop_url_is_null_without_backdrop(self, metadata_mock, _ratings_mock):
+        metadata_mock.return_value = {
+            "media_id": "550",
+            "media_type": "movie",
+            "source": "tmdb",
+            "title": "Fight Club",
+            "image": "https://example.com/fight-club.jpg",
+        }
+
+        response = self.client.get("/api/v1/media/tmdb/movie/550/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["backdrop_url"])
 
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")

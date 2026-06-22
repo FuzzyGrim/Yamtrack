@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct AppShellView: View {
+    @State private var selectedTab = AppTab.search
+
     let session: AppSession
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             SearchView(
                 mediaRepository: session.repositories.media,
                 trackingRepository: session.repositories.tracking,
@@ -14,40 +16,79 @@ struct AppShellView: View {
             .tabItem {
                 Label("Search", systemImage: "magnifyingglass")
             }
+            .tag(AppTab.search)
 
-            LibraryView(
-                mediaRepository: session.repositories.media,
-                trackingRepository: session.repositories.tracking,
-                onUnauthorized: unauthorized
-            )
+            LazyTab(isSelected: selectedTab == .library) {
+                LibraryView(
+                    mediaRepository: session.repositories.media,
+                    trackingRepository: session.repositories.tracking,
+                    onUnauthorized: unauthorized
+                )
+            }
             .tabItem {
                 Label("Library", systemImage: "books.vertical")
             }
+            .tag(AppTab.library)
 
-            DiaryView(
-                diaryRepository: session.repositories.diary,
-                mediaRepository: session.repositories.media,
-                onUnauthorized: unauthorized
-            )
+            LazyTab(isSelected: selectedTab == .diary) {
+                DiaryView(
+                    diaryRepository: session.repositories.diary,
+                    mediaRepository: session.repositories.media,
+                    onUnauthorized: unauthorized
+                )
+            }
             .tabItem {
                 Label("Diary", systemImage: "calendar")
             }
+            .tag(AppTab.diary)
 
-            ProfileView(
-                profileRepository: session.repositories.profile,
-                onLogout: {
-                    Task { await session.logout() }
-                },
-                onUnauthorized: unauthorized
-            )
+            LazyTab(isSelected: selectedTab == .profile) {
+                ProfileView(
+                    profileRepository: session.repositories.profile,
+                    onLogout: {
+                        Task { await session.logout() }
+                    },
+                    onUnauthorized: unauthorized
+                )
+            }
             .tabItem {
                 Label("Profile", systemImage: "person.crop.circle")
             }
+            .tag(AppTab.profile)
         }
     }
 
     private func unauthorized() {
         Task { await session.logout() }
+    }
+}
+
+private enum AppTab: Hashable {
+    case search
+    case library
+    case diary
+    case profile
+}
+
+private struct LazyTab<Content: View>: View {
+    let isSelected: Bool
+    @ViewBuilder let content: () -> Content
+
+    @State private var hasLoaded = false
+
+    var body: some View {
+        Group {
+            if isSelected || hasLoaded {
+                content()
+            } else {
+                Color.clear
+            }
+        }
+        .onChange(of: isSelected, initial: true) {
+            if isSelected {
+                hasLoaded = true
+            }
+        }
     }
 }
 
