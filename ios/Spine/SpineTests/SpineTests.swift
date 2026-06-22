@@ -392,6 +392,34 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(reviews.results.last?.containsSpoilers, true)
     }
 
+    func testHardcoverBookSeriesRelatedSectionDecoding() throws {
+        let data = """
+        {
+          "ref": { "item_id": null, "source": "hardcover", "media_type": "book", "media_id": "377193", "season_number": null, "episode_number": null },
+          "title": "Harry Potter and the Sorcerer's Stone",
+          "related_sections": [
+            {
+              "id": "series",
+              "title": "Harry Potter",
+              "items": [
+                { "ref": { "item_id": null, "source": "hardcover", "media_type": "book", "media_id": "377193", "season_number": null, "episode_number": null }, "title": "Harry Potter and the Sorcerer's Stone", "image_url": "https://example.com/hp1.jpg" },
+                { "ref": { "item_id": null, "source": "hardcover", "media_type": "book", "media_id": "377194", "season_number": null, "episode_number": null }, "title": "Harry Potter and the Chamber of Secrets", "image_url": "https://example.com/hp2.jpg" }
+              ]
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let detail = try JSONDecoder.api.decode(MediaDetail.self, from: data)
+
+        XCTAssertEqual(detail.relatedSections?.first?.id, "series")
+        XCTAssertEqual(detail.relatedSections?.first?.title, "Harry Potter")
+        XCTAssertEqual(detail.relatedSections?.first?.items.map(\.title), [
+            "Harry Potter and the Sorcerer's Stone",
+            "Harry Potter and the Chamber of Secrets",
+        ])
+    }
+
     func testCommunityStatsDecodesRatingDistribution() throws {
         let data = """
         {

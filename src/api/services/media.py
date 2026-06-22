@@ -1,6 +1,9 @@
+import asyncio
 import hashlib
+import logging
 from copy import deepcopy
 
+from aiohttp import ClientError
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Count
@@ -32,6 +35,10 @@ from app.utils.color import build_accent_palette, compute_and_store_poster_accen
 SEARCH_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
 DETAIL_CACHE_VERSION = "v5"
+POSTER_UNSUPPORTED_MESSAGE = (
+    "Poster customization is only available for TMDB movies/TV shows and Open Library/Hardcover books."
+)
+logger = logging.getLogger(__name__)
 
 
 def default_source_for(media_type):
@@ -142,9 +149,17 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
 
 
 def poster_options(*, source, media_type, media_id, request=None, user=None):
-    """Return selectable posters for TMDB movie/TV media."""
+    """Return selectable posters for supported media."""
+    if _supports_book_posters(source, media_type):
+        options = book_cover_options(
+            source=source,
+            media_id=media_id,
+            request=request,
+            user=user,
+        )
+        return {"posters": options["posters"]}
     if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
-        raise ValueError("Poster customization is only available for TMDB movies and TV shows.")
+        raise ValueError(POSTER_UNSUPPORTED_MESSAGE)
 
     item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
     from app.providers import tmdb
@@ -181,8 +196,11 @@ def poster_options(*, source, media_type, media_id, request=None, user=None):
 
 def save_poster_preference(*, source, media_type, media_id, poster_url, user):
     """Save a user's poster preference and update the stored item image/accent."""
-    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
-        raise ValueError("Poster customization is only available for TMDB movies and TV shows.")
+    if (
+        source != Sources.TMDB.value
+        or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]
+    ) and not _supports_book_posters(source, media_type):
+        raise ValueError(POSTER_UNSUPPORTED_MESSAGE)
     if not poster_url:
         raise ValueError("poster_url is required.")
 
@@ -202,6 +220,47 @@ def save_poster_preference(*, source, media_type, media_id, poster_url, user):
         "custom_poster_url": poster_url,
         "poster_accent_color": palette["accent"],
     }
+
+
+def book_cover_options(*, source, media_id, request=None, user=None):
+    """Return selectable covers for Open Library/Hardcover books."""
+    media_type = MediaTypes.BOOK.value
+    if not _supports_book_posters(source, media_type):
+        raise ValueError(POSTER_UNSUPPORTED_MESSAGE)
+
+    item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
+    isbns = _book_isbns(source, media_id)
+    current = CustomPosterPreference.objects.filter(user=user, item=item).first()
+    selected_url = current.custom_image_url if current else item.image
+    selected_absolute = absolute_poster_url(request, selected_url)
+
+    posters = []
+    seen = set()
+    covers = [
+        {"url": item.image, "thumbnail_url": item.image, "is_original": True},
+        *_book_cover_candidates(source, media_id, isbns),
+    ]
+    for cover in covers:
+        url = cover.get("url")
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        absolute_url = absolute_poster_url(request, url)
+        posters.append(
+            {
+                "url": absolute_url,
+                "thumbnail_url": absolute_poster_url(request, cover.get("thumbnail_url") or url),
+                "width": cover.get("width") or 0,
+                "height": cover.get("height") or 0,
+                "aspect_ratio": cover.get("aspect_ratio") or 0.667,
+                "vote_average": cover.get("vote_average") or 0,
+                "vote_count": cover.get("vote_count") or 0,
+                "language": cover.get("language"),
+                "is_original": bool(cover.get("is_original")),
+                "is_selected": absolute_url == selected_absolute,
+            },
+        )
+    return {"item": item, "posters": posters, "current_poster": selected_url}
 
 
 def backdrop_options(*, source, media_type, media_id, request=None, user=None):
@@ -275,6 +334,36 @@ def _customizable_item(*, source, media_type, media_id):
         title=metadata.get("title") or metadata.get("name") or media_id,
         image=metadata.get("image") or settings.IMG_NONE,
     )
+
+
+def _supports_book_posters(source, media_type):
+    return media_type == MediaTypes.BOOK.value and source in [
+        Sources.OPENLIBRARY.value,
+        Sources.HARDCOVER.value,
+    ]
+
+
+def _book_isbns(source, media_id):
+    if source == Sources.HARDCOVER.value:
+        from app.providers import hardcover
+
+        return hardcover.get_book_isbns(media_id)
+    if source == Sources.OPENLIBRARY.value:
+        metadata = provider_services.get_media_metadata(MediaTypes.BOOK.value, media_id, source)
+        return metadata.get("details", {}).get("isbn", []) or []
+    return []
+
+
+def _book_cover_candidates(source, media_id, isbns):
+    from app.providers import openlibrary
+
+    try:
+        if source == Sources.OPENLIBRARY.value:
+            return asyncio.run(openlibrary.get_reliable_covers_for_book(media_id, isbns, cap=20))
+        return asyncio.run(openlibrary.get_reliable_covers_by_isbns(isbns, cap=20))
+    except (ClientError, OSError, RuntimeError, TimeoutError, ValueError) as error:
+        logger.warning("Reliable cover fetch failed, falling back to ISBN covers: %s", error)
+        return openlibrary.get_book_cover_images(isbns)
 
 
 def absolute_poster_url(request, url):

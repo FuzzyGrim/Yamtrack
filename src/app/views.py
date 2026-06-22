@@ -1250,77 +1250,22 @@ def book_cover_selection_modal(request, source, media_id):
 @require_GET
 def book_cover_selection_content(request, source, media_id):
     """Return the heavy content for the book cover modal (covers grid)."""
-    media_type = MediaTypes.BOOK.value
     try:
-        # Get or create the item
-        try:
-            item = Item.objects.get(
-                media_id=media_id,
-                source=source,
-                media_type=media_type,
-            )
-        except Item.DoesNotExist:
-            from app.providers import services
-            metadata = services.get_media_metadata(media_type, media_id, source)
-            item = Item.objects.create(
-                media_id=media_id,
-                source=source,
-                media_type=media_type,
-                title=metadata["title"],
-                image=metadata["image"],
-            )
+        from api.services import media as media_service
 
-        # Gather ISBNs
-        if source == Sources.HARDCOVER.value:
-            from app.providers import hardcover
-            isbns = hardcover.get_book_isbns(media_id)
-        elif source == Sources.OPENLIBRARY.value:
-            from app.providers import services as svc
-            metadata = svc.get_media_metadata(media_type, media_id, source)
-            isbns = metadata.get("details", {}).get("isbn", []) or []
-        else:
-            isbns = []
-
-        # Fetch covers (may be slow)
-        import asyncio
-        from app.providers import openlibrary
-        covers_list = []
-        try:
-            if source == Sources.OPENLIBRARY.value:
-                covers_list = asyncio.run(openlibrary.get_reliable_covers_for_book(media_id, isbns, cap=20))
-            else:
-                covers_list = asyncio.run(openlibrary.get_reliable_covers_by_isbns(isbns, cap=20))
-        except Exception as e:
-            logger.warning("Reliable cover fetch failed, falling back to ISBN covers: %s", e)
-            covers_list = openlibrary.get_book_cover_images(isbns)
-
-        original_cover = {
-            "url": item.image,
-            "thumbnail_url": item.image,
-            "isbn": isbns[0] if isbns else "N/A",
-            "width": 0,
-            "height": 0,
-            "aspect_ratio": 0.667,
-            "language": None,
-            "is_current": True,
-            "is_original": True,
-        }
-        posters = [original_cover]
-        for cover in covers_list:
-            if cover["url"] != item.image:
-                posters.append(cover)
-
-        from app.models import CustomPosterPreference
-        try:
-            current_preference = CustomPosterPreference.objects.get(user=request.user, item=item)
-            current_poster = current_preference.custom_image_url
-        except CustomPosterPreference.DoesNotExist:
-            current_poster = item.image
+        options = media_service.book_cover_options(
+            source=source,
+            media_id=media_id,
+            request=request,
+            user=request.user,
+        )
+        for poster in options["posters"]:
+            poster["is_current"] = poster["is_selected"]
 
         context = {
-            "item": item,
-            "posters": posters,
-            "current_poster": current_poster,
+            "item": options["item"],
+            "posters": options["posters"],
+            "current_poster": options["current_poster"],
             "is_book": True,
         }
         return render(request, "app/components/poster_selection_modal_content.html", context)

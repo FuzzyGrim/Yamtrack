@@ -624,6 +624,50 @@ class ApiV1FoundationTests(TestCase):
         )
         self.assertTrue(response.data["posters"][0]["is_original"])
 
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_media_book_posters_endpoint_returns_original_and_alternates(self, metadata_mock):
+        user = get_user_model().objects.create_user(username="bookposter", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
+            media_id="OL7353617M",
+            title="The Hobbit",
+            image="https://example.com/original-book.jpg",
+        )
+        CustomPosterPreference.objects.create(
+            user=user,
+            item=item,
+            custom_image_url="https://example.com/alt-book.jpg",
+        )
+        metadata_mock.return_value = {"details": {"isbn": ["9780547928227"]}}
+
+        async def reliable_covers(*_args, **_kwargs):
+            return [
+                {"url": "https://example.com/original-book.jpg"},
+                {
+                    "url": "https://example.com/alt-book.jpg",
+                    "thumbnail_url": "https://example.com/alt-book-thumb.jpg",
+                    "width": 1000,
+                    "height": 1500,
+                    "aspect_ratio": 0.667,
+                    "language": None,
+                },
+            ]
+
+        self.client.force_authenticate(user)
+        with patch("app.providers.openlibrary.get_reliable_covers_for_book", reliable_covers):
+            response = self.client.get("/api/v1/media/openlibrary/book/OL7353617M/posters/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [poster["url"] for poster in response.data["posters"]],
+            ["https://example.com/original-book.jpg", "https://example.com/alt-book.jpg"],
+        )
+        self.assertTrue(response.data["posters"][0]["is_original"])
+        self.assertFalse(response.data["posters"][1]["is_original"])
+        self.assertFalse(response.data["posters"][0]["is_selected"])
+        self.assertTrue(response.data["posters"][1]["is_selected"])
+
     def test_media_posters_endpoint_rejects_unsupported_media(self):
         user = get_user_model().objects.create_user(username="poster2", password="strong-password-123")
         self.client.force_authenticate(user)
@@ -659,6 +703,35 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(
             CustomPosterPreference.objects.get(user=user, item=item).custom_image_url,
             "https://example.com/new.jpg",
+        )
+
+    @patch("api.services.media.build_accent_palette", return_value={"accent": "#654321", "contrast": "#ffffff"})
+    @patch("api.services.media.compute_and_store_poster_accent", return_value="#654321")
+    def test_media_book_poster_save_updates_preference_and_item(self, _accent_mock, _palette_mock):
+        user = get_user_model().objects.create_user(username="bookposter2", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
+            media_id="OL7353617M",
+            title="The Hobbit",
+            image="https://example.com/original-book.jpg",
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.put(
+            "/api/v1/media/openlibrary/book/OL7353617M/poster/",
+            {"poster_url": "https://example.com/new-book.jpg"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["custom_poster_url"], "https://example.com/new-book.jpg")
+        item.refresh_from_db()
+        self.assertEqual(item.image, "https://example.com/new-book.jpg")
+        self.assertEqual(item.poster_accent_color, "#654321")
+        self.assertEqual(
+            CustomPosterPreference.objects.get(user=user, item=item).custom_image_url,
+            "https://example.com/new-book.jpg",
         )
 
     @patch("api.services.media.provider_services.get_media_metadata")

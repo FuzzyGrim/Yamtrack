@@ -145,7 +145,7 @@ class MediaReviewsView(APIView):
 
 
 class MediaPostersView(APIView):
-    """Selectable poster images for TMDB movie/TV media."""
+    """Selectable poster images for TMDB movie/TV media and book covers."""
 
     permission_classes = [IsAuthenticated]
 
@@ -165,7 +165,7 @@ class MediaPostersView(APIView):
 
 
 class MediaPosterPreferenceView(APIView):
-    """Save the viewer's selected poster."""
+    """Save the viewer's selected poster or book cover."""
 
     permission_classes = [IsAuthenticated]
 
