@@ -9,6 +9,7 @@ from django.core.cache import cache
 from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
+from app.providers.search_rank import rank_results
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.myanimelist.net/v2"
@@ -49,7 +50,7 @@ def search(media_type, query, page):
         url = f"{base_url}/{media_type}"
         params = {
             "q": query,
-            "fields": "media_type",
+            "fields": "media_type,mean,num_scoring_users,start_date",
             "limit": settings.PER_PAGE,
         }
         if settings.MAL_NSFW:
@@ -74,9 +75,13 @@ def search(media_type, query, page):
                 "media_type": media_type,
                 "title": media["node"]["title"],
                 "image": get_image_url(media["node"]),
+                "rating": media["node"].get("mean"),
+                "num_scoring_users": media["node"].get("num_scoring_users"),
+                "release_date": media["node"].get("start_date"),
             }
             for media in response
         ]
+        results = rank_results(query, results, media_type)
 
         data = helpers.format_search_response(
             page,

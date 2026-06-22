@@ -9,6 +9,7 @@ from django.utils import timezone
 from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
+from app.providers.search_rank import rank_results
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.igdb.com/v4"
@@ -200,7 +201,8 @@ def search(query, page):
         multiquery = (
             'query games "SearchResults" {'
             f'search "{search_query}";'
-            "fields name,cover.image_id;"
+            "fields name,cover.image_id,total_rating_count,total_rating,"
+            "first_release_date,game_type;"
             "sort total_rating_count desc;"
             f"limit {settings.PER_PAGE};"
             f"offset {offset};"
@@ -250,9 +252,14 @@ def search(query, page):
                 "media_type": MediaTypes.GAME.value,
                 "title": media["name"],
                 "image": get_image_url(media),
+                "total_rating_count": media.get("total_rating_count"),
+                "total_rating": media.get("total_rating"),
+                "first_release_date": media.get("first_release_date"),
+                "game_type": media.get("game_type"),
             }
             for media in search_results
         ]
+        results = rank_results(query, results, MediaTypes.GAME.value)
 
         data = helpers.format_search_response(
             page,

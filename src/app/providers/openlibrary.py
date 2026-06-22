@@ -13,6 +13,7 @@ from django.core.cache import cache
 from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
+from app.providers.search_rank import rank_results
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,11 @@ def search(query, page):
     if data is None:
         params = {
             "q": query,
-            "fields": "title,key,editions,editions.key,editions.cover_i,editions.title",
+            "fields": (
+                "title,key,cover_i,author_name,edition_count,first_publish_year,"
+                "ratings_count,ratings_average,editions,editions.key,"
+                "editions.cover_i,editions.title"
+            ),
             "limit": settings.PER_PAGE,
             "page": page,
         }
@@ -77,10 +82,16 @@ def search(query, page):
                     "media_type": MediaTypes.BOOK.value,
                     "title": result_title,
                     "image": get_image_url(top_edition),
+                    "author_name": doc.get("author_name"),
+                    "edition_count": doc.get("edition_count"),
+                    "first_publish_year": doc.get("first_publish_year"),
+                    "ratings_count": doc.get("ratings_count"),
+                    "ratings_average": doc.get("ratings_average"),
                 },
             )
 
         total_results = response["numFound"]
+        results = rank_results(query, results, MediaTypes.BOOK.value)
         data = helpers.format_search_response(
             page,
             settings.PER_PAGE,

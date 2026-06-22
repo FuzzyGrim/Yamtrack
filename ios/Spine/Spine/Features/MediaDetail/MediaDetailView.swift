@@ -97,6 +97,19 @@ private enum MediaDetailSheet: Identifiable {
     }
 }
 
+enum MediaArtworkCustomization {
+    static func supportsPoster(source: String, mediaType: String) -> Bool {
+        if source == "tmdb", ["movie", "tv"].contains(mediaType) {
+            return true
+        }
+        return mediaType == "book" && ["openlibrary", "hardcover"].contains(source)
+    }
+
+    static func supportsBackdrop(source: String, mediaType: String) -> Bool {
+        source == "tmdb" && ["movie", "tv"].contains(mediaType)
+    }
+}
+
 private struct TopSafeAreaInsetKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
 
@@ -196,6 +209,8 @@ struct MediaDetailView: View {
             switch sheet {
             case .posterMenu:
                 PosterMenuSheet(
+                    posterLabel: canCustomizeBackdrop(viewModel.detail) ? "Customize Poster" : "Customize Cover",
+                    showsBackdropOption: canCustomizeBackdrop(viewModel.detail),
                     onCustomizePoster: {
                         presentedSheet = nil
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -209,7 +224,7 @@ struct MediaDetailView: View {
                         }
                     }
                 )
-                .presentationDetents([.height(216)])
+                .presentationDetents([.height(canCustomizeBackdrop(viewModel.detail) ? 216 : 148)])
                 .presentationDragIndicator(.visible)
             }
         }
@@ -245,6 +260,9 @@ struct MediaDetailView: View {
                 PosterPickerView(
                     ref: detail.ref,
                     mediaRepository: mediaRepository,
+                    title: isBook(detail) ? "Customize Cover" : "Customize Poster",
+                    showsLanguageFilter: !isBook(detail),
+                    contentMode: isBook(detail) ? .fit : .fill,
                     onUnauthorized: onUnauthorized
                 ) { response in
                     viewModel.applyPosterSave(response)
@@ -302,7 +320,22 @@ struct MediaDetailView: View {
 
     private func canCustomizePoster(_ detail: MediaDetail?) -> Bool {
         guard let detail else { return false }
-        return detail.ref.source == "tmdb" && ["movie", "tv"].contains(detail.ref.mediaType)
+        return MediaArtworkCustomization.supportsPoster(
+            source: detail.ref.source,
+            mediaType: detail.ref.mediaType
+        )
+    }
+
+    private func canCustomizeBackdrop(_ detail: MediaDetail?) -> Bool {
+        guard let detail else { return false }
+        return MediaArtworkCustomization.supportsBackdrop(
+            source: detail.ref.source,
+            mediaType: detail.ref.mediaType
+        )
+    }
+
+    private func isBook(_ detail: MediaDetail) -> Bool {
+        detail.ref.mediaType == "book"
     }
 
     private func hero(_ detail: MediaDetail) -> some View {
@@ -946,6 +979,8 @@ private struct CircleIconButton: View {
 }
 
 private struct PosterMenuSheet: View {
+    let posterLabel: String
+    let showsBackdropOption: Bool
     let onCustomizePoster: () -> Void
     let onCustomizeBackdrop: () -> Void
 
@@ -957,7 +992,7 @@ private struct PosterMenuSheet: View {
                 .padding(.top, 8)
 
             Button(action: onCustomizePoster) {
-                Label("Customize Poster", systemImage: "photo.on.rectangle.angled")
+                Label(posterLabel, systemImage: "photo.on.rectangle.angled")
                     .font(.system(size: 17, weight: .semibold))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 18)
@@ -967,16 +1002,18 @@ private struct PosterMenuSheet: View {
             .buttonStyle(.plain)
             .padding(.horizontal, 16)
 
-            Button(action: onCustomizeBackdrop) {
-                Label("Customize Backdrop", systemImage: "photo.on.rectangle")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 18)
-                    .frame(height: 54)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            if showsBackdropOption {
+                Button(action: onCustomizeBackdrop) {
+                    Label("Customize Backdrop", systemImage: "photo.on.rectangle")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .frame(height: 54)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 16)
         }
         .presentationBackground(.regularMaterial)
     }

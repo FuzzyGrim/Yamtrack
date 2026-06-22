@@ -407,6 +407,55 @@ class Metadata(TestCase):
         self.assertIn("Classics", response["genres"])
         self.assertAlmostEqual(response["score"], 3.7, delta=0.1)
 
+    def test_hardcover_featured_series_uses_nested_series(self):
+        series = hardcover.get_featured_series(
+            {
+                "id": 1108,
+                "series": {
+                    "id": 981,
+                    "name": "A Song of Ice and Fire",
+                },
+                "position": 2.0,
+            }
+        )
+
+        self.assertEqual(series, {"id": 981, "name": "A Song of Ice and Fire"})
+
+    @patch("app.providers.hardcover.services.api_request")
+    def test_hardcover_series_books_dedupe_uses_nested_book_read_count(self, api_request_mock):
+        api_request_mock.return_value = {
+            "data": {
+                "series_by_pk": {
+                    "book_series": [
+                        {
+                            "position": 1,
+                            "book": {
+                                "id": 1,
+                                "title": "Low Read Edition",
+                                "users_read_count": 1,
+                                "cached_image": None,
+                            },
+                        },
+                        {
+                            "position": 1,
+                            "book": {
+                                "id": 2,
+                                "title": "Preferred Edition",
+                                "users_read_count": 10,
+                                "cached_image": "https://example.com/book.jpg",
+                            },
+                        },
+                    ],
+                },
+            },
+        }
+
+        series_books = hardcover.get_series_books(981)
+
+        self.assertEqual(len(series_books), 1)
+        self.assertEqual(series_books[0]["media_id"], 2)
+        self.assertEqual(series_books[0]["title"], "Preferred Edition")
+
     @requires_provider_network
     def test_hardcover_book_unknown(self):
         """Test the metadata method for books from Hardcover with minimal data."""

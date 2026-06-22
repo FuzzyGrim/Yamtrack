@@ -94,6 +94,8 @@ class ApiV1FoundationTests(TestCase):
                     "poster_height": 750,
                     "backdrop_path": "/fight-club-backdrop.jpg",
                     "release_date": "1999-10-15",
+                    "ratings_count": 1000,
+                    "total_rating_count": 1000,
                 },
             ],
         }
@@ -111,6 +113,8 @@ class ApiV1FoundationTests(TestCase):
             response.data["results"][0]["backdrop_url"],
             "https://image.tmdb.org/t/p/original/fight-club-backdrop.jpg",
         )
+        self.assertNotIn("ratings_count", response.data["results"][0])
+        self.assertNotIn("total_rating_count", response.data["results"][0])
 
     @patch("app.providers.mdblist.get_media_ratings")
     @patch("api.services.media.provider_services.get_media_metadata")

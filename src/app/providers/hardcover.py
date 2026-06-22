@@ -7,6 +7,7 @@ from django.core.cache import cache
 from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
+from app.providers.search_rank import rank_results
 
 logger = logging.getLogger(__name__)
 
@@ -97,10 +98,16 @@ def search(query, page):
                 "media_type": MediaTypes.BOOK.value,
                 "title": hit["document"]["title"],
                 "image": get_image_url(hit["document"]),
+                "ratings_count": hit["document"].get("ratings_count"),
+                "rating": hit["document"].get("rating"),
+                "edition_count": hit["document"].get("edition_count"),
+                "first_publish_year": hit["document"].get("first_publish_year"),
+                "author_name": hit["document"].get("author_name"),
             }
             for hit in hits
         ]
         total_results = response["data"]["search"]["results"]["found"]
+        results = rank_results(query, results, MediaTypes.BOOK.value)
 
         data = helpers.format_search_response(
             page,
@@ -116,7 +123,7 @@ def search(query, page):
 
 def book(media_id):
     """Get metadata for a book from Hardcover."""
-    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_v5"
+    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_v6"
     data = cache.get(cache_key)
 
     if data is None:
@@ -406,11 +413,15 @@ def get_featured_series(series_data):
     if not isinstance(series_data, dict) or not series_data.get("id"):
         return None
 
-    name = series_data.get("name") or series_data.get("title")
+    series = series_data.get("series") or series_data
+    if not isinstance(series, dict) or not series.get("id"):
+        return None
+
+    name = series.get("name") or series.get("title")
     if not name:
         return None
 
-    return {"id": series_data["id"], "name": name}
+    return {"id": series["id"], "name": name}
 
 
 def get_series_books(series_id):
@@ -420,11 +431,11 @@ def get_series_books(series_id):
       series_by_pk(id: $series_id) {
         book_series(order_by: {position: asc}) {
           position
-          users_read_count
           book {
             id
             title
             slug
+            users_read_count
             cached_image(path: "url")
           }
         }
@@ -454,7 +465,7 @@ def get_series_books(series_id):
         position = row.get("position")
         item = {
             "position": position,
-            "users_read_count": row.get("users_read_count") or 0,
+            "users_read_count": book_data.get("users_read_count") or 0,
             "index": index,
             "book": book_data,
         }

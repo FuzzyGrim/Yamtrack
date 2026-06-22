@@ -115,13 +115,22 @@ struct PosterLanguageOption: Identifiable, Hashable {
 struct PosterPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: PosterPickerViewModel
+    let title: String
+    let showsLanguageFilter: Bool
+    let contentMode: PosterContentMode
 
     init(
         ref: MediaRef,
         mediaRepository: MediaRepository,
+        title: String = "Customize Poster",
+        showsLanguageFilter: Bool = true,
+        contentMode: PosterContentMode = .fill,
         onUnauthorized: @escaping () -> Void,
         onSaved: @escaping (PosterSaveResponse) -> Void
     ) {
+        self.title = title
+        self.showsLanguageFilter = showsLanguageFilter
+        self.contentMode = contentMode
         _viewModel = State(initialValue: PosterPickerViewModel(
             ref: ref,
             mediaRepository: mediaRepository,
@@ -152,7 +161,7 @@ struct PosterPickerView: View {
                     }
                 }
             }
-            .navigationTitle("Customize Poster")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -184,14 +193,16 @@ struct PosterPickerView: View {
 
     private var posterGrid: some View {
         VStack(spacing: 14) {
-            Picker("Language", selection: $viewModel.selectedLanguage) {
-                ForEach(viewModel.languageOptions) { option in
-                    Text(option.title).tag(option.id)
+            if showsLanguageFilter {
+                Picker("Language", selection: $viewModel.selectedLanguage) {
+                    ForEach(viewModel.languageOptions) { option in
+                        Text(option.title).tag(option.id)
+                    }
                 }
+                .pickerStyle(.menu)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
             }
-            .pickerStyle(.menu)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
 
             if let error = viewModel.errorMessage {
                 Text(error)
@@ -206,7 +217,8 @@ struct PosterPickerView: View {
                     ForEach(viewModel.filteredPosters) { poster in
                         PosterOptionCell(
                             poster: poster,
-                            isSelected: viewModel.selectedPosterURL == poster.url
+                            isSelected: viewModel.selectedPosterURL == poster.url,
+                            contentMode: contentMode
                         ) {
                             viewModel.selectedPosterURL = poster.url
                         }
@@ -223,12 +235,18 @@ struct PosterPickerView: View {
 private struct PosterOptionCell: View {
     let poster: PosterOption
     let isSelected: Bool
+    let contentMode: PosterContentMode
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .topLeading) {
-                MediaArtwork(url: poster.thumbnailUrl ?? poster.url, title: "Poster option", slot: .pickerGrid)
+                MediaArtwork(
+                    url: poster.thumbnailUrl ?? poster.url,
+                    title: "Poster option",
+                    slot: .pickerGrid,
+                    contentMode: contentMode
+                )
                     .overlay {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(isSelected ? .white : .clear, lineWidth: 3)
@@ -257,4 +275,65 @@ private struct PosterOptionCell: View {
         .buttonStyle(.plain)
         .accessibilityLabel(poster.isSelected ? "Current poster" : "Poster option")
     }
+}
+
+#Preview("Book Cover Picker") {
+    PosterPickerView(
+        ref: MediaRef(
+            itemId: nil,
+            source: "openlibrary",
+            mediaType: "book",
+            mediaId: "OL7353617M",
+            seasonNumber: nil,
+            episodeNumber: nil
+        ),
+        mediaRepository: PreviewPosterRepository(),
+        title: "Customize Cover",
+        showsLanguageFilter: false,
+        contentMode: .fit,
+        onUnauthorized: {}
+    ) { _ in }
+}
+
+private struct PreviewPosterRepository: MediaRepository {
+    func meta() async throws -> MetaResponse { fatalError("Not used") }
+    func search(query: String, mediaType: String) async throws -> [MediaSummary] { fatalError("Not used") }
+    func detail(ref: MediaRef) async throws -> MediaDetail { fatalError("Not used") }
+    func reviews(ref: MediaRef) async throws -> [MediaReview] { fatalError("Not used") }
+
+    func posters(ref: MediaRef) async throws -> [PosterOption] {
+        [
+            PosterOption(
+                url: "https://covers.openlibrary.org/b/id/6979861-L.jpg",
+                thumbnailUrl: "https://covers.openlibrary.org/b/id/6979861-M.jpg",
+                width: 0,
+                height: 0,
+                aspectRatio: 0.667,
+                voteAverage: 0,
+                voteCount: 0,
+                language: nil,
+                isOriginal: true,
+                isSelected: true
+            ),
+            PosterOption(
+                url: "https://covers.openlibrary.org/b/id/10521270-L.jpg",
+                thumbnailUrl: "https://covers.openlibrary.org/b/id/10521270-M.jpg",
+                width: 0,
+                height: 0,
+                aspectRatio: 0.667,
+                voteAverage: 0,
+                voteCount: 0,
+                language: nil,
+                isOriginal: false,
+                isSelected: false
+            ),
+        ]
+    }
+
+    func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse {
+        PosterSaveResponse(posterUrl: posterURL, customPosterUrl: posterURL, posterAccentColor: nil)
+    }
+
+    func backdrops(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
+    func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse { fatalError("Not used") }
 }

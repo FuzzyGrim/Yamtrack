@@ -11,6 +11,7 @@ from django.utils.text import slugify
 from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
+from app.providers.search_rank import rank_results
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.themoviedb.org/3"
@@ -102,9 +103,13 @@ def search(media_type, query, page):
                 "media_type": media_type,
                 "title": get_title(media),
                 "image": get_image_url(media["poster_path"]),
+                "popularity": media.get("popularity"),
+                "vote_count": media.get("vote_count"),
+                "release_date": media.get("release_date") or media.get("first_air_date"),
             }
             for media in response["results"]
         ]
+        results = rank_results(query, results, media_type)
 
         total_results = response["total_results"]
         per_page = 20  # TMDB always returns 20 results per page

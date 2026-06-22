@@ -10,6 +10,7 @@ from django.core.cache import cache
 from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
+from app.providers.search_rank import rank_results
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ def search(query, page):
             }
             for media in response["results"]
         ]
+        results = rank_results(query, results, MediaTypes.MANGA.value)
 
         total_results = response["total_hits"]
         data = helpers.format_search_response(

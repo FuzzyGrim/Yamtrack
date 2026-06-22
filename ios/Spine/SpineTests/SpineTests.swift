@@ -254,11 +254,30 @@ final class SpineTests: XCTestCase {
           "custom_backdrop_url": "https://example.com/new-backdrop.jpg"
         }
         """.data(using: .utf8)!
+        let bookOptions = """
+        {
+          "posters": [
+            {
+              "url": "https://example.com/book-original.jpg",
+              "thumbnail_url": "https://example.com/book-original-thumb.jpg",
+              "width": 0,
+              "height": 0,
+              "aspect_ratio": 0.667,
+              "vote_average": 0,
+              "vote_count": 0,
+              "language": null,
+              "is_original": true,
+              "is_selected": true
+            }
+          ]
+        }
+        """.data(using: .utf8)!
 
         let decodedOptions = try JSONDecoder.api.decode(PosterOptionsResponse.self, from: options)
         let decodedSave = try JSONDecoder.api.decode(PosterSaveResponse.self, from: save)
         let decodedBackdropOptions = try JSONDecoder.api.decode(BackdropOptionsResponse.self, from: backdropOptions)
         let decodedBackdropSave = try JSONDecoder.api.decode(BackdropSaveResponse.self, from: backdropSave)
+        let decodedBookOptions = try JSONDecoder.api.decode(PosterOptionsResponse.self, from: bookOptions)
 
         XCTAssertEqual(decodedOptions.posters.first?.thumbnailUrl, "https://example.com/thumb.jpg")
         XCTAssertEqual(decodedOptions.posters.first?.language, "en")
@@ -266,6 +285,20 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(decodedSave.posterAccentColor, "#123456")
         XCTAssertEqual(decodedBackdropOptions.backdrops.first?.thumbnailUrl, "https://example.com/backdrop-thumb.jpg")
         XCTAssertEqual(decodedBackdropSave.customBackdropUrl, "https://example.com/new-backdrop.jpg")
+        XCTAssertNil(decodedBookOptions.posters.first?.language)
+        XCTAssertEqual(decodedBookOptions.posters.first?.voteAverage, 0)
+        XCTAssertEqual(decodedBookOptions.posters.first?.voteCount, 0)
+        XCTAssertEqual(decodedBookOptions.posters.first?.thumbnailUrl, "https://example.com/book-original-thumb.jpg")
+    }
+
+    func testMediaArtworkCustomizationEligibility() {
+        XCTAssertTrue(MediaArtworkCustomization.supportsPoster(source: "tmdb", mediaType: "movie"))
+        XCTAssertTrue(MediaArtworkCustomization.supportsPoster(source: "tmdb", mediaType: "tv"))
+        XCTAssertTrue(MediaArtworkCustomization.supportsPoster(source: "openlibrary", mediaType: "book"))
+        XCTAssertTrue(MediaArtworkCustomization.supportsPoster(source: "hardcover", mediaType: "book"))
+        XCTAssertFalse(MediaArtworkCustomization.supportsPoster(source: "mal", mediaType: "anime"))
+        XCTAssertFalse(MediaArtworkCustomization.supportsBackdrop(source: "openlibrary", mediaType: "book"))
+        XCTAssertTrue(MediaArtworkCustomization.supportsBackdrop(source: "tmdb", mediaType: "movie"))
     }
 
     func testTrackingDiaryAndProfileDecoding() throws {
@@ -603,6 +636,19 @@ final class SpineTests: XCTestCase {
             )
         }
         _ = try await repository.posters(ref: ref)
+
+        let bookRef = MediaRef(itemId: nil, source: "openlibrary", mediaType: "book", mediaId: "OL7353617M", seasonNumber: nil, episodeNumber: nil)
+        client.tokenProvider.accessToken = "access"
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/openlibrary/book/OL7353617M/posters/")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                #"{"posters":[]}"#.data(using: .utf8)!
+            )
+        }
+        _ = try await repository.posters(ref: bookRef)
 
         client.tokenProvider.accessToken = "access"
         RequestCaptureURLProtocol.handler = { request in
