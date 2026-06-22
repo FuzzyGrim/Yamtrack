@@ -90,6 +90,9 @@ class ApiV1FoundationTests(TestCase):
                     "media_id": "550",
                     "title": "Fight Club",
                     "image": "https://example.com/fight-club.jpg",
+                    "poster_width": 500,
+                    "poster_height": 750,
+                    "backdrop_path": "/fight-club-backdrop.jpg",
                     "release_date": "1999-10-15",
                 },
             ],
@@ -101,6 +104,13 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["results"][0]["ref"]["source"], "tmdb")
         self.assertEqual(response.data["results"][0]["ref"]["media_type"], "movie")
         self.assertEqual(response.data["results"][0]["title"], "Fight Club")
+        self.assertEqual(response.data["results"][0]["image_url"], response.data["results"][0]["poster_url"])
+        self.assertEqual(response.data["results"][0]["poster_orientation"], "portrait")
+        self.assertEqual(response.data["results"][0]["poster_aspect_ratio"], 0.667)
+        self.assertEqual(
+            response.data["results"][0]["backdrop_url"],
+            "https://image.tmdb.org/t/p/original/fight-club-backdrop.jpg",
+        )
 
     @patch("app.providers.mdblist.get_media_ratings")
     @patch("api.services.media.provider_services.get_media_metadata")
@@ -136,6 +146,8 @@ class ApiV1FoundationTests(TestCase):
                         "source": "tmdb",
                         "title": "Pulp Fiction",
                         "image": "https://example.com/pulp.jpg",
+                        "poster_width": 500,
+                        "poster_height": 750,
                     },
                 ],
                 "seasons": [
@@ -184,9 +196,35 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["crew"][0]["role"], "Director")
         self.assertEqual(response.data["related_sections"][0]["id"], "collection")
         self.assertEqual(response.data["related_sections"][1]["items"][0]["title"], "Pulp Fiction")
+        self.assertEqual(
+            response.data["related_sections"][1]["items"][0]["image_url"],
+            response.data["related_sections"][1]["items"][0]["poster_url"],
+        )
+        self.assertEqual(response.data["related_sections"][1]["items"][0]["poster_orientation"], "portrait")
         self.assertNotIn("seasons", [section["id"] for section in response.data["related_sections"]])
         self.assertEqual(response.data["user_state"]["diary_rating"], "10.0")
         self.assertEqual(response.data["user_state"]["diary_consumed_at"], consumed_at)
+
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_landscape_only_artwork_marks_poster_orientation(self, metadata_mock):
+        metadata_mock.return_value = {
+            "media_id": "blue-lock-extra",
+            "media_type": "anime",
+            "source": "mal",
+            "title": "Blue Lock Additional Time",
+            "image": "https://example.com/banner.jpg",
+            "poster_width": 1200,
+            "poster_height": 675,
+            "backdrop_url": "https://example.com/backdrop.jpg",
+        }
+
+        response = self.client.get("/api/v1/media/mal/anime/blue-lock-extra/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["image_url"], response.data["poster_url"])
+        self.assertEqual(response.data["poster_orientation"], "landscape")
+        self.assertEqual(response.data["poster_aspect_ratio"], 1.778)
+        self.assertEqual(response.data["backdrop_url"], "https://example.com/backdrop.jpg")
 
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")
@@ -270,6 +308,7 @@ class ApiV1FoundationTests(TestCase):
 
         self.assertEqual(detail.status_code, status.HTTP_200_OK)
         self.assertEqual(detail.data["episodes"][0]["runtime"], "1h 2m")
+        self.assertEqual(detail.data["episodes"][0]["image_role"], "still")
         self.assertEqual(episodes.data["episodes"], detail.data["episodes"])
 
     @patch("api.services.media.provider_services.get_media_metadata")
@@ -352,6 +391,7 @@ class ApiV1FoundationTests(TestCase):
             "source": "igdb",
             "title": "Space Game",
             "image": "https://example.com/space.jpg",
+            "artworks": [{"image_id": "wide-art"}],
             "score": "92.7",
             "score_count": 5000,
             "related": {
@@ -384,6 +424,10 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["external_ratings"][0]["value"], "92.7")
         self.assertEqual(response.data["external_ratings"][0]["max_value"], "100")
         self.assertEqual(response.data["external_ratings"][0]["vote_count"], 5000)
+        self.assertEqual(
+            response.data["backdrop_url"],
+            "https://images.igdb.com/igdb/image/upload/t_original/wide-art.jpg",
+        )
 
     def test_community_stats_include_truthful_rating_distribution(self):
         user = get_user_model().objects.create_user(username="rater", password="strong-password-123")
@@ -439,6 +483,26 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["review"], "Sharp and strange.")
+
+    def test_diary_media_embed_includes_artwork_fields(self):
+        user = get_user_model().objects.create_user(username="diary-art", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
+            media_id="OL1M",
+            title="A Book",
+            image="https://example.com/book.jpg",
+        )
+        DiaryEntry.objects.create(user=user, item=item, consumed_at=timezone.now(), visibility="public")
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/diary/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        media = response.data["results"][0]["media"]
+        self.assertEqual(media["image_url"], media["poster_url"])
+        self.assertIsNone(media["backdrop_url"])
+        self.assertEqual(media["poster_orientation"], "unknown")
 
     @patch("app.providers.tmdb.get_poster_images")
     def test_media_posters_endpoint_requires_auth_and_returns_original_first(self, posters_mock):

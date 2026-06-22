@@ -39,6 +39,104 @@ def image_url(request, value):
     return absolute_url(request, getattr(value, "url", value))
 
 
+def artwork_from_payload(payload, media_type=None, request=None):
+    """Return normalized poster/backdrop fields for media-card API payloads."""
+    poster_value = _first_image_value(
+        payload,
+        (
+            "poster_url",
+            "poster",
+            "poster_path",
+            "main_picture",
+            "cover",
+            "image",
+            "image_url",
+            "medium_url",
+        ),
+    )
+    poster = image_url(request, _provider_image_value(poster_value))
+    width = _first_number(payload, ("poster_width", "image_width", "width"))
+    height = _first_number(payload, ("poster_height", "image_height", "height"))
+    aspect_ratio = _aspect_ratio(payload, width, height)
+    orientation = _orientation(width, height)
+
+    backdrop = _backdrop_url(payload, request=request)
+    return {
+        "image_url": poster,
+        "poster_url": poster,
+        "backdrop_url": backdrop,
+        "poster_aspect_ratio": aspect_ratio,
+        "poster_width": width,
+        "poster_height": height,
+        "poster_orientation": orientation,
+    }
+
+
+def artwork_from_item(item, request=None):
+    """Return normalized artwork fields from stored Item data."""
+    return artwork_from_payload({"image": item.image}, item.media_type, request=request)
+
+
+def _first_image_value(payload, keys):
+    for key in keys:
+        value = payload.get(key)
+        if value:
+            return value
+    return None
+
+
+def _provider_image_value(value):
+    if isinstance(value, dict):
+        if value.get("image_id"):
+            return f"https://images.igdb.com/igdb/image/upload/t_original/{value['image_id']}.jpg"
+        return value.get("large") or value.get("medium") or value.get("small") or value.get("url") or value.get("medium_url")
+    if isinstance(value, str) and value.startswith("/"):
+        return f"https://image.tmdb.org/t/p/original{value}"
+    return value
+
+
+def _backdrop_url(payload, request=None):
+    value = payload.get("backdrop") or payload.get("backdrop_url") or payload.get("backdrop_path")
+    if not value:
+        for artwork in payload.get("artworks") or []:
+            if isinstance(artwork, dict) and artwork.get("image_id"):
+                return f"https://images.igdb.com/igdb/image/upload/t_original/{artwork['image_id']}.jpg"
+    value = _provider_image_value(value)
+    return absolute_url(request, value) if value else None
+
+
+def _first_number(payload, keys):
+    for key in keys:
+        value = payload.get(key)
+        if value in (None, ""):
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _aspect_ratio(payload, width, height):
+    if width and height:
+        return round(width / height, 3)
+    value = payload.get("poster_aspect_ratio") or payload.get("aspect_ratio")
+    if value in (None, ""):
+        return None
+    try:
+        return round(float(value), 3)
+    except (TypeError, ValueError):
+        return None
+
+
+def _orientation(width, height):
+    if not width or not height:
+        return "unknown"
+    if width == height:
+        return "square"
+    return "portrait" if height > width else "landscape"
+
+
 def media_ref_from_item(item):
     """Serialize an Item as a stable media ref."""
     if item is None:
@@ -95,7 +193,7 @@ def media_summary_from_item(item, request=None, user=None):
         "title": item.title,
         "subtitle": None,
         "overview": None,
-        "image_url": image_url(request, item.image),
+        **artwork_from_item(item, request=request),
         "poster_accent_color": item.poster_accent_color or None,
         "release_date": None,
         "default_source": item.source,
@@ -140,7 +238,7 @@ def media_summary_from_provider(payload, media_type, source, request=None, user=
         "title": payload.get("title") or payload.get("name") or "",
         "subtitle": payload.get("year") or payload.get("subtitle"),
         "overview": synopsis_from_payload(payload),
-        "image_url": image_url(request, payload.get("image")),
+        **artwork_from_payload(payload, media_type, request=request),
         "poster_accent_color": getattr(item, "poster_accent_color", None) or None,
         "release_date": (
             payload.get("release_date")
@@ -244,6 +342,7 @@ def episodes_from_metadata(metadata, request=None):
             "image_url": image_url(request, episode.get("image") or episode.get("still_path"))
             if (episode.get("image") or episode.get("still_path"))
             else None,
+            "image_role": "still",
             "rating": str(episode.get("vote_average")) if episode.get("vote_average") is not None else episode.get("rating"),
         }
         for episode in episodes

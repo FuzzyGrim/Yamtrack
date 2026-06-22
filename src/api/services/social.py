@@ -3,7 +3,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 
 from api.permissions import can_view_user_profile
-from api.serializers.common import image_url, media_ref_from_item, user_summary
+from api.serializers.common import media_summary_from_item, user_summary
 from app.models import DiaryEntry
 from lists.models import CustomList
 from social.models import (
@@ -119,11 +119,7 @@ def activity_payload(activity, request=None, viewer=None):
         "type": activity.verb,
         "created_at": activity.created_at,
         "actor": user_summary(activity.actor, request=request),
-        "media": {
-            "title": activity.item.title if activity.item else None,
-            "ref": media_ref_from_item(activity.item) if activity.item else None,
-            "image_url": image_url(request, activity.item.image) if activity.item else None,
-        },
+        "media": media_summary_from_item(activity.item, request=request) if activity.item else None,
         "object": {
             "type": activity.target_type,
             "id": activity.target_id,

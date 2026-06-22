@@ -2,8 +2,7 @@ from django.utils import timezone
 
 from api.serializers.common import (
     get_or_create_item_from_metadata,
-    image_url,
-    media_ref_from_item,
+    media_summary_from_item,
     user_summary,
 )
 from app.models import Tag
@@ -30,11 +29,7 @@ def diary_payload(entry, request=None, viewer=None):
     return {
         "id": entry.id,
         "user": user_summary(entry.user, request=request),
-        "media": {
-            "ref": media_ref_from_item(entry.item),
-            "title": entry.item.title,
-            "image_url": image_url(request, entry.item.image),
-        },
+        "media": media_summary_from_item(entry.item, request=request),
         "consumed_at": entry.consumed_at,
         "rating": str(entry.rating) if entry.rating is not None else None,
         "review_title": entry.review_title,

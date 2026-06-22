@@ -289,6 +289,10 @@ def absolute_poster_url(request, url):
 def backdrop_url(metadata):
     """Return an absolute backdrop URL when available."""
     value = metadata.get("backdrop") or metadata.get("backdrop_url") or metadata.get("backdrop_path")
+    if not value:
+        for artwork in metadata.get("artworks") or []:
+            if isinstance(artwork, dict) and artwork.get("image_id"):
+                return f"https://images.igdb.com/igdb/image/upload/t_original/{artwork['image_id']}.jpg"
     if isinstance(value, str) and value.startswith("/"):
         return f"https://image.tmdb.org/t/p/original{value}"
     return value
