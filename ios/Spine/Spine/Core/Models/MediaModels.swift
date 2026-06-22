@@ -60,6 +60,34 @@ struct MediaDetail: Decodable, Identifiable {
 
     var id: String { ref.id }
 
+    func replacingPoster(with response: PosterSaveResponse) -> MediaDetail {
+        MediaDetail(
+            ref: ref,
+            title: title,
+            subtitle: subtitle,
+            overview: overview,
+            synopsis: synopsis,
+            imageUrl: imageUrl,
+            posterAccentColor: response.posterAccentColor ?? posterAccentColor,
+            releaseDate: releaseDate,
+            defaultSource: defaultSource,
+            userState: userState,
+            backdropUrl: backdropUrl,
+            details: details,
+            related: related,
+            providers: providers,
+            community: community,
+            externalRatings: externalRatings,
+            reviews: reviews,
+            cast: cast,
+            crew: crew,
+            relatedSections: relatedSections,
+            episodes: episodes,
+            seasons: seasons,
+            customPosterUrl: response.customPosterUrl ?? response.posterUrl
+        )
+    }
+
     var displaySynopsis: String? {
         let placeholder = "No synopsis available."
         let candidates = [
@@ -77,6 +105,35 @@ struct MediaDetail: Decodable, Identifiable {
         }
         return nil
     }
+}
+
+struct PosterOptionsResponse: Codable, Equatable {
+    let posters: [PosterOption]
+}
+
+struct PosterOption: Codable, Identifiable, Equatable {
+    let url: String
+    let thumbnailUrl: String?
+    let width: Int
+    let height: Int
+    let aspectRatio: Double?
+    let voteAverage: Double
+    let voteCount: Int
+    let language: String?
+    let isOriginal: Bool
+    let isSelected: Bool
+
+    var id: String { url }
+}
+
+struct PosterSaveRequest: Codable, Equatable {
+    let posterUrl: String
+}
+
+struct PosterSaveResponse: Codable, Equatable {
+    let posterUrl: String
+    let customPosterUrl: String?
+    let posterAccentColor: String?
 }
 
 struct UserMediaState: Codable, Hashable {

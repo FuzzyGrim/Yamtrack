@@ -13,17 +13,24 @@ protocol MediaRepository {
     func search(query: String, mediaType: String) async throws -> [MediaSummary]
     func detail(ref: MediaRef) async throws -> MediaDetail
     func reviews(ref: MediaRef) async throws -> [MediaReview]
+    func posters(ref: MediaRef) async throws -> [PosterOption]
+    func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse
 }
 
 protocol TrackingRepository {
     func list(mediaType: String) async throws -> [LibraryItem]
     func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState
+    func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState
+    func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState
+    func updateBookProgress(source: String, mediaId: String, progressType: String, value: Decimal, notes: String) async throws -> TrackingState
+    func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState
 }
 
 protocol DiaryRepository {
     func list() async throws -> [DiaryEntry]
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState
+    func tags(query: String) async throws -> [DiaryTagSuggestion]
 }
 
 protocol ProfileRepository {
@@ -38,31 +45,16 @@ struct AppRepositories {
     let profile: ProfileRepository
 
     static func current() -> AppRepositories {
-        switch AppEnvironment.current {
-        case .live:
-            live()
-        case .mock:
-            mock()
-        }
+        live()
     }
 
-    static func live(client: APIClient = AppEnvironment.current.apiClient) -> AppRepositories {
+    static func live(client: APIClient = AppEnvironment.apiClient) -> AppRepositories {
         AppRepositories(
             auth: APIAuthRepository(service: AuthService(client: client), tokenStore: client.tokenProvider),
             media: APIMediaRepository(client: client),
             tracking: APITrackingRepository(client: client),
             diary: APIDiaryRepository(client: client),
             profile: APIProfileRepository(client: client)
-        )
-    }
-
-    static func mock() -> AppRepositories {
-        AppRepositories(
-            auth: MockAuthRepository(),
-            media: MockMediaRepository(),
-            tracking: MockTrackingRepository(),
-            diary: MockDiaryRepository(),
-            profile: MockProfileRepository()
         )
     }
 }
@@ -147,6 +139,22 @@ struct APIMediaRepository: MediaRepository {
             return []
         }
     }
+
+    func posters(ref: MediaRef) async throws -> [PosterOption] {
+        let response: PosterOptionsResponse = try await client.get(
+            "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/posters/",
+            authenticated: true
+        )
+        return response.posters
+    }
+
+    func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse {
+        try await client.put(
+            "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/poster/",
+            body: PosterSaveRequest(posterUrl: posterURL),
+            authenticated: true
+        )
+    }
 }
 
 struct APITrackingRepository: TrackingRepository {
@@ -165,6 +173,38 @@ struct APITrackingRepository: TrackingRepository {
         try await client.patch(
             "/tracking/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/",
             body: request,
+            authenticated: true
+        )
+    }
+
+    func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState {
+        try await client.post(
+            "/tracking/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/actions/consume/",
+            body: TrackingConsumeRequest(consumedAt: consumedAt),
+            authenticated: true
+        )
+    }
+
+    func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState {
+        try await client.post(
+            "/tracking/\(source)/tv/\(mediaId)/seasons/\(seasonNumber)/watch/",
+            body: EmptyResponse(),
+            authenticated: true
+        )
+    }
+
+    func updateBookProgress(source: String, mediaId: String, progressType: String, value: Decimal, notes: String) async throws -> TrackingState {
+        try await client.post(
+            "/tracking/\(source)/book/\(mediaId)/progress/",
+            body: BookProgressRequest(progressType: progressType, value: value, notes: notes),
+            authenticated: true
+        )
+    }
+
+    func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState {
+        try await client.post(
+            "/tracking/\(source)/book/\(mediaId)/complete/",
+            body: BookCompleteRequest(completedAt: completedAt),
             authenticated: true
         )
     }
@@ -191,6 +231,15 @@ struct APIDiaryRepository: DiaryRepository {
             )
         }
         return try await client.delete("/diary/\(entryId)/like/", authenticated: true)
+    }
+
+    func tags(query: String) async throws -> [DiaryTagSuggestion] {
+        let response: DiaryTagSuggestionsResponse = try await client.get(
+            "/diary/tags/",
+            query: query.isEmpty ? [] : [URLQueryItem(name: "q", value: query)],
+            authenticated: true
+        )
+        return response.results
     }
 }
 

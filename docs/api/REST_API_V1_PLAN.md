@@ -81,6 +81,8 @@ Important files:
 | GET | `/api/v1/media/{source}/{media_type}/{media_id}/` | Optional |
 | GET | `/api/v1/media/{source}/{media_type}/{media_id}/community/` | No |
 | GET | `/api/v1/media/{source}/{media_type}/{media_id}/reviews/` | Optional |
+| GET | `/api/v1/media/{source}/{media_type}/{media_id}/posters/` | Yes |
+| PUT | `/api/v1/media/{source}/{media_type}/{media_id}/poster/` | Yes |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/` | Optional |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/{season_number}/` | Optional |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/{season_number}/episodes/` | Optional |
@@ -172,6 +174,41 @@ Response shape is a paged list of review cards:
 ```
 
 Likes use the existing diary like endpoints: `POST /api/v1/diary/{id}/like/` and `DELETE /api/v1/diary/{id}/like/`, returning `{ "liked": true, "like_count": 43 }`.
+
+## Media Poster Customization
+
+Poster customization is available for authenticated users on TMDB movies and TV shows only.
+
+`GET /api/v1/media/{source}/{media_type}/{media_id}/posters/` returns the current item poster first, followed by TMDB poster images sorted by `vote_average` and then `vote_count`, both descending:
+
+```json
+{
+  "posters": [
+    {
+      "url": "https://image.tmdb.org/t/p/original/poster.jpg",
+      "thumbnail_url": "https://image.tmdb.org/t/p/w342/poster.jpg",
+      "width": 2000,
+      "height": 3000,
+      "aspect_ratio": 0.667,
+      "vote_average": 8.0,
+      "vote_count": 12,
+      "language": "en",
+      "is_original": false,
+      "is_selected": true
+    }
+  ]
+}
+```
+
+`PUT /api/v1/media/{source}/{media_type}/{media_id}/poster/` accepts `{ "poster_url": "https://..." }`, saves the viewer's poster preference, updates the stored item poster/accent, and returns:
+
+```json
+{
+  "poster_url": "https://image.tmdb.org/t/p/original/poster.jpg",
+  "custom_poster_url": "https://image.tmdb.org/t/p/original/poster.jpg",
+  "poster_accent_color": "#123456"
+}
+```
 
 ## Media Detail
 

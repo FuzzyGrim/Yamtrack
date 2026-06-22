@@ -58,6 +58,42 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(response.results.first?.title, "Fight Club")
     }
 
+    func testPosterOptionsAndSaveResponseDecoding() throws {
+        let options = """
+        {
+          "posters": [
+            {
+              "url": "https://example.com/original.jpg",
+              "thumbnail_url": "https://example.com/thumb.jpg",
+              "width": 1000,
+              "height": 1500,
+              "aspect_ratio": 0.667,
+              "vote_average": 8.1,
+              "vote_count": 42,
+              "language": "en",
+              "is_original": true,
+              "is_selected": true
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+        let save = """
+        {
+          "poster_url": "https://example.com/new.jpg",
+          "custom_poster_url": "https://example.com/new.jpg",
+          "poster_accent_color": "#123456"
+        }
+        """.data(using: .utf8)!
+
+        let decodedOptions = try JSONDecoder.api.decode(PosterOptionsResponse.self, from: options)
+        let decodedSave = try JSONDecoder.api.decode(PosterSaveResponse.self, from: save)
+
+        XCTAssertEqual(decodedOptions.posters.first?.thumbnailUrl, "https://example.com/thumb.jpg")
+        XCTAssertEqual(decodedOptions.posters.first?.language, "en")
+        XCTAssertEqual(decodedSave.customPosterUrl, "https://example.com/new.jpg")
+        XCTAssertEqual(decodedSave.posterAccentColor, "#123456")
+    }
+
     func testTrackingDiaryAndProfileDecoding() throws {
         let tracking = """
         {
@@ -129,26 +165,41 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder.api.decode(UserProfile.self, from: profile).counts.diaryEntries, 1)
     }
 
+    func testDiaryTagSuggestionDecoding() throws {
+        let data = """
+        {
+          "results": [
+            { "name": "netflix", "usage_count": 12 }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder.api.decode(DiaryTagSuggestionsResponse.self, from: data)
+
+        XCTAssertEqual(response.results.first?.name, "netflix")
+        XCTAssertEqual(response.results.first?.usageCount, 12)
+    }
+
     func testRichMediaDetailAndReviewDecoding() throws {
         let detail = try JSONDecoder.api.decode(
             MediaDetail.self,
-            from: MockMediaFixtures.richMediaDetailJSON.data(using: .utf8)!
+            from: TestFixtures.richMediaDetailJSON.data(using: .utf8)!
         )
         let tv = try JSONDecoder.api.decode(
             MediaDetail.self,
-            from: MockMediaFixtures.tvDetailJSON.data(using: .utf8)!
+            from: TestFixtures.tvDetailJSON.data(using: .utf8)!
         )
         let season = try JSONDecoder.api.decode(
             MediaDetail.self,
-            from: MockMediaFixtures.seasonDetailJSON.data(using: .utf8)!
+            from: TestFixtures.seasonDetailJSON.data(using: .utf8)!
         )
         let anime = try JSONDecoder.api.decode(
             MediaDetail.self,
-            from: MockMediaFixtures.animeDetailJSON.data(using: .utf8)!
+            from: TestFixtures.animeDetailJSON.data(using: .utf8)!
         )
         let reviews = try JSONDecoder.api.decode(
             PagedResponse<MediaReview>.self,
-            from: MockMediaFixtures.reviewsJSON.data(using: .utf8)!
+            from: TestFixtures.reviewsJSON.data(using: .utf8)!
         )
 
         XCTAssertEqual(detail.title, "Liquid Form")
@@ -321,6 +372,47 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(user.username, "mobile")
     }
 
+    func testMediaRepositoryBuildsPosterRequests() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        let repository = APIMediaRepository(client: client)
+        let ref = MediaRef(itemId: nil, source: "tmdb", mediaType: "movie", mediaId: "550", seasonNumber: nil, episodeNumber: nil)
+
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/movie/550/posters/")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                #"{"posters":[]}"#.data(using: .utf8)!
+            )
+        }
+        _ = try await repository.posters(ref: ref)
+
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/movie/550/poster/")
+            XCTAssertEqual(request.httpMethod, "PUT")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                """
+                {"poster_url":"https://example.com/new.jpg","custom_poster_url":"https://example.com/new.jpg","poster_accent_color":"#123456"}
+                """.data(using: .utf8)!
+            )
+        }
+        let response = try await repository.savePoster(ref: ref, posterURL: "https://example.com/new.jpg")
+
+        XCTAssertEqual(response.posterUrl, "https://example.com/new.jpg")
+        client.tokenProvider.clear()
+    }
+
     @MainActor
     func testAuthGateSignsOutWithoutTokens() async {
         let auth = FakeAuthRepository(hasStoredTokens: false)
@@ -365,7 +457,7 @@ final class SpineTests: XCTestCase {
     @MainActor
     func testMediaDetailViewModelLoadsReviewsAndTogglesLike() async {
         let viewModel = MediaDetailViewModel(
-            ref: MockMediaFixtures.movieDetail.ref,
+            ref: TestFixtures.movieDetail.ref,
             mediaRepository: MediaDetailFixtureRepository(),
             trackingRepository: FakeTrackingRepository(),
             diaryRepository: LikeFixtureDiaryRepository(),
@@ -386,6 +478,169 @@ final class SpineTests: XCTestCase {
 
         XCTAssertEqual(viewModel.reviews.first?.viewerHasLiked, true)
         XCTAssertEqual(viewModel.reviews.first?.likeCount, 99)
+    }
+
+    @MainActor
+    func testPosterPickerViewModelFiltersAndSaves() async {
+        var savedResponse: PosterSaveResponse?
+        let viewModel = PosterPickerViewModel(
+            ref: TestFixtures.movieDetail.ref,
+            mediaRepository: PosterFixtureRepository(),
+            onUnauthorized: {},
+            onSaved: { savedResponse = $0 }
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.selectedLanguage, "en")
+        XCTAssertEqual(viewModel.filteredPosters.map(\.url), ["https://example.com/en.jpg"])
+        XCTAssertEqual(viewModel.selectedPosterURL, "https://example.com/en.jpg")
+
+        viewModel.selectedLanguage = "none"
+        XCTAssertEqual(viewModel.filteredPosters.map(\.url), ["https://example.com/en.jpg", "https://example.com/no-language.jpg"])
+
+        viewModel.selectedPosterURL = "https://example.com/no-language.jpg"
+        await viewModel.save()
+
+        XCTAssertEqual(savedResponse?.customPosterUrl, "https://example.com/no-language.jpg")
+    }
+
+    @MainActor
+    func testMediaLogRatingMapping() {
+        XCTAssertNil(MediaLogViewModel.ratingDecimal(for: 0))
+        XCTAssertEqual(MediaLogViewModel.ratingDecimal(for: 1), Decimal(1))
+        XCTAssertEqual(MediaLogViewModel.ratingDecimal(for: 10), Decimal(10))
+
+        let viewModel = MediaLogViewModel(
+            detail: TestFixtures.movieDetail,
+            trackingRepository: RecordingTrackingRepository(),
+            diaryRepository: RecordingDiaryRepository(),
+            onUnauthorized: {},
+            onSaved: {}
+        )
+        viewModel.setRating(star: 4, half: true)
+
+        XCTAssertEqual(viewModel.ratingSteps, 7)
+        XCTAssertEqual(viewModel.ratingLabel(), "3.5/5")
+    }
+
+    @MainActor
+    func testMediaLogCreatesFinishedDiaryLog() async {
+        let diary = RecordingDiaryRepository()
+        let tracking = RecordingTrackingRepository()
+        var savedCount = 0
+        let viewModel = MediaLogViewModel(
+            detail: TestFixtures.movieDetail,
+            trackingRepository: tracking,
+            diaryRepository: diary,
+            onUnauthorized: {},
+            onSaved: { savedCount += 1 }
+        )
+        viewModel.ratingSteps = 9
+        viewModel.reviewTitle = "Sharp"
+        viewModel.review = "Still cuts."
+        viewModel.tags = ["noir"]
+        viewModel.liked = true
+        viewModel.isRepeat = true
+        viewModel.containsSpoilers = true
+        viewModel.visibility = "followers"
+
+        let didSave = await viewModel.save()
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(savedCount, 1)
+        XCTAssertEqual(diary.createdRequests.count, 1)
+        XCTAssertEqual(diary.createdRequests.first?.ref.mediaType, "movie")
+        XCTAssertEqual(diary.createdRequests.first?.rating, Decimal(9))
+        XCTAssertEqual(diary.createdRequests.first?.autoMarkConsumed, true)
+        XCTAssertEqual(diary.createdRequests.first?.visibility, "followers")
+        XCTAssertEqual(tracking.updateRequests.count, 0)
+    }
+
+    @MainActor
+    func testMediaLogProgressDoesNotCreateDiary() async {
+        let diary = RecordingDiaryRepository()
+        let tracking = RecordingTrackingRepository()
+        let viewModel = MediaLogViewModel(
+            detail: TestFixtures.logDetail(mediaType: "manga"),
+            trackingRepository: tracking,
+            diaryRepository: diary,
+            onUnauthorized: {},
+            onSaved: {}
+        )
+        viewModel.mode = .progress
+        viewModel.progressText = "12"
+        viewModel.review = "Chapter notes"
+
+        let didSave = await viewModel.save()
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(diary.createdRequests.count, 0)
+        XCTAssertEqual(tracking.updateRequests.first?.request.progress, 12)
+        XCTAssertEqual(tracking.updateRequests.first?.request.notes, "Chapter notes")
+    }
+
+    @MainActor
+    func testMediaLogBookProgressUsesBookEndpoint() async {
+        let diary = RecordingDiaryRepository()
+        let tracking = RecordingTrackingRepository()
+        let viewModel = MediaLogViewModel(
+            detail: TestFixtures.logDetail(mediaType: "book"),
+            trackingRepository: tracking,
+            diaryRepository: diary,
+            onUnauthorized: {},
+            onSaved: {}
+        )
+        viewModel.mode = .progress
+        viewModel.progressType = "percentage"
+        viewModel.progressText = "42"
+        viewModel.review = "Reading session"
+
+        let didSave = await viewModel.save()
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(diary.createdRequests.count, 0)
+        XCTAssertEqual(tracking.bookProgressRequests.first?.progressType, "percentage")
+        XCTAssertEqual(tracking.bookProgressRequests.first?.value, Decimal(42))
+        XCTAssertEqual(tracking.bookProgressRequests.first?.notes, "Reading session")
+    }
+
+    @MainActor
+    func testMediaLogSeasonMarkOnlyUsesSeasonWatch() async {
+        let tracking = RecordingTrackingRepository()
+        let viewModel = MediaLogViewModel(
+            detail: TestFixtures.tvDetail,
+            trackingRepository: tracking,
+            diaryRepository: RecordingDiaryRepository(),
+            onUnauthorized: {},
+            onSaved: {}
+        )
+        viewModel.selectedSeasonNumber = 1
+
+        let didSave = await viewModel.markOnly()
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(tracking.watchedSeasons.first?.source, "tmdb")
+        XCTAssertEqual(tracking.watchedSeasons.first?.mediaId, "1399")
+        XCTAssertEqual(tracking.watchedSeasons.first?.seasonNumber, 1)
+    }
+
+    @MainActor
+    func testMediaLogUnauthorizedCallsHandler() async {
+        let diary = RecordingDiaryRepository(error: APIError.unauthorized)
+        var unauthorizedCount = 0
+        let viewModel = MediaLogViewModel(
+            detail: TestFixtures.movieDetail,
+            trackingRepository: RecordingTrackingRepository(),
+            diaryRepository: diary,
+            onUnauthorized: { unauthorizedCount += 1 },
+            onSaved: {}
+        )
+
+        let didSave = await viewModel.save()
+
+        XCTAssertFalse(didSave)
+        XCTAssertEqual(unauthorizedCount, 1)
     }
 }
 
@@ -465,17 +720,24 @@ private struct FakeMediaRepository: MediaRepository {
     func search(query: String, mediaType: String) async throws -> [MediaSummary] { fatalError("Not used") }
     func detail(ref: MediaRef) async throws -> MediaDetail { fatalError("Not used") }
     func reviews(ref: MediaRef) async throws -> [MediaReview] { fatalError("Not used") }
+    func posters(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
+    func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse { fatalError("Not used") }
 }
 
 private struct FakeTrackingRepository: TrackingRepository {
     func list(mediaType: String) async throws -> [Spine.LibraryItem] { fatalError("Not used") }
     func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState { fatalError("Not used") }
+    func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState { fatalError("Not used") }
+    func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState { fatalError("Not used") }
+    func updateBookProgress(source: String, mediaId: String, progressType: String, value: Decimal, notes: String) async throws -> TrackingState { fatalError("Not used") }
+    func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState { fatalError("Not used") }
 }
 
 private struct FakeDiaryRepository: DiaryRepository {
     func list() async throws -> [DiaryEntry] { fatalError("Not used") }
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
+    func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
 }
 
 private struct FakeProfileRepository: ProfileRepository {
@@ -485,15 +747,473 @@ private struct FakeProfileRepository: ProfileRepository {
 private struct MediaDetailFixtureRepository: MediaRepository {
     func meta() async throws -> MetaResponse { fatalError("Not used") }
     func search(query: String, mediaType: String) async throws -> [MediaSummary] { fatalError("Not used") }
-    func detail(ref: MediaRef) async throws -> MediaDetail { MockMediaFixtures.movieDetail }
+    func detail(ref: MediaRef) async throws -> MediaDetail { TestFixtures.movieDetail }
 
     func reviews(ref: MediaRef) async throws -> [MediaReview] {
-        try JSONDecoder.api.decode(PagedResponse<MediaReview>.self, from: MockMediaFixtures.reviewsJSON.data(using: .utf8)!).results
+        try JSONDecoder.api.decode(PagedResponse<MediaReview>.self, from: TestFixtures.reviewsJSON.data(using: .utf8)!).results
     }
+
+    func posters(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
+    func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse { fatalError("Not used") }
 }
 
 private struct LikeFixtureDiaryRepository: DiaryRepository {
     func list() async throws -> [DiaryEntry] { fatalError("Not used") }
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState { LikeState(liked: liked, likeCount: 99) }
+    func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
+}
+
+private final class RecordingDiaryRepository: DiaryRepository {
+    var createdRequests: [DiaryEntryWriteRequest] = []
+    let error: Error?
+
+    init(error: Error? = nil) {
+        self.error = error
+    }
+
+    func list() async throws -> [DiaryEntry] { fatalError("Not used") }
+
+    func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry {
+        if let error {
+            throw error
+        }
+        createdRequests.append(request)
+        return TestFixtures.diaryEntry
+    }
+
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
+
+    func tags(query: String) async throws -> [DiaryTagSuggestion] {
+        [DiaryTagSuggestion(name: "netflix", usageCount: 12)]
+    }
+}
+
+private final class RecordingTrackingRepository: TrackingRepository {
+    var updateRequests: [(ref: MediaRef, request: TrackingWriteRequest)] = []
+    var consumedRefs: [(ref: MediaRef, consumedAt: Date?)] = []
+    var watchedSeasons: [(source: String, mediaId: String, seasonNumber: Int)] = []
+    var bookProgressRequests: [(source: String, mediaId: String, progressType: String, value: Decimal, notes: String)] = []
+    var completedBooks: [(source: String, mediaId: String, completedAt: Date?)] = []
+
+    func list(mediaType: String) async throws -> [Spine.LibraryItem] { fatalError("Not used") }
+
+    func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState {
+        updateRequests.append((ref, request))
+        return TestFixtures.trackingState
+    }
+
+    func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState {
+        consumedRefs.append((ref, consumedAt))
+        return TestFixtures.trackingState
+    }
+
+    func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState {
+        watchedSeasons.append((source, mediaId, seasonNumber))
+        return TestFixtures.trackingState
+    }
+
+    func updateBookProgress(source: String, mediaId: String, progressType: String, value: Decimal, notes: String) async throws -> TrackingState {
+        bookProgressRequests.append((source, mediaId, progressType, value, notes))
+        return TestFixtures.trackingState
+    }
+
+    func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState {
+        completedBooks.append((source, mediaId, completedAt))
+        return TestFixtures.trackingState
+    }
+}
+
+private struct PosterFixtureRepository: MediaRepository {
+    func meta() async throws -> MetaResponse { fatalError("Not used") }
+    func search(query: String, mediaType: String) async throws -> [MediaSummary] { fatalError("Not used") }
+    func detail(ref: MediaRef) async throws -> MediaDetail { fatalError("Not used") }
+    func reviews(ref: MediaRef) async throws -> [MediaReview] { fatalError("Not used") }
+
+    func posters(ref: MediaRef) async throws -> [PosterOption] {
+        [
+            PosterOption(
+                url: "https://example.com/en.jpg",
+                thumbnailUrl: nil,
+                width: 1000,
+                height: 1500,
+                aspectRatio: 0.667,
+                voteAverage: 8,
+                voteCount: 10,
+                language: "en",
+                isOriginal: false,
+                isSelected: true
+            ),
+            PosterOption(
+                url: "https://example.com/fr.jpg",
+                thumbnailUrl: nil,
+                width: 1000,
+                height: 1500,
+                aspectRatio: 0.667,
+                voteAverage: 7,
+                voteCount: 5,
+                language: "fr",
+                isOriginal: false,
+                isSelected: false
+            ),
+            PosterOption(
+                url: "https://example.com/no-language.jpg",
+                thumbnailUrl: nil,
+                width: 1000,
+                height: 1500,
+                aspectRatio: 0.667,
+                voteAverage: 6,
+                voteCount: 4,
+                language: nil,
+                isOriginal: true,
+                isSelected: false
+            ),
+        ]
+    }
+
+    func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse {
+        PosterSaveResponse(posterUrl: posterURL, customPosterUrl: posterURL, posterAccentColor: "#123456")
+    }
+}
+
+private enum TestFixtures {
+    static let movieDetail: MediaDetail = try! JSONDecoder.api.decode(
+        MediaDetail.self,
+        from: richMediaDetailJSON.data(using: .utf8)!
+    )
+
+    static let tvDetail: MediaDetail = try! JSONDecoder.api.decode(
+        MediaDetail.self,
+        from: tvDetailJSON.data(using: .utf8)!
+    )
+
+    static let trackingState = TrackingState(
+        trackingId: 1,
+        status: "In progress",
+        rating: nil,
+        progress: nil,
+        repeats: nil,
+        startDate: nil,
+        endDate: nil,
+        notes: nil,
+        updatedAt: nil
+    )
+
+    static let diaryEntry: DiaryEntry = try! JSONDecoder.api.decode(
+        DiaryEntry.self,
+        from: """
+        {
+          "id": 1,
+          "user": { "id": 1, "username": "mobile", "display_name": "Mobile", "avatar_url": null },
+          "media": {
+            "ref": { "item_id": 101, "source": "tmdb", "media_type": "movie", "media_id": "550", "season_number": null, "episode_number": null },
+            "title": "Liquid Form",
+            "image_url": null
+          },
+          "consumed_at": "2026-06-20T12:00:00Z",
+          "rating": "9.0",
+          "review_title": "",
+          "review": "",
+          "contains_spoilers": false,
+          "liked": false,
+          "is_rewatch": false,
+          "tags": [],
+          "visibility": "public",
+          "like_count": 0,
+          "viewer_has_liked": false,
+          "created_at": "2026-06-20T12:00:00Z",
+          "updated_at": "2026-06-20T12:00:00Z"
+        }
+        """.data(using: .utf8)!
+    )
+
+    static func logDetail(mediaType: String) -> MediaDetail {
+        try! JSONDecoder.api.decode(
+            MediaDetail.self,
+            from: """
+            {
+              "ref": { "item_id": 201, "source": "manual", "media_type": "\(mediaType)", "media_id": "log-\(mediaType)", "season_number": null, "episode_number": null },
+              "title": "Log Fixture",
+              "subtitle": null,
+              "overview": null,
+              "image_url": null,
+              "poster_accent_color": null,
+              "release_date": null,
+              "default_source": "manual",
+              "user_state": null,
+              "backdrop_url": null,
+              "details": {
+                "number_of_pages": 300,
+                "number_of_chapters": 40,
+                "issues_count": 12
+              },
+              "related": {},
+              "providers": null,
+              "community": null,
+              "external_ratings": null,
+              "reviews": null,
+              "cast": null,
+              "crew": null,
+              "related_sections": null,
+              "episodes": null,
+              "seasons": null,
+              "custom_poster_url": null
+            }
+            """.data(using: .utf8)!
+        )
+    }
+
+    static let richMediaDetailJSON = """
+    {
+      "ref": { "item_id": 101, "source": "tmdb", "media_type": "movie", "media_id": "550", "season_number": null, "episode_number": null },
+      "title": "Liquid Form",
+      "subtitle": "The Alchemist",
+      "overview": "A hypnotic fever dream about identity, reinvention, and the strange rituals people build around survival.",
+      "image_url": "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+      "poster_accent_color": "#19A7CE",
+      "release_date": "2026-06-19",
+      "default_source": "tmdb",
+      "user_state": { "is_tracked": true, "tracking_id": 42, "status": "Completed", "rating": "9.2", "in_lists": [1, 4] },
+      "backdrop_url": "https://image.tmdb.org/t/p/original/rr7E0NoGKxvbkb89eR1GwfoYjpA.jpg",
+      "details": {
+        "director": "The Alchemist",
+        "runtime": "2h 7m",
+        "rating": "R",
+        "release_date": "2026-06-19",
+        "studios": ["A24", "Spine Pictures"],
+        "country": "United States",
+        "languages": ["English", "Japanese"],
+        "genres": ["Drama", "Science Fiction", "Thriller"]
+      },
+      "related": {},
+      "providers": {
+        "US": {
+          "flatrate": [
+            { "provider_name": "Max", "logo_path": "/max.png" },
+            { "provider_name": "Hulu", "logo_path": "/hulu.png" }
+          ]
+        }
+      },
+      "community": { "average_rating": "8.6", "rating_count": 1234, "diary_count": 318, "review_count": 86, "liked_count": 907 },
+      "external_ratings": [
+        { "source": "Spine", "value": "8.6", "vote_count": 1234, "max_value": "10" },
+        { "source": "IMDb", "value": "7.9", "vote_count": 84231, "max_value": "10" },
+        { "source": "Letterboxd", "value": "4.1", "vote_count": 12044, "max_value": "5" },
+        { "source": "Rotten Tomatoes", "value": "92%", "vote_count": 214, "max_value": "100%" }
+      ],
+      "reviews": null,
+      "cast": [
+        { "id": "p1", "name": "Rina Sawayama", "role": null, "character": "Mika", "image_url": null },
+        { "id": "p2", "name": "Steven Yeun", "role": null, "character": "Elias", "image_url": null },
+        { "id": "p3", "name": "Kiko Mizuhara", "role": null, "character": "Dr. Sato", "image_url": null }
+      ],
+      "crew": [
+        { "id": "c1", "name": "The Alchemist", "role": "Director", "character": null, "image_url": null },
+        { "id": "c2", "name": "Mica Levi", "role": "Composer", "character": null, "image_url": null }
+      ],
+      "related_sections": [
+        {
+          "id": "recommendations",
+          "title": "You might also like",
+          "items": [
+            { "ref": { "item_id": null, "source": "tmdb", "media_type": "movie", "media_id": "680", "season_number": null, "episode_number": null }, "title": "Pulp Fiction", "subtitle": "1994", "overview": null, "image_url": "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg", "poster_accent_color": null, "release_date": "1994-10-14", "default_source": "tmdb", "user_state": null },
+            { "ref": { "item_id": null, "source": "tmdb", "media_type": "movie", "media_id": "603", "season_number": null, "episode_number": null }, "title": "The Matrix", "subtitle": "1999", "overview": null, "image_url": "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg", "poster_accent_color": null, "release_date": "1999-03-31", "default_source": "tmdb", "user_state": null }
+          ]
+        }
+      ],
+      "episodes": null,
+      "seasons": null,
+      "custom_poster_url": null
+    }
+    """
+
+    static let tvDetailJSON = """
+    {
+      "ref": { "item_id": 303, "source": "tmdb", "media_type": "tv", "media_id": "1399", "season_number": null, "episode_number": null },
+      "title": "The Archive",
+      "subtitle": "2024",
+      "overview": "A serialized mystery about memory, media, and the things people choose to preserve.",
+      "image_url": "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
+      "poster_accent_color": "#487A8F",
+      "release_date": "2024-01-14",
+      "default_source": "tmdb",
+      "user_state": null,
+      "backdrop_url": "https://image.tmdb.org/t/p/original/9xxLWtnFxkpJ2h1uthpvCRK6vta.jpg",
+      "details": {
+        "creator": "Lena Okafor",
+        "format": "TV",
+        "first_air_date": "2024-01-14",
+        "last_air_date": "2025-03-02",
+        "status": "Ended",
+        "seasons": 2,
+        "episodes": 16,
+        "runtime": "48m",
+        "rating": "TV-MA",
+        "studios": ["Spine Studios"],
+        "genres": ["Mystery", "Drama", "Science Fiction"]
+      },
+      "related": {},
+      "providers": null,
+      "community": {
+        "average_rating": "8.4",
+        "rating_count": 812,
+        "diary_count": 220,
+        "review_count": 31,
+        "liked_count": 405,
+        "rating_distribution": [
+          { "rating": "7.0", "count": 20 },
+          { "rating": "8.0", "count": 90 },
+          { "rating": "9.0", "count": 140 }
+        ]
+      },
+      "external_ratings": [
+        { "source": "TMDB", "value": "8.2", "vote_count": 812, "max_value": "10" },
+        { "source": "IMDb", "value": "8.6", "vote_count": 43321, "max_value": "10" }
+      ],
+      "reviews": null,
+      "cast": [
+        { "id": "tv1", "name": "Michaela Coel", "role": null, "character": "Ada Vale", "image_url": null },
+        { "id": "tv2", "name": "Rahul Kohli", "role": null, "character": "Jon Bell", "image_url": null }
+      ],
+      "crew": [
+        { "id": "tv3", "name": "Lena Okafor", "role": "Creator", "character": null, "image_url": null }
+      ],
+      "related_sections": [],
+      "episodes": [],
+      "seasons": [
+        { "season_number": 1, "title": "Season 1", "episode_count": 8, "image_url": "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg", "release_date": "2024-01-14" },
+        { "season_number": 2, "title": "Season 2", "episode_count": 8, "image_url": "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg", "release_date": "2025-01-05" }
+      ],
+      "custom_poster_url": null
+    }
+    """
+
+    static let seasonDetailJSON = """
+    {
+      "ref": { "item_id": 304, "source": "tmdb", "media_type": "season", "media_id": "1399", "season_number": 1, "episode_number": null },
+      "title": "The Archive",
+      "subtitle": "Season 1",
+      "overview": "Ada follows a broken index into a city where every missing thing has been carefully catalogued.",
+      "image_url": "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
+      "poster_accent_color": "#487A8F",
+      "release_date": "2024-01-14",
+      "default_source": "tmdb",
+      "user_state": null,
+      "backdrop_url": "https://image.tmdb.org/t/p/original/9xxLWtnFxkpJ2h1uthpvCRK6vta.jpg",
+      "details": {
+        "format": "Season",
+        "first_air_date": "2024-01-14",
+        "episodes": 8,
+        "runtime": "48m",
+        "genres": ["Mystery", "Drama"]
+      },
+      "related": {},
+      "providers": null,
+      "community": { "average_rating": "8.5", "rating_count": 401, "diary_count": 120, "review_count": 14, "liked_count": 155, "rating_distribution": [] },
+      "external_ratings": [
+        { "source": "IMDb", "value": "8.4", "vote_count": 12000, "max_value": "10" }
+      ],
+      "reviews": null,
+      "cast": [],
+      "crew": [],
+      "related_sections": [],
+      "episodes": [
+        { "episode_number": 1, "title": "Intake", "overview": "Ada finds the first card.", "air_date": "2024-01-14", "runtime": "49m", "image_url": null, "rating": "8.2" },
+        { "episode_number": 2, "title": "Cross Reference", "overview": "A second shelf opens.", "air_date": "2024-01-21", "runtime": "47m", "image_url": null, "rating": "8.5" },
+        { "episode_number": 3, "title": "Missing Holdings", "overview": "Jon rewrites the map.", "air_date": "2024-01-28", "runtime": "51m", "image_url": null, "rating": "8.7" }
+      ],
+      "seasons": [],
+      "custom_poster_url": null
+    }
+    """
+
+    static let animeDetailJSON = """
+    {
+      "ref": { "item_id": 404, "source": "mal", "media_type": "anime", "media_id": "1", "season_number": null, "episode_number": null },
+      "title": "Cowboy Bebop",
+      "subtitle": "1998",
+      "overview": "A crew of bounty hunters drifts through space, chasing marks and old ghosts.",
+      "image_url": "https://cdn.myanimelist.net/images/anime/4/19644.jpg",
+      "poster_accent_color": "#6B5D4B",
+      "release_date": "1998-04-03",
+      "default_source": "mal",
+      "user_state": null,
+      "backdrop_url": null,
+      "details": {
+        "format": "TV",
+        "start_date": "1998-04-03",
+        "end_date": "1999-04-24",
+        "status": "Finished Airing",
+        "episodes": 26,
+        "runtime": "24m",
+        "studios": ["Sunrise"],
+        "season": "Spring 1998",
+        "broadcast": "Saturdays at 01:00",
+        "source": "Original",
+        "genres": ["Action", "Award Winning", "Sci-Fi"]
+      },
+      "related": {},
+      "providers": null,
+      "community": { "average_rating": "9.0", "rating_count": 1800, "diary_count": 721, "review_count": 84, "liked_count": 1133, "rating_distribution": [] },
+      "external_ratings": [
+        { "source": "MAL", "value": "8.75", "vote_count": 1000000, "max_value": "10" }
+      ],
+      "reviews": null,
+      "cast": [],
+      "crew": [],
+      "related_sections": [
+        {
+          "id": "related_anime",
+          "title": "Related Anime",
+          "items": [
+            { "ref": { "item_id": null, "source": "mal", "media_type": "anime", "media_id": "5", "season_number": null, "episode_number": null }, "title": "Cowboy Bebop: The Movie", "subtitle": "2001", "overview": null, "image_url": "https://cdn.myanimelist.net/images/anime/1439/93480.jpg", "poster_accent_color": null, "release_date": "2001-09-01", "default_source": "mal", "user_state": null }
+          ]
+        },
+        {
+          "id": "recommendations",
+          "title": "Recommendations",
+          "items": [
+            { "ref": { "item_id": null, "source": "mal", "media_type": "anime", "media_id": "205", "season_number": null, "episode_number": null }, "title": "Samurai Champloo", "subtitle": "2004", "overview": null, "image_url": "https://cdn.myanimelist.net/images/anime/11/29134.jpg", "poster_accent_color": null, "release_date": "2004-05-20", "default_source": "mal", "user_state": null }
+          ]
+        }
+      ],
+      "episodes": [],
+      "seasons": [],
+      "custom_poster_url": null
+    }
+    """
+
+    static let reviewsJSON = """
+    {
+      "count": 2,
+      "next": null,
+      "previous": null,
+      "results": [
+        {
+          "id": 701,
+          "user": { "id": 7, "username": "mika", "display_name": "Mika", "avatar_url": null },
+          "rating": "9.0",
+          "review_title": "A pulse under glass",
+          "review": "Cold surface, hot center. Every frame feels deliberate without turning into homework.",
+          "contains_spoilers": false,
+          "like_count": 42,
+          "viewer_has_liked": false,
+          "consumed_at": "2026-06-19T20:30:00Z",
+          "created_at": "2026-06-20T02:11:00Z"
+        },
+        {
+          "id": 702,
+          "user": { "id": 8, "username": "noor", "display_name": "Noor", "avatar_url": null },
+          "rating": "8.5",
+          "review_title": "Spoiler thoughts",
+          "review": "The final reversal makes the whole first act snap into focus.",
+          "contains_spoilers": true,
+          "like_count": 18,
+          "viewer_has_liked": true,
+          "consumed_at": "2026-06-18T21:00:00Z",
+          "created_at": "2026-06-19T08:10:00Z"
+        }
+      ]
+    }
+    """
 }

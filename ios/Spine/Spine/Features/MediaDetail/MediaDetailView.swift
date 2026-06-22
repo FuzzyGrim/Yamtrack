@@ -6,13 +6,8 @@ final class MediaDetailViewModel {
     var detail: MediaDetail?
     var reviews: [MediaReview] = []
     var tracking: TrackingState?
-    var selectedStatus = "Planning"
-    var ratingText = ""
-    var progressText = ""
-    var notesText = ""
     var isLoading = false
     var isLoadingReviews = false
-    var isSaving = false
     var errorMessage: String?
     var reviewsErrorMessage: String?
 
@@ -45,8 +40,6 @@ final class MediaDetailViewModel {
             let loaded = try await mediaRepository.detail(ref: ref)
             detail = loaded
             reviews = loaded.reviews ?? []
-            selectedStatus = loaded.userState?.status ?? "Planning"
-            ratingText = loaded.userState?.rating ?? ""
             await loadReviews()
         } catch {
             errorMessage = error.localizedDescription
@@ -71,39 +64,6 @@ final class MediaDetailViewModel {
         }
     }
 
-    func saveTracking() async {
-        isSaving = true
-        errorMessage = nil
-        defer { isSaving = false }
-
-        do {
-            let rating = Decimal(string: ratingText)
-            let progress = Int(progressText)
-            tracking = try await trackingRepository.update(
-                ref: ref,
-                request: TrackingWriteRequest(
-                    status: selectedStatus,
-                    rating: rating,
-                    progress: progress,
-                    notes: notesText.isEmpty ? nil : notesText
-                )
-            )
-            if let tracking {
-                selectedStatus = tracking.status ?? selectedStatus
-                ratingText = tracking.rating ?? ratingText
-                notesText = tracking.notes ?? notesText
-                if let value = tracking.progress?.value {
-                    progressText = NSDecimalNumber(decimal: value).stringValue
-                }
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-            if case APIError.unauthorized = error {
-                onUnauthorized()
-            }
-        }
-    }
-
     func toggleLike(for review: MediaReview) async {
         do {
             let state = try await diaryRepository.setLike(entryId: review.id, liked: !review.viewerHasLiked)
@@ -117,12 +77,20 @@ final class MediaDetailViewModel {
             }
         }
     }
+
+    func applyPosterSave(_ response: PosterSaveResponse) {
+        detail = detail?.replacingPoster(with: response)
+    }
 }
 
 private enum MediaDetailSheet: Identifiable {
-    case tracking
+    case posterMenu
 
-    var id: String { "tracking" }
+    var id: String {
+        switch self {
+        case .posterMenu: "posterMenu"
+        }
+    }
 }
 
 private struct TopSafeAreaInsetKey: PreferenceKey {
@@ -138,6 +106,8 @@ struct MediaDetailView: View {
     @State private var viewModel: MediaDetailViewModel
     @State private var presentedSheet: MediaDetailSheet?
     @State private var presentedRef: MediaRef?
+    @State private var isPosterPickerPresented = false
+    @State private var isLogPresented = false
     @State private var topSafeAreaInset: CGFloat = 0
     @State private var edgeDragOffset: CGFloat = 0
 
@@ -219,8 +189,42 @@ struct MediaDetailView: View {
         .onPreferenceChange(TopSafeAreaInsetKey.self) { topSafeAreaInset = $0 }
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {
-            case .tracking:
-                TrackingEditSheet(viewModel: viewModel)
+            case .posterMenu:
+                PosterMenuSheet {
+                    presentedSheet = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        isPosterPickerPresented = true
+                    }
+                }
+                .presentationDetents([.height(148)])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .fullScreenCover(isPresented: $isLogPresented) {
+            if let detail = viewModel.detail {
+                MediaLogView(
+                    detail: detail,
+                    trackingRepository: trackingRepository,
+                    diaryRepository: diaryRepository,
+                    onUnauthorized: onUnauthorized
+                ) {
+                    Task {
+                        await viewModel.load()
+                    }
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $isPosterPickerPresented) {
+            if let detail = viewModel.detail {
+                PosterPickerView(
+                    ref: detail.ref,
+                    mediaRepository: mediaRepository,
+                    onUnauthorized: onUnauthorized
+                ) { response in
+                    viewModel.applyPosterSave(response)
+                    presentedSheet = nil
+                    isPosterPickerPresented = false
+                }
             }
         }
         .fullScreenCover(item: $presentedRef) { ref in
@@ -262,8 +266,17 @@ struct MediaDetailView: View {
                 dismiss()
             }
             Spacer()
-            CircleIconButton(systemName: "ellipsis", label: "More") {}
+            if canCustomizePoster(viewModel.detail) {
+                CircleIconButton(systemName: "ellipsis", label: "More") {
+                    presentedSheet = .posterMenu
+                }
+            }
         }
+    }
+
+    private func canCustomizePoster(_ detail: MediaDetail?) -> Bool {
+        guard let detail else { return false }
+        return detail.ref.source == "tmdb" && ["movie", "tv"].contains(detail.ref.mediaType)
     }
 
     private func hero(_ detail: MediaDetail) -> some View {
@@ -300,7 +313,7 @@ struct MediaDetailView: View {
 
                     ActionRail(
                         isTracked: currentStatus(detail) != nil,
-                        onTrack: { presentedSheet = .tracking }
+                        onTrack: { isLogPresented = true }
                     )
                     .padding(.bottom, 1)
                 }
@@ -315,18 +328,16 @@ struct MediaDetailView: View {
             TrackingSummarySection(detail: detail, tracking: viewModel.tracking, userState: detail.userState)
             SynopsisCard(text: synopsisPreview(detail))
             SpineRatingDistributionSection(community: detail.community)
-            MediaFactsSection(rows: detailRows(detail))
-            CreditSection(title: creditTitle(detail), people: primaryCredits(detail))
-            SeasonsSection(seasons: detail.seasons ?? []) { season in
-                presentedRef = MediaRef(
-                    itemId: nil,
-                    source: detail.ref.source,
-                    mediaType: "season",
-                    mediaId: detail.ref.mediaId,
-                    seasonNumber: season.seasonNumber,
-                    episodeNumber: nil
-                )
+
+            if detail.ref.mediaType == "tv" {
+                seasonsSection(detail)
+                CreditSection(title: creditTitle(detail), people: primaryCredits(detail))
+            } else {
+                CreditSection(title: creditTitle(detail), people: primaryCredits(detail))
+                seasonsSection(detail)
             }
+
+            MediaFactsSection(rows: detailRows(detail))
             EpisodesSection(episodes: detail.episodes ?? [])
             ReviewsSection(reviews: viewModel.reviews, isLoading: viewModel.isLoadingReviews, error: viewModel.reviewsErrorMessage)
             RecommendationsSection(sections: relatedSections(detail)) { item in
@@ -335,6 +346,19 @@ struct MediaDetailView: View {
         }
         .padding(.horizontal, 14)
         .padding(.top, 8)
+    }
+
+    private func seasonsSection(_ detail: MediaDetail) -> some View {
+        SeasonsSection(seasons: detail.seasons ?? []) { season in
+            presentedRef = MediaRef(
+                itemId: nil,
+                source: detail.ref.source,
+                mediaType: "season",
+                mediaId: detail.ref.mediaId,
+                seasonNumber: season.seasonNumber,
+                episodeNumber: nil
+            )
+        }
     }
 
     private func genreChips(_ detail: MediaDetail) -> some View {
@@ -346,10 +370,21 @@ struct MediaDetailView: View {
                         .foregroundStyle(.white.opacity(0.82))
                         .lineLimit(1)
                         .padding(.horizontal, 11)
-                        .padding(.vertical, 8)
+                        .frame(height: MediaDetailLayout.genrePillHeight)
                         .background(.white.opacity(0.12), in: Capsule())
                 }
             }
+        }
+        .mask(alignment: .trailing) {
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black, location: 0.88),
+                    .init(color: .clear, location: 1),
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
         }
     }
 
@@ -374,7 +409,12 @@ struct MediaDetailView: View {
             chips.append(platform)
         }
         chips += detailArray(detail, "genres")
-        return Array(chips.prefix(6))
+
+        var seen = Set<String>()
+        let uniqueChips = chips.filter { chip in
+            seen.insert(chip.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()).inserted
+        }
+        return Array(uniqueChips.prefix(6))
     }
 
     private func contentRating(_ detail: MediaDetail) -> String? {
@@ -406,7 +446,7 @@ struct MediaDetailView: View {
             chips.append(RatingChip(source: "SP", value: rating, assetName: nil))
         }
         for rating in detail.externalRatings ?? [] where !rating.value.isEmpty {
-            if detail.ref.mediaType == "movie", rating.source.lowercased() == "tmdb" {
+            if ["movie", "tv"].contains(detail.ref.mediaType), rating.source.lowercased() == "tmdb" {
                 continue
             }
             chips.append(RatingChip(
@@ -512,6 +552,9 @@ struct MediaDetailView: View {
             ("Publishers", "publishers"),
             ("ISBN", "isbn"),
         ] {
+            if mediaType == "book", key == "authors" {
+                continue
+            }
             let values = detailArray(detail, key)
             if !values.isEmpty {
                 rows.append(DetailFactRow(label: label, value: values.joined(separator: ", ")))
@@ -669,16 +712,21 @@ struct MediaDetailView: View {
 private enum MediaDetailLayout {
     static let heroPosterWidth: CGFloat = 191
     static let heroHeight: CGFloat = 535
+    static let genrePillHeight: CGFloat = 31
     static let ratingBadgeSize: CGFloat = 24
     static let ratingPillVerticalPadding: CGFloat = 6
     static var ratingPillHeight: CGFloat { ratingBadgeSize + ratingPillVerticalPadding * 2 }
+    static let recommendationPosterSize = CGSize(width: 100, height: 150)
+    static let recommendationCardHeight: CGFloat = 190
+    static let seasonPosterSize = CGSize(width: 90, height: 135)
+    static let castCardHeight: CGFloat = 122
 }
 
 private enum SpinePalette {
     static let pageBackground = Color(red: 0.07, green: 0.07, blue: 0.065)
 }
 
-private struct SpinePageBackground: View {
+struct SpinePageBackground: View {
     var body: some View {
         SpinePalette.pageBackground
             .ignoresSafeArea()
@@ -700,6 +748,31 @@ private struct CircleIconButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+}
+
+private struct PosterMenuSheet: View {
+    let onCustomize: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Capsule()
+                .fill(.secondary.opacity(0.35))
+                .frame(width: 38, height: 5)
+                .padding(.top, 8)
+
+            Button(action: onCustomize) {
+                Label("Customize Poster", systemImage: "photo.on.rectangle.angled")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 18)
+                    .frame(height: 54)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+        }
+        .presentationBackground(.regularMaterial)
     }
 }
 
@@ -769,11 +842,13 @@ private struct HeroArtwork: View {
     }
 
     private var artworkURL: URL? {
-        URL(string: detail.backdropUrl ?? detail.imageUrl ?? "")
+        let posterURL = detail.customPosterUrl ?? detail.imageUrl
+        let preferredURL = ["movie", "tv"].contains(detail.ref.mediaType) ? posterURL : (detail.backdropUrl ?? posterURL)
+        return URL(string: preferredURL ?? "")
     }
 
     private var usesPosterFallback: Bool {
-        detail.backdropUrl == nil && detail.imageUrl != nil
+        ["movie", "tv"].contains(detail.ref.mediaType) || (detail.backdropUrl == nil && detail.imageUrl != nil)
     }
 
     private var blurRadius: CGFloat {
@@ -790,7 +865,7 @@ private struct HeroArtwork: View {
 }
 
 private struct ActionRail: View {
-    private static let iconFont = Font.system(size: 24, weight: .semibold)
+    private static let iconFont = Font.system(size: 28, weight: .regular)
 
     let isTracked: Bool
     let onTrack: () -> Void
@@ -1043,7 +1118,7 @@ private struct SynopsisCard: View {
     }
 
     private var synopsisFont: Font {
-        .system(size: 14, weight: .semibold, design: .serif)
+        .system(size: 14, weight: .semibold)
     }
 }
 
@@ -1082,11 +1157,11 @@ private struct MediaFactsSection: View {
                     ForEach(rows) { row in
                         HStack(alignment: .top) {
                             Text(row.label)
-                                .font(.system(size: 13, weight: .semibold, design: .serif))
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.62))
                                 .frame(width: 104, alignment: .leading)
                             Text(row.value ?? "")
-                                .font(.system(size: 14, weight: .heavy, design: .serif))
+                                .font(.system(size: 14, weight: .heavy))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -1176,7 +1251,7 @@ private struct CreditSection: View {
                 SectionLabel(title: title)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
                         ForEach(people) { person in
                             VStack(alignment: .leading, spacing: 8) {
                                 AsyncImage(url: URL(string: person.imageUrl ?? "")) { phase in
@@ -1199,14 +1274,16 @@ private struct CreditSection: View {
                                     .font(.system(size: 13, weight: .heavy))
                                     .foregroundStyle(.white)
                                     .lineLimit(2)
+                                    .frame(height: 34, alignment: .topLeading)
                                 if let subtitle = person.subtitle, !subtitle.isEmpty {
                                     Text(subtitle)
                                         .font(.system(size: 11, weight: .semibold))
                                         .foregroundStyle(.white.opacity(0.62))
                                         .lineLimit(1)
+                                        .frame(height: 14, alignment: .topLeading)
                                 }
                             }
-                            .frame(width: 118, alignment: .topLeading)
+                            .frame(width: 96, height: MediaDetailLayout.castCardHeight, alignment: .topLeading)
                         }
                     }
                 }
@@ -1224,14 +1301,14 @@ private struct SeasonsSection: View {
             VStack(alignment: .leading, spacing: 14) {
                 SectionLabel(title: "Seasons")
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
                         ForEach(seasons) { season in
                             Button {
                                 onSelect(season)
                             } label: {
                                 VStack(alignment: .leading, spacing: 8) {
                                     PosterImage(urlString: season.imageUrl, title: season.title)
-                                        .frame(width: 90)
+                                        .frame(width: MediaDetailLayout.seasonPosterSize.width, height: MediaDetailLayout.seasonPosterSize.height)
                                     Text(season.title)
                                         .font(.system(size: 12, weight: .heavy))
                                         .foregroundStyle(.white)
@@ -1240,9 +1317,10 @@ private struct SeasonsSection: View {
                                         Text("\(count) episodes")
                                             .font(.system(size: 11, weight: .semibold))
                                             .foregroundStyle(.white.opacity(0.55))
+                                            .lineLimit(1)
                                     }
                                 }
-                                .frame(width: 90, alignment: .topLeading)
+                                .frame(width: MediaDetailLayout.seasonPosterSize.width, alignment: .topLeading)
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("Open \(season.title)")
@@ -1356,20 +1434,21 @@ private struct RecommendationsSection: View {
                 }
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    HStack(alignment: .top, spacing: 10) {
                         ForEach(section.items) { item in
                             Button {
                                 onSelect(item)
                             } label: {
                                 VStack(alignment: .leading, spacing: 8) {
                                     PosterImage(urlString: item.imageUrl, title: item.title)
-                                        .frame(width: 100)
+                                        .frame(width: MediaDetailLayout.recommendationPosterSize.width, height: MediaDetailLayout.recommendationPosterSize.height)
                                     Text(item.title)
                                         .font(.system(size: 12, weight: .heavy))
                                         .foregroundStyle(.white)
                                         .lineLimit(2)
+                                        .frame(height: 32, alignment: .topLeading)
                                 }
-                                .frame(width: 100, alignment: .topLeading)
+                                .frame(width: MediaDetailLayout.recommendationPosterSize.width, height: MediaDetailLayout.recommendationCardHeight, alignment: .topLeading)
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("Open \(item.title)")
@@ -1422,59 +1501,6 @@ private struct BottomBarItem: View {
         .foregroundStyle(.white)
         .frame(width: isSelected ? 88 : 76, height: 48)
         .background(isSelected ? Color.white.opacity(0.16) : .clear, in: Capsule())
-    }
-}
-
-private struct TrackingEditSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Bindable var viewModel: MediaDetailViewModel
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Picker("Status", selection: $viewModel.selectedStatus) {
-                    ForEach(APIConstants.statusChoices, id: \.self) { status in
-                        Text(status).tag(status)
-                    }
-                }
-
-                TextField("Rating 0-10", text: $viewModel.ratingText)
-                    .keyboardType(.decimalPad)
-                TextField("Progress", text: $viewModel.progressText)
-                    .keyboardType(.numberPad)
-                TextField("Notes", text: $viewModel.notesText, axis: .vertical)
-                    .lineLimit(3...6)
-
-                if let error = viewModel.errorMessage {
-                    Text(error)
-                        .foregroundStyle(.red)
-                }
-            }
-            .navigationTitle("Track")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task {
-                            await viewModel.saveTracking()
-                            if viewModel.errorMessage == nil {
-                                dismiss()
-                            }
-                        }
-                    } label: {
-                        if viewModel.isSaving {
-                            ProgressView()
-                        } else {
-                            Text("Save")
-                        }
-                    }
-                    .disabled(viewModel.isSaving)
-                }
-            }
-        }
     }
 }
 
@@ -1631,40 +1657,4 @@ private struct LongDateFormatter {
         guard let date = isoFormatter.date(from: trimmed) else { return nil }
         return displayFormatter.string(from: date)
     }
-}
-
-#Preview("Movie") {
-    MediaDetailView(
-        ref: MockMediaFixtures.movieDetail.ref,
-        mediaRepository: MockMediaRepository(),
-        trackingRepository: MockTrackingRepository(),
-        diaryRepository: MockDiaryRepository()
-    )
-}
-
-#Preview("TV") {
-    MediaDetailView(
-        ref: MockMediaFixtures.tvDetail.ref,
-        mediaRepository: MockMediaRepository(),
-        trackingRepository: MockTrackingRepository(),
-        diaryRepository: MockDiaryRepository()
-    )
-}
-
-#Preview("Anime") {
-    MediaDetailView(
-        ref: MockMediaFixtures.animeDetail.ref,
-        mediaRepository: MockMediaRepository(),
-        trackingRepository: MockTrackingRepository(),
-        diaryRepository: MockDiaryRepository()
-    )
-}
-
-#Preview("Book") {
-    MediaDetailView(
-        ref: MockMediaFixtures.bookDetail.ref,
-        mediaRepository: MockMediaRepository(),
-        trackingRepository: MockTrackingRepository(),
-        diaryRepository: MockDiaryRepository()
-    )
 }

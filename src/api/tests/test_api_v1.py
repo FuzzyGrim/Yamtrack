@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from app.models import DiaryEntry, Item, MediaTypes, Sources
+from app.models import CustomPosterPreference, DiaryEntry, Item, MediaTypes, Sources
 
 
 class ApiV1FoundationTests(TestCase):
@@ -366,3 +366,89 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["review"], "Sharp and strange.")
+
+    @patch("app.providers.tmdb.get_poster_images")
+    def test_media_posters_endpoint_requires_auth_and_returns_original_first(self, posters_mock):
+        user = get_user_model().objects.create_user(username="poster", password="strong-password-123")
+        Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Fight Club",
+            image="https://example.com/original.jpg",
+        )
+        posters_mock.return_value = [
+            {
+                "url": "https://example.com/high.jpg",
+                "thumbnail_url": "https://example.com/high-thumb.jpg",
+                "width": 1000,
+                "height": 1500,
+                "aspect_ratio": 0.667,
+                "vote_average": 8.5,
+                "vote_count": 20,
+                "language": "en",
+            },
+            {
+                "url": "https://example.com/low.jpg",
+                "thumbnail_url": "https://example.com/low-thumb.jpg",
+                "width": 1000,
+                "height": 1500,
+                "aspect_ratio": 0.667,
+                "vote_average": 7.0,
+                "vote_count": 10,
+                "language": None,
+            },
+        ]
+
+        anonymous = self.client.get("/api/v1/media/tmdb/movie/550/posters/")
+        self.client.force_authenticate(user)
+        response = self.client.get("/api/v1/media/tmdb/movie/550/posters/")
+
+        self.assertEqual(anonymous.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [poster["url"] for poster in response.data["posters"]],
+            [
+                "https://example.com/original.jpg",
+                "https://example.com/high.jpg",
+                "https://example.com/low.jpg",
+            ],
+        )
+        self.assertTrue(response.data["posters"][0]["is_original"])
+
+    def test_media_posters_endpoint_rejects_unsupported_media(self):
+        user = get_user_model().objects.create_user(username="poster2", password="strong-password-123")
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/media/mal/anime/1/posters/")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("api.services.media.build_accent_palette", return_value={"accent": "#123456", "contrast": "#ffffff"})
+    @patch("api.services.media.compute_and_store_poster_accent", return_value="#123456")
+    def test_media_poster_save_updates_preference_and_item(self, _accent_mock, _palette_mock):
+        user = get_user_model().objects.create_user(username="poster3", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            media_id="1399",
+            title="Game of Thrones",
+            image="https://example.com/original.jpg",
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.put(
+            "/api/v1/media/tmdb/tv/1399/poster/",
+            {"poster_url": "https://example.com/new.jpg"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["custom_poster_url"], "https://example.com/new.jpg")
+        item.refresh_from_db()
+        self.assertEqual(item.image, "https://example.com/new.jpg")
+        self.assertEqual(item.poster_accent_color, "#123456")
+        self.assertEqual(
+            CustomPosterPreference.objects.get(user=user, item=item).custom_image_url,
+            "https://example.com/new.jpg",
+        )

@@ -38,3 +38,12 @@ struct DiaryEntryWriteRequest: Encodable {
     let visibility: String
     let tags: [String]
 }
+
+struct DiaryTagSuggestion: Codable, Hashable {
+    let name: String
+    let usageCount: Int
+}
+
+struct DiaryTagSuggestionsResponse: Codable {
+    let results: [DiaryTagSuggestion]
+}

@@ -33,6 +33,20 @@ struct TrackingWriteRequest: Encodable {
     }
 }
 
+struct TrackingConsumeRequest: Encodable {
+    let consumedAt: Date?
+}
+
+struct BookProgressRequest: Encodable {
+    let progressType: String
+    let value: Decimal
+    let notes: String
+}
+
+struct BookCompleteRequest: Encodable {
+    let completedAt: Date?
+}
+
 struct LibraryItem: Decodable, Identifiable {
     let media: MediaSummary
     let tracking: TrackingState

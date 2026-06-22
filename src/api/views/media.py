@@ -144,6 +144,46 @@ class MediaReviewsView(APIView):
         )
 
 
+class MediaPostersView(APIView):
+    """Selectable poster images for TMDB movie/TV media."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, source, media_type, media_id):
+        try:
+            return Response(
+                media_service.poster_options(
+                    source=source,
+                    media_type=media_type,
+                    media_id=media_id,
+                    request=request,
+                    user=request.user,
+                ),
+            )
+        except ValueError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MediaPosterPreferenceView(APIView):
+    """Save the viewer's selected poster."""
+
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, source, media_type, media_id):
+        try:
+            return Response(
+                media_service.save_poster_preference(
+                    source=source,
+                    media_type=media_type,
+                    media_id=media_id,
+                    poster_url=request.data.get("poster_url"),
+                    user=request.user,
+                ),
+            )
+        except ValueError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class TVSeasonsView(APIView):
     """TV season summaries."""
 

@@ -18,8 +18,9 @@ from api.serializers.common import (
     synopsis_from_payload,
 )
 from app import config
-from app.models import MediaTypes
+from app.models import CustomPosterPreference, Item, MediaTypes, Sources
 from app.providers import services as provider_services
+from app.utils.color import build_accent_palette, compute_and_store_poster_accent
 
 SEARCH_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
@@ -130,6 +131,92 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
             media_id=media_id,
         ),
     }
+
+
+def poster_options(*, source, media_type, media_id, request=None, user=None):
+    """Return selectable posters for TMDB movie/TV media."""
+    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        raise ValueError("Poster customization is only available for TMDB movies and TV shows.")
+
+    item = _poster_item(source=source, media_type=media_type, media_id=media_id)
+    from app.providers import tmdb
+
+    current = CustomPosterPreference.objects.filter(user=user, item=item).first()
+    selected_url = current.custom_image_url if current else item.image
+    original = {
+        "url": absolute_poster_url(request, item.image),
+        "thumbnail_url": absolute_poster_url(request, item.image),
+        "width": 0,
+        "height": 0,
+        "aspect_ratio": 0.667,
+        "vote_average": 0,
+        "vote_count": 0,
+        "language": None,
+        "is_original": True,
+        "is_selected": item.image == selected_url,
+    }
+
+    posters = [original]
+    for poster in tmdb.get_poster_images(media_id, media_type):
+        if poster["url"] == item.image:
+            continue
+        posters.append(
+            {
+                **poster,
+                "language": poster.get("language"),
+                "is_original": False,
+                "is_selected": poster["url"] == selected_url,
+            },
+        )
+    return {"posters": posters}
+
+
+def save_poster_preference(*, source, media_type, media_id, poster_url, user):
+    """Save a user's poster preference and update the stored item image/accent."""
+    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        raise ValueError("Poster customization is only available for TMDB movies and TV shows.")
+    if not poster_url:
+        raise ValueError("poster_url is required.")
+
+    item = _poster_item(source=source, media_type=media_type, media_id=media_id)
+    accent = compute_and_store_poster_accent(item, poster_url=poster_url, force=True)
+    palette = build_accent_palette(accent)
+    CustomPosterPreference.objects.update_or_create(
+        user=user,
+        item=item,
+        defaults={"custom_image_url": poster_url},
+    )
+    item.image = poster_url
+    item.poster_accent_color = palette["accent"]
+    item.save(update_fields=["image", "poster_accent_color"])
+    return {
+        "poster_url": poster_url,
+        "custom_poster_url": poster_url,
+        "poster_accent_color": palette["accent"],
+    }
+
+
+def _poster_item(*, source, media_type, media_id):
+    item = Item.objects.filter(source=source, media_type=media_type, media_id=media_id).first()
+    if item is not None:
+        return item
+    metadata = provider_services.get_media_metadata(media_type, media_id, source)
+    return Item.objects.create(
+        media_id=media_id,
+        source=source,
+        media_type=media_type,
+        title=metadata.get("title") or metadata.get("name") or media_id,
+        image=metadata.get("image") or settings.IMG_NONE,
+    )
+
+
+def absolute_poster_url(request, url):
+    """Return an absolute poster URL without substituting the global placeholder."""
+    if not url:
+        return None
+    if str(url).startswith(("http://", "https://")):
+        return url
+    return request.build_absolute_uri(url) if request is not None else url
 
 
 def backdrop_url(metadata):

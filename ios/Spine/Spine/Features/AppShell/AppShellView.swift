@@ -52,5 +52,5 @@ struct AppShellView: View {
 }
 
 #Preview {
-    AppShellView(session: AppSession(repositories: .mock()))
+    AppShellView(session: AppSession(repositories: .live()))
 }
