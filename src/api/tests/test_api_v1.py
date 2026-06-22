@@ -7,7 +7,14 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from app.models import CustomPosterPreference, DiaryEntry, Item, MediaTypes, Sources
+from app.models import (
+    CustomBackdropPreference,
+    CustomPosterPreference,
+    DiaryEntry,
+    Item,
+    MediaTypes,
+    Sources,
+)
 
 
 class ApiV1FoundationTests(TestCase):
@@ -167,6 +174,7 @@ class ApiV1FoundationTests(TestCase):
             response.data["backdrop_url"],
             "https://image.tmdb.org/t/p/original/rr7E0NoGKxvbkb89eR1GwfoYjpA.jpg",
         )
+        self.assertIsNone(response.data["custom_backdrop_url"])
         self.assertEqual(
             [(rating["source"], rating["value"]) for rating in response.data["external_ratings"]],
             [("TMDB", "8.4"), ("IMDb", "8.8"), ("Letterboxd", "4.3"), ("Rotten Tomatoes", "79%")],
@@ -232,6 +240,7 @@ class ApiV1FoundationTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsNone(response.data["backdrop_url"])
+        self.assertIsNone(response.data["custom_backdrop_url"])
 
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")
@@ -490,3 +499,120 @@ class ApiV1FoundationTests(TestCase):
             CustomPosterPreference.objects.get(user=user, item=item).custom_image_url,
             "https://example.com/new.jpg",
         )
+
+    @patch("api.services.media.provider_services.get_media_metadata")
+    @patch("app.providers.tmdb.get_backdrop_images")
+    def test_media_backdrops_endpoint_requires_auth_and_returns_original_first(self, backdrops_mock, metadata_mock):
+        user = get_user_model().objects.create_user(username="backdrop", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Fight Club",
+            image="https://example.com/poster.jpg",
+        )
+        CustomBackdropPreference.objects.create(
+            user=user,
+            item=item,
+            custom_image_url="https://example.com/high.jpg",
+        )
+        metadata_mock.return_value = {
+            "title": "Fight Club",
+            "image": "https://example.com/poster.jpg",
+            "backdrop_path": "/original.jpg",
+        }
+        backdrops_mock.return_value = [
+            {
+                "url": "https://example.com/high.jpg",
+                "thumbnail_url": "https://example.com/high-thumb.jpg",
+                "width": 1920,
+                "height": 1080,
+                "aspect_ratio": 1.778,
+                "vote_average": 8.5,
+                "vote_count": 20,
+                "language": "en",
+            },
+        ]
+
+        anonymous = self.client.get("/api/v1/media/tmdb/movie/550/backdrops/")
+        self.client.force_authenticate(user)
+        response = self.client.get("/api/v1/media/tmdb/movie/550/backdrops/")
+
+        self.assertEqual(anonymous.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [backdrop["url"] for backdrop in response.data["backdrops"]],
+            [
+                "https://image.tmdb.org/t/p/original/original.jpg",
+                "https://example.com/high.jpg",
+            ],
+        )
+        self.assertTrue(response.data["backdrops"][0]["is_original"])
+        self.assertFalse(response.data["backdrops"][0]["is_selected"])
+        self.assertTrue(response.data["backdrops"][1]["is_selected"])
+
+    def test_media_backdrops_endpoint_rejects_unsupported_media(self):
+        user = get_user_model().objects.create_user(username="backdrop2", password="strong-password-123")
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/media/mal/anime/1/backdrops/")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_media_backdrop_save_updates_preference_without_changing_item_image(self):
+        user = get_user_model().objects.create_user(username="backdrop3", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            media_id="1399",
+            title="Game of Thrones",
+            image="https://example.com/original-poster.jpg",
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.put(
+            "/api/v1/media/tmdb/tv/1399/backdrop/",
+            {"backdrop_url": "https://example.com/new-backdrop.jpg"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["custom_backdrop_url"], "https://example.com/new-backdrop.jpg")
+        item.refresh_from_db()
+        self.assertEqual(item.image, "https://example.com/original-poster.jpg")
+        self.assertEqual(
+            CustomBackdropPreference.objects.get(user=user, item=item).custom_image_url,
+            "https://example.com/new-backdrop.jpg",
+        )
+
+    @patch("app.providers.mdblist.get_media_ratings", return_value={})
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_media_detail_includes_custom_backdrop_url_when_preference_exists(self, metadata_mock, _ratings_mock):
+        user = get_user_model().objects.create_user(username="backdrop4", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Fight Club",
+            image="https://example.com/poster.jpg",
+        )
+        CustomBackdropPreference.objects.create(
+            user=user,
+            item=item,
+            custom_image_url="https://example.com/custom-backdrop.jpg",
+        )
+        metadata_mock.return_value = {
+            "media_id": "550",
+            "media_type": "movie",
+            "source": "tmdb",
+            "title": "Fight Club",
+            "image": "https://example.com/poster.jpg",
+            "backdrop_path": "/default-backdrop.jpg",
+        }
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/media/tmdb/movie/550/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["backdrop_url"], "https://image.tmdb.org/t/p/original/default-backdrop.jpg")
+        self.assertEqual(response.data["custom_backdrop_url"], "https://example.com/custom-backdrop.jpg")

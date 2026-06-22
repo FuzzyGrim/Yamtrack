@@ -83,8 +83,8 @@ struct MediaTypeGlyph: View {
                 .foregroundStyle(.white)
         } else if theme.slug == "comic" {
             ComicBurstShape()
-                .fill(.white)
-                .frame(width: size * 1.25, height: size)
+                .stroke(.white, style: StrokeStyle(lineWidth: max(1.2, size * 0.08), lineCap: .round, lineJoin: .round))
+                .frame(width: size * 1.35, height: size * 1.08)
         } else {
             Image(systemName: theme.symbolName)
                 .symbolRenderingMode(.hierarchical)
@@ -97,24 +97,28 @@ struct MediaTypeGlyph: View {
 private struct ComicBurstShape: Shape {
     func path(in rect: CGRect) -> Path {
         let points: [CGPoint] = [
-            CGPoint(x: 0.02, y: 0.48),
-            CGPoint(x: 0.20, y: 0.35),
-            CGPoint(x: 0.12, y: 0.06),
-            CGPoint(x: 0.34, y: 0.20),
-            CGPoint(x: 0.42, y: 0.00),
-            CGPoint(x: 0.52, y: 0.22),
-            CGPoint(x: 0.70, y: 0.05),
-            CGPoint(x: 0.66, y: 0.34),
-            CGPoint(x: 0.98, y: 0.30),
-            CGPoint(x: 0.76, y: 0.52),
-            CGPoint(x: 0.94, y: 0.78),
-            CGPoint(x: 0.62, y: 0.70),
-            CGPoint(x: 0.56, y: 1.00),
-            CGPoint(x: 0.46, y: 0.74),
-            CGPoint(x: 0.28, y: 0.96),
-            CGPoint(x: 0.32, y: 0.66),
-            CGPoint(x: 0.04, y: 0.72),
-            CGPoint(x: 0.22, y: 0.56)
+            CGPoint(x: 0.03, y: 0.43),
+            CGPoint(x: 0.21, y: 0.38),
+            CGPoint(x: 0.14, y: 0.12),
+            CGPoint(x: 0.33, y: 0.26),
+            CGPoint(x: 0.40, y: 0.04),
+            CGPoint(x: 0.50, y: 0.29),
+            CGPoint(x: 0.68, y: 0.12),
+            CGPoint(x: 0.63, y: 0.36),
+            CGPoint(x: 0.94, y: 0.30),
+            CGPoint(x: 0.75, y: 0.50),
+            CGPoint(x: 0.92, y: 0.64),
+            CGPoint(x: 0.69, y: 0.62),
+            CGPoint(x: 0.72, y: 0.88),
+            CGPoint(x: 0.54, y: 0.70),
+            CGPoint(x: 0.48, y: 0.97),
+            CGPoint(x: 0.40, y: 0.73),
+            CGPoint(x: 0.29, y: 0.89),
+            CGPoint(x: 0.26, y: 0.72),
+            CGPoint(x: 0.08, y: 0.94),
+            CGPoint(x: 0.20, y: 0.65),
+            CGPoint(x: 0.04, y: 0.58),
+            CGPoint(x: 0.21, y: 0.52)
         ]
 
         var path = Path()

@@ -16,7 +16,7 @@ Core contracts:
 - Ratings remain 0-10 decimal values, serialized as strings.
 - Dates and datetimes use ISO 8601.
 - Provider keys are never exposed to clients.
-- Media detail may expose typed optional `external_ratings`, `cast`, `crew`, `related_sections`, `episodes`, `seasons`, and `custom_poster_url` fields while preserving raw provider `details`, `related`, and `providers` during the transition.
+- Media detail may expose typed optional `external_ratings`, `cast`, `crew`, `related_sections`, `episodes`, `seasons`, `custom_poster_url`, and `custom_backdrop_url` fields while preserving raw provider `details`, `related`, and `providers` during the transition.
 - `community.rating_distribution` is Spine-only and is derived from public/followers diary ratings, never provider ratings.
 
 ## Architecture
@@ -83,6 +83,8 @@ Important files:
 | GET | `/api/v1/media/{source}/{media_type}/{media_id}/reviews/` | Optional |
 | GET | `/api/v1/media/{source}/{media_type}/{media_id}/posters/` | Yes |
 | PUT | `/api/v1/media/{source}/{media_type}/{media_id}/poster/` | Yes |
+| GET | `/api/v1/media/{source}/{media_type}/{media_id}/backdrops/` | Yes |
+| PUT | `/api/v1/media/{source}/{media_type}/{media_id}/backdrop/` | Yes |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/` | Optional |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/{season_number}/` | Optional |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/{season_number}/episodes/` | Optional |
@@ -210,6 +212,40 @@ Poster customization is available for authenticated users on TMDB movies and TV 
 }
 ```
 
+## Media Backdrop Customization
+
+Backdrop customization is available for authenticated users on TMDB movies and TV shows only.
+
+`GET /api/v1/media/{source}/{media_type}/{media_id}/backdrops/` returns the default TMDB backdrop first, followed by TMDB backdrop images sorted by `vote_average` and then `vote_count`, both descending:
+
+```json
+{
+  "backdrops": [
+    {
+      "url": "https://image.tmdb.org/t/p/original/backdrop.jpg",
+      "thumbnail_url": "https://image.tmdb.org/t/p/w780/backdrop.jpg",
+      "width": 1920,
+      "height": 1080,
+      "aspect_ratio": 1.778,
+      "vote_average": 8.0,
+      "vote_count": 12,
+      "language": "en",
+      "is_original": false,
+      "is_selected": true
+    }
+  ]
+}
+```
+
+`PUT /api/v1/media/{source}/{media_type}/{media_id}/backdrop/` accepts `{ "backdrop_url": "https://..." }`, saves the viewer's backdrop preference, does not mutate the stored item poster/accent, and returns:
+
+```json
+{
+  "backdrop_url": "https://image.tmdb.org/t/p/original/backdrop.jpg",
+  "custom_backdrop_url": "https://image.tmdb.org/t/p/original/backdrop.jpg"
+}
+```
+
 ## Media Detail
 
 `GET /api/v1/media/{source}/{media_type}/{media_id}/` returns raw provider fields plus normalized native-client fields:
@@ -234,6 +270,7 @@ Poster customization is available for authenticated users on TMDB movies and TV 
   "default_source": "tmdb",
   "user_state": null,
   "backdrop_url": "https://image.tmdb.org/t/p/original/backdrop.jpg",
+  "custom_backdrop_url": null,
   "custom_poster_url": null,
   "details": {
     "runtime": "2h 19m",

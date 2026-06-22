@@ -1173,6 +1173,53 @@ def get_poster_images(media_id, media_type, season_number=None):
     return data
 
 
+def get_backdrop_images(media_id, media_type):
+    """Get all available backdrop images for a movie or TV show from TMDB."""
+    if media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        raise ValueError("Backdrop images are only available for movies and TV shows")
+
+    cache_key = f"{Sources.TMDB.value}_{media_type}_backdrops_{media_id}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/{media_type}/{media_id}/images"
+        params = {**base_params}
+        del params["language"]
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        backdrops = []
+        for backdrop in response.get("backdrops", []):
+            file_path = backdrop["file_path"]
+            backdrops.append({
+                "url": f"https://image.tmdb.org/t/p/original{file_path}",
+                "thumbnail_url": f"https://image.tmdb.org/t/p/w780{file_path}",
+                "width": backdrop["width"],
+                "height": backdrop["height"],
+                "aspect_ratio": backdrop["aspect_ratio"],
+                "vote_average": backdrop.get("vote_average", 0),
+                "vote_count": backdrop.get("vote_count", 0),
+                "language": backdrop.get("iso_639_1"),
+            })
+
+        data = sorted(
+            backdrops,
+            key=lambda x: (x["vote_average"], x["vote_count"]),
+            reverse=True,
+        )
+        cache.set(cache_key, data, 86400)
+
+    return data
+
+
 def watch_provider_regions():
     """Return the available watch provider regions from The Movie Database."""
     cache_key = f"{Sources.TMDB.value}_watch_provider_regions"

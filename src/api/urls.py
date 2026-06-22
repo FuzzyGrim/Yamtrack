@@ -30,6 +30,8 @@ from api.views.lists import (
 from api.views.media import (
     CommunityStatsView,
     ManualMediaView,
+    MediaBackdropPreferenceView,
+    MediaBackdropsView,
     MediaDetailView,
     MediaDiscoverView,
     MediaPosterPreferenceView,
@@ -97,6 +99,8 @@ urlpatterns = [
     path("media/<str:source>/tv/<str:media_id>/seasons/<int:season_number>/episodes/", SeasonEpisodesView.as_view(), name="api-season-episodes"),
     path("media/<str:source>/<str:media_type>/<str:media_id>/posters/", MediaPostersView.as_view(), name="api-media-posters"),
     path("media/<str:source>/<str:media_type>/<str:media_id>/poster/", MediaPosterPreferenceView.as_view(), name="api-media-poster"),
+    path("media/<str:source>/<str:media_type>/<str:media_id>/backdrops/", MediaBackdropsView.as_view(), name="api-media-backdrops"),
+    path("media/<str:source>/<str:media_type>/<str:media_id>/backdrop/", MediaBackdropPreferenceView.as_view(), name="api-media-backdrop"),
     path("media/<str:source>/<str:media_type>/<str:media_id>/community/", CommunityStatsView.as_view(), name="api-media-community"),
     path("media/<str:source>/<str:media_type>/<str:media_id>/reviews/", MediaReviewsView.as_view(), name="api-media-reviews"),
     path("media/<str:source>/<str:media_type>/<str:media_id>/", MediaDetailView.as_view(), name="api-media-detail"),

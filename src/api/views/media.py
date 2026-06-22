@@ -184,6 +184,46 @@ class MediaPosterPreferenceView(APIView):
             return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class MediaBackdropsView(APIView):
+    """Selectable backdrop images for TMDB movie/TV media."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, source, media_type, media_id):
+        try:
+            return Response(
+                media_service.backdrop_options(
+                    source=source,
+                    media_type=media_type,
+                    media_id=media_id,
+                    request=request,
+                    user=request.user,
+                ),
+            )
+        except ValueError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MediaBackdropPreferenceView(APIView):
+    """Save the viewer's selected backdrop."""
+
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, source, media_type, media_id):
+        try:
+            return Response(
+                media_service.save_backdrop_preference(
+                    source=source,
+                    media_type=media_type,
+                    media_id=media_id,
+                    backdrop_url=request.data.get("backdrop_url"),
+                    user=request.user,
+                ),
+            )
+        except ValueError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class TVSeasonsView(APIView):
     """TV season summaries."""
 

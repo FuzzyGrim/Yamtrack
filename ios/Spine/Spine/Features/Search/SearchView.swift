@@ -331,7 +331,7 @@ private struct SearchInputBar: View {
         }
         .padding(.horizontal)
         .padding(.top, 2)
-        .padding(.bottom, 10)
+        .padding(.bottom, 5)
         .animation(reduceMotion ? nil : .spring(response: 0.36, dampingFraction: 0.84), value: isLensExpanded)
         .onChange(of: isLensExpanded) {
             if isLensExpanded {

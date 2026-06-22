@@ -8,6 +8,7 @@ from django.db.models import Count
 from api.serializers.common import (
     cast_from_metadata,
     crew_from_metadata,
+    custom_backdrop_url_for_user,
     custom_poster_url_for_user,
     details_for_api,
     episodes_from_metadata,
@@ -18,13 +19,19 @@ from api.serializers.common import (
     synopsis_from_payload,
 )
 from app import config
-from app.models import CustomPosterPreference, Item, MediaTypes, Sources
+from app.models import (
+    CustomBackdropPreference,
+    CustomPosterPreference,
+    Item,
+    MediaTypes,
+    Sources,
+)
 from app.providers import services as provider_services
 from app.utils.color import build_accent_palette, compute_and_store_poster_accent
 
 SEARCH_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
-DETAIL_CACHE_VERSION = "v3"
+DETAIL_CACHE_VERSION = "v4"
 
 
 def default_source_for(media_type):
@@ -108,6 +115,7 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
         "episodes": episodes_from_metadata(enrich_episodes(metadata, source, user), request=request)
         if media_type == MediaTypes.SEASON.value
         else [],
+        "custom_backdrop_url": custom_backdrop_url_for_user(user, ref, request=request),
         "custom_poster_url": custom_poster_url_for_user(user, ref, request=request),
         "related": metadata.get("related", {}),
         "related_sections": related_sections_from_payload(
@@ -138,7 +146,7 @@ def poster_options(*, source, media_type, media_id, request=None, user=None):
     if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
         raise ValueError("Poster customization is only available for TMDB movies and TV shows.")
 
-    item = _poster_item(source=source, media_type=media_type, media_id=media_id)
+    item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
     from app.providers import tmdb
 
     current = CustomPosterPreference.objects.filter(user=user, item=item).first()
@@ -178,7 +186,7 @@ def save_poster_preference(*, source, media_type, media_id, poster_url, user):
     if not poster_url:
         raise ValueError("poster_url is required.")
 
-    item = _poster_item(source=source, media_type=media_type, media_id=media_id)
+    item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
     accent = compute_and_store_poster_accent(item, poster_url=poster_url, force=True)
     palette = build_accent_palette(accent)
     CustomPosterPreference.objects.update_or_create(
@@ -196,7 +204,66 @@ def save_poster_preference(*, source, media_type, media_id, poster_url, user):
     }
 
 
-def _poster_item(*, source, media_type, media_id):
+def backdrop_options(*, source, media_type, media_id, request=None, user=None):
+    """Return selectable backdrops for TMDB movie/TV media."""
+    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        raise ValueError("Backdrop customization is only available for TMDB movies and TV shows.")
+
+    item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
+    metadata = provider_services.get_media_metadata(media_type, media_id, source)
+    default_url = backdrop_url(metadata)
+    from app.providers import tmdb
+
+    current = CustomBackdropPreference.objects.filter(user=user, item=item).first()
+    selected_url = current.custom_image_url if current else default_url
+    original = {
+        "url": default_url,
+        "thumbnail_url": default_url,
+        "width": 0,
+        "height": 0,
+        "aspect_ratio": 1.778,
+        "vote_average": 0,
+        "vote_count": 0,
+        "language": None,
+        "is_original": True,
+        "is_selected": default_url == selected_url,
+    }
+
+    backdrops = [original]
+    for backdrop in tmdb.get_backdrop_images(media_id, media_type):
+        if backdrop["url"] == default_url:
+            continue
+        backdrops.append(
+            {
+                **backdrop,
+                "language": backdrop.get("language"),
+                "is_original": False,
+                "is_selected": backdrop["url"] == selected_url,
+            },
+        )
+    return {"backdrops": backdrops}
+
+
+def save_backdrop_preference(*, source, media_type, media_id, backdrop_url, user):
+    """Save a user's backdrop preference without mutating the item poster."""
+    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        raise ValueError("Backdrop customization is only available for TMDB movies and TV shows.")
+    if not backdrop_url:
+        raise ValueError("backdrop_url is required.")
+
+    item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
+    CustomBackdropPreference.objects.update_or_create(
+        user=user,
+        item=item,
+        defaults={"custom_image_url": backdrop_url},
+    )
+    return {
+        "backdrop_url": backdrop_url,
+        "custom_backdrop_url": backdrop_url,
+    }
+
+
+def _customizable_item(*, source, media_type, media_id):
     item = Item.objects.filter(source=source, media_type=media_type, media_id=media_id).first()
     if item is not None:
         return item

@@ -282,7 +282,12 @@ struct MediaDetailView: View {
     private func hero(_ detail: MediaDetail) -> some View {
         ZStack(alignment: .top) {
             HeroArtwork(detail: detail)
-                .frame(height: MediaDetailLayout.heroHeight)
+                .frame(height: heroHeight(for: detail))
+
+            if let backdropURL = backdropURLString(for: detail) {
+                BackdropArtwork(urlString: backdropURL)
+                    .frame(height: topSafeAreaInset + MediaDetailLayout.backdropHeight)
+            }
 
             VStack(spacing: 0) {
                 PosterImage(urlString: detail.customPosterUrl ?? detail.imageUrl, title: detail.title)
@@ -318,9 +323,22 @@ struct MediaDetailView: View {
             }
             .padding(.horizontal, 14)
             .padding(.bottom, 18)
-            .padding(.top, topSafeAreaInset + MediaDetailLayout.heroPosterTopOffset)
-            .frame(minHeight: MediaDetailLayout.heroHeight, alignment: .top)
+            .padding(.top, topSafeAreaInset + heroPosterTopOffset(for: detail))
+            .frame(minHeight: heroHeight(for: detail), alignment: .top)
         }
+    }
+
+    private func backdropURLString(for detail: MediaDetail) -> String? {
+        guard ["movie", "tv"].contains(detail.ref.mediaType) else { return nil }
+        return detail.backdropUrl
+    }
+
+    private func heroHeight(for detail: MediaDetail) -> CGFloat {
+        MediaDetailLayout.heroHeight + (backdropURLString(for: detail) == nil ? 0 : MediaDetailLayout.backdropTopSpacing)
+    }
+
+    private func heroPosterTopOffset(for detail: MediaDetail) -> CGFloat {
+        MediaDetailLayout.heroPosterTopOffset + (backdropURLString(for: detail) == nil ? 0 : MediaDetailLayout.backdropTopSpacing)
     }
 
     private func content(_ detail: MediaDetail) -> some View {
@@ -750,6 +768,8 @@ private enum MediaDetailLayout {
     static let heroPosterWidth: CGFloat = 191
     static let heroHeight: CGFloat = 535
     static let heroPosterTopOffset: CGFloat = 108
+    static let backdropTopSpacing: CGFloat = 100
+    static let backdropHeight: CGFloat = 256.25
     static let genrePillHeight: CGFloat = 31
     static let ratingBadgeSize: CGFloat = 24
     static let ratingPillVerticalPadding: CGFloat = 6
@@ -900,6 +920,52 @@ private struct HeroArtwork: View {
 
     private var accentColor: Color {
         Color(hex: detail.posterAccentColor) ?? SpinePalette.pageBackground
+    }
+}
+
+private struct BackdropArtwork: View {
+    let urlString: String
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                AsyncImage(url: URL(string: urlString)) { phase in
+                    switch phase {
+                    case let .success(image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: proxy.size.width, height: proxy.size.height)
+                            .clipped()
+                    default:
+                        Color.clear
+                    }
+                }
+
+                LinearGradient(
+                    stops: [
+                        .init(color: .black.opacity(0.42), location: 0),
+                        .init(color: .black.opacity(0.18), location: 0.36),
+                        .init(color: .clear, location: 0.72),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .white, location: 0),
+                        .init(color: .white, location: 0.52),
+                        .init(color: .white.opacity(0.35), location: 0.78),
+                        .init(color: .clear, location: 1),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+        }
+        .clipped()
     }
 }
 

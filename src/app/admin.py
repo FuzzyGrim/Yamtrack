@@ -6,6 +6,7 @@ from django.contrib.admin.sites import AlreadyRegistered
 
 from app.models import (
     BookSession,
+    CustomBackdropPreference,
     CustomPosterPreference,
     DiaryEntry,
     DiaryEntryTag,
@@ -66,6 +67,14 @@ class CustomPosterPreferenceAdmin(admin.ModelAdmin):
     list_filter = ["user"]
 
 
+class CustomBackdropPreferenceAdmin(admin.ModelAdmin):
+    """Custom admin for CustomBackdropPreference model."""
+
+    search_fields = ["item__title", "user__username"]
+    list_display = ["__str__", "user", "item", "updated_at"]
+    list_filter = ["user"]
+
+
 class DiaryEntryAdmin(admin.ModelAdmin):
     """Custom admin for DiaryEntry model with search and filter options."""
     
@@ -101,6 +110,7 @@ class BookSessionAdmin(admin.ModelAdmin):
 
 
 admin.site.register(CustomPosterPreference, CustomPosterPreferenceAdmin)
+admin.site.register(CustomBackdropPreference, CustomBackdropPreferenceAdmin)
 admin.site.register(DiaryEntry, DiaryEntryAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(DiaryEntryTag, DiaryEntryTagAdmin)
@@ -113,6 +123,7 @@ SpecialModels = [
     "Item",
     "Episode",
     "BasicMedia",
+    "CustomBackdropPreference",
     "CustomPosterPreference",
     "DiaryEntry",
     "Tag",

@@ -264,6 +264,19 @@ def custom_poster_url_for_user(user, ref, request=None):
     return absolute_url(request, preference.custom_image_url) if preference else None
 
 
+def custom_backdrop_url_for_user(user, ref, request=None):
+    """Return a viewer's custom backdrop for an existing Item."""
+    if not user or not user.is_authenticated:
+        return None
+    from app.models import CustomBackdropPreference
+
+    item = find_item(ref)
+    if item is None:
+        return None
+    preference = CustomBackdropPreference.objects.filter(user=user, item=item).first()
+    return absolute_url(request, preference.custom_image_url) if preference else None
+
+
 def related_sections_from_payload(related, media_type, source, request=None, user=None):
     """Normalize provider related media into mobile section cards."""
     if not related:
