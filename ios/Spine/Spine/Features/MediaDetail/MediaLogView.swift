@@ -466,7 +466,7 @@ struct MediaLogView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 GeometryReader { proxy in
-                    HStack(spacing: 2) {
+                    HStack(spacing: 6) {
                         ForEach(1...5, id: \.self) { star in
                             Image(systemName: starSystemName(star))
                                 .font(.system(size: 32, weight: .bold))
@@ -482,7 +482,7 @@ struct MediaLogView: View {
                             }
                     )
                 }
-                .frame(width: 173, height: 42)
+                .frame(width: 189, height: 42)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Rating")
                 .accessibilityValue(viewModel.ratingLabel())
@@ -605,13 +605,18 @@ struct MediaLogView: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(isSelected ? .black : .white)
+                .foregroundStyle(selectedIconColor(systemName: systemName, isSelected: isSelected))
                 .frame(width: 42, height: 42)
                 .background(isSelected ? .white.opacity(0.94) : .white.opacity(0.12), in: Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func selectedIconColor(systemName: String, isSelected: Bool) -> Color {
+        guard isSelected else { return .white }
+        return systemName == "heart.fill" ? .pink : .black
     }
 
     @ViewBuilder

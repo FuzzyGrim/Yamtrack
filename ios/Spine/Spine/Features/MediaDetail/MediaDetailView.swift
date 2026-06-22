@@ -443,9 +443,9 @@ struct MediaDetailView: View {
     private func ratingChips(_ detail: MediaDetail) -> [RatingChip] {
         var chips: [RatingChip] = []
         if let rating = detail.community?.averageRating, !rating.isEmpty {
-            chips.append(RatingChip(source: "SP", value: rating.starRatingLabel, assetName: nil))
+            chips.append(RatingChip(source: "SP", value: rating.starRatingValue, assetName: nil))
         }
-        for rating in detail.externalRatings ?? [] where !rating.value.isEmpty {
+        for rating in sortedExternalRatings(detail.externalRatings ?? []) where !rating.value.isEmpty {
             if rating.source.lowercased() == "spine" {
                 continue
             }
@@ -454,7 +454,7 @@ struct MediaDetailView: View {
             }
             chips.append(RatingChip(
                 source: rating.source.ratingAbbreviation,
-                value: rating.displayValue,
+                value: rating.value,
                 assetName: rating.source.ratingAssetName
             ))
         }
@@ -462,6 +462,24 @@ struct MediaDetailView: View {
             chips.append(RatingChip(source: "You", value: rating.starRatingLabel, assetName: nil))
         }
         return chips
+    }
+
+    private func sortedExternalRatings(_ ratings: [ExternalRating]) -> [ExternalRating] {
+        ratings.enumerated().sorted { lhs, rhs in
+            let lhsOrder = externalRatingOrder(lhs.element.source)
+            let rhsOrder = externalRatingOrder(rhs.element.source)
+            return lhsOrder == rhsOrder ? lhs.offset < rhs.offset : lhsOrder < rhsOrder
+        }.map {
+            $0.element
+        }
+    }
+
+    private func externalRatingOrder(_ source: String) -> Int {
+        switch source.lowercased() {
+        case "letterboxd": 0
+        case "imdb": 1
+        default: 2
+        }
     }
 
     private func byline(_ detail: MediaDetail) -> String? {
@@ -724,7 +742,7 @@ private enum MediaDetailLayout {
     static let seasonPosterSize = CGSize(width: 90, height: 135)
     static let castImageSize: CGFloat = 84
     static let castCardWidth: CGFloat = 126
-    static let castCardHeight: CGFloat = 154
+    static let castCardHeight: CGFloat = 182
 }
 
 private enum SpinePalette {
@@ -888,7 +906,7 @@ private struct ActionRail: View {
                 HStack(spacing: 6) {
                     Text("LOG")
                         .font(.system(size: 12, weight: .heavy))
-                    Image(systemName: isTracked ? "checkmark" : "plus")
+                    Image(systemName: isTracked ? "arrow.clockwise.circle" : "plus")
                         .font(.system(size: 12, weight: .bold))
                 }
                 .foregroundStyle(SpinePalette.pageBackground)
@@ -1262,17 +1280,10 @@ private struct CreditSection: View {
     var body: some View {
         if !people.isEmpty {
             VStack(alignment: .leading, spacing: 18) {
-                HStack(spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 30, weight: .heavy))
-                        .foregroundStyle(.white)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 26, weight: .heavy))
-                        .foregroundStyle(.white.opacity(0.55))
-                }
+                SectionLabel(title: title)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 24) {
+                    HStack(alignment: .top, spacing: 12) {
                         ForEach(people) { person in
                             VStack(spacing: 10) {
                                 AsyncImage(url: URL(string: person.imageUrl ?? "")) { phase in
@@ -1292,18 +1303,18 @@ private struct CreditSection: View {
                                 .clipShape(Circle())
 
                                 Text(person.name)
-                                    .font(.system(size: 17, weight: .regular))
+                                    .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(.white)
                                     .multilineTextAlignment(.center)
                                     .lineLimit(2)
-                                    .frame(height: 42, alignment: .top)
+                                    .minimumScaleFactor(0.86)
                                 if let subtitle = person.subtitle, !subtitle.isEmpty {
                                     Text(subtitle)
-                                        .font(.system(size: 15, weight: .regular))
+                                        .font(.system(size: 13, weight: .regular))
                                         .foregroundStyle(.white.opacity(0.84))
                                         .multilineTextAlignment(.center)
-                                        .lineLimit(2)
-                                        .frame(height: 36, alignment: .top)
+                                        .lineLimit(3)
+                                        .minimumScaleFactor(0.82)
                                 }
                             }
                             .frame(width: MediaDetailLayout.castCardWidth, height: MediaDetailLayout.castCardHeight, alignment: .top)
@@ -1449,12 +1460,7 @@ private struct RecommendationsSection: View {
     var body: some View {
         ForEach(sections.filter { !$0.items.isEmpty }) { section in
             VStack(alignment: .leading, spacing: 18) {
-                HStack(spacing: 4) {
-                    SectionLabel(title: section.title)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .heavy))
-                        .foregroundStyle(.white.opacity(0.42))
-                }
+                SectionLabel(title: section.title)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 10) {
@@ -1616,9 +1622,9 @@ private extension String {
         return "\(Self.cleanRating(stars))/5"
     }
 
-    var cleanNumericRating: String {
-        guard let value = Double(self) else { return self }
-        return Self.cleanRating(value)
+    var starRatingValue: String {
+        guard let raw = Double(self) else { return self }
+        return String(format: "%.1f", raw / 2)
     }
 
     var starRatingStep: Int {
@@ -1687,18 +1693,6 @@ private extension String {
         default:
             nil
         }
-    }
-}
-
-private extension ExternalRating {
-    var displayValue: String {
-        if value.contains("%") {
-            return value
-        }
-        if maxValue == "5" {
-            return "\(value.cleanNumericRating)/5"
-        }
-        return value.starRatingLabel
     }
 }
 
