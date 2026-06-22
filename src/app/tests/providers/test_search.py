@@ -193,6 +193,28 @@ class Search(TestCase):
         self.assertEqual(normalize_search_text("Pokémon: Blue!"), "pokemon blue")
         self.assertEqual(normalize_search_text("  HARRY--Potter  "), "harry potter")
 
+    def test_ranking_does_not_overvalue_leading_filler_words(self):
+        """Test titles with leading articles rank like close title matches."""
+        results = [
+            {
+                "title": "Batman: The Long Halloween",
+                "media_type": MediaTypes.MOVIE.value,
+                "popularity": 50,
+                "vote_count": 100,
+            },
+            {
+                "title": "The Batman",
+                "media_type": MediaTypes.MOVIE.value,
+                "image": "https://example.com/the-batman.jpg",
+                "popularity": 40,
+                "vote_count": 100,
+            },
+        ]
+
+        ranked = rank_results("batman", results, MediaTypes.MOVIE.value)
+
+        self.assertEqual(ranked[0]["title"], "The Batman")
+
     def test_book_ranking_prefers_real_metadata_over_bare_exact_title(self):
         """Test useful book records outrank low-information exact-title shells."""
         results = [

@@ -20,6 +20,18 @@ RANKING_KEYS = {
     "total_rating_count",
     "vote_count",
 }
+STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "de",
+    "der",
+    "el",
+    "la",
+    "le",
+    "of",
+    "the",
+}
 
 
 def normalize_search_text(value):
@@ -49,7 +61,16 @@ def _score(query, result, media_type):
     query_tokens = normalized_query.split()
     title_tokens = normalized_title.split()
 
-    score = _relevance_score(normalized_query, normalized_title, query_tokens, title_tokens)
+    canonical_query = _without_stop_words(query_tokens)
+    canonical_title = _without_stop_words(title_tokens)
+    score = _relevance_score(
+        normalized_query,
+        normalized_title,
+        query_tokens,
+        title_tokens,
+        canonical_query,
+        canonical_title,
+    )
     popularity = _popularity_score(result)
     score += popularity
     score += _metadata_score(result)
@@ -58,13 +79,24 @@ def _score(query, result, media_type):
     return score
 
 
-def _relevance_score(normalized_query, normalized_title, query_tokens, title_tokens):
+def _relevance_score(
+    normalized_query,
+    normalized_title,
+    query_tokens,
+    title_tokens,
+    canonical_query,
+    canonical_title,
+):
     if not normalized_query or not normalized_title:
         return 0
     if normalized_title == normalized_query:
         return 100
+    if canonical_query and canonical_title == canonical_query:
+        return 96
     if normalized_title.startswith(f"{normalized_query} "):
         return 76
+    if canonical_query and canonical_title.startswith(f"{canonical_query} "):
+        return 74
     if f" {normalized_query} " in f" {normalized_title} ":
         return 66
     if _tokens_in_order(query_tokens, title_tokens):
@@ -84,6 +116,10 @@ def _tokens_in_order(query_tokens, title_tokens):
             if pos == len(query_tokens):
                 return True
     return False
+
+
+def _without_stop_words(tokens):
+    return " ".join(token for token in tokens if token not in STOP_WORDS)
 
 
 def _popularity_score(result):
