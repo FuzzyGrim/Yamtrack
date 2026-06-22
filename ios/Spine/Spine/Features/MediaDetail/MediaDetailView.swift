@@ -294,10 +294,10 @@ struct MediaDetailView: View {
                 HStack(alignment: .bottom, spacing: 12) {
                     VStack(alignment: .leading, spacing: 11) {
                         Text(detail.title)
-                            .font(.system(size: 22, weight: .heavy))
+                            .font(.system(size: 33, weight: .heavy))
                             .foregroundStyle(.white)
                             .lineLimit(2)
-                            .minimumScaleFactor(0.82)
+                            .minimumScaleFactor(0.66)
 
                         if let byline = byline(detail) {
                             Text(byline)
@@ -443,20 +443,23 @@ struct MediaDetailView: View {
     private func ratingChips(_ detail: MediaDetail) -> [RatingChip] {
         var chips: [RatingChip] = []
         if let rating = detail.community?.averageRating, !rating.isEmpty {
-            chips.append(RatingChip(source: "SP", value: rating, assetName: nil))
+            chips.append(RatingChip(source: "SP", value: rating.starRatingLabel, assetName: nil))
         }
         for rating in detail.externalRatings ?? [] where !rating.value.isEmpty {
+            if rating.source.lowercased() == "spine" {
+                continue
+            }
             if ["movie", "tv"].contains(detail.ref.mediaType), rating.source.lowercased() == "tmdb" {
                 continue
             }
             chips.append(RatingChip(
                 source: rating.source.ratingAbbreviation,
-                value: rating.value,
+                value: rating.displayValue,
                 assetName: rating.source.ratingAssetName
             ))
         }
         if let rating = currentRating(detail), !rating.isEmpty {
-            chips.append(RatingChip(source: "You", value: rating, assetName: nil))
+            chips.append(RatingChip(source: "You", value: rating.starRatingLabel, assetName: nil))
         }
         return chips
     }
@@ -719,7 +722,9 @@ private enum MediaDetailLayout {
     static let recommendationPosterSize = CGSize(width: 100, height: 150)
     static let recommendationCardHeight: CGFloat = 190
     static let seasonPosterSize = CGSize(width: 90, height: 135)
-    static let castCardHeight: CGFloat = 122
+    static let castImageSize: CGFloat = 84
+    static let castCardWidth: CGFloat = 126
+    static let castCardHeight: CGFloat = 154
 }
 
 private enum SpinePalette {
@@ -1038,8 +1043,11 @@ private struct TrackingSummarySection: View {
                 values.append("\(display(value)) \(progress.unit)\(value == 1 ? "" : "s")")
             }
         }
-        if let rating = tracking?.rating ?? userState?.rating {
-            values.append("Rated \(rating)")
+        if let rating = userState?.diaryRating ?? tracking?.rating ?? userState?.rating {
+            values.append("Rated \(rating.starRatingLabel)")
+        }
+        if let consumedAt = userState?.diaryConsumedAt {
+            values.append("Logged \(consumedAt.shortDateLabel)")
         }
         if let startDate = tracking?.startDate {
             values.append("Started \(startDate)")
@@ -1188,7 +1196,7 @@ private struct SpineRatingDistributionSection: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     if let average = community?.averageRating {
-                        Label(average, systemImage: "star.fill")
+                        Label(average.starRatingLabel, systemImage: "star.fill")
                             .font(.system(size: 18, weight: .heavy))
                             .foregroundStyle(.white)
                     }
@@ -1225,7 +1233,13 @@ private struct SpineRatingDistributionSection: View {
     }
 
     private var buckets: [RatingDistributionBucket] {
-        community?.ratingDistribution ?? []
+        let rawBuckets = community?.ratingDistribution ?? []
+        guard !rawBuckets.isEmpty else { return [] }
+        let counts = Dictionary(grouping: rawBuckets, by: { $0.rating.starRatingStep })
+            .mapValues { $0.reduce(0) { $0 + $1.count } }
+        return (1...10).map { step in
+            RatingDistributionBucket(rating: String.starRatingLabel(forStep: step), count: counts[step, default: 0])
+        }
     }
 
     private var maxCount: Int {
@@ -1248,12 +1262,19 @@ private struct CreditSection: View {
     var body: some View {
         if !people.isEmpty {
             VStack(alignment: .leading, spacing: 18) {
-                SectionLabel(title: title)
+                HStack(spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 30, weight: .heavy))
+                        .foregroundStyle(.white)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 26, weight: .heavy))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(alignment: .top, spacing: 24) {
                         ForEach(people) { person in
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(spacing: 10) {
                                 AsyncImage(url: URL(string: person.imageUrl ?? "")) { phase in
                                     switch phase {
                                     case let .success(image):
@@ -1267,23 +1288,25 @@ private struct CreditSection: View {
                                             }
                                     }
                                 }
-                                .frame(width: 58, height: 58)
+                                .frame(width: MediaDetailLayout.castImageSize, height: MediaDetailLayout.castImageSize)
                                 .clipShape(Circle())
 
                                 Text(person.name)
-                                    .font(.system(size: 13, weight: .heavy))
+                                    .font(.system(size: 17, weight: .regular))
                                     .foregroundStyle(.white)
+                                    .multilineTextAlignment(.center)
                                     .lineLimit(2)
-                                    .frame(height: 34, alignment: .topLeading)
+                                    .frame(height: 42, alignment: .top)
                                 if let subtitle = person.subtitle, !subtitle.isEmpty {
                                     Text(subtitle)
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundStyle(.white.opacity(0.62))
-                                        .lineLimit(1)
-                                        .frame(height: 14, alignment: .topLeading)
+                                        .font(.system(size: 15, weight: .regular))
+                                        .foregroundStyle(.white.opacity(0.84))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                        .frame(height: 36, alignment: .top)
                                 }
                             }
-                            .frame(width: 96, height: MediaDetailLayout.castCardHeight, alignment: .topLeading)
+                            .frame(width: MediaDetailLayout.castCardWidth, height: MediaDetailLayout.castCardHeight, alignment: .top)
                         }
                     }
                 }
@@ -1390,7 +1413,7 @@ private struct ReviewsSection: View {
                                     .foregroundStyle(.white)
                                 Spacer()
                                 if let rating = review.rating {
-                                    Label(rating, systemImage: "star.fill")
+                                    Label(rating.starRatingLabel, systemImage: "star.fill")
                                         .font(.system(size: 11, weight: .heavy))
                                         .foregroundStyle(.white.opacity(0.85))
                                 }
@@ -1587,6 +1610,45 @@ private extension String {
         count >= 4 ? String(prefix(4)) : nil
     }
 
+    var starRatingLabel: String {
+        guard let raw = Double(self) else { return self }
+        let stars = raw / 2
+        return "\(Self.cleanRating(stars))/5"
+    }
+
+    var cleanNumericRating: String {
+        guard let value = Double(self) else { return self }
+        return Self.cleanRating(value)
+    }
+
+    var starRatingStep: Int {
+        guard let raw = Double(self) else { return 0 }
+        return min(max(Int(round(raw)), 1), 10)
+    }
+
+    var shortDateLabel: String {
+        let trimmed = String(prefix(10))
+        let input = DateFormatter()
+        input.calendar = Calendar(identifier: .gregorian)
+        input.locale = Locale(identifier: "en_US_POSIX")
+        input.dateFormat = "yyyy-MM-dd"
+        guard let date = input.date(from: trimmed) else { return trimmed }
+
+        let output = DateFormatter()
+        output.calendar = Calendar(identifier: .gregorian)
+        output.locale = Locale.current
+        output.dateFormat = "MMM d, yyyy"
+        return output.string(from: date)
+    }
+
+    static func starRatingLabel(forStep step: Int) -> String {
+        cleanRating(Double(step) / 2)
+    }
+
+    private static func cleanRating(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(value))" : String(format: "%.1f", value)
+    }
+
     var ratingAbbreviation: String {
         switch lowercased() {
         case "imdb":
@@ -1625,6 +1687,18 @@ private extension String {
         default:
             nil
         }
+    }
+}
+
+private extension ExternalRating {
+    var displayValue: String {
+        if value.contains("%") {
+            return value
+        }
+        if maxValue == "5" {
+            return "\(value.cleanNumericRating)/5"
+        }
+        return value.starRatingLabel
     }
 }
 

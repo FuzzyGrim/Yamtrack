@@ -146,6 +146,16 @@ class ApiV1FoundationTests(TestCase):
             "letterboxd": {"value": "4.3", "votes": 500000},
             "tomatoes": {"value": "79%", "votes": 100},
         }
+        user = get_user_model().objects.create_user(username="viewer", password="strong-password-123")
+        self.client.force_authenticate(user)
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Fight Club",
+        )
+        consumed_at = timezone.now()
+        DiaryEntry.objects.create(user=user, item=item, consumed_at=consumed_at, rating="10.0", visibility="public")
 
         response = self.client.get("/api/v1/media/tmdb/movie/550/")
 
@@ -162,6 +172,8 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["related_sections"][0]["id"], "collection")
         self.assertEqual(response.data["related_sections"][1]["items"][0]["title"], "Pulp Fiction")
         self.assertNotIn("seasons", [section["id"] for section in response.data["related_sections"]])
+        self.assertEqual(response.data["user_state"]["diary_rating"], "10.0")
+        self.assertEqual(response.data["user_state"]["diary_consumed_at"], consumed_at)
 
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")

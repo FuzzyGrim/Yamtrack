@@ -15,12 +15,10 @@ final class MediaLogViewModel {
     var selectedSeasonNumber: Int?
     var consumedAt = Date()
     var ratingSteps = 0
-    var reviewTitle = ""
     var review = ""
     var tags: [String] = []
     var tagQuery = ""
     var tagSuggestions: [DiaryTagSuggestion] = []
-    var visibility = "public"
     var containsSpoilers = false
     var liked = false
     var isRepeat = false
@@ -165,6 +163,13 @@ final class MediaLogViewModel {
         ratingSteps = ratingSteps == next ? 0 : next
     }
 
+    func setRating(locationX: CGFloat, width: CGFloat) {
+        guard width > 0 else { return }
+        let clamped = min(max(locationX, 0), width)
+        let next = max(1, min(10, Int(ceil((clamped / width) * 10))))
+        ratingSteps = next
+    }
+
     func loadTags() async {
         isLoadingTags = true
         defer { isLoadingTags = false }
@@ -216,12 +221,12 @@ final class MediaLogViewModel {
                 consumedAt: consumedAt,
                 rating: Self.ratingDecimal(for: ratingSteps),
                 review: review,
-                reviewTitle: reviewTitle,
+                reviewTitle: "",
                 liked: liked,
                 isRewatch: isRepeat,
                 autoMarkConsumed: true,
                 containsSpoilers: containsSpoilers,
-                visibility: visibility,
+                visibility: "public",
                 tags: tags
             ))
         }
@@ -413,17 +418,13 @@ struct MediaLogView: View {
     private var finishedFields: some View {
         VStack(alignment: .leading, spacing: 16) {
             fieldGroup {
-                DatePicker("Date", selection: $viewModel.consumedAt, displayedComponents: [.date, .hourAndMinute])
+                DatePicker("Date", selection: $viewModel.consumedAt, displayedComponents: [.date])
                     .datePickerStyle(.compact)
                     .colorScheme(.dark)
                 ratingPicker
             }
 
             fieldGroup {
-                TextField("Review title", text: $viewModel.reviewTitle)
-                    .textFieldStyle(.plain)
-                    .submitLabel(.next)
-                Divider().background(.white.opacity(0.12))
                 TextField("Review", text: $viewModel.review, axis: .vertical)
                     .textFieldStyle(.plain)
                     .lineLimit(5...9)
@@ -462,38 +463,73 @@ struct MediaLogView: View {
     }
 
     private var ratingPicker: some View {
-        HStack(spacing: 10) {
-            ForEach(1...5, id: \.self) { star in
-                HStack(spacing: 0) {
-                    ratingButton(star: star, half: true)
-                    ratingButton(star: star, half: false)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                GeometryReader { proxy in
+                    HStack(spacing: 2) {
+                        ForEach(1...5, id: \.self) { star in
+                            Image(systemName: starSystemName(star))
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundStyle(viewModel.ratingSteps >= star * 2 - 1 ? .yellow : .white.opacity(0.26))
+                                .frame(width: 33)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                viewModel.setRating(locationX: value.location.x, width: proxy.size.width)
+                            }
+                    )
                 }
+                .frame(width: 173, height: 42)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(star) star")
-            }
+                .accessibilityLabel("Rating")
+                .accessibilityValue(viewModel.ratingLabel())
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment:
+                        viewModel.ratingSteps = min(10, viewModel.ratingSteps + 1)
+                    case .decrement:
+                        viewModel.ratingSteps = max(0, viewModel.ratingSteps - 1)
+                    default:
+                        break
+                    }
+                }
 
-            Spacer()
+                Spacer(minLength: 0)
+
+                compactIconButton(
+                    systemName: viewModel.liked ? "heart.fill" : "heart",
+                    title: "Like",
+                    isSelected: viewModel.liked
+                ) {
+                    viewModel.liked.toggle()
+                }
+
+                compactIconButton(
+                    systemName: "arrow.clockwise.circle",
+                    title: viewModel.repeatLabel,
+                    isSelected: viewModel.isRepeat
+                ) {
+                    viewModel.isRepeat.toggle()
+                }
+            }
 
             Text(viewModel.ratingLabel())
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(.white.opacity(0.62))
-                .frame(width: 66, alignment: .trailing)
         }
     }
 
-    private func ratingButton(star: Int, half: Bool) -> some View {
-        let step = star * 2 - (half ? 1 : 0)
-        return Button {
-            viewModel.setRating(star: star, half: half)
-        } label: {
-            Image(systemName: viewModel.ratingSteps >= step ? "star.fill" : "star")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(viewModel.ratingSteps >= step ? .yellow : .white.opacity(0.28))
-                .frame(width: 13, height: 30, alignment: half ? .leading : .trailing)
-                .clipped()
+    private func starSystemName(_ star: Int) -> String {
+        if viewModel.ratingSteps >= star * 2 {
+            return "star.fill"
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(viewModel.ratingLabel(for: step))
+        if viewModel.ratingSteps == star * 2 - 1 {
+            return "star.leadinghalf.filled"
+        }
+        return "star"
     }
 
     private var tagEditor: some View {
@@ -561,16 +597,21 @@ struct MediaLogView: View {
 
     private var options: some View {
         fieldGroup {
-            Toggle("Liked", isOn: $viewModel.liked)
-            Toggle(viewModel.repeatLabel, isOn: $viewModel.isRepeat)
             Toggle("Contains spoilers", isOn: $viewModel.containsSpoilers)
-
-            Picker("Visibility", selection: $viewModel.visibility) {
-                ForEach(APIConstants.visibilityChoices, id: \.self) { value in
-                    Text(value.capitalized).tag(value)
-                }
-            }
         }
+    }
+
+    private func compactIconButton(systemName: String, title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(isSelected ? .black : .white)
+                .frame(width: 42, height: 42)
+                .background(isSelected ? .white.opacity(0.94) : .white.opacity(0.12), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     @ViewBuilder

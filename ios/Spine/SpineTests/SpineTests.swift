@@ -203,6 +203,8 @@ final class SpineTests: XCTestCase {
         )
 
         XCTAssertEqual(detail.title, "Liquid Form")
+        XCTAssertEqual(detail.userState?.diaryRating, "10.0")
+        XCTAssertEqual(detail.userState?.diaryConsumedAt, "2026-06-20T12:00:00Z")
         XCTAssertEqual(detail.externalRatings?.count, 4)
         XCTAssertEqual(detail.cast?.first?.character, "Mika")
         XCTAssertEqual(detail.relatedSections?.first?.items.first?.title, "Pulp Fiction")
@@ -522,6 +524,9 @@ final class SpineTests: XCTestCase {
 
         XCTAssertEqual(viewModel.ratingSteps, 7)
         XCTAssertEqual(viewModel.ratingLabel(), "3.5/5")
+
+        viewModel.setRating(locationX: 25, width: 100)
+        XCTAssertEqual(viewModel.ratingSteps, 3)
     }
 
     @MainActor
@@ -537,13 +542,11 @@ final class SpineTests: XCTestCase {
             onSaved: { savedCount += 1 }
         )
         viewModel.ratingSteps = 9
-        viewModel.reviewTitle = "Sharp"
         viewModel.review = "Still cuts."
         viewModel.tags = ["noir"]
         viewModel.liked = true
         viewModel.isRepeat = true
         viewModel.containsSpoilers = true
-        viewModel.visibility = "followers"
 
         let didSave = await viewModel.save()
 
@@ -553,7 +556,8 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(diary.createdRequests.first?.ref.mediaType, "movie")
         XCTAssertEqual(diary.createdRequests.first?.rating, Decimal(9))
         XCTAssertEqual(diary.createdRequests.first?.autoMarkConsumed, true)
-        XCTAssertEqual(diary.createdRequests.first?.visibility, "followers")
+        XCTAssertEqual(diary.createdRequests.first?.reviewTitle, "")
+        XCTAssertEqual(diary.createdRequests.first?.visibility, "public")
         XCTAssertEqual(tracking.updateRequests.count, 0)
     }
 
@@ -973,7 +977,7 @@ private enum TestFixtures {
       "poster_accent_color": "#19A7CE",
       "release_date": "2026-06-19",
       "default_source": "tmdb",
-      "user_state": { "is_tracked": true, "tracking_id": 42, "status": "Completed", "rating": "9.2", "in_lists": [1, 4] },
+      "user_state": { "is_tracked": true, "tracking_id": 42, "status": "Completed", "rating": "9.2", "diary_rating": "10.0", "diary_consumed_at": "2026-06-20T12:00:00Z", "in_lists": [1, 4] },
       "backdrop_url": "https://image.tmdb.org/t/p/original/rr7E0NoGKxvbkb89eR1GwfoYjpA.jpg",
       "details": {
         "director": "The Alchemist",
@@ -994,7 +998,7 @@ private enum TestFixtures {
           ]
         }
       },
-      "community": { "average_rating": "8.6", "rating_count": 1234, "diary_count": 318, "review_count": 86, "liked_count": 907 },
+      "community": { "average_rating": "8.6", "rating_count": 1234, "diary_count": 318, "review_count": 86, "liked_count": 907, "rating_distribution": [{ "rating": "10.0", "count": 1 }] },
       "external_ratings": [
         { "source": "Spine", "value": "8.6", "vote_count": 1234, "max_value": "10" },
         { "source": "IMDb", "value": "7.9", "vote_count": 84231, "max_value": "10" },

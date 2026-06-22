@@ -4,7 +4,7 @@
 
 - App shell: Search, Library, Diary, Profile tabs.
 - Media detail: dark production detail page with bleeding poster/accent hero, lowered safe-area-aware poster placement, real provider/Spine rating chips, expandable synopsis, tracked-state summary, media-specific metadata, reviews, seasons/episodes, cast/crew/authors, live related sections, poster customization for TMDB movies/TV, and a page-only custom bottom nav overlay.
-- Media log: the media detail LOG action now opens a full-screen native log page with poster-led layout, 5-star half-step ratings saved as 0-10 API values, review title/body, tags with live suggestions, liked/repeat/spoiler/visibility controls, TV season selection, mark-only actions, and progress-only mode for books/manga/comics/games/board games.
+- Media log: the media detail LOG action now opens a full-screen native log page with poster-led layout, date-only logging, large draggable 5-star half-step ratings saved as 0-10 API values, review body, tags with live suggestions, liked/repeat icon controls, spoiler control, TV season selection, mark-only actions, and progress-only mode for books/manga/comics/games/board games.
 - Poster customization: the media detail ellipsis opens a small bottom menu, then a live poster picker with language filtering, current selection, save, and immediate poster/blur background update.
 
 ## Live API
