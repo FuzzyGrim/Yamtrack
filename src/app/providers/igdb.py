@@ -181,6 +181,7 @@ def search(query, page):
     data = cache.get(cache_key)
 
     if data is None:
+        search_query = str(query).replace("\\", "\\\\").replace('"', '\\"')
         access_token = get_access_token()
         url = f"{base_url}/multiquery"
         headers = {
@@ -188,9 +189,7 @@ def search(query, page):
             "Authorization": f"Bearer {access_token}",
         }
 
-        base_conditions = (
-            f'where name ~ *"{query}"* & game_type = (0,1,2,3,4,5,6,7,8,9,10)'
-        )
+        base_conditions = "where game_type = (0,1,2,3,4,5,6,7,8,9,10)"
 
         if not settings.IGDB_NSFW:
             base_conditions += " & themes != (42)"
@@ -200,6 +199,7 @@ def search(query, page):
         # Create the multiquery with both search and count
         multiquery = (
             'query games "SearchResults" {'
+            f'search "{search_query}";'
             "fields name,cover.image_id;"
             "sort total_rating_count desc;"
             f"limit {settings.PER_PAGE};"
@@ -207,6 +207,7 @@ def search(query, page):
             f"{base_conditions};"
             "};"
             'query games/count "TotalCount" {'
+            f'search "{search_query}";'
             f"{base_conditions};"
             "};"
         )

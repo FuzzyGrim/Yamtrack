@@ -116,7 +116,7 @@ def search(query, page):
 
 def book(media_id):
     """Get metadata for a book from Hardcover."""
-    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_v4"
+    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_v5"
     data = cache.get(cache_key)
 
     if data is None:
@@ -134,6 +134,7 @@ def book(media_id):
             release_date
             slug
             canonical_id
+            cached_featured_series
             cached_contributors(path: "[0]['author']['name']")
             default_cover_edition {
               edition_format
@@ -224,6 +225,8 @@ def book(media_id):
                    media_id, publishers, isbns, release_date)
         
         recommendations = None
+        featured_series = get_featured_series(book_data.get("cached_featured_series"))
+        series_items = get_series_books(featured_series.get("id")) if featured_series else []
 
         # Try multiple approaches to get recommendations
         recommendations = []
@@ -360,6 +363,12 @@ def book(media_id):
                 except Exception as e:
                     logger.warning(f"Author fallback failed: {e}")
 
+        related = {
+            "recommendations": get_recommendations(recommendations),
+        }
+        if featured_series and series_items:
+            related[featured_series["name"]] = series_items
+
         data = {
             "media_id": book_data["id"],
             "source": Sources.HARDCOVER.value,
@@ -382,14 +391,94 @@ def book(media_id):
                 "publishers": publishers,
                 "isbn": isbns,
             },
-            "related": {
-                "recommendations": get_recommendations(recommendations),
-            },
+            "related": related,
         }
 
         cache.set(cache_key, data)
 
     return data
+
+
+def get_featured_series(series_data):
+    """Return the primary Hardcover series id/name from cached_featured_series."""
+    if isinstance(series_data, list):
+        series_data = series_data[0] if series_data else None
+    if not isinstance(series_data, dict) or not series_data.get("id"):
+        return None
+
+    name = series_data.get("name") or series_data.get("title")
+    if not name:
+        return None
+
+    return {"id": series_data["id"], "name": name}
+
+
+def get_series_books(series_id):
+    """Fetch and format Hardcover series books for related carousels."""
+    query = """
+    query GetSeriesBooks($series_id: Int!) {
+      series_by_pk(id: $series_id) {
+        book_series(order_by: {position: asc}) {
+          position
+          users_read_count
+          book {
+            id
+            title
+            slug
+            cached_image(path: "url")
+          }
+        }
+      }
+    }
+    """
+
+    try:
+        response = services.api_request(
+            Sources.HARDCOVER.value,
+            "POST",
+            base_url,
+            params={"query": query, "variables": {"series_id": int(series_id)}},
+            headers={"Authorization": settings.HARDCOVER_API},
+        )
+    except Exception as e:
+        logger.warning("Series books failed: %s", e)
+        return []
+
+    rows = (response.get("data", {}).get("series_by_pk") or {}).get("book_series") or []
+    best_by_position = {}
+    no_position = []
+    for index, row in enumerate(rows):
+        book_data = row.get("book")
+        if not book_data:
+            continue
+        position = row.get("position")
+        item = {
+            "position": position,
+            "users_read_count": row.get("users_read_count") or 0,
+            "index": index,
+            "book": book_data,
+        }
+        if position is None:
+            no_position.append(item)
+            continue
+        current = best_by_position.get(position)
+        if not current or item["users_read_count"] > current["users_read_count"]:
+            best_by_position[position] = item
+
+    series_books = sorted(
+        [*best_by_position.values(), *no_position],
+        key=lambda item: (item["position"] is None, item["position"] or 0, item["index"]),
+    )
+    return [
+        {
+            "media_id": row["book"]["id"],
+            "source": Sources.HARDCOVER.value,
+            "media_type": MediaTypes.BOOK.value,
+            "title": row["book"]["title"],
+            "image": row["book"].get("cached_image") or settings.IMG_NONE,
+        }
+        for row in series_books
+    ]
 
 
 def format_release_date(release_date):

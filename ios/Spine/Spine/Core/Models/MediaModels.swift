@@ -25,12 +25,96 @@ struct MediaSummary: Codable, Identifiable, Hashable {
     let subtitle: String?
     let overview: String?
     let imageUrl: String?
+    let posterUrl: String?
+    let backdropUrl: String?
+    let posterOrientation: PosterOrientation?
+    let posterAspectRatio: Double?
+    let posterWidth: Int?
+    let posterHeight: Int?
     let posterAccentColor: String?
     let releaseDate: String?
     let defaultSource: String?
     var userState: UserMediaState?
 
     var id: String { ref.id }
+
+    var displayPosterURL: String? {
+        posterUrl ?? imageUrl
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case ref
+        case title
+        case subtitle
+        case overview
+        case imageUrl
+        case posterUrl
+        case backdropUrl
+        case posterOrientation
+        case posterAspectRatio
+        case posterWidth
+        case posterHeight
+        case posterAccentColor
+        case releaseDate
+        case defaultSource
+        case userState
+    }
+
+    init(
+        ref: MediaRef,
+        title: String,
+        subtitle: String? = nil,
+        overview: String? = nil,
+        imageUrl: String? = nil,
+        posterUrl: String? = nil,
+        backdropUrl: String? = nil,
+        posterOrientation: PosterOrientation? = nil,
+        posterAspectRatio: Double? = nil,
+        posterWidth: Int? = nil,
+        posterHeight: Int? = nil,
+        posterAccentColor: String? = nil,
+        releaseDate: String? = nil,
+        defaultSource: String? = nil,
+        userState: UserMediaState? = nil
+    ) {
+        self.ref = ref
+        self.title = title
+        self.subtitle = subtitle
+        self.overview = overview
+        self.imageUrl = imageUrl
+        self.posterUrl = posterUrl ?? imageUrl
+        self.backdropUrl = backdropUrl
+        self.posterOrientation = posterOrientation
+        self.posterAspectRatio = posterAspectRatio
+        self.posterWidth = posterWidth
+        self.posterHeight = posterHeight
+        self.posterAccentColor = posterAccentColor
+        self.releaseDate = releaseDate
+        self.defaultSource = defaultSource
+        self.userState = userState
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+        self.init(
+            ref: try container.decode(MediaRef.self, forKey: .ref),
+            title: try container.decode(String.self, forKey: .title),
+            subtitle: try container.decodeIfPresent(String.self, forKey: .subtitle),
+            overview: try container.decodeIfPresent(String.self, forKey: .overview),
+            imageUrl: imageUrl,
+            posterUrl: try container.decodeIfPresent(String.self, forKey: .posterUrl) ?? imageUrl,
+            backdropUrl: try container.decodeIfPresent(String.self, forKey: .backdropUrl),
+            posterOrientation: try container.decodeIfPresent(PosterOrientation.self, forKey: .posterOrientation),
+            posterAspectRatio: try container.decodeIfPresent(Double.self, forKey: .posterAspectRatio),
+            posterWidth: try container.decodeIfPresent(Int.self, forKey: .posterWidth),
+            posterHeight: try container.decodeIfPresent(Int.self, forKey: .posterHeight),
+            posterAccentColor: try container.decodeIfPresent(String.self, forKey: .posterAccentColor),
+            releaseDate: try container.decodeIfPresent(String.self, forKey: .releaseDate),
+            defaultSource: try container.decodeIfPresent(String.self, forKey: .defaultSource),
+            userState: try container.decodeIfPresent(UserMediaState.self, forKey: .userState)
+        )
+    }
 }
 
 struct MediaDetail: Decodable, Identifiable {
@@ -40,6 +124,11 @@ struct MediaDetail: Decodable, Identifiable {
     let overview: String?
     let synopsis: String?
     let imageUrl: String?
+    let posterUrl: String?
+    let posterOrientation: PosterOrientation?
+    let posterAspectRatio: Double?
+    let posterWidth: Int?
+    let posterHeight: Int?
     let posterAccentColor: String?
     let releaseDate: String?
     let defaultSource: String?
@@ -61,6 +150,140 @@ struct MediaDetail: Decodable, Identifiable {
 
     var id: String { ref.id }
 
+    var displayPosterURL: String? {
+        customPosterUrl ?? posterUrl ?? imageUrl
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case ref
+        case title
+        case subtitle
+        case overview
+        case synopsis
+        case imageUrl
+        case posterUrl
+        case posterOrientation
+        case posterAspectRatio
+        case posterWidth
+        case posterHeight
+        case posterAccentColor
+        case releaseDate
+        case defaultSource
+        case userState
+        case backdropUrl
+        case details
+        case related
+        case providers
+        case community
+        case externalRatings
+        case reviews
+        case cast
+        case crew
+        case relatedSections
+        case episodes
+        case seasons
+        case customPosterUrl
+        case customBackdropUrl
+    }
+
+    init(
+        ref: MediaRef,
+        title: String,
+        subtitle: String? = nil,
+        overview: String? = nil,
+        synopsis: String? = nil,
+        imageUrl: String? = nil,
+        posterUrl: String? = nil,
+        posterOrientation: PosterOrientation? = nil,
+        posterAspectRatio: Double? = nil,
+        posterWidth: Int? = nil,
+        posterHeight: Int? = nil,
+        posterAccentColor: String? = nil,
+        releaseDate: String? = nil,
+        defaultSource: String? = nil,
+        userState: UserMediaState? = nil,
+        backdropUrl: String? = nil,
+        details: [String: JSONValue]? = nil,
+        related: [String: JSONValue]? = nil,
+        providers: JSONValue? = nil,
+        community: CommunityStats? = nil,
+        externalRatings: [ExternalRating]? = nil,
+        reviews: [MediaReview]? = nil,
+        cast: [CreditPerson]? = nil,
+        crew: [CreditPerson]? = nil,
+        relatedSections: [RelatedMediaSection]? = nil,
+        episodes: [EpisodeSummary]? = nil,
+        seasons: [SeasonSummary]? = nil,
+        customPosterUrl: String? = nil,
+        customBackdropUrl: String? = nil
+    ) {
+        self.ref = ref
+        self.title = title
+        self.subtitle = subtitle
+        self.overview = overview
+        self.synopsis = synopsis
+        self.imageUrl = imageUrl
+        self.posterUrl = posterUrl ?? imageUrl
+        self.posterOrientation = posterOrientation
+        self.posterAspectRatio = posterAspectRatio
+        self.posterWidth = posterWidth
+        self.posterHeight = posterHeight
+        self.posterAccentColor = posterAccentColor
+        self.releaseDate = releaseDate
+        self.defaultSource = defaultSource
+        self.userState = userState
+        self.backdropUrl = backdropUrl
+        self.details = details
+        self.related = related
+        self.providers = providers
+        self.community = community
+        self.externalRatings = externalRatings
+        self.reviews = reviews
+        self.cast = cast
+        self.crew = crew
+        self.relatedSections = relatedSections
+        self.episodes = episodes
+        self.seasons = seasons
+        self.customPosterUrl = customPosterUrl
+        self.customBackdropUrl = customBackdropUrl
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+        self.init(
+            ref: try container.decode(MediaRef.self, forKey: .ref),
+            title: try container.decode(String.self, forKey: .title),
+            subtitle: try container.decodeIfPresent(String.self, forKey: .subtitle),
+            overview: try container.decodeIfPresent(String.self, forKey: .overview),
+            synopsis: try container.decodeIfPresent(String.self, forKey: .synopsis),
+            imageUrl: imageUrl,
+            posterUrl: try container.decodeIfPresent(String.self, forKey: .posterUrl) ?? imageUrl,
+            posterOrientation: try container.decodeIfPresent(PosterOrientation.self, forKey: .posterOrientation),
+            posterAspectRatio: try container.decodeIfPresent(Double.self, forKey: .posterAspectRatio),
+            posterWidth: try container.decodeIfPresent(Int.self, forKey: .posterWidth),
+            posterHeight: try container.decodeIfPresent(Int.self, forKey: .posterHeight),
+            posterAccentColor: try container.decodeIfPresent(String.self, forKey: .posterAccentColor),
+            releaseDate: try container.decodeIfPresent(String.self, forKey: .releaseDate),
+            defaultSource: try container.decodeIfPresent(String.self, forKey: .defaultSource),
+            userState: try container.decodeIfPresent(UserMediaState.self, forKey: .userState),
+            backdropUrl: try container.decodeIfPresent(String.self, forKey: .backdropUrl),
+            details: try container.decodeIfPresent([String: JSONValue].self, forKey: .details),
+            related: try container.decodeIfPresent([String: JSONValue].self, forKey: .related),
+            providers: try container.decodeIfPresent(JSONValue.self, forKey: .providers),
+            community: try container.decodeIfPresent(CommunityStats.self, forKey: .community),
+            externalRatings: try container.decodeIfPresent([ExternalRating].self, forKey: .externalRatings),
+            reviews: try container.decodeIfPresent([MediaReview].self, forKey: .reviews),
+            cast: try container.decodeIfPresent([CreditPerson].self, forKey: .cast),
+            crew: try container.decodeIfPresent([CreditPerson].self, forKey: .crew),
+            relatedSections: try container.decodeIfPresent([RelatedMediaSection].self, forKey: .relatedSections),
+            episodes: try container.decodeIfPresent([EpisodeSummary].self, forKey: .episodes),
+            seasons: try container.decodeIfPresent([SeasonSummary].self, forKey: .seasons),
+            customPosterUrl: try container.decodeIfPresent(String.self, forKey: .customPosterUrl),
+            customBackdropUrl: try container.decodeIfPresent(String.self, forKey: .customBackdropUrl)
+        )
+    }
+
     func replacingPoster(with response: PosterSaveResponse) -> MediaDetail {
         MediaDetail(
             ref: ref,
@@ -69,6 +292,11 @@ struct MediaDetail: Decodable, Identifiable {
             overview: overview,
             synopsis: synopsis,
             imageUrl: imageUrl,
+            posterUrl: response.customPosterUrl ?? response.posterUrl,
+            posterOrientation: posterOrientation,
+            posterAspectRatio: posterAspectRatio,
+            posterWidth: posterWidth,
+            posterHeight: posterHeight,
             posterAccentColor: response.posterAccentColor ?? posterAccentColor,
             releaseDate: releaseDate,
             defaultSource: defaultSource,
@@ -98,6 +326,11 @@ struct MediaDetail: Decodable, Identifiable {
             overview: overview,
             synopsis: synopsis,
             imageUrl: imageUrl,
+            posterUrl: posterUrl,
+            posterOrientation: posterOrientation,
+            posterAspectRatio: posterAspectRatio,
+            posterWidth: posterWidth,
+            posterHeight: posterHeight,
             posterAccentColor: posterAccentColor,
             releaseDate: releaseDate,
             defaultSource: defaultSource,
@@ -135,6 +368,19 @@ struct MediaDetail: Decodable, Identifiable {
             return text
         }
         return nil
+    }
+}
+
+enum PosterOrientation: String, Codable, Hashable {
+    case portrait
+    case landscape
+    case square
+    case unknown
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        self = PosterOrientation(rawValue: value) ?? .unknown
     }
 }
 

@@ -228,7 +228,7 @@ private struct PosterOptionCell: View {
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .topLeading) {
-                PosterImage(urlString: poster.thumbnailUrl ?? poster.url, title: "Poster option")
+                MediaArtwork(url: poster.thumbnailUrl ?? poster.url, title: "Poster option", slot: .pickerGrid)
                     .overlay {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(isSelected ? .white : .clear, lineWidth: 3)

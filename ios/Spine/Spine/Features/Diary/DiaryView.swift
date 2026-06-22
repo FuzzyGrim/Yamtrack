@@ -93,8 +93,13 @@ private struct DiaryEntryRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            PosterImage(urlString: entry.media.imageUrl, title: entry.media.title)
-                .frame(width: 56)
+            MediaArtwork(
+                url: entry.media.displayPosterURL,
+                title: entry.media.title,
+                slot: .diaryRow,
+                mediaType: entry.media.ref.mediaType,
+                orientation: entry.media.posterOrientation
+            )
             VStack(alignment: .leading, spacing: 5) {
                 Text(entry.media.title)
                     .font(.headline)

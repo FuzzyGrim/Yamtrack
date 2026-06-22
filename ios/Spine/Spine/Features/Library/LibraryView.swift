@@ -81,8 +81,13 @@ struct LibraryView: View {
                 } else {
                     ForEach(viewModel.items) { item in
                         HStack(spacing: 12) {
-                            PosterImage(urlString: item.media.imageUrl, title: item.media.title)
-                                .frame(width: 56)
+                            MediaArtwork(
+                                url: item.media.displayPosterURL,
+                                title: item.media.title,
+                                slot: .libraryRow,
+                                mediaType: item.media.ref.mediaType,
+                                orientation: item.media.posterOrientation
+                            )
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(item.media.title)
                                     .font(.headline)

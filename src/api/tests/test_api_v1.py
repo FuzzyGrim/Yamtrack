@@ -363,6 +363,77 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["external_ratings"][0]["value"], "4.1")
 
     @patch("api.services.media.provider_services.get_media_metadata")
+    def test_hardcover_book_detail_exposes_series_before_recommendations(self, metadata_mock):
+        metadata_mock.return_value = {
+            "media_id": "377193",
+            "media_type": "book",
+            "source": "hardcover",
+            "title": "Harry Potter and the Sorcerer's Stone",
+            "image": "https://example.com/hp1.jpg",
+            "related": {
+                "Harry Potter": [
+                    {
+                        "media_id": "377193",
+                        "source": "hardcover",
+                        "media_type": "book",
+                        "title": "Harry Potter and the Sorcerer's Stone",
+                        "image": "https://example.com/hp1.jpg",
+                    },
+                    {
+                        "media_id": "377194",
+                        "source": "hardcover",
+                        "media_type": "book",
+                        "title": "Harry Potter and the Chamber of Secrets",
+                        "image": "https://example.com/hp2.jpg",
+                    },
+                ],
+                "recommendations": [
+                    {
+                        "media_id": "1",
+                        "source": "hardcover",
+                        "media_type": "book",
+                        "title": "A Recommendation",
+                        "image": "https://example.com/rec.jpg",
+                    },
+                ],
+            },
+        }
+
+        response = self.client.get("/api/v1/media/hardcover/book/377193/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["related_sections"][0]["id"], "series")
+        self.assertEqual(response.data["related_sections"][0]["title"], "Harry Potter")
+        self.assertEqual(response.data["related_sections"][0]["items"][1]["ref"]["media_id"], "377194")
+        self.assertEqual(response.data["related_sections"][0]["items"][1]["title"], "Harry Potter and the Chamber of Secrets")
+        self.assertEqual([section["id"] for section in response.data["related_sections"]], ["series", "recommendations"])
+
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_hardcover_book_detail_omits_empty_series_section(self, metadata_mock):
+        metadata_mock.return_value = {
+            "media_id": "377193",
+            "media_type": "book",
+            "source": "hardcover",
+            "title": "Standalone Book",
+            "image": "https://example.com/book.jpg",
+            "related": {
+                "recommendations": [
+                    {
+                        "media_id": "1",
+                        "source": "hardcover",
+                        "media_type": "book",
+                        "title": "A Recommendation",
+                    },
+                ],
+            },
+        }
+
+        response = self.client.get("/api/v1/media/hardcover/book/377193/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([section["id"] for section in response.data["related_sections"]], ["recommendations"])
+
+    @patch("api.services.media.provider_services.get_media_metadata")
     def test_hardcover_book_external_rating_uses_native_five_point_scale(self, metadata_mock):
         metadata_mock.return_value = {
             "media_id": "377193",

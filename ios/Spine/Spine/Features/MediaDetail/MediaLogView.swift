@@ -350,8 +350,13 @@ struct MediaLogView: View {
             }
 
             HStack(alignment: .bottom, spacing: 14) {
-                PosterImage(urlString: viewModel.detail.customPosterUrl ?? viewModel.detail.imageUrl, title: viewModel.detail.title)
-                    .frame(width: 106)
+                MediaArtwork(
+                    url: viewModel.detail.displayPosterURL,
+                    title: viewModel.detail.title,
+                    slot: .logSheet,
+                    mediaType: viewModel.detail.ref.mediaType,
+                    orientation: viewModel.detail.posterOrientation
+                )
                     .shadow(color: .black.opacity(0.42), radius: 16, y: 8)
 
                 VStack(alignment: .leading, spacing: 8) {

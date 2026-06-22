@@ -5,7 +5,7 @@ from django.utils.text import slugify
 from rest_framework import serializers
 
 from app import config
-from app.models import BasicMedia, DiaryEntry, Item, MediaTypes
+from app.models import BasicMedia, DiaryEntry, Item, MediaTypes, Sources
 from lists.models import CustomList
 
 
@@ -382,7 +382,15 @@ def related_sections_from_payload(related, media_type, source, request=None, use
         return []
 
     if media_type == MediaTypes.BOOK.value:
+        series_sections = [
+            ("series", key, values)
+            for key, values in related.items()
+            if source == Sources.HARDCOVER.value
+            and key not in {"other_editions", "recommendations"}
+            and values
+        ]
         candidates = [
+            *series_sections,
             ("other_editions", "Other Editions", related.get("other_editions") or []),
             ("recommendations", "Recommendations", related.get("recommendations") or []),
         ]

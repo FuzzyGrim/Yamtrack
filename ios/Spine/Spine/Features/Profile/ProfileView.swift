@@ -142,8 +142,13 @@ struct ProfileView: View {
             } else {
                 ForEach(items, id: \.0) { key, item in
                     HStack {
-                        PosterImage(urlString: item.imageUrl, title: item.title)
-                            .frame(width: 44)
+                        MediaArtwork(
+                            url: item.displayPosterURL,
+                            title: item.title,
+                            slot: .profileRow,
+                            mediaType: item.ref.mediaType,
+                            orientation: item.posterOrientation
+                        )
                         VStack(alignment: .leading) {
                             Text(item.title)
                             Text(key.capitalized)

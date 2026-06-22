@@ -184,8 +184,13 @@ struct DiaryCreateView: View {
                     viewModel.selectedMedia = result
                 } label: {
                     HStack {
-                        PosterImage(urlString: result.imageUrl, title: result.title)
-                            .frame(width: 44)
+                        MediaArtwork(
+                            url: result.displayPosterURL,
+                            title: result.title,
+                            slot: .searchRow,
+                            mediaType: result.ref.mediaType,
+                            orientation: result.posterOrientation
+                        )
                         VStack(alignment: .leading) {
                             Text(result.title)
                             if let subtitle = result.subtitle ?? result.releaseDate {

@@ -23,6 +23,30 @@ struct DiaryMedia: Codable {
     let ref: MediaRef
     let title: String
     let imageUrl: String?
+    let posterUrl: String?
+    let posterOrientation: PosterOrientation?
+
+    var displayPosterURL: String? {
+        posterUrl ?? imageUrl
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case ref
+        case title
+        case imageUrl
+        case posterUrl
+        case posterOrientation
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+        ref = try container.decode(MediaRef.self, forKey: .ref)
+        title = try container.decode(String.self, forKey: .title)
+        self.imageUrl = imageUrl
+        posterUrl = try container.decodeIfPresent(String.self, forKey: .posterUrl) ?? imageUrl
+        posterOrientation = try container.decodeIfPresent(PosterOrientation.self, forKey: .posterOrientation)
+    }
 }
 
 struct DiaryEntryWriteRequest: Encodable {

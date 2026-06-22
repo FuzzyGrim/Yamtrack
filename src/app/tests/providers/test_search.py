@@ -186,3 +186,38 @@ class Search(TestCase):
             hardcover.cap_search_query(query),
             "one two three four five six seven eight nine ten",
         )
+
+    @patch("app.providers.igdb.cache")
+    @patch("app.providers.igdb.get_access_token")
+    @patch("app.providers.igdb.services.api_request")
+    def test_igdb_search_uses_full_text_search(
+        self,
+        mock_api_request,
+        mock_get_access_token,
+        mock_cache,
+    ):
+        """Test game search does not use exact title substring matching."""
+        mock_cache.get.return_value = None
+        mock_get_access_token.return_value = "token"
+        mock_api_request.return_value = [
+            {
+                "name": "SearchResults",
+                "result": [
+                    {
+                        "id": 1,
+                        "name": "Pokémon",
+                    },
+                ],
+            },
+            {
+                "name": "TotalCount",
+                "count": 1,
+            },
+        ]
+
+        response = igdb.search('pokemon "blue"', 1)
+
+        self.assertEqual(response["results"][0]["title"], "Pokémon")
+        multiquery = mock_api_request.call_args.kwargs["data"]
+        self.assertIn('search "pokemon \\"blue\\"";', multiquery)
+        self.assertNotIn("name ~", multiquery)

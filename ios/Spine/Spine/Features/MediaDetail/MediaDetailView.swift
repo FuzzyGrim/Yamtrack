@@ -348,8 +348,13 @@ struct MediaDetailView: View {
                 .padding(.top, 10)
 
                 VStack(spacing: 14) {
-                    PosterImage(urlString: detail.customPosterUrl ?? detail.imageUrl, title: detail.title)
-                        .frame(maxWidth: MediaDetailLayout.heroPosterWidth)
+                    MediaArtwork(
+                        url: detail.displayPosterURL,
+                        title: detail.title,
+                        slot: .hero,
+                        mediaType: detail.ref.mediaType,
+                        orientation: detail.posterOrientation
+                    )
                         .shadow(color: .black.opacity(0.48), radius: 22, y: 12)
 
                     ActionRail(
@@ -362,8 +367,13 @@ struct MediaDetailView: View {
             }
         } else {
             VStack(spacing: 0) {
-                PosterImage(urlString: detail.customPosterUrl ?? detail.imageUrl, title: detail.title)
-                    .frame(width: MediaDetailLayout.heroPosterWidth)
+                MediaArtwork(
+                    url: detail.displayPosterURL,
+                    title: detail.title,
+                    slot: .hero,
+                    mediaType: detail.ref.mediaType,
+                    orientation: detail.posterOrientation
+                )
                     .shadow(color: .black.opacity(0.48), radius: 22, y: 12)
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, 16)
@@ -398,7 +408,6 @@ struct MediaDetailView: View {
     }
 
     private func backdropURLString(for detail: MediaDetail) -> String? {
-        guard ["movie", "tv"].contains(detail.ref.mediaType) else { return nil }
         return detail.customBackdropUrl ?? detail.backdropUrl
     }
 
@@ -843,19 +852,23 @@ struct MediaDetailView: View {
     }
 
     private func relatedSections(_ detail: MediaDetail) -> [RelatedMediaSection] {
-        if let sections = detail.relatedSections, !sections.isEmpty {
-            return sections
+        let sections: [RelatedMediaSection]
+        if let relatedSections = detail.relatedSections, !relatedSections.isEmpty {
+            sections = relatedSections
+        } else if let related = detail.related {
+            sections = related.compactMap { key, value in
+                guard key != "seasons", key != "all_related",
+                      let values = value.arrayValue else { return nil }
+                let items = values.compactMap { rawRelatedSummary($0, parent: detail) }
+                guard !items.isEmpty else { return nil }
+                let id = detail.ref.mediaType == "movie" && key != "recommendations" ? "collection" : key
+                let title = key.replacingOccurrences(of: "_", with: " ").capitalized
+                return RelatedMediaSection(id: id, title: title, items: items)
+            }
+        } else {
+            return []
         }
-        guard let related = detail.related else { return [] }
-        return related.compactMap { key, value in
-            guard key != "seasons", key != "all_related",
-                  let values = value.arrayValue else { return nil }
-            let items = values.compactMap { rawRelatedSummary($0, parent: detail) }
-            guard !items.isEmpty else { return nil }
-            let id = detail.ref.mediaType == "movie" && key != "recommendations" ? "collection" : key
-            let title = key.replacingOccurrences(of: "_", with: " ").capitalized
-            return RelatedMediaSection(id: id, title: title, items: items)
-        }
+        return sections.filter { $0.id != "all_related" }
     }
 
     private func rawRelatedSummary(_ value: JSONValue, parent: MediaDetail) -> MediaSummary? {
@@ -1035,13 +1048,11 @@ private struct HeroArtwork: View {
     }
 
     private var artworkURL: URL? {
-        let posterURL = detail.customPosterUrl ?? detail.imageUrl
-        let preferredURL = ["movie", "tv"].contains(detail.ref.mediaType) ? posterURL : (detail.backdropUrl ?? posterURL)
-        return URL(string: preferredURL ?? "")
+        return URL(string: detail.customBackdropUrl ?? detail.backdropUrl ?? detail.displayPosterURL ?? "")
     }
 
     private var usesPosterFallback: Bool {
-        ["movie", "tv"].contains(detail.ref.mediaType) || (detail.backdropUrl == nil && detail.imageUrl != nil)
+        detail.backdropUrl == nil && detail.customBackdropUrl == nil && detail.displayPosterURL != nil
     }
 
     private var blurRadius: CGFloat {
@@ -1319,9 +1330,13 @@ private struct TrackingSummarySection: View {
             VStack(alignment: .leading, spacing: 14) {
                 SectionLabel(title: "Your Tracking")
                 HStack(alignment: .top, spacing: 10) {
-                    PosterImage(urlString: detail.customPosterUrl ?? detail.imageUrl, title: detail.title)
-                        .frame(width: 58)
-                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                    MediaArtwork(
+                        url: detail.displayPosterURL,
+                        title: detail.title,
+                        slot: .libraryRow,
+                        mediaType: detail.ref.mediaType,
+                        orientation: detail.posterOrientation
+                    )
 
                     VStack(alignment: .leading, spacing: 4) {
                         if let status {
@@ -1634,8 +1649,12 @@ private struct SeasonsSection: View {
                                 onSelect(season)
                             } label: {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    PosterImage(urlString: season.imageUrl, title: season.title)
-                                        .frame(width: MediaDetailLayout.seasonPosterSize.width, height: MediaDetailLayout.seasonPosterSize.height)
+                                    MediaArtwork(
+                                        url: season.imageUrl,
+                                        title: season.title,
+                                        slot: .seasonCard,
+                                        mediaType: "season"
+                                    )
                                     Text(season.title)
                                         .font(.system(size: 12, weight: .heavy))
                                         .foregroundStyle(.white)
@@ -1674,9 +1693,12 @@ private struct EpisodesSection: View {
                                 .foregroundStyle(.white.opacity(0.56))
                                 .frame(width: 24)
                             if episode.imageUrl != nil {
-                                PosterImage(urlString: episode.imageUrl, title: episode.title)
-                                    .frame(width: 72, height: 42)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                MediaArtwork(
+                                    url: episode.imageUrl,
+                                    title: episode.title,
+                                    slot: .episodeStill,
+                                    mediaType: "episode"
+                                )
                             }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(episode.title)
@@ -1776,8 +1798,13 @@ private struct RecommendationsSection: View {
                                 onSelect(item)
                             } label: {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    PosterImage(urlString: item.imageUrl, title: item.title)
-                                        .frame(width: MediaDetailLayout.recommendationPosterSize.width, height: MediaDetailLayout.recommendationPosterSize.height)
+                                    MediaArtwork(
+                                        url: item.displayPosterURL,
+                                        title: item.title,
+                                        slot: .carousel,
+                                        mediaType: item.ref.mediaType,
+                                        orientation: item.posterOrientation
+                                    )
                                     Text(item.title)
                                         .font(.system(size: 12, weight: .heavy))
                                         .foregroundStyle(.white)

@@ -110,6 +110,12 @@ final class SpineTests: XCTestCase {
               "subtitle": "1999",
               "overview": "A detail.",
               "image_url": "https://example.com/poster.jpg",
+              "poster_url": "https://example.com/poster-normalized.jpg",
+              "backdrop_url": "https://example.com/backdrop.jpg",
+              "poster_orientation": "portrait",
+              "poster_aspect_ratio": 0.667,
+              "poster_width": 500,
+              "poster_height": 750,
               "poster_accent_color": null,
               "release_date": "1999-10-15",
               "default_source": "tmdb",
@@ -123,6 +129,79 @@ final class SpineTests: XCTestCase {
 
         XCTAssertEqual(response.results.first?.ref.source, "tmdb")
         XCTAssertEqual(response.results.first?.title, "Fight Club")
+        XCTAssertEqual(response.results.first?.imageUrl, "https://example.com/poster.jpg")
+        XCTAssertEqual(response.results.first?.posterUrl, "https://example.com/poster-normalized.jpg")
+        XCTAssertEqual(response.results.first?.displayPosterURL, "https://example.com/poster-normalized.jpg")
+        XCTAssertEqual(response.results.first?.backdropUrl, "https://example.com/backdrop.jpg")
+        XCTAssertEqual(response.results.first?.posterOrientation, .portrait)
+        XCTAssertEqual(response.results.first?.posterAspectRatio, 0.667)
+        XCTAssertEqual(response.results.first?.posterWidth, 500)
+        XCTAssertEqual(response.results.first?.posterHeight, 750)
+    }
+
+    func testMediaSummaryLegacyImageFallback() throws {
+        let data = """
+        {
+          "ref": {
+            "item_id": null,
+            "source": "openlibrary",
+            "media_type": "book",
+            "media_id": "OL1M",
+            "season_number": null,
+            "episode_number": null
+          },
+          "title": "A Book",
+          "image_url": "https://example.com/legacy.jpg"
+        }
+        """.data(using: .utf8)!
+
+        let summary = try JSONDecoder.api.decode(MediaSummary.self, from: data)
+
+        XCTAssertEqual(summary.posterUrl, "https://example.com/legacy.jpg")
+        XCTAssertEqual(summary.displayPosterURL, "https://example.com/legacy.jpg")
+        XCTAssertNil(summary.backdropUrl)
+    }
+
+    func testMediaDetailDisplayPosterFallbackChain() throws {
+        let legacy = """
+        {
+          "ref": {
+            "item_id": null,
+            "source": "mal",
+            "media_type": "anime",
+            "media_id": "1",
+            "season_number": null,
+            "episode_number": null
+          },
+          "title": "Anime",
+          "image_url": "https://example.com/legacy.jpg",
+          "custom_poster_url": null
+        }
+        """.data(using: .utf8)!
+        let customized = """
+        {
+          "ref": {
+            "item_id": null,
+            "source": "tmdb",
+            "media_type": "movie",
+            "media_id": "550",
+            "season_number": null,
+            "episode_number": null
+          },
+          "title": "Movie",
+          "image_url": "https://example.com/image.jpg",
+          "poster_url": "https://example.com/poster.jpg",
+          "poster_orientation": "landscape",
+          "custom_poster_url": "https://example.com/custom.jpg"
+        }
+        """.data(using: .utf8)!
+
+        let legacyDetail = try JSONDecoder.api.decode(MediaDetail.self, from: legacy)
+        let customDetail = try JSONDecoder.api.decode(MediaDetail.self, from: customized)
+
+        XCTAssertEqual(legacyDetail.displayPosterURL, "https://example.com/legacy.jpg")
+        XCTAssertEqual(customDetail.displayPosterURL, "https://example.com/custom.jpg")
+        XCTAssertEqual(customDetail.posterOrientation, .landscape)
     }
 
     func testPosterOptionsAndSaveResponseDecoding() throws {

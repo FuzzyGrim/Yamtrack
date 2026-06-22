@@ -573,9 +573,13 @@ private struct SearchResultRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            PosterImage(urlString: result.imageUrl, title: result.title)
-                .frame(width: 54, height: 81)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            MediaArtwork(
+                url: result.displayPosterURL,
+                title: result.title,
+                slot: .searchRow,
+                mediaType: result.ref.mediaType,
+                orientation: result.posterOrientation
+            )
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(result.title)
