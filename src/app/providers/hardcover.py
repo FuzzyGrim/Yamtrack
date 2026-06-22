@@ -116,7 +116,7 @@ def search(query, page):
 
 def book(media_id):
     """Get metadata for a book from Hardcover."""
-    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_v3"
+    cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_v4"
     data = cache.get(cache_key)
 
     if data is None:
@@ -441,7 +441,7 @@ def get_ratings(rating_data):
     """Get processed rating from API data."""
     if not rating_data:
         return None
-    return round(float(rating_data) * 2, 1)
+    return round(float(rating_data), 1)
 
 
 def get_edition_details(edition_data):

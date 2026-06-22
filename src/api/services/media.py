@@ -31,7 +31,7 @@ from app.utils.color import build_accent_palette, compute_and_store_poster_accen
 
 SEARCH_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
-DETAIL_CACHE_VERSION = "v4"
+DETAIL_CACHE_VERSION = "v5"
 
 
 def default_source_for(media_type):
@@ -394,6 +394,7 @@ def max_rating_value(source):
     """Return display max for known rating scales."""
     return {
         "hardcover": "5",
+        "igdb": "100",
         "letterboxd": "5",
         "openlibrary": "5",
         "tomatoes": "100%",

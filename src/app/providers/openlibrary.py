@@ -280,7 +280,7 @@ def book(media_id):
 
 async def async_book(media_id):
     """Asynchronous implementation of book metadata retrieval."""
-    cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{media_id}_v2"
+    cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{media_id}_v3"
     data = cache.get(cache_key)
 
     if data is None:
@@ -746,8 +746,7 @@ async def get_ratings(response_work):
             count = summary.get("count")
 
             if average and count:
-                # Convert to 10-point scale (multiply by 2) and round to 1 decimal place
-                score = round(summary["average"] * 2, 1)
+                score = round(summary["average"], 1)
                 score_count = summary["count"]
                 return score, score_count
 

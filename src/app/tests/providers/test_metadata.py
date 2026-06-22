@@ -405,7 +405,7 @@ class Metadata(TestCase):
         self.assertIn("Fiction", response["genres"])
         self.assertIn("Young Adult", response["genres"])
         self.assertIn("Classics", response["genres"])
-        self.assertAlmostEqual(response["score"], 7.4, delta=0.1)
+        self.assertAlmostEqual(response["score"], 3.7, delta=0.1)
 
     @requires_provider_network
     def test_hardcover_book_unknown(self):
@@ -670,9 +670,14 @@ class Metadata(TestCase):
 
     def test_hardcover_get_ratings(self):
         """Test the get_ratings function from Hardcover provider."""
-        self.assertEqual(hardcover.get_ratings(4.5), 9.0)
+        self.assertEqual(hardcover.get_ratings(4.5), 4.5)
 
         self.assertIsNone(hardcover.get_ratings(None))
+
+    def test_igdb_get_score(self):
+        """Test the get_score function from IGDB provider."""
+        self.assertEqual(igdb.get_score({"total_rating": 92.70730625238252}), 92.7)
+        self.assertIsNone(igdb.get_score({}))
 
     def test_hardcover_get_edition_details(self):
         """Test the get_edition_details function from Hardcover provider."""

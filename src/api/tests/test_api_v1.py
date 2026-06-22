@@ -321,6 +321,28 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["related_sections"][0]["id"], "other_editions")
         self.assertEqual(response.data["external_ratings"][0]["max_value"], "5")
+        self.assertEqual(response.data["external_ratings"][0]["value"], "4.1")
+
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_hardcover_book_external_rating_uses_native_five_point_scale(self, metadata_mock):
+        metadata_mock.return_value = {
+            "media_id": "377193",
+            "media_type": "book",
+            "source": "hardcover",
+            "title": "The Great Gatsby",
+            "image": "https://example.com/gatsby.jpg",
+            "score": 4.3,
+            "score_count": 1234,
+        }
+
+        response = self.client.get("/api/v1/media/hardcover/book/377193/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        rating = response.data["external_ratings"][0]
+        self.assertEqual(rating["source"], "Hardcover")
+        self.assertEqual(rating["value"], "4.3")
+        self.assertEqual(rating["max_value"], "5")
+        self.assertEqual(rating["vote_count"], 1234)
 
     @patch("api.services.media.provider_services.get_media_metadata")
     def test_game_detail_exposes_all_related_as_related_section(self, metadata_mock):
@@ -330,7 +352,8 @@ class ApiV1FoundationTests(TestCase):
             "source": "igdb",
             "title": "Space Game",
             "image": "https://example.com/space.jpg",
-            "score": "8.1",
+            "score": "92.7",
+            "score_count": 5000,
             "related": {
                 "dlcs": [
                     {
@@ -358,6 +381,9 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["related_sections"][0]["id"], "dlcs")
         self.assertEqual(response.data["related_sections"][1]["id"], "all_related")
         self.assertEqual(response.data["external_ratings"][0]["source"], "IGDB")
+        self.assertEqual(response.data["external_ratings"][0]["value"], "92.7")
+        self.assertEqual(response.data["external_ratings"][0]["max_value"], "100")
+        self.assertEqual(response.data["external_ratings"][0]["vote_count"], 5000)
 
     def test_community_stats_include_truthful_rating_distribution(self):
         user = get_user_model().objects.create_user(username="rater", password="strong-password-123")

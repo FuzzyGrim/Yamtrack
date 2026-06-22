@@ -757,20 +757,6 @@ def has_diary_entries(item, user):
         item_instance = item
     
     return DiaryEntry.objects.filter(item=item_instance, user=user).exists()
-
-
-@register.filter
-def to_five_scale(value):
-    """Convert a 10-point score into a 5-point scale."""
-
-    try:
-        score = float(value)
-    except (TypeError, ValueError):
-        return value
-
-    return score / 2
-
-
 @register.filter
 def show_media_score(rating, user):
     """Return whether a media rating should be shown for the user's preferences."""

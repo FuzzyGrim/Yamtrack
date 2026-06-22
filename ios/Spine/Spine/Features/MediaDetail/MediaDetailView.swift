@@ -81,6 +81,10 @@ final class MediaDetailViewModel {
     func applyPosterSave(_ response: PosterSaveResponse) {
         detail = detail?.replacingPoster(with: response)
     }
+
+    func applyBackdropSave(_ response: BackdropSaveResponse) {
+        detail = detail?.replacingBackdrop(with: response)
+    }
 }
 
 private enum MediaDetailSheet: Identifiable {
@@ -107,6 +111,7 @@ struct MediaDetailView: View {
     @State private var presentedSheet: MediaDetailSheet?
     @State private var presentedRef: MediaRef?
     @State private var isPosterPickerPresented = false
+    @State private var isBackdropPickerPresented = false
     @State private var isLogPresented = false
     @State private var topSafeAreaInset: CGFloat = 0
     @State private var edgeDragOffset: CGFloat = 0
@@ -190,14 +195,35 @@ struct MediaDetailView: View {
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {
             case .posterMenu:
-                PosterMenuSheet {
-                    presentedSheet = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        isPosterPickerPresented = true
+                PosterMenuSheet(
+                    onCustomizePoster: {
+                        presentedSheet = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            isPosterPickerPresented = true
+                        }
+                    },
+                    onCustomizeBackdrop: {
+                        presentedSheet = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            isBackdropPickerPresented = true
+                        }
                     }
-                }
-                .presentationDetents([.height(148)])
+                )
+                .presentationDetents([.height(216)])
                 .presentationDragIndicator(.visible)
+            }
+        }
+        .fullScreenCover(isPresented: $isBackdropPickerPresented) {
+            if let detail = viewModel.detail {
+                BackdropPickerView(
+                    ref: detail.ref,
+                    mediaRepository: mediaRepository,
+                    onUnauthorized: onUnauthorized
+                ) { response in
+                    viewModel.applyBackdropSave(response)
+                    presentedSheet = nil
+                    isBackdropPickerPresented = false
+                }
             }
         }
         .fullScreenCover(isPresented: $isLogPresented) {
@@ -289,6 +315,52 @@ struct MediaDetailView: View {
                     .frame(height: topSafeAreaInset + MediaDetailLayout.backdropHeight)
             }
 
+            heroHeader(detail)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 18)
+            .padding(.top, topSafeAreaInset + heroPosterTopOffset(for: detail))
+            .frame(minHeight: heroHeight(for: detail), alignment: .top)
+        }
+    }
+
+    @ViewBuilder
+    private func heroHeader(_ detail: MediaDetail) -> some View {
+        if backdropURLString(for: detail) != nil {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 11) {
+                    Text(displayTitle(detail))
+                        .font(.system(size: 32, weight: .black))
+                        .foregroundStyle(.white)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.72)
+
+                    if let byline = byline(detail) {
+                        Text(byline)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.62))
+                            .lineLimit(2)
+                    }
+
+                    genreChips(detail, wrapsAfterThird: true)
+                    RatingChipRow(chips: ratingChips(detail), stacked: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 10)
+
+                VStack(spacing: 14) {
+                    PosterImage(urlString: detail.customPosterUrl ?? detail.imageUrl, title: detail.title)
+                        .frame(maxWidth: MediaDetailLayout.heroPosterWidth)
+                        .shadow(color: .black.opacity(0.48), radius: 22, y: 12)
+
+                    ActionRail(
+                        isTracked: currentStatus(detail) != nil,
+                        isHorizontal: true,
+                        onTrack: { isLogPresented = true }
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+        } else {
             VStack(spacing: 0) {
                 PosterImage(urlString: detail.customPosterUrl ?? detail.imageUrl, title: detail.title)
                     .frame(width: MediaDetailLayout.heroPosterWidth)
@@ -310,31 +382,31 @@ struct MediaDetailView: View {
                                 .lineLimit(1)
                         }
 
-                        genreChips(detail)
-                        RatingChipRow(chips: ratingChips(detail))
+                        genreChips(detail, wrapsAfterThird: false)
+                        RatingChipRow(chips: ratingChips(detail), stacked: false)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     ActionRail(
                         isTracked: currentStatus(detail) != nil,
+                        isHorizontal: false,
                         onTrack: { isLogPresented = true }
                     )
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.bottom, 18)
-            .padding(.top, topSafeAreaInset + heroPosterTopOffset(for: detail))
-            .frame(minHeight: heroHeight(for: detail), alignment: .top)
         }
     }
 
     private func backdropURLString(for detail: MediaDetail) -> String? {
         guard ["movie", "tv"].contains(detail.ref.mediaType) else { return nil }
-        return detail.backdropUrl
+        return detail.customBackdropUrl ?? detail.backdropUrl
     }
 
     private func heroHeight(for detail: MediaDetail) -> CGFloat {
-        MediaDetailLayout.heroHeight + (backdropURLString(for: detail) == nil ? 0 : MediaDetailLayout.backdropTopSpacing)
+        if backdropURLString(for: detail) != nil {
+            return MediaDetailLayout.heroHeight + MediaDetailLayout.backdropTopSpacing
+        }
+        return MediaDetailLayout.legacyHeroHeight
     }
 
     private func heroPosterTopOffset(for detail: MediaDetail) -> CGFloat {
@@ -379,31 +451,72 @@ struct MediaDetailView: View {
         }
     }
 
-    private func genreChips(_ detail: MediaDetail) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(primaryChips(detail), id: \.self) { chip in
-                    Text(chip)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.82))
-                        .lineLimit(1)
-                        .padding(.horizontal, 11)
-                        .frame(height: MediaDetailLayout.genrePillHeight)
-                        .background(.white.opacity(0.12), in: Capsule())
+    private func genreChips(_ detail: MediaDetail, wrapsAfterThird: Bool) -> some View {
+        let chips = primaryChips(detail)
+
+        if !wrapsAfterThird {
+            return AnyView(
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(chips.prefix(6)), id: \.self) { chip in
+                            genreChip(chip)
+                        }
+                    }
                 }
-            }
-        }
-        .mask(alignment: .trailing) {
-            LinearGradient(
-                stops: [
-                    .init(color: .black, location: 0),
-                    .init(color: .black, location: 0.88),
-                    .init(color: .clear, location: 1),
-                ],
-                startPoint: .leading,
-                endPoint: .trailing
+                .mask(alignment: .trailing) {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0),
+                            .init(color: .black, location: 0.88),
+                            .init(color: .clear, location: 1),
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                }
             )
         }
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    ForEach(Array(chips.prefix(3)), id: \.self) { chip in
+                        genreChip(chip)
+                    }
+                }
+
+                if chips.count > 3 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(chips.dropFirst(3)), id: \.self) { chip in
+                                genreChip(chip)
+                            }
+                        }
+                    }
+                    .mask(alignment: .trailing) {
+                        LinearGradient(
+                            stops: [
+                                .init(color: .black, location: 0),
+                                .init(color: .black, location: 0.88),
+                                .init(color: .clear, location: 1),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    private func genreChip(_ chip: String) -> some View {
+        Text(chip)
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(.white.opacity(0.82))
+            .lineLimit(1)
+            .padding(.horizontal, 11)
+            .frame(height: MediaDetailLayout.genrePillHeight)
+            .background(.white.opacity(0.12), in: Capsule())
     }
 
     private func primaryChips(_ detail: MediaDetail) -> [String] {
@@ -435,7 +548,7 @@ struct MediaDetailView: View {
         let uniqueChips = chips.filter { chip in
             seen.insert(chip.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()).inserted
         }
-        return Array(uniqueChips.prefix(6))
+        return uniqueChips
     }
 
     private func contentRating(_ detail: MediaDetail) -> String? {
@@ -476,7 +589,13 @@ struct MediaDetailView: View {
     private func ratingChips(_ detail: MediaDetail) -> [RatingChip] {
         var chips: [RatingChip] = []
         if let rating = detail.community?.averageRating, !rating.isEmpty {
-            chips.append(RatingChip(source: "SP", value: rating.starRatingValue, assetName: nil))
+            chips.append(RatingChip(
+                source: "SP",
+                value: "\(rating.starRatingValue)/5",
+                assetName: nil,
+                voteCount: detail.community?.ratingCount,
+                voteCountLabel: "ratings"
+            ))
         }
         for rating in sortedExternalRatings(detail.externalRatings ?? []) where !rating.value.isEmpty {
             if rating.source.lowercased() == "spine" {
@@ -487,8 +606,10 @@ struct MediaDetailView: View {
             }
             chips.append(RatingChip(
                 source: rating.source.ratingAbbreviation,
-                value: rating.value,
-                assetName: rating.source.ratingAssetName
+                value: rating.displayValue,
+                assetName: rating.ratingAssetName,
+                voteCount: rating.voteCount,
+                voteCountLabel: rating.source.ratingCountLabel
             ))
         }
         if let rating = currentRating(detail), !rating.isEmpty {
@@ -766,10 +887,11 @@ struct MediaDetailView: View {
 
 private enum MediaDetailLayout {
     static let heroPosterWidth: CGFloat = 191
-    static let heroHeight: CGFloat = 535
+    static let heroHeight: CGFloat = 455
+    static let legacyHeroHeight: CGFloat = 535
     static let heroPosterTopOffset: CGFloat = 108
-    static let backdropTopSpacing: CGFloat = 100
-    static let backdropHeight: CGFloat = 256.25
+    static let backdropTopSpacing: CGFloat = 137.5
+    static let backdropHeight: CGFloat = 352.34375
     static let genrePillHeight: CGFloat = 31
     static let ratingBadgeSize: CGFloat = 24
     static let ratingPillVerticalPadding: CGFloat = 6
@@ -811,7 +933,8 @@ private struct CircleIconButton: View {
 }
 
 private struct PosterMenuSheet: View {
-    let onCustomize: () -> Void
+    let onCustomizePoster: () -> Void
+    let onCustomizeBackdrop: () -> Void
 
     var body: some View {
         VStack(spacing: 10) {
@@ -820,8 +943,19 @@ private struct PosterMenuSheet: View {
                 .frame(width: 38, height: 5)
                 .padding(.top, 8)
 
-            Button(action: onCustomize) {
+            Button(action: onCustomizePoster) {
                 Label("Customize Poster", systemImage: "photo.on.rectangle.angled")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 18)
+                    .frame(height: 54)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+
+            Button(action: onCustomizeBackdrop) {
+                Label("Customize Backdrop", systemImage: "photo.on.rectangle")
                     .font(.system(size: 17, weight: .semibold))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 18)
@@ -974,18 +1108,34 @@ private struct ActionRail: View {
     private static let buttonSpacing: CGFloat = 10
 
     let isTracked: Bool
+    let isHorizontal: Bool
     let onTrack: () -> Void
 
     var body: some View {
-        VStack(spacing: Self.buttonSpacing) {
-            railButton(systemName: "heart", label: "Like", filled: false, action: {})
-            railButton(systemName: "eye", label: "Mark as watched", filled: false, action: {})
-            railButton(
-                systemName: "plus",
-                label: isTracked ? "Edit tracking" : "Log",
-                filled: true,
-                action: onTrack
-            )
+        if isHorizontal {
+            HStack(spacing: Self.buttonSpacing) {
+                railButton(
+                    systemName: "plus",
+                    label: isTracked ? "Edit tracking" : "Log",
+                    filled: true,
+                    usesLargePlus: true,
+                    action: onTrack
+                )
+                railButton(systemName: "heart", label: "Like", filled: false, usesLargePlus: false, action: {})
+                railButton(systemName: "eye", label: "Mark as watched", filled: false, usesLargePlus: false, action: {})
+            }
+        } else {
+            VStack(spacing: Self.buttonSpacing) {
+                railButton(systemName: "heart", label: "Like", filled: false, usesLargePlus: false, action: {})
+                railButton(systemName: "eye", label: "Mark as watched", filled: false, usesLargePlus: false, action: {})
+                railButton(
+                    systemName: "plus",
+                    label: isTracked ? "Edit tracking" : "Log",
+                    filled: true,
+                    usesLargePlus: false,
+                    action: onTrack
+                )
+            }
         }
     }
 
@@ -993,17 +1143,19 @@ private struct ActionRail: View {
         systemName: String,
         label: String,
         filled: Bool,
+        usesLargePlus: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(filled ? Color.black.opacity(0.85) : .white)
+                .font(.system(size: usesLargePlus ? 25 : 17, weight: usesLargePlus ? .semibold : .bold))
+                .foregroundStyle(filled ? Color.black.opacity(0.82) : .white)
                 .frame(width: Self.buttonSize, height: Self.buttonSize)
                 .background {
                     Circle()
                         .fill(filled ? .white.opacity(0.92) : .black.opacity(0.34))
                 }
+                .shadow(color: usesLargePlus ? .white.opacity(0.22) : .clear, radius: 10, y: 2)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -1025,29 +1177,60 @@ private struct RatingChip: Hashable {
     let source: String
     let value: String
     let assetName: String?
+    let voteCount: Int?
+    let voteCountLabel: String?
+
+    init(source: String, value: String, assetName: String?, voteCount: Int? = nil, voteCountLabel: String? = nil) {
+        self.source = source
+        self.value = value
+        self.assetName = assetName
+        self.voteCount = voteCount
+        self.voteCountLabel = voteCountLabel
+    }
 }
 
 private struct RatingChipRow: View {
     let chips: [RatingChip]
+    let stacked: Bool
 
     var body: some View {
         if !chips.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+            if stacked {
+                VStack(alignment: .leading, spacing: 8) {
                     ForEach(chips, id: \.self) { chip in
-                        HStack(spacing: 6) {
-                            RatingSourceBadge(chip: chip)
-                            Text(chip.value)
-                                .font(.system(size: 12, weight: .heavy))
-                                .foregroundStyle(.white)
+                        ratingChip(chip)
+                    }
+                }
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(chips, id: \.self) { chip in
+                            ratingChip(chip)
                         }
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, MediaDetailLayout.ratingPillVerticalPadding)
-                        .background(.white.opacity(0.12), in: Capsule())
                     }
                 }
             }
         }
+    }
+
+    private func ratingChip(_ chip: RatingChip) -> some View {
+        HStack(spacing: 6) {
+            RatingSourceBadge(chip: chip)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(chip.value)
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundStyle(.white)
+                if let voteCount = chip.voteCount, voteCount > 0 {
+                    Text("\(voteCount.formatted(.number.notation(.compactName))) \(chip.voteCountLabel ?? "votes")")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.58))
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, MediaDetailLayout.ratingPillVerticalPadding)
+        .background(.white.opacity(0.12), in: Capsule())
     }
 }
 
@@ -1092,6 +1275,29 @@ private struct RatingSourceBadge: View {
             Image(assetName)
                 .resizable()
                 .scaledToFill()
+                .frame(width: 24, height: 24)
+                .clipped()
+        case "RatingRottenTomatoesCertifiedFresh":
+            Image(assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+                .scaleEffect(1.045)
+                .frame(width: 24, height: 24)
+                .clipped()
+        case "RatingHardcover":
+            Image(assetName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 24, height: 24)
+                .offset(y: 3)
+                .clipped()
+        case "RatingIGDB":
+            Image(assetName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 24, height: 24)
+                .scaleEffect(1.55)
                 .frame(width: 24, height: 24)
                 .clipped()
         default:
@@ -1764,6 +1970,87 @@ private extension String {
     private static func cleanRating(_ value: Double) -> String {
         value.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(value))" : String(format: "%.1f", value)
     }
+}
+
+private extension ExternalRating {
+    var displayValue: String {
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if ["rotten tomatoes", "rottentomatoes"].contains(source.lowercased()) {
+            return trimmedValue.hasSuffix("%") ? trimmedValue : "\(trimmedValue)%"
+        }
+        if source.lowercased() == "hardcover" {
+            let displayRating = Double(trimmedValue).map { rawValue in
+                let value = rawValue > 5 ? rawValue / 2 : rawValue
+                return value.rounded() == value ? "\(Int(value))" : String(format: "%.1f", value)
+            } ?? trimmedValue
+            return "\(displayRating)/5"
+        }
+        if trimmedValue.contains("/") || trimmedValue.hasSuffix("%") {
+            return trimmedValue
+        }
+        if let denominator = ratingDenominator ?? maxValue?.nilIfEmpty {
+            return "\(trimmedValue)/\(denominator)"
+        }
+        return trimmedValue
+    }
+
+    private var ratingDenominator: String? {
+        switch source.lowercased() {
+        case "spine", "letterboxd", "hardcover":
+            "5"
+        case "imdb":
+            "10"
+        default:
+            nil
+        }
+    }
+
+    var ratingAssetName: String? {
+        switch source.lowercased() {
+        case "imdb":
+            "RatingIMDb"
+        case "letterboxd":
+            "RatingLetterboxd"
+        case "rotten tomatoes":
+            rottenTomatoesAssetName
+        case "mal", "myanimelist":
+            "RatingMAL"
+        case "hardcover":
+            "RatingHardcover"
+        case "igdb":
+            "RatingIGDB"
+        default:
+            nil
+        }
+    }
+
+    private var rottenTomatoesAssetName: String {
+        // ponytail: API only sends RT score; use percent thresholds until it sends certification.
+        guard let score = value.split(whereSeparator: { !$0.isNumber && $0 != "." }).first.flatMap({ Double($0) }) else {
+            return "RatingRottenTomatoes"
+        }
+        if score <= 59 {
+            return "RatingRottenTomatoesRotten"
+        }
+        if score >= 75 {
+            return "RatingRottenTomatoesCertifiedFresh"
+        }
+        return "RatingRottenTomatoes"
+    }
+}
+
+private extension String {
+
+    var ratingCountLabel: String {
+        switch lowercased() {
+        case "letterboxd":
+            "ratings"
+        case "rotten tomatoes", "rottentomatoes":
+            "reviews"
+        default:
+            "votes"
+        }
+    }
 
     var ratingAbbreviation: String {
         switch lowercased() {
@@ -1787,21 +2074,6 @@ private extension String {
             "OL"
         default:
             String(prefix(2)).uppercased()
-        }
-    }
-
-    var ratingAssetName: String? {
-        switch lowercased() {
-        case "imdb":
-            "RatingIMDb"
-        case "letterboxd":
-            "RatingLetterboxd"
-        case "rotten tomatoes":
-            "RatingRottenTomatoes"
-        case "mal", "myanimelist":
-            "RatingMAL"
-        default:
-            nil
         }
     }
 }

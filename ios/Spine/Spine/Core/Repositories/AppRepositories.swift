@@ -15,6 +15,8 @@ protocol MediaRepository {
     func reviews(ref: MediaRef) async throws -> [MediaReview]
     func posters(ref: MediaRef) async throws -> [PosterOption]
     func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse
+    func backdrops(ref: MediaRef) async throws -> [PosterOption]
+    func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse
 }
 
 protocol TrackingRepository {
@@ -159,6 +161,22 @@ struct APIMediaRepository: MediaRepository {
         try await client.put(
             "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/poster/",
             body: PosterSaveRequest(posterUrl: posterURL),
+            authenticated: true
+        )
+    }
+
+    func backdrops(ref: MediaRef) async throws -> [PosterOption] {
+        let response: BackdropOptionsResponse = try await client.get(
+            "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/backdrops/",
+            authenticated: true
+        )
+        return response.backdrops
+    }
+
+    func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse {
+        try await client.put(
+            "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/backdrop/",
+            body: BackdropSaveRequest(backdropUrl: backdropURL),
             authenticated: true
         )
     }

@@ -11,7 +11,7 @@
           <div class="flex items-center gap-1 mb-1">
             <span class="text-2xl font-bold text-white">
               {% if media.score is not None %}
-                {{ media.score|to_five_scale|floatformat:1 }}
+                {{ media.score|floatformat:1 }}
               {% else %}
                 N/A
               {% endif %}
@@ -89,7 +89,7 @@
           <div class="flex items-center gap-1 mb-1">
             <span class="text-2xl font-bold text-white">
               {% if media.score is not None %}
-                {{ media.score|to_five_scale|floatformat:1 }}
+                {{ media.score|floatformat:1 }}
               {% else %}
                 N/A
               {% endif %}
@@ -152,7 +152,7 @@
           <div class="flex items-center gap-1 mb-1">
             <span class="text-2xl font-bold">
               {% if media.score is not None %}
-                {{ media.score|to_five_scale|floatformat:1 }}
+                {{ media.score|floatformat:1 }}
               {% else %}
                 N/A
               {% endif %}

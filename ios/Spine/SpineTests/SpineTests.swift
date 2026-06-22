@@ -151,14 +151,42 @@ final class SpineTests: XCTestCase {
           "poster_accent_color": "#123456"
         }
         """.data(using: .utf8)!
+        let backdropOptions = """
+        {
+          "backdrops": [
+            {
+              "url": "https://example.com/backdrop.jpg",
+              "thumbnail_url": "https://example.com/backdrop-thumb.jpg",
+              "width": 1920,
+              "height": 1080,
+              "aspect_ratio": 1.778,
+              "vote_average": 8.1,
+              "vote_count": 42,
+              "language": "en",
+              "is_original": true,
+              "is_selected": true
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+        let backdropSave = """
+        {
+          "backdrop_url": "https://example.com/new-backdrop.jpg",
+          "custom_backdrop_url": "https://example.com/new-backdrop.jpg"
+        }
+        """.data(using: .utf8)!
 
         let decodedOptions = try JSONDecoder.api.decode(PosterOptionsResponse.self, from: options)
         let decodedSave = try JSONDecoder.api.decode(PosterSaveResponse.self, from: save)
+        let decodedBackdropOptions = try JSONDecoder.api.decode(BackdropOptionsResponse.self, from: backdropOptions)
+        let decodedBackdropSave = try JSONDecoder.api.decode(BackdropSaveResponse.self, from: backdropSave)
 
         XCTAssertEqual(decodedOptions.posters.first?.thumbnailUrl, "https://example.com/thumb.jpg")
         XCTAssertEqual(decodedOptions.posters.first?.language, "en")
         XCTAssertEqual(decodedSave.customPosterUrl, "https://example.com/new.jpg")
         XCTAssertEqual(decodedSave.posterAccentColor, "#123456")
+        XCTAssertEqual(decodedBackdropOptions.backdrops.first?.thumbnailUrl, "https://example.com/backdrop-thumb.jpg")
+        XCTAssertEqual(decodedBackdropSave.customBackdropUrl, "https://example.com/new-backdrop.jpg")
     }
 
     func testTrackingDiaryAndProfileDecoding() throws {
@@ -273,6 +301,8 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(detail.userState?.diaryRating, "10.0")
         XCTAssertEqual(detail.userState?.diaryConsumedAt, "2026-06-20T12:00:00Z")
         XCTAssertEqual(detail.externalRatings?.count, 4)
+        XCTAssertEqual(detail.externalRatings?.first { $0.source == "IMDb" }?.voteCount, 84231)
+        XCTAssertEqual(detail.customBackdropUrl, "https://example.com/custom-backdrop.jpg")
         XCTAssertEqual(detail.cast?.first?.character, "Mika")
         XCTAssertEqual(detail.relatedSections?.first?.items.first?.title, "Pulp Fiction")
         XCTAssertEqual(tv.seasons?.first?.seasonNumber, 1)
@@ -455,6 +485,7 @@ final class SpineTests: XCTestCase {
         let repository = APIMediaRepository(client: client)
         let ref = MediaRef(itemId: nil, source: "tmdb", mediaType: "movie", mediaId: "550", seasonNumber: nil, episodeNumber: nil)
 
+        client.tokenProvider.accessToken = "access"
         RequestCaptureURLProtocol.handler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/movie/550/posters/")
             XCTAssertEqual(request.httpMethod, "GET")
@@ -466,6 +497,7 @@ final class SpineTests: XCTestCase {
         }
         _ = try await repository.posters(ref: ref)
 
+        client.tokenProvider.accessToken = "access"
         RequestCaptureURLProtocol.handler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/movie/550/poster/")
             XCTAssertEqual(request.httpMethod, "PUT")
@@ -480,6 +512,36 @@ final class SpineTests: XCTestCase {
         let response = try await repository.savePoster(ref: ref, posterURL: "https://example.com/new.jpg")
 
         XCTAssertEqual(response.posterUrl, "https://example.com/new.jpg")
+
+        client.tokenProvider.accessToken = "access"
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/movie/550/backdrops/")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                #"{"backdrops":[]}"#.data(using: .utf8)!
+            )
+        }
+        _ = try await repository.backdrops(ref: ref)
+
+        client.tokenProvider.accessToken = "access"
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/movie/550/backdrop/")
+            XCTAssertEqual(request.httpMethod, "PUT")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            let body = try? JSONSerialization.jsonObject(with: requestBodyData(for: request)) as? [String: String]
+            XCTAssertEqual(body?["backdrop_url"], "https://example.com/new.jpg")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                """
+                {"backdrop_url":"https://example.com/new.jpg","custom_backdrop_url":"https://example.com/new.jpg"}
+                """.data(using: .utf8)!
+            )
+        }
+        let backdropResponse = try await repository.saveBackdrop(ref: ref, backdropURL: "https://example.com/new.jpg")
+
+        XCTAssertEqual(backdropResponse.backdropUrl, "https://example.com/new.jpg")
         client.tokenProvider.clear()
     }
 
@@ -600,6 +662,35 @@ final class SpineTests: XCTestCase {
         await viewModel.save()
 
         XCTAssertEqual(savedResponse?.customPosterUrl, "https://example.com/no-language.jpg")
+    }
+
+    @MainActor
+    func testBackdropPickerViewModelFiltersAndSaves() async {
+        var savedResponse: BackdropSaveResponse?
+        let viewModel = BackdropPickerViewModel(
+            ref: TestFixtures.movieDetail.ref,
+            mediaRepository: PosterFixtureRepository(),
+            onUnauthorized: {},
+            onSaved: { savedResponse = $0 }
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.selectedLanguage, "all")
+        XCTAssertEqual(viewModel.filteredBackdrops.map(\.url), [
+            "https://example.com/backdrop-en.jpg",
+            "https://example.com/backdrop-fr.jpg",
+            "https://example.com/backdrop-no-language.jpg",
+        ])
+        XCTAssertEqual(viewModel.selectedBackdropURL, "https://example.com/backdrop-en.jpg")
+
+        viewModel.selectedLanguage = "none"
+        XCTAssertEqual(viewModel.filteredBackdrops.map(\.url), ["https://example.com/backdrop-en.jpg", "https://example.com/backdrop-no-language.jpg"])
+
+        viewModel.selectedBackdropURL = "https://example.com/backdrop-no-language.jpg"
+        await viewModel.save()
+
+        XCTAssertEqual(savedResponse?.customBackdropUrl, "https://example.com/backdrop-no-language.jpg")
     }
 
     @MainActor
@@ -773,6 +864,31 @@ private final class RequestCaptureURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
+private func requestBodyData(for request: URLRequest) -> Data {
+    if let body = request.httpBody {
+        return body
+    }
+    guard let stream = request.httpBodyStream else {
+        return Data()
+    }
+
+    let bufferSize = 1024
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+    defer { buffer.deallocate() }
+
+    var data = Data()
+    stream.open()
+    defer { stream.close() }
+    while stream.hasBytesAvailable {
+        let count = stream.read(buffer, maxLength: bufferSize)
+        if count <= 0 {
+            break
+        }
+        data.append(buffer, count: count)
+    }
+    return data
+}
+
 private final class FakeAuthRepository: AuthRepository {
     let hasStoredTokens: Bool
     let refreshError: Error?
@@ -821,6 +937,8 @@ private struct FakeMediaRepository: MediaRepository {
     func reviews(ref: MediaRef) async throws -> [MediaReview] { fatalError("Not used") }
     func posters(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
     func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse { fatalError("Not used") }
+    func backdrops(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
+    func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse { fatalError("Not used") }
 }
 
 private struct FakeTrackingRepository: TrackingRepository {
@@ -854,6 +972,8 @@ private struct MediaDetailFixtureRepository: MediaRepository {
 
     func posters(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
     func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse { fatalError("Not used") }
+    func backdrops(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
+    func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse { fatalError("Not used") }
 }
 
 private struct LikeFixtureDiaryRepository: DiaryRepository {
@@ -972,6 +1092,51 @@ private struct PosterFixtureRepository: MediaRepository {
 
     func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse {
         PosterSaveResponse(posterUrl: posterURL, customPosterUrl: posterURL, posterAccentColor: "#123456")
+    }
+
+    func backdrops(ref: MediaRef) async throws -> [PosterOption] {
+        [
+            PosterOption(
+                url: "https://example.com/backdrop-en.jpg",
+                thumbnailUrl: nil,
+                width: 1920,
+                height: 1080,
+                aspectRatio: 1.778,
+                voteAverage: 8,
+                voteCount: 10,
+                language: "en",
+                isOriginal: false,
+                isSelected: true
+            ),
+            PosterOption(
+                url: "https://example.com/backdrop-fr.jpg",
+                thumbnailUrl: nil,
+                width: 1920,
+                height: 1080,
+                aspectRatio: 1.778,
+                voteAverage: 7,
+                voteCount: 5,
+                language: "fr",
+                isOriginal: false,
+                isSelected: false
+            ),
+            PosterOption(
+                url: "https://example.com/backdrop-no-language.jpg",
+                thumbnailUrl: nil,
+                width: 1920,
+                height: 1080,
+                aspectRatio: 1.778,
+                voteAverage: 6,
+                voteCount: 4,
+                language: nil,
+                isOriginal: true,
+                isSelected: false
+            ),
+        ]
+    }
+
+    func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse {
+        BackdropSaveResponse(backdropUrl: backdropURL, customBackdropUrl: backdropURL)
     }
 }
 
@@ -1122,7 +1287,8 @@ private enum TestFixtures {
       ],
       "episodes": null,
       "seasons": null,
-      "custom_poster_url": null
+      "custom_poster_url": null,
+      "custom_backdrop_url": "https://example.com/custom-backdrop.jpg"
     }
     """
 

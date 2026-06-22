@@ -57,6 +57,7 @@ struct MediaDetail: Decodable, Identifiable {
     let episodes: [EpisodeSummary]?
     let seasons: [SeasonSummary]?
     let customPosterUrl: String?
+    let customBackdropUrl: String?
 
     var id: String { ref.id }
 
@@ -84,7 +85,37 @@ struct MediaDetail: Decodable, Identifiable {
             relatedSections: relatedSections,
             episodes: episodes,
             seasons: seasons,
-            customPosterUrl: response.customPosterUrl ?? response.posterUrl
+            customPosterUrl: response.customPosterUrl ?? response.posterUrl,
+            customBackdropUrl: customBackdropUrl
+        )
+    }
+
+    func replacingBackdrop(with response: BackdropSaveResponse) -> MediaDetail {
+        MediaDetail(
+            ref: ref,
+            title: title,
+            subtitle: subtitle,
+            overview: overview,
+            synopsis: synopsis,
+            imageUrl: imageUrl,
+            posterAccentColor: posterAccentColor,
+            releaseDate: releaseDate,
+            defaultSource: defaultSource,
+            userState: userState,
+            backdropUrl: backdropUrl,
+            details: details,
+            related: related,
+            providers: providers,
+            community: community,
+            externalRatings: externalRatings,
+            reviews: reviews,
+            cast: cast,
+            crew: crew,
+            relatedSections: relatedSections,
+            episodes: episodes,
+            seasons: seasons,
+            customPosterUrl: customPosterUrl,
+            customBackdropUrl: response.customBackdropUrl ?? response.backdropUrl
         )
     }
 
@@ -111,6 +142,10 @@ struct PosterOptionsResponse: Codable, Equatable {
     let posters: [PosterOption]
 }
 
+struct BackdropOptionsResponse: Codable, Equatable {
+    let backdrops: [PosterOption]
+}
+
 struct PosterOption: Codable, Identifiable, Equatable {
     let url: String
     let thumbnailUrl: String?
@@ -134,6 +169,15 @@ struct PosterSaveResponse: Codable, Equatable {
     let posterUrl: String
     let customPosterUrl: String?
     let posterAccentColor: String?
+}
+
+struct BackdropSaveRequest: Codable, Equatable {
+    let backdropUrl: String
+}
+
+struct BackdropSaveResponse: Codable, Equatable {
+    let backdropUrl: String
+    let customBackdropUrl: String?
 }
 
 struct UserMediaState: Codable, Hashable {

@@ -267,7 +267,7 @@ def search(query, page):
 
 def game(media_id):
     """Return the metadata for the selected game from IGDB."""
-    cache_key = f"{Sources.IGDB.value}_{MediaTypes.GAME.value}_{media_id}"
+    cache_key = f"{Sources.IGDB.value}_{MediaTypes.GAME.value}_{media_id}_v2"
     data = cache.get(cache_key)
     if data is None:
         access_token = get_access_token()
@@ -549,7 +549,7 @@ def get_score(response):
     # when no score, total_rating is not present in the response
     try:
         score = response["total_rating"]  # returns e.g 92.70730625238252
-        return round(score / 10, 1)
+        return round(score, 1)
     except KeyError:
         return None
 
