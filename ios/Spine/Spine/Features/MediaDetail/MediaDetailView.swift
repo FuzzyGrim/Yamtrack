@@ -1169,13 +1169,13 @@ private struct ActionRail: View {
                     usesLargePlus: true,
                     action: onTrack
                 )
-                railButton(systemName: "heart", label: "Like", filled: false, usesLargePlus: false, action: {})
-                railButton(systemName: "eye", label: "Mark as watched", filled: false, usesLargePlus: false, action: {})
+                railButton(systemName: "heart", label: "Like", filled: true, usesLargePlus: false, action: {})
+                railButton(systemName: "eye", label: "Mark as watched", filled: true, usesLargePlus: false, action: {})
             }
         } else {
             VStack(spacing: Self.buttonSpacing) {
-                railButton(systemName: "heart", label: "Like", filled: false, usesLargePlus: false, action: {})
-                railButton(systemName: "eye", label: "Mark as watched", filled: false, usesLargePlus: false, action: {})
+                railButton(systemName: "heart", label: "Like", filled: true, usesLargePlus: false, action: {})
+                railButton(systemName: "eye", label: "Mark as watched", filled: true, usesLargePlus: false, action: {})
                 railButton(
                     systemName: "plus",
                     label: isTracked ? "Edit tracking" : "Log",

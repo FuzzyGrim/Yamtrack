@@ -152,7 +152,7 @@ private struct SearchViewContent: View {
     @State private var mediaLensStore = MediaLensStore()
     @State private var isMediaLensExpanded = false
     @State private var draftText = ""
-    @AppStorage("recentSearches") private var recentSearchesData = "[]"
+    @AppStorage("recentMedia") private var recentMediaData = "[]"
 
     let onSelect: (MediaRef) -> Void
 
@@ -190,13 +190,15 @@ private struct SearchViewContent: View {
                         results: viewModel.results,
                         isLoading: viewModel.isLoading,
                         errorMessage: viewModel.errorMessage,
-                        recentSearches: recentSearches,
-                        onRecentSearch: { recentSearch in
-                            mediaLensStore.setMediaType(recentSearch.mediaType)
-                            draftText = recentSearch.text
-                            search(recentSearch.text, mediaType: recentSearch.mediaType)
+                        recentMedia: recentMedia,
+                        onRecentMedia: { media in
+                            saveRecentMedia(media)
+                            onSelect(media.ref)
                         },
-                        onSelect: onSelect
+                        onSelect: { media in
+                            saveRecentMedia(media)
+                            onSelect(media.ref)
+                        }
                     )
                     .blur(radius: isMediaLensExpanded ? 8 : 0)
                     .allowsHitTesting(!isMediaLensExpanded)
@@ -225,8 +227,8 @@ private struct SearchViewContent: View {
         }
     }
 
-    private var recentSearches: [RecentSearch] {
-        RecentSearch.decodeList(from: recentSearchesData, fallbackMediaType: mediaLensStore.selectedMediaType)
+    private var recentMedia: [MediaSummary] {
+        RecentMedia.decodeList(from: recentMediaData)
     }
 
     private var currentTheme: MediaTypeTheme {
@@ -244,14 +246,12 @@ private struct SearchViewContent: View {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let type = mediaType ?? mediaLensStore.selectedMediaType
-        saveRecentSearch(trimmed, mediaType: type)
         Task { await viewModel.search(trimmed, mediaType: type) }
     }
 
     private func searchCurrentQuery(mediaType: String) async {
         let trimmed = viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        saveRecentSearch(trimmed, mediaType: mediaType)
         await viewModel.search(mediaType: mediaType)
     }
 
@@ -260,37 +260,20 @@ private struct SearchViewContent: View {
         mediaLensStore.setMediaType(viewModel.mediaTypes.first ?? "movie")
     }
 
-    private func saveRecentSearch(_ text: String, mediaType: String) {
-        let recent = RecentSearch(text: text, mediaType: mediaType)
-        var searches = recentSearches.filter { !$0.matches(recent) }
-        searches.insert(recent, at: 0)
-        searches = Array(searches.prefix(8))
-        if let data = try? JSONEncoder().encode(searches),
+    private func saveRecentMedia(_ media: MediaSummary) {
+        var mediaItems = recentMedia.filter { $0.ref != media.ref }
+        mediaItems.insert(media, at: 0)
+        mediaItems = Array(mediaItems.prefix(8))
+        if let data = try? JSONEncoder().encode(mediaItems),
            let string = String(data: data, encoding: .utf8) {
-            recentSearchesData = string
+            recentMediaData = string
         }
     }
 }
 
-struct RecentSearch: Codable, Equatable, Identifiable {
-    let text: String
-    let mediaType: String
-
-    var id: String {
-        "\(mediaType):\(text.lowercased())"
-    }
-
-    static func decodeList(from string: String, fallbackMediaType: String) -> [RecentSearch] {
-        let data = Data(string.utf8)
-        if let searches = try? JSONDecoder().decode([RecentSearch].self, from: data) {
-            return searches
-        }
-        let legacy = (try? JSONDecoder().decode([String].self, from: data)) ?? []
-        return legacy.map { RecentSearch(text: $0, mediaType: fallbackMediaType) }
-    }
-
-    func matches(_ other: RecentSearch) -> Bool {
-        mediaType == other.mediaType && text.localizedCaseInsensitiveCompare(other.text) == .orderedSame
+private enum RecentMedia {
+    static func decodeList(from string: String) -> [MediaSummary] {
+        (try? JSONDecoder().decode([MediaSummary].self, from: Data(string.utf8))) ?? []
     }
 }
 
@@ -473,9 +456,9 @@ private struct SearchResultsSection: View {
     let results: [MediaSummary]
     let isLoading: Bool
     let errorMessage: String?
-    let recentSearches: [RecentSearch]
-    let onRecentSearch: (RecentSearch) -> Void
-    let onSelect: (MediaRef) -> Void
+    let recentMedia: [MediaSummary]
+    let onRecentMedia: (MediaSummary) -> Void
+    let onSelect: (MediaSummary) -> Void
 
     var body: some View {
         ZStack {
@@ -484,7 +467,10 @@ private struct SearchResultsSection: View {
             if let error = errorMessage {
                 ContentUnavailableView("Search failed", systemImage: "exclamationmark.triangle", description: Text(error))
             } else if results.isEmpty {
-                SearchEmptyState(recentSearches: recentSearches, onRecentSearch: onRecentSearch)
+                SearchEmptyState(
+                    recentMedia: recentMedia,
+                    onRecentMedia: onRecentMedia
+                )
             } else {
                 SearchResultsList(results: results, onSelect: onSelect)
             }
@@ -499,21 +485,23 @@ private struct SearchResultsSection: View {
 }
 
 private struct SearchEmptyState: View {
-    let recentSearches: [RecentSearch]
-    let onRecentSearch: (RecentSearch) -> Void
+    let recentMedia: [MediaSummary]
+    let onRecentMedia: (MediaSummary) -> Void
 
     var body: some View {
-        if recentSearches.isEmpty {
+        if recentMedia.isEmpty {
             ContentUnavailableView("Search Spine", systemImage: "magnifyingglass", description: Text("Enter a title to find media."))
         } else {
             List {
-                ForEach(recentSearches) { search in
-                    Button {
-                        onRecentSearch(search)
-                    } label: {
-                        RecentSearchRow(search: search)
+                Section("Recently Opened") {
+                    ForEach(recentMedia) { media in
+                        Button {
+                            onRecentMedia(media)
+                        } label: {
+                            SearchResultRow(result: media)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .foregroundStyle(.primary)
                 }
             }
             .listStyle(.insetGrouped)
@@ -523,37 +511,15 @@ private struct SearchEmptyState: View {
     }
 }
 
-private struct RecentSearchRow: View {
-    let search: RecentSearch
-
-    private var theme: MediaTypeTheme {
-        MediaTypeTheme.theme(for: search.mediaType)
-    }
-
-    var body: some View {
-        HStack {
-            Text(search.text)
-
-            Spacer()
-
-            Text(theme.displayName)
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(.secondary.opacity(0.18), in: Capsule())
-        }
-    }
-}
-
 private struct SearchResultsList: View {
     let results: [MediaSummary]
-    let onSelect: (MediaRef) -> Void
+    let onSelect: (MediaSummary) -> Void
 
     var body: some View {
         List {
             ForEach(results) { result in
                 Button {
-                    onSelect(result.ref)
+                    onSelect(result)
                 } label: {
                     SearchResultRow(result: result)
                 }
@@ -615,10 +581,39 @@ private struct SearchResultRow: View {
     }
 
     private var subtitleText: String? {
-        let text = [result.subtitle, result.releaseDate]
+        let text = [result.subtitle, formattedReleaseDate]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: " · ")
         return text.isEmpty ? nil : text
+    }
+
+    private var formattedReleaseDate: String? {
+        guard let releaseDate = result.releaseDate else { return nil }
+        return SearchDateFormatter.string(from: releaseDate) ?? releaseDate
+    }
+}
+
+private enum SearchDateFormatter {
+    private static let input: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    private static let output: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMMM d, yyyy"
+        return formatter
+    }()
+
+    static func string(from raw: String) -> String? {
+        let trimmed = String(raw.trimmingCharacters(in: .whitespacesAndNewlines).prefix(10))
+        guard let date = input.date(from: trimmed) else { return nil }
+        return output.string(from: date)
     }
 }

@@ -197,6 +197,7 @@ def media_summary_from_item(item, request=None, user=None):
         "poster_accent_color": item.poster_accent_color or None,
         "release_date": None,
         "default_source": item.source,
+        "custom_poster_url": custom_poster_url_for_user(user, media_ref_from_item(item), request=request) if user else None,
         "user_state": user_state_for_item(user, item) if user else None,
     }
 
@@ -247,6 +248,7 @@ def media_summary_from_provider(payload, media_type, source, request=None, user=
             or payload.get("end_date")
         ),
         "default_source": source,
+        "custom_poster_url": custom_poster_url_for_user(user, media_ref_from_item(item), request=request) if user and item else None,
         "user_state": user_state_for_item(user, item) if user and item else None,
     }
 

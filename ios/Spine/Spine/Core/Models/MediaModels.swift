@@ -26,6 +26,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
     let overview: String?
     let imageUrl: String?
     let posterUrl: String?
+    let customPosterUrl: String?
     let backdropUrl: String?
     let posterOrientation: PosterOrientation?
     let posterAspectRatio: Double?
@@ -39,7 +40,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
     var id: String { ref.id }
 
     var displayPosterURL: String? {
-        posterUrl ?? imageUrl
+        customPosterUrl ?? posterUrl ?? imageUrl
     }
 
     enum CodingKeys: String, CodingKey {
@@ -49,6 +50,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         case overview
         case imageUrl
         case posterUrl
+        case customPosterUrl
         case backdropUrl
         case posterOrientation
         case posterAspectRatio
@@ -67,6 +69,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         overview: String? = nil,
         imageUrl: String? = nil,
         posterUrl: String? = nil,
+        customPosterUrl: String? = nil,
         backdropUrl: String? = nil,
         posterOrientation: PosterOrientation? = nil,
         posterAspectRatio: Double? = nil,
@@ -83,6 +86,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         self.overview = overview
         self.imageUrl = imageUrl
         self.posterUrl = posterUrl ?? imageUrl
+        self.customPosterUrl = customPosterUrl
         self.backdropUrl = backdropUrl
         self.posterOrientation = posterOrientation
         self.posterAspectRatio = posterAspectRatio
@@ -104,6 +108,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
             overview: try container.decodeIfPresent(String.self, forKey: .overview),
             imageUrl: imageUrl,
             posterUrl: try container.decodeIfPresent(String.self, forKey: .posterUrl) ?? imageUrl,
+            customPosterUrl: try container.decodeIfPresent(String.self, forKey: .customPosterUrl),
             backdropUrl: try container.decodeIfPresent(String.self, forKey: .backdropUrl),
             posterOrientation: try container.decodeIfPresent(PosterOrientation.self, forKey: .posterOrientation),
             posterAspectRatio: try container.decodeIfPresent(Double.self, forKey: .posterAspectRatio),

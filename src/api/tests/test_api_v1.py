@@ -83,6 +83,18 @@ class ApiV1FoundationTests(TestCase):
             username="searcher",
             password="strong-password-123",
         )
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Fight Club",
+            image="https://example.com/fight-club.jpg",
+        )
+        CustomPosterPreference.objects.create(
+            user=user,
+            item=item,
+            custom_image_url="https://example.com/custom-fight-club.jpg",
+        )
         self.client.force_authenticate(user)
         search_mock.return_value = {
             "results": [
@@ -107,6 +119,7 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["results"][0]["ref"]["media_type"], "movie")
         self.assertEqual(response.data["results"][0]["title"], "Fight Club")
         self.assertEqual(response.data["results"][0]["image_url"], response.data["results"][0]["poster_url"])
+        self.assertEqual(response.data["results"][0]["custom_poster_url"], "https://example.com/custom-fight-club.jpg")
         self.assertEqual(response.data["results"][0]["poster_orientation"], "portrait")
         self.assertEqual(response.data["results"][0]["poster_aspect_ratio"], 0.667)
         self.assertEqual(
