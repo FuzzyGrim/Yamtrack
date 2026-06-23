@@ -12,6 +12,8 @@ struct AppShellView: View {
                 mediaRepository: session.repositories.media,
                 trackingRepository: session.repositories.tracking,
                 diaryRepository: session.repositories.diary,
+                selectedTab: selectedTab,
+                onSelectTab: { selectedTab = $0 },
                 onUnauthorized: unauthorized
             )
             .tabItem {
@@ -56,6 +58,8 @@ struct AppShellView: View {
                     onOpenDiary: {
                         selectedTab = .diary
                     },
+                    selectedTab: selectedTab,
+                    onSelectTab: { selectedTab = $0 },
                     onUnauthorized: unauthorized
                 )
             }
@@ -75,7 +79,7 @@ struct AppShellView: View {
     }
 }
 
-private enum AppTab: Hashable {
+enum AppTab: Hashable {
     case search
     case library
     case diary

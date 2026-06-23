@@ -69,6 +69,8 @@ Important files:
 | GET/PATCH | `/api/v1/me/` | Yes |
 | POST | `/api/v1/me/avatar/` | Yes |
 | PATCH | `/api/v1/me/preferences/` | Yes |
+| GET | `/api/v1/me/hof/` | Yes |
+| PUT/DELETE | `/api/v1/me/hof/{media_type}/` | Yes |
 
 ### Media
 
@@ -146,6 +148,67 @@ Important files:
 3. Send `Authorization: Bearer <access>` on authenticated requests.
 4. Refresh through `/api/v1/auth/refresh/`.
 5. Logout through `/api/v1/auth/logout/`, which blacklists the refresh token.
+
+## Current User Hall of Fame
+
+`GET /api/v1/me/hof/` returns the current user's Hall of Fame map:
+
+```json
+{
+  "items": {
+    "movie": {
+      "ref": {
+        "item_id": 42,
+        "source": "tmdb",
+        "media_type": "movie",
+        "media_id": "550",
+        "season_number": null,
+        "episode_number": null
+      },
+      "title": "Fight Club",
+      "subtitle": null,
+      "overview": null,
+      "image_url": "https://example.com/fight-club.jpg",
+      "poster_url": "https://example.com/fight-club.jpg",
+      "backdrop_url": null,
+      "poster_aspect_ratio": null,
+      "poster_width": null,
+      "poster_height": null,
+      "poster_orientation": "unknown",
+      "poster_accent_color": null,
+      "release_date": null,
+      "default_source": "tmdb",
+      "custom_poster_url": null,
+      "user_state": null
+    },
+    "tv": null,
+    "anime": null,
+    "manga": null,
+    "game": null,
+    "book": null,
+    "comic": null
+  }
+}
+```
+
+`PUT /api/v1/me/hof/{media_type}/` sets one slot. Supported `media_type` values are `movie`, `tv`, `anime`, `manga`, `game`, `book`, and `comic`. The URL media type must match `ref.media_type`.
+
+The request body uses the same media ref shape returned by `/api/v1/media/search/`; `item_id` may be `null` when the item has not been materialized locally yet:
+
+```json
+{
+  "ref": {
+    "item_id": null,
+    "source": "tmdb",
+    "media_type": "movie",
+    "media_id": "550",
+    "season_number": null,
+    "episode_number": null
+  }
+}
+```
+
+`PUT` and `DELETE /api/v1/me/hof/{media_type}/` both return the updated map in the same `{"items": ...}` shape as `GET`.
 
 ## Media Reviews
 

@@ -605,6 +605,68 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(reviews.results.last?.containsSpoilers, true)
     }
 
+    func testHallOfFameItemsResponseDecodesMediaSummaryMap() throws {
+        let data = """
+        {
+          "items": {
+            "movie": {
+              "ref": {
+                "item_id": 42,
+                "source": "tmdb",
+                "media_type": "movie",
+                "media_id": "550",
+                "season_number": null,
+                "episode_number": null
+              },
+              "title": "Fight Club",
+              "image_url": "https://example.com/fight-club.jpg",
+              "poster_url": "https://example.com/fight-club.jpg",
+              "poster_orientation": "portrait"
+            },
+            "tv": null
+          }
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder.api.decode(HallOfFameItemsResponse.self, from: data)
+
+        XCTAssertEqual(response.items["movie"]??.title, "Fight Club")
+        XCTAssertEqual(response.items["movie"]??.ref.itemId, 42)
+        XCTAssertNil(response.items["tv"]!)
+    }
+
+    @MainActor
+    func testProfileViewModelUpdatesHallOfFameLocally() async throws {
+        let movie = MediaSummary(
+            ref: MediaRef(itemId: 42, source: "tmdb", mediaType: "movie", mediaId: "550", seasonNumber: nil, episodeNumber: nil),
+            title: "Fight Club",
+            posterUrl: "https://example.com/fight-club.jpg"
+        )
+        let repository = HallOfFameProfileRepository(
+            profile: profileFixture(hof: ["movie": nil]),
+            setResponse: ["movie": movie],
+            clearResponse: ["movie": nil]
+        )
+        let viewModel = ProfileViewModel(
+            profileRepository: repository,
+            diaryRepository: EmptyDiaryRepository(),
+            onUnauthorized: {}
+        )
+
+        await viewModel.load()
+        let didSet = await viewModel.setHallOfFameItem(mediaType: "movie", ref: movie.ref)
+        XCTAssertEqual(viewModel.profile?.hof["movie"]??.title, "Fight Club")
+
+        let didClear = await viewModel.clearHallOfFameItem(mediaType: "movie")
+
+        XCTAssertTrue(didSet)
+        XCTAssertTrue(didClear)
+        XCTAssertEqual(repository.setMediaType, "movie")
+        XCTAssertEqual(repository.setRef, movie.ref)
+        XCTAssertEqual(repository.clearMediaType, "movie")
+        XCTAssertNil(viewModel.profile?.hof["movie"]!)
+    }
+
     func testHardcoverBookSeriesRelatedSectionDecoding() throws {
         let data = """
         {
@@ -1165,6 +1227,32 @@ final class SpineTests: XCTestCase {
         XCTAssertFalse(didSave)
         XCTAssertEqual(unauthorizedCount, 1)
     }
+
+    private func profileFixture(hof: [String: MediaSummary?]) -> UserProfile {
+        UserProfile(
+            id: 1,
+            username: "mobile",
+            displayName: "Mobile",
+            email: "mobile@example.com",
+            bio: nil,
+            pronouns: nil,
+            location: nil,
+            avatarUrl: nil,
+            isPrivate: false,
+            viewerRelationship: ViewerRelationship(following: false, followedBy: false, requested: false, blocked: false),
+            counts: ProfileCounts(followers: 0, following: 0, diaryEntries: 0, lists: 0),
+            hof: hof,
+            preferences: UserPreferences(
+                enabledMediaTypes: ["movie"],
+                dateFormat: nil,
+                timeFormat: nil,
+                weekStartDay: nil,
+                quickWatchDate: nil,
+                releaseNotificationsEnabled: false,
+                dailyDigestEnabled: false
+            )
+        )
+    }
 }
 
 private final class RequestCaptureURLProtocol: URLProtocol {
@@ -1293,6 +1381,45 @@ private struct FakeDiaryRepository: DiaryRepository {
 
 private struct FakeProfileRepository: ProfileRepository {
     func me() async throws -> UserProfile { fatalError("Not used") }
+    func setHallOfFameItem(mediaType: String, ref: MediaRef) async throws -> [String: MediaSummary?] { fatalError("Not used") }
+    func clearHallOfFameItem(mediaType: String) async throws -> [String: MediaSummary?] { fatalError("Not used") }
+}
+
+private final class HallOfFameProfileRepository: ProfileRepository {
+    let profile: UserProfile
+    let setResponse: [String: MediaSummary?]
+    let clearResponse: [String: MediaSummary?]
+    var setMediaType: String?
+    var setRef: MediaRef?
+    var clearMediaType: String?
+
+    init(profile: UserProfile, setResponse: [String: MediaSummary?], clearResponse: [String: MediaSummary?]) {
+        self.profile = profile
+        self.setResponse = setResponse
+        self.clearResponse = clearResponse
+    }
+
+    func me() async throws -> UserProfile {
+        profile
+    }
+
+    func setHallOfFameItem(mediaType: String, ref: MediaRef) async throws -> [String: MediaSummary?] {
+        setMediaType = mediaType
+        setRef = ref
+        return setResponse
+    }
+
+    func clearHallOfFameItem(mediaType: String) async throws -> [String: MediaSummary?] {
+        clearMediaType = mediaType
+        return clearResponse
+    }
+}
+
+private struct EmptyDiaryRepository: DiaryRepository {
+    func list() async throws -> [DiaryEntry] { [] }
+    func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
+    func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
 }
 
 private struct FakeImportRepository: ImportRepository {

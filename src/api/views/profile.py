@@ -1,12 +1,17 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.permissions import can_view_user_profile
-from api.serializers.common import find_item, image_url
+from api.serializers.common import (
+    MediaRefSerializer,
+    find_item,
+    get_or_create_item_from_metadata,
+    image_url,
+)
 from api.serializers.profile import (
     PreferencesSerializer,
     ProfileUpdateSerializer,
@@ -15,6 +20,23 @@ from api.serializers.profile import (
     profile_payload,
 )
 from app.models import MediaTypes
+from app.providers import services as provider_services
+
+HOF_MEDIA_TYPES = {
+    MediaTypes.MOVIE.value,
+    MediaTypes.TV.value,
+    MediaTypes.ANIME.value,
+    MediaTypes.MANGA.value,
+    MediaTypes.GAME.value,
+    MediaTypes.BOOK.value,
+    MediaTypes.COMIC.value,
+}
+
+
+class HOFItemWriteSerializer(serializers.Serializer):
+    """Validate Hall of Fame item writes."""
+
+    ref = MediaRefSerializer()
 
 
 class MeView(APIView):
@@ -123,17 +145,31 @@ class HOFItemView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request, media_type):
-        item = find_item(request.data["ref"])
+        if media_type not in HOF_MEDIA_TYPES:
+            return Response({"media_type": ["Unsupported Hall of Fame media type."]}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = HOFItemWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ref = serializer.validated_data["ref"]
+        if ref["media_type"] != media_type:
+            return Response({"ref": ["media_type must match URL media_type."]}, status=status.HTTP_400_BAD_REQUEST)
+        item = find_item(ref)
         if item is None:
-            return Response({"ref": ["Item must exist before it can be added to Hall of Fame."]}, status=status.HTTP_400_BAD_REQUEST)
-        if not request.user.set_hall_of_fame_item(media_type, item):
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            metadata = provider_services.get_media_metadata(
+                ref["media_type"],
+                ref["media_id"],
+                ref["source"],
+                [ref.get("season_number")] if ref.get("season_number") is not None else None,
+                ref.get("episode_number"),
+            )
+            item = get_or_create_item_from_metadata(ref, metadata)
+        request.user.set_hall_of_fame_item(media_type, item)
         request.user.save(update_fields=[f"hof_{media_type}"])
         return Response({"items": hof_payload(request.user, request=request)})
 
     def delete(self, request, media_type):
-        if not request.user.clear_hall_of_fame_item(media_type):
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        if media_type not in HOF_MEDIA_TYPES:
+            return Response({"media_type": ["Unsupported Hall of Fame media type."]}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.clear_hall_of_fame_item(media_type)
         request.user.save(update_fields=[f"hof_{media_type}"])
         return Response({"items": hof_payload(request.user, request=request)})
 

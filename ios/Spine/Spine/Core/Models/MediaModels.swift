@@ -479,6 +479,14 @@ struct BackdropSaveResponse: Codable, Equatable {
     let customBackdropUrl: String?
 }
 
+struct HallOfFameItemWriteRequest: Codable, Equatable {
+    let ref: MediaRef
+}
+
+struct HallOfFameItemsResponse: Codable, Equatable {
+    let items: [String: MediaSummary?]
+}
+
 struct UserMediaState: Codable, Hashable {
     let isTracked: Bool
     let trackingId: Int?

@@ -8,6 +8,8 @@ final class ProfileViewModel {
     var isLoading = false
     var errorMessage: String?
     var activityErrorMessage: String?
+    var hofErrorMessage: String?
+    var savingHallOfFameSlots: Set<String> = []
 
     private let profileRepository: ProfileRepository
     private let diaryRepository: DiaryRepository
@@ -44,12 +46,62 @@ final class ProfileViewModel {
             }
         }
     }
+
+    func reload() async {
+        await load()
+    }
+
+    func isSavingHallOfFameSlot(_ mediaType: String) -> Bool {
+        savingHallOfFameSlots.contains(mediaType)
+    }
+
+    @discardableResult
+    func setHallOfFameItem(mediaType: String, ref: MediaRef) async -> Bool {
+        guard !savingHallOfFameSlots.contains(mediaType) else { return false }
+        savingHallOfFameSlots.insert(mediaType)
+        hofErrorMessage = nil
+        defer { savingHallOfFameSlots.remove(mediaType) }
+
+        do {
+            let hof = try await profileRepository.setHallOfFameItem(mediaType: mediaType, ref: ref)
+            profile = profile?.replacingHallOfFame(hof)
+            return true
+        } catch {
+            hofErrorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
+
+    @discardableResult
+    func clearHallOfFameItem(mediaType: String) async -> Bool {
+        guard !savingHallOfFameSlots.contains(mediaType) else { return false }
+        savingHallOfFameSlots.insert(mediaType)
+        hofErrorMessage = nil
+        defer { savingHallOfFameSlots.remove(mediaType) }
+
+        do {
+            let hof = try await profileRepository.clearHallOfFameItem(mediaType: mediaType)
+            profile = profile?.replacingHallOfFame(hof)
+            return true
+        } catch {
+            hofErrorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
 }
 
 struct ProfileView: View {
     @State private var viewModel: ProfileViewModel
     @State private var selectedRef: MediaRef?
     @State private var isSettingsPresented = false
+    @State private var hofPickerSlot: FavoriteSlot?
+    @State private var hofActionSlot: FavoriteSlot?
 
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
@@ -57,6 +109,8 @@ struct ProfileView: View {
     private let importCoordinator: LetterboxdImportCoordinator
     private let onLogout: () -> Void
     private let onOpenDiary: () -> Void
+    private let selectedTab: AppTab
+    private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
 
     init(
@@ -67,6 +121,8 @@ struct ProfileView: View {
         importCoordinator: LetterboxdImportCoordinator,
         onLogout: @escaping () -> Void,
         onOpenDiary: @escaping () -> Void,
+        selectedTab: AppTab = .profile,
+        onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
     ) {
         _viewModel = State(initialValue: ProfileViewModel(
@@ -80,44 +136,14 @@ struct ProfileView: View {
         self.importCoordinator = importCoordinator
         self.onLogout = onLogout
         self.onOpenDiary = onOpenDiary
+        self.selectedTab = selectedTab
+        self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
     }
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .top) {
-                SpinePageBackground()
-
-                ScrollView(showsIndicators: false) {
-                    Group {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .tint(.white)
-                                .frame(maxWidth: .infinity, minHeight: 520)
-                        } else if let error = viewModel.errorMessage {
-                            ContentUnavailableView("Could not load profile", systemImage: "exclamationmark.triangle", description: Text(error))
-                                .foregroundStyle(.white)
-                                .padding(.top, 120)
-                        } else if let profile = viewModel.profile {
-                            VStack(alignment: .leading, spacing: 24) {
-                                hero(profile)
-                                activitySection
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.top, 28)
-                            .padding(.bottom, 100)
-                        }
-                    }
-                }
-                .refreshable {
-                    await viewModel.load()
-                }
-
-                settingsButton
-                    .padding(.top, 16)
-                    .padding(.trailing, 16)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            }
+            profileContent
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -127,7 +153,7 @@ struct ProfileView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
-                Task { await viewModel.load() }
+                Swift.Task<Void, Never> { await viewModel.reload() }
             }
             .fullScreenCover(item: $selectedRef) { ref in
                 MediaDetailView(
@@ -135,6 +161,8 @@ struct ProfileView: View {
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
                     diaryRepository: diaryRepository,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
                 )
             }
@@ -145,7 +173,105 @@ struct ProfileView: View {
                     onLogout: onLogout,
                 )
             }
+            .sheet(item: $hofPickerSlot) { slot in
+                HallOfFamePickerSheet(
+                    slot: slot,
+                    mediaRepository: mediaRepository,
+                    isSaving: viewModel.isSavingHallOfFameSlot(slot.id),
+                    errorMessage: viewModel.hofErrorMessage,
+                    onSelect: { media in
+                        await viewModel.setHallOfFameItem(mediaType: slot.id, ref: media.ref)
+                    },
+                    onClear: clearHallOfFameAction(for: slot),
+                    onUnauthorized: onUnauthorized
+                )
+            }
+            .confirmationDialog(
+                hofActionSlot?.title ?? "Hall of Fame",
+                isPresented: hofActionBinding,
+                titleVisibility: .visible
+            ) {
+                if let slot = hofActionSlot {
+                    if let item = slot.item {
+                        Button("View \(item.title)") {
+                            selectedRef = item.ref
+                        }
+                    }
+                    Button("Change Favorite") {
+                        hofPickerSlot = slot
+                    }
+                    if slot.item != nil {
+                        Button("Remove Favorite", role: .destructive) {
+                            Swift.Task<Void, Never> { await viewModel.clearHallOfFameItem(mediaType: slot.id) }
+                        }
+                    }
+                }
+            }
+            .alert("Hall of Fame Update Failed", isPresented: hofErrorBinding) {
+                Button("OK") {
+                    viewModel.hofErrorMessage = nil
+                }
+            } message: {
+                Text(viewModel.hofErrorMessage ?? "")
+            }
         }
+    }
+
+    private var profileContent: some View {
+        ZStack(alignment: .top) {
+            SpinePageBackground()
+
+            ScrollView(showsIndicators: false) {
+                Group {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .tint(.white)
+                            .frame(maxWidth: .infinity, minHeight: 520)
+                    } else if let error = viewModel.errorMessage {
+                        ContentUnavailableView("Could not load profile", systemImage: "exclamationmark.triangle", description: Text(error))
+                            .foregroundStyle(.white)
+                            .padding(.top, 120)
+                    } else if let profile = viewModel.profile {
+                        VStack(alignment: .leading, spacing: 24) {
+                            hero(profile)
+                            activitySection
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 28)
+                        .padding(.bottom, 100)
+                    }
+                }
+            }
+            .refreshable {
+                await viewModel.reload()
+            }
+
+            settingsButton
+                .padding(.top, 16)
+                .padding(.trailing, 16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        }
+    }
+
+    private func clearHallOfFameAction(for slot: FavoriteSlot) -> (() async -> Bool)? {
+        guard slot.item != nil else { return nil }
+        return {
+            await viewModel.clearHallOfFameItem(mediaType: slot.id)
+        }
+    }
+
+    private var hofErrorBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.hofErrorMessage != nil && hofPickerSlot == nil },
+            set: { if !$0 { viewModel.hofErrorMessage = nil } }
+        )
+    }
+
+    private var hofActionBinding: Binding<Bool> {
+        Binding(
+            get: { hofActionSlot != nil },
+            set: { if !$0 { hofActionSlot = nil } }
+        )
     }
 
     private var settingsButton: some View {
@@ -163,18 +289,25 @@ struct ProfileView: View {
     }
 
     private func hero(_ profile: UserProfile) -> some View {
-        let allSlots = favoriteSlots(from: profile.hof)
+        let allSlots = favoriteSlots(from: profile)
 
         return VStack(spacing: 6) {
             VStack(spacing: 8) {
-                ZStack {
-                    HallOfFameCrownView(slots: allSlots) { item in
+                ZStack(alignment: .bottom) {
+                    HallOfFameCrownView(
+                        slots: allSlots,
+                        savingSlotIDs: viewModel.savingHallOfFameSlots
+                    ) { item in
                         selectedRef = item.ref
+                    } onEmptyTap: { slot in
+                        hofPickerSlot = slot
+                    } onFilledLongPress: { slot in
+                        hofActionSlot = slot
                     }
 
                     avatar(profile)
                 }
-                .frame(height: 232)
+                .frame(height: 210)
                 .padding(.top, 8)
 
                 if allSlots.isEmpty {
@@ -272,8 +405,8 @@ struct ProfileView: View {
         }
     }
 
-    private func favoriteSlots(from hof: [String: MediaSummary?]) -> [FavoriteSlot] {
-        ProfileFavorites.slots(from: hof)
+    private func favoriteSlots(from profile: UserProfile) -> [FavoriteSlot] {
+        ProfileFavorites.slots(from: profile.hof, enabledMediaTypes: profile.preferences.enabledMediaTypes)
     }
 
     private func favoriteSlotRank(_ key: String) -> Int {
@@ -284,8 +417,9 @@ struct ProfileView: View {
 struct ProfileFavorites {
     private static let defaultSlotKeys = ["movie", "tv", "anime", "manga", "game", "book", "comic"]
 
-    static func slots(from hof: [String: MediaSummary?]) -> [FavoriteSlot] {
-        let keys = (defaultSlotKeys + hof.keys.filter { !defaultSlotKeys.contains($0) })
+    static func slots(from hof: [String: MediaSummary?], enabledMediaTypes: [String] = []) -> [FavoriteSlot] {
+        let enabled = enabledMediaTypes.filter { defaultSlotKeys.contains($0) }
+        let keys = enabled.isEmpty ? defaultSlotKeys : enabled
         return keys.sorted { lhs, rhs in
             let leftRank = rank(lhs)
             let rightRank = rank(rhs)
@@ -306,6 +440,222 @@ struct FavoriteSlot: Identifiable {
     let id: String
     let title: String
     let item: MediaSummary?
+}
+
+@MainActor
+@Observable
+private final class HallOfFamePickerViewModel {
+    var query = ""
+    var results: [MediaSummary] = []
+    var isLoading = false
+    var errorMessage: String?
+
+    private let mediaRepository: MediaRepository
+    private let onUnauthorized: () -> Void
+
+    init(mediaRepository: MediaRepository, onUnauthorized: @escaping () -> Void) {
+        self.mediaRepository = mediaRepository
+        self.onUnauthorized = onUnauthorized
+    }
+
+    func search(mediaType: String) async {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            results = []
+            errorMessage = nil
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            results = try await mediaRepository.search(query: trimmed, mediaType: mediaType)
+        } catch is CancellationError {
+            return
+        } catch {
+            results = []
+            errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+        }
+    }
+}
+
+private struct HallOfFamePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel: HallOfFamePickerViewModel
+    @State private var savingMediaID: String?
+    @State private var isClearing = false
+
+    let slot: FavoriteSlot
+    let isSaving: Bool
+    let errorMessage: String?
+    let onSelect: (MediaSummary) async -> Bool
+    let onClear: (() async -> Bool)?
+
+    init(
+        slot: FavoriteSlot,
+        mediaRepository: MediaRepository,
+        isSaving: Bool,
+        errorMessage: String?,
+        onSelect: @escaping (MediaSummary) async -> Bool,
+        onClear: (() async -> Bool)?,
+        onUnauthorized: @escaping () -> Void
+    ) {
+        self.slot = slot
+        self.isSaving = isSaving
+        self.errorMessage = errorMessage
+        self.onSelect = onSelect
+        self.onClear = onClear
+        _viewModel = State(initialValue: HallOfFamePickerViewModel(mediaRepository: mediaRepository, onUnauthorized: onUnauthorized))
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let errorMessage {
+                    Section {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                if let current = slot.item {
+                    Section("Current") {
+                        HallOfFamePickerRow(media: current)
+                        if onClear != nil {
+                            Button(role: .destructive) {
+                                Swift.Task<Void, Never> { await clear() }
+                            } label: {
+                                if isClearing {
+                                    Label("Removing", systemImage: "clock")
+                                } else {
+                                    Label("Remove Favorite", systemImage: "trash")
+                                }
+                            }
+                            .disabled(isSaving || isClearing)
+                        }
+                    }
+                }
+
+                Section("Results") {
+                    if viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        ContentUnavailableView("Search \(slot.title)", systemImage: "magnifyingglass")
+                            .listRowBackground(Color.clear)
+                    } else if viewModel.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                    } else if let error = viewModel.errorMessage {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.red)
+                    } else if viewModel.results.isEmpty {
+                        ContentUnavailableView("No Results", systemImage: "magnifyingglass")
+                            .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(viewModel.results) { media in
+                            Button {
+                                Swift.Task<Void, Never> { await select(media) }
+                            } label: {
+                                HStack(spacing: 10) {
+                                    HallOfFamePickerRow(media: media)
+                                    if savingMediaID == media.id {
+                                        ProgressView()
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isSaving || savingMediaID != nil)
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.black)
+            .navigationTitle("\(slot.title) Favorite")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $viewModel.query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search \(slot.title)")
+            .task(id: viewModel.query) {
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+                await viewModel.search(mediaType: slot.id)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func select(_ media: MediaSummary) async {
+        savingMediaID = media.id
+        let didSave = await onSelect(media)
+        savingMediaID = nil
+        if didSave {
+            dismiss()
+        }
+    }
+
+    private func clear() async {
+        guard let onClear else { return }
+        isClearing = true
+        let didClear = await onClear()
+        isClearing = false
+        if didClear {
+            dismiss()
+        }
+    }
+}
+
+private struct HallOfFamePickerRow: View {
+    let media: MediaSummary
+
+    var body: some View {
+        HStack(spacing: 12) {
+            MediaArtwork(
+                url: media.displayPosterURL,
+                title: media.title,
+                slot: .searchRow,
+                mediaType: media.ref.mediaType,
+                orientation: media.posterOrientation
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(media.title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+
+    private var subtitle: String? {
+        let text = [media.subtitle, media.releaseDate]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+        return text.isEmpty ? nil : text
+    }
 }
 
 private struct ProfileStatChip: View {
@@ -502,7 +852,7 @@ private struct ProfileSettingsSheet: View {
                 }
 
                 Section {
-                    Text("Profile editing, avatar upload, Hall of Fame editing, and preference saves need the v2 API contract before they become editable here.")
+                    Text("Profile fields, avatar upload, and preference saves need writable API contracts before they become editable here.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

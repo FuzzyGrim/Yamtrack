@@ -23,6 +23,26 @@ struct UserProfile: Codable, Identifiable {
     let preferences: UserPreferences
 }
 
+extension UserProfile {
+    func replacingHallOfFame(_ hof: [String: MediaSummary?]) -> UserProfile {
+        UserProfile(
+            id: id,
+            username: username,
+            displayName: displayName,
+            email: email,
+            bio: bio,
+            pronouns: pronouns,
+            location: location,
+            avatarUrl: avatarUrl,
+            isPrivate: isPrivate,
+            viewerRelationship: viewerRelationship,
+            counts: counts,
+            hof: hof,
+            preferences: preferences
+        )
+    }
+}
+
 struct ViewerRelationship: Codable {
     let following: Bool
     let followedBy: Bool

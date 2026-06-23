@@ -133,6 +133,8 @@ struct MediaDetailView: View {
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
+    private let selectedTab: AppTab
+    private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
 
     init(
@@ -140,11 +142,15 @@ struct MediaDetailView: View {
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
+        selectedTab: AppTab = .search,
+        onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
     ) {
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
+        self.selectedTab = selectedTab
+        self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
         _viewModel = State(initialValue: MediaDetailViewModel(
             ref: ref,
@@ -186,7 +192,7 @@ struct MediaDetailView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, topSafeAreaInset + 6)
 
-            MediaDetailBottomBar()
+            MediaDetailBottomBar(selectedTab: selectedTab, onSelectTab: navigateToTab)
                 .padding(.horizontal, 18)
                 .padding(.bottom, 8)
                 .frame(maxHeight: .infinity, alignment: .bottom)
@@ -278,6 +284,8 @@ struct MediaDetailView: View {
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
                 diaryRepository: diaryRepository,
+                selectedTab: selectedTab,
+                onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
             )
         }
@@ -340,6 +348,13 @@ struct MediaDetailView: View {
 
     private func isBook(_ detail: MediaDetail) -> Bool {
         detail.ref.mediaType == "book"
+    }
+
+    private func navigateToTab(_ tab: AppTab) {
+        dismiss()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            onSelectTab(tab)
+        }
     }
 
     private func isShowingTitleLogo(_ detail: MediaDetail) -> Bool {
@@ -428,7 +443,7 @@ struct MediaDetailView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, 16)
 
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .bottom, spacing: 12) {
                     VStack(alignment: .leading, spacing: 11) {
                         MediaTitleDisplay(
                             detail: detail,
@@ -1574,7 +1589,7 @@ private struct MediaFactsSection: View {
                         }
                     }
                 }
-                .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 4))
+                .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 16))
             }
         }
     }
@@ -1621,7 +1636,7 @@ private struct SpineRatingDistributionSection: View {
                 }
             }
             .padding(14)
-            .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 4))
+            .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 16))
         }
     }
 
@@ -1891,12 +1906,21 @@ private struct RecommendationsSection: View {
 }
 
 private struct MediaDetailBottomBar: View {
+    let selectedTab: AppTab
+    let onSelectTab: (AppTab) -> Void
+
     var body: some View {
         HStack(spacing: 8) {
             HStack(spacing: 0) {
-                BottomBarItem(title: "Home", systemName: "house.fill", isSelected: true)
-                BottomBarItem(title: "Library", systemName: "books.vertical.fill", isSelected: false)
-                BottomBarItem(title: "Community", systemName: "person.2.fill", isSelected: false)
+                BottomBarItem(title: "Home", systemName: "house.fill", isSelected: selectedTab == .search) {
+                    onSelectTab(.search)
+                }
+                BottomBarItem(title: "Library", systemName: "books.vertical.fill", isSelected: selectedTab == .library) {
+                    onSelectTab(.library)
+                }
+                BottomBarItem(title: "Community", systemName: "person.2.fill", isSelected: selectedTab == .profile) {
+                    onSelectTab(.profile)
+                }
             }
             .padding(5)
             .background(.black.opacity(0.74), in: Capsule())
@@ -1904,14 +1928,20 @@ private struct MediaDetailBottomBar: View {
                 Capsule().stroke(.white.opacity(0.06))
             }
 
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 58, height: 58)
-                .background(.black.opacity(0.82), in: Circle())
-                .overlay {
-                    Circle().stroke(.white.opacity(0.06))
+            Button {
+                onSelectTab(.search)
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 58, height: 58)
+                    .background(.black.opacity(0.82), in: Circle())
+                    .overlay {
+                        Circle().stroke(.white.opacity(0.06))
+                    }
                 }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Search")
         }
     }
 }
@@ -1920,17 +1950,22 @@ private struct BottomBarItem: View {
     let title: String
     let systemName: String
     let isSelected: Bool
+    let action: () -> Void
 
     var body: some View {
-        VStack(spacing: 3) {
-            Image(systemName: systemName)
-                .font(.system(size: 21, weight: .bold))
-            Text(title)
-                .font(.system(size: 9, weight: .heavy))
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: systemName)
+                    .font(.system(size: 21, weight: .bold))
+                Text(title)
+                    .font(.system(size: 9, weight: .heavy))
+            }
+            .foregroundStyle(.white)
+            .frame(width: isSelected ? 88 : 76, height: 48)
+            .background(isSelected ? Color.white.opacity(0.16) : .clear, in: Capsule())
         }
-        .foregroundStyle(.white)
-        .frame(width: isSelected ? 88 : 76, height: 48)
-        .background(isSelected ? Color.white.opacity(0.16) : .clear, in: Capsule())
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 

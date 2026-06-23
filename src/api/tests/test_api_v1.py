@@ -77,6 +77,143 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["username"], "mobile")
 
+    @patch("api.views.profile.provider_services.get_media_metadata")
+    def test_me_hof_put_materializes_missing_item(self, metadata_mock):
+        user = get_user_model().objects.create_user(username="hof", password="strong-password-123")
+        self.client.force_authenticate(user)
+        metadata_mock.return_value = {
+            "title": "Fight Club",
+            "image": "https://example.com/fight-club.jpg",
+        }
+
+        response = self.client.put(
+            "/api/v1/me/hof/movie/",
+            {
+                "ref": {
+                    "item_id": None,
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "550",
+                    "season_number": None,
+                    "episode_number": None,
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item = Item.objects.get(source=Sources.TMDB.value, media_type=MediaTypes.MOVIE.value, media_id="550")
+        self.assertEqual(user.__class__.objects.get(id=user.id).hof_movie, item)
+        self.assertEqual(set(response.data["items"]), {"tv", "movie", "anime", "manga", "game", "book", "comic"})
+        self.assertEqual(response.data["items"]["movie"]["ref"]["item_id"], item.id)
+        self.assertEqual(response.data["items"]["movie"]["ref"]["media_type"], "movie")
+        self.assertEqual(response.data["items"]["movie"]["title"], "Fight Club")
+        self.assertEqual(response.data["items"]["movie"]["image_url"], "https://example.com/fight-club.jpg")
+        self.assertEqual(response.data["items"]["movie"]["poster_url"], "https://example.com/fight-club.jpg")
+
+    def test_me_hof_put_updates_existing_slot(self):
+        user = get_user_model().objects.create_user(username="hof2", password="strong-password-123")
+        first = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Fight Club",
+        )
+        second = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="680",
+            title="Pulp Fiction",
+        )
+        user.set_hall_of_fame_item(MediaTypes.MOVIE.value, first)
+        user.save(update_fields=["hof_movie"])
+        self.client.force_authenticate(user)
+
+        response = self.client.put(
+            "/api/v1/me/hof/movie/",
+            {
+                "ref": {
+                    "item_id": second.id,
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "680",
+                    "season_number": None,
+                    "episode_number": None,
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertEqual(user.hof_movie, second)
+        self.assertEqual(response.data["items"]["movie"]["title"], "Pulp Fiction")
+
+    def test_me_hof_delete_clears_slot(self):
+        user = get_user_model().objects.create_user(username="hof3", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            media_id="1399",
+            title="Game of Thrones",
+        )
+        user.set_hall_of_fame_item(MediaTypes.TV.value, item)
+        user.save(update_fields=["hof_tv"])
+        self.client.force_authenticate(user)
+
+        response = self.client.delete("/api/v1/me/hof/tv/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertIsNone(user.hof_tv)
+        self.assertIsNone(response.data["items"]["tv"])
+
+    def test_me_hof_put_rejects_invalid_and_mismatched_media_type(self):
+        user = get_user_model().objects.create_user(username="hof4", password="strong-password-123")
+        self.client.force_authenticate(user)
+
+        invalid = self.client.put(
+            "/api/v1/me/hof/season/",
+            {
+                "ref": {
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.SEASON.value,
+                    "media_id": "1399",
+                    "season_number": 1,
+                },
+            },
+            format="json",
+        )
+        mismatch = self.client.put(
+            "/api/v1/me/hof/movie/",
+            {
+                "ref": {
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.TV.value,
+                    "media_id": "1399",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(invalid.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(mismatch.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_me_hof_write_requires_auth(self):
+        response = self.client.put(
+            "/api/v1/me/hof/movie/",
+            {
+                "ref": {
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "media_id": "550",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     @patch("api.services.media.provider_services.search")
     def test_media_search_contract(self, search_mock):
         user = get_user_model().objects.create_user(

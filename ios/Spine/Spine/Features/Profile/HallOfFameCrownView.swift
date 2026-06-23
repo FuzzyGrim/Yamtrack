@@ -2,7 +2,10 @@ import SwiftUI
 
 struct HallOfFameCrownView: View {
     let slots: [FavoriteSlot]
+    var savingSlotIDs: Set<String> = []
     let onTap: (MediaSummary) -> Void
+    var onEmptyTap: (FavoriteSlot) -> Void = { _ in }
+    var onFilledLongPress: (FavoriteSlot) -> Void = { _ in }
 
     @State private var crownRevealed = false
 
@@ -29,10 +32,28 @@ struct HallOfFameCrownView: View {
                             HallOfFameCrownFilledCard(item: item, cardSize: cardSize, borderOpacity: borderOpacity)
                         }
                         .buttonStyle(.plain)
+                        .onLongPressGesture {
+                            onFilledLongPress(slot)
+                        }
                         .accessibilityLabel("Hall of Fame, \(item.title)")
                     } else {
-                        HallOfFameCrownEmptyShell(cardSize: cardSize)
-                            .accessibilityLabel("Hall of Fame, \(slot.title), empty")
+                        Button {
+                            onEmptyTap(slot)
+                        } label: {
+                            HallOfFameCrownEmptyShell(cardSize: cardSize)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Add Hall of Fame \(slot.title)")
+                    }
+
+                    if savingSlotIDs.contains(slot.id) {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(.black.opacity(0.52))
+                            .frame(width: cardSize.width, height: cardSize.height)
+                            .overlay {
+                                ProgressView()
+                                    .tint(.white)
+                            }
                     }
                 }
                 .scaleEffect(placement.scale, anchor: .bottom)

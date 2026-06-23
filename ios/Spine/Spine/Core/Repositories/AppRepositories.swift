@@ -37,6 +37,8 @@ protocol DiaryRepository {
 
 protocol ProfileRepository {
     func me() async throws -> UserProfile
+    func setHallOfFameItem(mediaType: String, ref: MediaRef) async throws -> [String: MediaSummary?]
+    func clearHallOfFameItem(mediaType: String) async throws -> [String: MediaSummary?]
 }
 
 protocol ImportRepository {
@@ -285,6 +287,23 @@ struct APIProfileRepository: ProfileRepository {
 
     func me() async throws -> UserProfile {
         try await client.get("/me/", authenticated: true)
+    }
+
+    func setHallOfFameItem(mediaType: String, ref: MediaRef) async throws -> [String: MediaSummary?] {
+        let response: HallOfFameItemsResponse = try await client.put(
+            "/me/hof/\(mediaType)/",
+            body: HallOfFameItemWriteRequest(ref: ref),
+            authenticated: true
+        )
+        return response.items
+    }
+
+    func clearHallOfFameItem(mediaType: String) async throws -> [String: MediaSummary?] {
+        let response: HallOfFameItemsResponse = try await client.delete(
+            "/me/hof/\(mediaType)/",
+            authenticated: true
+        )
+        return response.items
     }
 }
 
