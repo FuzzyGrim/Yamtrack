@@ -110,6 +110,9 @@ struct LibraryView: View {
                 }
             }
             .navigationTitle("Library")
+            .refreshable {
+                await viewModel.load()
+            }
             .toolbar {
                 Button {
                     Task { await viewModel.load() }
@@ -120,6 +123,9 @@ struct LibraryView: View {
             .task {
                 await viewModel.loadMeta()
                 await viewModel.load()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
+                Task { await viewModel.load() }
             }
         }
     }

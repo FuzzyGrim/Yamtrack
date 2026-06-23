@@ -24,9 +24,9 @@ struct HallOfFameCrownLayout {
                 return -maxAngle + progress * maxAngle * 2
             }
         }
-        let radiusX = avatarDiameter * 0.82
-        let radiusY = avatarDiameter * 0.62
-        let baseY = avatarDiameter * 0.12
+        let radiusX = avatarDiameter * 1.12
+        let radiusY = avatarDiameter * 0.95
+        let baseY = avatarDiameter * 0.10
 
         return angles.enumerated().map { index, degrees in
             let radians = degrees * .pi / 180
@@ -51,19 +51,19 @@ struct HallOfFameCrownLayout {
     static func cardSize(for count: Int) -> CGSize {
         switch max(count, 1) {
         case 1:
-            CGSize(width: 64, height: 96)
+            CGSize(width: 74, height: 111)
         case 2:
-            CGSize(width: 60, height: 90)
+            CGSize(width: 70, height: 105)
         case 3:
-            CGSize(width: 58, height: 87)
+            CGSize(width: 66, height: 99)
         case 4:
-            CGSize(width: 54, height: 81)
+            CGSize(width: 62, height: 93)
         case 5:
-            CGSize(width: 50, height: 75)
+            CGSize(width: 58, height: 87)
         case 6, 7:
-            CGSize(width: 46, height: 69)
+            CGSize(width: 54, height: 81)
         default:
-            CGSize(width: 42, height: 63)
+            CGSize(width: 50, height: 75)
         }
     }
 
@@ -80,9 +80,9 @@ struct HallOfFameCrownLayout {
         case 5:
             66
         case 6:
-            70
+            76
         default:
-            72
+            78
         }
     }
 }

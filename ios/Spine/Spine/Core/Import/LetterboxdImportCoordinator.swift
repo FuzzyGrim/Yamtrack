@@ -8,6 +8,10 @@ enum LetterboxdImportJobPhase: Equatable {
     case failed(message: String)
 }
 
+extension Notification.Name {
+    static let letterboxdImportDidSucceed = Notification.Name("letterboxdImportDidSucceed")
+}
+
 @MainActor
 @Observable
 final class LetterboxdImportCoordinator {
@@ -197,6 +201,11 @@ final class LetterboxdImportCoordinator {
         case "SUCCESS":
             clearPersistedJob()
             phase = .succeeded(message: task.result?.trimmedNonEmpty ?? "Letterboxd import complete.")
+            NotificationCenter.default.post(
+                name: .letterboxdImportDidSucceed,
+                object: self,
+                userInfo: ["taskId": taskId],
+            )
             return true
         case "FAILURE":
             clearPersistedJob()

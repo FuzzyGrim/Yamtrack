@@ -39,7 +39,7 @@ class DiaryListView(APIView):
                 "previous": None,
                 "results": [
                     diary_service.diary_payload(entry, request=request, viewer=request.user)
-                    for entry in entries[:100]
+                    for entry in entries
                 ],
             },
         )

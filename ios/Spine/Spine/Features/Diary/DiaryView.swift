@@ -63,6 +63,9 @@ struct DiaryView: View {
                 }
             }
             .navigationTitle("Diary")
+            .refreshable {
+                await viewModel.load()
+            }
             .toolbar {
                 Button {
                     viewModel.isShowingCreate = true
@@ -83,6 +86,9 @@ struct DiaryView: View {
             }
             .task {
                 await viewModel.load()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
+                Task { await viewModel.load() }
             }
         }
     }

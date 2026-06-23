@@ -50,7 +50,7 @@ struct HallOfFameCrownView: View {
                 )
             }
         }
-        .frame(width: 260, height: 150)
+        .frame(width: 340, height: 210)
         .onAppear {
             crownRevealed = true
         }
@@ -172,6 +172,6 @@ private struct HallOfFameCrownPreview: View {
                     .shadow(color: .black.opacity(0.44), radius: 22, y: 12)
             }
         }
-        .frame(width: 320, height: 240)
+        .frame(width: 390, height: 280)
     }
 }

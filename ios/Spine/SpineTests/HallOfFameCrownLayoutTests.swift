@@ -93,7 +93,7 @@ final class HallOfFameCrownLayoutTests: XCTestCase {
     func testCrownLayoutUsesGeometricArcForSevenSlots() {
         let placements = HallOfFameCrownLayout.placements(
             count: 7,
-            cardSize: CGSize(width: 46, height: 69),
+            cardSize: CGSize(width: 54, height: 81),
             avatarDiameter: 128
         )
 
@@ -102,6 +102,16 @@ final class HallOfFameCrownLayoutTests: XCTestCase {
         XCTAssertEqual(placements[0].x, -placements[6].x, accuracy: 0.001)
         XCTAssertEqual(placements[0].y, placements[6].y, accuracy: 0.001)
         XCTAssertEqual(placements[0].rotation.degrees, -placements[6].rotation.degrees, accuracy: 0.001)
+    }
+
+    func testCrownLayoutRaisesCenterCardAboveAvatar() {
+        let placements = HallOfFameCrownLayout.placements(
+            count: 7,
+            cardSize: CGSize(width: 54, height: 81),
+            avatarDiameter: 128
+        )
+
+        XCTAssertLessThan(placements[3].y, -96)
     }
 
     private func media(index: Int, mediaType: String) -> MediaSummary {

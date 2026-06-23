@@ -19,6 +19,7 @@ USER_AGENT = (
 )
 IMDB_RE = re.compile(r"tt\d+")
 TMDB_RE = re.compile(r"/movie/(\d+)|themoviedb\.org/movie/(\d+)")
+USER_FILM_PATH_RE = re.compile(r"letterboxd\.com/([^/]+)/film/([^/?#]+)")
 
 
 class LetterboxdResolver:
@@ -79,6 +80,10 @@ class LetterboxdResolver:
         """Resolve one URI."""
         response = self.session.get(uri, allow_redirects=True, timeout=20)
         response.raise_for_status()
+        canonical = _canonical_film_url(getattr(response, "url", ""))
+        if canonical:
+            response = self.session.get(canonical, allow_redirects=True, timeout=20)
+            response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
         # Ported from kopiro/letterboxd-sync: prefer Letterboxd's TMDB link.
@@ -101,6 +106,14 @@ class LetterboxdResolver:
             if searched:
                 return searched
         return None
+
+
+def _canonical_film_url(url):
+    """Diary links redirect to /username/film/... pages without TMDB metadata."""
+    match = USER_FILM_PATH_RE.search(url)
+    if not match or match.group(1) == "film":
+        return None
+    return f"https://letterboxd.com/film/{match.group(2)}/"
 
 
 def _tmdb_id_from_html(soup):

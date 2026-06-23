@@ -126,6 +126,9 @@ struct ProfileView: View {
                     await viewModel.load()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
+                Task { await viewModel.load() }
+            }
             .fullScreenCover(item: $selectedRef) { ref in
                 MediaDetailView(
                     ref: ref,
@@ -171,7 +174,7 @@ struct ProfileView: View {
 
                     avatar(profile)
                 }
-                .frame(height: 188)
+                .frame(height: 232)
                 .padding(.top, 8)
 
                 if allSlots.isEmpty {

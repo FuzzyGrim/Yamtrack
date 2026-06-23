@@ -31,11 +31,14 @@ class LetterboxdImporter:
         self.warnings = []
         self.counts = defaultdict(int)
         self.items_by_tmdb_id = {}
+        self.resolved_by_film = {}
 
     def import_data(self):
         """Import the export."""
         export = parse_export(self.file)
-        resolved = self.resolver.resolve_rows(export.rows_with_uris())
+        rows = list(export.rows_with_uris())
+        resolved = self.resolver.resolve_rows(rows)
+        self.resolved_by_film = self._film_key_index(rows, resolved)
 
         with transaction.atomic():
             if self.mode == "overwrite":
@@ -127,7 +130,7 @@ class LetterboxdImporter:
             if not item:
                 continue
             movie, _ = self._ensure_movie(item, Status.COMPLETED.value, row.get("date"))
-            entry = self._diary_for_date(item, row.get("date"))
+            entry = self._diary_for_rating(item, row.get("date"))
             if entry:
                 if entry.rating is None:
                     entry.rating = row["rating"]
@@ -182,14 +185,37 @@ class LetterboxdImporter:
             item = self._item_for(row, resolved)
             if not item:
                 continue
-            movie, _ = self._ensure_movie(item, Status.COMPLETED.value, row.get("date"))
+            movie, _ = Movie.objects.get_or_create(
+                user=self.user,
+                item=item,
+                defaults={"status": Status.PLANNING.value, "progress": 0},
+            )
             if not movie.liked:
                 movie.liked = True
                 movie.save(update_fields=["liked"])
                 self.counts["likes"] += 1
 
+    def _film_key(self, row):
+        name = (row.get("name") or "").strip().casefold()
+        if not name:
+            return None
+        return (name, row.get("year"))
+
+    def _film_key_index(self, rows, resolved):
+        index = {}
+        for row in rows:
+            result = resolved.get(row.get("uri"))
+            if not result:
+                continue
+            key = self._film_key(row)
+            if key:
+                index[key] = result
+        return index
+
     def _item_for(self, row, resolved):
         result = resolved.get(row.get("uri"))
+        if not result:
+            result = self.resolved_by_film.get(self._film_key(row))
         if not result:
             self._warn_unresolved(row)
             return None
@@ -250,6 +276,13 @@ class LetterboxdImporter:
             item=item,
             consumed_at__date=consumed_at.date(),
         ).first()
+
+    def _diary_for_rating(self, item, rated_at):
+        entry = self._diary_for_date(item, rated_at)
+        if entry:
+            return entry
+        entries = list(DiaryEntry.objects.filter(user=self.user, item=item).order_by("-consumed_at")[:2])
+        return entries[0] if len(entries) == 1 else None
 
     def _warn_unresolved(self, row):
         label = row.get("name") or row.get("uri") or "Unknown film"

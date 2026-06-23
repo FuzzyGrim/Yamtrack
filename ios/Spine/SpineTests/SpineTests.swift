@@ -137,6 +137,17 @@ final class SpineTests: XCTestCase {
             timeout: 5
         )
         let fileURL = try makeTemporaryZip()
+        var notifiedTaskId: String?
+        let observer = NotificationCenter.default.addObserver(
+            forName: .letterboxdImportDidSucceed,
+            object: nil,
+            queue: nil,
+        ) { notification in
+            notifiedTaskId = notification.userInfo?["taskId"] as? String
+        }
+        defer {
+            NotificationCenter.default.removeObserver(observer)
+        }
 
         XCTAssertEqual(coordinator.phase, .idle)
 
@@ -163,6 +174,7 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(repository.queuedFileName, fileURL.lastPathComponent)
         XCTAssertEqual(repository.queuedMode, .new)
         XCTAssertEqual(repository.statusRequests, ["task-1"])
+        XCTAssertEqual(notifiedTaskId, "task-1")
     }
 
     @MainActor

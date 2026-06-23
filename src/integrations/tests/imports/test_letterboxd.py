@@ -1,3 +1,6 @@
+import io
+import zipfile
+from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -15,6 +18,7 @@ from integrations.imports.letterboxd.importer import LetterboxdImporter
 from integrations.imports.letterboxd.parser import parse_export
 from integrations.imports.letterboxd.resolver import LetterboxdResolver
 from integrations.models import LetterboxdUriCache
+from integrations.tasks import format_import_message
 from lists.models import CustomList, CustomListItem
 
 FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "letterboxd" / "minimal.zip"
@@ -24,7 +28,6 @@ class FakeResolver:
     """Test resolver keyed by the synthetic fixture URIs."""
 
     IDS = {
-        "https://boxd.it/film-one-diary": "101",
         "https://boxd.it/film-one-watched": "101",
         "https://boxd.it/film-two": "202",
         "https://boxd.it/film-three": "303",
@@ -45,6 +48,14 @@ def tmdb_movie(tmdb_id):
     }[str(tmdb_id)]
 
 
+def export_zip(files):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for name, content in files.items():
+            archive.writestr(name, content)
+    return buffer.getvalue()
+
+
 class ImportLetterboxdTests(TestCase):
     """Test Letterboxd ZIP imports."""
 
@@ -56,16 +67,19 @@ class ImportLetterboxdTests(TestCase):
 
     def _import(self, mode="new"):
         with FIXTURE.open("rb") as file:
-            with patch("integrations.imports.letterboxd.importer.tmdb.movie", side_effect=tmdb_movie):
-                with patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": 1}):
-                    with patch("app.services.update_daily_statistics.delay"):
-                        with patch("app.signals.update_daily_statistics.delay"):
-                            return LetterboxdImporter(
-                                file.read(),
-                                self.user,
-                                mode,
-                                resolver=FakeResolver(),
-                            ).import_data()
+            return self._import_bytes(file.read(), mode=mode)
+
+    def _import_bytes(self, payload, mode="new"):
+        with patch("integrations.imports.letterboxd.importer.tmdb.movie", side_effect=tmdb_movie):
+            with patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": 1}):
+                with patch("app.services.update_daily_statistics.delay"):
+                    with patch("app.signals.update_daily_statistics.delay"):
+                        return LetterboxdImporter(
+                            payload,
+                            self.user,
+                            mode,
+                            resolver=FakeResolver(),
+                        ).import_data()
 
     def test_parse_zip_and_list_csv(self):
         with FIXTURE.open("rb") as file:
@@ -84,6 +98,7 @@ class ImportLetterboxdTests(TestCase):
 
         self.assertIsNone(warnings)
         self.assertEqual(counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(counts["diary"], 1)
         self.assertEqual(Movie.objects.count(), 3)
 
         film_one = Movie.objects.get(item__media_id="101")
@@ -128,6 +143,14 @@ class ImportLetterboxdTests(TestCase):
         Movie.objects.create(user=self.user, item=item, status=Status.PLANNING.value)
         with patch("app.signals.update_daily_statistics.delay"):
             DiaryEntry.objects.create(user=self.user, item=item, consumed_at=timezone.now())
+            tv_item = Item.objects.create(
+                media_id="tv-999",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.TV.value,
+                title="Old TV",
+                image="https://example.com/tv.jpg",
+            )
+            tv_entry = DiaryEntry.objects.create(user=self.user, item=tv_item, consumed_at=timezone.now())
 
         self._import(mode="overwrite")
 
@@ -135,6 +158,7 @@ class ImportLetterboxdTests(TestCase):
         self.assertFalse(CustomList.objects.filter(id=old_letterboxd_list.id).exists())
         self.assertFalse(Movie.objects.filter(item=item).exists())
         self.assertFalse(DiaryEntry.objects.filter(item=item).exists())
+        self.assertTrue(DiaryEntry.objects.filter(id=tv_entry.id).exists())
 
     def test_new_mode_skips_duplicate_diary_and_list_items(self):
         self._import()
@@ -142,6 +166,106 @@ class ImportLetterboxdTests(TestCase):
 
         self.assertEqual(DiaryEntry.objects.filter(item__media_id="101").count(), 1)
         self.assertEqual(CustomListItem.objects.count(), 2)
+
+    def test_likes_do_not_upgrade_watchlist_to_completed(self):
+        payload = export_zip(
+            {
+                "watchlist.csv": (
+                    "Date,Name,Year,Letterboxd URI\n"
+                    "2024-01-05,Film Three,2001,https://boxd.it/film-three\n"
+                ),
+                "likes/films.csv": (
+                    "Date,Name,Year,Letterboxd URI\n"
+                    "2024-01-08,Film Three,2001,https://boxd.it/film-three\n"
+                ),
+            },
+        )
+
+        self._import_bytes(payload)
+
+        film_three = Movie.objects.get(item__media_id="303")
+        self.assertEqual(film_three.status, Status.PLANNING.value)
+        self.assertTrue(film_three.liked)
+
+    def test_rating_uses_name_year_fallback_and_single_existing_diary(self):
+        payload = export_zip(
+            {
+                "diary.csv": (
+                    "Date,Name,Year,Letterboxd URI,Rating,Rewatch,Tags,Watched Date\n"
+                    "2024-01-02,Film One,1999,https://boxd.it/film-one-diary,,No,,2024-01-01\n"
+                ),
+                "watched.csv": (
+                    "Date,Name,Year,Letterboxd URI\n"
+                    "2024-01-03,Film One,1999,https://boxd.it/film-one-watched\n"
+                ),
+                "ratings.csv": (
+                    "Date,Name,Year,Letterboxd URI,Rating\n"
+                    "2024-02-02,Film One,1999,https://boxd.it/film-one-diary,4\n"
+                ),
+            },
+        )
+
+        self._import_bytes(payload)
+
+        entry = DiaryEntry.objects.get(item__media_id="101")
+        self.assertEqual(entry.rating, 8)
+        self.assertIsNone(Movie.objects.get(item__media_id="101").score)
+
+    def test_api_surfaces_imported_letterboxd_data(self):
+        self._import()
+        client = APIClient()
+        client.force_authenticate(self.user)
+
+        tracking = client.get("/api/v1/tracking/?media_type=movie")
+        diary = client.get("/api/v1/diary/")
+        profile = client.get("/api/v1/me/")
+        lists = client.get("/api/v1/lists/")
+
+        self.assertEqual(tracking.data["count"], 3)
+        self.assertEqual(diary.data["count"], 1)
+        self.assertEqual(profile.data["counts"]["diary_entries"], 1)
+        self.assertEqual(profile.data["counts"]["lists"], CustomList.objects.filter(owner=self.user).count())
+        self.assertEqual(lists.data["count"], 1)
+
+    def test_diary_api_returns_all_entries_for_import_scale(self):
+        item = Item.objects.create(
+            media_id="bulk",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Bulk",
+            image="https://example.com/bulk.jpg",
+        )
+        now = timezone.now()
+        with patch("app.signals.update_daily_statistics.delay"):
+            DiaryEntry.objects.bulk_create(
+                [
+                    DiaryEntry(user=self.user, item=item, consumed_at=now + timedelta(days=index))
+                    for index in range(101)
+                ],
+            )
+        client = APIClient()
+        client.force_authenticate(self.user)
+
+        response = client.get("/api/v1/diary/")
+
+        self.assertEqual(response.data["count"], 101)
+        self.assertEqual(len(response.data["results"]), 101)
+
+    def test_import_message_formats_letterboxd_counts(self):
+        message = format_import_message(
+            {
+                "movie": 2,
+                "diary": 1,
+                "watchlist": 3,
+                "list_items": 4,
+                "likes": 1,
+            },
+        )
+
+        self.assertEqual(
+            message,
+            "Imported 2 Movies, 1 diary entry, 3 watchlist items, 4 list items and 1 like.",
+        )
 
 
 class LetterboxdResolverTests(TestCase):
@@ -208,6 +332,32 @@ class LetterboxdResolverTests(TestCase):
 
         self.assertEqual(resolved["https://boxd.it/search"]["tmdb_id"], "88")
         self.assertEqual(resolved["https://boxd.it/search"]["confidence"], "search")
+
+    def test_user_diary_redirect_canonicalized(self):
+        resolver = LetterboxdResolver()
+        user_page = SimpleNamespace(
+            text="<html></html>",
+            url="https://letterboxd.com/armaandave/film/star-wars/",
+            raise_for_status=lambda: None,
+        )
+        film_page = SimpleNamespace(
+            text='<body data-tmdb-id="1893"></body>',
+            url="https://letterboxd.com/film/star-wars/",
+            raise_for_status=lambda: None,
+        )
+
+        def fake_get(url, **kwargs):
+            if "armaandave/film/" in url:
+                return user_page
+            if "letterboxd.com/film/" in url:
+                return film_page
+            return user_page
+
+        with patch.object(resolver.session, "get", side_effect=fake_get):
+            resolved = resolver.resolve_many(["https://boxd.it/diary-link"])
+
+        self.assertEqual(resolved["https://boxd.it/diary-link"]["tmdb_id"], "1893")
+        self.assertEqual(resolved["https://boxd.it/diary-link"]["confidence"], "scrape")
 
 
 class LetterboxdApiTests(TestCase):
