@@ -165,7 +165,7 @@ struct ProfileView: View {
     private func hero(_ profile: UserProfile) -> some View {
         let allSlots = favoriteSlots(from: profile.hof)
 
-        return VStack(spacing: 18) {
+        return VStack(spacing: 6) {
             VStack(spacing: 8) {
                 ZStack {
                     HallOfFameCrownView(slots: allSlots) { item in
