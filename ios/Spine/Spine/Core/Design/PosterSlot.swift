@@ -10,6 +10,7 @@ enum PosterSlot {
     case seasonCard
     case logSheet
     case pickerGrid
+    case tagGrid
     case episodeStill
     case hofCrown
 
@@ -29,6 +30,8 @@ enum PosterSlot {
             CGSize(width: 106, height: 159)
         case .pickerGrid:
             CGSize(width: 104, height: 156)
+        case .tagGrid:
+            CGSize(width: 80, height: 120)
         case .episodeStill:
             CGSize(width: 72, height: 42)
         case .hofCrown:

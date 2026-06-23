@@ -35,6 +35,111 @@ final class SpineTests: XCTestCase {
         XCTAssertFalse(fallback.contains("season"))
     }
 
+    @MainActor
+    func testLibraryMediaTypesExcludeEpisodesAndSeasons() {
+        let types = LibraryViewModel.libraryMediaTypes(from: ["movie", "episode", "season", "book"])
+        let fallback = LibraryViewModel.libraryMediaTypes(from: ["episode", "season"])
+
+        XCTAssertEqual(types, ["movie", "book"])
+        XCTAssertFalse(fallback.contains("episode"))
+        XCTAssertFalse(fallback.contains("season"))
+    }
+
+    @MainActor
+    func testLibraryViewModelSeparatesPlanningFromTrackedItems() async {
+        let repository = ScriptedLibraryTrackingRepository(responses: [
+            "movie:": PagedResponse(
+                count: 2,
+                next: nil,
+                previous: nil,
+                results: [
+                    libraryItem(id: "1", title: "Watched", status: "Completed"),
+                    libraryItem(id: "2", title: "Planned", status: "Planning")
+                ]
+            )
+        ])
+        let viewModel = LibraryViewModel(
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: repository,
+            onUnauthorized: {}
+        )
+
+        await viewModel.reload()
+        XCTAssertEqual(viewModel.displayedItems.map(\.media.title), ["Watched"])
+
+        viewModel.shelf = .planning
+        XCTAssertEqual(viewModel.displayedItems.map(\.media.title), ["Planned"])
+    }
+
+    @MainActor
+    func testLibraryViewModelAppendsNextPageWithoutDuplicates() async {
+        let repository = ScriptedLibraryTrackingRepository(responses: [
+            "movie:": PagedResponse(
+                count: 3,
+                next: "https://spine.test/api/v1/tracking/?media_type=movie&page=2",
+                previous: nil,
+                results: [
+                    libraryItem(id: "1", title: "One"),
+                    libraryItem(id: "2", title: "Two")
+                ]
+            ),
+            "movie:2": PagedResponse(
+                count: 3,
+                next: nil,
+                previous: "https://spine.test/api/v1/tracking/?media_type=movie",
+                results: [
+                    libraryItem(id: "2", title: "Two"),
+                    libraryItem(id: "3", title: "Three")
+                ]
+            )
+        ])
+        let viewModel = LibraryViewModel(
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: repository,
+            onUnauthorized: {}
+        )
+
+        await viewModel.reload()
+        await viewModel.loadNextPage()
+
+        XCTAssertEqual(viewModel.items.map(\.media.title), ["One", "Two", "Three"])
+        XCTAssertEqual(viewModel.totalCount, 3)
+        XCTAssertFalse(viewModel.hasMorePages)
+        XCTAssertEqual(repository.requests, [
+            LibraryTrackingRequest(mediaType: "movie", page: nil),
+            LibraryTrackingRequest(mediaType: "movie", page: "2")
+        ])
+    }
+
+    @MainActor
+    func testLibraryViewModelIgnoresStaleMediaTypeResponses() async {
+        let repository = DelayedLibraryTrackingRepository(responses: [
+            "tv": (
+                delay: .milliseconds(80),
+                response: PagedResponse(count: 1, next: nil, previous: nil, results: [libraryItem(id: "tv", title: "Slow TV", mediaType: "tv")])
+            ),
+            "book": (
+                delay: .milliseconds(1),
+                response: PagedResponse(count: 1, next: nil, previous: nil, results: [libraryItem(id: "book", title: "Fast Book", mediaType: "book")])
+            )
+        ])
+        let viewModel = LibraryViewModel(
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: repository,
+            onUnauthorized: {}
+        )
+
+        viewModel.mediaType = "tv"
+        let staleLoad = Task { await viewModel.reload() }
+        try? await Task.sleep(for: .milliseconds(10))
+        await viewModel.selectMediaType("book")
+        await staleLoad.value
+
+        XCTAssertEqual(viewModel.mediaType, "book")
+        XCTAssertEqual(viewModel.items.map(\.media.title), ["Fast Book"])
+        XCTAssertEqual(viewModel.totalCount, 1)
+    }
+
     func testRecentSearchesKeepMediaTypeAndReadLegacyText() throws {
         let searches = [
             RecentSearch(text: "Halo", mediaType: "game"),
@@ -567,6 +672,138 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(response.results.first?.usageCount, 12)
     }
 
+    func testTrackingRepositorySendsStatusQuery() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        let repository = APITrackingRepository(client: client)
+
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            let query = components?.queryItems ?? []
+            XCTAssertEqual(components?.path, "/api/v1/tracking/")
+            XCTAssertEqual(query.first { $0.name == "media_type" }?.value, "season")
+            XCTAssertEqual(query.first { $0.name == "status" }?.value, "In progress")
+
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                #"{"count":0,"next":null,"previous":null,"results":[]}"#.data(using: .utf8)!
+            )
+        }
+
+        let response = try await repository.list(mediaType: "season", page: nil, status: "In progress")
+        XCTAssertEqual(response.count, 0)
+    }
+
+    func testDiaryRepositorySendsTagQueryAndLoadsPages() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        let repository = APIDiaryRepository(client: client)
+        var requestedURLs: [String] = []
+
+        RequestCaptureURLProtocol.handler = { request in
+            requestedURLs.append(request.url?.absoluteString ?? "")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            let query = components?.queryItems ?? []
+            XCTAssertEqual(query.first { $0.name == "tag" }?.value, "comfort")
+
+            if query.contains(where: { $0.name == "page" && $0.value == "2" }) {
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    """
+                    {
+                      "count": 2,
+                      "next": null,
+                      "previous": "https://example.com/api/v1/diary/?tag=comfort",
+                      "results": [\(TestFixtures.diaryEntryJSON(id: 2, mediaId: "551", title: "Second Tagged Log", tags: ["comfort"]))]
+                    }
+                    """.data(using: .utf8)!
+                )
+            }
+
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                """
+                {
+                  "count": 2,
+                  "next": "https://example.com/api/v1/diary/?tag=comfort&page=2",
+                  "previous": null,
+                  "results": [\(TestFixtures.diaryEntryJSON(id: 1, mediaId: "550", title: "First Tagged Log", tags: ["comfort"]))]
+                }
+                """.data(using: .utf8)!
+            )
+        }
+
+        let entries = try await repository.list(tag: " comfort ")
+
+        XCTAssertEqual(entries.map(\.id), [1, 2])
+        XCTAssertEqual(requestedURLs, [
+            "https://example.com/api/v1/diary/?tag=comfort",
+            "https://example.com/api/v1/diary/?tag=comfort&page=2",
+        ])
+        client.tokenProvider.clear()
+    }
+
+    @MainActor
+    func testTaggedDiaryGridDeduplicatesMediaInOrder() throws {
+        let first = try JSONDecoder.api.decode(
+            DiaryEntry.self,
+            from: TestFixtures.diaryEntryJSON(id: 1, mediaId: "550", title: "First Log", tags: ["comfort"]).data(using: .utf8)!
+        )
+        let duplicate = try JSONDecoder.api.decode(
+            DiaryEntry.self,
+            from: TestFixtures.diaryEntryJSON(id: 2, mediaId: "550", title: "Duplicate Log", tags: ["comfort"]).data(using: .utf8)!
+        )
+        let second = try JSONDecoder.api.decode(
+            DiaryEntry.self,
+            from: TestFixtures.diaryEntryJSON(id: 3, mediaId: "551", title: "Second Media", tags: ["comfort"]).data(using: .utf8)!
+        )
+
+        let media = TaggedDiaryViewModel.uniqueMedia(from: [first, duplicate, second])
+
+        XCTAssertEqual(media.map(\.entry.id), [1, 3])
+        XCTAssertEqual(media.map(\.media.ref.mediaId), ["550", "551"])
+    }
+
+    @MainActor
+    func testTaggedDiaryViewModelCallsUnauthorizedHandler() async {
+        let repository = TaggedDiaryFixtureRepository(result: .failure(APIError.unauthorized))
+        var didAuthorize = false
+        let viewModel = TaggedDiaryViewModel(tag: "comfort", diaryRepository: repository) {
+            didAuthorize = true
+        }
+
+        await viewModel.load()
+
+        XCTAssertEqual(repository.requestedTags, ["comfort"])
+        XCTAssertTrue(didAuthorize)
+        XCTAssertNotNil(viewModel.errorMessage)
+    }
+
+    func testDiaryLogDateLabelKeepsImportedCalendarDate() {
+        XCTAssertEqual(DiaryLogFormat.dateLabel("2026-06-06T00:00:00Z"), "Jun 6, 2026")
+        XCTAssertEqual(DiaryLogFormat.dateLabel("2026-06-06"), "Jun 6, 2026")
+    }
+
     func testRichMediaDetailAndReviewDecoding() throws {
         let detail = try JSONDecoder.api.decode(
             MediaDetail.self,
@@ -650,6 +887,7 @@ final class SpineTests: XCTestCase {
         let viewModel = ProfileViewModel(
             profileRepository: repository,
             diaryRepository: EmptyDiaryRepository(),
+            trackingRepository: ScriptedLibraryTrackingRepository(responses: [:]),
             onUnauthorized: {}
         )
 
@@ -665,6 +903,75 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(repository.setRef, movie.ref)
         XCTAssertEqual(repository.clearMediaType, "movie")
         XCTAssertNil(viewModel.profile?.hof["movie"]!)
+    }
+
+    @MainActor
+    func testProfileViewModelLoadsInProgressAcrossEnabledMediaTypes() async {
+        let trackingRepository = ScriptedLibraryTrackingRepository(responses: [
+            "movie:": PagedResponse(
+                count: 1,
+                next: nil,
+                previous: nil,
+                results: [
+                    libraryItem(
+                        id: "1",
+                        title: "Older Movie",
+                        mediaType: "movie",
+                        status: "In progress",
+                        updatedAt: "2026-06-20T12:00:00Z"
+                    )
+                ]
+            ),
+            "season:": PagedResponse(
+                count: 1,
+                next: nil,
+                previous: nil,
+                results: [
+                    libraryItem(
+                        id: "2",
+                        title: "Newest Season",
+                        mediaType: "season",
+                        status: "In progress",
+                        updatedAt: "2026-06-22T12:00:00Z",
+                        seasonNumber: 2
+                    )
+                ]
+            ),
+            "book:": PagedResponse(
+                count: 1,
+                next: nil,
+                previous: nil,
+                results: [
+                    libraryItem(
+                        id: "3",
+                        title: "Middle Book",
+                        mediaType: "book",
+                        status: "In progress",
+                        updatedAt: "2026-06-21T12:00:00Z"
+                    )
+                ]
+            )
+        ])
+        let viewModel = ProfileViewModel(
+            profileRepository: HallOfFameProfileRepository(
+                profile: profileFixture(hof: [:], enabledMediaTypes: ["movie", "tv", "book"]),
+                setResponse: [:],
+                clearResponse: [:]
+            ),
+            diaryRepository: EmptyDiaryRepository(),
+            trackingRepository: trackingRepository,
+            onUnauthorized: {}
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.inProgressItems.map(\.media.title), ["Newest Season", "Middle Book", "Older Movie"])
+        XCTAssertEqual(viewModel.inProgressItems.first?.media.ref.mediaType, "season")
+        XCTAssertEqual(trackingRepository.requests, [
+            LibraryTrackingRequest(mediaType: "movie", page: nil, status: "In progress"),
+            LibraryTrackingRequest(mediaType: "season", page: nil, status: "In progress"),
+            LibraryTrackingRequest(mediaType: "book", page: nil, status: "In progress")
+        ])
     }
 
     func testHardcoverBookSeriesRelatedSectionDecoding() throws {
@@ -1035,6 +1342,123 @@ final class SpineTests: XCTestCase {
     }
 
     @MainActor
+    func testMediaDetailBookFinishedQuickActionUsesCompleteBook() async {
+        let detail = TestFixtures.logDetail(mediaType: "book")
+        let tracking = RecordingTrackingRepository()
+        let diary = RecordingDiaryRepository()
+        let viewModel = MediaDetailViewModel(
+            ref: detail.ref,
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: tracking,
+            diaryRepository: diary,
+            onUnauthorized: {}
+        )
+        let completedAt = Date(timeIntervalSince1970: 1_797_120_000)
+
+        let didSave = await viewModel.performQuickAction(.finished, for: detail, completedAt: completedAt)
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(tracking.completedBooks.first?.source, "manual")
+        XCTAssertEqual(tracking.completedBooks.first?.mediaId, "log-book")
+        XCTAssertEqual(tracking.completedBooks.first?.completedAt, completedAt)
+        XCTAssertEqual(tracking.consumedRefs.count, 0)
+        XCTAssertEqual(diary.createdRequests.count, 0)
+    }
+
+    @MainActor
+    func testMediaDetailGameFinishedQuickActionUsesConsume() async {
+        let detail = TestFixtures.logDetail(mediaType: "game")
+        let tracking = RecordingTrackingRepository()
+        let viewModel = MediaDetailViewModel(
+            ref: detail.ref,
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: tracking,
+            diaryRepository: RecordingDiaryRepository(),
+            onUnauthorized: {}
+        )
+        let completedAt = Date(timeIntervalSince1970: 1_797_120_000)
+
+        let didSave = await viewModel.performQuickAction(.finished, for: detail, completedAt: completedAt)
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(tracking.consumedRefs.first?.ref, detail.ref)
+        XCTAssertEqual(tracking.consumedRefs.first?.consumedAt, completedAt)
+        XCTAssertEqual(tracking.completedBooks.count, 0)
+    }
+
+    @MainActor
+    func testMediaDetailCurrentlyQuickActionSetsInProgress() async {
+        let detail = TestFixtures.logDetail(mediaType: "book")
+        let tracking = RecordingTrackingRepository()
+        let viewModel = MediaDetailViewModel(
+            ref: detail.ref,
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: tracking,
+            diaryRepository: RecordingDiaryRepository(),
+            onUnauthorized: {}
+        )
+
+        let didSave = await viewModel.performQuickAction(.currently, for: detail)
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(tracking.updateRequests.first?.ref, detail.ref)
+        XCTAssertEqual(tracking.updateRequests.first?.request.status, "In progress")
+    }
+
+    @MainActor
+    func testMediaDetailStoppedQuickActionSetsDropped() async {
+        let detail = TestFixtures.logDetail(mediaType: "game")
+        let tracking = RecordingTrackingRepository()
+        let viewModel = MediaDetailViewModel(
+            ref: detail.ref,
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: tracking,
+            diaryRepository: RecordingDiaryRepository(),
+            onUnauthorized: {}
+        )
+
+        let didSave = await viewModel.performQuickAction(.stopped, for: detail)
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(tracking.updateRequests.first?.ref, detail.ref)
+        XCTAssertEqual(tracking.updateRequests.first?.request.status, "Dropped")
+    }
+
+    @MainActor
+    func testDiaryLogDetailViewModelLoadsEntryAndKeepsFallbackOnMediaFailure() async {
+        let diary = DiaryLogFixtureDiaryRepository(entry: TestFixtures.diaryEntry)
+        let media = DiaryLogFixtureMediaRepository(result: .success(TestFixtures.movieDetail))
+        let viewModel = DiaryLogDetailViewModel(
+            entryId: 1,
+            diaryRepository: diary,
+            mediaRepository: media,
+            onUnauthorized: {}
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(diary.requestedIds, [1])
+        XCTAssertEqual(media.requestedRefs, [TestFixtures.diaryEntry.media.ref])
+        XCTAssertEqual(viewModel.entry?.id, 1)
+        XCTAssertEqual(viewModel.mediaDetail?.title, "Liquid Form")
+        XCTAssertNil(viewModel.errorMessage)
+
+        let failingMedia = DiaryLogFixtureMediaRepository(result: .failure(APIError.httpStatus(503, nil)))
+        let fallbackViewModel = DiaryLogDetailViewModel(
+            entryId: 1,
+            diaryRepository: DiaryLogFixtureDiaryRepository(entry: TestFixtures.diaryEntry),
+            mediaRepository: failingMedia,
+            onUnauthorized: {}
+        )
+
+        await fallbackViewModel.load()
+
+        XCTAssertEqual(fallbackViewModel.entry?.id, 1)
+        XCTAssertNil(fallbackViewModel.mediaDetail)
+        XCTAssertNil(fallbackViewModel.errorMessage)
+    }
+
+    @MainActor
     func testPosterPickerViewModelFiltersAndSaves() async {
         var savedResponse: PosterSaveResponse?
         let viewModel = PosterPickerViewModel(
@@ -1228,7 +1652,10 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(unauthorizedCount, 1)
     }
 
-    private func profileFixture(hof: [String: MediaSummary?]) -> UserProfile {
+    private func profileFixture(
+        hof: [String: MediaSummary?],
+        enabledMediaTypes: [String] = ["movie"]
+    ) -> UserProfile {
         UserProfile(
             id: 1,
             username: "mobile",
@@ -1243,7 +1670,7 @@ final class SpineTests: XCTestCase {
             counts: ProfileCounts(followers: 0, following: 0, diaryEntries: 0, lists: 0),
             hof: hof,
             preferences: UserPreferences(
-                enabledMediaTypes: ["movie"],
+                enabledMediaTypes: enabledMediaTypes,
                 dateFormat: nil,
                 timeFormat: nil,
                 weekStartDay: nil,
@@ -1363,8 +1790,94 @@ private struct FakeMediaRepository: MediaRepository {
     func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse { fatalError("Not used") }
 }
 
+private struct LibraryTrackingRequest: Equatable {
+    let mediaType: String
+    let page: String?
+    let status: String?
+
+    init(mediaType: String, page: String?, status: String? = nil) {
+        self.mediaType = mediaType
+        self.page = page
+        self.status = status
+    }
+}
+
+private final class ScriptedLibraryTrackingRepository: TrackingRepository {
+    private let responses: [String: PagedResponse<Spine.LibraryItem>]
+    var requests: [LibraryTrackingRequest] = []
+
+    init(responses: [String: PagedResponse<Spine.LibraryItem>]) {
+        self.responses = responses
+    }
+
+    func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<Spine.LibraryItem> {
+        requests.append(LibraryTrackingRequest(mediaType: mediaType, page: page, status: status))
+        guard let response = responses["\(mediaType):\(page ?? "")"] else {
+            return PagedResponse(count: 0, next: nil, previous: nil, results: [])
+        }
+        return response
+    }
+
+    func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState { fatalError("Not used") }
+    func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState { fatalError("Not used") }
+    func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState { fatalError("Not used") }
+    func updateBookProgress(source: String, mediaId: String, progressType: String, value: Decimal, notes: String) async throws -> TrackingState { fatalError("Not used") }
+    func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState { fatalError("Not used") }
+}
+
+private final class DelayedLibraryTrackingRepository: TrackingRepository {
+    private let responses: [String: (delay: Duration, response: PagedResponse<Spine.LibraryItem>)]
+
+    init(responses: [String: (delay: Duration, response: PagedResponse<Spine.LibraryItem>)]) {
+        self.responses = responses
+    }
+
+    func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<Spine.LibraryItem> {
+        guard let scripted = responses[mediaType] else {
+            return PagedResponse(count: 0, next: nil, previous: nil, results: [])
+        }
+        try await Task.sleep(for: scripted.delay)
+        return scripted.response
+    }
+
+    func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState { fatalError("Not used") }
+    func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState { fatalError("Not used") }
+    func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState { fatalError("Not used") }
+    func updateBookProgress(source: String, mediaId: String, progressType: String, value: Decimal, notes: String) async throws -> TrackingState { fatalError("Not used") }
+    func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState { fatalError("Not used") }
+}
+
+private func libraryItem(
+    id: String,
+    title: String,
+    mediaType: String = "movie",
+    status: String = "Completed",
+    updatedAt: String? = nil,
+    seasonNumber: Int? = nil
+) -> Spine.LibraryItem {
+    Spine.LibraryItem(
+        media: MediaSummary(
+            ref: MediaRef(itemId: nil, source: "tmdb", mediaType: mediaType, mediaId: id, seasonNumber: seasonNumber, episodeNumber: nil),
+            title: title,
+            posterUrl: nil,
+            posterOrientation: .portrait
+        ),
+        tracking: TrackingState(
+            trackingId: Int(id) ?? 1,
+            status: status,
+            rating: "8.0",
+            progress: nil,
+            repeats: nil,
+            startDate: nil,
+            endDate: nil,
+            notes: nil,
+            updatedAt: updatedAt
+        )
+    )
+}
+
 private struct FakeTrackingRepository: TrackingRepository {
-    func list(mediaType: String) async throws -> [Spine.LibraryItem] { fatalError("Not used") }
+    func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<Spine.LibraryItem> { fatalError("Not used") }
     func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState { fatalError("Not used") }
     func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState { fatalError("Not used") }
     func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState { fatalError("Not used") }
@@ -1373,7 +1886,8 @@ private struct FakeTrackingRepository: TrackingRepository {
 }
 
 private struct FakeDiaryRepository: DiaryRepository {
-    func list() async throws -> [DiaryEntry] { fatalError("Not used") }
+    func list(tag: String?) async throws -> [DiaryEntry] { fatalError("Not used") }
+    func detail(id: Int) async throws -> DiaryEntry { fatalError("Not used") }
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
     func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
@@ -1416,7 +1930,8 @@ private final class HallOfFameProfileRepository: ProfileRepository {
 }
 
 private struct EmptyDiaryRepository: DiaryRepository {
-    func list() async throws -> [DiaryEntry] { [] }
+    func list(tag: String?) async throws -> [DiaryEntry] { [] }
+    func detail(id: Int) async throws -> DiaryEntry { fatalError("Not used") }
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
     func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
@@ -1508,10 +2023,54 @@ private struct MediaDetailFixtureRepository: MediaRepository {
 }
 
 private struct LikeFixtureDiaryRepository: DiaryRepository {
-    func list() async throws -> [DiaryEntry] { fatalError("Not used") }
+    func list(tag: String?) async throws -> [DiaryEntry] { fatalError("Not used") }
+    func detail(id: Int) async throws -> DiaryEntry { fatalError("Not used") }
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState { LikeState(liked: liked, likeCount: 99) }
     func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
+}
+
+private final class DiaryLogFixtureDiaryRepository: DiaryRepository {
+    let entry: DiaryEntry
+    var requestedIds: [Int] = []
+
+    init(entry: DiaryEntry) {
+        self.entry = entry
+    }
+
+    func list(tag: String?) async throws -> [DiaryEntry] { fatalError("Not used") }
+
+    func detail(id: Int) async throws -> DiaryEntry {
+        requestedIds.append(id)
+        return entry
+    }
+
+    func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
+    func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
+}
+
+private final class DiaryLogFixtureMediaRepository: MediaRepository {
+    let result: Result<MediaDetail, Error>
+    var requestedRefs: [MediaRef] = []
+
+    init(result: Result<MediaDetail, Error>) {
+        self.result = result
+    }
+
+    func meta() async throws -> MetaResponse { fatalError("Not used") }
+    func search(query: String, mediaType: String) async throws -> [MediaSummary] { fatalError("Not used") }
+
+    func detail(ref: MediaRef) async throws -> MediaDetail {
+        requestedRefs.append(ref)
+        return try result.get()
+    }
+
+    func reviews(ref: MediaRef) async throws -> [MediaReview] { fatalError("Not used") }
+    func posters(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
+    func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse { fatalError("Not used") }
+    func backdrops(ref: MediaRef) async throws -> [PosterOption] { fatalError("Not used") }
+    func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse { fatalError("Not used") }
 }
 
 private final class RecordingDiaryRepository: DiaryRepository {
@@ -1522,7 +2081,8 @@ private final class RecordingDiaryRepository: DiaryRepository {
         self.error = error
     }
 
-    func list() async throws -> [DiaryEntry] { fatalError("Not used") }
+    func list(tag: String?) async throws -> [DiaryEntry] { fatalError("Not used") }
+    func detail(id: Int) async throws -> DiaryEntry { fatalError("Not used") }
 
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry {
         if let error {
@@ -1539,6 +2099,25 @@ private final class RecordingDiaryRepository: DiaryRepository {
     }
 }
 
+private final class TaggedDiaryFixtureRepository: DiaryRepository {
+    let result: Result<[DiaryEntry], Error>
+    var requestedTags: [String?] = []
+
+    init(result: Result<[DiaryEntry], Error>) {
+        self.result = result
+    }
+
+    func list(tag: String?) async throws -> [DiaryEntry] {
+        requestedTags.append(tag)
+        return try result.get()
+    }
+
+    func detail(id: Int) async throws -> DiaryEntry { fatalError("Not used") }
+    func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
+    func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
+}
+
 private final class RecordingTrackingRepository: TrackingRepository {
     var updateRequests: [(ref: MediaRef, request: TrackingWriteRequest)] = []
     var consumedRefs: [(ref: MediaRef, consumedAt: Date?)] = []
@@ -1546,7 +2125,7 @@ private final class RecordingTrackingRepository: TrackingRepository {
     var bookProgressRequests: [(source: String, mediaId: String, progressType: String, value: Decimal, notes: String)] = []
     var completedBooks: [(source: String, mediaId: String, completedAt: Date?)] = []
 
-    func list(mediaType: String) async throws -> [Spine.LibraryItem] { fatalError("Not used") }
+    func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<Spine.LibraryItem> { fatalError("Not used") }
 
     func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState {
         updateRequests.append((ref, request))
@@ -1721,6 +2300,38 @@ private enum TestFixtures {
         }
         """.data(using: .utf8)!
     )
+
+    static func diaryEntryJSON(id: Int, mediaId: String, title: String, tags: [String]) -> String {
+        let encodedTags = tags
+            .map { #""\#($0)""# }
+            .joined(separator: ",")
+        return """
+        {
+          "id": \(id),
+          "user": { "id": 1, "username": "mobile", "display_name": "Mobile", "avatar_url": null },
+          "media": {
+            "ref": { "item_id": \(100 + id), "source": "tmdb", "media_type": "movie", "media_id": "\(mediaId)", "season_number": null, "episode_number": null },
+            "title": "\(title)",
+            "image_url": null,
+            "poster_url": null,
+            "poster_orientation": "portrait"
+          },
+          "consumed_at": "2026-06-20T12:00:00Z",
+          "rating": "9.0",
+          "review_title": "",
+          "review": "",
+          "contains_spoilers": false,
+          "liked": false,
+          "is_rewatch": false,
+          "tags": [\(encodedTags)],
+          "visibility": "public",
+          "like_count": 0,
+          "viewer_has_liked": false,
+          "created_at": "2026-06-20T12:00:00Z",
+          "updated_at": "2026-06-20T12:00:00Z"
+        }
+        """
+    }
 
     static func logDetail(mediaType: String) -> MediaDetail {
         try! JSONDecoder.api.decode(

@@ -3,7 +3,7 @@ import SwiftUI
 struct HallOfFameCrownView: View {
     let slots: [FavoriteSlot]
     var savingSlotIDs: Set<String> = []
-    let onTap: (MediaSummary) -> Void
+    let onTap: (FavoriteSlot) -> Void
     var onEmptyTap: (FavoriteSlot) -> Void = { _ in }
     var onFilledLongPress: (FavoriteSlot) -> Void = { _ in }
 
@@ -27,7 +27,7 @@ struct HallOfFameCrownView: View {
                 Group {
                     if let item = slot.item {
                         Button {
-                            onTap(item)
+                            onTap(slot)
                         } label: {
                             HallOfFameCrownFilledCard(item: item, cardSize: cardSize, borderOpacity: borderOpacity)
                         }

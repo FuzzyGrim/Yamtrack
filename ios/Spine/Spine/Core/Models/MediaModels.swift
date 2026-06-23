@@ -492,6 +492,7 @@ struct UserMediaState: Codable, Hashable {
     let trackingId: Int?
     let status: String?
     let rating: String?
+    let diaryEntryId: Int?
     let diaryRating: String?
     let diaryConsumedAt: String?
     let inLists: [Int]

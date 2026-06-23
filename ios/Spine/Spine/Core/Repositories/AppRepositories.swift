@@ -20,7 +20,7 @@ protocol MediaRepository {
 }
 
 protocol TrackingRepository {
-    func list(mediaType: String) async throws -> [LibraryItem]
+    func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<LibraryItem>
     func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState
     func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState
     func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState
@@ -28,11 +28,24 @@ protocol TrackingRepository {
     func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState
 }
 
+extension TrackingRepository {
+    func list(mediaType: String, page: String?) async throws -> PagedResponse<LibraryItem> {
+        try await list(mediaType: mediaType, page: page, status: nil)
+    }
+}
+
 protocol DiaryRepository {
-    func list() async throws -> [DiaryEntry]
+    func list(tag: String?) async throws -> [DiaryEntry]
+    func detail(id: Int) async throws -> DiaryEntry
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState
     func tags(query: String) async throws -> [DiaryTagSuggestion]
+}
+
+extension DiaryRepository {
+    func list() async throws -> [DiaryEntry] {
+        try await list(tag: nil)
+    }
 }
 
 protocol ProfileRepository {
@@ -199,13 +212,19 @@ struct APIMediaRepository: MediaRepository {
 struct APITrackingRepository: TrackingRepository {
     let client: APIClient
 
-    func list(mediaType: String) async throws -> [LibraryItem] {
-        let response: PagedResponse<LibraryItem> = try await client.get(
+    func list(mediaType: String, page: String?, status: String? = nil) async throws -> PagedResponse<LibraryItem> {
+        var query = [URLQueryItem(name: "media_type", value: mediaType)]
+        if let page {
+            query.append(URLQueryItem(name: "page", value: page))
+        }
+        if let status {
+            query.append(URLQueryItem(name: "status", value: status))
+        }
+        return try await client.get(
             "/tracking/",
-            query: [URLQueryItem(name: "media_type", value: mediaType)],
+            query: query,
             authenticated: true
         )
-        return response.results
     }
 
     func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState {
@@ -252,9 +271,28 @@ struct APITrackingRepository: TrackingRepository {
 struct APIDiaryRepository: DiaryRepository {
     let client: APIClient
 
-    func list() async throws -> [DiaryEntry] {
-        let response: PagedResponse<DiaryEntry> = try await client.get("/diary/", authenticated: true)
-        return response.results
+    func list(tag: String? = nil) async throws -> [DiaryEntry] {
+        let tag = tag?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let baseQuery = tag.map { $0.isEmpty ? [] : [URLQueryItem(name: "tag", value: $0)] } ?? []
+        var page: String?
+        var entries: [DiaryEntry] = []
+
+        repeat {
+            var query = baseQuery
+            if let page {
+                query.append(URLQueryItem(name: "page", value: page))
+            }
+
+            let response: PagedResponse<DiaryEntry> = try await client.get("/diary/", query: query, authenticated: true)
+            entries += response.results
+            page = APIPageCursor.nextPage(from: response.next)
+        } while page != nil
+
+        return entries
+    }
+
+    func detail(id: Int) async throws -> DiaryEntry {
+        try await client.get("/diary/\(id)/", authenticated: true)
     }
 
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry {
@@ -279,6 +317,17 @@ struct APIDiaryRepository: DiaryRepository {
             authenticated: true
         )
         return response.results
+    }
+
+}
+
+enum APIPageCursor {
+    static func nextPage(from next: String?) -> String? {
+        guard let next, let url = URL(string: next) else { return nil }
+        return URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first { $0.name == "page" }?
+            .value
     }
 }
 

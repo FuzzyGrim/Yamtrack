@@ -8,8 +8,10 @@ final class MediaDetailViewModel {
     var tracking: TrackingState?
     var isLoading = false
     var isLoadingReviews = false
+    var isSavingQuickAction = false
     var errorMessage: String?
     var reviewsErrorMessage: String?
+    var quickActionErrorMessage: String?
 
     private let ref: MediaRef
     private let mediaRepository: MediaRepository
@@ -78,6 +80,47 @@ final class MediaDetailViewModel {
         }
     }
 
+    func performQuickAction(_ action: MediaDetailQuickAction, for detail: MediaDetail, completedAt: Date = Date()) async -> Bool {
+        guard !isSavingQuickAction else { return false }
+        isSavingQuickAction = true
+        quickActionErrorMessage = nil
+        defer { isSavingQuickAction = false }
+
+        do {
+            let state: TrackingState
+            switch action {
+            case .currently:
+                state = try await trackingRepository.update(
+                    ref: detail.ref,
+                    request: TrackingWriteRequest(status: "In progress")
+                )
+            case .finished:
+                if detail.ref.mediaType == "book" {
+                    state = try await trackingRepository.completeBook(
+                        source: detail.ref.source,
+                        mediaId: detail.ref.mediaId,
+                        completedAt: completedAt
+                    )
+                } else {
+                    state = try await trackingRepository.consume(ref: detail.ref, consumedAt: completedAt)
+                }
+            case .stopped:
+                state = try await trackingRepository.update(
+                    ref: detail.ref,
+                    request: TrackingWriteRequest(status: "Dropped")
+                )
+            }
+            tracking = state
+            return true
+        } catch {
+            quickActionErrorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
+
     func applyPosterSave(_ response: PosterSaveResponse) {
         detail = detail?.replacingPoster(with: response)
     }
@@ -87,14 +130,26 @@ final class MediaDetailViewModel {
     }
 }
 
+enum MediaDetailQuickAction {
+    case currently
+    case finished
+    case stopped
+}
+
 private enum MediaDetailSheet: Identifiable {
     case posterMenu
+    case bookGameActions
 
     var id: String {
         switch self {
         case .posterMenu: "posterMenu"
+        case .bookGameActions: "bookGameActions"
         }
     }
+}
+
+private struct PresentedDiaryEntry: Identifiable {
+    let id: Int
 }
 
 enum MediaArtworkCustomization {
@@ -123,9 +178,11 @@ struct MediaDetailView: View {
     @State private var viewModel: MediaDetailViewModel
     @State private var presentedSheet: MediaDetailSheet?
     @State private var presentedRef: MediaRef?
+    @State private var presentedDiaryEntry: PresentedDiaryEntry?
     @State private var isPosterPickerPresented = false
     @State private var isBackdropPickerPresented = false
     @State private var isLogPresented = false
+    @State private var isQuickActionAlertPresented = false
     @State private var showsTitleLogo = true
     @State private var topSafeAreaInset: CGFloat = 0
     @State private var edgeDragOffset: CGFloat = 0
@@ -233,7 +290,34 @@ struct MediaDetailView: View {
                 )
                 .presentationDetents([.height(canCustomizeBackdrop(viewModel.detail) ? 216 : 148)])
                 .presentationDragIndicator(.visible)
+            case .bookGameActions:
+                if let detail = viewModel.detail {
+                    BookGameActionSheet(
+                        mediaType: detail.ref.mediaType,
+                        isInProgress: currentStatus(detail) == "In progress",
+                        isSaving: viewModel.isSavingQuickAction,
+                        errorMessage: viewModel.quickActionErrorMessage,
+                        onAction: { action in
+                            await performQuickAction(action, for: detail, dismissSheet: true)
+                        },
+                        onLog: {
+                            presentedSheet = nil
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                isLogPresented = true
+                            }
+                        }
+                    )
+                    .presentationDetents([.height(224)])
+                    .presentationDragIndicator(.visible)
+                }
             }
+        }
+        .alert("Tracking Update Failed", isPresented: $isQuickActionAlertPresented) {
+            Button("OK") {
+                viewModel.quickActionErrorMessage = nil
+            }
+        } message: {
+            Text(viewModel.quickActionErrorMessage ?? "")
         }
         .fullScreenCover(isPresented: $isBackdropPickerPresented) {
             if let detail = viewModel.detail {
@@ -284,6 +368,17 @@ struct MediaDetailView: View {
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
                 diaryRepository: diaryRepository,
+                selectedTab: selectedTab,
+                onSelectTab: onSelectTab,
+                onUnauthorized: onUnauthorized
+            )
+        }
+        .fullScreenCover(item: $presentedDiaryEntry) { entry in
+            DiaryLogDetailView(
+                entryId: entry.id,
+                diaryRepository: diaryRepository,
+                mediaRepository: mediaRepository,
+                trackingRepository: trackingRepository,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
@@ -348,6 +443,36 @@ struct MediaDetailView: View {
 
     private func isBook(_ detail: MediaDetail) -> Bool {
         detail.ref.mediaType == "book"
+    }
+
+    private func usesBookGameActions(_ detail: MediaDetail) -> Bool {
+        ["book", "game"].contains(detail.ref.mediaType)
+    }
+
+    private func trackAction(for detail: MediaDetail) {
+        if usesBookGameActions(detail) {
+            presentedSheet = .bookGameActions
+        } else {
+            isLogPresented = true
+        }
+    }
+
+    private func eyeAction(for detail: MediaDetail) {
+        guard usesBookGameActions(detail) else { return }
+        Task {
+            await performQuickAction(.finished, for: detail, dismissSheet: false)
+        }
+    }
+
+    private func performQuickAction(_ action: MediaDetailQuickAction, for detail: MediaDetail, dismissSheet: Bool) async {
+        if await viewModel.performQuickAction(action, for: detail) {
+            if dismissSheet {
+                presentedSheet = nil
+            }
+            await viewModel.load()
+        } else if !dismissSheet {
+            isQuickActionAlertPresented = true
+        }
     }
 
     private func navigateToTab(_ tab: AppTab) {
@@ -425,7 +550,11 @@ struct MediaDetailView: View {
                     ActionRail(
                         isTracked: currentStatus(detail) != nil,
                         isHorizontal: true,
-                        onTrack: { isLogPresented = true }
+                        trackLabel: usesBookGameActions(detail) ? "Track" : nil,
+                        eyeLabel: usesBookGameActions(detail) ? bookGameCopy(for: detail.ref.mediaType).finished : nil,
+                        isEyeLoading: usesBookGameActions(detail) && viewModel.isSavingQuickAction,
+                        onTrack: { trackAction(for: detail) },
+                        onEye: { eyeAction(for: detail) }
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -475,7 +604,11 @@ struct MediaDetailView: View {
                     ActionRail(
                         isTracked: currentStatus(detail) != nil,
                         isHorizontal: false,
-                        onTrack: { isLogPresented = true }
+                        trackLabel: usesBookGameActions(detail) ? "Track" : nil,
+                        eyeLabel: usesBookGameActions(detail) ? bookGameCopy(for: detail.ref.mediaType).finished : nil,
+                        isEyeLoading: usesBookGameActions(detail) && viewModel.isSavingQuickAction,
+                        onTrack: { trackAction(for: detail) },
+                        onEye: { eyeAction(for: detail) }
                     )
                 }
             }
@@ -499,7 +632,7 @@ struct MediaDetailView: View {
 
     private func content(_ detail: MediaDetail) -> some View {
         VStack(alignment: .leading, spacing: 28) {
-            TrackingSummarySection(detail: detail, tracking: viewModel.tracking, userState: detail.userState)
+            trackingSummarySection(detail)
             SynopsisCard(text: synopsisPreview(detail))
             SpineRatingDistributionSection(community: detail.community)
 
@@ -520,6 +653,40 @@ struct MediaDetailView: View {
         }
         .padding(.horizontal, 14)
         .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private func trackingSummarySection(_ detail: MediaDetail) -> some View {
+        TrackingSummarySection(detail: detail, tracking: viewModel.tracking, userState: detail.userState) {
+            Task {
+                await openTrackingDiaryEntry(for: detail)
+            }
+        }
+    }
+
+    private func openTrackingDiaryEntry(for detail: MediaDetail) async {
+        if let entryId = detail.userState?.diaryEntryId {
+            presentedDiaryEntry = PresentedDiaryEntry(id: entryId)
+            return
+        }
+
+        do {
+            if let entry = try await diaryRepository.list().first(where: { matches($0.media.ref, detail.ref) }) {
+                presentedDiaryEntry = PresentedDiaryEntry(id: entry.id)
+            }
+        } catch {
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+        }
+    }
+
+    private func matches(_ lhs: MediaRef, _ rhs: MediaRef) -> Bool {
+        lhs.source == rhs.source
+            && lhs.mediaType == rhs.mediaType
+            && lhs.mediaId == rhs.mediaId
+            && lhs.seasonNumber == rhs.seasonNumber
+            && lhs.episodeNumber == rhs.episodeNumber
     }
 
     private func seasonsSection(_ detail: MediaDetail) -> some View {
@@ -1023,6 +1190,12 @@ private struct CircleIconButton: View {
     }
 }
 
+private func bookGameCopy(for mediaType: String) -> (currently: String, finished: String, stopped: String) {
+    mediaType == "book"
+        ? ("Currently Reading", "Finished Reading", "Stopped Reading")
+        : ("Currently Playing", "Finished Playing", "Stopped Playing")
+}
+
 private struct PosterMenuSheet: View {
     let posterLabel: String
     let showsBackdropOption: Bool
@@ -1061,6 +1234,103 @@ private struct PosterMenuSheet: View {
             }
         }
         .presentationBackground(.regularMaterial)
+    }
+}
+
+private struct BookGameActionSheet: View {
+    let mediaType: String
+    let isInProgress: Bool
+    let isSaving: Bool
+    let errorMessage: String?
+    let onAction: (MediaDetailQuickAction) async -> Void
+    let onLog: () -> Void
+
+    var body: some View {
+        let copy = bookGameCopy(for: mediaType)
+
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                if isInProgress {
+                    placeholderButton(title: "Update Progress", systemName: "slider.horizontal.3")
+                } else {
+                    actionButton(title: copy.currently, systemName: "play.fill", action: .currently)
+                }
+                actionButton(title: copy.finished, systemName: "checkmark", action: .finished)
+                actionButton(title: copy.stopped, systemName: "xmark", action: .stopped)
+                logButton
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 36)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.red.opacity(0.92))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+            }
+        }
+        .presentationBackground(.regularMaterial)
+    }
+
+    private func actionButton(title: String, systemName: String, action: MediaDetailQuickAction) -> some View {
+        Button {
+            Task {
+                await onAction(action)
+            }
+        } label: {
+            actionLabel(title: title, systemName: systemName)
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving)
+    }
+
+    private func placeholderButton(title: String, systemName: String) -> some View {
+        Button(action: {}) {
+            actionLabel(title: title, systemName: systemName)
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving)
+    }
+
+    private var logButton: some View {
+        Button(action: onLog) {
+            actionLabel(title: "Log", systemName: "square.and.pencil")
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving)
+    }
+
+    private func actionLabel(title: String, systemName: String) -> some View {
+        VStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.white.opacity(0.055))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(.white.opacity(0.13), lineWidth: 1.25)
+                    }
+                if isSaving {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Image(systemName: systemName)
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.94))
+                }
+            }
+            .frame(height: 86)
+            .shadow(color: .black.opacity(0.18), radius: 10, y: 6)
+
+            Text(title)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(.white.opacity(0.92))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+                .frame(height: 36, alignment: .top)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -1202,28 +1472,46 @@ private struct ActionRail: View {
 
     let isTracked: Bool
     let isHorizontal: Bool
+    var trackLabel: String?
+    var eyeLabel: String?
+    var isEyeLoading = false
     let onTrack: () -> Void
+    var onEye: () -> Void = {}
 
     var body: some View {
         if isHorizontal {
             HStack(spacing: Self.buttonSpacing) {
                 railButton(
                     systemName: "plus",
-                    label: isTracked ? "Edit tracking" : "Log",
+                    label: trackLabel ?? (isTracked ? "Edit tracking" : "Log"),
                     filled: true,
                     usesLargePlus: true,
                     action: onTrack
                 )
                 railButton(systemName: "heart", label: "Like", filled: true, usesLargePlus: false, action: {})
-                railButton(systemName: "eye", label: "Mark as watched", filled: true, usesLargePlus: false, action: {})
+                railButton(
+                    systemName: "eye",
+                    label: eyeLabel ?? "Mark as watched",
+                    filled: true,
+                    usesLargePlus: false,
+                    isLoading: isEyeLoading,
+                    action: onEye
+                )
             }
         } else {
             VStack(spacing: Self.buttonSpacing) {
                 railButton(systemName: "heart", label: "Like", filled: true, usesLargePlus: false, action: {})
-                railButton(systemName: "eye", label: "Mark as watched", filled: true, usesLargePlus: false, action: {})
+                railButton(
+                    systemName: "eye",
+                    label: eyeLabel ?? "Mark as watched",
+                    filled: true,
+                    usesLargePlus: false,
+                    isLoading: isEyeLoading,
+                    action: onEye
+                )
                 railButton(
                     systemName: "plus",
-                    label: isTracked ? "Edit tracking" : "Log",
+                    label: trackLabel ?? (isTracked ? "Edit tracking" : "Log"),
                     filled: true,
                     usesLargePlus: false,
                     action: onTrack
@@ -1237,20 +1525,27 @@ private struct ActionRail: View {
         label: String,
         filled: Bool,
         usesLargePlus: Bool,
+        isLoading: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: usesLargePlus ? 25 : 17, weight: usesLargePlus ? .semibold : .bold))
-                .foregroundStyle(filled ? Color.black.opacity(0.82) : .white)
-                .frame(width: Self.buttonSize, height: Self.buttonSize)
-                .background {
-                    Circle()
-                        .fill(filled ? .white.opacity(0.92) : .black.opacity(0.34))
+            ZStack {
+                Circle()
+                    .fill(filled ? .white.opacity(0.92) : .black.opacity(0.34))
+                if isLoading {
+                    ProgressView()
+                        .tint(.black)
+                } else {
+                    Image(systemName: systemName)
+                        .font(.system(size: usesLargePlus ? 25 : 17, weight: usesLargePlus ? .semibold : .bold))
+                        .foregroundStyle(filled ? Color.black.opacity(0.82) : .white)
                 }
-                .shadow(color: usesLargePlus ? .white.opacity(0.22) : .clear, radius: 10, y: 2)
+            }
+            .frame(width: Self.buttonSize, height: Self.buttonSize)
+            .shadow(color: usesLargePlus ? .white.opacity(0.22) : .clear, radius: 10, y: 2)
         }
         .buttonStyle(.plain)
+        .disabled(isLoading)
         .accessibilityLabel(label)
     }
 }
@@ -1406,6 +1701,7 @@ private struct TrackingSummarySection: View {
     let detail: MediaDetail
     let tracking: TrackingState?
     let userState: UserMediaState?
+    let onOpenDiaryEntry: () -> Void
 
     var body: some View {
         if hasState {
@@ -1419,12 +1715,31 @@ private struct TrackingSummarySection: View {
                         mediaType: detail.ref.mediaType,
                         orientation: detail.posterOrientation
                     )
+                    .onTapGesture(perform: onOpenDiaryEntry)
+                    .accessibilityLabel("View diary log for \(detail.title)")
+                    .accessibilityAddTraits(.isButton)
 
                     VStack(alignment: .leading, spacing: 4) {
                         if let status {
                             Text(status)
                                 .font(.system(size: 14, weight: .heavy))
                                 .foregroundStyle(.white)
+                            if showsUpdateProgressButton {
+                                Button(action: {}) {
+                                    Text("Update Progress")
+                                        .font(.system(size: 11, weight: .heavy))
+                                        .foregroundStyle(.white.opacity(0.88))
+                                        .padding(.horizontal, 10)
+                                        .frame(height: 28)
+                                        .background(.white.opacity(0.1), in: Capsule())
+                                        .overlay {
+                                            Capsule()
+                                                .stroke(.white.opacity(0.12), lineWidth: 1)
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 2)
+                            }
                         }
                         ForEach(lines, id: \.self) { line in
                             Text(line)
@@ -1441,6 +1756,9 @@ private struct TrackingSummarySection: View {
 
     private var status: String? { tracking?.status ?? userState?.status }
     private var hasState: Bool { status != nil || !lines.isEmpty }
+    private var showsUpdateProgressButton: Bool {
+        status == "In progress" && ["book", "game"].contains(detail.ref.mediaType)
+    }
 
     private var lines: [String] {
         var values: [String] = []

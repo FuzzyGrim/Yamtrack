@@ -223,6 +223,8 @@ private struct SearchViewContent: View {
                     )
 
                     SearchResultsSection(
+                        query: viewModel.query,
+                        selectedMediaType: mediaLensStore.selectedMediaType,
                         results: viewModel.results,
                         isLoading: viewModel.isLoading,
                         errorMessage: viewModel.errorMessage,
@@ -258,6 +260,11 @@ private struct SearchViewContent: View {
                     await viewModel.loadMeta()
                     validateSelectedMediaType()
                 }
+                .task(id: draftText) {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard !Task.isCancelled else { return }
+                    await viewModel.search(draftText, mediaType: mediaLensStore.selectedMediaType)
+                }
             }
             .background(Color.black)
         }
@@ -280,15 +287,13 @@ private struct SearchViewContent: View {
 
     private func search(_ text: String, mediaType: String? = nil) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
         let type = mediaType ?? mediaLensStore.selectedMediaType
         Task { await viewModel.search(trimmed, mediaType: type) }
     }
 
     private func searchCurrentQuery(mediaType: String) async {
-        let trimmed = viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        await viewModel.search(mediaType: mediaType)
+        let trimmed = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
+        await viewModel.search(trimmed, mediaType: mediaType)
     }
 
     private func validateSelectedMediaType() {
@@ -313,7 +318,6 @@ private enum RecentMedia {
     }
 }
 
-/// Keeps draft text out of the search model so keystrokes never invalidate results.
 private struct SearchInputBar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
@@ -489,6 +493,9 @@ private struct SearchLensOrb: View {
 }
 
 private struct SearchResultsSection: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let query: String
+    let selectedMediaType: String
     let results: [MediaSummary]
     let isLoading: Bool
     let errorMessage: String?
@@ -500,32 +507,53 @@ private struct SearchResultsSection: View {
         ZStack {
             Color.black
 
-            if let error = errorMessage {
-                ContentUnavailableView("Search failed", systemImage: "exclamationmark.triangle", description: Text(error))
-            } else if results.isEmpty {
-                SearchEmptyState(
-                    recentMedia: recentMedia,
-                    onRecentMedia: onRecentMedia
-                )
-            } else {
-                SearchResultsList(results: results, onSelect: onSelect)
-            }
-
-            if isLoading {
-                ProgressView()
-                    .padding(24)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-            }
+            content
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: contentState)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: resultIDs)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let error = errorMessage {
+            ContentUnavailableView("Search failed", systemImage: "exclamationmark.triangle", description: Text(error))
+        } else if results.isEmpty {
+            SearchEmptyState(
+                query: query,
+                selectedMediaType: selectedMediaType,
+                isLoading: isLoading,
+                recentMedia: recentMedia,
+                onRecentMedia: onRecentMedia
+            )
+        } else {
+            SearchResultsList(results: results, onSelect: onSelect)
+        }
+    }
+
+    private var contentState: String {
+        if errorMessage != nil { return "error" }
+        if !results.isEmpty { return "results" }
+        if isLoading { return "loading-empty" }
+        return query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "empty" : "no-results"
+    }
+
+    private var resultIDs: [String] {
+        results.map(\.id)
     }
 }
 
 private struct SearchEmptyState: View {
+    let query: String
+    let selectedMediaType: String
+    let isLoading: Bool
     let recentMedia: [MediaSummary]
     let onRecentMedia: (MediaSummary) -> Void
 
     var body: some View {
-        if recentMedia.isEmpty {
+        if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLoading {
+            SearchNoResultsState(query: query, selectedMediaType: selectedMediaType)
+        } else if recentMedia.isEmpty {
             ContentUnavailableView("Search Spine", systemImage: "magnifyingglass", description: Text("Enter a title to find media."))
         } else {
             List {
@@ -534,9 +562,10 @@ private struct SearchEmptyState: View {
                         Button {
                             onRecentMedia(media)
                         } label: {
-                            SearchResultRow(result: media)
+                            SearchResultRow(result: media, usesDiarySize: true)
                         }
                         .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 12))
                     }
                 }
             }
@@ -547,7 +576,21 @@ private struct SearchEmptyState: View {
     }
 }
 
+private struct SearchNoResultsState: View {
+    let query: String
+    let selectedMediaType: String
+
+    var body: some View {
+        ContentUnavailableView(
+            "No \(MediaTypeTheme.theme(for: selectedMediaType).displayName.lowercased()) found",
+            systemImage: "magnifyingglass",
+            description: Text("No matches for \"\(query.trimmingCharacters(in: .whitespacesAndNewlines))\". Try another title or media type.")
+        )
+    }
+}
+
 private struct SearchResultsList: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let results: [MediaSummary]
     let onSelect: (MediaSummary) -> Void
 
@@ -561,27 +604,32 @@ private struct SearchResultsList: View {
                 }
                 .buttonStyle(.plain)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 12))
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.black)
         .scrollDismissesKeyboard(.interactively)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: results.map(\.id))
     }
 }
 
 private struct SearchResultRow: View {
     let result: MediaSummary
+    var usesDiarySize = false
 
     var body: some View {
         HStack(spacing: 14) {
             MediaArtwork(
                 url: result.displayPosterURL,
                 title: result.title,
-                slot: .searchRow,
+                slot: usesDiarySize ? .diaryRow : .searchRow,
                 mediaType: result.ref.mediaType,
                 orientation: result.posterOrientation
             )
+            .scaleEffect(usesDiarySize ? 0.75 : 1)
+            .frame(width: usesDiarySize ? 42 : nil, height: usesDiarySize ? 63 : nil)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(result.title)

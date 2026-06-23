@@ -129,6 +129,8 @@ Important files:
 | POST | `/api/v1/follow-requests/{id}/{accept,reject}/` | Yes |
 | POST/DELETE | `/api/v1/social/likes/` | Yes |
 
+`GET /api/v1/diary/` supports optional `tag=<tag>` filtering and returns the same paged diary-entry response shape. Native clients use this for tag detail pages, including diary-list and poster-grid views.
+
 ### Stats, Imports, Export
 
 | Method | Path | Auth |

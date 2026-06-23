@@ -5,19 +5,29 @@ import SwiftUI
 final class ProfileViewModel {
     var profile: UserProfile?
     var recentEntries: [DiaryEntry] = []
+    var inProgressItems: [LibraryItem] = []
     var isLoading = false
+    var isLoadingInProgress = false
     var errorMessage: String?
     var activityErrorMessage: String?
+    var inProgressErrorMessage: String?
     var hofErrorMessage: String?
     var savingHallOfFameSlots: Set<String> = []
 
     private let profileRepository: ProfileRepository
     private let diaryRepository: DiaryRepository
+    private let trackingRepository: TrackingRepository
     private let onUnauthorized: () -> Void
 
-    init(profileRepository: ProfileRepository, diaryRepository: DiaryRepository, onUnauthorized: @escaping () -> Void) {
+    init(
+        profileRepository: ProfileRepository,
+        diaryRepository: DiaryRepository,
+        trackingRepository: TrackingRepository,
+        onUnauthorized: @escaping () -> Void
+    ) {
         self.profileRepository = profileRepository
         self.diaryRepository = diaryRepository
+        self.trackingRepository = trackingRepository
         self.onUnauthorized = onUnauthorized
     }
 
@@ -25,6 +35,8 @@ final class ProfileViewModel {
         isLoading = true
         errorMessage = nil
         activityErrorMessage = nil
+        inProgressErrorMessage = nil
+        inProgressItems = []
         defer { isLoading = false }
 
         do {
@@ -37,14 +49,8 @@ final class ProfileViewModel {
             return
         }
 
-        do {
-            recentEntries = Array(try await diaryRepository.list().prefix(5))
-        } catch {
-            activityErrorMessage = error.localizedDescription
-            if case APIError.unauthorized = error {
-                onUnauthorized()
-            }
-        }
+        await loadInProgressItems()
+        await loadRecentActivity()
     }
 
     func reload() async {
@@ -53,6 +59,84 @@ final class ProfileViewModel {
 
     func isSavingHallOfFameSlot(_ mediaType: String) -> Bool {
         savingHallOfFameSlots.contains(mediaType)
+    }
+
+    private func loadRecentActivity() async {
+        do {
+            recentEntries = Array(try await diaryRepository.list().prefix(6))
+        } catch {
+            activityErrorMessage = error.localizedDescription
+            handleUnauthorized(error)
+        }
+    }
+
+    private func loadInProgressItems() async {
+        let mediaTypes = Self.inProgressMediaTypes(from: profile)
+        guard !mediaTypes.isEmpty else {
+            inProgressItems = []
+            return
+        }
+
+        isLoadingInProgress = true
+        defer { isLoadingInProgress = false }
+
+        do {
+            var mergedItems: [LibraryItem] = []
+            for mediaType in mediaTypes {
+                let response = try await trackingRepository.list(
+                    mediaType: mediaType,
+                    page: nil,
+                    status: "In progress"
+                )
+                mergedItems += response.results
+            }
+
+            inProgressItems = Array(
+                mergedItems
+                    .sorted(by: Self.inProgressSort)
+                    .prefix(8)
+            )
+        } catch {
+            inProgressItems = []
+            inProgressErrorMessage = error.localizedDescription
+            handleUnauthorized(error)
+        }
+    }
+
+    static func inProgressMediaTypes(from profile: UserProfile?) -> [String] {
+        let enabledTypes = profile?.preferences.enabledMediaTypes ?? []
+        let baseTypes = enabledTypes.isEmpty ? APIConstants.fallbackMediaTypes : enabledTypes
+        return baseTypes.compactMap { type in
+            switch type {
+            case "episode":
+                return nil
+            case "tv":
+                return "season"
+            default:
+                return type
+            }
+        }
+    }
+
+    private static func inProgressSort(_ lhs: LibraryItem, _ rhs: LibraryItem) -> Bool {
+        let leftDate = InProgressDateParser.date(from: lhs.tracking.updatedAt)
+        let rightDate = InProgressDateParser.date(from: rhs.tracking.updatedAt)
+        switch (leftDate, rightDate) {
+        case let (left?, right?):
+            return left > right
+        case (.some, .none):
+            return true
+        case (.none, .some):
+            return false
+        case (.none, .none):
+            return lhs.media.title.localizedCaseInsensitiveCompare(rhs.media.title) == .orderedAscending
+        }
+    }
+
+    private func handleUnauthorized(_ error: Error) {
+        if case APIError.unauthorized = error {
+            onUnauthorized()
+        }
     }
 
     @discardableResult
@@ -68,9 +152,7 @@ final class ProfileViewModel {
             return true
         } catch {
             hofErrorMessage = error.localizedDescription
-            if case APIError.unauthorized = error {
-                onUnauthorized()
-            }
+            handleUnauthorized(error)
             return false
         }
     }
@@ -88,9 +170,7 @@ final class ProfileViewModel {
             return true
         } catch {
             hofErrorMessage = error.localizedDescription
-            if case APIError.unauthorized = error {
-                onUnauthorized()
-            }
+            handleUnauthorized(error)
             return false
         }
     }
@@ -128,6 +208,7 @@ struct ProfileView: View {
         _viewModel = State(initialValue: ProfileViewModel(
             profileRepository: profileRepository,
             diaryRepository: diaryRepository,
+            trackingRepository: trackingRepository,
             onUnauthorized: onUnauthorized
         ))
         self.mediaRepository = mediaRepository
@@ -234,6 +315,7 @@ struct ProfileView: View {
                     } else if let profile = viewModel.profile {
                         VStack(alignment: .leading, spacing: 24) {
                             hero(profile)
+                            inProgressSection
                             activitySection
                         }
                         .padding(.horizontal, 16)
@@ -297,8 +379,8 @@ struct ProfileView: View {
                     HallOfFameCrownView(
                         slots: allSlots,
                         savingSlotIDs: viewModel.savingHallOfFameSlots
-                    ) { item in
-                        selectedRef = item.ref
+                    ) { slot in
+                        hofPickerSlot = slot
                     } onEmptyTap: { slot in
                         hofPickerSlot = slot
                     } onFilledLongPress: { slot in
@@ -392,7 +474,7 @@ struct ProfileView: View {
     }
 
     private var activitySection: some View {
-        ProfileSection(title: "Recent Activity", actionTitle: "Diary", action: onOpenDiary) {
+        ProfileSection(title: "Recent Activity", action: onOpenDiary) {
             if let activityError = viewModel.activityErrorMessage {
                 EmptyProfileCard(title: activityError, systemName: "exclamationmark.triangle")
             } else if viewModel.recentEntries.isEmpty {
@@ -400,6 +482,22 @@ struct ProfileView: View {
             } else {
                 RecentActivityRail(entries: viewModel.recentEntries) { entry in
                     selectedRef = entry.media.ref
+                }
+            }
+        }
+    }
+
+    private var inProgressSection: some View {
+        ProfileSection(title: "In Progress") {
+            if viewModel.isLoadingInProgress {
+                ProfileRailLoadingView()
+            } else if let inProgressError = viewModel.inProgressErrorMessage {
+                EmptyProfileCard(title: inProgressError, systemName: "exclamationmark.triangle")
+            } else if viewModel.inProgressItems.isEmpty {
+                EmptyProfileCard(title: "Nothing in progress yet", systemName: "play.circle")
+            } else {
+                InProgressRail(items: viewModel.inProgressItems) { item in
+                    selectedRef = item.media.ref
                 }
             }
         }
@@ -689,28 +787,48 @@ private struct ProfileStatChip: View {
 
 private struct ProfileSection<Content: View>: View {
     let title: String
-    let actionTitle: String?
     let action: (() -> Void)?
     @ViewBuilder let content: () -> Content
+
+    init(
+        title: String,
+        action: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.title = title
+        self.action = action
+        self.content = content
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(title.uppercased())
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(.white.opacity(0.58))
-                    .tracking(0.8)
-                Spacer()
-                if let actionTitle, let action {
-                    Button(actionTitle, action: action)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.white)
-                        .buttonStyle(.plain)
+                if let action {
+                    Button(action: action) {
+                        HStack(spacing: 5) {
+                            sectionTitle
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(.white.opacity(0.58))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(title)
+                } else {
+                    sectionTitle
                 }
+                Spacer()
             }
 
             content()
         }
+    }
+
+    private var sectionTitle: some View {
+        Text(title.uppercased())
+            .font(.system(size: 13, weight: .black))
+            .foregroundStyle(.white.opacity(0.58))
+            .tracking(0.8)
     }
 }
 
@@ -720,9 +838,13 @@ private struct RecentActivityRail: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let spacing: CGFloat = 10
-            let itemWidth: CGFloat = 62
-            let visibleCount = max(3, min(5, Int((proxy.size.width + spacing) / (itemWidth + spacing))))
+            let itemWidth = PosterSlot.diaryRow.size.width
+            let minimumSpacing: CGFloat = 4
+            let maximumVisibleCount = min(6, entries.count)
+            let visibleCount = max(1, min(maximumVisibleCount, Int((proxy.size.width + minimumSpacing) / (itemWidth + minimumSpacing))))
+            let spacing = visibleCount > 1
+                ? min(10, max(minimumSpacing, (proxy.size.width - itemWidth * CGFloat(visibleCount)) / CGFloat(visibleCount - 1)))
+                : 0
             HStack(alignment: .top, spacing: spacing) {
                 ForEach(Array(entries.prefix(visibleCount))) { entry in
                     RecentActivityPoster(entry: entry) {
@@ -734,6 +856,62 @@ private struct RecentActivityRail: View {
             }
         }
         .frame(height: 104)
+    }
+}
+
+private struct InProgressRail: View {
+    let items: [LibraryItem]
+    let action: (LibraryItem) -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let spacing: CGFloat = 10
+            let itemWidth: CGFloat = 62
+            let visibleCount = max(3, min(5, Int((proxy.size.width + spacing) / (itemWidth + spacing))))
+            HStack(alignment: .top, spacing: spacing) {
+                ForEach(Array(items.prefix(visibleCount))) { item in
+                    InProgressPoster(item: item) {
+                        action(item)
+                    }
+                    .frame(width: itemWidth)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(height: 104)
+    }
+}
+
+private struct InProgressPoster: View {
+    let item: LibraryItem
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            MediaArtwork(
+                url: item.media.displayPosterURL,
+                title: item.media.title,
+                slot: .diaryRow,
+                mediaType: item.media.ref.mediaType,
+                orientation: item.media.posterOrientation
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("View \(item.media.title)")
+    }
+}
+
+private struct ProfileRailLoadingView: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(0..<5, id: \.self) { _ in
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.white.opacity(0.08))
+                    .frame(width: 62, height: 94)
+            }
+            Spacer(minLength: 0)
+        }
+        .redacted(reason: .placeholder)
     }
 }
 
@@ -805,6 +983,25 @@ private struct EmptyProfileCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+private enum InProgressDateParser {
+    private static let fractionalFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let standardFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    static func date(from value: String?) -> Date? {
+        guard let value, !value.isEmpty else { return nil }
+        return fractionalFormatter.date(from: value) ?? standardFormatter.date(from: value)
     }
 }
 

@@ -25,6 +25,9 @@ struct AppShellView: View {
                 LibraryView(
                     mediaRepository: session.repositories.media,
                     trackingRepository: session.repositories.tracking,
+                    diaryRepository: session.repositories.diary,
+                    selectedTab: selectedTab,
+                    onSelectTab: { selectedTab = $0 },
                     onUnauthorized: unauthorized
                 )
             }
@@ -37,6 +40,9 @@ struct AppShellView: View {
                 DiaryView(
                     diaryRepository: session.repositories.diary,
                     mediaRepository: session.repositories.media,
+                    trackingRepository: session.repositories.tracking,
+                    selectedTab: selectedTab,
+                    onSelectTab: { selectedTab = $0 },
                     onUnauthorized: unauthorized
                 )
             }
