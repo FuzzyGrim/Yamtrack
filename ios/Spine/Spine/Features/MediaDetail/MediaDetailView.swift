@@ -126,6 +126,7 @@ struct MediaDetailView: View {
     @State private var isPosterPickerPresented = false
     @State private var isBackdropPickerPresented = false
     @State private var isLogPresented = false
+    @State private var showsTitleLogo = true
     @State private var topSafeAreaInset: CGFloat = 0
     @State private var edgeDragOffset: CGFloat = 0
 
@@ -285,6 +286,9 @@ struct MediaDetailView: View {
                 await viewModel.load()
             }
         }
+        .onChange(of: viewModel.detail?.id) {
+            showsTitleLogo = true
+        }
     }
 
     private var edgeSwipeBackGesture: some Gesture {
@@ -338,6 +342,10 @@ struct MediaDetailView: View {
         detail.ref.mediaType == "book"
     }
 
+    private func isShowingTitleLogo(_ detail: MediaDetail) -> Bool {
+        showsTitleLogo && supportsTitleLogo(detail)
+    }
+
     private func hero(_ detail: MediaDetail) -> some View {
         ZStack(alignment: .top) {
             HeroArtwork(detail: detail)
@@ -361,17 +369,26 @@ struct MediaDetailView: View {
         if backdropURLString(for: detail) != nil {
             HStack(alignment: .top, spacing: 14) {
                 VStack(alignment: .leading, spacing: 11) {
-                    Text(displayTitle(detail))
-                        .font(.system(size: 32, weight: .black))
-                        .foregroundStyle(.white)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.72)
+                    MediaTitleDisplay(
+                        detail: detail,
+                        title: displayTitle(detail),
+                        showsLogo: $showsTitleLogo,
+                        font: .system(size: 32, weight: .black),
+                        lineLimit: 3,
+                        minimumScaleFactor: 0.72,
+                        maxLogoHeight: 44
+                    )
 
                     if let byline = byline(detail) {
                         Text(byline)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.62))
                             .lineLimit(2)
+                            .multilineTextAlignment(isShowingTitleLogo(detail) ? .center : .leading)
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: isShowingTitleLogo(detail) ? .center : .leading
+                            )
                     }
 
                     genreChips(detail, wrapsAfterThird: true)
@@ -413,16 +430,26 @@ struct MediaDetailView: View {
 
                 HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 11) {
-                        Text(displayTitle(detail))
-                            .font(.system(size: 33, weight: .heavy))
-                            .foregroundStyle(.white)
-                            .minimumScaleFactor(0.66)
+                        MediaTitleDisplay(
+                            detail: detail,
+                            title: displayTitle(detail),
+                            showsLogo: $showsTitleLogo,
+                            font: .system(size: 33, weight: .heavy),
+                            lineLimit: nil,
+                            minimumScaleFactor: 0.66,
+                            maxLogoHeight: 48
+                        )
 
                         if let byline = byline(detail) {
                             Text(byline)
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.62))
                                 .lineLimit(1)
+                                .multilineTextAlignment(isShowingTitleLogo(detail) ? .center : .leading)
+                                .frame(
+                                    maxWidth: .infinity,
+                                    alignment: isShowingTitleLogo(detail) ? .center : .leading
+                                )
                         }
 
                         genreChips(detail, wrapsAfterThird: false)
@@ -1978,6 +2005,111 @@ private extension Color {
             green: Double((int >> 8) & 0xFF) / 255,
             blue: Double(int & 0xFF) / 255
         )
+    }
+}
+
+func supportsTitleLogo(_ detail: MediaDetail) -> Bool {
+    detail.ref.source == "tmdb" && ["movie", "tv"].contains(detail.ref.mediaType) && detail.logoUrl != nil
+}
+
+private struct MediaTitleDisplay: View {
+    let detail: MediaDetail
+    let title: String
+    @Binding var showsLogo: Bool
+    let font: Font
+    let lineLimit: Int?
+    let minimumScaleFactor: CGFloat
+    let maxLogoHeight: CGFloat
+
+    private var canToggle: Bool {
+        supportsTitleLogo(detail)
+    }
+
+    var body: some View {
+        Group {
+            if canToggle, showsLogo, let logoUrl = detail.logoUrl, let url = URL(string: logoUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        TitleLogoLayout(maxLogoHeight: maxLogoHeight, aspectRatio: aspectRatio) {
+                            image
+                                .resizable()
+                                .scaledToFit()
+                        }
+                    case .failure:
+                        titleText
+                    default:
+                        Color.clear
+                            .frame(height: maxLogoHeight)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                titleText
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard canToggle else { return }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showsLogo.toggle()
+            }
+        }
+        .accessibilityLabel(title)
+        .accessibilityHint(canToggle ? "Double tap to switch between logo and text title" : "")
+        .accessibilityAddTraits(canToggle ? .isButton : [])
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(font)
+            .foregroundStyle(.white)
+            .lineLimit(lineLimit)
+            .minimumScaleFactor(minimumScaleFactor)
+    }
+
+    private var aspectRatio: CGFloat? {
+        if let ratio = detail.logoAspectRatio, ratio > 0 {
+            return CGFloat(ratio)
+        }
+        if let width = detail.logoWidth, let height = detail.logoHeight, height > 0 {
+            return CGFloat(width) / CGFloat(height)
+        }
+        return nil
+    }
+}
+
+private struct TitleLogoLayout: Layout {
+    let maxLogoHeight: CGFloat
+    let aspectRatio: CGFloat?
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 0
+        return CGSize(width: width, height: logoSize(for: width).height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let subview = subviews.first else { return }
+        let size = logoSize(for: bounds.width)
+        let origin = CGPoint(
+            x: bounds.midX - size.width / 2,
+            y: bounds.minY
+        )
+        subview.place(
+            at: origin,
+            proposal: ProposedViewSize(size)
+        )
+    }
+
+    private func logoSize(for availableWidth: CGFloat) -> CGSize {
+        guard availableWidth > 0, let aspectRatio, aspectRatio > 0 else {
+            return CGSize(width: availableWidth, height: maxLogoHeight)
+        }
+
+        let targetWidth = availableWidth * 0.82
+        let neededHeight = targetWidth / aspectRatio
+        let height = min(max(neededHeight, maxLogoHeight), maxLogoHeight * 1.45)
+        return CGSize(width: min(availableWidth, height * aspectRatio), height: height)
     }
 }
 

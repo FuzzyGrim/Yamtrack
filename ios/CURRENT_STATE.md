@@ -7,6 +7,7 @@
 - Media detail: dark production detail page with bleeding poster/accent hero, lowered safe-area-aware poster placement, real provider/Spine rating chips, expandable synopsis, tracked-state summary, media-specific metadata, reviews, TV season detail pages with explicit show + season titles and clear episode lists, seasons/episodes, cast/crew/authors, live related sections, poster customization for TMDB movies/TV, and a page-only custom bottom nav overlay.
 - Media log: the media detail LOG action now opens a full-screen native log page with poster-led layout, date-only logging, large draggable 5-star half-step ratings saved as 0-10 API values, review body, tags with live suggestions, liked/repeat icon controls, spoiler control, TV season selection, mark-only actions, and progress-only mode for books/manga/comics/games/board games.
 - Poster customization: the media detail ellipsis opens a small bottom menu, then a live poster picker with language filtering, current selection, save, and immediate poster/blur background update.
+- Profile: display-first hub rebuilt on the dark native surface with a centered identity hero, compact stat chips, Hall of Fame favorite slots, recent diary activity preview, media-detail navigation from favorites/activity, Diary tab jump, and a read-only settings sheet with logout.
 
 ## Live API
 
@@ -17,6 +18,7 @@
 - Live media detail now consumes normalized `cast`, `crew`, `seasons`, `episodes`, `related_sections`, `external_ratings`, `details`, custom posters, backdrop images, and `community.rating_distribution` from the API. Season pages render top-level episode number, title, full date/runtime/rating, overview, and episode image when available.
 - Live review fetch still uses `GET /api/v1/media/{source}/{media_type}/{media_id}/reviews/`; season pages use the TV media path with `season_number` query params and render available review cards.
 - Media log uses `POST /api/v1/diary/`, `GET /api/v1/diary/tags/`, `PATCH /api/v1/tracking/{source}/{media_type}/{media_id}/`, `POST /api/v1/tracking/{source}/{media_type}/{media_id}/actions/consume/`, `POST /api/v1/tracking/{source}/tv/{media_id}/seasons/{season_number}/watch/`, `POST /api/v1/tracking/{source}/book/{media_id}/progress/`, and `POST /api/v1/tracking/{source}/book/{media_id}/complete/`.
+- Profile uses `GET /api/v1/me/` for identity, counts, preferences, and Hall of Fame slots, plus `GET /api/v1/diary/` for recent activity.
 - No production-facing fake rating distributions, Goodreads labels, reading progress, author counts, or recommendation placeholders are rendered.
 - Movie detail rating chips hide TMDB for now and use bundled IMDb, Letterboxd, and Rotten Tomatoes logo assets when those sources are present.
 
@@ -27,6 +29,8 @@
 - Episode-level logging is not included in the iOS log page yet.
 - External ratings, credits, related sections, episodes, seasons, and custom poster URL are typed on iOS; live usefulness depends on provider metadata availability.
 - The bottom nav replica on media detail is visual/page-local and does not change global app tab routing.
+- Profile is read-only for Hall of Fame, avatar, profile fields, and preferences; writable settings/favorites need a locked API contract before iOS enables editing.
+- Profile compact stats use `/me/` totals only; per-media log breakdown is deferred until `/api/v1/stats/me/summary/` has a documented response shape.
 - Comments and social notifications remain out of scope.
 
 ## How To Run

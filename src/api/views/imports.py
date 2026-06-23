@@ -28,7 +28,7 @@ class ImportSourceView(APIView):
     def post(self, request, source):
         if source not in TASKS_BY_SOURCE:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = ImportSerializer(data=request.data)
+        serializer = ImportSerializer(data=request.data, context={"source": source})
         serializer.is_valid(raise_exception=True)
         return Response(
             queue_import(source, request.user, serializer.validated_data, request.FILES),

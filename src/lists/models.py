@@ -12,6 +12,7 @@ class CustomListManager(models.Manager):
 
     def get_user_lists(self, user):
         """Return the custom lists that the user owns or collaborates on."""
+        item_order = [models.F("position").asc(nulls_last=True), "date_added"]
         return (
             self.filter(Q(owner=user) | Q(collaborators=user))
             .select_related("owner")
@@ -19,11 +20,16 @@ class CustomListManager(models.Manager):
                 "collaborators",
                 Prefetch(
                     "items",
-                    queryset=Item.objects.order_by("-customlistitem__date_added"),
+                    queryset=Item.objects.order_by(
+                        models.F("customlistitem__position").asc(nulls_last=True),
+                        "customlistitem__date_added",
+                    ),
                 ),
                 Prefetch(
                     "customlistitem_set",
-                    queryset=CustomListItem.objects.order_by("-date_added"),
+                    queryset=CustomListItem.objects.select_related("item").order_by(
+                        *item_order,
+                    ),
                 ),
             )
             .distinct()
@@ -74,6 +80,7 @@ class CustomList(models.Model):
         choices=Visibility.choices,
         default=Visibility.PRIVATE,
     )
+    import_source = models.CharField(max_length=32, blank=True, default="")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     collaborators = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -127,7 +134,8 @@ class CustomList(models.Model):
     @property
     def image(self):
         """Return the image of the first item in the list."""
-        return self.items.first().image if self.items.first() else settings.IMG_NONE
+        first_item = self.customlistitem_set.select_related("item").first()
+        return first_item.item.image if first_item else settings.IMG_NONE
 
 
 class CustomListItemManager(models.Manager):
@@ -146,6 +154,7 @@ class CustomListItem(models.Model):
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     custom_list = models.ForeignKey(CustomList, on_delete=models.CASCADE)
+    position = models.PositiveIntegerField(null=True, blank=True)
     date_added = models.DateTimeField(auto_now_add=True)
 
     objects = CustomListItemManager()
@@ -153,7 +162,7 @@ class CustomListItem(models.Model):
     class Meta:
         """Meta options for the model."""
 
-        ordering = ["date_added"]
+        ordering = [models.F("position").asc(nulls_last=True), "date_added"]
         constraints = [
             models.UniqueConstraint(
                 fields=["item", "custom_list"],

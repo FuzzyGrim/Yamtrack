@@ -45,8 +45,15 @@ struct AppShellView: View {
             LazyTab(isSelected: selectedTab == .profile) {
                 ProfileView(
                     profileRepository: session.repositories.profile,
+                    diaryRepository: session.repositories.diary,
+                    mediaRepository: session.repositories.media,
+                    trackingRepository: session.repositories.tracking,
+                    importRepository: session.repositories.imports,
                     onLogout: {
                         Task { await session.logout() }
+                    },
+                    onOpenDiary: {
+                        selectedTab = .diary
                     },
                     onUnauthorized: unauthorized
                 )

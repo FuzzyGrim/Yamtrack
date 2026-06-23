@@ -39,12 +39,18 @@ protocol ProfileRepository {
     func me() async throws -> UserProfile
 }
 
+protocol ImportRepository {
+    func queueLetterboxdImport(fileData: Data, fileName: String, mode: ImportMode) async throws -> ImportQueueResponse
+    func importTaskStatus(taskId: String) async throws -> ImportTaskStatus
+}
+
 struct AppRepositories {
     let auth: AuthRepository
     let media: MediaRepository
     let tracking: TrackingRepository
     let diary: DiaryRepository
     let profile: ProfileRepository
+    let imports: ImportRepository
 
     static func current() -> AppRepositories {
         live()
@@ -56,7 +62,8 @@ struct AppRepositories {
             media: APIMediaRepository(client: client),
             tracking: APITrackingRepository(client: client),
             diary: APIDiaryRepository(client: client),
-            profile: APIProfileRepository(client: client)
+            profile: APIProfileRepository(client: client),
+            imports: APIImportRepository(client: client)
         )
     }
 }
@@ -273,5 +280,25 @@ struct APIProfileRepository: ProfileRepository {
 
     func me() async throws -> UserProfile {
         try await client.get("/me/", authenticated: true)
+    }
+}
+
+struct APIImportRepository: ImportRepository {
+    let client: APIClient
+
+    func queueLetterboxdImport(fileData: Data, fileName: String, mode: ImportMode) async throws -> ImportQueueResponse {
+        try await client.uploadMultipart(
+            "/imports/letterboxd/",
+            formFields: ["mode": mode.rawValue],
+            fileFieldName: "file",
+            fileName: fileName,
+            fileData: fileData,
+            mimeType: "application/zip",
+            authenticated: true
+        )
+    }
+
+    func importTaskStatus(taskId: String) async throws -> ImportTaskStatus {
+        try await client.get("/imports/tasks/\(taskId)/", authenticated: true)
     }
 }

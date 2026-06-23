@@ -4,20 +4,25 @@ import SwiftUI
 @Observable
 final class ProfileViewModel {
     var profile: UserProfile?
+    var recentEntries: [DiaryEntry] = []
     var isLoading = false
     var errorMessage: String?
+    var activityErrorMessage: String?
 
     private let profileRepository: ProfileRepository
+    private let diaryRepository: DiaryRepository
     private let onUnauthorized: () -> Void
 
-    init(profileRepository: ProfileRepository, onUnauthorized: @escaping () -> Void) {
+    init(profileRepository: ProfileRepository, diaryRepository: DiaryRepository, onUnauthorized: @escaping () -> Void) {
         self.profileRepository = profileRepository
+        self.diaryRepository = diaryRepository
         self.onUnauthorized = onUnauthorized
     }
 
     func load() async {
         isLoading = true
         errorMessage = nil
+        activityErrorMessage = nil
         defer { isLoading = false }
 
         do {
@@ -27,137 +32,531 @@ final class ProfileViewModel {
             if case APIError.unauthorized = error {
                 onUnauthorized()
             }
+            return
+        }
+
+        do {
+            recentEntries = Array(try await diaryRepository.list().prefix(5))
+        } catch {
+            activityErrorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
         }
     }
 }
 
 struct ProfileView: View {
     @State private var viewModel: ProfileViewModel
-    let onLogout: () -> Void
+    @State private var selectedRef: MediaRef?
+    @State private var isSettingsPresented = false
 
-    init(profileRepository: ProfileRepository, onLogout: @escaping () -> Void, onUnauthorized: @escaping () -> Void = {}) {
-        _viewModel = State(initialValue: ProfileViewModel(profileRepository: profileRepository, onUnauthorized: onUnauthorized))
+    private let mediaRepository: MediaRepository
+    private let trackingRepository: TrackingRepository
+    private let diaryRepository: DiaryRepository
+    private let importRepository: ImportRepository
+    private let onLogout: () -> Void
+    private let onOpenDiary: () -> Void
+    private let onUnauthorized: () -> Void
+
+    init(
+        profileRepository: ProfileRepository,
+        diaryRepository: DiaryRepository,
+        mediaRepository: MediaRepository,
+        trackingRepository: TrackingRepository,
+        importRepository: ImportRepository,
+        onLogout: @escaping () -> Void,
+        onOpenDiary: @escaping () -> Void,
+        onUnauthorized: @escaping () -> Void = {}
+    ) {
+        _viewModel = State(initialValue: ProfileViewModel(
+            profileRepository: profileRepository,
+            diaryRepository: diaryRepository,
+            onUnauthorized: onUnauthorized
+        ))
+        self.mediaRepository = mediaRepository
+        self.trackingRepository = trackingRepository
+        self.diaryRepository = diaryRepository
+        self.importRepository = importRepository
         self.onLogout = onLogout
+        self.onOpenDiary = onOpenDiary
+        self.onUnauthorized = onUnauthorized
     }
 
     var body: some View {
         NavigationStack {
-            List {
-                if viewModel.isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else if let error = viewModel.errorMessage {
-                    Text(error)
-                        .foregroundStyle(.red)
-                } else if let profile = viewModel.profile {
-                    profileHeader(profile)
-                    counts(profile.counts)
-                    preferences(profile.preferences)
-                    hof(profile.hof)
-                }
-            }
-            .navigationTitle("Profile")
-            .toolbar {
-                Button(role: .destructive) {
-                    onLogout()
-                } label: {
-                    Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-            }
-            .task {
-                await viewModel.load()
-            }
-            .refreshable {
-                await viewModel.load()
-            }
-        }
-    }
+            ZStack(alignment: .top) {
+                SpinePageBackground()
 
-    private func profileHeader(_ profile: UserProfile) -> some View {
-        Section {
-            HStack(spacing: 16) {
-                AsyncImage(url: URL(string: profile.avatarUrl ?? "")) { phase in
-                    if case let .success(image) = phase {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(width: 72, height: 72)
-                .clipShape(Circle())
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(profile.displayName)
-                        .font(.title3.weight(.bold))
-                    Text("@\(profile.username)")
-                        .foregroundStyle(.secondary)
-                    if profile.isPrivate {
-                        Label("Private", systemImage: "lock.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            if let bio = profile.bio, !bio.isEmpty {
-                Text(bio)
-            }
-            if let location = profile.location, !location.isEmpty {
-                Label(location, systemImage: "mappin.and.ellipse")
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func counts(_ counts: ProfileCounts) -> some View {
-        Section("Counts") {
-            LabeledContent("Followers", value: "\(counts.followers)")
-            LabeledContent("Following", value: "\(counts.following)")
-            LabeledContent("Diary entries", value: "\(counts.diaryEntries)")
-            LabeledContent("Lists", value: "\(counts.lists)")
-        }
-    }
-
-    private func preferences(_ preferences: UserPreferences) -> some View {
-        Section("Preferences") {
-            Text(preferences.enabledMediaTypes.map(\.capitalized).joined(separator: ", "))
-            LabeledContent("Release notifications", value: preferences.releaseNotificationsEnabled ? "On" : "Off")
-            LabeledContent("Daily digest", value: preferences.dailyDigestEnabled ? "On" : "Off")
-        }
-    }
-
-    private func hof(_ hof: [String: MediaSummary?]) -> some View {
-        Section("Hall of Fame") {
-            let items = hof.compactMap { key, value -> (String, MediaSummary)? in
-                guard let value else { return nil }
-                return (key, value)
-            }
-
-            if items.isEmpty {
-                Text("No Hall of Fame items yet.")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(items, id: \.0) { key, item in
-                    HStack {
-                        MediaArtwork(
-                            url: item.displayPosterURL,
-                            title: item.title,
-                            slot: .profileRow,
-                            mediaType: item.ref.mediaType,
-                            orientation: item.posterOrientation
-                        )
-                        VStack(alignment: .leading) {
-                            Text(item.title)
-                            Text(key.capitalized)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                ScrollView(showsIndicators: false) {
+                    Group {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .tint(.white)
+                                .frame(maxWidth: .infinity, minHeight: 520)
+                        } else if let error = viewModel.errorMessage {
+                            ContentUnavailableView("Could not load profile", systemImage: "exclamationmark.triangle", description: Text(error))
+                                .foregroundStyle(.white)
+                                .padding(.top, 120)
+                        } else if let profile = viewModel.profile {
+                            VStack(alignment: .leading, spacing: 24) {
+                                hero(profile)
+                                activitySection
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 28)
+                            .padding(.bottom, 100)
                         }
                     }
                 }
+                .refreshable {
+                    await viewModel.load()
+                }
+
+                settingsButton
+                    .padding(.top, 16)
+                    .padding(.trailing, 16)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .task {
+                if viewModel.profile == nil {
+                    await viewModel.load()
+                }
+            }
+            .fullScreenCover(item: $selectedRef) { ref in
+                MediaDetailView(
+                    ref: ref,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    diaryRepository: diaryRepository,
+                    onUnauthorized: onUnauthorized
+                )
+            }
+            .sheet(isPresented: $isSettingsPresented) {
+                ProfileSettingsSheet(
+                    profile: viewModel.profile,
+                    importRepository: importRepository,
+                    onLogout: onLogout,
+                    onUnauthorized: onUnauthorized
+                )
             }
         }
+    }
+
+    private var settingsButton: some View {
+        Button {
+            isSettingsPresented = true
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 38, height: 38)
+                .background(.black.opacity(0.34), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Settings")
+    }
+
+    private func hero(_ profile: UserProfile) -> some View {
+        let filled = favoriteSlots(from: profile.hof).compactMap(\.item)
+        let visible = Array(filled.prefix(5))
+        let overflow = max(0, filled.count - 5)
+
+        return VStack(spacing: 18) {
+            VStack(spacing: 8) {
+                ZStack {
+                    HallOfFameCrownView(items: visible, overflowCount: overflow) { item in
+                        selectedRef = item.ref
+                    }
+
+                    avatar(profile)
+                        .overlay(alignment: .bottomTrailing) {
+                            if overflow > 0 {
+                                Text("+\(overflow)")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 8)
+                                    .frame(height: 24)
+                                    .background(.black.opacity(0.72), in: Capsule())
+                                    .overlay {
+                                        Capsule()
+                                            .stroke(.white.opacity(0.18), lineWidth: 1)
+                                    }
+                                    .offset(x: 4, y: -8)
+                                    .accessibilityLabel("\(overflow) more Hall of Fame items")
+                            }
+                    }
+                }
+                .frame(height: 168)
+                .padding(.top, 8)
+
+                if filled.isEmpty {
+                    Text("No favorites yet")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+            }
+
+            VStack(spacing: 6) {
+                Text(profile.displayName)
+                    .font(.system(size: 34, weight: .black))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.72)
+
+                HStack(spacing: 8) {
+                    Text("@\(profile.username)")
+                    if profile.isPrivate {
+                        Label("Private", systemImage: "lock.fill")
+                            .labelStyle(.titleAndIcon)
+                    }
+                }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.62))
+            }
+
+            if let bio = profile.bio?.trimmedNonEmpty {
+                Text(bio)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.78))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(4)
+                    .padding(.horizontal, 10)
+            }
+
+            if let location = profile.location?.trimmedNonEmpty {
+                Label(location, systemImage: "mappin.and.ellipse")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.56))
+            }
+
+            statsGrid(profile.counts)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 12)
+    }
+
+    private func avatar(_ profile: UserProfile) -> some View {
+        AsyncImage(url: URL(string: profile.avatarUrl ?? "")) { phase in
+            if case let .success(image) = phase {
+                image
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .foregroundStyle(.white.opacity(0.36))
+                    .padding(10)
+            }
+        }
+        .frame(width: 128, height: 128)
+        .background(.white.opacity(0.08), in: Circle())
+        .clipShape(Circle())
+        .overlay {
+            Circle()
+                .stroke(.white.opacity(0.18), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.44), radius: 22, y: 12)
+        .accessibilityLabel(profile.displayName)
+    }
+
+    private func statsGrid(_ counts: ProfileCounts) -> some View {
+        HStack(spacing: 8) {
+            ProfileStatChip(value: counts.diaryEntries, title: "Logs", systemName: "calendar")
+            ProfileStatChip(value: counts.followers, title: "Followers", systemName: "person.2")
+            ProfileStatChip(value: counts.following, title: "Following", systemName: "person.crop.circle.badge.checkmark")
+            ProfileStatChip(value: counts.lists, title: "Lists", systemName: "list.bullet.rectangle")
+        }
+    }
+
+    private var activitySection: some View {
+        ProfileSection(title: "Recent Activity", actionTitle: "Diary", action: onOpenDiary) {
+            if let activityError = viewModel.activityErrorMessage {
+                EmptyProfileCard(title: activityError, systemName: "exclamationmark.triangle")
+            } else if viewModel.recentEntries.isEmpty {
+                EmptyProfileCard(title: "No diary activity yet", systemName: "calendar")
+            } else {
+                RecentActivityRail(entries: viewModel.recentEntries) { entry in
+                    selectedRef = entry.media.ref
+                }
+            }
+        }
+    }
+
+    private func favoriteSlots(from hof: [String: MediaSummary?]) -> [FavoriteSlot] {
+        ProfileFavorites.slots(from: hof)
+    }
+
+    private func favoriteSlotRank(_ key: String) -> Int {
+        ProfileFavorites.rank(key)
+    }
+}
+
+struct ProfileFavorites {
+    static func slots(from hof: [String: MediaSummary?]) -> [FavoriteSlot] {
+        hof.keys.sorted { lhs, rhs in
+            let leftRank = rank(lhs)
+            let rightRank = rank(rhs)
+            return leftRank == rightRank ? lhs < rhs : leftRank < rightRank
+        }.map { key in
+            FavoriteSlot(id: key, title: key.profileSlotTitle, item: hof[key] ?? nil)
+        }
+    }
+
+    static func rank(_ key: String) -> Int {
+        let normalized = key.lowercased()
+        let order = ["movie", "tv", "anime", "manga", "game", "book", "comic", "boardgame"]
+        return order.firstIndex { normalized.contains($0) } ?? order.count
+    }
+}
+
+struct FavoriteSlot: Identifiable {
+    let id: String
+    let title: String
+    let item: MediaSummary?
+}
+
+private struct ProfileStatChip: View {
+    let value: Int
+    let title: String
+    let systemName: String
+
+    var body: some View {
+        VStack(spacing: 5) {
+            Image(systemName: systemName)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white.opacity(0.62))
+
+            Text(value.formatted())
+                .font(.system(size: 18, weight: .black))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white.opacity(0.52))
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 70)
+        .background(.black.opacity(0.24), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+private struct ProfileSection<Content: View>: View {
+    let title: String
+    let actionTitle: String?
+    let action: (() -> Void)?
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(title.uppercased())
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(.white.opacity(0.58))
+                    .tracking(0.8)
+                Spacer()
+                if let actionTitle, let action {
+                    Button(actionTitle, action: action)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.white)
+                        .buttonStyle(.plain)
+                }
+            }
+
+            content()
+        }
+    }
+}
+
+private struct RecentActivityRail: View {
+    let entries: [DiaryEntry]
+    let action: (DiaryEntry) -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let spacing: CGFloat = 10
+            let itemWidth: CGFloat = 62
+            let visibleCount = max(3, min(5, Int((proxy.size.width + spacing) / (itemWidth + spacing))))
+            HStack(alignment: .top, spacing: spacing) {
+                ForEach(Array(entries.prefix(visibleCount))) { entry in
+                    RecentActivityPoster(entry: entry) {
+                        action(entry)
+                    }
+                    .frame(width: itemWidth)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(height: 104)
+    }
+}
+
+private struct RecentActivityPoster: View {
+    let entry: DiaryEntry
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 7) {
+                MediaArtwork(
+                    url: entry.media.displayPosterURL,
+                    title: entry.media.title,
+                    slot: .diaryRow,
+                    mediaType: entry.media.ref.mediaType,
+                    orientation: entry.media.posterOrientation
+                )
+
+                ProfileStarRating(rating: entry.rating)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct ProfileStarRating: View {
+    let rating: String?
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(Array(symbolNames.enumerated()), id: \.offset) { _, symbolName in
+                Image(systemName: symbolName)
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.yellow.opacity(0.92))
+            }
+        }
+        .frame(width: 56, height: 10, alignment: .leading)
+        .accessibilityHidden(value == nil)
+        .accessibilityLabel(value.map { "Rating \($0) out of 5 stars" } ?? "")
+    }
+
+    private var value: Double? {
+        guard let rating, let raw = Double(rating) else { return nil }
+        return raw / 2
+    }
+
+    private var symbolNames: [String] {
+        guard let value else { return [] }
+        let fullStars = Int(value.rounded(.down))
+        let hasHalfStar = value - Double(fullStars) >= 0.5
+        return Array(repeating: "star.fill", count: fullStars)
+            + (hasHalfStar ? ["star.leadinghalf.filled"] : [])
+    }
+}
+
+private struct EmptyProfileCard: View {
+    let title: String
+    let systemName: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemName)
+                .font(.system(size: 15, weight: .bold))
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(3)
+        }
+        .foregroundStyle(.white.opacity(0.48))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+private struct ProfileSettingsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let profile: UserProfile?
+    let importRepository: ImportRepository
+    let onLogout: () -> Void
+    let onUnauthorized: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let profile {
+                    Section("Account") {
+                        LabeledContent("Name", value: profile.displayName)
+                        LabeledContent("Username", value: "@\(profile.username)")
+                        if let email = profile.email?.trimmedNonEmpty {
+                            LabeledContent("Email", value: email)
+                        }
+                        LabeledContent("Privacy", value: profile.isPrivate ? "Private" : "Public")
+                    }
+
+                    Section("Preferences") {
+                        LabeledContent("Media Types", value: profile.preferences.enabledMediaTypes.map(\.profileSlotTitle).joined(separator: ", "))
+                        LabeledContent("Release Notifications", value: profile.preferences.releaseNotificationsEnabled ? "On" : "Off")
+                        LabeledContent("Daily Digest", value: profile.preferences.dailyDigestEnabled ? "On" : "Off")
+                        if let dateFormat = profile.preferences.dateFormat?.trimmedNonEmpty {
+                            LabeledContent("Date Format", value: dateFormat)
+                        }
+                        if let weekStartDay = profile.preferences.weekStartDay?.trimmedNonEmpty {
+                            LabeledContent("Week Starts", value: weekStartDay.profileSlotTitle)
+                        }
+                    }
+                }
+
+                Section("Import") {
+                    NavigationLink {
+                        LetterboxdImportView(importRepository: importRepository, onUnauthorized: onUnauthorized)
+                    } label: {
+                        Label("Import from Letterboxd", systemImage: "square.and.arrow.down")
+                    }
+                }
+
+                Section("App") {
+                    LabeledContent("API Base URL", value: AppConfig.apiBaseURL.absoluteString)
+                    LabeledContent("API Prefix", value: AppConfig.apiPrefix)
+                }
+
+                Section {
+                    Text("Profile editing, avatar upload, Hall of Fame editing, and preference saves need the v2 API contract before they become editable here.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        dismiss()
+                        onLogout()
+                    } label: {
+                        Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private extension String {
+    var trimmedNonEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    var profileSlotTitle: String {
+        replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .map { $0.capitalized }
+            .joined(separator: " ")
     }
 }

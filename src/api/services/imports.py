@@ -12,6 +12,7 @@ TASKS_BY_SOURCE = {
     "hltb": tasks.import_hltb,
     "imdb": tasks.import_imdb,
     "goodreads": tasks.import_goodreads,
+    "letterboxd": tasks.import_letterboxd,
 }
 
 
@@ -20,7 +21,10 @@ def queue_import(source, user, data, files=None):
     task = TASKS_BY_SOURCE[source]
     mode = data["mode"]
     username = data.get("username")
-    if source in {"yamtrack", "hltb", "imdb", "goodreads"}:
+    if source == "letterboxd":
+        uploaded_file = data.get("file") or (files.get("file") if files else None)
+        result = task.delay(file=uploaded_file.read(), user_id=user.id, mode=mode)
+    elif source in {"yamtrack", "hltb", "imdb", "goodreads"}:
         uploaded_file = data.get("file") or (files.get("file") if files else None)
         result = task.delay(file=uploaded_file, user_id=user.id, mode=mode)
     elif source == "trakt" or source == "anilist":

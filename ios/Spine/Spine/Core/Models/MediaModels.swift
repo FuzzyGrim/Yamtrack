@@ -33,6 +33,10 @@ struct MediaSummary: Codable, Identifiable, Hashable {
     let posterWidth: Int?
     let posterHeight: Int?
     let posterAccentColor: String?
+    let logoUrl: String?
+    let logoWidth: Int?
+    let logoHeight: Int?
+    let logoAspectRatio: Double?
     let releaseDate: String?
     let defaultSource: String?
     var userState: UserMediaState?
@@ -57,6 +61,10 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         case posterWidth
         case posterHeight
         case posterAccentColor
+        case logoUrl
+        case logoWidth
+        case logoHeight
+        case logoAspectRatio
         case releaseDate
         case defaultSource
         case userState
@@ -76,6 +84,10 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         posterWidth: Int? = nil,
         posterHeight: Int? = nil,
         posterAccentColor: String? = nil,
+        logoUrl: String? = nil,
+        logoWidth: Int? = nil,
+        logoHeight: Int? = nil,
+        logoAspectRatio: Double? = nil,
         releaseDate: String? = nil,
         defaultSource: String? = nil,
         userState: UserMediaState? = nil
@@ -93,6 +105,10 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         self.posterWidth = posterWidth
         self.posterHeight = posterHeight
         self.posterAccentColor = posterAccentColor
+        self.logoUrl = logoUrl
+        self.logoWidth = logoWidth
+        self.logoHeight = logoHeight
+        self.logoAspectRatio = logoAspectRatio
         self.releaseDate = releaseDate
         self.defaultSource = defaultSource
         self.userState = userState
@@ -115,6 +131,10 @@ struct MediaSummary: Codable, Identifiable, Hashable {
             posterWidth: try container.decodeIfPresent(Int.self, forKey: .posterWidth),
             posterHeight: try container.decodeIfPresent(Int.self, forKey: .posterHeight),
             posterAccentColor: try container.decodeIfPresent(String.self, forKey: .posterAccentColor),
+            logoUrl: try container.decodeIfPresent(String.self, forKey: .logoUrl),
+            logoWidth: try container.decodeIfPresent(Int.self, forKey: .logoWidth),
+            logoHeight: try container.decodeIfPresent(Int.self, forKey: .logoHeight),
+            logoAspectRatio: try container.decodeIfPresent(Double.self, forKey: .logoAspectRatio),
             releaseDate: try container.decodeIfPresent(String.self, forKey: .releaseDate),
             defaultSource: try container.decodeIfPresent(String.self, forKey: .defaultSource),
             userState: try container.decodeIfPresent(UserMediaState.self, forKey: .userState)
@@ -135,6 +155,10 @@ struct MediaDetail: Decodable, Identifiable {
     let posterWidth: Int?
     let posterHeight: Int?
     let posterAccentColor: String?
+    let logoUrl: String?
+    let logoWidth: Int?
+    let logoHeight: Int?
+    let logoAspectRatio: Double?
     let releaseDate: String?
     let defaultSource: String?
     let userState: UserMediaState?
@@ -172,6 +196,10 @@ struct MediaDetail: Decodable, Identifiable {
         case posterWidth
         case posterHeight
         case posterAccentColor
+        case logoUrl
+        case logoWidth
+        case logoHeight
+        case logoAspectRatio
         case releaseDate
         case defaultSource
         case userState
@@ -204,6 +232,10 @@ struct MediaDetail: Decodable, Identifiable {
         posterWidth: Int? = nil,
         posterHeight: Int? = nil,
         posterAccentColor: String? = nil,
+        logoUrl: String? = nil,
+        logoWidth: Int? = nil,
+        logoHeight: Int? = nil,
+        logoAspectRatio: Double? = nil,
         releaseDate: String? = nil,
         defaultSource: String? = nil,
         userState: UserMediaState? = nil,
@@ -234,6 +266,10 @@ struct MediaDetail: Decodable, Identifiable {
         self.posterWidth = posterWidth
         self.posterHeight = posterHeight
         self.posterAccentColor = posterAccentColor
+        self.logoUrl = logoUrl
+        self.logoWidth = logoWidth
+        self.logoHeight = logoHeight
+        self.logoAspectRatio = logoAspectRatio
         self.releaseDate = releaseDate
         self.defaultSource = defaultSource
         self.userState = userState
@@ -269,6 +305,10 @@ struct MediaDetail: Decodable, Identifiable {
             posterWidth: try container.decodeIfPresent(Int.self, forKey: .posterWidth),
             posterHeight: try container.decodeIfPresent(Int.self, forKey: .posterHeight),
             posterAccentColor: try container.decodeIfPresent(String.self, forKey: .posterAccentColor),
+            logoUrl: try container.decodeIfPresent(String.self, forKey: .logoUrl),
+            logoWidth: try container.decodeIfPresent(Int.self, forKey: .logoWidth),
+            logoHeight: try container.decodeIfPresent(Int.self, forKey: .logoHeight),
+            logoAspectRatio: try container.decodeIfPresent(Double.self, forKey: .logoAspectRatio),
             releaseDate: try container.decodeIfPresent(String.self, forKey: .releaseDate),
             defaultSource: try container.decodeIfPresent(String.self, forKey: .defaultSource),
             userState: try container.decodeIfPresent(UserMediaState.self, forKey: .userState),
@@ -303,6 +343,10 @@ struct MediaDetail: Decodable, Identifiable {
             posterWidth: posterWidth,
             posterHeight: posterHeight,
             posterAccentColor: response.posterAccentColor ?? posterAccentColor,
+            logoUrl: logoUrl,
+            logoWidth: logoWidth,
+            logoHeight: logoHeight,
+            logoAspectRatio: logoAspectRatio,
             releaseDate: releaseDate,
             defaultSource: defaultSource,
             userState: userState,
@@ -337,6 +381,10 @@ struct MediaDetail: Decodable, Identifiable {
             posterWidth: posterWidth,
             posterHeight: posterHeight,
             posterAccentColor: posterAccentColor,
+            logoUrl: logoUrl,
+            logoWidth: logoWidth,
+            logoHeight: logoHeight,
+            logoAspectRatio: logoAspectRatio,
             releaseDate: releaseDate,
             defaultSource: defaultSource,
             userState: userState,

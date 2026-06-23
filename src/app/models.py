@@ -1940,6 +1940,8 @@ class Anime(Media):
 class Movie(Media):
     """Model for movies."""
 
+    liked = models.BooleanField(default=False)
+
     tracker = FieldTracker()
 
 

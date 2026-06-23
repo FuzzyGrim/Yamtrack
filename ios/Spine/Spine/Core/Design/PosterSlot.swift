@@ -11,6 +11,7 @@ enum PosterSlot {
     case logSheet
     case pickerGrid
     case episodeStill
+    case hofCrown
 
     var size: CGSize {
         switch self {
@@ -30,6 +31,8 @@ enum PosterSlot {
             CGSize(width: 104, height: 156)
         case .episodeStill:
             CGSize(width: 72, height: 42)
+        case .hofCrown:
+            CGSize(width: 64, height: 96)
         }
     }
 
@@ -53,4 +56,3 @@ enum PosterContentMode {
     case fill
     case fit
 }
-

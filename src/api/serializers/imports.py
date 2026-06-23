@@ -7,3 +7,10 @@ class ImportSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=["new", "overwrite"])
     username = serializers.CharField(required=False, allow_blank=True)
     file = serializers.FileField(required=False)
+
+    def validate(self, attrs):
+        """Validate source-specific required fields."""
+        source = self.context.get("source")
+        if source == "letterboxd" and "file" not in attrs:
+            raise serializers.ValidationError({"file": "A Letterboxd ZIP file is required."})
+        return attrs

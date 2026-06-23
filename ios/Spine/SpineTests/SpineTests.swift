@@ -90,6 +90,58 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(response.user.displayName, "Mobile User")
     }
 
+    func testImportModeRawValuesMatchAPI() {
+        XCTAssertEqual(ImportMode.new.rawValue, "new")
+        XCTAssertEqual(ImportMode.overwrite.rawValue, "overwrite")
+    }
+
+    func testImportResponsesDecodeSnakeCase() throws {
+        let queueData = """
+        {
+          "task_id": "letterboxd-task",
+          "status": "queued"
+        }
+        """.data(using: .utf8)!
+        let statusData = """
+        {
+          "task_id": "letterboxd-task",
+          "task_name": "Import from Letterboxd",
+          "status": "SUCCESS",
+          "date_created": "2026-06-22T12:00:00Z",
+          "date_done": "2026-06-22T12:01:00Z",
+          "result": "Imported 1 Movie."
+        }
+        """.data(using: .utf8)!
+
+        let queue = try JSONDecoder.api.decode(ImportQueueResponse.self, from: queueData)
+        let status = try JSONDecoder.api.decode(ImportTaskStatus.self, from: statusData)
+
+        XCTAssertEqual(queue.taskId, "letterboxd-task")
+        XCTAssertEqual(queue.status, "queued")
+        XCTAssertEqual(status.taskId, "letterboxd-task")
+        XCTAssertEqual(status.taskName, "Import from Letterboxd")
+        XCTAssertEqual(status.status, "SUCCESS")
+        XCTAssertEqual(status.result, "Imported 1 Movie.")
+    }
+
+    func testMultipartBodyIncludesFieldsAndFile() {
+        let body = MultipartFormData.body(
+            boundary: "TestBoundary",
+            fields: ["mode": "new"],
+            fileFieldName: "file",
+            fileName: "letterboxd.zip",
+            fileData: Data("zip-bytes".utf8),
+            mimeType: "application/zip"
+        )
+        let text = String(data: body, encoding: .utf8)!
+
+        XCTAssertTrue(text.contains("--TestBoundary\r\n"))
+        XCTAssertTrue(text.contains("Content-Disposition: form-data; name=\"mode\"\r\n\r\nnew\r\n"))
+        XCTAssertTrue(text.contains("Content-Disposition: form-data; name=\"file\"; filename=\"letterboxd.zip\""))
+        XCTAssertTrue(text.contains("Content-Type: application/zip\r\n\r\nzip-bytes\r\n"))
+        XCTAssertTrue(text.hasSuffix("--TestBoundary--\r\n"))
+    }
+
     func testMediaSearchDecoding() throws {
         let data = """
         {
@@ -192,6 +244,10 @@ final class SpineTests: XCTestCase {
           "image_url": "https://example.com/image.jpg",
           "poster_url": "https://example.com/poster.jpg",
           "poster_orientation": "landscape",
+          "logo_url": "https://image.tmdb.org/t/p/w500/logo.png",
+          "logo_width": 1493,
+          "logo_height": 482,
+          "logo_aspect_ratio": 3.1,
           "custom_poster_url": "https://example.com/custom.jpg"
         }
         """.data(using: .utf8)!
@@ -202,6 +258,37 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(legacyDetail.displayPosterURL, "https://example.com/legacy.jpg")
         XCTAssertEqual(customDetail.displayPosterURL, "https://example.com/custom.jpg")
         XCTAssertEqual(customDetail.posterOrientation, .landscape)
+        XCTAssertEqual(customDetail.logoUrl, "https://image.tmdb.org/t/p/w500/logo.png")
+        XCTAssertEqual(customDetail.logoWidth, 1493)
+        XCTAssertEqual(customDetail.logoHeight, 482)
+        XCTAssertEqual(customDetail.logoAspectRatio, 3.1)
+    }
+
+    func testTitleLogoSupportRequiresTmdbMovieOrTVWithLogo() {
+        let movie = MediaDetail(
+            ref: MediaRef(itemId: nil, source: "tmdb", mediaType: "movie", mediaId: "550", seasonNumber: nil, episodeNumber: nil),
+            title: "Movie",
+            logoUrl: "https://image.tmdb.org/t/p/w500/logo.png"
+        )
+        let season = MediaDetail(
+            ref: MediaRef(itemId: nil, source: "tmdb", mediaType: "season", mediaId: "1399", seasonNumber: 1, episodeNumber: nil),
+            title: "Season",
+            logoUrl: "https://image.tmdb.org/t/p/w500/logo.png"
+        )
+        let anime = MediaDetail(
+            ref: MediaRef(itemId: nil, source: "mal", mediaType: "anime", mediaId: "1", seasonNumber: nil, episodeNumber: nil),
+            title: "Anime",
+            logoUrl: "https://image.tmdb.org/t/p/w500/logo.png"
+        )
+        let missingLogo = MediaDetail(
+            ref: MediaRef(itemId: nil, source: "tmdb", mediaType: "tv", mediaId: "1399", seasonNumber: nil, episodeNumber: nil),
+            title: "TV"
+        )
+
+        XCTAssertTrue(supportsTitleLogo(movie))
+        XCTAssertFalse(supportsTitleLogo(season))
+        XCTAssertFalse(supportsTitleLogo(anime))
+        XCTAssertFalse(supportsTitleLogo(missingLogo))
     }
 
     func testPosterOptionsAndSaveResponseDecoding() throws {
@@ -1079,7 +1166,8 @@ private func fakeRepositories(auth: AuthRepository) -> AppRepositories {
         media: FakeMediaRepository(),
         tracking: FakeTrackingRepository(),
         diary: FakeDiaryRepository(),
-        profile: FakeProfileRepository()
+        profile: FakeProfileRepository(),
+        imports: FakeImportRepository()
     )
 }
 
@@ -1112,6 +1200,11 @@ private struct FakeDiaryRepository: DiaryRepository {
 
 private struct FakeProfileRepository: ProfileRepository {
     func me() async throws -> UserProfile { fatalError("Not used") }
+}
+
+private struct FakeImportRepository: ImportRepository {
+    func queueLetterboxdImport(fileData: Data, fileName: String, mode: ImportMode) async throws -> ImportQueueResponse { fatalError("Not used") }
+    func importTaskStatus(taskId: String) async throws -> ImportTaskStatus { fatalError("Not used") }
 }
 
 private struct MediaDetailFixtureRepository: MediaRepository {

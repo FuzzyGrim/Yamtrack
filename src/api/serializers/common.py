@@ -525,7 +525,7 @@ def progress_for_media(media):
 
 def tracking_state(media):
     """Serialize any tracked media model into TrackingState."""
-    return {
+    state = {
         "tracking_id": media.id,
         "status": getattr(media, "status", None),
         "rating": decimal_string(getattr(media, "score", None)),
@@ -536,6 +536,9 @@ def tracking_state(media):
         "notes": getattr(media, "notes", ""),
         "updated_at": getattr(media, "progressed_at", None) or getattr(media, "created_at", None),
     }
+    if media.item.media_type == MediaTypes.MOVIE.value:
+        state["liked"] = getattr(media, "liked", False)
+    return state
 
 
 class UserSummarySerializer(serializers.Serializer):

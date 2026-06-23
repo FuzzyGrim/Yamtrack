@@ -45,10 +45,16 @@ def list_payload(custom_list, request=None, *, include_items=False):
         ).count(),
     }
     if include_items:
-        data["items"] = [
-            media_summary_from_item(item, request=request, user=request.user)
-            for item in custom_list.items.all()
-        ]
+        items = []
+        for list_item in custom_list.customlistitem_set.select_related("item").all():
+            item = media_summary_from_item(
+                list_item.item,
+                request=request,
+                user=request.user,
+            )
+            item["position"] = list_item.position
+            items.append(item)
+        data["items"] = items
     return data
 
 
@@ -103,7 +109,10 @@ class ListDetailView(APIView):
 
     def get_object(self, request, list_id):
         custom_list = get_object_or_404(
-            CustomList.objects.select_related("owner").prefetch_related("collaborators", "items"),
+            CustomList.objects.select_related("owner").prefetch_related(
+                "collaborators",
+                "customlistitem_set__item",
+            ),
             id=list_id,
         )
         if custom_list.visibility == CustomList.Visibility.PRIVATE and not custom_list.user_can_view(request.user):

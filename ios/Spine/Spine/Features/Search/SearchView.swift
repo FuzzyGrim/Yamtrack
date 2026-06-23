@@ -1,5 +1,25 @@
 import SwiftUI
 
+struct RecentSearch: Codable, Equatable, Hashable {
+    let text: String
+    let mediaType: String
+
+    func matches(_ other: RecentSearch) -> Bool {
+        text.caseInsensitiveCompare(other.text) == .orderedSame && mediaType == other.mediaType
+    }
+
+    static func decodeList(from string: String, fallbackMediaType: String) -> [RecentSearch] {
+        guard let data = string.data(using: .utf8) else { return [] }
+        if let searches = try? JSONDecoder().decode([RecentSearch].self, from: data) {
+            return searches
+        }
+        if let legacy = try? JSONDecoder().decode([String].self, from: data) {
+            return legacy.map { RecentSearch(text: $0, mediaType: fallbackMediaType) }
+        }
+        return []
+    }
+}
+
 @MainActor
 @Observable
 final class SearchViewModel {
