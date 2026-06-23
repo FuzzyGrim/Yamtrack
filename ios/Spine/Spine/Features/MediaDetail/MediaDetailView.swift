@@ -922,8 +922,11 @@ struct MediaDetailView: View {
             title: title,
             subtitle: object["year"]?.displayString,
             overview: object["overview"]?.displayString,
-            imageUrl: object["image"]?.displayString ?? object["image_url"]?.displayString,
-            posterAccentColor: nil,
+            imageUrl: object["image_url"]?.displayString ?? object["image"]?.displayString,
+            posterUrl: object["poster_url"]?.displayString,
+            customPosterUrl: object["custom_poster_url"]?.displayString,
+            posterOrientation: PosterOrientation(rawValue: object["poster_orientation"]?.displayString ?? "") ?? .unknown,
+            posterAccentColor: object["poster_accent_color"]?.displayString,
             releaseDate: object["release_date"]?.displayString ?? object["first_air_date"]?.displayString,
             defaultSource: source,
             userState: nil

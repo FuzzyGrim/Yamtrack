@@ -15,6 +15,7 @@ from app.providers.search_rank import rank_results
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.themoviedb.org/3"
+NO_LOGO = "__no_logo__"
 base_params = {
     "api_key": settings.TMDB_API,
     "language": settings.TMDB_LANG,
@@ -1223,6 +1224,61 @@ def get_backdrop_images(media_id, media_type):
         cache.set(cache_key, data, 86400)
 
     return data
+
+
+def get_title_logo(media_id, media_type):
+    """Return the best title logo for a movie or TV show from TMDB."""
+    if media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        raise ValueError("Title logos are only available for movies and TV shows")
+
+    cache_key = f"{Sources.TMDB.value}_{media_type}_logo_{media_id}"
+    data = cache.get(cache_key)
+    if data == NO_LOGO:
+        return None
+
+    if data is None:
+        url = f"{base_url}/{media_type}/{media_id}/images"
+        params = {**base_params}
+        params.pop("language", None)
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        lang = getattr(settings, "TMDB_LANG", "en") or "en"
+        logos = response.get("logos", [])
+        candidates = [logo for logo in logos if logo.get("iso_639_1") == lang]
+        if not candidates:
+            candidates = [logo for logo in logos if logo.get("iso_639_1") is None]
+
+        if not candidates:
+            data = NO_LOGO
+        else:
+            logo = max(
+                candidates,
+                key=lambda item: (
+                    item.get("vote_average") or 0,
+                    item.get("vote_count") or 0,
+                    item.get("width") or 0,
+                ),
+            )
+            file_path = logo["file_path"]
+            data = {
+                "url": f"https://image.tmdb.org/t/p/w500{file_path}",
+                "width": logo.get("width"),
+                "height": logo.get("height"),
+                "aspect_ratio": logo.get("aspect_ratio"),
+            }
+
+        cache.set(cache_key, data, 86400)
+
+    return None if data == NO_LOGO else data
 
 
 def watch_provider_regions():

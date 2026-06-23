@@ -129,9 +129,10 @@ class ApiV1FoundationTests(TestCase):
         self.assertNotIn("ratings_count", response.data["results"][0])
         self.assertNotIn("total_rating_count", response.data["results"][0])
 
+    @patch("app.providers.tmdb.get_title_logo", return_value=None)
     @patch("app.providers.mdblist.get_media_ratings")
     @patch("api.services.media.provider_services.get_media_metadata")
-    def test_media_detail_includes_synopsis_and_external_ratings(self, metadata_mock, ratings_mock):
+    def test_media_detail_includes_synopsis_and_external_ratings(self, metadata_mock, ratings_mock, _logo_mock):
         metadata_mock.return_value = {
             "media_id": "550",
             "media_type": "movie",
@@ -243,9 +244,10 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["poster_aspect_ratio"], 1.778)
         self.assertEqual(response.data["backdrop_url"], "https://example.com/backdrop.jpg")
 
+    @patch("app.providers.tmdb.get_title_logo", return_value=None)
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")
-    def test_tv_detail_exposes_seasons(self, metadata_mock, _ratings_mock):
+    def test_tv_detail_exposes_seasons(self, metadata_mock, _ratings_mock, _logo_mock):
         metadata_mock.return_value = {
             "media_id": "1399",
             "media_type": "tv",
@@ -280,9 +282,10 @@ class ApiV1FoundationTests(TestCase):
         )
         self.assertEqual(seasons.data["seasons"], detail.data["seasons"])
 
+    @patch("app.providers.tmdb.get_title_logo", return_value=None)
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")
-    def test_media_detail_backdrop_url_is_null_without_backdrop(self, metadata_mock, _ratings_mock):
+    def test_media_detail_backdrop_url_is_null_without_backdrop(self, metadata_mock, _ratings_mock, _logo_mock):
         metadata_mock.return_value = {
             "media_id": "550",
             "media_type": "movie",
@@ -296,6 +299,53 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsNone(response.data["backdrop_url"])
         self.assertIsNone(response.data["custom_backdrop_url"])
+
+    @patch(
+        "app.providers.tmdb.get_title_logo",
+        return_value={
+            "url": "https://image.tmdb.org/t/p/w500/logo.png",
+            "width": 1493,
+            "height": 482,
+            "aspect_ratio": 3.1,
+        },
+    )
+    @patch("app.providers.mdblist.get_media_ratings", return_value={})
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_media_detail_includes_tmdb_logo_fields(self, metadata_mock, _ratings_mock, logo_mock):
+        metadata_mock.return_value = {
+            "media_id": "550",
+            "media_type": "movie",
+            "source": "tmdb",
+            "title": "Fight Club",
+            "image": "https://example.com/fight-club.jpg",
+        }
+
+        response = self.client.get("/api/v1/media/tmdb/movie/550/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["logo_url"], "https://image.tmdb.org/t/p/w500/logo.png")
+        self.assertEqual(response.data["logo_width"], 1493)
+        self.assertEqual(response.data["logo_height"], 482)
+        self.assertEqual(response.data["logo_aspect_ratio"], 3.1)
+        logo_mock.assert_called_once_with("550", "movie")
+
+    @patch("app.providers.tmdb.get_title_logo")
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_media_detail_logo_fields_are_null_when_unsupported(self, metadata_mock, logo_mock):
+        metadata_mock.return_value = {
+            "media_id": "1",
+            "media_type": "anime",
+            "source": "mal",
+            "title": "Cowboy Bebop",
+            "image": "https://example.com/bebop.jpg",
+        }
+
+        response = self.client.get("/api/v1/media/mal/anime/1/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["logo_url"])
+        self.assertIsNone(response.data["logo_width"])
+        logo_mock.assert_not_called()
 
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")
@@ -836,9 +886,10 @@ class ApiV1FoundationTests(TestCase):
             "https://example.com/new-backdrop.jpg",
         )
 
+    @patch("app.providers.tmdb.get_title_logo", return_value=None)
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")
-    def test_media_detail_includes_custom_backdrop_url_when_preference_exists(self, metadata_mock, _ratings_mock):
+    def test_media_detail_includes_custom_backdrop_url_when_preference_exists(self, metadata_mock, _ratings_mock, _logo_mock):
         user = get_user_model().objects.create_user(username="backdrop4", password="strong-password-123")
         item = Item.objects.create(
             source=Sources.TMDB.value,

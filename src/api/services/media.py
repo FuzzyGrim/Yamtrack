@@ -34,7 +34,7 @@ from app.utils.color import build_accent_palette, compute_and_store_poster_accen
 
 SEARCH_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
-DETAIL_CACHE_VERSION = "v5"
+DETAIL_CACHE_VERSION = "v6"
 POSTER_UNSUPPORTED_MESSAGE = (
     "Poster customization is only available for TMDB movies/TV shows and Open Library/Hardcover books."
 )
@@ -110,11 +110,16 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
     ref = summary["ref"]
     if summary.get("poster_accent_color") is None:
         summary["poster_accent_color"] = poster_accent_color(metadata, ref)
+    logo = title_logo(source=source, media_type=media_type, media_id=media_id)
     return {
         **summary,
         "overview": synopsis,
         "synopsis": synopsis,
         "backdrop_url": backdrop_url(metadata),
+        "logo_url": logo.get("url") if logo else None,
+        "logo_width": logo.get("width") if logo else None,
+        "logo_height": logo.get("height") if logo else None,
+        "logo_aspect_ratio": logo.get("aspect_ratio") if logo else None,
         "details": details_for_api(metadata),
         "cast": cast_from_metadata(metadata, request=request),
         "crew": crew_from_metadata(metadata, request=request),
@@ -385,6 +390,15 @@ def backdrop_url(metadata):
     if isinstance(value, str) and value.startswith("/"):
         return f"https://image.tmdb.org/t/p/original{value}"
     return value
+
+
+def title_logo(*, source, media_type, media_id):
+    """Return TMDB title logo metadata for supported detail responses."""
+    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        return None
+    from app.providers import tmdb
+
+    return tmdb.get_title_logo(media_id, media_type)
 
 
 def poster_accent_color(metadata, ref):

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import requests
 from django.conf import settings
+from django.core.cache import cache
 from django.test import TestCase
 
 from app.models import Episode, Item, MediaTypes, Sources
@@ -122,6 +123,55 @@ class Metadata(TestCase):
 
         self.assertEqual(result, {"1", "2", "3"})
         self.assertEqual(mock_api_request.call_count, 2)
+
+    @patch("app.providers.tmdb.services.api_request")
+    def test_title_logo_prefers_language_then_votes(self, mock_api_request):
+        """Test TMDB title logo selection."""
+        cache.clear()
+        mock_api_request.return_value = {
+            "logos": [
+                {
+                    "file_path": "/fallback.png",
+                    "width": 2000,
+                    "height": 500,
+                    "aspect_ratio": 4,
+                    "vote_average": 10,
+                    "vote_count": 20,
+                    "iso_639_1": None,
+                },
+                {
+                    "file_path": "/low-votes.png",
+                    "width": 1000,
+                    "height": 400,
+                    "aspect_ratio": 2.5,
+                    "vote_average": 7,
+                    "vote_count": 1,
+                    "iso_639_1": settings.TMDB_LANG,
+                },
+                {
+                    "file_path": "/best.png",
+                    "width": 1493,
+                    "height": 482,
+                    "aspect_ratio": 3.1,
+                    "vote_average": 7,
+                    "vote_count": 5,
+                    "iso_639_1": settings.TMDB_LANG,
+                },
+            ],
+        }
+
+        logo = tmdb.get_title_logo("550", MediaTypes.MOVIE.value)
+
+        self.assertEqual(
+            logo,
+            {
+                "url": "https://image.tmdb.org/t/p/w500/best.png",
+                "width": 1493,
+                "height": 482,
+                "aspect_ratio": 3.1,
+            },
+        )
+        self.assertEqual(mock_api_request.call_count, 1)
 
     @patch("app.providers.tmdb.timezone.localdate")
     @patch("app.providers.tmdb.services.api_request")
