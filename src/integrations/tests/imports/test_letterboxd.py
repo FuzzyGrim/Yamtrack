@@ -240,12 +240,12 @@ class LetterboxdApiTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         self.assertEqual(response.data["task_id"], "letterboxd-task")
-        self.assertIsInstance(task.delay.call_args.kwargs["file"], bytes)
+        self.assertIsInstance(task.delay.call_args.kwargs["file_path"], str)
 
         TaskResult.objects.create(
             task_id="letterboxd-task",
             task_name="Import from Letterboxd",
-            task_kwargs=f"{{'user_id': {self.user.id}, 'mode': 'new',}}",
+            task_kwargs=f"{{'file_path': '/tmp/letterboxd.zip', 'user_id': {self.user.id}, 'mode': 'new'}}",
             status="SUCCESS",
             result="Imported 1 Movie.",
         )

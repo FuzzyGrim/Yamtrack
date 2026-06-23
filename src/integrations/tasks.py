@@ -1,4 +1,5 @@
 import logging
+import os
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
@@ -157,6 +158,13 @@ def import_goodreads(file, user_id, mode):
 
 
 @shared_task(name="Import from Letterboxd")
-def import_letterboxd(file, user_id, mode):
+def import_letterboxd(file_path, user_id, mode):
     """Celery task for importing media data from Letterboxd."""
-    return import_media(letterboxd.importer, file, user_id, mode)
+    try:
+        with open(file_path, "rb") as export_file:
+            return import_media(letterboxd.importer, export_file, user_id, mode)
+    finally:
+        try:
+            os.unlink(file_path)
+        except OSError:
+            logger.warning("Could not delete temporary Letterboxd import file: %s", file_path)
