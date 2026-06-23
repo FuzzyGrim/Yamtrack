@@ -124,6 +124,87 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(status.result, "Imported 1 Movie.")
     }
 
+    @MainActor
+    func testLetterboxdImportCoordinatorTransitionsToSuccess() async throws {
+        let defaults = isolatedDefaults("LetterboxdImportCoordinatorTransitions")
+        let repository = ScriptedLetterboxdImportRepository(statuses: [
+            ImportTaskStatus(taskId: "task-1", taskName: nil, status: "SUCCESS", dateCreated: nil, dateDone: nil, result: "Imported 3 movies.")
+        ])
+        let coordinator = LetterboxdImportCoordinator(
+            importRepository: repository,
+            defaults: defaults,
+            pollInterval: .milliseconds(10),
+            timeout: 5
+        )
+        let fileURL = try makeTemporaryZip()
+
+        XCTAssertEqual(coordinator.phase, .idle)
+
+        coordinator.startImport(fileURL: fileURL, mode: .new)
+
+        try await waitUntil {
+            if case let .uploading(fileName, progress) = coordinator.phase {
+                return fileName == fileURL.lastPathComponent && progress == 1
+            }
+            return false
+        }
+
+        try await waitUntil {
+            if case let .processing(taskId, _, _) = coordinator.phase {
+                return taskId == "task-1"
+            }
+            return false
+        }
+
+        try await waitUntil {
+            coordinator.phase == .succeeded(message: "Imported 3 movies.")
+        }
+
+        XCTAssertEqual(repository.queuedFileName, fileURL.lastPathComponent)
+        XCTAssertEqual(repository.queuedMode, .new)
+        XCTAssertEqual(repository.statusRequests, ["task-1"])
+    }
+
+    @MainActor
+    func testLetterboxdImportCoordinatorPersistsAndResumesTask() async throws {
+        let defaults = isolatedDefaults("LetterboxdImportCoordinatorPersistence")
+        let repository = ScriptedLetterboxdImportRepository(statuses: [
+            ImportTaskStatus(taskId: "task-2", taskName: nil, status: "PENDING", dateCreated: nil, dateDone: nil, result: nil)
+        ])
+        let coordinator = LetterboxdImportCoordinator(
+            importRepository: repository,
+            defaults: defaults,
+            pollInterval: .seconds(60),
+            timeout: 5
+        )
+
+        coordinator.startImport(fileURL: try makeTemporaryZip(), mode: .overwrite)
+
+        try await waitUntil {
+            if case let .processing(taskId, _, _) = coordinator.phase {
+                return taskId == "task-2"
+            }
+            return false
+        }
+
+        let resumed = LetterboxdImportCoordinator(
+            importRepository: ScriptedLetterboxdImportRepository(statuses: []),
+            defaults: defaults,
+            pollInterval: .seconds(60),
+            timeout: 5
+        )
+        resumed.resumeIfNeeded()
+
+        guard case let .processing(taskId, _, _) = resumed.phase else {
+            XCTFail("Expected persisted task to resume.")
+            return
+        }
+        XCTAssertEqual(taskId, "task-2")
+
+        coordinator.clearFinishedJob()
+        resumed.clearFinishedJob()
+    }
+
     func testMultipartBodyIncludesFieldsAndFile() {
         let body = MultipartFormData.body(
             boundary: "TestBoundary",
@@ -1203,8 +1284,73 @@ private struct FakeProfileRepository: ProfileRepository {
 }
 
 private struct FakeImportRepository: ImportRepository {
-    func queueLetterboxdImport(fileData: Data, fileName: String, mode: ImportMode) async throws -> ImportQueueResponse { fatalError("Not used") }
+    func queueLetterboxdImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse { fatalError("Not used") }
+
     func importTaskStatus(taskId: String) async throws -> ImportTaskStatus { fatalError("Not used") }
+}
+
+private final class ScriptedLetterboxdImportRepository: ImportRepository {
+    private(set) var queuedFileName: String?
+    private(set) var queuedMode: ImportMode?
+    private(set) var statusRequests: [String] = []
+    private var statuses: [ImportTaskStatus]
+
+    init(statuses: [ImportTaskStatus]) {
+        self.statuses = statuses
+    }
+
+    func queueLetterboxdImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse {
+        queuedFileName = fileName
+        queuedMode = mode
+        progressHandler?(1)
+        try await Task.sleep(for: .milliseconds(40))
+        return ImportQueueResponse(taskId: statuses.first?.taskId ?? "task-2", status: "queued")
+    }
+
+    func importTaskStatus(taskId: String) async throws -> ImportTaskStatus {
+        statusRequests.append(taskId)
+        try await Task.sleep(for: .milliseconds(40))
+        if statuses.count > 1 {
+            return statuses.removeFirst()
+        }
+        return statuses.first ?? ImportTaskStatus(taskId: taskId, taskName: nil, status: "PENDING", dateCreated: nil, dateDone: nil, result: nil)
+    }
+}
+
+private func isolatedDefaults(_ name: String) -> UserDefaults {
+    let defaults = UserDefaults(suiteName: name)!
+    defaults.removePersistentDomain(forName: name)
+    return defaults
+}
+
+private func makeTemporaryZip() throws -> URL {
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("letterboxd-\(UUID().uuidString)")
+        .appendingPathExtension("zip")
+    try Data("zip-bytes".utf8).write(to: url)
+    return url
+}
+
+@MainActor
+private func waitUntil(timeout: TimeInterval = 1, predicate: @escaping () -> Bool) async throws {
+    let deadline = Date().addingTimeInterval(timeout)
+    while !predicate() {
+        if Date() >= deadline {
+            XCTFail("Timed out waiting for condition.")
+            return
+        }
+        try await Task.sleep(for: .milliseconds(10))
+    }
 }
 
 private struct MediaDetailFixtureRepository: MediaRepository {

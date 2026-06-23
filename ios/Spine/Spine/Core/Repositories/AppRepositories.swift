@@ -40,7 +40,12 @@ protocol ProfileRepository {
 }
 
 protocol ImportRepository {
-    func queueLetterboxdImport(fileData: Data, fileName: String, mode: ImportMode) async throws -> ImportQueueResponse
+    func queueLetterboxdImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse
     func importTaskStatus(taskId: String) async throws -> ImportTaskStatus
 }
 
@@ -286,7 +291,12 @@ struct APIProfileRepository: ProfileRepository {
 struct APIImportRepository: ImportRepository {
     let client: APIClient
 
-    func queueLetterboxdImport(fileData: Data, fileName: String, mode: ImportMode) async throws -> ImportQueueResponse {
+    func queueLetterboxdImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)? = nil
+    ) async throws -> ImportQueueResponse {
         try await client.uploadMultipart(
             "/imports/letterboxd/",
             formFields: ["mode": mode.rawValue],
@@ -294,7 +304,8 @@ struct APIImportRepository: ImportRepository {
             fileName: fileName,
             fileData: fileData,
             mimeType: "application/zip",
-            authenticated: true
+            authenticated: true,
+            progressHandler: progressHandler
         )
     }
 

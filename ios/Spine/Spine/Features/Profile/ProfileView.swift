@@ -54,7 +54,7 @@ struct ProfileView: View {
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
-    private let importRepository: ImportRepository
+    private let importCoordinator: LetterboxdImportCoordinator
     private let onLogout: () -> Void
     private let onOpenDiary: () -> Void
     private let onUnauthorized: () -> Void
@@ -64,7 +64,7 @@ struct ProfileView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
-        importRepository: ImportRepository,
+        importCoordinator: LetterboxdImportCoordinator,
         onLogout: @escaping () -> Void,
         onOpenDiary: @escaping () -> Void,
         onUnauthorized: @escaping () -> Void = {}
@@ -77,7 +77,7 @@ struct ProfileView: View {
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
-        self.importRepository = importRepository
+        self.importCoordinator = importCoordinator
         self.onLogout = onLogout
         self.onOpenDiary = onOpenDiary
         self.onUnauthorized = onUnauthorized
@@ -138,9 +138,8 @@ struct ProfileView: View {
             .sheet(isPresented: $isSettingsPresented) {
                 ProfileSettingsSheet(
                     profile: viewModel.profile,
-                    importRepository: importRepository,
+                    importCoordinator: importCoordinator,
                     onLogout: onLogout,
-                    onUnauthorized: onUnauthorized
                 )
             }
         }
@@ -161,39 +160,21 @@ struct ProfileView: View {
     }
 
     private func hero(_ profile: UserProfile) -> some View {
-        let filled = favoriteSlots(from: profile.hof).compactMap(\.item)
-        let visible = Array(filled.prefix(5))
-        let overflow = max(0, filled.count - 5)
+        let allSlots = favoriteSlots(from: profile.hof)
 
         return VStack(spacing: 18) {
             VStack(spacing: 8) {
                 ZStack {
-                    HallOfFameCrownView(items: visible, overflowCount: overflow) { item in
+                    HallOfFameCrownView(slots: allSlots) { item in
                         selectedRef = item.ref
                     }
 
                     avatar(profile)
-                        .overlay(alignment: .bottomTrailing) {
-                            if overflow > 0 {
-                                Text("+\(overflow)")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 8)
-                                    .frame(height: 24)
-                                    .background(.black.opacity(0.72), in: Capsule())
-                                    .overlay {
-                                        Capsule()
-                                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                                    }
-                                    .offset(x: 4, y: -8)
-                                    .accessibilityLabel("\(overflow) more Hall of Fame items")
-                            }
-                    }
                 }
-                .frame(height: 168)
+                .frame(height: 188)
                 .padding(.top, 8)
 
-                if filled.isEmpty {
+                if allSlots.isEmpty {
                     Text("No favorites yet")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.4))
@@ -298,8 +279,11 @@ struct ProfileView: View {
 }
 
 struct ProfileFavorites {
+    private static let defaultSlotKeys = ["movie", "tv", "anime", "manga", "game", "book", "comic"]
+
     static func slots(from hof: [String: MediaSummary?]) -> [FavoriteSlot] {
-        hof.keys.sorted { lhs, rhs in
+        let keys = (defaultSlotKeys + hof.keys.filter { !defaultSlotKeys.contains($0) })
+        return keys.sorted { lhs, rhs in
             let leftRank = rank(lhs)
             let rightRank = rank(rhs)
             return leftRank == rightRank ? lhs < rhs : leftRank < rightRank
@@ -473,11 +457,11 @@ private struct EmptyProfileCard: View {
 
 private struct ProfileSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var isImportStatusPresented = false
 
     let profile: UserProfile?
-    let importRepository: ImportRepository
+    let importCoordinator: LetterboxdImportCoordinator
     let onLogout: () -> Void
-    let onUnauthorized: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -506,11 +490,7 @@ private struct ProfileSettingsSheet: View {
                 }
 
                 Section("Import") {
-                    NavigationLink {
-                        LetterboxdImportView(importRepository: importRepository, onUnauthorized: onUnauthorized)
-                    } label: {
-                        Label("Import from Letterboxd", systemImage: "square.and.arrow.down")
-                    }
+                    importSectionContent
                 }
 
                 Section("App") {
@@ -542,6 +522,95 @@ private struct ProfileSettingsSheet: View {
                     }
                 }
             }
+            .fullScreenCover(isPresented: $isImportStatusPresented) {
+                LetterboxdImportUploadView(
+                    coordinator: importCoordinator,
+                    onDone: { isImportStatusPresented = false }
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var importSectionContent: some View {
+        switch importCoordinator.phase {
+        case .idle:
+            NavigationLink {
+                LetterboxdImportView(coordinator: importCoordinator)
+            } label: {
+                Label("Import from Letterboxd", systemImage: "square.and.arrow.down")
+            }
+        case let .uploading(_, progress):
+            Button {
+                isImportStatusPresented = true
+            } label: {
+                HStack(spacing: 12) {
+                    ProgressView(value: progress)
+                        .frame(width: 44)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Uploading...")
+                        Text("Tap for details")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        case let .processing(_, statusLabel, _):
+            Button {
+                isImportStatusPresented = true
+            } label: {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(statusLabel)
+                        Text("Tap for details")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            checkStatusButton
+        case let .succeeded(message):
+            importResultRow(systemName: "checkmark.circle.fill", tint: .green, message: message)
+            Button("Dismiss") {
+                importCoordinator.clearFinishedJob()
+            }
+        case let .failed(message):
+            importResultRow(systemName: "exclamationmark.triangle.fill", tint: .red, message: message)
+            if importCoordinator.canCheckStatus {
+                checkStatusButton
+            }
+            NavigationLink {
+                LetterboxdImportView(coordinator: importCoordinator)
+            } label: {
+                Label("Try Again", systemImage: "arrow.clockwise")
+            }
+            Button("Dismiss") {
+                importCoordinator.clearFinishedJob()
+            }
+        }
+    }
+
+    private var checkStatusButton: some View {
+        Button {
+            importCoordinator.checkStatusOnce()
+        } label: {
+            if importCoordinator.isCheckingStatus {
+                Label("Checking Status", systemImage: "clock.arrow.circlepath")
+            } else {
+                Label("Check Status", systemImage: "arrow.clockwise")
+            }
+        }
+        .disabled(importCoordinator.isCheckingStatus)
+    }
+
+    private func importResultRow(systemName: String, tint: Color, message: String) -> some View {
+        Label {
+            Text(message)
+                .lineLimit(2)
+        } icon: {
+            Image(systemName: systemName)
+                .foregroundStyle(tint)
         }
     }
 }

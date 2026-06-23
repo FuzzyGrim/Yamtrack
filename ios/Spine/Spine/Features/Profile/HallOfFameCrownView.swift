@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct HallOfFameCrownView: View {
-    let items: [MediaSummary]
-    let overflowCount: Int
+    let slots: [FavoriteSlot]
     let onTap: (MediaSummary) -> Void
 
     @State private var crownRevealed = false
@@ -11,38 +10,31 @@ struct HallOfFameCrownView: View {
     private let borderOpacity = 0.14
 
     var body: some View {
-        let visibleItems = Array(items.prefix(5))
-        let cardSize = HallOfFameCrownLayout.cardSize(for: visibleItems.count)
+        let cardSize = HallOfFameCrownLayout.cardSize(for: slots.count)
         let placements = HallOfFameCrownLayout.placements(
-            count: visibleItems.count,
+            count: slots.count,
             cardSize: cardSize,
             avatarDiameter: avatarDiameter
         )
 
         ZStack {
             ForEach(placements, id: \.index) { placement in
-                let item = visibleItems[placement.index]
+                let slot = slots[placement.index]
 
-                Button {
-                    onTap(item)
-                } label: {
-                    MediaArtwork(
-                        url: item.displayPosterURL,
-                        title: item.title,
-                        slot: .hofCrown,
-                        mediaType: item.ref.mediaType,
-                        orientation: item.posterOrientation
-                    )
-                    .scaleEffect(cardSize.width / PosterSlot.hofCrown.size.width)
-                    .frame(width: cardSize.width, height: cardSize.height)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(.white.opacity(borderOpacity), lineWidth: 1)
+                Group {
+                    if let item = slot.item {
+                        Button {
+                            onTap(item)
+                        } label: {
+                            HallOfFameCrownFilledCard(item: item, cardSize: cardSize, borderOpacity: borderOpacity)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Hall of Fame, \(item.title)")
+                    } else {
+                        HallOfFameCrownEmptyShell(cardSize: cardSize)
+                            .accessibilityLabel("Hall of Fame, \(slot.title), empty")
                     }
-                    .shadow(color: .black.opacity(0.42), radius: 12, y: 8)
                 }
-                .buttonStyle(.plain)
                 .scaleEffect(placement.scale, anchor: .bottom)
                 .rotationEffect(crownRevealed ? placement.rotation : .zero, anchor: .bottom)
                 .offset(
@@ -56,55 +48,111 @@ struct HallOfFameCrownView: View {
                         .delay(Double(placement.index) * 0.04),
                     value: crownRevealed
                 )
-                .accessibilityLabel("Hall of Fame, \(item.title)")
             }
         }
-        .frame(width: 230, height: 132)
+        .frame(width: 260, height: 150)
         .onAppear {
             crownRevealed = true
         }
     }
 }
 
-#Preview("0 filled") {
-    HallOfFameCrownPreview(count: 0)
+private struct HallOfFameCrownFilledCard: View {
+    let item: MediaSummary
+    let cardSize: CGSize
+    let borderOpacity: Double
+
+    var body: some View {
+        MediaArtwork(
+            url: item.displayPosterURL,
+            title: item.title,
+            slot: .hofCrown,
+            mediaType: item.ref.mediaType,
+            orientation: item.posterOrientation
+        )
+        .scaleEffect(cardSize.width / PosterSlot.hofCrown.size.width)
+        .frame(width: cardSize.width, height: cardSize.height)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(.white.opacity(borderOpacity), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.42), radius: 12, y: 8)
+    }
 }
 
-#Preview("1 filled") {
-    HallOfFameCrownPreview(count: 1)
+private struct HallOfFameCrownEmptyShell: View {
+    let cardSize: CGSize
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(.white.opacity(0.04))
+            .frame(width: cardSize.width, height: cardSize.height)
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(.white.opacity(0.10), lineWidth: 1)
+            }
+            .overlay {
+                Image(systemName: "plus")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.26))
+            }
+            .opacity(0.88)
+            .shadow(color: .black.opacity(0.16), radius: 8, y: 5)
+    }
 }
 
-#Preview("3 filled") {
-    HallOfFameCrownPreview(count: 3)
+#Preview("0 slots") {
+    HallOfFameCrownPreview(slots: [])
+}
+
+#Preview("7 empty shells") {
+    HallOfFameCrownPreview(slots: HallOfFameCrownPreview.slots(keys: ["movie", "tv", "anime", "manga", "game", "book", "comic"], filledIndexes: []))
+}
+
+#Preview("2 filled, 5 empty") {
+    HallOfFameCrownPreview(slots: HallOfFameCrownPreview.slots(keys: ["movie", "tv", "anime", "manga", "game", "book", "comic"], filledIndexes: [0, 5]))
 }
 
 #Preview("5 filled") {
-    HallOfFameCrownPreview(count: 5)
+    HallOfFameCrownPreview(slots: HallOfFameCrownPreview.slots(filledIndexes: [0, 1, 2, 3, 4]))
 }
 
-#Preview("7 filled") {
-    HallOfFameCrownPreview(count: 7)
+#Preview("7 slots, 3 filled") {
+    HallOfFameCrownPreview(slots: HallOfFameCrownPreview.slots(keys: ["movie", "tv", "anime", "manga", "game", "book", "comic"], filledIndexes: [0, 2, 5]))
 }
 
 private struct HallOfFameCrownPreview: View {
-    let count: Int
+    let slots: [FavoriteSlot]
 
-    private var items: [MediaSummary] {
-        (0..<count).map { index in
-            MediaSummary(
-                ref: MediaRef(
-                    itemId: index,
-                    source: "preview",
-                    mediaType: ["movie", "tv", "anime", "manga", "game", "book", "comic"][index % 7],
-                    mediaId: "\(index)",
-                    seasonNumber: nil,
-                    episodeNumber: nil
-                ),
-                title: "Favorite \(index + 1)",
-                posterUrl: nil,
-                posterOrientation: .portrait
-            )
+    static func slots(keys: [String] = ["movie", "tv", "anime", "manga", "game"], filledIndexes: Set<Int>) -> [FavoriteSlot] {
+        keys.enumerated().map { index, key in
+            FavoriteSlot(id: key, title: title(for: key), item: filledIndexes.contains(index) ? media(index: index, mediaType: key) : nil)
         }
+    }
+
+    private static func title(for key: String) -> String {
+        key.replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .map { $0.capitalized }
+            .joined(separator: " ")
+    }
+
+    private static func media(index: Int, mediaType: String) -> MediaSummary {
+        MediaSummary(
+            ref: MediaRef(
+                itemId: index,
+                source: "preview",
+                mediaType: mediaType,
+                mediaId: "\(index)",
+                seasonNumber: nil,
+                episodeNumber: nil
+            ),
+            title: "Favorite \(index + 1)",
+            posterUrl: nil,
+            posterOrientation: .portrait
+        )
     }
 
     var body: some View {
@@ -112,7 +160,7 @@ private struct HallOfFameCrownPreview: View {
             SpinePageBackground()
 
             ZStack {
-                HallOfFameCrownView(items: Array(items.prefix(5)), overflowCount: max(0, count - 5)) { _ in }
+                HallOfFameCrownView(slots: slots) { _ in }
 
                 Circle()
                     .fill(.black.opacity(0.82))
@@ -122,22 +170,6 @@ private struct HallOfFameCrownPreview: View {
                             .stroke(.white.opacity(0.18), lineWidth: 1)
                     }
                     .shadow(color: .black.opacity(0.44), radius: 22, y: 12)
-                    .overlay(alignment: .bottomTrailing) {
-                        if count > 5 {
-                            Text("+\(count - 5)")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8)
-                                .frame(height: 24)
-                                .background(.black.opacity(0.72), in: Capsule())
-                                .overlay {
-                                    Capsule()
-                                        .stroke(.white.opacity(0.18), lineWidth: 1)
-                                }
-                                .offset(x: 4, y: -8)
-                                .accessibilityLabel("\(count - 5) more Hall of Fame items")
-                        }
-                    }
             }
         }
         .frame(width: 320, height: 240)

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AppShellView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = AppTab.search
 
     let session: AppSession
@@ -48,7 +49,7 @@ struct AppShellView: View {
                     diaryRepository: session.repositories.diary,
                     mediaRepository: session.repositories.media,
                     trackingRepository: session.repositories.tracking,
-                    importRepository: session.repositories.imports,
+                    importCoordinator: session.letterboxdImportCoordinator,
                     onLogout: {
                         Task { await session.logout() }
                     },
@@ -62,6 +63,10 @@ struct AppShellView: View {
                 Label("Profile", systemImage: "person.crop.circle")
             }
             .tag(AppTab.profile)
+        }
+        .onChange(of: scenePhase) {
+            guard scenePhase == .active else { return }
+            session.letterboxdImportCoordinator.resumeIfNeeded()
         }
     }
 

@@ -1,130 +1,21 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-@MainActor
-@Observable
-final class LetterboxdImportViewModel {
-    enum ImportState: Equatable {
-        case idle
-        case uploading
-        case processing(String)
-        case success(String)
-        case failed(String)
-    }
+struct LetterboxdImportView: View {
+    @State private var mode: ImportMode = .new
+    @State private var isFileImporterPresented = false
+    @State private var isOverwriteConfirmationPresented = false
+    @State private var isUploadScreenPresented = false
 
-    var mode: ImportMode = .new
-    var state: ImportState = .idle
-    var isFileImporterPresented = false
-    var isOverwriteConfirmationPresented = false
+    let coordinator: LetterboxdImportCoordinator
 
-    private let importRepository: ImportRepository
-    private let onUnauthorized: () -> Void
-
-    init(importRepository: ImportRepository, onUnauthorized: @escaping () -> Void = {}) {
-        self.importRepository = importRepository
-        self.onUnauthorized = onUnauthorized
-    }
-
-    var isBusy: Bool {
-        switch state {
+    private var isBusy: Bool {
+        switch coordinator.phase {
         case .uploading, .processing:
             true
-        case .idle, .success, .failed:
+        case .idle, .succeeded, .failed:
             false
         }
-    }
-
-    func chooseFile() {
-        if mode == .overwrite {
-            isOverwriteConfirmationPresented = true
-        } else {
-            isFileImporterPresented = true
-        }
-    }
-
-    func confirmOverwrite() {
-        isOverwriteConfirmationPresented = false
-        isFileImporterPresented = true
-    }
-
-    func handleFileImporterResult(_ result: Result<[URL], Error>) {
-        switch result {
-        case let .success(urls):
-            guard let url = urls.first else { return }
-            Task { await importFile(at: url) }
-        case let .failure(error):
-            state = .failed(error.localizedDescription)
-        }
-    }
-
-    func importFile(at url: URL) async {
-        guard url.pathExtension.lowercased() == "zip" else {
-            state = .failed("Please upload the .zip file from Letterboxd, not the extracted folder.")
-            return
-        }
-
-        state = .uploading
-        do {
-            let (data, fileName) = try await Self.readFile(url)
-            let response = try await importRepository.queueLetterboxdImport(
-                fileData: data,
-                fileName: fileName,
-                mode: mode
-            )
-            state = .processing("Import queued. Waiting for results...")
-            try await poll(taskId: response.taskId)
-        } catch {
-            state = .failed(error.localizedDescription)
-            if case APIError.unauthorized = error {
-                onUnauthorized()
-            }
-        }
-    }
-
-    private func poll(taskId: String) async throws {
-        let startedAt = Date()
-
-        while Date().timeIntervalSince(startedAt) < 600 {
-            try await Task.sleep(for: .seconds(2))
-            let task = try await importRepository.importTaskStatus(taskId: taskId)
-
-            switch task.status.uppercased() {
-            case "SUCCESS":
-                state = .success(task.result?.trimmedNonEmpty ?? "Letterboxd import complete.")
-                return
-            case "FAILURE":
-                state = .failed(task.result?.trimmedNonEmpty ?? "Letterboxd import failed.")
-                return
-            default:
-                state = .processing("Import status: \(task.status)")
-            }
-        }
-
-        state = .failed("Import is still processing. Check again later or retry after confirming the worker is running.")
-    }
-
-    private nonisolated static func readFile(_ url: URL) async throws -> (Data, String) {
-        try await Task.detached(priority: .userInitiated) {
-            let didStartAccessing = url.startAccessingSecurityScopedResource()
-            defer {
-                if didStartAccessing {
-                    url.stopAccessingSecurityScopedResource()
-                }
-            }
-
-            let trimmedFileName = url.lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
-            let fileName = trimmedFileName.isEmpty ? "letterboxd.zip" : trimmedFileName
-            return (try Data(contentsOf: url), fileName)
-        }.value
-    }
-}
-
-struct LetterboxdImportView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var viewModel: LetterboxdImportViewModel
-
-    init(importRepository: ImportRepository, onUnauthorized: @escaping () -> Void = {}) {
-        _viewModel = State(initialValue: LetterboxdImportViewModel(importRepository: importRepository, onUnauthorized: onUnauthorized))
     }
 
     var body: some View {
@@ -135,93 +26,77 @@ struct LetterboxdImportView: View {
             }
 
             Section("Import Mode") {
-                Picker("Import Mode", selection: $viewModel.mode) {
+                Picker("Import Mode", selection: $mode) {
                     ForEach(ImportMode.allCases) { mode in
                         Text(mode.title).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
-                .disabled(viewModel.isBusy)
+                .disabled(isBusy)
 
-                Text(viewModel.mode.detail)
+                Text(mode.detail)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
             Section {
                 Button {
-                    viewModel.chooseFile()
+                    chooseFile()
                 } label: {
                     Label("Choose Letterboxd Export", systemImage: "doc.zipper")
                 }
-                .disabled(viewModel.isBusy)
-
-                switch viewModel.state {
-                case .idle:
-                    EmptyView()
-                case .uploading:
-                    statusRow("Uploading Letterboxd export...")
-                case let .processing(message):
-                    statusRow(message)
-                case let .success(message):
-                    resultView(message: message, isSuccess: true)
-                case let .failed(message):
-                    resultView(message: message, isSuccess: false)
-                }
-            }
-
-            if case .success = viewModel.state {
-                Section {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    Text("Pull to refresh profile after import.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                .disabled(isBusy)
             }
         }
         .navigationTitle("Letterboxd Import")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
             "This will remove your current movie tracking and Letterboxd-imported lists before importing. This can't be undone.",
-            isPresented: $viewModel.isOverwriteConfirmationPresented,
+            isPresented: $isOverwriteConfirmationPresented,
             titleVisibility: .visible
         ) {
             Button("Replace Existing", role: .destructive) {
-                viewModel.confirmOverwrite()
+                isOverwriteConfirmationPresented = false
+                isFileImporterPresented = true
             }
             Button("Cancel", role: .cancel) {}
         }
         .fileImporter(
-            isPresented: $viewModel.isFileImporterPresented,
+            isPresented: $isFileImporterPresented,
             allowedContentTypes: [.zip],
             allowsMultipleSelection: false,
-            onCompletion: viewModel.handleFileImporterResult
+            onCompletion: handleFileImporterResult
         )
-    }
-
-    private func statusRow(_ message: String) -> some View {
-        HStack(spacing: 12) {
-            ProgressView()
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        .fullScreenCover(isPresented: $isUploadScreenPresented) {
+            LetterboxdImportUploadView(
+                coordinator: coordinator,
+                onDone: { isUploadScreenPresented = false }
+            )
         }
     }
 
-    private func resultView(message: String, isSuccess: Bool) -> some View {
-        Label {
-            Text(message)
-                .font(.subheadline)
-        } icon: {
-            Image(systemName: isSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                .foregroundStyle(isSuccess ? .green : .red)
+    private func chooseFile() {
+        if mode == .overwrite {
+            isOverwriteConfirmationPresented = true
+        } else {
+            isFileImporterPresented = true
+        }
+    }
+
+    private func handleFileImporterResult(_ result: Result<[URL], Error>) {
+        switch result {
+        case let .success(urls):
+            guard let url = urls.first else { return }
+            isUploadScreenPresented = true
+            coordinator.startImport(fileURL: url, mode: mode)
+        case let .failure(error):
+            isUploadScreenPresented = true
+            coordinator.phase = .failed(message: error.localizedDescription)
         }
     }
 }
 
-private extension ImportMode {
+extension ImportMode {
     var title: String {
         switch self {
         case .new:
@@ -241,16 +116,15 @@ private extension ImportMode {
     }
 }
 
-private extension String {
-    var trimmedNonEmpty: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-}
-
 private struct MockImportRepository: ImportRepository {
-    func queueLetterboxdImport(fileData: Data, fileName: String, mode: ImportMode) async throws -> ImportQueueResponse {
-        ImportQueueResponse(taskId: "preview-task", status: "queued")
+    func queueLetterboxdImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse {
+        progressHandler?(1)
+        return ImportQueueResponse(taskId: "preview-task", status: "queued")
     }
 
     func importTaskStatus(taskId: String) async throws -> ImportTaskStatus {
@@ -267,6 +141,8 @@ private struct MockImportRepository: ImportRepository {
 
 #Preview {
     NavigationStack {
-        LetterboxdImportView(importRepository: MockImportRepository())
+        LetterboxdImportView(
+            coordinator: LetterboxdImportCoordinator(importRepository: MockImportRepository())
+        )
     }
 }

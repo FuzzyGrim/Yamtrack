@@ -37,22 +37,21 @@ final class HallOfFameCrownLayoutTests: XCTestCase {
         XCTAssertEqual(placements[1].rotation.degrees, 0, accuracy: 0.001)
     }
 
-    func testCrownLayoutCountNeverExceedsFive() {
+    func testCrownLayoutShowsSevenSlots() {
         let placements = HallOfFameCrownLayout.placements(
             count: 7,
             cardSize: CGSize(width: 50, height: 75),
             avatarDiameter: 128
         )
 
-        XCTAssertEqual(placements.count, 5)
+        XCTAssertEqual(placements.count, 7)
     }
 
     func testFavoriteSlotsSortOrderPreserved() {
         let hof: [String: MediaSummary?] = [
             "comic": nil,
-            "movie_secondary": nil,
             "book": nil,
-            "movie_primary": nil,
+            "movie": nil,
             "anime": nil,
             "game": nil,
             "tv": nil,
@@ -61,7 +60,62 @@ final class HallOfFameCrownLayoutTests: XCTestCase {
 
         XCTAssertEqual(
             ProfileFavorites.slots(from: hof).map(\.id),
-            ["movie_primary", "movie_secondary", "tv", "anime", "manga", "game", "book", "comic"]
+            ["movie", "tv", "anime", "manga", "game", "book", "comic"]
+        )
+    }
+
+    func testFavoriteSlotsIncludeDefaultEmptyChoicesWhenAPIOnlySendsFilledItems() {
+        let movie = media(index: 1, mediaType: "movie")
+        let book = media(index: 2, mediaType: "book")
+        let slots = ProfileFavorites.slots(from: [
+            "movie": movie,
+            "book": book,
+        ])
+
+        XCTAssertEqual(slots.map(\.id), ["movie", "tv", "anime", "manga", "game", "book", "comic"])
+        XCTAssertEqual(slots.compactMap(\.item).map(\.id), [movie.id, book.id])
+    }
+
+    func testFavoriteSlotsPreserveEmptyAndFilledState() {
+        let movie = media(index: 1, mediaType: "movie")
+        let slots = ProfileFavorites.slots(from: [
+            "movie": movie,
+            "tv": nil,
+        ])
+
+        XCTAssertEqual(slots.count, 7)
+        XCTAssertEqual(slots[0].id, "movie")
+        XCTAssertEqual(slots[0].item?.id, movie.id)
+        XCTAssertEqual(slots[1].id, "tv")
+        XCTAssertNil(slots[1].item)
+    }
+
+    func testCrownLayoutUsesGeometricArcForSevenSlots() {
+        let placements = HallOfFameCrownLayout.placements(
+            count: 7,
+            cardSize: CGSize(width: 46, height: 69),
+            avatarDiameter: 128
+        )
+
+        XCTAssertEqual(placements[3].x, 0, accuracy: 0.001)
+        XCTAssertEqual(placements[3].rotation.degrees, 0, accuracy: 0.001)
+        XCTAssertEqual(placements[0].x, -placements[6].x, accuracy: 0.001)
+        XCTAssertEqual(placements[0].y, placements[6].y, accuracy: 0.001)
+        XCTAssertEqual(placements[0].rotation.degrees, -placements[6].rotation.degrees, accuracy: 0.001)
+    }
+
+    private func media(index: Int, mediaType: String) -> MediaSummary {
+        MediaSummary(
+            ref: MediaRef(
+                itemId: index,
+                source: "test",
+                mediaType: mediaType,
+                mediaId: "\(index)",
+                seasonNumber: nil,
+                episodeNumber: nil
+            ),
+            title: "Favorite \(index)",
+            posterOrientation: .portrait
         )
     }
 }

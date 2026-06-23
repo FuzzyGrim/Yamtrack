@@ -74,17 +74,12 @@ struct APIClient: Sendable {
         fileName: String,
         fileData: Data,
         mimeType: String,
-        authenticated: Bool = true
+        authenticated: Bool = true,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)? = nil
     ) async throws -> Response {
         let boundary = "Boundary-\(UUID().uuidString)"
         let url = try endpointURL(path: path, query: [])
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 120
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.httpBody = MultipartFormData.body(
+        let bodyURL = try MultipartFormData.writeBodyFile(
             boundary: boundary,
             fields: formFields,
             fileFieldName: fileFieldName,
@@ -92,13 +87,21 @@ struct APIClient: Sendable {
             fileData: fileData,
             mimeType: mimeType
         )
+        defer { try? FileManager.default.removeItem(at: bodyURL) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 120
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         if authenticated, let token = tokenProvider.accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await multipartSession.data(for: request)
+            let delegate = progressHandler.map(MultipartUploadProgressDelegate.init(progressHandler:))
+            (data, response) = try await multipartSession.upload(for: request, fromFile: bodyURL, delegate: delegate)
         } catch {
             throw APIError.network(error)
         }
@@ -229,6 +232,59 @@ enum MultipartFormData {
         data.appendString(lineBreak)
         data.appendString("--\(boundary)--\(lineBreak)")
         return data
+    }
+
+    static func writeBodyFile(
+        boundary: String,
+        fields: [String: String],
+        fileFieldName: String,
+        fileName: String,
+        fileData: Data,
+        mimeType: String
+    ) throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("spine-multipart-\(UUID().uuidString)")
+            .appendingPathExtension("body")
+        FileManager.default.createFile(atPath: url.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: url)
+        defer { try? handle.close() }
+
+        let lineBreak = "\r\n"
+        for (name, value) in fields.sorted(by: { $0.key < $1.key }) {
+            handle.write(Data("--\(boundary)\(lineBreak)".utf8))
+            handle.write(Data("Content-Disposition: form-data; name=\"\(name.multipartEscaped)\"\(lineBreak)\(lineBreak)".utf8))
+            handle.write(Data("\(value)\(lineBreak)".utf8))
+        }
+
+        handle.write(Data("--\(boundary)\(lineBreak)".utf8))
+        handle.write(Data("Content-Disposition: form-data; name=\"\(fileFieldName.multipartEscaped)\"; filename=\"\(fileName.multipartEscaped)\"\(lineBreak)".utf8))
+        handle.write(Data("Content-Type: \(mimeType)\(lineBreak)\(lineBreak)".utf8))
+        handle.write(fileData)
+        handle.write(Data(lineBreak.utf8))
+        handle.write(Data("--\(boundary)--\(lineBreak)".utf8))
+        return url
+    }
+}
+
+private final class MultipartUploadProgressDelegate: NSObject, URLSessionTaskDelegate {
+    let progressHandler: @MainActor @Sendable (Double) -> Void
+
+    init(progressHandler: @escaping @MainActor @Sendable (Double) -> Void) {
+        self.progressHandler = progressHandler
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didSendBodyData bytesSent: Int64,
+        totalBytesSent: Int64,
+        totalBytesExpectedToSend: Int64
+    ) {
+        guard totalBytesExpectedToSend > 0 else { return }
+        let progress = min(1, max(0, Double(totalBytesSent) / Double(totalBytesExpectedToSend)))
+        Task { @MainActor [progressHandler] in
+            progressHandler(progress)
+        }
     }
 }
 
