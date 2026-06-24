@@ -57,20 +57,31 @@ def account(request):
             user_form = UserUpdateForm(request.POST, request.FILES, instance=request.user)
 
             if user_form.is_valid():
-                user_form.save()
-                # Refresh the user instance to get the updated data
-                request.user.refresh_from_db()
-                profile_url = reverse("profile")
-                message_html = format_html(
-                    'Your <a href="{}" class="underline text-current hover:text-indigo-300">profile</a> information has been updated!',
-                    profile_url,
-                )
-                messages.success(request, message_html)
-                logger.info(
-                    "Successful profile update for user: %s",
-                    request.user.username,
-                )
-                return redirect("account")
+                try:
+                    user_form.save()
+                except OSError:
+                    logger.exception(
+                        "Failed to save profile picture for user: %s",
+                        request.user.username,
+                    )
+                    user_form.add_error(
+                        "profile_picture",
+                        "Could not save your profile picture. Please try again later.",
+                    )
+                else:
+                    # Refresh the user instance to get the updated data
+                    request.user.refresh_from_db()
+                    profile_url = reverse("profile")
+                    message_html = format_html(
+                        'Your <a href="{}" class="underline text-current hover:text-indigo-300">profile</a> information has been updated!',
+                        profile_url,
+                    )
+                    messages.success(request, message_html)
+                    logger.info(
+                        "Successful profile update for user: %s",
+                        request.user.username,
+                    )
+                    return redirect("account")
             logger.warning(
                 "Failed profile update for user: %s - %s",
                 request.user.username,
