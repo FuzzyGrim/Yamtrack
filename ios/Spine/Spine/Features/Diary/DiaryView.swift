@@ -113,6 +113,9 @@ struct DiaryView: View {
             .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
                 Task { await viewModel.load() }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .storygraphImportDidSucceed)) { _ in
+                Task { await viewModel.load() }
+            }
         }
     }
 

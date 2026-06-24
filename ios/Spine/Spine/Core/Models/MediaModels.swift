@@ -494,6 +494,7 @@ struct UserMediaState: Codable, Hashable {
     let rating: String?
     let progress: ProgressState?
     let diaryEntryId: Int?
+    let diaryCount: Int?
     let diaryRating: String?
     let diaryConsumedAt: String?
     let inLists: [Int]

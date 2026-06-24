@@ -118,13 +118,17 @@ final class ProgressUpdateViewModel {
     func updateInput(_ rawValue: String) {
         let limit = mode == .percentage ? 3 : 6
         let digits = String(rawValue.filter(\.isNumber).prefix(limit))
+        if !hasEditedInput, digits == input {
+            return
+        }
         guard !digits.isEmpty else {
             input = ""
             hasEditedInput = true
             return
         }
-        if !hasEditedInput, digits.count > input.count, let inserted = firstInsertedCharacter(from: input, to: digits) {
-            input = String(inserted)
+        if !hasEditedInput {
+            let replacement = !input.isEmpty && digits.hasPrefix(input) ? String(digits.dropFirst(input.count)) : digits
+            input = replacement.isEmpty ? digits : String(replacement.prefix(limit))
         } else {
             input = digits
         }
@@ -154,13 +158,6 @@ final class ProgressUpdateViewModel {
         default:
             return value
         }
-    }
-
-    private func firstInsertedCharacter(from oldValue: String, to newValue: String) -> Character? {
-        for (old, new) in zip(oldValue, newValue) where old != new {
-            return new
-        }
-        return newValue.last
     }
 
     private static func defaultMode(for detail: MediaDetail, progress: ProgressState?) -> ProgressUpdateMode {
@@ -211,7 +208,6 @@ struct ProgressUpdateSheet: View {
             Capsule()
                 .fill(.secondary.opacity(0.28))
                 .frame(width: 38, height: 5)
-                .padding(.top, 8)
 
             header
             progressSummary
@@ -222,11 +218,7 @@ struct ProgressUpdateSheet: View {
         .foregroundStyle(.primary)
         .presentationBackground(.regularMaterial)
         .presentationCornerRadius(24)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                isInputFocused = true
-            }
-        }
+        .defaultFocus($isInputFocused, true)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()

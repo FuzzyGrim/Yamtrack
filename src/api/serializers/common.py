@@ -466,9 +466,11 @@ def user_state_for_item(user, item):
             items=item,
         ).values_list("id", flat=True),
     )
-    latest_diary = DiaryEntry.objects.filter(user=user, item=item).order_by("-consumed_at").first()
+    diary_entries = DiaryEntry.objects.filter(user=user, item=item)
+    latest_diary = diary_entries.order_by("-consumed_at").first()
     diary_state = {
         "diary_entry_id": latest_diary.id if latest_diary else None,
+        "diary_count": diary_entries.count(),
         "diary_rating": decimal_string(latest_diary.rating) if latest_diary else None,
         "diary_consumed_at": latest_diary.consumed_at if latest_diary else None,
     }

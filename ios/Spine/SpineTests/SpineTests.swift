@@ -524,6 +524,97 @@ final class SpineTests: XCTestCase {
         resumed.clearFinishedJob()
     }
 
+    @MainActor
+    func testStoryGraphImportCoordinatorTransitionsToSuccess() async throws {
+        let defaults = isolatedDefaults("StoryGraphImportCoordinatorTransitions")
+        let repository = ScriptedStoryGraphImportRepository(statuses: [
+            ImportTaskStatus(taskId: "storygraph-task-1", taskName: nil, status: "SUCCESS", dateCreated: nil, dateDone: nil, result: "Imported 3 books.")
+        ])
+        let coordinator = StoryGraphImportCoordinator(
+            importRepository: repository,
+            defaults: defaults,
+            pollInterval: .milliseconds(10),
+            timeout: 5
+        )
+        let fileURL = try makeTemporaryCSV()
+        var notifiedTaskId: String?
+        let observer = NotificationCenter.default.addObserver(
+            forName: .storygraphImportDidSucceed,
+            object: nil,
+            queue: nil,
+        ) { notification in
+            notifiedTaskId = notification.userInfo?["taskId"] as? String
+        }
+        defer {
+            NotificationCenter.default.removeObserver(observer)
+        }
+
+        coordinator.startImport(fileURL: fileURL, mode: .new)
+
+        try await waitUntil {
+            if case let .uploading(fileName, progress) = coordinator.phase {
+                return fileName == fileURL.lastPathComponent && progress == 1
+            }
+            return false
+        }
+
+        try await waitUntil {
+            if case let .processing(taskId, _, _) = coordinator.phase {
+                return taskId == "storygraph-task-1"
+            }
+            return false
+        }
+
+        try await waitUntil {
+            coordinator.phase == .succeeded(message: "Imported 3 books.")
+        }
+
+        XCTAssertEqual(repository.queuedFileName, fileURL.lastPathComponent)
+        XCTAssertEqual(repository.queuedMode, .new)
+        XCTAssertEqual(repository.statusRequests, ["storygraph-task-1"])
+        XCTAssertEqual(notifiedTaskId, "storygraph-task-1")
+    }
+
+    @MainActor
+    func testStoryGraphImportCoordinatorPersistsAndResumesTask() async throws {
+        let defaults = isolatedDefaults("StoryGraphImportCoordinatorPersistence")
+        let repository = ScriptedStoryGraphImportRepository(statuses: [
+            ImportTaskStatus(taskId: "storygraph-task-2", taskName: nil, status: "PENDING", dateCreated: nil, dateDone: nil, result: nil)
+        ])
+        let coordinator = StoryGraphImportCoordinator(
+            importRepository: repository,
+            defaults: defaults,
+            pollInterval: .seconds(60),
+            timeout: 5
+        )
+
+        coordinator.startImport(fileURL: try makeTemporaryCSV(), mode: .overwrite)
+
+        try await waitUntil {
+            if case let .processing(taskId, _, _) = coordinator.phase {
+                return taskId == "storygraph-task-2"
+            }
+            return false
+        }
+
+        let resumed = StoryGraphImportCoordinator(
+            importRepository: ScriptedStoryGraphImportRepository(statuses: []),
+            defaults: defaults,
+            pollInterval: .seconds(60),
+            timeout: 5
+        )
+        resumed.resumeIfNeeded()
+
+        guard case let .processing(taskId, _, _) = resumed.phase else {
+            XCTFail("Expected persisted task to resume.")
+            return
+        }
+        XCTAssertEqual(taskId, "storygraph-task-2")
+
+        coordinator.clearFinishedJob()
+        resumed.clearFinishedJob()
+    }
+
     func testMultipartBodyIncludesFieldsAndFile() {
         let body = MultipartFormData.body(
             boundary: "TestBoundary",
@@ -541,6 +632,23 @@ final class SpineTests: XCTestCase {
         XCTAssertTrue(text.contains("Content-Type: application/zip\r\n\r\nzip-bytes\r\n"))
         XCTAssertTrue(text.hasSuffix("--TestBoundary--\r\n"))
     }
+
+    func testStoryGraphMultipartBodyIncludesModeAndCSVFile() {
+        let body = MultipartFormData.body(
+            boundary: "TestBoundary",
+            fields: ["mode": "overwrite"],
+            fileFieldName: "file",
+            fileName: "storygraph.csv",
+            fileData: Data("Title,Authors\nBook,Author\n".utf8),
+            mimeType: "text/csv"
+        )
+        let text = String(data: body, encoding: .utf8)!
+
+        XCTAssertTrue(text.contains("Content-Disposition: form-data; name=\"mode\"\r\n\r\noverwrite\r\n"))
+        XCTAssertTrue(text.contains("Content-Disposition: form-data; name=\"file\"; filename=\"storygraph.csv\""))
+        XCTAssertTrue(text.contains("Content-Type: text/csv\r\n\r\nTitle,Authors\nBook,Author\n\r\n"))
+    }
+
 
     func testMediaSearchDecoding() throws {
         let data = """
@@ -1917,6 +2025,28 @@ final class SpineTests: XCTestCase {
     }
 
     @MainActor
+    func testProgressUpdateFirstTypedDigitReplacesPrefilledValue() {
+        let detail = TestFixtures.logDetail(mediaType: "book")
+        ProgressDisplayPreferences.setMode(.percentage, for: detail.ref)
+        defer { ProgressDisplayPreferences.removeMode(for: detail.ref) }
+        let tracking = trackingProgress(kind: "pages", value: 21, max: 300, unit: "page")
+        let viewModel = ProgressUpdateViewModel(
+            detail: detail,
+            progress: tracking.progress
+        )
+
+        XCTAssertEqual(viewModel.input, "7")
+        XCTAssertEqual(viewModel.currentValue, 7)
+
+        viewModel.updateInput("7")
+        XCTAssertEqual(viewModel.input, "7")
+
+        viewModel.updateInput("79")
+        XCTAssertEqual(viewModel.input, "9")
+        XCTAssertTrue(viewModel.canSave)
+    }
+
+    @MainActor
     func testProgressUpdateValidationAndFullProgress() {
         let bookDetail = TestFixtures.logDetail(mediaType: "book")
         ProgressDisplayPreferences.removeMode(for: bookDetail.ref)
@@ -2776,6 +2906,13 @@ private struct FakeImportRepository: ImportRepository {
         progressHandler: (@MainActor @Sendable (Double) -> Void)?
     ) async throws -> ImportQueueResponse { fatalError("Not used") }
 
+    func queueStoryGraphImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse { fatalError("Not used") }
+
     func importTaskStatus(taskId: String) async throws -> ImportTaskStatus { fatalError("Not used") }
 }
 
@@ -2800,6 +2937,57 @@ private final class ScriptedLetterboxdImportRepository: ImportRepository {
         progressHandler?(1)
         try await Task.sleep(for: .milliseconds(40))
         return ImportQueueResponse(taskId: statuses.first?.taskId ?? "task-2", status: "queued")
+    }
+
+    func queueStoryGraphImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse {
+        fatalError("Not used")
+    }
+
+    func importTaskStatus(taskId: String) async throws -> ImportTaskStatus {
+        statusRequests.append(taskId)
+        try await Task.sleep(for: .milliseconds(40))
+        if statuses.count > 1 {
+            return statuses.removeFirst()
+        }
+        return statuses.first ?? ImportTaskStatus(taskId: taskId, taskName: nil, status: "PENDING", dateCreated: nil, dateDone: nil, result: nil)
+    }
+}
+
+private final class ScriptedStoryGraphImportRepository: ImportRepository {
+    private(set) var queuedFileName: String?
+    private(set) var queuedMode: ImportMode?
+    private(set) var statusRequests: [String] = []
+    private var statuses: [ImportTaskStatus]
+
+    init(statuses: [ImportTaskStatus]) {
+        self.statuses = statuses
+    }
+
+    func queueLetterboxdImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse {
+        fatalError("Not used")
+    }
+
+    func queueStoryGraphImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse {
+        queuedFileName = fileName
+        queuedMode = mode
+        progressHandler?(1)
+        try await Task.sleep(for: .milliseconds(40))
+        return ImportQueueResponse(taskId: statuses.first?.taskId ?? "storygraph-task-2", status: "queued")
     }
 
     func importTaskStatus(taskId: String) async throws -> ImportTaskStatus {
@@ -2842,6 +3030,14 @@ private func makeTemporaryZip() throws -> URL {
         .appendingPathComponent("letterboxd-\(UUID().uuidString)")
         .appendingPathExtension("zip")
     try Data("zip-bytes".utf8).write(to: url)
+    return url
+}
+
+private func makeTemporaryCSV() throws -> URL {
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("storygraph-\(UUID().uuidString)")
+        .appendingPathExtension("csv")
+    try Data("Title,Authors\nBook,Author\n".utf8).write(to: url)
     return url
 }
 
@@ -3236,7 +3432,7 @@ private enum TestFixtures {
       "poster_accent_color": "#19A7CE",
       "release_date": "2026-06-19",
       "default_source": "tmdb",
-      "user_state": { "is_tracked": true, "tracking_id": 42, "status": "Completed", "rating": "9.2", "diary_rating": "10.0", "diary_consumed_at": "2026-06-20T12:00:00Z", "in_lists": [1, 4] },
+      "user_state": { "is_tracked": true, "tracking_id": 42, "status": "Completed", "rating": "9.2", "diary_count": 2, "diary_rating": "10.0", "diary_consumed_at": "2026-06-20T12:00:00Z", "in_lists": [1, 4] },
       "backdrop_url": "https://image.tmdb.org/t/p/original/rr7E0NoGKxvbkb89eR1GwfoYjpA.jpg",
       "details": {
         "director": "The Alchemist",

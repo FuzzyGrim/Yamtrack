@@ -77,6 +77,7 @@ struct AppShellView: View {
                     trackingRepository: session.repositories.tracking,
                     listRepository: session.repositories.lists,
                     importCoordinator: session.letterboxdImportCoordinator,
+                    storygraphImportCoordinator: session.storygraphImportCoordinator,
                     onLogout: {
                         Task { await session.logout() }
                     },
@@ -100,6 +101,7 @@ struct AppShellView: View {
         .onChange(of: scenePhase) {
             guard scenePhase == .active else { return }
             session.letterboxdImportCoordinator.resumeIfNeeded()
+            session.storygraphImportCoordinator.resumeIfNeeded()
         }
     }
 

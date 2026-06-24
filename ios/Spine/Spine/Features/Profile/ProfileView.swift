@@ -434,6 +434,7 @@ struct ProfileView: View {
     private let diaryRepository: DiaryRepository
     private let listRepository: ListRepository
     private let importCoordinator: LetterboxdImportCoordinator
+    private let storygraphImportCoordinator: StoryGraphImportCoordinator
     private let onLogout: () -> Void
     private let onOpenDiary: () -> Void
     private let onOpenLibrary: (LibraryShelf) -> Void
@@ -448,6 +449,7 @@ struct ProfileView: View {
         trackingRepository: TrackingRepository,
         listRepository: ListRepository,
         importCoordinator: LetterboxdImportCoordinator,
+        storygraphImportCoordinator: StoryGraphImportCoordinator,
         onLogout: @escaping () -> Void,
         onOpenDiary: @escaping () -> Void,
         onOpenLibrary: @escaping (LibraryShelf) -> Void,
@@ -467,6 +469,7 @@ struct ProfileView: View {
         self.diaryRepository = diaryRepository
         self.listRepository = listRepository
         self.importCoordinator = importCoordinator
+        self.storygraphImportCoordinator = storygraphImportCoordinator
         self.onLogout = onLogout
         self.onOpenDiary = onOpenDiary
         self.onOpenLibrary = onOpenLibrary
@@ -487,6 +490,9 @@ struct ProfileView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
+                Swift.Task<Void, Never> { await viewModel.reload() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .storygraphImportDidSucceed)) { _ in
                 Swift.Task<Void, Never> { await viewModel.reload() }
             }
             .fullScreenCover(item: $selectedRef) { ref in
@@ -511,6 +517,7 @@ struct ProfileView: View {
                     },
                     onUnauthorized: onUnauthorized,
                     importCoordinator: importCoordinator,
+                    storygraphImportCoordinator: storygraphImportCoordinator,
                     onLogout: onLogout
                 )
             }
@@ -759,10 +766,10 @@ struct ProfileView: View {
                 )
             }
         }
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
+                .stroke(.white.opacity(0.055), lineWidth: 1)
         }
     }
 
@@ -1190,32 +1197,32 @@ struct ProfileMenuRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Text(title)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.82))
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.78))
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
 
             Spacer(minLength: 12)
 
             Text(count.formatted())
-                .font(.system(size: 21, weight: .medium))
-                .foregroundStyle(.white.opacity(0.46))
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.white.opacity(0.42))
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(.white.opacity(0.32))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white.opacity(0.26))
         }
-        .frame(minHeight: 58)
-        .padding(.horizontal, 14)
+        .frame(minHeight: 46)
+        .padding(.horizontal, 12)
         .contentShape(Rectangle())
         .overlay(alignment: .bottom) {
             if showsDivider {
                 Rectangle()
-                    .fill(.white.opacity(0.08))
+                    .fill(.white.opacity(0.055))
                     .frame(height: 1)
-                    .padding(.leading, 14)
+                    .padding(.leading, 12)
             }
         }
         .accessibilityElement(children: .combine)
@@ -1424,15 +1431,23 @@ private struct EmptyProfileCard: View {
     }
 }
 
+private enum ImportStatusSource: Hashable, Identifiable {
+    case letterboxd
+    case storygraph
+
+    var id: Self { self }
+}
+
 private struct ProfileSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ProfileSettingsViewModel
-    @State private var isImportStatusPresented = false
+    @State private var importStatusSource: ImportStatusSource?
     @State private var selectedPhotoItem: PhotosPickerItem?
 
     let profile: UserProfile?
     let onProfileUpdated: (UserProfile) -> Void
     let importCoordinator: LetterboxdImportCoordinator
+    let storygraphImportCoordinator: StoryGraphImportCoordinator
     let onLogout: () -> Void
 
     init(
@@ -1442,11 +1457,13 @@ private struct ProfileSettingsSheet: View {
         onProfileUpdated: @escaping (UserProfile) -> Void,
         onUnauthorized: @escaping () -> Void,
         importCoordinator: LetterboxdImportCoordinator,
+        storygraphImportCoordinator: StoryGraphImportCoordinator,
         onLogout: @escaping () -> Void
     ) {
         self.profile = profile
         self.onProfileUpdated = onProfileUpdated
         self.importCoordinator = importCoordinator
+        self.storygraphImportCoordinator = storygraphImportCoordinator
         self.onLogout = onLogout
         _viewModel = State(initialValue: ProfileSettingsViewModel(
             profileRepository: profileRepository,
@@ -1460,8 +1477,7 @@ private struct ProfileSettingsSheet: View {
             List {
                 if let profile {
                     accountSection(profile)
-                    preferencesSection
-                    passwordSection
+                    profileSaveSection
                 }
 
                 Section("Import") {
@@ -1486,7 +1502,6 @@ private struct ProfileSettingsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 viewModel.load(profile: profile)
-                await viewModel.loadOptions()
             }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 Swift.Task<Void, Never> {
@@ -1503,11 +1518,19 @@ private struct ProfileSettingsSheet: View {
                     }
                 }
             }
-            .fullScreenCover(isPresented: $isImportStatusPresented) {
-                LetterboxdImportUploadView(
-                    coordinator: importCoordinator,
-                    onDone: { isImportStatusPresented = false }
-                )
+            .fullScreenCover(item: $importStatusSource) { source in
+                switch source {
+                case .letterboxd:
+                    LetterboxdImportUploadView(
+                        coordinator: importCoordinator,
+                        onDone: { importStatusSource = nil }
+                    )
+                case .storygraph:
+                    StoryGraphImportUploadView(
+                        coordinator: storygraphImportCoordinator,
+                        onDone: { importStatusSource = nil }
+                    )
+                }
             }
         }
     }
@@ -1551,10 +1574,10 @@ private struct ProfileSettingsSheet: View {
                 }
             }
 
-            TextField("Display Name", text: $viewModel.displayName)
+            editableField("Display Name", text: $viewModel.displayName)
             fieldError("display_name", "displayName")
 
-            TextField("Username", text: $viewModel.username)
+            editableField("Username", text: $viewModel.username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             fieldError("username")
@@ -1563,85 +1586,25 @@ private struct ProfileSettingsSheet: View {
                 LabeledContent("Email", value: email)
             }
 
-            TextField("Bio", text: $viewModel.bio, axis: .vertical)
+            editableField("Bio", text: $viewModel.bio, axis: .vertical)
                 .lineLimit(3...5)
             fieldError("bio")
 
-            TextField("Pronouns", text: $viewModel.pronouns)
-            fieldError("pronouns")
-
-            TextField("Location", text: $viewModel.location)
-            fieldError("location")
-
             Toggle("Private account", isOn: $viewModel.isPrivate)
             fieldError("is_private", "profile_private")
+        }
+    }
 
-            saveButton("Save Profile", isSaving: viewModel.isSavingProfile, isDisabled: !viewModel.hasProfileChanges) {
+    private var profileSaveSection: some View {
+        Section {
+            saveButton("Save Changes", isSaving: viewModel.isSavingProfile, isDisabled: !viewModel.hasProfileChanges) {
                 if let updated = await viewModel.saveProfile() {
                     onProfileUpdated(updated)
+                    dismiss()
                 }
             }
 
             statusMessages
-        }
-    }
-
-    private var preferencesSection: some View {
-        Section("Preferences") {
-            ForEach(mediaTypeOptions, id: \.self) { mediaType in
-                Toggle(mediaType.profileSlotTitle, isOn: mediaTypeBinding(mediaType))
-            }
-            fieldError("enabled_media_types", "enabledMediaTypes")
-
-            Picker("Date Format", selection: $viewModel.dateFormat) {
-                ForEach(choices(viewModel.settingsOptions.dateFormats, current: viewModel.dateFormat)) { choice in
-                    Text(choice.label).tag(choice.value)
-                }
-            }
-
-            Picker("Time Format", selection: $viewModel.timeFormat) {
-                ForEach(choices(viewModel.settingsOptions.timeFormats, current: viewModel.timeFormat)) { choice in
-                    Text(choice.label).tag(choice.value)
-                }
-            }
-
-            Picker("Week Starts", selection: $viewModel.weekStartDay) {
-                ForEach(choices(viewModel.settingsOptions.weekStartDays, current: viewModel.weekStartDay)) { choice in
-                    Text(choice.label).tag(choice.value)
-                }
-            }
-
-            Picker("Quick Watch Date", selection: $viewModel.quickWatchDate) {
-                ForEach(choices(viewModel.settingsOptions.quickWatchDates, current: viewModel.quickWatchDate)) { choice in
-                    Text(choice.label).tag(choice.value)
-                }
-            }
-
-            Toggle("Release Notifications", isOn: $viewModel.releaseNotificationsEnabled)
-            Toggle("Daily Digest", isOn: $viewModel.dailyDigestEnabled)
-
-            saveButton("Save Preferences", isSaving: viewModel.isSavingPreferences, isDisabled: !viewModel.hasPreferenceChanges || viewModel.enabledMediaTypes.isEmpty) {
-                if let updated = await viewModel.savePreferences() {
-                    onProfileUpdated(updated)
-                }
-            }
-        }
-    }
-
-    private var passwordSection: some View {
-        Section("Security") {
-            SecureField("Current Password", text: $viewModel.oldPassword)
-            fieldError("old_password", "oldPassword")
-
-            SecureField("New Password", text: $viewModel.newPassword)
-            fieldError("new_password", "newPassword")
-
-            SecureField("Confirm New Password", text: $viewModel.newPasswordConfirm)
-            fieldError("new_password_confirm", "newPasswordConfirm")
-
-            saveButton("Change Password", isSaving: viewModel.isSavingPassword, isDisabled: viewModel.oldPassword.isEmpty || viewModel.newPassword.isEmpty || viewModel.newPasswordConfirm.isEmpty) {
-                _ = await viewModel.changePassword()
-            }
         }
     }
 
@@ -1673,6 +1636,15 @@ private struct ProfileSettingsSheet: View {
         .disabled(isDisabled || isSaving)
     }
 
+    private func editableField(_ title: String, text: Binding<String>, axis: Axis = .horizontal) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextField(title, text: text, axis: axis)
+        }
+    }
+
     @ViewBuilder
     private func fieldError(_ keys: String...) -> some View {
         if let message = keys.lazy.compactMap({ viewModel.fieldErrors[$0] }).first {
@@ -1682,46 +1654,34 @@ private struct ProfileSettingsSheet: View {
         }
     }
 
-    private var mediaTypeOptions: [String] {
-        let options = viewModel.mediaTypes.isEmpty ? Array(Set(APIConstants.fallbackMediaTypes).union(viewModel.enabledMediaTypes)) : viewModel.mediaTypes
-        return options
-            .filter { $0 != "episode" }
-            .sorted { lhs, rhs in
-                let leftRank = ProfileFavorites.rank(lhs)
-                let rightRank = ProfileFavorites.rank(rhs)
-                return leftRank == rightRank ? lhs < rhs : leftRank < rightRank
-            }
-    }
-
-    private func mediaTypeBinding(_ mediaType: String) -> Binding<Bool> {
-        Binding(
-            get: { viewModel.enabledMediaTypes.contains(mediaType) },
-            set: { isEnabled in
-                if isEnabled {
-                    viewModel.enabledMediaTypes.insert(mediaType)
-                } else {
-                    viewModel.enabledMediaTypes.remove(mediaType)
-                }
-            }
-        )
-    }
-
-    private func choices(_ choices: [PreferenceChoice], current: String) -> [PreferenceChoice] {
-        choices.isEmpty ? [PreferenceChoice(value: current, label: current.profileSlotTitle)] : choices
-    }
-
     @ViewBuilder
     private var importSectionContent: some View {
-        switch importCoordinator.phase {
-        case .idle:
+        if importCoordinator.phase == .idle && storygraphImportCoordinator.phase == .idle {
             NavigationLink {
                 LetterboxdImportView(coordinator: importCoordinator)
             } label: {
                 Label("Import from Letterboxd", systemImage: "square.and.arrow.down")
             }
+            NavigationLink {
+                StoryGraphImportView(coordinator: storygraphImportCoordinator)
+            } label: {
+                Label("Import from StoryGraph", systemImage: "doc.text")
+            }
+        } else if importCoordinator.phase != .idle {
+            letterboxdImportStatus
+        } else {
+            storygraphImportStatus
+        }
+    }
+
+    @ViewBuilder
+    private var letterboxdImportStatus: some View {
+        switch importCoordinator.phase {
+        case .idle:
+            EmptyView()
         case let .uploading(_, progress):
             Button {
-                isImportStatusPresented = true
+                importStatusSource = .letterboxd
             } label: {
                 HStack(spacing: 12) {
                     ProgressView(value: progress)
@@ -1736,7 +1696,7 @@ private struct ProfileSettingsSheet: View {
             }
         case let .processing(_, statusLabel, _):
             Button {
-                isImportStatusPresented = true
+                importStatusSource = .letterboxd
             } label: {
                 HStack(spacing: 12) {
                     ProgressView()
@@ -1748,7 +1708,7 @@ private struct ProfileSettingsSheet: View {
                     }
                 }
             }
-            checkStatusButton
+            letterboxdCheckStatusButton
         case let .succeeded(message):
             importResultRow(systemName: "checkmark.circle.fill", tint: .green, message: message)
             Button("Dismiss") {
@@ -1757,7 +1717,7 @@ private struct ProfileSettingsSheet: View {
         case let .failed(message):
             importResultRow(systemName: "exclamationmark.triangle.fill", tint: .red, message: message)
             if importCoordinator.canCheckStatus {
-                checkStatusButton
+                letterboxdCheckStatusButton
             }
             NavigationLink {
                 LetterboxdImportView(coordinator: importCoordinator)
@@ -1770,7 +1730,63 @@ private struct ProfileSettingsSheet: View {
         }
     }
 
-    private var checkStatusButton: some View {
+    @ViewBuilder
+    private var storygraphImportStatus: some View {
+        switch storygraphImportCoordinator.phase {
+        case .idle:
+            EmptyView()
+        case let .uploading(_, progress):
+            Button {
+                importStatusSource = .storygraph
+            } label: {
+                HStack(spacing: 12) {
+                    ProgressView(value: progress)
+                        .frame(width: 44)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Uploading...")
+                        Text("Tap for details")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        case let .processing(_, statusLabel, _):
+            Button {
+                importStatusSource = .storygraph
+            } label: {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(statusLabel)
+                        Text("Tap for details")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            storygraphCheckStatusButton
+        case let .succeeded(message):
+            importResultRow(systemName: "checkmark.circle.fill", tint: .green, message: message)
+            Button("Dismiss") {
+                storygraphImportCoordinator.clearFinishedJob()
+            }
+        case let .failed(message):
+            importResultRow(systemName: "exclamationmark.triangle.fill", tint: .red, message: message)
+            if storygraphImportCoordinator.canCheckStatus {
+                storygraphCheckStatusButton
+            }
+            NavigationLink {
+                StoryGraphImportView(coordinator: storygraphImportCoordinator)
+            } label: {
+                Label("Try Again", systemImage: "arrow.clockwise")
+            }
+            Button("Dismiss") {
+                storygraphImportCoordinator.clearFinishedJob()
+            }
+        }
+    }
+
+    private var letterboxdCheckStatusButton: some View {
         Button {
             importCoordinator.checkStatusOnce()
         } label: {
@@ -1781,6 +1797,19 @@ private struct ProfileSettingsSheet: View {
             }
         }
         .disabled(importCoordinator.isCheckingStatus)
+    }
+
+    private var storygraphCheckStatusButton: some View {
+        Button {
+            storygraphImportCoordinator.checkStatusOnce()
+        } label: {
+            if storygraphImportCoordinator.isCheckingStatus {
+                Label("Checking Status", systemImage: "clock.arrow.circlepath")
+            } else {
+                Label("Check Status", systemImage: "arrow.clockwise")
+            }
+        }
+        .disabled(storygraphImportCoordinator.isCheckingStatus)
     }
 
     private func importResultRow(systemName: String, tint: Color, message: String) -> some View {

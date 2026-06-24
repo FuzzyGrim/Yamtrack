@@ -477,6 +477,7 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["user_state"]["diary_rating"], "10.0")
         self.assertEqual(response.data["user_state"]["diary_consumed_at"], consumed_at)
         self.assertEqual(response.data["user_state"]["diary_entry_id"], diary_entry.id)
+        self.assertEqual(response.data["user_state"]["diary_count"], 1)
 
     @patch("api.services.media.provider_services.get_media_metadata")
     def test_landscape_only_artwork_marks_poster_orientation(self, metadata_mock):

@@ -167,6 +167,24 @@ class ImportLetterboxdTests(TestCase):
         self.assertEqual(DiaryEntry.objects.filter(item__media_id="101").count(), 1)
         self.assertEqual(CustomListItem.objects.count(), 2)
 
+    def test_import_keeps_multiple_diary_logs_for_same_movie(self):
+        payload = export_zip(
+            {
+                "diary.csv": (
+                    "Date,Name,Year,Letterboxd URI,Rating,Rewatch,Tags,Watched Date\n"
+                    "2024-01-02,Film One,1999,https://boxd.it/film-one-watched,4,No,,2024-01-02\n"
+                    "2025-02-06,Film One,1999,https://boxd.it/film-one-watched,5,Yes,,2025-02-06\n"
+                ),
+            },
+        )
+
+        self._import_bytes(payload)
+
+        entries = DiaryEntry.objects.filter(item__media_id="101").order_by("consumed_at")
+        self.assertEqual(entries.count(), 2)
+        self.assertEqual([entry.consumed_at.date().isoformat() for entry in entries], ["2024-01-02", "2025-02-06"])
+        self.assertEqual(Movie.objects.get(item__media_id="101").end_date.date().isoformat(), "2024-01-02")
+
     def test_likes_do_not_upgrade_watchlist_to_completed(self):
         payload = export_zip(
             {

@@ -336,7 +336,7 @@ struct ProfileTagsView: View {
                         }
                     }
                 }
-                .background(.white.opacity(viewModel.tags.isEmpty ? 0 : 0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(.white.opacity(viewModel.tags.isEmpty ? 0 : 0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .padding(.horizontal, 14)
                 .padding(.top, 12)
                 .padding(.bottom, 28)
@@ -424,7 +424,7 @@ struct ProfileListsView: View {
             SpinePageBackground()
 
             ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 10) {
+                LazyVStack(spacing: 6) {
                     if viewModel.isLoading {
                         ProgressView()
                             .tint(.white)
@@ -478,35 +478,40 @@ private struct ProfileListRow: View {
     let list: CustomListSummary
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.white.opacity(0.10))
-                .frame(width: 52, height: 52)
+                .fill(.white.opacity(0.065))
+                .frame(width: 34, height: 34)
                 .overlay {
                     Image(systemName: "list.bullet.rectangle")
-                        .font(.system(size: 19, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.52))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.42))
                 }
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(list.name)
-                    .font(.system(size: 17, weight: .heavy))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.86))
                     .lineLimit(2)
 
                 Text("\(list.itemsCount.formatted()) items")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.52))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.46))
             }
 
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(.white.opacity(0.32))
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white.opacity(0.24))
         }
-        .padding(12)
-        .background(.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(.white.opacity(0.045), lineWidth: 1)
+        }
         .contentShape(Rectangle())
     }
 }
@@ -578,7 +583,7 @@ private struct ProfileListDetailView: View {
             SpinePageBackground()
 
             ScrollView(showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                LazyVStack(alignment: .leading, spacing: 14) {
                     if viewModel.isLoading {
                         ProgressView()
                             .tint(.white)
@@ -615,22 +620,22 @@ private struct ProfileListDetailView: View {
     }
 
     private func listHeader(_ list: CustomListDetail) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(list.name)
-                .font(.system(size: 28, weight: .black))
-                .foregroundStyle(.white)
-                .lineLimit(3)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.white.opacity(0.9))
+                .lineLimit(2)
 
             Text("\(list.itemsCount.formatted()) items")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.56))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.48))
 
             let description = list.description.trimmingCharacters(in: .whitespacesAndNewlines)
             if !description.isEmpty {
                 Text(description)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.74))
-                    .lineLimit(5)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.66))
+                    .lineLimit(4)
             }
         }
     }

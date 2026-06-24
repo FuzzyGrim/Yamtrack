@@ -240,6 +240,9 @@ struct LibraryView: View {
             .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
                 Task { await viewModel.reload() }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .storygraphImportDidSucceed)) { _ in
+                Task { await viewModel.reload() }
+            }
         }
     }
 

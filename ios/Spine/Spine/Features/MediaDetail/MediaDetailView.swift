@@ -215,11 +215,13 @@ enum MediaDetailQuickAction {
 private enum MediaDetailSheet: Identifiable {
     case posterMenu
     case bookGameActions
+    case progressUpdate
 
     var id: String {
         switch self {
         case .posterMenu: "posterMenu"
         case .bookGameActions: "bookGameActions"
+        case .progressUpdate: "progressUpdate"
         }
     }
 }
@@ -258,7 +260,7 @@ struct MediaDetailView: View {
     @State private var isPosterPickerPresented = false
     @State private var isBackdropPickerPresented = false
     @State private var isLogPresented = false
-    @State private var isProgressUpdatePresented = false
+    @State private var progressUpdateDetail: MediaDetail?
     @State private var isQuickActionAlertPresented = false
     @State private var showsTitleLogo = true
     @State private var topSafeAreaInset: CGFloat = 0
@@ -378,7 +380,7 @@ struct MediaDetailView: View {
                             await performQuickAction(action, for: detail, dismissSheet: true)
                         },
                         onUpdateProgress: {
-                            openProgressUpdate()
+                            openProgressUpdate(for: detail)
                         },
                         onLog: {
                             presentedSheet = nil
@@ -390,27 +392,27 @@ struct MediaDetailView: View {
                     .presentationDetents([.height(224)])
                     .presentationDragIndicator(.visible)
                 }
-            }
-        }
-        .sheet(isPresented: $isProgressUpdatePresented) {
-            if let detail = viewModel.detail {
-                ProgressUpdateSheet(
-                    detail: detail,
-                    progress: currentProgress(detail),
-                    isSaving: viewModel.isSavingProgress,
-                    errorMessage: viewModel.progressErrorMessage,
-                    onSave: { request in
-                        await viewModel.saveProgress(request, for: detail)
-                    },
-                    onLogFinished: {
-                        isProgressUpdatePresented = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            isLogPresented = true
+            case .progressUpdate:
+                if let detail = progressUpdateDetail ?? viewModel.detail {
+                    ProgressUpdateSheet(
+                        detail: detail,
+                        progress: currentProgress(detail),
+                        isSaving: viewModel.isSavingProgress,
+                        errorMessage: viewModel.progressErrorMessage,
+                        onSave: { request in
+                            await viewModel.saveProgress(request, for: detail)
+                        },
+                        onLogFinished: {
+                            presentedSheet = nil
+                            progressUpdateDetail = nil
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                isLogPresented = true
+                            }
                         }
-                    }
-                )
-                .presentationDetents([.height(326)])
-                .presentationDragIndicator(.hidden)
+                    )
+                    .presentationDetents([.height(326)])
+                    .presentationDragIndicator(.hidden)
+                }
             }
         }
         .alert("Tracking Update Failed", isPresented: $isQuickActionAlertPresented) {
@@ -576,16 +578,10 @@ struct MediaDetailView: View {
         }
     }
 
-    private func openProgressUpdate() {
+    private func openProgressUpdate(for detail: MediaDetail) {
         viewModel.progressErrorMessage = nil
-        if presentedSheet != nil {
-            presentedSheet = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                isProgressUpdatePresented = true
-            }
-        } else {
-            isProgressUpdatePresented = true
-        }
+        progressUpdateDetail = detail
+        presentedSheet = .progressUpdate
     }
 
     private func navigateToTab(_ tab: AppTab) {
@@ -780,7 +776,7 @@ struct MediaDetailView: View {
                 }
             },
             onUpdateProgress: {
-                openProgressUpdate()
+                openProgressUpdate(for: detail)
             }
         )
     }
@@ -1885,8 +1881,12 @@ private struct TrackingSummarySection: View {
 
     private var lines: [String] {
         var values: [String] = []
-        if let progressText = (tracking?.progress ?? userState?.progress)?.detailDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: detail.ref)) {
+        if detail.ref.mediaType != "movie",
+           let progressText = (tracking?.progress ?? userState?.progress)?.detailDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: detail.ref)) {
             values.append(progressText)
+        }
+        if let diaryCount = userState?.diaryCount, diaryCount > 1 {
+            values.append("\(diaryCount) logs")
         }
         if let rating = userState?.diaryRating ?? tracking?.rating ?? userState?.rating {
             values.append("Rated \(rating.starRatingLabel)")
@@ -1894,11 +1894,13 @@ private struct TrackingSummarySection: View {
         if let consumedAt = userState?.diaryConsumedAt {
             values.append("Logged \(consumedAt.shortDateLabel)")
         }
-        if let startDate = tracking?.startDate {
-            values.append("Started \(startDate)")
-        }
-        if let endDate = tracking?.endDate {
-            values.append("Completed \(endDate)")
+        if detail.ref.mediaType != "movie" {
+            if let startDate = tracking?.startDate {
+                values.append("Started \(startDate.longDateLabel)")
+            }
+            if let endDate = tracking?.endDate {
+                values.append("Completed \(endDate.longDateLabel)")
+            }
         }
         return values
     }

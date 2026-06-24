@@ -1,13 +1,13 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct LetterboxdImportView: View {
+struct StoryGraphImportView: View {
     @State private var mode: ImportMode = .new
     @State private var isFileImporterPresented = false
     @State private var isOverwriteConfirmationPresented = false
     @State private var isUploadScreenPresented = false
 
-    let coordinator: LetterboxdImportCoordinator
+    let coordinator: StoryGraphImportCoordinator
 
     private var isBusy: Bool {
         switch coordinator.phase {
@@ -21,8 +21,8 @@ struct LetterboxdImportView: View {
     var body: some View {
         List {
             Section {
-                Text("Export your data from Letterboxd settings, then upload the .zip file here.")
-                Link("Open Letterboxd Data Settings", destination: URL(string: "https://letterboxd.com/settings/data/")!)
+                Text("Export your library from StoryGraph, then upload the .csv file here.")
+                Link("Open StoryGraph", destination: URL(string: "https://app.thestorygraph.com/")!)
             }
 
             Section("Import Mode") {
@@ -34,7 +34,7 @@ struct LetterboxdImportView: View {
                 .pickerStyle(.segmented)
                 .disabled(isBusy)
 
-                Text(mode.detail)
+                Text(modeDetail)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -43,15 +43,15 @@ struct LetterboxdImportView: View {
                 Button {
                     chooseFile()
                 } label: {
-                    Label("Choose Letterboxd Export", systemImage: "doc.zipper")
+                    Label("Choose StoryGraph CSV", systemImage: "doc.text")
                 }
                 .disabled(isBusy)
             }
         }
-        .navigationTitle("Letterboxd Import")
+        .navigationTitle("StoryGraph Import")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
-            "This will remove your current movie tracking and Letterboxd-imported lists before importing. This can't be undone.",
+            "This replaces existing book tracking and book diary entries before importing. This can't be undone.",
             isPresented: $isOverwriteConfirmationPresented,
             titleVisibility: .visible
         ) {
@@ -63,15 +63,24 @@ struct LetterboxdImportView: View {
         }
         .fileImporter(
             isPresented: $isFileImporterPresented,
-            allowedContentTypes: [.zip],
+            allowedContentTypes: [.commaSeparatedText, UTType(filenameExtension: "csv")!],
             allowsMultipleSelection: false,
             onCompletion: handleFileImporterResult
         )
         .fullScreenCover(isPresented: $isUploadScreenPresented) {
-            LetterboxdImportUploadView(
+            StoryGraphImportUploadView(
                 coordinator: coordinator,
                 onDone: { isUploadScreenPresented = false }
             )
+        }
+    }
+
+    private var modeDetail: String {
+        switch mode {
+        case .new:
+            "Import books and dated diary entries that aren't already in Spine."
+        case .overwrite:
+            "Delete your existing book tracking and book diary entries, then import everything from this file."
         }
     }
 
@@ -96,28 +105,17 @@ struct LetterboxdImportView: View {
     }
 }
 
-extension ImportMode {
-    var title: String {
-        switch self {
-        case .new:
-            "Add new only"
-        case .overwrite:
-            "Replace existing"
-        }
-    }
-
-    var detail: String {
-        switch self {
-        case .new:
-            "Import movies, diary entries, lists, and likes that aren't already in Spine."
-        case .overwrite:
-            "Delete your existing imported movies, diary entries, and Letterboxd lists, then import everything from this file."
-        }
-    }
-}
-
 private struct MockImportRepository: ImportRepository {
     func queueLetterboxdImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse {
+        fatalError("Not used")
+    }
+
+    func queueStoryGraphImport(
         fileData: Data,
         fileName: String,
         mode: ImportMode,
@@ -127,31 +125,22 @@ private struct MockImportRepository: ImportRepository {
         return ImportQueueResponse(taskId: "preview-task", status: "queued")
     }
 
-    func queueStoryGraphImport(
-        fileData: Data,
-        fileName: String,
-        mode: ImportMode,
-        progressHandler: (@MainActor @Sendable (Double) -> Void)?
-    ) async throws -> ImportQueueResponse {
-        fatalError("Not used")
-    }
-
     func importTaskStatus(taskId: String) async throws -> ImportTaskStatus {
         ImportTaskStatus(
             taskId: taskId,
-            taskName: "Import from Letterboxd",
+            taskName: "Import from StoryGraph",
             status: "SUCCESS",
             dateCreated: nil,
             dateDone: nil,
-            result: "Imported 12 movies."
+            result: "Imported 12 books."
         )
     }
 }
 
 #Preview {
     NavigationStack {
-        LetterboxdImportView(
-            coordinator: LetterboxdImportCoordinator(importRepository: MockImportRepository())
+        StoryGraphImportView(
+            coordinator: StoryGraphImportCoordinator(importRepository: MockImportRepository())
         )
     }
 }

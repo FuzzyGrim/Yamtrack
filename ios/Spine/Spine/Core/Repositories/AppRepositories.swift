@@ -94,6 +94,12 @@ protocol ImportRepository {
         mode: ImportMode,
         progressHandler: (@MainActor @Sendable (Double) -> Void)?
     ) async throws -> ImportQueueResponse
+    func queueStoryGraphImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> ImportQueueResponse
     func importTaskStatus(taskId: String) async throws -> ImportTaskStatus
 }
 
@@ -481,6 +487,24 @@ struct APIImportRepository: ImportRepository {
             fileName: fileName,
             fileData: fileData,
             mimeType: "application/zip",
+            authenticated: true,
+            progressHandler: progressHandler
+        )
+    }
+
+    func queueStoryGraphImport(
+        fileData: Data,
+        fileName: String,
+        mode: ImportMode,
+        progressHandler: (@MainActor @Sendable (Double) -> Void)? = nil
+    ) async throws -> ImportQueueResponse {
+        try await client.uploadMultipart(
+            "/imports/storygraph/",
+            formFields: ["mode": mode.rawValue],
+            fileFieldName: "file",
+            fileName: fileName,
+            fileData: fileData,
+            mimeType: "text/csv",
             authenticated: true,
             progressHandler: progressHandler
         )
