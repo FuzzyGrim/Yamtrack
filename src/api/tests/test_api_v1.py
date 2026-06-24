@@ -14,13 +14,15 @@ from app.models import (
     CustomPosterPreference,
     DiaryEntry,
     Item,
+    MediaLike,
     MediaTypes,
     Movie,
     Sources,
     Status,
 )
-from app.services import update_diary_entry_tags
+from app.services import set_media_like, update_diary_entry_tags
 from lists.models import CustomList, CustomListItem
+from social.models import ContentLike
 
 
 class ApiV1FoundationTests(TestCase):
@@ -111,6 +113,7 @@ class ApiV1FoundationTests(TestCase):
             review="Good.",
             liked=True,
         )
+        MediaLike.objects.create(user=user, item=completed)
         update_diary_entry_tags(reviewed, ["great"])
         self.client.force_authenticate(user)
 
@@ -195,6 +198,138 @@ class ApiV1FoundationTests(TestCase):
             {item["tracking"]["status"] for item in response.data["results"]},
             {Status.PLANNING.value},
         )
+
+    def test_set_media_like_is_idempotent_and_keeps_social_likes_separate(self):
+        user = get_user_model().objects.create_user(username="media-like-service", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="svc",
+            title="Service",
+        )
+        entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=timezone.now(), liked=True)
+        ContentLike.objects.create(user=user, target_type=ContentLike.DIARY_ENTRY, target_id=entry.id)
+
+        set_media_like(user, item, liked=True)
+        set_media_like(user, item, liked=True)
+        set_media_like(user, item, liked=False)
+
+        entry.refresh_from_db()
+        self.assertEqual(MediaLike.objects.filter(user=user, item=item).count(), 0)
+        self.assertFalse(entry.liked)
+        self.assertEqual(ContentLike.objects.filter(user=user, target_type=ContentLike.DIARY_ENTRY).count(), 1)
+
+    @patch("api.views.profile.provider_services.get_media_metadata")
+    def test_liked_media_endpoint_materializes_without_tracking_or_diary(self, metadata_mock):
+        user = get_user_model().objects.create_user(username="liked-media", password="strong-password-123")
+        self.client.force_authenticate(user)
+        metadata_mock.return_value = {"title": "Fight Club", "image": "https://example.com/fight.jpg"}
+        payload = {
+            "ref": {
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "media_id": "550",
+            },
+        }
+
+        liked = self.client.post("/api/v1/me/liked-media/", payload, format="json")
+        listed = self.client.get("/api/v1/me/liked-media/")
+        unliked = self.client.delete("/api/v1/me/liked-media/", payload, format="json")
+
+        item = Item.objects.get(media_id="550", media_type=MediaTypes.MOVIE.value)
+        self.assertEqual(liked.status_code, status.HTTP_200_OK)
+        self.assertTrue(liked.data["liked"])
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertEqual(listed.data["count"], 1)
+        self.assertEqual(listed.data["results"][0]["title"], "Fight Club")
+        self.assertEqual(unliked.status_code, status.HTTP_200_OK)
+        self.assertFalse(unliked.data["liked"])
+        self.assertFalse(MediaLike.objects.filter(user=user, item=item).exists())
+        self.assertFalse(Movie.objects.filter(user=user, item=item).exists())
+        self.assertFalse(DiaryEntry.objects.filter(user=user, item=item).exists())
+
+    def test_liked_media_list_paginates_and_filters_media_type(self):
+        user = get_user_model().objects.create_user(username="liked-pages", password="strong-password-123")
+        movie_items = self._create_movie_items(30, title_prefix="Liked", media_id_prefix="liked")
+        book = Item.objects.create(
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            media_id="book-liked",
+            title="Liked Book",
+        )
+        for item in [*movie_items, book]:
+            MediaLike.objects.create(user=user, item=item)
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/me/liked-media/", {"media_type": MediaTypes.MOVIE.value})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 30)
+        self.assertEqual(len(response.data["results"]), 25)
+        self.assertIsNotNone(response.data["next"])
+
+    @patch("api.services.diary.provider_services.get_media_metadata")
+    def test_diary_liked_syncs_canonical_media_like(self, metadata_mock):
+        user = get_user_model().objects.create_user(username="diary-media-like", password="strong-password-123")
+        self.client.force_authenticate(user)
+        metadata_mock.return_value = {"title": "Diary Like", "image": "https://example.com/diary.jpg"}
+        payload = {
+            "ref": {
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "media_id": "diary-like",
+            },
+            "liked": True,
+        }
+
+        created = self.client.post("/api/v1/diary/", payload, format="json")
+        item = Item.objects.get(media_id="diary-like", media_type=MediaTypes.MOVIE.value)
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(MediaLike.objects.filter(user=user, item=item).exists())
+
+        patched_without_like = self.client.patch(
+            f"/api/v1/diary/{created.data['id']}/",
+            {"review": "still liked"},
+            format="json",
+        )
+        self.assertEqual(patched_without_like.status_code, status.HTTP_200_OK)
+        self.assertTrue(MediaLike.objects.filter(user=user, item=item).exists())
+
+        patched_unliked = self.client.patch(
+            f"/api/v1/diary/{created.data['id']}/",
+            {"liked": False},
+            format="json",
+        )
+        self.assertEqual(patched_unliked.status_code, status.HTTP_200_OK)
+        self.assertFalse(MediaLike.objects.filter(user=user, item=item).exists())
+
+    @patch("app.providers.tmdb.get_title_logo", return_value=None)
+    @patch("app.providers.mdblist.get_media_ratings", return_value={})
+    @patch("api.services.media.provider_services.get_media_metadata")
+    def test_media_detail_includes_canonical_like_state(self, metadata_mock, _ratings_mock, _logo_mock):
+        user = get_user_model().objects.create_user(username="liked-detail", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="detail-liked",
+            title="Detail Like",
+            image="https://example.com/detail.jpg",
+        )
+        MediaLike.objects.create(user=user, item=item)
+        metadata_mock.return_value = {
+            "media_id": "detail-liked",
+            "media_type": MediaTypes.MOVIE.value,
+            "source": Sources.TMDB.value,
+            "title": "Detail Like",
+            "image": "https://example.com/detail.jpg",
+        }
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/media/tmdb/movie/detail-liked/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["user_state"]["has_liked"])
+        self.assertEqual(response.data["community"]["liked_count"], 1)
 
     def _create_movies(self, user, count):
         items = self._create_movie_items(count)

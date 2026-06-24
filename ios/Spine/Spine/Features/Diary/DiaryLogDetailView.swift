@@ -217,7 +217,7 @@ struct DiaryLogDetailView: View {
 
                         if entry.isRewatch {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 23, weight: .bold))
+                                .font(.system(size: 17.25, weight: .bold))
                                 .foregroundStyle(.white.opacity(0.74))
                                 .accessibilityLabel("Rewatch")
                         }
@@ -242,29 +242,6 @@ struct DiaryLogDetailView: View {
 
     private func logSection(_ entry: DiaryEntry) -> some View {
         VStack(alignment: .leading, spacing: 18) {
-            if !entry.tags.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(entry.tags, id: \.self) { tag in
-                            NavigationLink {
-                                TaggedDiaryView(
-                                    tag: tag,
-                                    diaryRepository: diaryRepository,
-                                    mediaRepository: mediaRepository,
-                                    trackingRepository: trackingRepository,
-                                    selectedTab: selectedTab,
-                                    onSelectTab: onSelectTab,
-                                    onUnauthorized: onUnauthorized
-                                )
-                            } label: {
-                                DiaryLogChip(text: tag, systemImage: "tag")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-
             if let title = clean(entry.reviewTitle) {
                 Text(title)
                     .font(.system(size: 21, weight: .heavy))
@@ -273,6 +250,18 @@ struct DiaryLogDetailView: View {
             }
 
             reviewBody(entry)
+
+            if !entry.tags.isEmpty {
+                DiaryLogTagsView(
+                    tags: entry.tags,
+                    diaryRepository: diaryRepository,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
+                    onUnauthorized: onUnauthorized
+                )
+            }
         }
         .padding(.horizontal, 16)
     }
@@ -429,6 +418,99 @@ private struct DiaryLogHeroArtwork: View {
 
     private var usesBackdrop: Bool {
         backdropURL != nil
+    }
+}
+
+private struct DiaryLogTagsView: View {
+    let tags: [String]
+    let diaryRepository: DiaryRepository
+    let mediaRepository: MediaRepository
+    let trackingRepository: TrackingRepository
+    let selectedTab: AppTab
+    let onSelectTab: (AppTab) -> Void
+    let onUnauthorized: () -> Void
+
+    @State private var isExpanded = false
+    @State private var fullHeight: CGFloat = 0
+
+    private let rowHeight: CGFloat = 30
+    private let spacing: CGFloat = 8
+
+    private var collapsedHeight: CGFloat {
+        rowHeight * 3 + spacing * 2
+    }
+
+    private var canExpand: Bool {
+        fullHeight > collapsedHeight + 1
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            tagLinks
+                .frame(maxHeight: isExpanded ? nil : collapsedHeight, alignment: .top)
+                .clipped()
+                .background {
+                    tagChips
+                        .fixedSize(horizontal: false, vertical: true)
+                        .background {
+                            GeometryReader { proxy in
+                                Color.clear.preference(key: DiaryLogTagsFullHeightKey.self, value: proxy.size.height)
+                            }
+                        }
+                        .hidden()
+                }
+
+            if canExpand {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    Label(isExpanded ? "READ LESS" : "READ MORE", systemImage: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(.white.opacity(0.62))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .onPreferenceChange(DiaryLogTagsFullHeightKey.self) { fullHeight = $0 }
+    }
+
+    private var tagLinks: some View {
+        FlowLayout(spacing: spacing) {
+            ForEach(tags, id: \.self) { tag in
+                NavigationLink {
+                    TaggedDiaryView(
+                        tag: tag,
+                        diaryRepository: diaryRepository,
+                        mediaRepository: mediaRepository,
+                        trackingRepository: trackingRepository,
+                        selectedTab: selectedTab,
+                        onSelectTab: onSelectTab,
+                        onUnauthorized: onUnauthorized
+                    )
+                } label: {
+                    DiaryLogChip(text: tag, systemImage: "tag")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var tagChips: some View {
+        FlowLayout(spacing: spacing) {
+            ForEach(tags, id: \.self) { tag in
+                DiaryLogChip(text: tag, systemImage: "tag")
+            }
+        }
+    }
+}
+
+private struct DiaryLogTagsFullHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 

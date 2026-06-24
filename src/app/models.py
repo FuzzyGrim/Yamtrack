@@ -218,6 +218,27 @@ class Item(CalendarTriggerMixin, models.Model):
             events.tasks.reload_calendar(items_to_process=items_to_process)
 
 
+class MediaLike(models.Model):
+    """Canonical user-level like for a media item."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="media_likes")
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "item"],
+                name="app_medialike_unique_user_item",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "-created_at", "-id"]),
+            models.Index(fields=["item", "-created_at"]),
+        ]
+        ordering = ["-created_at", "-id"]
+
+
 class MediaManager(models.Manager):
     """Custom manager for media models."""
 

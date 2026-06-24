@@ -46,6 +46,7 @@ from api.views.media import (
 from api.views.profile import (
     AvatarView,
     HOFItemView,
+    LikedMediaView,
     MeHOFView,
     MeView,
     PasswordChangeView,
@@ -88,6 +89,7 @@ urlpatterns = [
     path("auth/apple/", AppleAuthView.as_view(), name="api-apple"),
     path("me/", MeView.as_view(), name="api-me"),
     path("me/avatar/", AvatarView.as_view(), name="api-me-avatar"),
+    path("me/liked-media/", LikedMediaView.as_view(), name="api-me-liked-media"),
     path("me/password/", PasswordChangeView.as_view(), name="api-me-password"),
     path("me/preferences/", PreferencesView.as_view(), name="api-me-preferences"),
     path("me/hof/", MeHOFView.as_view(), name="api-me-hof"),

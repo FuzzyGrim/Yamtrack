@@ -3,7 +3,7 @@ import logging
 from django.utils import timezone
 from django.db import transaction
 
-from app.models import DiaryEntry, Media, Item
+from app.models import DiaryEntry, Item, Media, MediaLike
 from app.tasks import update_daily_statistics
 
 logger = logging.getLogger(__name__)
@@ -36,6 +36,32 @@ def update_diary_entry_tags(entry, tag_names):
     # Add new tags
     if tag_names:
         _add_tags_to_entry(entry, tag_names)
+
+
+def set_media_like(user, item: Item, liked: bool, *, audit=True, sync_diary=True):
+    """Set the canonical user/title like."""
+    if liked:
+        media_like, created = MediaLike.objects.get_or_create(user=user, item=item)
+        action = "media_like"
+    else:
+        deleted, _ = MediaLike.objects.filter(user=user, item=item).delete()
+        media_like = None
+        created = bool(deleted)
+        action = "media_unlike"
+
+    if sync_diary:
+        DiaryEntry.objects.filter(user=user, item=item).exclude(liked=liked).update(liked=liked)
+
+    if audit and created:
+        from social.models import SocialAuditLog
+
+        SocialAuditLog.objects.create(
+            actor=user,
+            action=action,
+            target_type="item",
+            target_id=item.id,
+        )
+    return media_like
 
 
 def create_diary_entry(
@@ -86,6 +112,8 @@ def create_diary_entry(
                     "formatted_playtime": game_instance.formatted_progress,
                 }
         
+        title_liked = liked or MediaLike.objects.filter(user=user, item=item).exists()
+
         # Create the diary entry
         entry = DiaryEntry.objects.create(
             user=user,
@@ -93,10 +121,13 @@ def create_diary_entry(
             consumed_at=consumed_at,
             rating=rating,
             review=review,
-            liked=liked,
+            liked=title_liked,
             is_rewatch=is_rewatch,
             progress_snapshot=progress_snapshot,
         )
+
+        if liked:
+            set_media_like(user, item, True)
         
         # Add tags to the entry
         if tags:
@@ -176,4 +207,4 @@ def mark_consumed(user, media_instance: Media, when=None):
             date_str=when.isoformat(),
         ))
     
-    logger.info("Marked %s as consumed by %s", media_instance, user) 
+    logger.info("Marked %s as consumed by %s", media_instance, user)

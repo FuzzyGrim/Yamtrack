@@ -546,8 +546,7 @@ def season_episodes(*, source, media_id, season_number, request=None, user=None)
 
 def community_stats(*, source, media_type, media_id, season_number=None):
     """Return current community aggregates for a media identity."""
-    from app.models import DiaryEntry, Item
-    from social.models import ContentLike
+    from app.models import DiaryEntry, Item, MediaLike
 
     item = Item.objects.filter(
         source=source,
@@ -579,9 +578,6 @@ def community_stats(*, source, media_type, media_id, season_number=None):
         "rating_count": len(rating_values),
         "diary_count": entries.count(),
         "review_count": entries.exclude(review="").count(),
-        "liked_count": ContentLike.objects.filter(
-            target_type=ContentLike.DIARY_ENTRY,
-            target_id__in=entries.values("id"),
-        ).count(),
+        "liked_count": MediaLike.objects.filter(item=item).count(),
         "rating_distribution": distribution,
     }

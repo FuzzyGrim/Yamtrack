@@ -13,7 +13,7 @@ from django_celery_results.models import TaskResult
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from app.models import DiaryEntry, Item, MediaTypes, Movie, Sources, Status
+from app.models import DiaryEntry, Item, MediaLike, MediaTypes, Movie, Sources, Status
 from integrations.imports.letterboxd.importer import LetterboxdImporter
 from integrations.imports.letterboxd.parser import parse_export
 from integrations.imports.letterboxd.resolver import LetterboxdResolver
@@ -116,7 +116,8 @@ class ImportLetterboxdTests(TestCase):
         film_two = Movie.objects.get(item__media_id="202")
         self.assertEqual(film_two.status, Status.COMPLETED.value)
         self.assertEqual(film_two.score, 7)
-        self.assertEqual(film_two.liked, True)
+        self.assertFalse(film_two.liked)
+        self.assertTrue(MediaLike.objects.filter(user=self.user, item=film_two.item).exists())
 
         film_three = Movie.objects.get(item__media_id="303")
         self.assertEqual(film_three.status, Status.PLANNING.value)
@@ -141,6 +142,7 @@ class ImportLetterboxdTests(TestCase):
             image="https://example.com/old.jpg",
         )
         Movie.objects.create(user=self.user, item=item, status=Status.PLANNING.value)
+        MediaLike.objects.create(user=self.user, item=item)
         with patch("app.signals.update_daily_statistics.delay"):
             DiaryEntry.objects.create(user=self.user, item=item, consumed_at=timezone.now())
             tv_item = Item.objects.create(
@@ -158,14 +160,16 @@ class ImportLetterboxdTests(TestCase):
         self.assertFalse(CustomList.objects.filter(id=old_letterboxd_list.id).exists())
         self.assertFalse(Movie.objects.filter(item=item).exists())
         self.assertFalse(DiaryEntry.objects.filter(item=item).exists())
+        self.assertFalse(MediaLike.objects.filter(item=item).exists())
         self.assertTrue(DiaryEntry.objects.filter(id=tv_entry.id).exists())
 
     def test_new_mode_skips_duplicate_diary_and_list_items(self):
         self._import()
-        self._import()
+        counts, _ = self._import()
 
         self.assertEqual(DiaryEntry.objects.filter(item__media_id="101").count(), 1)
         self.assertEqual(CustomListItem.objects.count(), 2)
+        self.assertEqual(counts.get("likes", 0), 0)
 
     def test_import_keeps_multiple_diary_logs_for_same_movie(self):
         payload = export_zip(
@@ -203,7 +207,25 @@ class ImportLetterboxdTests(TestCase):
 
         film_three = Movie.objects.get(item__media_id="303")
         self.assertEqual(film_three.status, Status.PLANNING.value)
-        self.assertTrue(film_three.liked)
+        self.assertFalse(film_three.liked)
+        self.assertTrue(MediaLike.objects.filter(user=self.user, item=film_three.item).exists())
+
+    def test_likes_import_does_not_create_tracking_row(self):
+        payload = export_zip(
+            {
+                "likes/films.csv": (
+                    "Date,Name,Year,Letterboxd URI\n"
+                    "2024-01-08,Film Two,2000,https://boxd.it/film-two\n"
+                ),
+            },
+        )
+
+        counts, _ = self._import_bytes(payload)
+
+        item = Item.objects.get(media_id="202")
+        self.assertEqual(counts["likes"], 1)
+        self.assertTrue(MediaLike.objects.filter(user=self.user, item=item).exists())
+        self.assertFalse(Movie.objects.filter(user=self.user, item=item).exists())
 
     def test_rating_uses_name_year_fallback_and_single_existing_diary(self):
         payload = export_zip(
@@ -236,12 +258,15 @@ class ImportLetterboxdTests(TestCase):
 
         tracking = client.get("/api/v1/tracking/?media_type=movie")
         diary = client.get("/api/v1/diary/")
+        liked = client.get("/api/v1/me/liked-media/")
         profile = client.get("/api/v1/me/")
         lists = client.get("/api/v1/lists/")
 
         self.assertEqual(tracking.data["count"], 3)
         self.assertEqual(diary.data["count"], 1)
+        self.assertEqual(liked.data["count"], 1)
         self.assertEqual(profile.data["counts"]["diary_entries"], 1)
+        self.assertEqual(profile.data["counts"]["liked_items"], 1)
         self.assertEqual(profile.data["counts"]["lists"], CustomList.objects.filter(owner=self.user).count())
         self.assertEqual(lists.data["count"], 1)
 

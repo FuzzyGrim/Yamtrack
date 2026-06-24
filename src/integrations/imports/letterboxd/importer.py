@@ -5,9 +5,9 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.text import slugify
 
-from app.models import DiaryEntry, Item, MediaTypes, Movie, Sources, Status
+from app.models import DiaryEntry, Item, MediaLike, MediaTypes, Movie, Sources, Status
 from app.providers import tmdb
-from app.services import create_diary_entry, update_diary_entry_tags
+from app.services import create_diary_entry, set_media_like, update_diary_entry_tags
 from integrations.imports.letterboxd.parser import parse_export
 from integrations.imports.letterboxd.resolver import LetterboxdResolver
 from lists.models import CustomList, CustomListItem
@@ -57,6 +57,10 @@ class LetterboxdImporter:
     def _cleanup(self):
         Movie.objects.filter(user=self.user).delete()
         DiaryEntry.objects.filter(
+            user=self.user,
+            item__media_type=MediaTypes.MOVIE.value,
+        ).delete()
+        MediaLike.objects.filter(
             user=self.user,
             item__media_type=MediaTypes.MOVIE.value,
         ).delete()
@@ -185,14 +189,9 @@ class LetterboxdImporter:
             item = self._item_for(row, resolved)
             if not item:
                 continue
-            movie, _ = Movie.objects.get_or_create(
-                user=self.user,
-                item=item,
-                defaults={"status": Status.PLANNING.value, "progress": 0},
-            )
-            if not movie.liked:
-                movie.liked = True
-                movie.save(update_fields=["liked"])
+            created = not MediaLike.objects.filter(user=self.user, item=item).exists()
+            set_media_like(self.user, item, True, audit=False)
+            if created:
                 self.counts["likes"] += 1
 
     def _film_key(self, row):

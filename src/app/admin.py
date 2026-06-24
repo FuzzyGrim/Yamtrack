@@ -12,6 +12,7 @@ from app.models import (
     DiaryEntryTag,
     Episode,
     Item,
+    MediaLike,
     Tag,
     UserMessage,
 )
@@ -57,6 +58,15 @@ class MediaAdmin(admin.ModelAdmin):
     search_fields = ["item__title", "user__username", "notes"]
     list_display = ["__str__", "status", "score", "user"]
     list_filter = ["status"]
+
+
+@admin.register(MediaLike)
+class MediaLikeAdmin(admin.ModelAdmin):
+    """Admin for canonical media likes."""
+
+    search_fields = ["item__title", "user__username"]
+    list_display = ["user", "item", "created_at"]
+    list_filter = ["item__media_type", "created_at"]
 
 
 class CustomPosterPreferenceAdmin(admin.ModelAdmin):
@@ -129,6 +139,7 @@ SpecialModels = [
     "Tag",
     "DiaryEntryTag",
     "BookSession",
+    "MediaLike",
     "UserMessage",
 ]
 for model in app_models:

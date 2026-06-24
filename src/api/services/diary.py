@@ -6,9 +6,9 @@ from api.serializers.common import (
     media_summary_from_item,
     user_summary,
 )
-from app.models import Tag
+from app.models import MediaLike, Tag
 from app.providers import services as provider_services
-from app.services import create_diary_entry, update_diary_entry_tags
+from app.services import create_diary_entry, set_media_like, update_diary_entry_tags
 from social.models import Activity, ContentLike
 
 
@@ -36,7 +36,7 @@ def diary_payload(entry, request=None, viewer=None):
         "review_title": entry.review_title,
         "review": entry.review,
         "contains_spoilers": entry.contains_spoilers,
-        "liked": entry.liked,
+        "liked": entry.liked or MediaLike.objects.filter(user=entry.user, item=entry.item).exists(),
         "is_rewatch": entry.is_rewatch,
         "tags": [tag.name for tag in entry.tags.all()],
         "visibility": entry.visibility,
@@ -100,6 +100,8 @@ def update_entry(entry, data):
         if field in data:
             setattr(entry, field, data[field])
     entry.save()
+    if "liked" in data:
+        set_media_like(entry.user, entry.item, data["liked"])
     if "tags" in data:
         update_diary_entry_tags(entry, data["tags"])
     return entry

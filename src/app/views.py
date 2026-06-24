@@ -3407,7 +3407,8 @@ def update_diary_entry(request, entry_id):
         entry.save()
         
         # Update tags
-        from app.services import update_diary_entry_tags
+        from app.services import set_media_like, update_diary_entry_tags
+        set_media_like(request.user, entry.item, liked)
         update_diary_entry_tags(entry, tag_names)
         
         logger.info(f"Diary entry updated successfully: {entry}")

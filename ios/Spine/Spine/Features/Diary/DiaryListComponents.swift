@@ -159,7 +159,7 @@ struct DiaryEntryRow: View {
 
             if entry.isRewatch {
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 11.25, weight: .bold))
                     .foregroundStyle(.white.opacity(0.7))
                     .accessibilityLabel("Rewatch")
             }

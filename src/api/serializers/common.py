@@ -5,7 +5,7 @@ from django.utils.text import slugify
 from rest_framework import serializers
 
 from app import config
-from app.models import BasicMedia, DiaryEntry, Item, MediaTypes, Sources
+from app.models import BasicMedia, DiaryEntry, Item, MediaLike, MediaTypes, Sources
 from lists.models import CustomList
 
 
@@ -473,6 +473,7 @@ def user_state_for_item(user, item):
         "diary_count": diary_entries.count(),
         "diary_rating": decimal_string(latest_diary.rating) if latest_diary else None,
         "diary_consumed_at": latest_diary.consumed_at if latest_diary else None,
+        "has_liked": MediaLike.objects.filter(user=user, item=item).exists(),
     }
     if media is None:
         return {"is_tracked": False, "status": None, "rating": None, "in_lists": list_ids, **diary_state}

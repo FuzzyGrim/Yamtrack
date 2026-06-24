@@ -6,7 +6,7 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from api.serializers.common import image_url, media_summary_from_item
-from app.models import BasicMedia, DiaryEntry, MediaTypes, Status, Tag
+from app.models import BasicMedia, DiaryEntry, MediaLike, MediaTypes, Status, Tag
 from social.models import Follow, FollowStatus
 from users.forms import PasswordChangeForm
 from users.models import (
@@ -71,7 +71,7 @@ def profile_payload(user, request=None, viewer=None):
             "library_items": _media_count(user, exclude_status=Status.PLANNING.value),
             "reviews": DiaryEntry.objects.filter(user=user).filter(_review_q()).count(),
             "planned_items": _media_count(user, status=Status.PLANNING.value),
-            "liked_items": DiaryEntry.objects.filter(user=user, liked=True).values("item_id").distinct().count(),
+            "liked_items": MediaLike.objects.filter(user=user).count(),
             "tags": Tag.objects.filter(diary_entries__user=user).distinct().count(),
         },
         "hof": hof_payload(user, request=request),

@@ -777,7 +777,6 @@ private struct ProfileListDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar)
         .task {
             if viewModel.list == nil {
                 await viewModel.load()

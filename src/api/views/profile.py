@@ -7,12 +7,14 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.pagination import StandardResultsSetPagination
 from api.permissions import can_view_user_profile
 from api.serializers.common import (
     MediaRefSerializer,
     find_item,
     get_or_create_item_from_metadata,
     image_url,
+    media_summary_from_item,
 )
 from api.serializers.profile import (
     PasswordChangeSerializer,
@@ -22,8 +24,9 @@ from api.serializers.profile import (
     preferences_payload,
     profile_payload,
 )
-from app.models import MediaTypes
+from app.models import MediaLike, MediaTypes
 from app.providers import services as provider_services
+from app.services import set_media_like
 from social.models import SocialAuditLog
 
 logger = logging.getLogger(__name__)
@@ -70,6 +73,51 @@ class MeView(APIView):
                 metadata={"from": old_private, "to": request.user.profile_private},
             )
         return Response(profile_payload(request.user, request=request, viewer=request.user))
+
+
+class LikedMediaView(APIView):
+    """Current user's canonical liked media."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        likes = MediaLike.objects.filter(user=request.user).select_related("item").order_by("-created_at", "-id")
+        media_type = request.query_params.get("media_type")
+        if media_type:
+            likes = likes.filter(item__media_type=media_type)
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(likes, request, view=self)
+        return paginator.get_paginated_response(
+            [media_summary_from_item(like.item, request=request, user=request.user) for like in page],
+        )
+
+    def post(self, request):
+        serializer = HOFItemWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        item = self._item_for_ref(serializer.validated_data["ref"], create=True)
+        set_media_like(request.user, item, liked=True)
+        return Response({"liked": True, "media": media_summary_from_item(item, request=request, user=request.user)})
+
+    def delete(self, request):
+        serializer = HOFItemWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        item = self._item_for_ref(serializer.validated_data["ref"], create=False)
+        if item is not None:
+            set_media_like(request.user, item, liked=False)
+        return Response({"liked": False})
+
+    def _item_for_ref(self, ref, *, create):
+        item = find_item(ref)
+        if item is not None or not create:
+            return item
+        metadata = provider_services.get_media_metadata(
+            ref["media_type"],
+            ref["media_id"],
+            ref["source"],
+            [ref.get("season_number")] if ref.get("season_number") is not None else None,
+            ref.get("episode_number"),
+        )
+        return get_or_create_item_from_metadata(ref, metadata)
 
 
 class AvatarView(APIView):
