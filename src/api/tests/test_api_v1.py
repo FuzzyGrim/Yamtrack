@@ -20,7 +20,7 @@ from app.models import (
     Status,
 )
 from app.services import update_diary_entry_tags
-from lists.models import CustomList
+from lists.models import CustomList, CustomListItem
 
 
 class ApiV1FoundationTests(TestCase):
@@ -124,6 +124,29 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(counts["liked_items"], 1)
         self.assertEqual(counts["tags"], 1)
         self.assertEqual(counts["lists"], 1)
+
+    def test_lists_include_ordered_capped_preview_items(self):
+        user = get_user_model().objects.create_user(username="list-previews", password="strong-password-123")
+        custom_list = CustomList.objects.create(owner=user, name="Weekend Watchlist")
+        items = self._create_movie_items(13, title_prefix="Preview", media_id_prefix="preview")
+        for index, item in enumerate(items):
+            CustomListItem.objects.create(
+                custom_list=custom_list,
+                item=item,
+                position=13 - index,
+            )
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/lists/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        result = response.data["results"][0]
+        self.assertNotIn("items", result)
+        self.assertEqual(result["items_count"], 13)
+        self.assertEqual(len(result["preview_items"]), 12)
+        self.assertEqual(result["preview_items"][0]["title"], "Preview 12")
+        self.assertEqual(result["preview_items"][-1]["title"], "Preview 01")
+        self.assertEqual(result["preview_items"][0]["poster_url"], result["preview_items"][0]["image_url"])
 
     def test_tracking_list_paginates_before_serializing_movies(self):
         user = get_user_model().objects.create_user(username="tracking-pages", password="strong-password-123")

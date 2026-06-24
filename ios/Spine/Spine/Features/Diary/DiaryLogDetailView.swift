@@ -199,14 +199,29 @@ struct DiaryLogDetailView: View {
                         Text("Logged \(logged)")
                             .font(.system(size: 13, weight: .heavy))
                             .foregroundStyle(.white.opacity(0.72))
+
+                        if let age = DiaryLogFormat.ageLabel(entry.consumedAt) {
+                            Text(age)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.58))
+                        }
                     }
 
                     let parts = titleParts(entry.media.title)
-                    Text(parts.title)
-                        .font(.system(size: 31, weight: .black))
-                        .foregroundStyle(.white)
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.72)
+                    HStack(alignment: .firstTextBaseline, spacing: 7) {
+                        Text(parts.title)
+                            .font(.system(size: 31, weight: .black))
+                            .foregroundStyle(.white)
+                            .lineLimit(4)
+                            .minimumScaleFactor(0.72)
+
+                        if entry.isRewatch {
+                            Image(systemName: "arrow.clockwise.circle")
+                                .font(.system(size: 23, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.74))
+                                .accessibilityLabel("Rewatch")
+                        }
+                    }
 
                     if let metadata = heroMetadata(entry) {
                         Text(metadata)
@@ -473,6 +488,22 @@ enum DiaryLogFormat {
         return displayDateFormatter.string(from: date)
     }
 
+    static func ageLabel(_ rawValue: String?, now: Date = Date(), calendar: Calendar = .current) -> String? {
+        guard let date = date(from: rawValue) else { return nil }
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.startOfDay(for: now)
+        guard start < end else { return nil }
+
+        let components = calendar.dateComponents([.year, .month, .day], from: start, to: end)
+        let parts = [
+            componentLabel(components.year ?? 0, "year"),
+            componentLabel(components.month ?? 0, "month"),
+            componentLabel(components.day ?? 0, "day"),
+        ].compactMap { $0 }
+
+        return "\(joinedWithAnd(parts)) ago"
+    }
+
     static func year(_ rawValue: String?) -> String? {
         guard let rawValue else { return nil }
         let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -495,5 +526,15 @@ enum DiaryLogFormat {
         return dateOnlyFormatter.date(from: dateOnly)
             ?? isoFormatter.date(from: trimmed)
             ?? fallbackISOFormatter.date(from: trimmed)
+    }
+
+    private static func componentLabel(_ value: Int, _ unit: String) -> String? {
+        guard value > 0 else { return nil }
+        return "\(value) \(unit)\(value == 1 ? "" : "s")"
+    }
+
+    private static func joinedWithAnd(_ parts: [String]) -> String {
+        guard parts.count > 2 else { return parts.joined(separator: " and ") }
+        return "\(parts.dropLast().joined(separator: ", ")) and \(parts[parts.count - 1])"
     }
 }

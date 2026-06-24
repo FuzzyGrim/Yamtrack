@@ -118,7 +118,7 @@ struct TaggedDiaryView: View {
                 await viewModel.load()
             }
         }
-        .navigationTitle("#\(tag)")
+        .navigationTitle(tag)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -150,7 +150,7 @@ struct TaggedDiaryView: View {
             )
         } else if viewModel.entries.isEmpty {
             DiaryStateCard(
-                title: "No logs for #\(tag)",
+                title: "No logs for \(tag)",
                 systemImage: "tag",
                 message: "Diary logs with this tag will appear here."
             )

@@ -722,6 +722,66 @@ final class SpineTests: XCTestCase {
         XCTAssertNil(summary.backdropUrl)
     }
 
+    func testCustomListSummaryPreviewItemsDecoding() throws {
+        let data = """
+        {
+          "count": 1,
+          "next": null,
+          "previous": null,
+          "results": [
+            {
+              "id": 7,
+              "name": "Weekend Watchlist",
+              "slug": "weekend-watchlist",
+              "description": "",
+              "visibility": "public",
+              "owner": {
+                "id": 1,
+                "username": "mika",
+                "display_name": "Mika",
+                "avatar_url": null
+              },
+              "image_url": null,
+              "preview_items": [
+                {
+                  "ref": {
+                    "item_id": 42,
+                    "source": "tmdb",
+                    "media_type": "movie",
+                    "media_id": "550",
+                    "season_number": null,
+                    "episode_number": null
+                  },
+                  "title": "Fight Club",
+                  "subtitle": "1999",
+                  "overview": null,
+                  "image_url": "https://example.com/fight-club.jpg",
+                  "poster_url": "https://example.com/fight-club-poster.jpg",
+                  "poster_orientation": "portrait",
+                  "release_date": "1999-10-15",
+                  "default_source": "tmdb",
+                  "user_state": null
+                }
+              ],
+              "items_count": 3,
+              "updated_at": "2026-06-24T12:00:00Z",
+              "like_count": 5
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder.api.decode(PagedResponse<CustomListSummary>.self, from: data)
+        let list = try XCTUnwrap(response.results.first)
+        let preview = try XCTUnwrap(list.previewItems?.first)
+
+        XCTAssertEqual(list.name, "Weekend Watchlist")
+        XCTAssertEqual(list.itemsCount, 3)
+        XCTAssertEqual(preview.title, "Fight Club")
+        XCTAssertEqual(preview.displayPosterURL, "https://example.com/fight-club-poster.jpg")
+        XCTAssertEqual(preview.posterOrientation, .portrait)
+    }
+
     func testMediaDetailDisplayPosterFallbackChain() throws {
         let legacy = """
         {
@@ -1174,6 +1234,36 @@ final class SpineTests: XCTestCase {
         client.tokenProvider.clear()
     }
 
+    func testDiaryRepositorySendsItemFilter() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        let repository = APIDiaryRepository(client: client)
+
+        RequestCaptureURLProtocol.handler = { request in
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            let query = components?.queryItems ?? []
+            XCTAssertEqual(components?.path, "/api/v1/diary/")
+            XCTAssertEqual(query.first { $0.name == "item_id" }?.value, "42")
+
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                #"{"count":0,"next":null,"previous":null,"results":[]}"#.data(using: .utf8)!
+            )
+        }
+
+        let entries = try await repository.list(filter: DiaryFilter(itemId: 42))
+
+        XCTAssertTrue(entries.isEmpty)
+        client.tokenProvider.clear()
+    }
+
     func testDiaryRepositorySendsMineTagQuery() async throws {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [RequestCaptureURLProtocol.self]
@@ -1202,6 +1292,37 @@ final class SpineTests: XCTestCase {
 
         XCTAssertEqual(tags.first?.name, "comfort")
         XCTAssertEqual(tags.first?.usageCount, 2)
+        client.tokenProvider.clear()
+    }
+
+    func testDiaryRepositorySendsAllTagsQuery() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        let repository = APIDiaryRepository(client: client)
+
+        RequestCaptureURLProtocol.handler = { request in
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            let query = components?.queryItems ?? []
+            XCTAssertEqual(components?.path, "/api/v1/diary/tags/")
+            XCTAssertEqual(query.first { $0.name == "mine" }?.value, "true")
+            XCTAssertEqual(query.first { $0.name == "all" }?.value, "true")
+
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                #"{"results":[{"name":"comfort","usage_count":2},{"name":"rewatch","usage_count":1}]}"#.data(using: .utf8)!
+            )
+        }
+
+        let tags = try await repository.allTags(mine: true)
+
+        XCTAssertEqual(tags.map(\.name), ["comfort", "rewatch"])
         client.tokenProvider.clear()
     }
 
@@ -1244,6 +1365,21 @@ final class SpineTests: XCTestCase {
     func testDiaryLogDateLabelKeepsImportedCalendarDate() {
         XCTAssertEqual(DiaryLogFormat.dateLabel("2026-06-06T00:00:00Z"), "Jun 6, 2026")
         XCTAssertEqual(DiaryLogFormat.dateLabel("2026-06-06"), "Jun 6, 2026")
+    }
+
+    func testDiaryLogAgeLabelUsesCalendarComponents() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2024, month: 5, day: 10, hour: 12)))
+        let oneYearAndOneDayLater = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 6, day: 24, hour: 12)))
+
+        XCTAssertNil(DiaryLogFormat.ageLabel("2024-05-10", now: now, calendar: calendar))
+        XCTAssertNil(DiaryLogFormat.ageLabel("2024-05-11", now: now, calendar: calendar))
+        XCTAssertEqual(DiaryLogFormat.ageLabel("2024-05-09", now: now, calendar: calendar), "1 day ago")
+        XCTAssertEqual(DiaryLogFormat.ageLabel("2025-06-23", now: oneYearAndOneDayLater, calendar: calendar), "1 year and 1 day ago")
+        XCTAssertEqual(DiaryLogFormat.ageLabel("2023-03-06", now: now, calendar: calendar), "1 year, 2 months and 4 days ago")
+        XCTAssertEqual(DiaryLogFormat.ageLabel("2024-03-06", now: now, calendar: calendar), "2 months and 4 days ago")
+        XCTAssertEqual(DiaryLogFormat.ageLabel("2023-03-06T00:00:00Z", now: now, calendar: calendar), "1 year, 2 months and 4 days ago")
     }
 
     func testRichMediaDetailAndReviewDecoding() throws {
@@ -2029,20 +2165,23 @@ final class SpineTests: XCTestCase {
         let detail = TestFixtures.logDetail(mediaType: "book")
         ProgressDisplayPreferences.setMode(.percentage, for: detail.ref)
         defer { ProgressDisplayPreferences.removeMode(for: detail.ref) }
-        let tracking = trackingProgress(kind: "pages", value: 21, max: 300, unit: "page")
+        let tracking = trackingProgress(kind: "percentage", value: 25, max: 100, unit: "%")
         let viewModel = ProgressUpdateViewModel(
             detail: detail,
             progress: tracking.progress
         )
 
-        XCTAssertEqual(viewModel.input, "7")
-        XCTAssertEqual(viewModel.currentValue, 7)
+        XCTAssertEqual(viewModel.input, "25")
+        XCTAssertEqual(viewModel.currentValue, 25)
+        XCTAssertEqual(viewModel.keyboardInputText, "")
 
-        viewModel.updateInput("7")
-        XCTAssertEqual(viewModel.input, "7")
-
-        viewModel.updateInput("79")
-        XCTAssertEqual(viewModel.input, "9")
+        let fieldText = viewModel.applyKeyboardInput(
+            currentText: viewModel.keyboardInputText,
+            range: NSRange(location: 0, length: 0),
+            replacement: "6"
+        )
+        XCTAssertEqual(fieldText, "6")
+        XCTAssertEqual(viewModel.input, "6")
         XCTAssertTrue(viewModel.canSave)
     }
 

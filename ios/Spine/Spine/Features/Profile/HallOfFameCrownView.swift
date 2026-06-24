@@ -26,16 +26,16 @@ struct HallOfFameCrownView: View {
 
                 Group {
                     if let item = slot.item {
-                        Button {
+                        HallOfFameCrownFilledCard(item: item, cardSize: cardSize, borderOpacity: borderOpacity)
+                        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .onTapGesture {
                             onTap(slot)
-                        } label: {
-                            HallOfFameCrownFilledCard(item: item, cardSize: cardSize, borderOpacity: borderOpacity)
                         }
-                        .buttonStyle(.plain)
                         .onLongPressGesture {
                             onFilledLongPress(slot)
                         }
                         .accessibilityLabel("Hall of Fame, \(item.title)")
+                        .accessibilityAddTraits(.isButton)
                     } else {
                         Button {
                             onEmptyTap(slot)

@@ -251,6 +251,9 @@ private final class ProfileTagsViewModel {
     var tags: [DiaryTagSuggestion] = []
     var isLoading = false
     var errorMessage: String?
+    var totalTagUses: Int {
+        tags.reduce(0) { $0 + $1.usageCount }
+    }
 
     private let diaryRepository: DiaryRepository
     private let onUnauthorized: () -> Void
@@ -266,7 +269,12 @@ private final class ProfileTagsViewModel {
         defer { isLoading = false }
 
         do {
-            tags = try await diaryRepository.tags(query: "", mine: true)
+            tags = try await diaryRepository.allTags(mine: true).sorted { lhs, rhs in
+                if lhs.usageCount != rhs.usageCount {
+                    return lhs.usageCount > rhs.usageCount
+                }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
         } catch {
             errorMessage = error.localizedDescription
             if case APIError.unauthorized = error {
@@ -274,10 +282,17 @@ private final class ProfileTagsViewModel {
             }
         }
     }
+
+    func filteredTags(matching query: String) -> [DiaryTagSuggestion] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return tags }
+        return tags.filter { $0.name.localizedCaseInsensitiveContains(trimmed) }
+    }
 }
 
 struct ProfileTagsView: View {
     @State private var viewModel: ProfileTagsViewModel
+    @State private var searchText = ""
 
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
@@ -308,7 +323,7 @@ struct ProfileTagsView: View {
             SpinePageBackground()
 
             ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 0) {
+                LazyVStack(alignment: .leading, spacing: 14) {
                     if viewModel.isLoading {
                         ProgressView()
                             .tint(.white)
@@ -318,25 +333,9 @@ struct ProfileTagsView: View {
                     } else if viewModel.tags.isEmpty {
                         DiaryStateCard(title: "No tags yet", systemImage: "tag", message: "Tags you add while logging will appear here.")
                     } else {
-                        ForEach(Array(viewModel.tags.enumerated()), id: \.element.name) { index, tag in
-                            NavigationLink {
-                                TaggedDiaryView(
-                                    tag: tag.name,
-                                    diaryRepository: diaryRepository,
-                                    mediaRepository: mediaRepository,
-                                    trackingRepository: trackingRepository,
-                                    selectedTab: selectedTab,
-                                    onSelectTab: onSelectTab,
-                                    onUnauthorized: onUnauthorized
-                                )
-                            } label: {
-                                ProfileMenuRow(title: "#\(tag.name)", count: tag.usageCount, showsDivider: index != viewModel.tags.count - 1)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        tagsContent
                     }
                 }
-                .background(.white.opacity(viewModel.tags.isEmpty ? 0 : 0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .padding(.horizontal, 14)
                 .padding(.top, 12)
                 .padding(.bottom, 28)
@@ -355,6 +354,125 @@ struct ProfileTagsView: View {
                 await viewModel.load()
             }
         }
+    }
+
+    @ViewBuilder
+    private var tagsContent: some View {
+        ProfileTagsHeader(tagCount: viewModel.tags.count, totalUses: viewModel.totalTagUses)
+        ProfileTagSearchField(text: $searchText)
+
+        let filteredTags = viewModel.filteredTags(matching: searchText)
+        if filteredTags.isEmpty {
+            DiaryStateCard(
+                title: "No matching tags",
+                systemImage: "magnifyingglass",
+                message: "Try another tag name."
+            )
+        } else {
+            FlowLayout(spacing: 9) {
+                ForEach(filteredTags, id: \.name) { tag in
+                    NavigationLink {
+                        TaggedDiaryView(
+                            tag: tag.name,
+                            diaryRepository: diaryRepository,
+                            mediaRepository: mediaRepository,
+                            trackingRepository: trackingRepository,
+                            selectedTab: selectedTab,
+                            onSelectTab: onSelectTab,
+                            onUnauthorized: onUnauthorized
+                        )
+                    } label: {
+                        ProfileTagPill(tag: tag)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+private struct ProfileTagsHeader: View {
+    let tagCount: Int
+    let totalUses: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("\(tagCount) \(tagCount == 1 ? "tag" : "tags")")
+                .font(.system(size: 28, weight: .black))
+                .foregroundStyle(.white)
+
+            Text("\(totalUses) total \(totalUses == 1 ? "log" : "logs") tagged")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.58))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, 2)
+    }
+}
+
+private struct ProfileTagSearchField: View {
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.white.opacity(0.54))
+
+            TextField("Search tags", text: $text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .foregroundStyle(.white)
+                .submitLabel(.search)
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.48))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear tag search")
+            }
+        }
+        .font(.system(size: 15, weight: .semibold))
+        .padding(.horizontal, 13)
+        .frame(height: 44)
+        .background(.white.opacity(0.08), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.white.opacity(0.08))
+        }
+    }
+}
+
+private struct ProfileTagPill: View {
+    let tag: DiaryTagSuggestion
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(tag.name)
+                .lineLimit(1)
+
+            Text("\(tag.usageCount)")
+                .font(.system(size: 12, weight: .heavy))
+                .foregroundStyle(.white.opacity(0.72))
+                .padding(.horizontal, 7)
+                .frame(height: 22)
+                .background(.white.opacity(0.12), in: Capsule())
+        }
+        .font(.system(size: 16, weight: .bold))
+        .foregroundStyle(.white.opacity(0.88))
+        .padding(.leading, 14)
+        .padding(.trailing, 8)
+        .frame(height: 38)
+        .background(.white.opacity(0.11), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.white.opacity(0.08))
+        }
+        .accessibilityLabel("\(tag.name), \(tag.usageCount) \(tag.usageCount == 1 ? "log" : "logs")")
     }
 }
 
@@ -465,7 +583,6 @@ struct ProfileListsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar)
         .task {
             if viewModel.lists.isEmpty {
                 await viewModel.load()
@@ -478,41 +595,63 @@ private struct ProfileListRow: View {
     let list: CustomListSummary
 
     var body: some View {
-        HStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.white.opacity(0.065))
-                .frame(width: 34, height: 34)
-                .overlay {
-                    Image(systemName: "list.bullet.rectangle")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.42))
-                }
-
-            VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
                 Text(list.name)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.86))
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
                     .lineLimit(2)
 
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.24))
+                    .padding(.top, 4)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
                 Text("\(list.itemsCount.formatted()) items")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.white.opacity(0.46))
+
+                posterStrip
             }
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white.opacity(0.24))
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
+        .padding(12)
         .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(.white.opacity(0.045), lineWidth: 1)
         }
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var posterStrip: some View {
+        let items = list.previewItems ?? []
+        if items.isEmpty {
+            Text("No items yet")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.38))
+                .frame(maxWidth: .infinity, minHeight: PosterSlot.profileRow.size.height, alignment: .leading)
+                .padding(.horizontal, 10)
+                .background(.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 8) {
+                    ForEach(items) { item in
+                        MediaArtwork(
+                            url: item.displayPosterURL,
+                            title: item.title,
+                            slot: .profileRow,
+                            mediaType: item.ref.mediaType,
+                            orientation: item.posterOrientation
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

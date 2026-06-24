@@ -127,7 +127,7 @@ struct DiaryEntryRow: View {
 
     private var titleLine: some View {
         let parts = titleParts
-        return HStack(alignment: .firstTextBaseline, spacing: 0) {
+        return HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(parts.title)
                 .font(.system(size: 15, weight: .heavy))
                 .foregroundStyle(.white)
@@ -138,6 +138,13 @@ struct DiaryEntryRow: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.48))
                     .lineLimit(1)
+            }
+
+            if entry.isRewatch {
+                Image(systemName: "arrow.clockwise.circle")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .accessibilityLabel("Rewatch")
             }
         }
     }
@@ -172,10 +179,6 @@ struct DiaryEntryRow: View {
 
         if entry.tags.count > 3 {
             chips.append(DiaryMetadataChip(text: "+\(entry.tags.count - 3)", systemImage: nil))
-        }
-
-        if entry.isRewatch {
-            chips.append(DiaryMetadataChip(text: "Rewatch", systemImage: "arrow.clockwise"))
         }
 
         if entry.containsSpoilers {

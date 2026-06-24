@@ -215,19 +215,24 @@ enum MediaDetailQuickAction {
 private enum MediaDetailSheet: Identifiable {
     case posterMenu
     case bookGameActions
-    case progressUpdate
 
     var id: String {
         switch self {
         case .posterMenu: "posterMenu"
         case .bookGameActions: "bookGameActions"
-        case .progressUpdate: "progressUpdate"
         }
     }
 }
 
 private struct PresentedDiaryEntry: Identifiable {
     let id: Int
+}
+
+private struct PresentedMediaDiary: Identifiable {
+    let detail: MediaDetail
+
+    var id: String { detail.ref.id }
+    var title: String { "\(detail.title) Logs" }
 }
 
 enum MediaArtworkCustomization {
@@ -257,6 +262,7 @@ struct MediaDetailView: View {
     @State private var presentedSheet: MediaDetailSheet?
     @State private var presentedRef: MediaRef?
     @State private var presentedDiaryEntry: PresentedDiaryEntry?
+    @State private var presentedMediaDiary: PresentedMediaDiary?
     @State private var isPosterPickerPresented = false
     @State private var isBackdropPickerPresented = false
     @State private var isLogPresented = false
@@ -328,10 +334,12 @@ struct MediaDetailView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, topSafeAreaInset + 6)
 
-            MediaDetailBottomBar(selectedTab: selectedTab, onSelectTab: navigateToTab)
-                .padding(.horizontal, 18)
-                .padding(.bottom, 8)
-                .frame(maxHeight: .infinity, alignment: .bottom)
+            if progressUpdateDetail == nil {
+                MediaDetailBottomBar(selectedTab: selectedTab, onSelectTab: navigateToTab)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 8)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+            }
         }
         .toolbar(.hidden, for: .tabBar)
         .navigationBarBackButtonHidden()
@@ -341,6 +349,26 @@ struct MediaDetailView: View {
                 .frame(width: 28)
                 .contentShape(Rectangle())
                 .gesture(edgeSwipeBackGesture)
+        }
+        .overlay {
+            if let detail = progressUpdateDetail {
+                ProgressUpdateSheet(
+                    detail: detail,
+                    progress: currentProgress(detail),
+                    isSaving: viewModel.isSavingProgress,
+                    errorMessage: viewModel.progressErrorMessage,
+                    onSave: { request in
+                        await viewModel.saveProgress(request, for: detail)
+                    },
+                    onDismiss: {
+                        progressUpdateDetail = nil
+                    },
+                    onLogFinished: {
+                        progressUpdateDetail = nil
+                        isLogPresented = true
+                    }
+                )
+            }
         }
         .background {
             GeometryReader { proxy in
@@ -391,27 +419,6 @@ struct MediaDetailView: View {
                     )
                     .presentationDetents([.height(224)])
                     .presentationDragIndicator(.visible)
-                }
-            case .progressUpdate:
-                if let detail = progressUpdateDetail ?? viewModel.detail {
-                    ProgressUpdateSheet(
-                        detail: detail,
-                        progress: currentProgress(detail),
-                        isSaving: viewModel.isSavingProgress,
-                        errorMessage: viewModel.progressErrorMessage,
-                        onSave: { request in
-                            await viewModel.saveProgress(request, for: detail)
-                        },
-                        onLogFinished: {
-                            presentedSheet = nil
-                            progressUpdateDetail = nil
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                isLogPresented = true
-                            }
-                        }
-                    )
-                    .presentationDetents([.height(326)])
-                    .presentationDragIndicator(.hidden)
                 }
             }
         }
@@ -486,6 +493,20 @@ struct MediaDetailView: View {
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
             )
+        }
+        .fullScreenCover(item: $presentedMediaDiary) { diary in
+            if let itemId = diary.detail.ref.itemId {
+                MediaDiaryView(
+                    title: diary.title,
+                    itemId: itemId,
+                    diaryRepository: diaryRepository,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
+                    onUnauthorized: onUnauthorized
+                )
+            }
         }
         .task {
             if viewModel.detail == nil {
@@ -580,8 +601,8 @@ struct MediaDetailView: View {
 
     private func openProgressUpdate(for detail: MediaDetail) {
         viewModel.progressErrorMessage = nil
+        presentedSheet = nil
         progressUpdateDetail = detail
-        presentedSheet = .progressUpdate
     }
 
     private func navigateToTab(_ tab: AppTab) {
@@ -772,7 +793,7 @@ struct MediaDetailView: View {
             userState: detail.userState,
             onOpenDiaryEntry: {
                 Task {
-                    await openTrackingDiaryEntry(for: detail)
+                    await openTrackingDiary(for: detail)
                 }
             },
             onUpdateProgress: {
@@ -781,7 +802,12 @@ struct MediaDetailView: View {
         )
     }
 
-    private func openTrackingDiaryEntry(for detail: MediaDetail) async {
+    private func openTrackingDiary(for detail: MediaDetail) async {
+        if isMultipleLogMedia(detail), detail.ref.itemId != nil {
+            presentedMediaDiary = PresentedMediaDiary(detail: detail)
+            return
+        }
+
         if let entryId = detail.userState?.diaryEntryId {
             presentedDiaryEntry = PresentedDiaryEntry(id: entryId)
             return
@@ -804,6 +830,10 @@ struct MediaDetailView: View {
             && lhs.mediaId == rhs.mediaId
             && lhs.seasonNumber == rhs.seasonNumber
             && lhs.episodeNumber == rhs.episodeNumber
+    }
+
+    private func isMultipleLogMedia(_ detail: MediaDetail) -> Bool {
+        (detail.userState?.diaryCount ?? 0) > 1
     }
 
     private func seasonsSection(_ detail: MediaDetail) -> some View {
@@ -1847,6 +1877,12 @@ private struct TrackingSummarySection: View {
                             Text(status)
                                 .font(.system(size: 14, weight: .heavy))
                                 .foregroundStyle(.white)
+                                .onTapGesture {
+                                    if hasMultipleLogs {
+                                        onOpenDiaryEntry()
+                                    }
+                                }
+                                .accessibilityAddTraits(hasMultipleLogs ? .isButton : [])
                             if showsUpdateProgressButton {
                                 Button(action: onUpdateProgress) {
                                     Text("Update Progress")
@@ -1864,6 +1900,12 @@ private struct TrackingSummarySection: View {
                             Text(line)
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(.white.opacity(0.76))
+                                .onTapGesture {
+                                    if line == logLine {
+                                        onOpenDiaryEntry()
+                                    }
+                                }
+                                .accessibilityAddTraits(line == logLine ? .isButton : [])
                         }
                     }
 
@@ -1878,29 +1920,33 @@ private struct TrackingSummarySection: View {
     private var showsUpdateProgressButton: Bool {
         status == "In progress" && ["book", "game"].contains(detail.ref.mediaType)
     }
+    private var hasMultipleLogs: Bool {
+        (userState?.diaryCount ?? 0) > 1
+    }
+    private var logLine: String? {
+        guard hasMultipleLogs, let diaryCount = userState?.diaryCount else { return nil }
+        return "\(diaryCount) logs"
+    }
 
     private var lines: [String] {
         var values: [String] = []
-        if detail.ref.mediaType != "movie",
-           let progressText = (tracking?.progress ?? userState?.progress)?.detailDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: detail.ref)) {
+        if status == "In progress",
+           detail.ref.mediaType != "movie",
+            let progressText = (tracking?.progress ?? userState?.progress)?.detailDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: detail.ref)) {
             values.append(progressText)
         }
-        let hasMultipleMovieLogs = detail.ref.mediaType == "movie" && (userState?.diaryCount ?? 0) > 1
-        if hasMultipleMovieLogs, let diaryCount = userState?.diaryCount {
-            values.append("\(diaryCount) logs")
+        if let logLine {
+            values.append(logLine)
         }
         if let rating = userState?.diaryRating ?? tracking?.rating ?? userState?.rating {
             values.append("Rated \(rating.starRatingLabel)")
         }
-        if !hasMultipleMovieLogs, let consumedAt = userState?.diaryConsumedAt {
+        if !hasMultipleLogs, let consumedAt = userState?.diaryConsumedAt {
             values.append("Logged \(consumedAt.shortDateLabel)")
         }
         if detail.ref.mediaType != "movie" {
             if let startDate = tracking?.startDate {
                 values.append("Started \(startDate.longDateLabel)")
-            }
-            if let endDate = tracking?.endDate {
-                values.append("Completed \(endDate.longDateLabel)")
             }
         }
         return values

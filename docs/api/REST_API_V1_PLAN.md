@@ -138,6 +138,12 @@ current page of rows.
 
 `GET /api/v1/diary/` supports optional `tag=<tag>` filtering and returns the same paged diary-entry response shape. Native clients use this for tag detail pages, including diary-list and poster-grid views.
 
+`GET /api/v1/lists/` returns paged list summaries. Summary objects may include
+`preview_items`, capped at 12 media items ordered by the list's item order, using
+the standard `MediaSummary` shape. Native clients use this for poster strips on
+list overview rows; `GET /api/v1/lists/{id}/` remains the source for the full
+item list.
+
 ### Stats, Imports, Export
 
 | Method | Path | Auth |

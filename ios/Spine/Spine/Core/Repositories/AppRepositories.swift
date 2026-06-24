@@ -44,6 +44,7 @@ protocol DiaryRepository {
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState
     func tags(query: String, mine: Bool) async throws -> [DiaryTagSuggestion]
     func tags(query: String) async throws -> [DiaryTagSuggestion]
+    func allTags(mine: Bool) async throws -> [DiaryTagSuggestion]
 }
 
 extension DiaryRepository {
@@ -63,10 +64,15 @@ extension DiaryRepository {
     func tags(query: String, mine: Bool) async throws -> [DiaryTagSuggestion] {
         try await tags(query: query)
     }
+
+    func allTags(mine: Bool) async throws -> [DiaryTagSuggestion] {
+        try await tags(query: "", mine: mine)
+    }
 }
 
 struct DiaryFilter: Equatable {
     var tag: String? = nil
+    var itemId: Int? = nil
     var hasReview = false
     var liked = false
 }
@@ -326,6 +332,9 @@ struct APIDiaryRepository: DiaryRepository {
     func list(filter: DiaryFilter) async throws -> [DiaryEntry] {
         let tag = filter.tag?.trimmingCharacters(in: .whitespacesAndNewlines)
         var baseQuery = tag.map { $0.isEmpty ? [] : [URLQueryItem(name: "tag", value: $0)] } ?? []
+        if let itemId = filter.itemId {
+            baseQuery.append(URLQueryItem(name: "item_id", value: String(itemId)))
+        }
         if filter.hasReview {
             baseQuery.append(URLQueryItem(name: "has_review", value: "true"))
         }
@@ -391,6 +400,18 @@ struct APIDiaryRepository: DiaryRepository {
         return response.results
     }
 
+    func allTags(mine: Bool) async throws -> [DiaryTagSuggestion] {
+        var queryItems = [URLQueryItem(name: "all", value: "true")]
+        if mine {
+            queryItems.append(URLQueryItem(name: "mine", value: "true"))
+        }
+        let response: DiaryTagSuggestionsResponse = try await client.get(
+            "/diary/tags/",
+            query: queryItems,
+            authenticated: true
+        )
+        return response.results
+    }
 }
 
 enum APIPageCursor {

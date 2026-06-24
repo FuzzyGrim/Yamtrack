@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ProgressUpdateSaveRequest: Equatable {
     let mode: ProgressUpdateMode
@@ -34,6 +35,10 @@ final class ProgressUpdateViewModel {
 
     var currentValue: Int? {
         Int(input)
+    }
+
+    var keyboardInputText: String {
+        hasEditedInput ? input : ""
     }
 
     var totalTitle: String {
@@ -135,6 +140,20 @@ final class ProgressUpdateViewModel {
         hasEditedInput = true
     }
 
+    @discardableResult
+    func applyKeyboardInput(currentText: String, range: NSRange, replacement: String) -> String {
+        guard let textRange = Range(range, in: currentText) else {
+            return keyboardInputText
+        }
+        let nextText = currentText.replacingCharacters(in: textRange, with: replacement)
+        if !hasEditedInput, replacement.contains(where: \.isNumber) {
+            updateInput(replacement)
+        } else {
+            updateInput(nextText)
+        }
+        return keyboardInputText
+    }
+
     private var actionVerb: String {
         detail.ref.mediaType == "game" ? "played" : "read"
     }
@@ -178,14 +197,14 @@ final class ProgressUpdateViewModel {
 }
 
 struct ProgressUpdateSheet: View {
-    @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ProgressUpdateViewModel
     @State private var isFullProgressAlertPresented = false
-    @FocusState private var isInputFocused: Bool
+    @State private var isInputActive = true
 
     let isSaving: Bool
     let errorMessage: String?
     let onSave: (ProgressUpdateSaveRequest) async -> Bool
+    let onDismiss: () -> Void
     let onLogFinished: () -> Void
 
     init(
@@ -194,14 +213,95 @@ struct ProgressUpdateSheet: View {
         isSaving: Bool,
         errorMessage: String?,
         onSave: @escaping (ProgressUpdateSaveRequest) async -> Bool,
+        onDismiss: @escaping () -> Void,
         onLogFinished: @escaping () -> Void
     ) {
         _viewModel = State(initialValue: ProgressUpdateViewModel(detail: detail, progress: progress))
         self.isSaving = isSaving
         self.errorMessage = errorMessage
         self.onSave = onSave
+        self.onDismiss = onDismiss
         self.onLogFinished = onLogFinished
     }
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.001)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    close()
+                }
+
+            ProgressKeyboardPresenter(
+                viewModel: viewModel,
+                isActive: $isInputActive,
+                accessoryHeight: 264,
+                accessory: panel
+            ) {
+                onDismiss()
+            }
+            .frame(width: 1, height: 1)
+            .allowsHitTesting(false)
+        }
+        .alert("Log as finished?", isPresented: $isFullProgressAlertPresented) {
+            Button("Save Progress Only") {
+                Task {
+                    await save()
+                }
+            }
+            Button("Log Finished") {
+                close()
+                onLogFinished()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This progress is complete. You can save only progress or open the full log screen.")
+        }
+    }
+
+    private var panel: some View {
+        ProgressUpdatePanel(
+            viewModel: viewModel,
+            isSaving: isSaving,
+            errorMessage: errorMessage,
+            onClose: {
+                close()
+            },
+            onSave: saveTapped
+        )
+    }
+
+    private func saveTapped() {
+        guard viewModel.canSave else { return }
+        if viewModel.isFullProgress {
+            isFullProgressAlertPresented = true
+        } else {
+            Task {
+                await save()
+            }
+        }
+    }
+
+    private func save() async {
+        guard let request = viewModel.saveRequest else { return }
+        if await onSave(request) {
+            close()
+        }
+    }
+
+    private func close() {
+        isInputActive = false
+        onDismiss()
+    }
+}
+
+private struct ProgressUpdatePanel: View {
+    let viewModel: ProgressUpdateViewModel
+    let isSaving: Bool
+    let errorMessage: String?
+    let onClose: () -> Void
+    let onSave: () -> Void
 
     var body: some View {
         VStack(spacing: 18) {
@@ -215,34 +315,18 @@ struct ProgressUpdateSheet: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .foregroundStyle(.primary)
-        .presentationBackground(.regularMaterial)
-        .presentationCornerRadius(24)
-        .onAppear {
-            isInputFocused = true
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    isInputFocused = false
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
+        .gesture(
+            DragGesture(minimumDistance: 12)
+                .onEnded { value in
+                    if value.translation.height > 28 {
+                        onClose()
+                    }
                 }
-            }
-        }
-        .alert("Log as finished?", isPresented: $isFullProgressAlertPresented) {
-            Button("Save Progress Only") {
-                Task {
-                    await save()
-                }
-            }
-            Button("Log Finished") {
-                dismiss()
-                onLogFinished()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This progress is complete. You can save only progress or open the full log screen.")
-        }
+        )
     }
 
     private var header: some View {
@@ -267,7 +351,7 @@ struct ProgressUpdateSheet: View {
             Spacer()
 
             Button {
-                dismiss()
+                onClose()
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
@@ -305,7 +389,10 @@ struct ProgressUpdateSheet: View {
                     .font(.system(size: 11, weight: .semibold))
             }
         }
-        .foregroundStyle(.secondary)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .foregroundStyle(.primary)
+        .background(Color.primary.opacity(0.11), in: Capsule())
         .contentShape(Rectangle())
         .accessibilityLabel("Progress mode")
         .accessibilityValue(viewModel.mode.title)
@@ -352,45 +439,20 @@ struct ProgressUpdateSheet: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            ZStack {
-                Text(viewModel.currentValueText)
-                    .font(.title3.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.65)
-                    .frame(maxWidth: .infinity)
-
-                TextField("0", text: Binding(
-                    get: { viewModel.input },
-                    set: { viewModel.updateInput($0) }
-                ))
-                .keyboardType(.numberPad)
-                .focused($isInputFocused)
-                .opacity(0.01)
-                .accessibilityLabel("Current progress")
-                .accessibilityValue(viewModel.currentValueText)
-            }
+            Text(viewModel.currentValueText)
+                .font(.title3.monospacedDigit().weight(.semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+                .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 72)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .onTapGesture {
-            isInputFocused = true
-        }
     }
 
     private var saveButton: some View {
-        Button {
-            guard viewModel.canSave else { return }
-            if viewModel.isFullProgress {
-                isFullProgressAlertPresented = true
-            } else {
-                Task {
-                    await save()
-                }
-            }
-        } label: {
+        Button(action: onSave) {
             HStack {
                 Spacer()
                 if isSaving {
@@ -408,12 +470,124 @@ struct ProgressUpdateSheet: View {
         .buttonStyle(.plain)
         .disabled(!viewModel.canSave || isSaving)
     }
+}
 
-    private func save() async {
-        guard let request = viewModel.saveRequest else { return }
-        if await onSave(request) {
-            dismiss()
+private struct ProgressKeyboardPresenter<Accessory: View>: UIViewRepresentable {
+    let viewModel: ProgressUpdateViewModel
+    @Binding var isActive: Bool
+    let accessoryHeight: CGFloat
+    let accessory: Accessory
+    let onDidEndEditing: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(viewModel: viewModel, accessory: accessory, accessoryHeight: accessoryHeight, onDidEndEditing: onDidEndEditing)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField(frame: .zero)
+        textField.alpha = 0.01
+        textField.keyboardType = .numberPad
+        textField.delegate = context.coordinator
+        textField.inputAccessoryView = context.coordinator.accessoryView
+        DispatchQueue.main.async {
+            if isActive {
+                textField.becomeFirstResponder()
+            }
         }
+        return textField
+    }
+
+    func updateUIView(_ textField: UITextField, context: Context) {
+        context.coordinator.viewModel = viewModel
+        context.coordinator.onDidEndEditing = onDidEndEditing
+        context.coordinator.accessoryHeight = accessoryHeight
+        context.coordinator.hostingController.rootView = accessory
+        context.coordinator.accessoryView.invalidateIntrinsicContentSize()
+        if textField.text != viewModel.keyboardInputText {
+            textField.text = viewModel.keyboardInputText
+        }
+        if isActive, !textField.isFirstResponder {
+            DispatchQueue.main.async {
+                textField.becomeFirstResponder()
+            }
+        } else if !isActive, textField.isFirstResponder {
+            textField.resignFirstResponder()
+        }
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var viewModel: ProgressUpdateViewModel
+        var onDidEndEditing: () -> Void
+        var accessoryHeight: CGFloat {
+            didSet {
+                accessoryView.height = accessoryHeight
+            }
+        }
+        let accessoryView: AccessoryContainerView
+        let hostingController: UIHostingController<Accessory>
+
+        init(
+            viewModel: ProgressUpdateViewModel,
+            accessory: Accessory,
+            accessoryHeight: CGFloat,
+            onDidEndEditing: @escaping () -> Void
+        ) {
+            self.viewModel = viewModel
+            self.onDidEndEditing = onDidEndEditing
+            self.accessoryHeight = accessoryHeight
+            self.accessoryView = AccessoryContainerView(height: accessoryHeight)
+            self.hostingController = UIHostingController(rootView: accessory)
+            super.init()
+
+            hostingController.view.backgroundColor = .secondarySystemBackground
+            hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+            accessoryView.addSubview(hostingController.view)
+            NSLayoutConstraint.activate([
+                hostingController.view.leadingAnchor.constraint(equalTo: accessoryView.leadingAnchor),
+                hostingController.view.trailingAnchor.constraint(equalTo: accessoryView.trailingAnchor),
+                hostingController.view.topAnchor.constraint(equalTo: accessoryView.topAnchor),
+                hostingController.view.bottomAnchor.constraint(equalTo: accessoryView.bottomAnchor)
+            ])
+        }
+
+        func textField(
+            _ textField: UITextField,
+            shouldChangeCharactersIn range: NSRange,
+            replacementString string: String
+        ) -> Bool {
+            textField.text = viewModel.applyKeyboardInput(
+                currentText: textField.text ?? "",
+                range: range,
+                replacement: string
+            )
+            return false
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            onDidEndEditing()
+        }
+    }
+}
+
+private final class AccessoryContainerView: UIView {
+    var height: CGFloat {
+        didSet {
+            invalidateIntrinsicContentSize()
+        }
+    }
+
+    init(height: CGFloat) {
+        self.height = height
+        super.init(frame: CGRect(x: 0, y: 0, width: 0, height: height))
+        backgroundColor = .secondarySystemBackground
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: height)
     }
 }
 

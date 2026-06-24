@@ -23,8 +23,10 @@ from app.providers import services as provider_services
 from lists.models import CustomList, CustomListItem
 from social.models import Activity, ContentLike
 
+LIST_PREVIEW_ITEM_LIMIT = 12
 
-def list_payload(custom_list, request=None, *, include_items=False):
+
+def list_payload(custom_list, request=None, *, include_items=False, include_preview_items=False):
     """Serialize a custom list."""
     data = {
         "id": custom_list.id,
@@ -44,9 +46,12 @@ def list_payload(custom_list, request=None, *, include_items=False):
             target_id=custom_list.id,
         ).count(),
     }
-    if include_items:
+    if include_preview_items or include_items:
         items = []
-        for list_item in custom_list.customlistitem_set.select_related("item").all():
+        list_items = custom_list.customlistitem_set.select_related("item").all()
+        if include_preview_items and not include_items:
+            list_items = list_items[:LIST_PREVIEW_ITEM_LIMIT]
+        for list_item in list_items:
             item = media_summary_from_item(
                 list_item.item,
                 request=request,
@@ -54,7 +59,10 @@ def list_payload(custom_list, request=None, *, include_items=False):
             )
             item["position"] = list_item.position
             items.append(item)
-        data["items"] = items
+        if include_preview_items:
+            data["preview_items"] = items
+        if include_items:
+            data["items"] = items
     return data
 
 
@@ -73,7 +81,10 @@ class ListsView(APIView):
                 "count": lists.count(),
                 "next": None,
                 "previous": None,
-                "results": [list_payload(custom_list, request=request) for custom_list in lists[:100]],
+                "results": [
+                    list_payload(custom_list, request=request, include_preview_items=True)
+                    for custom_list in lists[:100]
+                ],
             },
         )
 

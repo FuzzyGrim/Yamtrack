@@ -8,6 +8,7 @@ struct CustomListSummary: Codable, Identifiable, Hashable {
     let visibility: String
     let owner: UserSummary
     let imageUrl: String?
+    let previewItems: [MediaSummary]?
     let itemsCount: Int
     let updatedAt: String?
     let likeCount: Int

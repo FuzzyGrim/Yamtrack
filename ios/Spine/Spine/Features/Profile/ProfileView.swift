@@ -426,7 +426,6 @@ struct ProfileView: View {
     @State private var selectedRef: MediaRef?
     @State private var isSettingsPresented = false
     @State private var hofPickerSlot: FavoriteSlot?
-    @State private var hofActionSlot: FavoriteSlot?
 
     private let profileRepository: ProfileRepository
     private let mediaRepository: MediaRepository
@@ -534,27 +533,6 @@ struct ProfileView: View {
                     onUnauthorized: onUnauthorized
                 )
             }
-            .confirmationDialog(
-                hofActionSlot?.title ?? "Hall of Fame",
-                isPresented: hofActionBinding,
-                titleVisibility: .visible
-            ) {
-                if let slot = hofActionSlot {
-                    if let item = slot.item {
-                        Button("View \(item.title)") {
-                            selectedRef = item.ref
-                        }
-                    }
-                    Button("Change Favorite") {
-                        hofPickerSlot = slot
-                    }
-                    if slot.item != nil {
-                        Button("Remove Favorite", role: .destructive) {
-                            Swift.Task<Void, Never> { await viewModel.clearHallOfFameItem(mediaType: slot.id) }
-                        }
-                    }
-                }
-            }
             .alert("Hall of Fame Update Failed", isPresented: hofErrorBinding) {
                 Button("OK") {
                     viewModel.hofErrorMessage = nil
@@ -617,13 +595,6 @@ struct ProfileView: View {
         )
     }
 
-    private var hofActionBinding: Binding<Bool> {
-        Binding(
-            get: { hofActionSlot != nil },
-            set: { if !$0 { hofActionSlot = nil } }
-        )
-    }
-
     private var settingsButton: some View {
         Button {
             isSettingsPresented = true
@@ -648,11 +619,13 @@ struct ProfileView: View {
                         slots: allSlots,
                         savingSlotIDs: viewModel.savingHallOfFameSlots
                     ) { slot in
-                        hofPickerSlot = slot
+                        if let item = slot.item {
+                            selectedRef = item.ref
+                        }
                     } onEmptyTap: { slot in
                         hofPickerSlot = slot
                     } onFilledLongPress: { slot in
-                        hofActionSlot = slot
+                        hofPickerSlot = slot
                     }
 
                     avatar(profile)
