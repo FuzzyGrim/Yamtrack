@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from api.serializers.common import (
@@ -104,12 +105,20 @@ def update_entry(entry, data):
     return entry
 
 
-def tag_results(query):
+def tag_results(query, user=None):
     """Return tag search results."""
     queryset = Tag.objects.all()
+    ordering = ["-usage_count", "name"]
+    if user is not None:
+        queryset = (
+            queryset.filter(diary_entries__user=user)
+            .annotate(user_usage_count=Count("diary_entries", filter=Q(diary_entries__user=user)))
+            .distinct()
+        )
+        ordering = ["-user_usage_count", "name"]
     if query:
         queryset = queryset.filter(name__icontains=query)
     return [
-        {"name": tag.name, "usage_count": tag.usage_count}
-        for tag in queryset.order_by("-usage_count", "name")[:10]
+        {"name": tag.name, "usage_count": getattr(tag, "user_usage_count", tag.usage_count)}
+        for tag in queryset.order_by(*ordering)[:10]
     ]

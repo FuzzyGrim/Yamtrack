@@ -28,15 +28,21 @@ struct AuthService {
 
     func refresh() async throws {
         guard let refreshToken = client.tokenProvider.refreshToken else {
+            client.tokenProvider.clear()
             throw APIError.unauthorized
         }
-        let response: AuthRefreshResponse = try await client.post(
-            "/auth/refresh/",
-            body: RefreshRequest(refresh: refreshToken)
-        )
-        client.tokenProvider.accessToken = response.access
-        if let refresh = response.refresh {
-            client.tokenProvider.refreshToken = refresh
+        do {
+            let response: AuthRefreshResponse = try await client.post(
+                "/auth/refresh/",
+                body: RefreshRequest(refresh: refreshToken)
+            )
+            client.tokenProvider.accessToken = response.access
+            if let refresh = response.refresh {
+                client.tokenProvider.refreshToken = refresh
+            }
+        } catch {
+            client.tokenProvider.clear()
+            throw error
         }
     }
 

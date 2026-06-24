@@ -3,6 +3,7 @@ import SwiftUI
 struct AppShellView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = AppTab.home
+    @State private var requestedLibraryShelf: LibraryShelf?
 
     let session: AppSession
 
@@ -42,6 +43,7 @@ struct AppShellView: View {
                     mediaRepository: session.repositories.media,
                     trackingRepository: session.repositories.tracking,
                     diaryRepository: session.repositories.diary,
+                    requestedShelf: $requestedLibraryShelf,
                     selectedTab: selectedTab,
                     onSelectTab: { selectedTab = $0 },
                     onUnauthorized: unauthorized
@@ -73,12 +75,17 @@ struct AppShellView: View {
                     diaryRepository: session.repositories.diary,
                     mediaRepository: session.repositories.media,
                     trackingRepository: session.repositories.tracking,
+                    listRepository: session.repositories.lists,
                     importCoordinator: session.letterboxdImportCoordinator,
                     onLogout: {
                         Task { await session.logout() }
                     },
                     onOpenDiary: {
                         selectedTab = .diary
+                    },
+                    onOpenLibrary: { shelf in
+                        requestedLibraryShelf = shelf
+                        selectedTab = .library
                     },
                     selectedTab: selectedTab,
                     onSelectTab: { selectedTab = $0 },

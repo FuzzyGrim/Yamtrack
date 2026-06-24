@@ -38,15 +38,30 @@ final class MediaDetailViewModel {
     func load() async {
         isLoading = true
         errorMessage = nil
+        tracking = nil
         defer { isLoading = false }
 
         do {
             let loaded = try await mediaRepository.detail(ref: ref)
             detail = loaded
             reviews = loaded.reviews ?? []
+            await loadTrackingIfNeeded(for: loaded)
             await loadReviews()
         } catch {
             errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+        }
+    }
+
+    private func loadTrackingIfNeeded(for detail: MediaDetail) async {
+        guard detail.userState?.isTracked == true || detail.userState?.status != nil else { return }
+        do {
+            tracking = try await trackingRepository.detail(ref: detail.ref)
+        } catch APIError.httpStatus(404, _) {
+            tracking = nil
+        } catch {
             if case APIError.unauthorized = error {
                 onUnauthorized()
             }
@@ -130,7 +145,7 @@ final class MediaDetailViewModel {
         defer { isSavingProgress = false }
 
         do {
-            let state: TrackingState
+            var state: TrackingState
             if detail.ref.mediaType == "book" {
                 state = try await trackingRepository.updateBookProgress(
                     source: detail.ref.source,
@@ -139,6 +154,7 @@ final class MediaDetailViewModel {
                     value: Decimal(request.value),
                     notes: ""
                 )
+                state = state.replacingProgress(progressState(for: request, detail: detail, fallback: state.progress))
             } else {
                 state = try await trackingRepository.update(
                     ref: detail.ref,
@@ -147,7 +163,9 @@ final class MediaDetailViewModel {
                         progress: request.value
                     )
                 )
+                state = state.replacingProgress(progressState(for: request, detail: detail, fallback: state.progress))
             }
+            ProgressDisplayPreferences.setMode(request.mode, for: detail.ref)
             tracking = state
             return true
         } catch {
@@ -157,6 +175,26 @@ final class MediaDetailViewModel {
             }
             return false
         }
+    }
+
+    private func progressState(
+        for request: ProgressUpdateSaveRequest,
+        detail: MediaDetail,
+        fallback: ProgressState?
+    ) -> ProgressState {
+        let max: Decimal?
+        switch request.mode {
+        case .percentage:
+            max = Decimal(100)
+        case .pages:
+            max = detail.progressTotalPages.map { Decimal($0) } ?? fallback?.max
+        }
+        return ProgressState(
+            kind: request.mode.apiValue,
+            value: Decimal(request.value),
+            max: max,
+            unit: request.mode.unit
+        )
     }
 
     func applyPosterSave(_ response: PosterSaveResponse) {
@@ -358,7 +396,7 @@ struct MediaDetailView: View {
             if let detail = viewModel.detail {
                 ProgressUpdateSheet(
                     detail: detail,
-                    tracking: viewModel.tracking,
+                    progress: currentProgress(detail),
                     isSaving: viewModel.isSavingProgress,
                     errorMessage: viewModel.progressErrorMessage,
                     onSave: { request in
@@ -371,7 +409,7 @@ struct MediaDetailView: View {
                         }
                     }
                 )
-                .presentationDetents([.height(618)])
+                .presentationDetents([.height(326)])
                 .presentationDragIndicator(.hidden)
             }
         }
@@ -918,6 +956,10 @@ struct MediaDetailView: View {
 
     private func currentRating(_ detail: MediaDetail) -> String? {
         viewModel.tracking?.rating ?? detail.userState?.rating
+    }
+
+    private func currentProgress(_ detail: MediaDetail) -> ProgressState? {
+        viewModel.tracking?.progress ?? detail.userState?.progress
     }
 
     private func ratingChips(_ detail: MediaDetail) -> [RatingChip] {
@@ -1812,18 +1854,14 @@ private struct TrackingSummarySection: View {
                             if showsUpdateProgressButton {
                                 Button(action: onUpdateProgress) {
                                     Text("Update Progress")
-                                        .font(.system(size: 11, weight: .heavy))
-                                        .foregroundStyle(.white.opacity(0.88))
-                                        .padding(.horizontal, 10)
-                                        .frame(height: 28)
-                                        .background(.white.opacity(0.1), in: Capsule())
-                                        .overlay {
-                                            Capsule()
-                                                .stroke(.white.opacity(0.12), lineWidth: 1)
-                                        }
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(.white.opacity(0.82))
+                                        .padding(.horizontal, 11)
+                                        .frame(height: 24)
+                                        .background(.white.opacity(0.12), in: Capsule())
                                 }
                                 .buttonStyle(.plain)
-                                .padding(.top, 2)
+                                .padding(.top, 3)
                             }
                         }
                         ForEach(lines, id: \.self) { line in
@@ -1847,12 +1885,8 @@ private struct TrackingSummarySection: View {
 
     private var lines: [String] {
         var values: [String] = []
-        if let progress = tracking?.progress, let value = progress.value {
-            if let max = progress.max {
-                values.append("\(display(value)) of \(display(max)) \(progress.unit)\(max == 1 ? "" : "s")")
-            } else {
-                values.append("\(display(value)) \(progress.unit)\(value == 1 ? "" : "s")")
-            }
+        if let progressText = (tracking?.progress ?? userState?.progress)?.detailDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: detail.ref)) {
+            values.append(progressText)
         }
         if let rating = userState?.diaryRating ?? tracking?.rating ?? userState?.rating {
             values.append("Rated \(rating.starRatingLabel)")
@@ -1869,9 +1903,6 @@ private struct TrackingSummarySection: View {
         return values
     }
 
-    private func display(_ value: Decimal) -> String {
-        NSDecimalNumber(decimal: value).stringValue
-    }
 }
 
 private struct SynopsisCard: View {

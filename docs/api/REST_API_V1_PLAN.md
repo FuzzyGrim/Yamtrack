@@ -67,7 +67,8 @@ Important files:
 | POST | `/api/v1/auth/password-reset/confirm/` | No |
 | POST | `/api/v1/auth/apple/` | No, returns `501` placeholder |
 | GET/PATCH | `/api/v1/me/` | Yes |
-| POST | `/api/v1/me/avatar/` | Yes |
+| POST/DELETE | `/api/v1/me/avatar/` | Yes |
+| POST | `/api/v1/me/password/` | Yes |
 | PATCH | `/api/v1/me/preferences/` | Yes |
 | GET | `/api/v1/me/hof/` | Yes |
 | PUT/DELETE | `/api/v1/me/hof/{media_type}/` | Yes |
@@ -104,6 +105,12 @@ Important files:
 | POST/DELETE | `/api/v1/tracking/{source}/tv/{media_id}/seasons/{season_number}/episodes/{episode_number}/watch/` | Yes |
 | POST | `/api/v1/tracking/{source}/book/{media_id}/progress/` | Yes |
 | POST | `/api/v1/tracking/{source}/book/{media_id}/complete/` | Yes |
+
+`GET /api/v1/tracking/` requires `media_type` and returns the standard paged shape:
+`count`, `next`, `previous`, `results`. Supported query params are `media_type`,
+`status`, `ordering`/`sort`, `q`, `page`, and `page_size`. The endpoint paginates
+the tracking queryset before serialization so page responses only serialize the
+current page of rows.
 
 ### Diary, Lists, Profiles, Social
 
@@ -150,6 +157,86 @@ Important files:
 3. Send `Authorization: Bearer <access>` on authenticated requests.
 4. Refresh through `/api/v1/auth/refresh/`.
 5. Logout through `/api/v1/auth/logout/`, which blacklists the refresh token.
+
+## Current User Settings
+
+`GET /api/v1/me/` returns the current `profile_payload()`, including profile fields, avatar URL, social counts, Hall of Fame map, and `preferences`.
+
+`PATCH /api/v1/me/` accepts any subset of:
+
+```json
+{
+  "username": "mika",
+  "display_name": "Mika",
+  "bio": "Tracking films, books, and games.",
+  "pronouns": "they/them",
+  "location": "Portland",
+  "is_private": false
+}
+```
+
+Validation matches the web account form where relevant: usernames use Django's Unicode username rules, must be unique, and demo users cannot change them. `bio` is capped at 500 characters, `pronouns` at 50, and `location` at 100. Successful updates return the full profile payload. `is_private` writes `users.User.profile_private`; visibility changes are audit-logged.
+
+Errors use DRF field errors:
+
+```json
+{ "username": ["A user with that username already exists."] }
+```
+
+`POST /api/v1/me/avatar/` accepts multipart form-data with a required `avatar` file field. Allowed content types are `image/jpeg`, `image/png`, and `image/webp`; max size is 5 MB. Replacing an avatar deletes the previous profile picture file when possible.
+
+```json
+{ "avatar_url": "https://example.com/media/profile_pictures/avatar.png" }
+```
+
+`DELETE /api/v1/me/avatar/` clears the current profile picture, deletes the stored file when possible, and returns:
+
+```json
+{ "avatar_url": null }
+```
+
+`PATCH /api/v1/me/preferences/` accepts any subset of:
+
+```json
+{
+  "enabled_media_types": ["movie", "tv", "book"],
+  "date_format": "Y-m-d",
+  "time_format": "H:i",
+  "week_start_day": "monday",
+  "quick_watch_date": "current_date",
+  "release_notifications_enabled": true,
+  "daily_digest_enabled": true
+}
+```
+
+`enabled_media_types` must contain at least one supported `app.models.MediaTypes` value, excluding `episode`. Date, time, week-start, and quick-watch values must match the choice classes in `users.models`. Demo users cannot update preferences. Successful updates return `preferences_payload(user)`, not the full profile.
+
+`POST /api/v1/me/password/` changes the current user's password:
+
+```json
+{
+  "old_password": "current-password",
+  "new_password": "new-password",
+  "new_password_confirm": "new-password"
+}
+```
+
+Validation uses the web password-change form, including password validators and the demo-user block. Success returns:
+
+```json
+{ "detail": "Password updated." }
+```
+
+`GET /api/v1/meta/` includes picker choices for mobile settings:
+
+```json
+{
+  "date_formats": [{ "value": "Y-m-d", "label": "2026-01-18 (ISO)" }],
+  "time_formats": [{ "value": "H:i", "label": "14:30 (24-hour)" }],
+  "week_start_days": [{ "value": "monday", "label": "Monday" }],
+  "quick_watch_dates": [{ "value": "current_date", "label": "Current Date" }]
+}
+```
 
 ## Current User Hall of Fame
 

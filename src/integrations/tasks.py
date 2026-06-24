@@ -19,6 +19,7 @@ from integrations.imports import (
     mal,
     simkl,
     steam,
+    storygraph,
     trakt,
     yamtrack,
 )
@@ -180,3 +181,16 @@ def import_letterboxd(file_path, user_id, mode):
             os.unlink(file_path)
         except OSError:
             logger.warning("Could not delete temporary Letterboxd import file: %s", file_path)
+
+
+@shared_task(name="Import from StoryGraph")
+def import_storygraph(file_path, user_id, mode):
+    """Celery task for importing book data from a StoryGraph CSV export."""
+    try:
+        with open(file_path, "rb") as export_file:
+            return import_media(storygraph.importer, export_file, user_id, mode)
+    finally:
+        try:
+            os.unlink(file_path)
+        except OSError:
+            logger.warning("Could not delete temporary StoryGraph import file: %s", file_path)

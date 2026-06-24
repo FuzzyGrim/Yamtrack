@@ -132,32 +132,35 @@ struct APIClient: Sendable {
         body: Data?,
         authenticated: Bool
     ) async throws -> T {
-        let url = try endpointURL(path: path, query: query)
+        var request = try makeRequest(
+            path: path,
+            method: method,
+            query: query,
+            body: body,
+            authenticated: authenticated
+        )
 
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.timeoutInterval = 10
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        if let body {
-            request.httpBody = body
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-        if authenticated, let token = tokenProvider.accessToken {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        let (data, response): (Data, URLResponse)
+        let data: Data
+        let http: HTTPURLResponse
         do {
-            (data, response) = try await session.data(for: request)
-        } catch {
-            throw APIError.network(error)
-        }
-        guard let http = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-        if http.statusCode == 401 {
-            tokenProvider.clear()
-            throw APIError.unauthorized
+            (data, http) = try await perform(request)
+        } catch APIError.unauthorized where authenticated {
+            guard await refreshAccessToken() else {
+                throw APIError.unauthorized
+            }
+            request = try makeRequest(
+                path: path,
+                method: method,
+                query: query,
+                body: body,
+                authenticated: authenticated
+            )
+            do {
+                (data, http) = try await perform(request)
+            } catch APIError.unauthorized {
+                tokenProvider.clear()
+                throw APIError.unauthorized
+            }
         }
 
         guard (200 ... 299).contains(http.statusCode) else {
@@ -172,6 +175,76 @@ struct APIClient: Sendable {
             return try JSONDecoder.api.decode(T.self, from: data)
         } catch {
             throw APIError.decoding(error)
+        }
+    }
+
+    private func makeRequest(
+        path: String,
+        method: String,
+        query: [URLQueryItem],
+        body: Data?,
+        authenticated: Bool
+    ) throws -> URLRequest {
+        let url = try endpointURL(path: path, query: query)
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        if authenticated, let token = tokenProvider.accessToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return request
+    }
+
+    private func perform(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.network(error)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        if http.statusCode == 401 {
+            throw APIError.unauthorized
+        }
+        return (data, http)
+    }
+
+    private func refreshAccessToken() async -> Bool {
+        guard let refreshToken = tokenProvider.refreshToken else {
+            tokenProvider.clear()
+            return false
+        }
+
+        do {
+            let data = try JSONEncoder.api.encode(RefreshRequest(refresh: refreshToken))
+            let request = try makeRequest(
+                path: "/auth/refresh/",
+                method: "POST",
+                query: [],
+                body: data,
+                authenticated: false
+            )
+            let (responseData, http) = try await perform(request)
+            guard (200 ... 299).contains(http.statusCode) else {
+                tokenProvider.clear()
+                return false
+            }
+            let response = try JSONDecoder.api.decode(AuthRefreshResponse.self, from: responseData)
+            tokenProvider.accessToken = response.access
+            if let refresh = response.refresh {
+                tokenProvider.refreshToken = refresh
+            }
+            return true
+        } catch {
+            tokenProvider.clear()
+            return false
         }
     }
 

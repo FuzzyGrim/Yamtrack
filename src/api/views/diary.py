@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -27,6 +28,8 @@ class DiaryListView(APIView):
         year = request.query_params.get("year")
         item_id = request.query_params.get("item_id")
         tag = request.query_params.get("tag", "").strip().lower()
+        has_review = request.query_params.get("has_review") == "true"
+        liked = request.query_params.get("liked") == "true"
         if media_type:
             entries = entries.filter(item__media_type=media_type)
         if year:
@@ -35,6 +38,10 @@ class DiaryListView(APIView):
             entries = entries.filter(item_id=item_id)
         if tag:
             entries = entries.filter(tags__name=tag)
+        if has_review:
+            entries = entries.filter(Q(review__gt="") | Q(review_title__gt=""))
+        if liked:
+            entries = entries.filter(liked=True)
         return Response(
             {
                 "count": entries.count(),
@@ -92,7 +99,8 @@ class DiaryTagsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response({"results": diary_service.tag_results(request.query_params.get("q", ""))})
+        user = request.user if request.query_params.get("mine") == "true" else None
+        return Response({"results": diary_service.tag_results(request.query_params.get("q", ""), user=user)})
 
 
 class DiaryLikeView(APIView):

@@ -195,6 +195,7 @@ def serialize_tracking(media):
     """Serialize tracking state after annotating max progress when possible."""
     if media is None:
         return None
-    with suppress(Exception):
-        BasicMedia.objects.annotate_max_progress([media], media.item.media_type)
+    if not hasattr(media, "max_progress"):
+        with suppress(Exception):
+            BasicMedia.objects.annotate_max_progress([media], media.item.media_type)
     return tracking_state(media)

@@ -1,26 +1,5 @@
 import SwiftUI
 
-enum ProgressUpdateMode: String, CaseIterable, Identifiable {
-    case pages
-    case percentage
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .pages: "Pages"
-        case .percentage: "Percent"
-        }
-    }
-
-    var apiValue: String {
-        switch self {
-        case .pages: "pages"
-        case .percentage: "percentage"
-        }
-    }
-}
-
 struct ProgressUpdateSaveRequest: Equatable {
     let mode: ProgressUpdateMode
     let value: Int
@@ -30,23 +9,27 @@ struct ProgressUpdateSaveRequest: Equatable {
 @Observable
 final class ProgressUpdateViewModel {
     let detail: MediaDetail
-    let tracking: TrackingState?
+    let progress: ProgressState?
     var mode: ProgressUpdateMode
     var input = ""
+    private var hasEditedInput = false
 
-    init(detail: MediaDetail, tracking: TrackingState?) {
+    init(detail: MediaDetail, progress: ProgressState?) {
         self.detail = detail
-        self.tracking = tracking
-        self.mode = Self.defaultMode(for: detail, tracking: tracking)
+        self.progress = progress
+        self.mode = Self.defaultMode(for: detail, progress: progress)
+        if let lastValue {
+            input = String(lastValue)
+        }
     }
 
     var totalPages: Int? {
-        detail.progressTotalPages ?? Self.intValue(tracking?.progress?.max)
+        detail.progressTotalPages ?? Self.intValue(progress?.max)
     }
 
     var lastValue: Int? {
-        guard let progress = tracking?.progress, let value = Self.intValue(progress.value) else { return nil }
-        return converted(value, from: Self.mode(for: progress), to: mode)
+        guard let progress else { return nil }
+        return progress.value(in: mode)
     }
 
     var currentValue: Int? {
@@ -73,6 +56,16 @@ final class ProgressUpdateViewModel {
     }
 
     var deltaText: String {
+        guard currentValue != lastValue else {
+            guard let value = currentValue ?? lastValue else {
+                return mode == .pages ? "Pages read" : "\(mode.title) \(actionVerb)"
+            }
+            if mode == .percentage {
+                return "\(value)% \(actionVerb)"
+            }
+            let unit = value == 1 ? "page" : "pages"
+            return "\(value) \(unit) \(actionVerb)"
+        }
         guard let currentValue else {
             return mode == .pages ? "Pages read" : "\(mode.title) \(actionVerb)"
         }
@@ -122,18 +115,20 @@ final class ProgressUpdateViewModel {
         mode = newMode
     }
 
-    func appendDigit(_ digit: Int) {
-        guard (0...9).contains(digit), input.count < 6 else { return }
-        if input == "0" {
-            input = String(digit)
-        } else {
-            input.append(String(digit))
+    func updateInput(_ rawValue: String) {
+        let limit = mode == .percentage ? 3 : 6
+        let digits = String(rawValue.filter(\.isNumber).prefix(limit))
+        guard !digits.isEmpty else {
+            input = ""
+            hasEditedInput = true
+            return
         }
-    }
-
-    func deleteDigit() {
-        guard !input.isEmpty else { return }
-        input.removeLast()
+        if !hasEditedInput, digits.count > input.count, let inserted = firstInsertedCharacter(from: input, to: digits) {
+            input = String(inserted)
+        } else {
+            input = digits
+        }
+        hasEditedInput = true
     }
 
     private var actionVerb: String {
@@ -161,21 +156,22 @@ final class ProgressUpdateViewModel {
         }
     }
 
-    private static func defaultMode(for detail: MediaDetail, tracking: TrackingState?) -> ProgressUpdateMode {
-        guard detail.ref.mediaType == "book" else { return .percentage }
-        if let progress = tracking?.progress {
-            return mode(for: progress)
+    private func firstInsertedCharacter(from oldValue: String, to newValue: String) -> Character? {
+        for (old, new) in zip(oldValue, newValue) where old != new {
+            return new
         }
-        return detail.progressTotalPages == nil ? .percentage : .pages
+        return newValue.last
     }
 
-    private static func mode(for progress: ProgressState) -> ProgressUpdateMode {
-        let kind = progress.kind.lowercased()
-        let unit = progress.unit.lowercased()
-        if kind.contains("percent") || unit.contains("percent") || unit == "%" {
-            return .percentage
+    private static func defaultMode(for detail: MediaDetail, progress: ProgressState?) -> ProgressUpdateMode {
+        guard detail.ref.mediaType == "book" else { return .percentage }
+        if let preferredMode = ProgressDisplayPreferences.mode(for: detail.ref) {
+            return preferredMode
         }
-        return .pages
+        if let progress {
+            return progress.mode
+        }
+        return detail.progressTotalPages == nil ? .percentage : .pages
     }
 
     private static func intValue(_ value: Decimal?) -> Int? {
@@ -188,6 +184,7 @@ struct ProgressUpdateSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ProgressUpdateViewModel
     @State private var isFullProgressAlertPresented = false
+    @FocusState private var isInputFocused: Bool
 
     let isSaving: Bool
     let errorMessage: String?
@@ -196,13 +193,13 @@ struct ProgressUpdateSheet: View {
 
     init(
         detail: MediaDetail,
-        tracking: TrackingState?,
+        progress: ProgressState?,
         isSaving: Bool,
         errorMessage: String?,
         onSave: @escaping (ProgressUpdateSaveRequest) async -> Bool,
         onLogFinished: @escaping () -> Void
     ) {
-        _viewModel = State(initialValue: ProgressUpdateViewModel(detail: detail, tracking: tracking))
+        _viewModel = State(initialValue: ProgressUpdateViewModel(detail: detail, progress: progress))
         self.isSaving = isSaving
         self.errorMessage = errorMessage
         self.onSave = onSave
@@ -210,24 +207,34 @@ struct ProgressUpdateSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 18) {
+            Capsule()
+                .fill(.secondary.opacity(0.28))
+                .frame(width: 38, height: 5)
+                .padding(.top, 8)
+
             header
-            Divider().background(.white.opacity(0.08))
             progressSummary
-                .padding(.top, 34)
-                .padding(.horizontal, 26)
             saveButton
-                .padding(.horizontal, 16)
-                .padding(.top, 28)
-            keypad
-                .padding(.top, 30)
-                .padding(.horizontal, 10)
-                .padding(.bottom, 24)
         }
-        .foregroundStyle(.white)
-        .background(Color(red: 0.08, green: 0.075, blue: 0.07))
-        .presentationBackground(Color(red: 0.08, green: 0.075, blue: 0.07))
-        .presentationCornerRadius(28)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 18)
+        .foregroundStyle(.primary)
+        .presentationBackground(.regularMaterial)
+        .presentationCornerRadius(24)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                isInputFocused = true
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isInputFocused = false
+                }
+            }
+        }
         .alert("Log as finished?", isPresented: $isFullProgressAlertPresented) {
             Button("Save Progress Only") {
                 Task {
@@ -249,14 +256,15 @@ struct ProgressUpdateSheet: View {
             MediaArtwork(
                 url: viewModel.detail.displayPosterURL,
                 title: viewModel.detail.title,
-                slot: .libraryRow,
+                slot: .searchRow,
                 mediaType: viewModel.detail.ref.mediaType,
                 orientation: viewModel.detail.posterOrientation
             )
+            .shadow(color: .black.opacity(0.22), radius: 8, y: 4)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text("Add new progress...")
-                    .font(.system(size: 18, weight: .heavy))
+                    .font(.headline.weight(.semibold))
                     .lineLimit(1)
 
                 progressModeControl
@@ -268,19 +276,13 @@ struct ProgressUpdateSheet: View {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.72))
-                    .frame(width: 44, height: 44)
-                    .background(.white.opacity(0.08), in: Circle())
-                    .overlay {
-                        Circle().stroke(.white.opacity(0.12), lineWidth: 1)
-                    }
+                    .font(.system(size: 14, weight: .semibold))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.circle)
+            .controlSize(.regular)
             .accessibilityLabel("Close")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 18)
     }
 
     @ViewBuilder
@@ -303,53 +305,85 @@ struct ProgressUpdateSheet: View {
     private func modeLabel(showsChevron: Bool) -> some View {
         HStack(spacing: 6) {
             Text(viewModel.deltaText)
-                .font(.system(size: 22, weight: .heavy))
+                .font(.subheadline.weight(.semibold))
             if showsChevron {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(.system(size: 11, weight: .semibold))
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(.secondary)
         .contentShape(Rectangle())
         .accessibilityLabel("Progress mode")
         .accessibilityValue(viewModel.mode.title)
     }
 
     private var progressSummary: some View {
-        VStack(spacing: 14) {
-            HStack(alignment: .center) {
-                progressStat(title: "Last", value: viewModel.lastValueText, highlighted: false)
-                Spacer()
-                progressStat(title: "Current", value: viewModel.currentValueText, highlighted: true)
-                Spacer()
-                progressStat(title: viewModel.totalTitle, value: viewModel.totalValueText, highlighted: false)
+        VStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 8) {
+                progressStat(title: "Last", value: viewModel.lastValueText)
+                currentProgressStat
+                progressStat(title: viewModel.totalTitle, value: viewModel.totalValueText)
             }
 
             if let message = viewModel.validationMessage ?? errorMessage {
                 Text(message)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.red.opacity(0.95))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
             }
         }
     }
 
-    private func progressStat(title: String, value: String, highlighted: Bool) -> some View {
-        VStack(spacing: 8) {
+    private func progressStat(title: String, value: String) -> some View {
+        VStack(spacing: 6) {
             Text(title)
-                .font(.system(size: 17, weight: .heavy))
-                .foregroundStyle(.white)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Text(value)
+                .font(.title3.monospacedDigit().weight(.semibold))
+                .foregroundStyle(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-            Text(value)
-                .font(.system(size: highlighted ? 32 : 28, weight: .heavy))
-                .foregroundStyle(highlighted ? .white : .white.opacity(0.46))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
         }
-        .frame(width: highlighted ? 128 : 92, height: 86)
-        .background(highlighted ? .white.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 14))
+        .frame(maxWidth: .infinity)
+        .frame(height: 72)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var currentProgressStat: some View {
+        VStack(spacing: 6) {
+            Text("Current")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            ZStack {
+                Text(viewModel.currentValueText)
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+                    .frame(maxWidth: .infinity)
+
+                TextField("0", text: Binding(
+                    get: { viewModel.input },
+                    set: { viewModel.updateInput($0) }
+                ))
+                .keyboardType(.numberPad)
+                .focused($isInputFocused)
+                .opacity(0.01)
+                .accessibilityLabel("Current progress")
+                .accessibilityValue(viewModel.currentValueText)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 72)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .onTapGesture {
+            isInputFocused = true
+        }
     }
 
     private var saveButton: some View {
@@ -367,76 +401,18 @@ struct ProgressUpdateSheet: View {
                 Spacer()
                 if isSaving {
                     ProgressView()
-                        .tint(.black)
                 } else {
-                    Text("Add Progress")
-                        .font(.system(size: 17, weight: .heavy))
+                    Text("Save Progress")
+                        .font(.headline.weight(.semibold))
                 }
                 Spacer()
             }
-            .foregroundStyle(.black)
-            .frame(height: 54)
-            .background(viewModel.canSave && !isSaving ? .white.opacity(0.9) : .white.opacity(0.38), in: RoundedRectangle(cornerRadius: 8))
+            .frame(height: 50)
+            .foregroundStyle(viewModel.canSave && !isSaving ? .black : .white.opacity(0.48))
+            .background(viewModel.canSave && !isSaving ? Color.white : Color.white.opacity(0.12), in: Capsule())
         }
         .buttonStyle(.plain)
         .disabled(!viewModel.canSave || isSaving)
-    }
-
-    private var keypad: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-            ForEach(1...9, id: \.self) { digit in
-                keypadButton(digit)
-            }
-            Color.clear
-                .frame(height: 54)
-            keypadButton(0)
-            Button {
-                viewModel.deleteDigit()
-            } label: {
-                Image(systemName: "delete.left")
-                    .font(.system(size: 26, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Delete")
-        }
-    }
-
-    private func keypadButton(_ digit: Int) -> some View {
-        Button {
-            viewModel.appendDigit(digit)
-        } label: {
-            VStack(spacing: 2) {
-                Text(String(digit))
-                    .font(.system(size: 31, weight: .medium))
-                if let letters = keypadLetters[digit] {
-                    Text(letters)
-                        .font(.system(size: 11, weight: .heavy))
-                        .tracking(2)
-                }
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 54)
-            .background(.white.opacity(0.36), in: RoundedRectangle(cornerRadius: 8))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(String(digit))
-    }
-
-    private var keypadLetters: [Int: String] {
-        [
-            2: "ABC",
-            3: "DEF",
-            4: "GHI",
-            5: "JKL",
-            6: "MNO",
-            7: "PQRS",
-            8: "TUV",
-            9: "WXYZ",
-        ]
     }
 
     private func save() async {

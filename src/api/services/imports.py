@@ -16,6 +16,7 @@ TASKS_BY_SOURCE = {
     "imdb": tasks.import_imdb,
     "goodreads": tasks.import_goodreads,
     "letterboxd": tasks.import_letterboxd,
+    "storygraph": tasks.import_storygraph,
 }
 
 
@@ -24,9 +25,9 @@ def queue_import(source, user, data, files=None):
     task = TASKS_BY_SOURCE[source]
     mode = data["mode"]
     username = data.get("username")
-    if source == "letterboxd":
+    if source in {"letterboxd", "storygraph"}:
         uploaded_file = data.get("file") or (files.get("file") if files else None)
-        fd, path = tempfile.mkstemp(suffix=".zip")
+        fd, path = tempfile.mkstemp(suffix=".zip" if source == "letterboxd" else ".csv")
         with os.fdopen(fd, "wb") as tmp:
             if hasattr(uploaded_file, "chunks"):
                 for chunk in uploaded_file.chunks():

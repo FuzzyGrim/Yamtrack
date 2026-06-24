@@ -1,4 +1,6 @@
-from django.contrib.auth import get_user_model
+import logging
+
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,6 +15,7 @@ from api.serializers.common import (
     image_url,
 )
 from api.serializers.profile import (
+    PasswordChangeSerializer,
     PreferencesSerializer,
     ProfileUpdateSerializer,
     hof_payload,
@@ -21,6 +24,12 @@ from api.serializers.profile import (
 )
 from app.models import MediaTypes
 from app.providers import services as provider_services
+from social.models import SocialAuditLog
+
+logger = logging.getLogger(__name__)
+
+MAX_AVATAR_SIZE = 5 * 1024 * 1024
+ALLOWED_AVATAR_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 HOF_MEDIA_TYPES = {
     MediaTypes.MOVIE.value,
@@ -48,11 +57,18 @@ class MeView(APIView):
         return Response(profile_payload(request.user, request=request, viewer=request.user))
 
     def patch(self, request):
-        serializer = ProfileUpdateSerializer(data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        for field, value in serializer.validated_data.items():
-            setattr(request.user, field, value)
-        request.user.save()
+        old_private = request.user.profile_private
+        serializer = ProfileUpdateSerializer(data=request.data, partial=True, context={"request": request})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save(user=request.user)
+        if old_private != request.user.profile_private:
+            SocialAuditLog.objects.create(
+                actor=request.user,
+                action="profile_visibility_update",
+                target_user=request.user,
+                metadata={"from": old_private, "to": request.user.profile_private},
+            )
         return Response(profile_payload(request.user, request=request, viewer=request.user))
 
 
@@ -65,9 +81,37 @@ class AvatarView(APIView):
         avatar = request.FILES.get("avatar")
         if avatar is None:
             return Response({"avatar": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
+        if avatar.content_type not in ALLOWED_AVATAR_CONTENT_TYPES:
+            return Response({"avatar": ["Upload a JPEG, PNG, or WebP image."]}, status=status.HTTP_400_BAD_REQUEST)
+        if avatar.size > MAX_AVATAR_SIZE:
+            return Response({"avatar": ["Avatar must be 5 MB or smaller."]}, status=status.HTTP_400_BAD_REQUEST)
+        old_avatar = request.user.profile_picture
         request.user.profile_picture = avatar
-        request.user.save(update_fields=["profile_picture"])
+        try:
+            request.user.save(update_fields=["profile_picture"])
+        except OSError:
+            logger.exception("Failed to save avatar for user: %s", request.user.username)
+            return Response(
+                {"avatar": ["Could not save your avatar. Please try again later."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if old_avatar and old_avatar.name != request.user.profile_picture.name:
+            try:
+                old_avatar.delete(save=False)
+            except OSError:
+                logger.warning("Failed to delete replaced avatar for user: %s", request.user.username)
         return Response({"avatar_url": image_url(request, request.user.profile_picture)})
+
+    def delete(self, request):
+        old_avatar = request.user.profile_picture
+        request.user.profile_picture = None
+        request.user.save(update_fields=["profile_picture"])
+        if old_avatar:
+            try:
+                old_avatar.delete(save=False)
+            except OSError:
+                logger.warning("Failed to delete avatar for user: %s", request.user.username)
+        return Response({"avatar_url": None})
 
 
 class PreferencesView(APIView):
@@ -76,18 +120,25 @@ class PreferencesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
-        serializer = PreferencesSerializer(data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        enabled = data.pop("enabled_media_types", None)
-        if enabled is not None:
-            for media_type in MediaTypes.values:
-                if media_type != MediaTypes.EPISODE.value and hasattr(request.user, f"{media_type}_enabled"):
-                    setattr(request.user, f"{media_type}_enabled", media_type in enabled)
-        for field, value in data.items():
-            setattr(request.user, field, value)
-        request.user.save()
+        serializer = PreferencesSerializer(data=request.data, partial=True, context={"request": request})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save(user=request.user)
         return Response(preferences_payload(request.user))
+
+
+class PasswordChangeView(APIView):
+    """Change the current user's password."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = serializer.save()
+        update_session_auth_hash(request, user)
+        return Response({"detail": "Password updated."})
 
 
 class PublicProfileView(APIView):

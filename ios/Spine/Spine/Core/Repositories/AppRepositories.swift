@@ -21,6 +21,7 @@ protocol MediaRepository {
 
 protocol TrackingRepository {
     func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<LibraryItem>
+    func detail(ref: MediaRef) async throws -> TrackingState
     func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState
     func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState
     func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState
@@ -35,15 +36,21 @@ extension TrackingRepository {
 }
 
 protocol DiaryRepository {
+    func list(filter: DiaryFilter) async throws -> [DiaryEntry]
     func list(tag: String?) async throws -> [DiaryEntry]
     func recent(limit: Int) async throws -> [DiaryEntry]
     func detail(id: Int) async throws -> DiaryEntry
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState
+    func tags(query: String, mine: Bool) async throws -> [DiaryTagSuggestion]
     func tags(query: String) async throws -> [DiaryTagSuggestion]
 }
 
 extension DiaryRepository {
+    func list(filter: DiaryFilter) async throws -> [DiaryEntry] {
+        try await list(tag: filter.tag)
+    }
+
     func list() async throws -> [DiaryEntry] {
         try await list(tag: nil)
     }
@@ -52,12 +59,32 @@ extension DiaryRepository {
         guard limit > 0 else { return [] }
         return Array(try await list().prefix(limit))
     }
+
+    func tags(query: String, mine: Bool) async throws -> [DiaryTagSuggestion] {
+        try await tags(query: query)
+    }
+}
+
+struct DiaryFilter: Equatable {
+    var tag: String? = nil
+    var hasReview = false
+    var liked = false
 }
 
 protocol ProfileRepository {
     func me() async throws -> UserProfile
+    func updateProfile(_ request: ProfileUpdateRequest) async throws -> UserProfile
+    func uploadAvatar(imageData: Data, fileName: String, mimeType: String) async throws -> String?
+    func deleteAvatar() async throws -> String?
+    func updatePreferences(_ request: PreferencesUpdateRequest) async throws -> UserPreferences
+    func changePassword(_ request: PasswordChangeRequest) async throws
     func setHallOfFameItem(mediaType: String, ref: MediaRef) async throws -> [String: MediaSummary?]
     func clearHallOfFameItem(mediaType: String) async throws -> [String: MediaSummary?]
+}
+
+protocol ListRepository {
+    func list() async throws -> [CustomListSummary]
+    func detail(id: Int) async throws -> CustomListDetail
 }
 
 protocol ImportRepository {
@@ -76,6 +103,7 @@ struct AppRepositories {
     let tracking: TrackingRepository
     let diary: DiaryRepository
     let profile: ProfileRepository
+    let lists: ListRepository
     let imports: ImportRepository
 
     static func current() -> AppRepositories {
@@ -89,6 +117,7 @@ struct AppRepositories {
             tracking: APITrackingRepository(client: client),
             diary: APIDiaryRepository(client: client),
             profile: APIProfileRepository(client: client),
+            lists: APIListRepository(client: client),
             imports: APIImportRepository(client: client)
         )
     }
@@ -241,6 +270,13 @@ struct APITrackingRepository: TrackingRepository {
         )
     }
 
+    func detail(ref: MediaRef) async throws -> TrackingState {
+        try await client.get(
+            "/tracking/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/",
+            authenticated: true
+        )
+    }
+
     func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState {
         try await client.post(
             "/tracking/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/actions/consume/",
@@ -278,8 +314,18 @@ struct APIDiaryRepository: DiaryRepository {
     let client: APIClient
 
     func list(tag: String? = nil) async throws -> [DiaryEntry] {
-        let tag = tag?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let baseQuery = tag.map { $0.isEmpty ? [] : [URLQueryItem(name: "tag", value: $0)] } ?? []
+        try await list(filter: DiaryFilter(tag: tag))
+    }
+
+    func list(filter: DiaryFilter) async throws -> [DiaryEntry] {
+        let tag = filter.tag?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var baseQuery = tag.map { $0.isEmpty ? [] : [URLQueryItem(name: "tag", value: $0)] } ?? []
+        if filter.hasReview {
+            baseQuery.append(URLQueryItem(name: "has_review", value: "true"))
+        }
+        if filter.liked {
+            baseQuery.append(URLQueryItem(name: "liked", value: "true"))
+        }
         var page: String?
         var entries: [DiaryEntry] = []
 
@@ -323,9 +369,17 @@ struct APIDiaryRepository: DiaryRepository {
     }
 
     func tags(query: String) async throws -> [DiaryTagSuggestion] {
+        try await tags(query: query, mine: false)
+    }
+
+    func tags(query: String, mine: Bool) async throws -> [DiaryTagSuggestion] {
+        var queryItems = query.isEmpty ? [] : [URLQueryItem(name: "q", value: query)]
+        if mine {
+            queryItems.append(URLQueryItem(name: "mine", value: "true"))
+        }
         let response: DiaryTagSuggestionsResponse = try await client.get(
             "/diary/tags/",
-            query: query.isEmpty ? [] : [URLQueryItem(name: "q", value: query)],
+            query: queryItems,
             authenticated: true
         )
         return response.results
@@ -350,6 +404,36 @@ struct APIProfileRepository: ProfileRepository {
         try await client.get("/me/", authenticated: true)
     }
 
+    func updateProfile(_ request: ProfileUpdateRequest) async throws -> UserProfile {
+        try await client.patch("/me/", body: request, authenticated: true)
+    }
+
+    func uploadAvatar(imageData: Data, fileName: String, mimeType: String) async throws -> String? {
+        let response: AvatarUploadResponse = try await client.uploadMultipart(
+            "/me/avatar/",
+            formFields: [:],
+            fileFieldName: "avatar",
+            fileName: fileName,
+            fileData: imageData,
+            mimeType: mimeType,
+            authenticated: true
+        )
+        return response.avatarUrl
+    }
+
+    func deleteAvatar() async throws -> String? {
+        let response: AvatarUploadResponse = try await client.delete("/me/avatar/", authenticated: true)
+        return response.avatarUrl
+    }
+
+    func updatePreferences(_ request: PreferencesUpdateRequest) async throws -> UserPreferences {
+        try await client.patch("/me/preferences/", body: request, authenticated: true)
+    }
+
+    func changePassword(_ request: PasswordChangeRequest) async throws {
+        let _: EmptyResponse = try await client.post("/me/password/", body: request, authenticated: true)
+    }
+
     func setHallOfFameItem(mediaType: String, ref: MediaRef) async throws -> [String: MediaSummary?] {
         let response: HallOfFameItemsResponse = try await client.put(
             "/me/hof/\(mediaType)/",
@@ -365,6 +449,19 @@ struct APIProfileRepository: ProfileRepository {
             authenticated: true
         )
         return response.items
+    }
+}
+
+struct APIListRepository: ListRepository {
+    let client: APIClient
+
+    func list() async throws -> [CustomListSummary] {
+        let response: PagedResponse<CustomListSummary> = try await client.get("/lists/", authenticated: true)
+        return response.results
+    }
+
+    func detail(id: Int) async throws -> CustomListDetail {
+        try await client.get("/lists/\(id)/", authenticated: true)
     }
 }
 

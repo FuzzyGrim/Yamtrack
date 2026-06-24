@@ -6,6 +6,17 @@ from rest_framework.views import APIView
 
 from app import config
 from app.models import MediaTypes, Sources, Status
+from users.models import (
+    DateFormatChoices,
+    QuickWatchDateChoices,
+    TimeFormatChoices,
+    WeekStartDayChoices,
+)
+
+
+def choice_payload(choices):
+    """Serialize Django choice tuples for mobile pickers."""
+    return [{"value": value, "label": label} for value, label in choices]
 
 
 class HealthView(APIView):
@@ -39,5 +50,9 @@ class MetaView(APIView):
                 },
                 "status_choices": list(Status.values),
                 "source_choices": list(Sources.values),
+                "date_formats": choice_payload(DateFormatChoices.choices),
+                "time_formats": choice_payload(TimeFormatChoices.choices),
+                "week_start_days": choice_payload(WeekStartDayChoices.choices),
+                "quick_watch_dates": choice_payload(QuickWatchDateChoices.choices),
             },
         )

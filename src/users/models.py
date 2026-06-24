@@ -798,6 +798,7 @@ class User(AbstractUser):
             "steam": "Import from Steam",
             "imdb": "Import from IMDB",
             "goodreads": "Import from GoodReads",
+            "storygraph": "Import from StoryGraph",
         }
 
         # Reverse mapping to get source from task name

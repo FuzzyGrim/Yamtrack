@@ -1,4 +1,6 @@
+import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 @Observable
@@ -136,6 +138,289 @@ final class ProfileViewModel {
     }
 }
 
+@MainActor
+@Observable
+final class ProfileSettingsViewModel {
+    var profile: UserProfile?
+    var settingsOptions = SettingsOptions(dateFormats: [], timeFormats: [], weekStartDays: [], quickWatchDates: [])
+    var mediaTypes: [String] = []
+    var displayName = ""
+    var username = ""
+    var bio = ""
+    var pronouns = ""
+    var location = ""
+    var isPrivate = false
+    var enabledMediaTypes: Set<String> = []
+    var dateFormat = "Y-m-d"
+    var timeFormat = "H:i"
+    var weekStartDay = "monday"
+    var quickWatchDate = "current_date"
+    var releaseNotificationsEnabled = true
+    var dailyDigestEnabled = true
+    var oldPassword = ""
+    var newPassword = ""
+    var newPasswordConfirm = ""
+    var isLoadingOptions = false
+    var isSavingProfile = false
+    var isSavingAvatar = false
+    var isSavingPreferences = false
+    var isSavingPassword = false
+    var errorMessage: String?
+    var successMessage: String?
+    var fieldErrors: [String: String] = [:]
+
+    private let profileRepository: ProfileRepository
+    private let mediaRepository: MediaRepository
+    private let onUnauthorized: () -> Void
+
+    init(profileRepository: ProfileRepository, mediaRepository: MediaRepository, onUnauthorized: @escaping () -> Void) {
+        self.profileRepository = profileRepository
+        self.mediaRepository = mediaRepository
+        self.onUnauthorized = onUnauthorized
+    }
+
+    func load(profile: UserProfile?) {
+        self.profile = profile
+        guard let profile else { return }
+        displayName = profile.displayName
+        username = profile.username
+        bio = profile.bio ?? ""
+        pronouns = profile.pronouns ?? ""
+        location = profile.location ?? ""
+        isPrivate = profile.isPrivate
+        enabledMediaTypes = Set(profile.preferences.enabledMediaTypes)
+        dateFormat = profile.preferences.dateFormat ?? "Y-m-d"
+        timeFormat = profile.preferences.timeFormat ?? "H:i"
+        weekStartDay = profile.preferences.weekStartDay ?? "monday"
+        quickWatchDate = profile.preferences.quickWatchDate ?? "current_date"
+        releaseNotificationsEnabled = profile.preferences.releaseNotificationsEnabled
+        dailyDigestEnabled = profile.preferences.dailyDigestEnabled
+    }
+
+    func loadOptions() async {
+        guard mediaTypes.isEmpty else { return }
+        isLoadingOptions = true
+        defer { isLoadingOptions = false }
+
+        do {
+            let meta = try await mediaRepository.meta()
+            mediaTypes = meta.mediaTypes.filter { $0 != "episode" }
+            settingsOptions = meta.settingsOptions ?? settingsOptions
+        } catch {
+            mediaTypes = Array(Set(APIConstants.fallbackMediaTypes).union(enabledMediaTypes)).sorted()
+        }
+    }
+
+    var hasProfileChanges: Bool {
+        guard let profile else { return false }
+        return displayName != profile.displayName
+            || username != profile.username
+            || bio != (profile.bio ?? "")
+            || pronouns != (profile.pronouns ?? "")
+            || location != (profile.location ?? "")
+            || isPrivate != profile.isPrivate
+    }
+
+    var hasPreferenceChanges: Bool {
+        guard let profile else { return false }
+        let preferences = profile.preferences
+        return enabledMediaTypes != Set(preferences.enabledMediaTypes)
+            || dateFormat != (preferences.dateFormat ?? "Y-m-d")
+            || timeFormat != (preferences.timeFormat ?? "H:i")
+            || weekStartDay != (preferences.weekStartDay ?? "monday")
+            || quickWatchDate != (preferences.quickWatchDate ?? "current_date")
+            || releaseNotificationsEnabled != preferences.releaseNotificationsEnabled
+            || dailyDigestEnabled != preferences.dailyDigestEnabled
+    }
+
+    @discardableResult
+    func saveProfile() async -> UserProfile? {
+        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUsername.isEmpty else {
+            fieldErrors = ["username": "Username is required."]
+            return nil
+        }
+
+        isSavingProfile = true
+        clearMessages()
+        defer { isSavingProfile = false }
+
+        do {
+            let updated = try await profileRepository.updateProfile(ProfileUpdateRequest(
+                username: trimmedUsername,
+                displayName: displayName,
+                bio: bio,
+                pronouns: pronouns,
+                location: location,
+                isPrivate: isPrivate
+            ))
+            apply(updated, message: "Profile updated.")
+            return updated
+        } catch {
+            handle(error)
+            return nil
+        }
+    }
+
+    @discardableResult
+    func saveAvatar(from item: PhotosPickerItem?) async -> UserProfile? {
+        guard let item else { return nil }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else { return nil }
+            let type = item.supportedContentTypes.first
+            let mimeType = type?.preferredMIMEType ?? "image/jpeg"
+            let fileExtension = type?.preferredFilenameExtension ?? "jpg"
+            return await uploadAvatar(imageData: data, fileName: "avatar.\(fileExtension)", mimeType: mimeType)
+        } catch {
+            handle(error)
+            return nil
+        }
+    }
+
+    @discardableResult
+    func uploadAvatar(imageData: Data, fileName: String, mimeType: String) async -> UserProfile? {
+        isSavingAvatar = true
+        clearMessages()
+        defer { isSavingAvatar = false }
+
+        do {
+            let avatarUrl = try await profileRepository.uploadAvatar(imageData: imageData, fileName: fileName, mimeType: mimeType)
+            guard let updated = profile?.replacingAvatarUrl(avatarUrl) else { return nil }
+            apply(updated, message: "Photo updated.")
+            return updated
+        } catch {
+            handle(error)
+            return nil
+        }
+    }
+
+    @discardableResult
+    func removeAvatar() async -> UserProfile? {
+        isSavingAvatar = true
+        clearMessages()
+        defer { isSavingAvatar = false }
+
+        do {
+            let avatarUrl = try await profileRepository.deleteAvatar()
+            guard let updated = profile?.replacingAvatarUrl(avatarUrl) else { return nil }
+            apply(updated, message: "Photo removed.")
+            return updated
+        } catch {
+            handle(error)
+            return nil
+        }
+    }
+
+    @discardableResult
+    func savePreferences() async -> UserProfile? {
+        guard !enabledMediaTypes.isEmpty else {
+            fieldErrors = ["enabled_media_types": "Enable at least one media type."]
+            return nil
+        }
+
+        isSavingPreferences = true
+        clearMessages()
+        defer { isSavingPreferences = false }
+
+        do {
+            let preferences = try await profileRepository.updatePreferences(PreferencesUpdateRequest(
+                enabledMediaTypes: enabledMediaTypes.sorted(),
+                dateFormat: dateFormat,
+                timeFormat: timeFormat,
+                weekStartDay: weekStartDay,
+                quickWatchDate: quickWatchDate,
+                releaseNotificationsEnabled: releaseNotificationsEnabled,
+                dailyDigestEnabled: dailyDigestEnabled
+            ))
+            guard let updated = profile?.replacingPreferences(preferences) else { return nil }
+            apply(updated, message: "Preferences updated.")
+            return updated
+        } catch {
+            handle(error)
+            return nil
+        }
+    }
+
+    func changePassword() async -> Bool {
+        guard newPassword == newPasswordConfirm else {
+            fieldErrors = ["new_password_confirm": "Passwords do not match."]
+            return false
+        }
+        guard newPassword.count >= 8 else {
+            fieldErrors = ["new_password": "Password must be at least 8 characters."]
+            return false
+        }
+
+        isSavingPassword = true
+        clearMessages()
+        defer { isSavingPassword = false }
+
+        do {
+            try await profileRepository.changePassword(PasswordChangeRequest(
+                oldPassword: oldPassword,
+                newPassword: newPassword,
+                newPasswordConfirm: newPasswordConfirm
+            ))
+            oldPassword = ""
+            newPassword = ""
+            newPasswordConfirm = ""
+            successMessage = "Password updated."
+            return true
+        } catch {
+            handle(error)
+            return false
+        }
+    }
+
+    private func apply(_ updated: UserProfile, message: String) {
+        profile = updated
+        load(profile: updated)
+        successMessage = message
+        NotificationCenter.default.post(name: .profileDidUpdate, object: nil, userInfo: ["profile": updated])
+    }
+
+    private func clearMessages() {
+        errorMessage = nil
+        successMessage = nil
+        fieldErrors = [:]
+    }
+
+    private func handle(_ error: Error) {
+        fieldErrors = APIValidationMessages.fieldErrors(from: error)
+        errorMessage = fieldErrors.isEmpty ? error.localizedDescription : fieldErrors.values.joined(separator: "\n")
+        if case APIError.unauthorized = error {
+            onUnauthorized()
+        }
+    }
+}
+
+enum APIValidationMessages {
+    static func fieldErrors(from error: Error) -> [String: String] {
+        guard case let APIError.httpStatus(_, body) = error,
+              let data = body?.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return [:]
+        }
+        if let error = json["error"] as? [String: Any],
+           let fields = error["fields"] as? [String: Any] {
+            return flatten(fields)
+        }
+        return flatten(json)
+    }
+
+    private static func flatten(_ fields: [String: Any]) -> [String: String] {
+        fields.compactMapValues { value in
+            if let messages = value as? [String] {
+                return messages.first
+            }
+            if let messages = value as? [Any] {
+                return messages.first.map { String(describing: $0) }
+            }
+            return value as? String
+        }
+    }
+}
+
 struct ProfileView: View {
     @State private var viewModel: ProfileViewModel
     @State private var selectedRef: MediaRef?
@@ -143,12 +428,15 @@ struct ProfileView: View {
     @State private var hofPickerSlot: FavoriteSlot?
     @State private var hofActionSlot: FavoriteSlot?
 
+    private let profileRepository: ProfileRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
+    private let listRepository: ListRepository
     private let importCoordinator: LetterboxdImportCoordinator
     private let onLogout: () -> Void
     private let onOpenDiary: () -> Void
+    private let onOpenLibrary: (LibraryShelf) -> Void
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -158,9 +446,11 @@ struct ProfileView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        listRepository: ListRepository,
         importCoordinator: LetterboxdImportCoordinator,
         onLogout: @escaping () -> Void,
         onOpenDiary: @escaping () -> Void,
+        onOpenLibrary: @escaping (LibraryShelf) -> Void,
         selectedTab: AppTab = .profile,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -171,12 +461,15 @@ struct ProfileView: View {
             trackingRepository: trackingRepository,
             onUnauthorized: onUnauthorized
         ))
+        self.profileRepository = profileRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
+        self.listRepository = listRepository
         self.importCoordinator = importCoordinator
         self.onLogout = onLogout
         self.onOpenDiary = onOpenDiary
+        self.onOpenLibrary = onOpenLibrary
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -210,8 +503,15 @@ struct ProfileView: View {
             .sheet(isPresented: $isSettingsPresented) {
                 ProfileSettingsSheet(
                     profile: viewModel.profile,
+                    profileRepository: profileRepository,
+                    mediaRepository: mediaRepository,
+                    onProfileUpdated: { updated in
+                        viewModel.profile = updated
+                        Swift.Task<Void, Never> { await viewModel.reload() }
+                    },
+                    onUnauthorized: onUnauthorized,
                     importCoordinator: importCoordinator,
-                    onLogout: onLogout,
+                    onLogout: onLogout
                 )
             }
             .sheet(item: $hofPickerSlot) { slot in
@@ -277,6 +577,7 @@ struct ProfileView: View {
                             hero(profile)
                             inProgressSection
                             activitySection
+                            profileMenuSection(profile.counts)
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 28)
@@ -348,6 +649,7 @@ struct ProfileView: View {
                     }
 
                     avatar(profile)
+                        .offset(y: -14)
                 }
                 .frame(height: 210)
                 .padding(.top, 8)
@@ -444,6 +746,107 @@ struct ProfileView: View {
                     selectedRef = entry.media.ref
                 }
             }
+        }
+    }
+
+    private func profileMenuSection(_ counts: ProfileCounts) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(ProfileMenuDestination.allCases.enumerated()), id: \.element) { index, destination in
+                profileMenuLink(
+                    destination,
+                    count: destination.count(from: counts),
+                    showsDivider: index != ProfileMenuDestination.allCases.count - 1
+                )
+            }
+        }
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func profileMenuLink(_ destination: ProfileMenuDestination, count: Int, showsDivider: Bool) -> some View {
+        switch destination {
+        case .library:
+            Button {
+                onOpenLibrary(.tracked)
+            } label: {
+                ProfileMenuRow(title: destination.title, count: count, showsDivider: showsDivider)
+            }
+            .buttonStyle(.plain)
+        case .diary:
+            Button {
+                onOpenDiary()
+            } label: {
+                ProfileMenuRow(title: destination.title, count: count, showsDivider: showsDivider)
+            }
+            .buttonStyle(.plain)
+        case .reviews:
+            NavigationLink {
+                ProfileReviewsView(
+                    diaryRepository: diaryRepository,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
+                    onUnauthorized: onUnauthorized
+                )
+            } label: {
+                ProfileMenuRow(title: destination.title, count: count, showsDivider: showsDivider)
+            }
+            .buttonStyle(.plain)
+        case .lists:
+            NavigationLink {
+                ProfileListsView(
+                    listRepository: listRepository,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    diaryRepository: diaryRepository,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
+                    onUnauthorized: onUnauthorized
+                )
+            } label: {
+                ProfileMenuRow(title: destination.title, count: count, showsDivider: showsDivider)
+            }
+            .buttonStyle(.plain)
+        case .planned:
+            Button {
+                onOpenLibrary(.planning)
+            } label: {
+                ProfileMenuRow(title: destination.title, count: count, showsDivider: showsDivider)
+            }
+            .buttonStyle(.plain)
+        case .likes:
+            NavigationLink {
+                ProfileLikesView(
+                    diaryRepository: diaryRepository,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
+                    onUnauthorized: onUnauthorized
+                )
+            } label: {
+                ProfileMenuRow(title: destination.title, count: count, showsDivider: showsDivider)
+            }
+            .buttonStyle(.plain)
+        case .tags:
+            NavigationLink {
+                ProfileTagsView(
+                    diaryRepository: diaryRepository,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
+                    onUnauthorized: onUnauthorized
+                )
+            } label: {
+                ProfileMenuRow(title: destination.title, count: count, showsDivider: showsDivider)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -745,6 +1148,81 @@ private struct ProfileStatChip: View {
     }
 }
 
+enum ProfileMenuDestination: CaseIterable, Hashable {
+    case library
+    case diary
+    case reviews
+    case lists
+    case planned
+    case likes
+    case tags
+
+    var title: String {
+        switch self {
+        case .library: "Library"
+        case .diary: "Diary"
+        case .reviews: "Reviews"
+        case .lists: "Lists"
+        case .planned: "Planned"
+        case .likes: "Likes"
+        case .tags: "Tags"
+        }
+    }
+
+    func count(from counts: ProfileCounts) -> Int {
+        switch self {
+        case .library: counts.libraryItems
+        case .diary: counts.diaryEntries
+        case .reviews: counts.reviews
+        case .lists: counts.lists
+        case .planned: counts.plannedItems
+        case .likes: counts.likedItems
+        case .tags: counts.tags
+        }
+    }
+}
+
+struct ProfileMenuRow: View {
+    let title: String
+    let count: Int
+    var showsDivider = true
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.82))
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+
+            Spacer(minLength: 12)
+
+            Text(count.formatted())
+                .font(.system(size: 21, weight: .medium))
+                .foregroundStyle(.white.opacity(0.46))
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.white.opacity(0.32))
+        }
+        .frame(minHeight: 58)
+        .padding(.horizontal, 14)
+        .contentShape(Rectangle())
+        .overlay(alignment: .bottom) {
+            if showsDivider {
+                Rectangle()
+                    .fill(.white.opacity(0.08))
+                    .frame(height: 1)
+                    .padding(.leading, 14)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(count)")
+    }
+}
+
 private struct ProfileSection<Content: View>: View {
     let title: String
     let action: (() -> Void)?
@@ -948,36 +1426,42 @@ private struct EmptyProfileCard: View {
 
 private struct ProfileSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var viewModel: ProfileSettingsViewModel
     @State private var isImportStatusPresented = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
     let profile: UserProfile?
+    let onProfileUpdated: (UserProfile) -> Void
     let importCoordinator: LetterboxdImportCoordinator
     let onLogout: () -> Void
+
+    init(
+        profile: UserProfile?,
+        profileRepository: ProfileRepository,
+        mediaRepository: MediaRepository,
+        onProfileUpdated: @escaping (UserProfile) -> Void,
+        onUnauthorized: @escaping () -> Void,
+        importCoordinator: LetterboxdImportCoordinator,
+        onLogout: @escaping () -> Void
+    ) {
+        self.profile = profile
+        self.onProfileUpdated = onProfileUpdated
+        self.importCoordinator = importCoordinator
+        self.onLogout = onLogout
+        _viewModel = State(initialValue: ProfileSettingsViewModel(
+            profileRepository: profileRepository,
+            mediaRepository: mediaRepository,
+            onUnauthorized: onUnauthorized
+        ))
+    }
 
     var body: some View {
         NavigationStack {
             List {
                 if let profile {
-                    Section("Account") {
-                        LabeledContent("Name", value: profile.displayName)
-                        LabeledContent("Username", value: "@\(profile.username)")
-                        if let email = profile.email?.trimmedNonEmpty {
-                            LabeledContent("Email", value: email)
-                        }
-                        LabeledContent("Privacy", value: profile.isPrivate ? "Private" : "Public")
-                    }
-
-                    Section("Preferences") {
-                        LabeledContent("Media Types", value: profile.preferences.enabledMediaTypes.map(\.profileSlotTitle).joined(separator: ", "))
-                        LabeledContent("Release Notifications", value: profile.preferences.releaseNotificationsEnabled ? "On" : "Off")
-                        LabeledContent("Daily Digest", value: profile.preferences.dailyDigestEnabled ? "On" : "Off")
-                        if let dateFormat = profile.preferences.dateFormat?.trimmedNonEmpty {
-                            LabeledContent("Date Format", value: dateFormat)
-                        }
-                        if let weekStartDay = profile.preferences.weekStartDay?.trimmedNonEmpty {
-                            LabeledContent("Week Starts", value: weekStartDay.profileSlotTitle)
-                        }
-                    }
+                    accountSection(profile)
+                    preferencesSection
+                    passwordSection
                 }
 
                 Section("Import") {
@@ -987,12 +1471,6 @@ private struct ProfileSettingsSheet: View {
                 Section("App") {
                     LabeledContent("API Base URL", value: AppConfig.apiBaseURL.absoluteString)
                     LabeledContent("API Prefix", value: AppConfig.apiPrefix)
-                }
-
-                Section {
-                    Text("Profile fields, avatar upload, and preference saves need writable API contracts before they become editable here.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
 
                 Section {
@@ -1006,6 +1484,18 @@ private struct ProfileSettingsSheet: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                viewModel.load(profile: profile)
+                await viewModel.loadOptions()
+            }
+            .onChange(of: selectedPhotoItem) { _, newItem in
+                Swift.Task<Void, Never> {
+                    if let updated = await viewModel.saveAvatar(from: newItem) {
+                        onProfileUpdated(updated)
+                    }
+                    selectedPhotoItem = nil
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") {
@@ -1020,6 +1510,204 @@ private struct ProfileSettingsSheet: View {
                 )
             }
         }
+    }
+
+    private func accountSection(_ profile: UserProfile) -> some View {
+        let isSavingAvatar = viewModel.isSavingAvatar
+        let avatarUrl = viewModel.profile?.avatarUrl ?? profile.avatarUrl
+
+        return Section("Account") {
+            HStack(spacing: 14) {
+                AsyncImage(url: URL(string: avatarUrl ?? "")) { phase in
+                    if case let .success(image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .foregroundStyle(.secondary)
+                            .padding(5)
+                    }
+                }
+                .frame(width: 54, height: 54)
+                .clipShape(Circle())
+                .background(.secondary.opacity(0.12), in: Circle())
+
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Label(isSavingAvatar ? "Uploading" : "Change Photo", systemImage: "photo")
+                }
+                .disabled(isSavingAvatar)
+
+                Spacer()
+
+                if avatarUrl != nil {
+                    Button("Remove", role: .destructive) {
+                        Swift.Task<Void, Never> {
+                            if let updated = await viewModel.removeAvatar() {
+                                onProfileUpdated(updated)
+                            }
+                        }
+                    }
+                    .disabled(isSavingAvatar)
+                }
+            }
+
+            TextField("Display Name", text: $viewModel.displayName)
+            fieldError("display_name", "displayName")
+
+            TextField("Username", text: $viewModel.username)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            fieldError("username")
+
+            if let email = profile.email?.trimmedNonEmpty {
+                LabeledContent("Email", value: email)
+            }
+
+            TextField("Bio", text: $viewModel.bio, axis: .vertical)
+                .lineLimit(3...5)
+            fieldError("bio")
+
+            TextField("Pronouns", text: $viewModel.pronouns)
+            fieldError("pronouns")
+
+            TextField("Location", text: $viewModel.location)
+            fieldError("location")
+
+            Toggle("Private account", isOn: $viewModel.isPrivate)
+            fieldError("is_private", "profile_private")
+
+            saveButton("Save Profile", isSaving: viewModel.isSavingProfile, isDisabled: !viewModel.hasProfileChanges) {
+                if let updated = await viewModel.saveProfile() {
+                    onProfileUpdated(updated)
+                }
+            }
+
+            statusMessages
+        }
+    }
+
+    private var preferencesSection: some View {
+        Section("Preferences") {
+            ForEach(mediaTypeOptions, id: \.self) { mediaType in
+                Toggle(mediaType.profileSlotTitle, isOn: mediaTypeBinding(mediaType))
+            }
+            fieldError("enabled_media_types", "enabledMediaTypes")
+
+            Picker("Date Format", selection: $viewModel.dateFormat) {
+                ForEach(choices(viewModel.settingsOptions.dateFormats, current: viewModel.dateFormat)) { choice in
+                    Text(choice.label).tag(choice.value)
+                }
+            }
+
+            Picker("Time Format", selection: $viewModel.timeFormat) {
+                ForEach(choices(viewModel.settingsOptions.timeFormats, current: viewModel.timeFormat)) { choice in
+                    Text(choice.label).tag(choice.value)
+                }
+            }
+
+            Picker("Week Starts", selection: $viewModel.weekStartDay) {
+                ForEach(choices(viewModel.settingsOptions.weekStartDays, current: viewModel.weekStartDay)) { choice in
+                    Text(choice.label).tag(choice.value)
+                }
+            }
+
+            Picker("Quick Watch Date", selection: $viewModel.quickWatchDate) {
+                ForEach(choices(viewModel.settingsOptions.quickWatchDates, current: viewModel.quickWatchDate)) { choice in
+                    Text(choice.label).tag(choice.value)
+                }
+            }
+
+            Toggle("Release Notifications", isOn: $viewModel.releaseNotificationsEnabled)
+            Toggle("Daily Digest", isOn: $viewModel.dailyDigestEnabled)
+
+            saveButton("Save Preferences", isSaving: viewModel.isSavingPreferences, isDisabled: !viewModel.hasPreferenceChanges || viewModel.enabledMediaTypes.isEmpty) {
+                if let updated = await viewModel.savePreferences() {
+                    onProfileUpdated(updated)
+                }
+            }
+        }
+    }
+
+    private var passwordSection: some View {
+        Section("Security") {
+            SecureField("Current Password", text: $viewModel.oldPassword)
+            fieldError("old_password", "oldPassword")
+
+            SecureField("New Password", text: $viewModel.newPassword)
+            fieldError("new_password", "newPassword")
+
+            SecureField("Confirm New Password", text: $viewModel.newPasswordConfirm)
+            fieldError("new_password_confirm", "newPasswordConfirm")
+
+            saveButton("Change Password", isSaving: viewModel.isSavingPassword, isDisabled: viewModel.oldPassword.isEmpty || viewModel.newPassword.isEmpty || viewModel.newPasswordConfirm.isEmpty) {
+                _ = await viewModel.changePassword()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statusMessages: some View {
+        if let error = viewModel.errorMessage?.trimmedNonEmpty {
+            Label(error, systemImage: "exclamationmark.triangle")
+                .font(.footnote)
+                .foregroundStyle(.red)
+        } else if let success = viewModel.successMessage?.trimmedNonEmpty {
+            Label(success, systemImage: "checkmark.circle")
+                .font(.footnote)
+                .foregroundStyle(.green)
+        }
+    }
+
+    private func saveButton(_ title: String, isSaving: Bool, isDisabled: Bool, action: @escaping () async -> Void) -> some View {
+        Button {
+            Swift.Task<Void, Never> { await action() }
+        } label: {
+            HStack {
+                Text(isSaving ? "Saving..." : title)
+                if isSaving {
+                    Spacer()
+                    ProgressView()
+                }
+            }
+        }
+        .disabled(isDisabled || isSaving)
+    }
+
+    @ViewBuilder
+    private func fieldError(_ keys: String...) -> some View {
+        if let message = keys.lazy.compactMap({ viewModel.fieldErrors[$0] }).first {
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.red)
+        }
+    }
+
+    private var mediaTypeOptions: [String] {
+        let options = viewModel.mediaTypes.isEmpty ? Array(Set(APIConstants.fallbackMediaTypes).union(viewModel.enabledMediaTypes)) : viewModel.mediaTypes
+        return options
+            .filter { $0 != "episode" }
+            .sorted { lhs, rhs in
+                let leftRank = ProfileFavorites.rank(lhs)
+                let rightRank = ProfileFavorites.rank(rhs)
+                return leftRank == rightRank ? lhs < rhs : leftRank < rightRank
+            }
+    }
+
+    private func mediaTypeBinding(_ mediaType: String) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.enabledMediaTypes.contains(mediaType) },
+            set: { isEnabled in
+                if isEnabled {
+                    viewModel.enabledMediaTypes.insert(mediaType)
+                } else {
+                    viewModel.enabledMediaTypes.remove(mediaType)
+                }
+            }
+        )
+    }
+
+    private func choices(_ choices: [PreferenceChoice], current: String) -> [PreferenceChoice] {
+        choices.isEmpty ? [PreferenceChoice(value: current, label: current.profileSlotTitle)] : choices
     }
 
     @ViewBuilder

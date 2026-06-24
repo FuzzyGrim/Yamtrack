@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.pagination import StandardResultsSetPagination
 from api.serializers.common import media_summary_from_item
 from api.serializers.tracking import (
     BookProgressSerializer,
@@ -33,19 +34,17 @@ class TrackingListView(APIView):
             ordering,
             search=search,
         )
-        return Response(
-            {
-                "count": len(queryset),
-                "next": None,
-                "previous": None,
-                "results": [
-                    {
-                        "media": media_summary_from_item(media.item, request=request, user=request.user),
-                        "tracking": tracking_service.serialize_tracking(media),
-                    }
-                    for media in queryset
-                ],
-            },
+        paginator = StandardResultsSetPagination()
+        page = list(paginator.paginate_queryset(queryset, request, view=self))
+        BasicMedia.objects.annotate_max_progress(page, media_type)
+        return paginator.get_paginated_response(
+            [
+                {
+                    "media": media_summary_from_item(media.item, request=request),
+                    "tracking": tracking_service.serialize_tracking(media),
+                }
+                for media in page
+            ],
         )
 
 

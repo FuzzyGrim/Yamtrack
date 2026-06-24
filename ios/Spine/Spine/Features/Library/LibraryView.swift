@@ -65,6 +65,10 @@ final class LibraryViewModel {
         item.tracking.status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "planning"
     }
 
+    private var statusFilter: String? {
+        shelf == .planning ? "Planning" : nil
+    }
+
     func bootstrap() async {
         guard !didBootstrap else { return }
         didBootstrap = true
@@ -95,6 +99,7 @@ final class LibraryViewModel {
         requestGeneration += 1
         let generation = requestGeneration
         let selectedType = mediaType
+        let selectedStatus = statusFilter
 
         items = []
         totalCount = 0
@@ -104,12 +109,12 @@ final class LibraryViewModel {
         isLoadingInitial = true
 
         do {
-            let response = try await trackingRepository.list(mediaType: selectedType, page: nil)
-            guard generation == requestGeneration, selectedType == mediaType else { return }
+            let response = try await trackingRepository.list(mediaType: selectedType, page: nil, status: selectedStatus)
+            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter else { return }
             apply(response, replacingItems: true)
             isLoadingInitial = false
         } catch {
-            guard generation == requestGeneration, selectedType == mediaType else { return }
+            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter else { return }
             errorMessage = error.localizedDescription
             isLoadingInitial = false
             handleUnauthorized(error)
@@ -131,16 +136,17 @@ final class LibraryViewModel {
 
         let generation = requestGeneration
         let selectedType = mediaType
+        let selectedStatus = statusFilter
         isLoadingNextPage = true
         nextPageErrorMessage = nil
 
         do {
-            let response = try await trackingRepository.list(mediaType: selectedType, page: page)
-            guard generation == requestGeneration, selectedType == mediaType else { return }
+            let response = try await trackingRepository.list(mediaType: selectedType, page: page, status: selectedStatus)
+            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter else { return }
             apply(response, replacingItems: false)
             isLoadingNextPage = false
         } catch {
-            guard generation == requestGeneration, selectedType == mediaType else { return }
+            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter else { return }
             nextPageErrorMessage = error.localizedDescription
             isLoadingNextPage = false
             handleUnauthorized(error)
@@ -169,6 +175,7 @@ final class LibraryViewModel {
 
 struct LibraryView: View {
     @State private var viewModel: LibraryViewModel
+    @Binding private var requestedShelf: LibraryShelf?
 
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
@@ -181,10 +188,12 @@ struct LibraryView: View {
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
+        requestedShelf: Binding<LibraryShelf?> = .constant(nil),
         selectedTab: AppTab = .library,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
     ) {
+        _requestedShelf = requestedShelf
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
@@ -219,12 +228,25 @@ struct LibraryView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(.hidden, for: .navigationBar)
             .task {
+                consumeRequestedShelf()
                 await viewModel.bootstrap()
+            }
+            .onChange(of: requestedShelf) {
+                consumeRequestedShelf()
+            }
+            .onChange(of: viewModel.shelf) {
+                Task { await viewModel.reload() }
             }
             .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
                 Task { await viewModel.reload() }
             }
         }
+    }
+
+    private func consumeRequestedShelf() {
+        guard let requestedShelf else { return }
+        viewModel.shelf = requestedShelf
+        self.requestedShelf = nil
     }
 
     private var header: some View {
@@ -554,15 +576,11 @@ private struct LibraryListRow: View {
             parts.append("\(rating) stars")
         }
         if let progress = item.tracking.progress {
-            parts.append(Self.progressText(progress))
+            if let progressText = progress.compactDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: item.media.ref)) {
+                parts.append(progressText)
+            }
         }
         return parts.joined(separator: " - ")
-    }
-
-    private static func progressText(_ progress: ProgressState) -> String {
-        let value = progress.value.map { NSDecimalNumber(decimal: $0).stringValue } ?? "0"
-        let max = progress.max.map { "/\(NSDecimalNumber(decimal: $0).stringValue)" } ?? ""
-        return "\(value)\(max) \(progress.unit)"
     }
 }
 

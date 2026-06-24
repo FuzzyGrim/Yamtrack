@@ -99,6 +99,8 @@ final class HomeViewModel {
 }
 
 struct HomeView: View {
+    private static let headerAvatarSize: CGFloat = 58
+
     @State private var viewModel: HomeViewModel
     @State private var selectedRef: MediaRef?
     @State private var selectedEntry: DiaryEntry?
@@ -161,6 +163,19 @@ struct HomeView: View {
             .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
                 Task { await viewModel.reload() }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .profileDidUpdate)) { notification in
+                if let profile = notification.userInfo?["profile"] as? UserProfile {
+                    viewModel.profile = profile
+                    Task { await viewModel.loadInProgress() }
+                } else {
+                    Task { await viewModel.reload() }
+                }
+            }
+            .onChange(of: selectedRef) { oldValue, newValue in
+                if oldValue != nil, newValue == nil {
+                    Task { await viewModel.loadInProgress() }
+                }
+            }
             .fullScreenCover(item: $selectedRef) { ref in
                 MediaDetailView(
                     ref: ref,
@@ -188,6 +203,14 @@ struct HomeView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
+            Button {
+                onSelectTab(.profile)
+            } label: {
+                HomeAvatar(profile: viewModel.profile, size: Self.headerAvatarSize)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Profile")
+
             VStack(alignment: .leading, spacing: 4) {
                 Text("Home")
                     .font(.system(size: 32, weight: .black))
@@ -213,14 +236,6 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Search")
-
-            Button {
-                onSelectTab(.profile)
-            } label: {
-                HomeAvatar(profile: viewModel.profile)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Profile")
         }
     }
 
@@ -260,7 +275,7 @@ struct HomeView: View {
     }
 
     private var activitySection: some View {
-        HomeSection(title: "Social Activity") {
+        HomeSection(title: "Activity") {
             if viewModel.isLoadingActivity {
                 HomeActivitySkeleton()
             } else if let error = viewModel.activityErrorMessage {
@@ -301,6 +316,7 @@ struct HomeView: View {
 
 private struct HomeAvatar: View {
     let profile: UserProfile?
+    var size: CGFloat = 42
 
     var body: some View {
         AsyncImage(url: URL(string: profile?.avatarUrl ?? "")) { phase in
@@ -315,7 +331,7 @@ private struct HomeAvatar: View {
                     .padding(4)
             }
         }
-        .frame(width: 42, height: 42)
+        .frame(width: size, height: size)
         .background(.white.opacity(0.10), in: Circle())
         .clipShape(Circle())
         .overlay {
@@ -394,14 +410,7 @@ private struct HomeInProgressCard: View {
     }
 
     private var metadataText: String {
-        Self.progressText(item.tracking.progress) ?? item.tracking.status ?? "In progress"
-    }
-
-    private static func progressText(_ progress: ProgressState?) -> String? {
-        guard let progress, let value = progress.value else { return nil }
-        let rawValue = NSDecimalNumber(decimal: value).stringValue
-        let maxValue = progress.max.map { "/\(NSDecimalNumber(decimal: $0).stringValue)" } ?? ""
-        return "\(rawValue)\(maxValue) \(progress.unit)"
+        item.tracking.progress?.compactDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: item.media.ref)) ?? item.tracking.status ?? "In progress"
     }
 }
 
@@ -419,7 +428,7 @@ private struct HomeActivityCard: View {
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
-                    Text("logged \(entry.media.title)")
+                    Text("logged \(mediaTypePhrase)")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white.opacity(0.52))
                         .lineLimit(1)
@@ -427,11 +436,12 @@ private struct HomeActivityCard: View {
 
                 Spacer(minLength: 0)
 
-                if let month = DiaryDateFormatter.monthHeader(from: entry.consumedAt ?? entry.createdAt) {
-                    Text(month)
+                if let date = DiaryDateFormatter.exactDate(from: entry.consumedAt ?? entry.createdAt) {
+                    Text(date)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.white.opacity(0.42))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                 }
             }
 
@@ -500,6 +510,33 @@ private struct HomeActivityCard: View {
             if entry.likeCount > 0 {
                 HomeChip(text: entry.likeCount.formatted(), systemName: "heart.fill")
             }
+        }
+    }
+
+    private var mediaTypePhrase: String {
+        switch entry.media.ref.mediaType {
+        case "movie":
+            "a movie"
+        case "tv":
+            "a TV show"
+        case "season":
+            "a season"
+        case "episode":
+            "an episode"
+        case "anime":
+            "an anime"
+        case "manga":
+            "a manga"
+        case "game":
+            "a game"
+        case "book":
+            "a book"
+        case "comic":
+            "a comic"
+        case "boardgame":
+            "a board game"
+        default:
+            "media"
         }
     }
 

@@ -13,4 +13,6 @@ class ImportSerializer(serializers.Serializer):
         source = self.context.get("source")
         if source == "letterboxd" and "file" not in attrs:
             raise serializers.ValidationError({"file": "A Letterboxd ZIP file is required."})
+        if source == "storygraph" and "file" not in attrs:
+            raise serializers.ValidationError({"file": "A StoryGraph CSV file is required."})
         return attrs

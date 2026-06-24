@@ -7,15 +7,19 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from api.serializers.common import media_summary_from_item
 from app.models import (
     CustomBackdropPreference,
     CustomPosterPreference,
     DiaryEntry,
     Item,
     MediaTypes,
+    Movie,
     Sources,
+    Status,
 )
 from app.services import update_diary_entry_tags
+from lists.models import CustomList
 
 
 class ApiV1FoundationTests(TestCase):
@@ -77,6 +81,112 @@ class ApiV1FoundationTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["username"], "mobile")
+
+    def test_me_includes_profile_menu_counts(self):
+        user = get_user_model().objects.create_user(username="profile-counts", password="strong-password-123")
+        completed = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Completed",
+        )
+        planned = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="551",
+            title="Planned",
+        )
+        Movie.objects.bulk_create(
+            [
+                Movie(user=user, item=completed, status=Status.IN_PROGRESS.value),
+                Movie(user=user, item=planned, status=Status.PLANNING.value),
+            ]
+        )
+        CustomList.objects.create(owner=user, name="Favorites")
+        reviewed = DiaryEntry.objects.create(
+            user=user,
+            item=completed,
+            consumed_at=timezone.now(),
+            review="Good.",
+            liked=True,
+        )
+        update_diary_entry_tags(reviewed, ["great"])
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/me/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        counts = response.data["counts"]
+        self.assertEqual(counts["library_items"], 1)
+        self.assertEqual(counts["reviews"], 1)
+        self.assertEqual(counts["planned_items"], 1)
+        self.assertEqual(counts["liked_items"], 1)
+        self.assertEqual(counts["tags"], 1)
+        self.assertEqual(counts["lists"], 1)
+
+    def test_tracking_list_paginates_before_serializing_movies(self):
+        user = get_user_model().objects.create_user(username="tracking-pages", password="strong-password-123")
+        self._create_movies(user, 30)
+        self.client.force_authenticate(user)
+
+        with patch("api.views.tracking.media_summary_from_item", wraps=media_summary_from_item) as summary_mock:
+            response = self.client.get("/api/v1/tracking/?media_type=movie")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 30)
+        self.assertEqual(len(response.data["results"]), 25)
+        self.assertIsNotNone(response.data["next"])
+        self.assertIsNone(response.data["previous"])
+        self.assertEqual(summary_mock.call_count, 25)
+
+    def test_tracking_list_page_two_returns_next_movie_page(self):
+        user = get_user_model().objects.create_user(username="tracking-page-two", password="strong-password-123")
+        self._create_movies(user, 30)
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/tracking/?media_type=movie&page=2")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 30)
+        self.assertEqual(len(response.data["results"]), 5)
+        self.assertIsNone(response.data["next"])
+        self.assertIsNotNone(response.data["previous"])
+
+    def test_tracking_list_status_filters_planning_items(self):
+        user = get_user_model().objects.create_user(username="tracking-planning", password="strong-password-123")
+        completed_items = self._create_movie_items(3, title_prefix="Completed", media_id_prefix="c")
+        planned_items = self._create_movie_items(4, title_prefix="Planned", media_id_prefix="p")
+        Movie.objects.bulk_create(
+            [Movie(user=user, item=item, status=Status.COMPLETED.value) for item in completed_items]
+            + [Movie(user=user, item=item, status=Status.PLANNING.value) for item in planned_items]
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/tracking/?media_type=movie&status=Planning")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 4)
+        self.assertEqual(len(response.data["results"]), 4)
+        self.assertEqual(
+            {item["tracking"]["status"] for item in response.data["results"]},
+            {Status.PLANNING.value},
+        )
+
+    def _create_movies(self, user, count):
+        items = self._create_movie_items(count)
+        Movie.objects.bulk_create([Movie(user=user, item=item, status=Status.COMPLETED.value) for item in items])
+        return items
+
+    def _create_movie_items(self, count, title_prefix="Movie", media_id_prefix="m"):
+        return [
+            Item.objects.create(
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                media_id=f"{media_id_prefix}{index}",
+                title=f"{title_prefix} {index:02d}",
+            )
+            for index in range(count)
+        ]
 
     @patch("api.views.profile.provider_services.get_media_metadata")
     def test_me_hof_put_materializes_missing_item(self, metadata_mock):
@@ -813,6 +923,52 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["id"], theater_entry.id)
         self.assertEqual(response.data["results"][0]["tags"], ["in theater"])
+
+    def test_diary_profile_menu_filters_reviews_likes_and_my_tags(self):
+        user = get_user_model().objects.create_user(username="profile-menu", password="strong-password-123")
+        other = get_user_model().objects.create_user(username="other-tags", password="strong-password-123")
+        reviewed_item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Reviewed",
+        )
+        plain_item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="551",
+            title="Plain",
+        )
+        other_item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="552",
+            title="Other",
+        )
+        reviewed = DiaryEntry.objects.create(
+            user=user,
+            item=reviewed_item,
+            consumed_at=timezone.now(),
+            review_title="Title only",
+            liked=True,
+        )
+        plain = DiaryEntry.objects.create(user=user, item=plain_item, consumed_at=timezone.now())
+        other_entry = DiaryEntry.objects.create(user=other, item=other_item, consumed_at=timezone.now())
+        update_diary_entry_tags(reviewed, ["mine"])
+        update_diary_entry_tags(plain, ["also mine"])
+        update_diary_entry_tags(other_entry, ["not mine"])
+        self.client.force_authenticate(user)
+
+        reviews = self.client.get("/api/v1/diary/", {"has_review": "true"})
+        likes = self.client.get("/api/v1/diary/", {"liked": "true"})
+        tags = self.client.get("/api/v1/diary/tags/", {"mine": "true"})
+
+        self.assertEqual(reviews.status_code, status.HTTP_200_OK)
+        self.assertEqual([entry["id"] for entry in reviews.data["results"]], [reviewed.id])
+        self.assertEqual(likes.status_code, status.HTTP_200_OK)
+        self.assertEqual([entry["id"] for entry in likes.data["results"]], [reviewed.id])
+        self.assertEqual(tags.status_code, status.HTTP_200_OK)
+        self.assertEqual({tag["name"] for tag in tags.data["results"]}, {"mine", "also mine"})
 
     @patch("app.providers.tmdb.get_poster_images")
     def test_media_posters_endpoint_requires_auth_and_returns_original_first(self, posters_mock):

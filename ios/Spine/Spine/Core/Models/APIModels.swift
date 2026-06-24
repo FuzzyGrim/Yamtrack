@@ -15,6 +15,22 @@ struct MetaResponse: Decodable {
     let sources: [String: [String]]
     let statusChoices: [String]
     let sourceChoices: [String]
+    let dateFormats: [PreferenceChoice]?
+    let timeFormats: [PreferenceChoice]?
+    let weekStartDays: [PreferenceChoice]?
+    let quickWatchDates: [PreferenceChoice]?
+
+    var settingsOptions: SettingsOptions? {
+        guard let dateFormats, let timeFormats, let weekStartDays, let quickWatchDates else {
+            return nil
+        }
+        return SettingsOptions(
+            dateFormats: dateFormats,
+            timeFormats: timeFormats,
+            weekStartDays: weekStartDays,
+            quickWatchDates: quickWatchDates
+        )
+    }
 }
 
 enum APIConstants {

@@ -295,6 +295,11 @@ enum DiaryDateFormatter {
         return date.formatted(.dateTime.month(.wide).year())
     }
 
+    static func exactDate(from rawValue: String?) -> String? {
+        guard let date = date(from: rawValue) else { return nil }
+        return date.formatted(.dateTime.month(.abbreviated).day().year())
+    }
+
     static func dayNumber(from rawValue: String?) -> String? {
         guard let date = date(from: rawValue) else { return nil }
         return date.formatted(.dateTime.day())
