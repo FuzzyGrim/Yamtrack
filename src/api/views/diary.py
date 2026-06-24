@@ -26,12 +26,15 @@ class DiaryListView(APIView):
         media_type = request.query_params.get("media_type")
         year = request.query_params.get("year")
         item_id = request.query_params.get("item_id")
+        tag = request.query_params.get("tag", "").strip().lower()
         if media_type:
             entries = entries.filter(item__media_type=media_type)
         if year:
             entries = entries.filter(consumed_at__year=year)
         if item_id:
             entries = entries.filter(item_id=item_id)
+        if tag:
+            entries = entries.filter(tags__name=tag)
         return Response(
             {
                 "count": entries.count(),

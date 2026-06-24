@@ -15,6 +15,7 @@ from app.models import (
     MediaTypes,
     Sources,
 )
+from app.services import update_diary_entry_tags
 
 
 class ApiV1FoundationTests(TestCase):
@@ -785,6 +786,33 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(media["image_url"], media["poster_url"])
         self.assertIsNone(media["backdrop_url"])
         self.assertEqual(media["poster_orientation"], "unknown")
+
+    def test_diary_list_filters_by_multi_word_tag(self):
+        user = get_user_model().objects.create_user(username="diary-tag", password="strong-password-123")
+        theater_item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="550",
+            title="Theater Movie",
+        )
+        home_item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="551",
+            title="Home Movie",
+        )
+        theater_entry = DiaryEntry.objects.create(user=user, item=theater_item, consumed_at=timezone.now())
+        home_entry = DiaryEntry.objects.create(user=user, item=home_item, consumed_at=timezone.now())
+        update_diary_entry_tags(theater_entry, ["in theater"])
+        update_diary_entry_tags(home_entry, ["at home"])
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/diary/", {"tag": "in theater"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], theater_entry.id)
+        self.assertEqual(response.data["results"][0]["tags"], ["in theater"])
 
     @patch("app.providers.tmdb.get_poster_images")
     def test_media_posters_endpoint_requires_auth_and_returns_original_first(self, posters_mock):
