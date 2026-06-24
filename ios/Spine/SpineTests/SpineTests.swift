@@ -782,6 +782,60 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(preview.posterOrientation, .portrait)
     }
 
+    func testCustomListRankedMembershipAndPositionDecoding() throws {
+        let data = """
+        {
+          "count": 1,
+          "next": null,
+          "previous": null,
+          "results": [
+            {
+              "id": 7,
+              "name": "Ranked Watchlist",
+              "slug": "ranked-watchlist",
+              "description": "",
+              "visibility": "public",
+              "is_ranked": true,
+              "has_item": true,
+              "owner": {
+                "id": 1,
+                "username": "mika",
+                "display_name": "Mika",
+                "avatar_url": null
+              },
+              "image_url": null,
+              "preview_items": [
+                {
+                  "ref": {
+                    "item_id": 42,
+                    "source": "tmdb",
+                    "media_type": "movie",
+                    "media_id": "550",
+                    "season_number": null,
+                    "episode_number": null
+                  },
+                  "title": "Fight Club",
+                  "image_url": "https://example.com/fight-club.jpg",
+                  "position": 2
+                }
+              ],
+              "items_count": 3,
+              "updated_at": null,
+              "like_count": 0
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder.api.decode(PagedResponse<CustomListSummary>.self, from: data)
+        let list = try XCTUnwrap(response.results.first)
+        let preview = try XCTUnwrap(list.previewItems?.first)
+
+        XCTAssertTrue(list.isRanked)
+        XCTAssertEqual(list.hasItem, true)
+        XCTAssertEqual(preview.position, 2)
+    }
+
     func testMediaDetailDisplayPosterFallbackChain() throws {
         let legacy = """
         {
@@ -1290,6 +1344,85 @@ final class SpineTests: XCTestCase {
             "https://example.com/api/v1/me/liked-media/",
             "https://example.com/api/v1/me/liked-media/?page=2",
         ])
+        client.tokenProvider.clear()
+    }
+
+    func testListRepositorySendsManagementRequests() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        let repository = APIListRepository(client: client)
+        let ref = MediaRef(itemId: 42, source: "tmdb", mediaType: "movie", mediaId: "550", seasonNumber: nil, episodeNumber: nil)
+        var requests: [(method: String?, url: String)] = []
+
+        RequestCaptureURLProtocol.handler = { request in
+            requests.append((request.httpMethod, request.url!.absoluteString))
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+
+            let method = request.httpMethod ?? ""
+            let path = request.url!.path
+            if method == "GET", path.hasSuffix("/lists/") || path.hasSuffix("/lists") {
+                let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                XCTAssertEqual(query.first { $0.name == "ref[source]" }?.value, "tmdb")
+                XCTAssertEqual(query.first { $0.name == "ref[media_type]" }?.value, "movie")
+                XCTAssertEqual(query.first { $0.name == "ref[media_id]" }?.value, "550")
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    #"{"count":0,"next":null,"previous":null,"results":[]}"#.data(using: .utf8)!
+                )
+            }
+            if method == "POST", path.hasSuffix("/lists/") || path.hasSuffix("/lists") {
+                let body = try JSONDecoder.api.decode(CustomListWriteRequestEcho.self, from: requestBodyData(for: request))
+                XCTAssertEqual(body.name, "Watch")
+                XCTAssertEqual(body.visibility, "private")
+                XCTAssertEqual(body.isRanked, true)
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 201, httpVersion: nil, headerFields: nil)!,
+                    TestFixtures.customListSummaryJSON(id: 9, name: "Watch").data(using: .utf8)!
+                )
+            }
+            if method == "POST", path.hasSuffix("/lists/9/items/") || path.hasSuffix("/lists/9/items") {
+                let body = try JSONDecoder.api.decode(ListItemWriteRequestEcho.self, from: requestBodyData(for: request))
+                XCTAssertEqual(body.ref.mediaId, "550")
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 201, httpVersion: nil, headerFields: nil)!,
+                    #"{"item":{"ref":{"item_id":42,"source":"tmdb","media_type":"movie","media_id":"550","season_number":null,"episode_number":null},"title":"Fight Club","image_url":null}}"#.data(using: .utf8)!
+                )
+            }
+            if method == "PATCH", path.hasSuffix("/lists/9/items/reorder/") || path.hasSuffix("/lists/9/items/reorder") {
+                let body = try JSONDecoder.api.decode(ListItemsReorderRequestEcho.self, from: requestBodyData(for: request))
+                XCTAssertEqual(body.itemIds, [42, 17])
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    TestFixtures.customListDetailJSON(id: 9, name: "Watch").data(using: .utf8)!
+                )
+            }
+            if method == "DELETE", path.hasSuffix("/lists/9/") || path.hasSuffix("/lists/9") {
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 204, httpVersion: nil, headerFields: nil)!,
+                    Data()
+                )
+            }
+            XCTFail("Unexpected request \(request.httpMethod ?? "") \(request.url!.absoluteString)")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 500, httpVersion: nil, headerFields: nil)!,
+                Data()
+            )
+        }
+
+        _ = try await repository.list(membershipFor: ref)
+        _ = try await repository.create(CustomListWriteRequest(name: "Watch", description: "", visibility: "private", isRanked: true))
+        _ = try await repository.addItem(listId: 9, ref: ref)
+        _ = try await repository.reorderItems(listId: 9, itemIds: [42, 17])
+        try await repository.delete(id: 9)
+
+        XCTAssertEqual(requests.map(\.method), ["GET", "POST", "POST", "PATCH", "DELETE"])
         client.tokenProvider.clear()
     }
 
@@ -2791,6 +2924,21 @@ private func requestBodyData(for request: URLRequest) -> Data {
     return data
 }
 
+private struct CustomListWriteRequestEcho: Decodable {
+    let name: String?
+    let description: String?
+    let visibility: String?
+    let isRanked: Bool?
+}
+
+private struct ListItemWriteRequestEcho: Decodable {
+    let ref: MediaRef
+}
+
+private struct ListItemsReorderRequestEcho: Decodable {
+    let itemIds: [Int]
+}
+
 private final class FakeAuthRepository: AuthRepository {
     let hasStoredTokens: Bool
     let refreshError: Error?
@@ -3076,8 +3224,14 @@ private final class RecordingProfileRepository: ProfileRepository {
 }
 
 private struct FakeListRepository: ListRepository {
-    func list() async throws -> [CustomListSummary] { fatalError("Not used") }
+    func list(membershipFor ref: MediaRef?) async throws -> [CustomListSummary] { fatalError("Not used") }
     func detail(id: Int) async throws -> CustomListDetail { fatalError("Not used") }
+    func create(_ request: CustomListWriteRequest) async throws -> CustomListSummary { fatalError("Not used") }
+    func update(id: Int, _ request: CustomListWriteRequest) async throws -> CustomListDetail { fatalError("Not used") }
+    func delete(id: Int) async throws {}
+    func addItem(listId: Int, ref: MediaRef) async throws -> MediaSummary { fatalError("Not used") }
+    func removeItem(listId: Int, itemId: Int) async throws {}
+    func reorderItems(listId: Int, itemIds: [Int]) async throws -> CustomListDetail { fatalError("Not used") }
 }
 
 private final class HallOfFameProfileRepository: ProfileRepository {
@@ -3565,6 +3719,44 @@ private enum TestFixtures {
         notes: nil,
         updatedAt: nil
     )
+
+    static func customListSummaryJSON(id: Int, name: String) -> String {
+        """
+        {
+          "id": \(id),
+          "name": "\(name)",
+          "slug": "\(name.lowercased())",
+          "description": "",
+          "visibility": "private",
+          "is_ranked": false,
+          "owner": { "id": 1, "username": "mobile", "display_name": "Mobile", "avatar_url": null },
+          "image_url": null,
+          "preview_items": [],
+          "items_count": 0,
+          "updated_at": null,
+          "like_count": 0
+        }
+        """
+    }
+
+    static func customListDetailJSON(id: Int, name: String) -> String {
+        """
+        {
+          "id": \(id),
+          "name": "\(name)",
+          "slug": "\(name.lowercased())",
+          "description": "",
+          "visibility": "private",
+          "is_ranked": true,
+          "owner": { "id": 1, "username": "mobile", "display_name": "Mobile", "avatar_url": null },
+          "image_url": null,
+          "items_count": 0,
+          "updated_at": null,
+          "like_count": 0,
+          "items": []
+        }
+        """
+    }
 
     static let diaryEntry: DiaryEntry = try! JSONDecoder.api.decode(
         DiaryEntry.self,

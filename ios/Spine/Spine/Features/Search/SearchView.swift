@@ -97,6 +97,7 @@ struct SearchView: View {
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
+    private let listRepository: ListRepository
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -105,6 +106,7 @@ struct SearchView: View {
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
+        listRepository: ListRepository = AppRepositories.current().lists,
         selectedTab: AppTab = .search,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -112,6 +114,7 @@ struct SearchView: View {
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
+        self.listRepository = listRepository
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -122,6 +125,7 @@ struct SearchView: View {
             mediaRepository: mediaRepository,
             trackingRepository: trackingRepository,
             diaryRepository: diaryRepository,
+            listRepository: listRepository,
             selectedTab: selectedTab,
             onSelectTab: onSelectTab,
             onUnauthorized: onUnauthorized
@@ -136,6 +140,7 @@ private struct SearchViewContainer: View {
     let mediaRepository: MediaRepository
     let trackingRepository: TrackingRepository
     let diaryRepository: DiaryRepository
+    let listRepository: ListRepository
     let selectedTab: AppTab
     let onSelectTab: (AppTab) -> Void
     let onUnauthorized: () -> Void
@@ -152,6 +157,7 @@ private struct SearchViewContainer: View {
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
                 diaryRepository: diaryRepository,
+                listRepository: listRepository,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
@@ -166,6 +172,7 @@ private struct MediaDetailCover: View {
     let mediaRepository: MediaRepository
     let trackingRepository: TrackingRepository
     let diaryRepository: DiaryRepository
+    let listRepository: ListRepository
     let selectedTab: AppTab
     let onSelectTab: (AppTab) -> Void
     let onUnauthorized: () -> Void
@@ -176,6 +183,7 @@ private struct MediaDetailCover: View {
             mediaRepository: mediaRepository,
             trackingRepository: trackingRepository,
             diaryRepository: diaryRepository,
+            listRepository: listRepository,
             selectedTab: selectedTab,
             onSelectTab: onSelectTab,
             onUnauthorized: onUnauthorized

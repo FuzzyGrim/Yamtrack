@@ -239,11 +239,13 @@ enum MediaDetailQuickAction {
 private enum MediaDetailSheet: Identifiable {
     case posterMenu
     case bookGameActions
+    case addToList
 
     var id: String {
         switch self {
         case .posterMenu: "posterMenu"
         case .bookGameActions: "bookGameActions"
+        case .addToList: "addToList"
         }
     }
 }
@@ -300,6 +302,7 @@ struct MediaDetailView: View {
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
+    private let listRepository: ListRepository
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -309,6 +312,7 @@ struct MediaDetailView: View {
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
+        listRepository: ListRepository = AppRepositories.current().lists,
         selectedTab: AppTab = .home,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -316,6 +320,7 @@ struct MediaDetailView: View {
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
+        self.listRepository = listRepository
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -407,6 +412,9 @@ struct MediaDetailView: View {
                 PosterMenuSheet(
                     posterLabel: canCustomizeBackdrop(viewModel.detail) ? "Customize Poster" : "Customize Cover",
                     showsBackdropOption: canCustomizeBackdrop(viewModel.detail),
+                    onAddToList: {
+                        presentedSheet = .addToList
+                    },
                     onCustomizePoster: {
                         presentedSheet = nil
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -420,7 +428,7 @@ struct MediaDetailView: View {
                         }
                     }
                 )
-                .presentationDetents([.height(canCustomizeBackdrop(viewModel.detail) ? 216 : 148)])
+                .presentationDetents([.height(canCustomizeBackdrop(viewModel.detail) ? 284 : 216)])
                 .presentationDragIndicator(.visible)
             case .bookGameActions:
                 if let detail = viewModel.detail {
@@ -444,6 +452,14 @@ struct MediaDetailView: View {
                     )
                     .presentationDetents([.height(224)])
                     .presentationDragIndicator(.visible)
+                }
+            case .addToList:
+                if let detail = viewModel.detail {
+                    AddToListSheet(
+                        ref: detail.ref,
+                        listRepository: listRepository,
+                        onUnauthorized: onUnauthorized
+                    )
                 }
             }
         }
@@ -575,9 +591,13 @@ struct MediaDetailView: View {
                 dismiss()
             }
             Spacer()
-            if canCustomizePoster(viewModel.detail) {
+            if viewModel.detail != nil {
                 CircleIconButton(systemName: "ellipsis", label: "More") {
-                    presentedSheet = .posterMenu
+                    if canCustomizePoster(viewModel.detail) {
+                        presentedSheet = .posterMenu
+                    } else {
+                        presentedSheet = .addToList
+                    }
                 }
             }
         }
@@ -1399,6 +1419,7 @@ private func bookGameCopy(for mediaType: String) -> (currently: String, finished
 private struct PosterMenuSheet: View {
     let posterLabel: String
     let showsBackdropOption: Bool
+    let onAddToList: () -> Void
     let onCustomizePoster: () -> Void
     let onCustomizeBackdrop: () -> Void
 
@@ -1408,6 +1429,17 @@ private struct PosterMenuSheet: View {
                 .fill(.secondary.opacity(0.35))
                 .frame(width: 38, height: 5)
                 .padding(.top, 8)
+
+            Button(action: onAddToList) {
+                Label("Add to List", systemImage: "list.bullet.rectangle")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 18)
+                    .frame(height: 54)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
 
             Button(action: onCustomizePoster) {
                 Label(posterLabel, systemImage: "photo.on.rectangle.angled")
@@ -1532,6 +1564,202 @@ private struct BookGameActionSheet: View {
                 .frame(height: 36, alignment: .top)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+@MainActor
+@Observable
+private final class AddToListViewModel {
+    var lists: [CustomListSummary] = []
+    var ref: MediaRef
+    var isLoading = false
+    var loadingListID: Int?
+    var errorMessage: String?
+
+    private let listRepository: ListRepository
+    private let onUnauthorized: () -> Void
+
+    init(ref: MediaRef, listRepository: ListRepository, onUnauthorized: @escaping () -> Void) {
+        self.ref = ref
+        self.listRepository = listRepository
+        self.onUnauthorized = onUnauthorized
+    }
+
+    func load() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            lists = try await listRepository.list(membershipFor: ref)
+        } catch {
+            handle(error)
+        }
+    }
+
+    func toggle(_ list: CustomListSummary) async {
+        guard loadingListID == nil else { return }
+        loadingListID = list.id
+        errorMessage = nil
+        defer { loadingListID = nil }
+
+        do {
+            if list.hasItem == true {
+                guard let itemId = ref.itemId else {
+                    await load()
+                    return
+                }
+                try await listRepository.removeItem(listId: list.id, itemId: itemId)
+            } else {
+                let item = try await listRepository.addItem(listId: list.id, ref: ref)
+                ref = item.ref
+            }
+            await load()
+        } catch {
+            handle(error)
+        }
+    }
+
+    func createAndAdd(name: String) async -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        loadingListID = -1
+        errorMessage = nil
+        defer { loadingListID = nil }
+
+        do {
+            let list = try await listRepository.create(CustomListWriteRequest(
+                name: trimmed,
+                description: "",
+                visibility: "private",
+                isRanked: false
+            ))
+            let item = try await listRepository.addItem(listId: list.id, ref: ref)
+            ref = item.ref
+            await load()
+            return true
+        } catch {
+            handle(error)
+            return false
+        }
+    }
+
+    private func handle(_ error: Error) {
+        errorMessage = error.localizedDescription
+        if case APIError.unauthorized = error {
+            onUnauthorized()
+        }
+    }
+}
+
+private struct AddToListSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel: AddToListViewModel
+    @State private var searchText = ""
+    @State private var newListName = ""
+    @State private var isCreating = false
+
+    init(ref: MediaRef, listRepository: ListRepository, onUnauthorized: @escaping () -> Void) {
+        _viewModel = State(initialValue: AddToListViewModel(
+            ref: ref,
+            listRepository: listRepository,
+            onUnauthorized: onUnauthorized
+        ))
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if viewModel.isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                } else if let error = viewModel.errorMessage {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.red)
+                } else if filteredLists.isEmpty {
+                    ContentUnavailableView("No Lists", systemImage: "list.bullet.rectangle")
+                        .listRowBackground(Color.clear)
+                } else {
+                    ForEach(filteredLists) { list in
+                        Button {
+                            Task {
+                                await viewModel.toggle(list)
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(list.name)
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("\(list.itemsCount.formatted()) items")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if viewModel.loadingListID == list.id {
+                                    ProgressView()
+                                } else if list.hasItem == true {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundStyle(.green)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(viewModel.loadingListID != nil)
+                    }
+                }
+
+                Section {
+                    if isCreating {
+                        HStack {
+                            TextField("New list name", text: $newListName)
+                            Button("Create") {
+                                Task {
+                                    if await viewModel.createAndAdd(name: newListName) {
+                                        newListName = ""
+                                        isCreating = false
+                                    }
+                                }
+                            }
+                            .disabled(newListName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.loadingListID != nil)
+                        }
+                    } else {
+                        Button {
+                            isCreating = true
+                        } label: {
+                            Label("Create new list...", systemImage: "plus")
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.black)
+            .navigationTitle("Add to List")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search lists")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                if viewModel.lists.isEmpty {
+                    await viewModel.load()
+                }
+            }
+        }
+    }
+
+    private var filteredLists: [CustomListSummary] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return viewModel.lists }
+        return viewModel.lists.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
 }
 

@@ -513,6 +513,7 @@ private struct ProfileTagRow: View {
 private final class ProfileListsViewModel {
     var lists: [CustomListSummary] = []
     var isLoading = false
+    var isSaving = false
     var errorMessage: String?
 
     private let listRepository: ListRepository
@@ -537,11 +538,30 @@ private final class ProfileListsViewModel {
             }
         }
     }
+
+    func create(_ request: CustomListWriteRequest) async -> Bool {
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        do {
+            _ = try await listRepository.create(request)
+            await load()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
 }
 
 struct ProfileListsView: View {
     @State private var viewModel: ProfileListsViewModel
     @State private var searchText = ""
+    @State private var presentedForm: CustomListFormMode?
 
     private let listRepository: ListRepository
     private let mediaRepository: MediaRepository
@@ -600,6 +620,21 @@ struct ProfileListsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    presentedForm = .create
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(viewModel.isSaving)
+            }
+        }
+        .sheet(item: $presentedForm) { mode in
+            CustomListFormSheet(mode: mode, isSaving: viewModel.isSaving) { request in
+                await viewModel.create(request)
+            }
+        }
         .task {
             if viewModel.lists.isEmpty {
                 await viewModel.load()
@@ -664,6 +699,16 @@ private struct ProfileListRow: View {
                     .lineLimit(1)
                     .padding(.top, 3)
 
+                if list.isRanked {
+                    Text("Ranked")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(.white.opacity(0.68))
+                        .padding(.horizontal, 7)
+                        .frame(height: 21)
+                        .background(.white.opacity(0.1), in: Capsule())
+                        .padding(.top, 1)
+                }
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white.opacity(0.24))
@@ -714,6 +759,7 @@ private struct ProfileListRow: View {
 private final class ProfileListDetailViewModel {
     var list: CustomListDetail?
     var isLoading = false
+    var isSaving = false
     var errorMessage: String?
 
     private let listId: Int
@@ -740,11 +786,102 @@ private final class ProfileListDetailViewModel {
             }
         }
     }
+
+    func update(_ request: CustomListWriteRequest) async -> Bool {
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        do {
+            list = try await listRepository.update(id: listId, request)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
+
+    func deleteList() async -> Bool {
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        do {
+            try await listRepository.delete(id: listId)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
+
+    func remove(_ item: MediaSummary) async {
+        guard let itemId = item.ref.itemId else { return }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        do {
+            try await listRepository.removeItem(listId: listId, itemId: itemId)
+            await load()
+        } catch {
+            errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+        }
+    }
+
+    func move(from source: IndexSet, to destination: Int) async {
+        guard var items = list?.items else { return }
+        items.move(fromOffsets: source, toOffset: destination)
+        guard items.allSatisfy({ $0.ref.itemId != nil }) else { return }
+        list = list.map { current in
+            CustomListDetail(
+                id: current.id,
+                name: current.name,
+                slug: current.slug,
+                description: current.description,
+                visibility: current.visibility,
+                isRanked: current.isRanked,
+                owner: current.owner,
+                imageUrl: current.imageUrl,
+                itemsCount: current.itemsCount,
+                updatedAt: current.updatedAt,
+                likeCount: current.likeCount,
+                items: items
+            )
+        }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        do {
+            list = try await listRepository.reorderItems(listId: listId, itemIds: items.compactMap(\.ref.itemId))
+        } catch {
+            errorMessage = error.localizedDescription
+            await load()
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+        }
+    }
 }
 
 private struct ProfileListDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ProfileListDetailViewModel
+    @State private var editMode: EditMode = .inactive
+    @State private var presentedForm: CustomListFormMode?
+    @State private var isDeleteAlertPresented = false
 
+    private let listRepository: ListRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
@@ -762,6 +899,7 @@ private struct ProfileListDetailView: View {
         onSelectTab: @escaping (AppTab) -> Void,
         onUnauthorized: @escaping () -> Void
     ) {
+        self.listRepository = listRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
@@ -786,7 +924,9 @@ private struct ProfileListDetailView: View {
                     } else if let list = viewModel.list {
                         listHeader(list)
                         if list.items.isEmpty {
-                            DiaryStateCard(title: "No items yet", systemImage: "square.grid.2x2", message: "Media added to this list will appear here.")
+                            DiaryStateCard(title: "No items yet", systemImage: "square.grid.2x2", message: "Add items from any media detail page.")
+                        } else if editMode.isEditing {
+                            editableItems(list)
                         } else {
                             mediaGrid(list.items)
                         }
@@ -804,6 +944,46 @@ private struct ProfileListDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .environment(\.editMode, $editMode)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    if let list = viewModel.list, !list.items.isEmpty {
+                        Button(editMode.isEditing ? "Done Editing" : "Edit Items", systemImage: "pencil") {
+                            editMode = editMode.isEditing ? .inactive : .active
+                        }
+                    }
+                    Button("Edit List", systemImage: "slider.horizontal.3") {
+                        if let list = viewModel.list {
+                            presentedForm = .edit(list)
+                        }
+                    }
+                    Button("Delete List", systemImage: "trash", role: .destructive) {
+                        isDeleteAlertPresented = true
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+                .disabled(viewModel.list == nil || viewModel.isSaving)
+            }
+        }
+        .sheet(item: $presentedForm) { mode in
+            CustomListFormSheet(mode: mode, isSaving: viewModel.isSaving) { request in
+                await viewModel.update(request)
+            }
+        }
+        .alert("Delete List?", isPresented: $isDeleteAlertPresented) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    if await viewModel.deleteList() {
+                        dismiss()
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes the list. Items stay in your library.")
+        }
         .task {
             if viewModel.list == nil {
                 await viewModel.load()
@@ -821,6 +1001,15 @@ private struct ProfileListDetailView: View {
             Text("\(list.itemsCount.formatted()) items")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white.opacity(0.48))
+
+            if list.isRanked {
+                Text("Ranked")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.horizontal, 8)
+                    .frame(height: 22)
+                    .background(.white.opacity(0.1), in: Capsule())
+            }
 
             let description = list.description.trimmingCharacters(in: .whitespacesAndNewlines)
             if !description.isEmpty {
@@ -846,17 +1035,194 @@ private struct ProfileListDetailView: View {
                         onUnauthorized: onUnauthorized
                     )
                 } label: {
-                    MediaArtwork(
-                        url: item.displayPosterURL,
-                        title: item.title,
-                        slot: .tagGrid,
-                        mediaType: item.ref.mediaType,
-                        orientation: item.posterOrientation
-                    )
-                    .shadow(color: .black.opacity(0.28), radius: 10, y: 5)
+                    ZStack(alignment: .topLeading) {
+                        MediaArtwork(
+                            url: item.displayPosterURL,
+                            title: item.title,
+                            slot: .tagGrid,
+                            mediaType: item.ref.mediaType,
+                            orientation: item.posterOrientation
+                        )
+                        .shadow(color: .black.opacity(0.28), radius: 10, y: 5)
+                        if viewModel.list?.isRanked == true, let position = item.position {
+                            Text("#\(position)")
+                                .font(.system(size: 10, weight: .heavy))
+                                .foregroundStyle(.white.opacity(0.9))
+                                .padding(.horizontal, 5)
+                                .frame(height: 18)
+                                .background(.black.opacity(0.55), in: Capsule())
+                                .padding(4)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+
+    private func editableItems(_ list: CustomListDetail) -> some View {
+        List {
+            ForEach(list.items) { item in
+                HStack(spacing: 12) {
+                    MediaArtwork(
+                        url: item.displayPosterURL,
+                        title: item.title,
+                        slot: .searchRow,
+                        mediaType: item.ref.mediaType,
+                        orientation: item.posterOrientation
+                    )
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                        if list.isRanked, let position = item.position {
+                            Text("#\(position)")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                    }
+                }
+                .listRowBackground(Color.white.opacity(0.06))
+            }
+            .onDelete { offsets in
+                guard let index = offsets.first else { return }
+                Task {
+                    await viewModel.remove(list.items[index])
+                }
+            }
+            .onMove { source, destination in
+                guard list.isRanked else { return }
+                Task {
+                    await viewModel.move(from: source, to: destination)
+                }
+            }
+        }
+        .frame(minHeight: 420)
+        .scrollContentBackground(.hidden)
+        .disabled(viewModel.isSaving)
+    }
+}
+
+private enum CustomListFormMode: Identifiable {
+    case create
+    case edit(CustomListDetail)
+
+    var id: String {
+        switch self {
+        case .create: "create"
+        case let .edit(list): "edit-\(list.id)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .create: "New List"
+        case .edit: "Edit List"
+        }
+    }
+}
+
+private struct CustomListFormSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String
+    @State private var description: String
+    @State private var visibility: String
+    @State private var isRanked: Bool
+    @State private var errorMessage: String?
+
+    let mode: CustomListFormMode
+    let isSaving: Bool
+    let onSave: (CustomListWriteRequest) async -> Bool
+
+    init(
+        mode: CustomListFormMode,
+        isSaving: Bool,
+        onSave: @escaping (CustomListWriteRequest) async -> Bool
+    ) {
+        self.mode = mode
+        self.isSaving = isSaving
+        self.onSave = onSave
+        switch mode {
+        case .create:
+            _name = State(initialValue: "")
+            _description = State(initialValue: "")
+            _visibility = State(initialValue: "private")
+            _isRanked = State(initialValue: false)
+        case let .edit(list):
+            _name = State(initialValue: list.name)
+            _description = State(initialValue: list.description)
+            _visibility = State(initialValue: list.visibility)
+            _isRanked = State(initialValue: list.isRanked)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Name", text: $name)
+                    TextField("Description", text: $description, axis: .vertical)
+                        .lineLimit(3, reservesSpace: true)
+                }
+
+                Section {
+                    Picker("Visibility", selection: $visibility) {
+                        Text("Public").tag("public")
+                        Text("Unlisted").tag("unlisted")
+                        Text("Private").tag("private")
+                    }
+                    Toggle("Ranked", isOn: $isRanked)
+                }
+
+                if let errorMessage {
+                    Section {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Color.black)
+            .navigationTitle(mode.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task {
+                            await save()
+                        }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Text("Save")
+                        }
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                }
+            }
+        }
+    }
+
+    private func save() async {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        errorMessage = nil
+        let request = CustomListWriteRequest(
+            name: trimmedName,
+            description: description.trimmingCharacters(in: .whitespacesAndNewlines),
+            visibility: visibility,
+            isRanked: isRanked
+        )
+        if await onSave(request) {
+            dismiss()
+        } else {
+            errorMessage = "Could not save list."
         }
     }
 }

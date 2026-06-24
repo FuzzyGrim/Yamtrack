@@ -180,6 +180,7 @@ struct LibraryView: View {
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
+    private let listRepository: ListRepository
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -188,6 +189,7 @@ struct LibraryView: View {
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
+        listRepository: ListRepository = AppRepositories.current().lists,
         requestedShelf: Binding<LibraryShelf?> = .constant(nil),
         selectedTab: AppTab = .library,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
@@ -197,6 +199,7 @@ struct LibraryView: View {
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
+        self.listRepository = listRepository
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -409,6 +412,7 @@ struct LibraryView: View {
             mediaRepository: mediaRepository,
             trackingRepository: trackingRepository,
             diaryRepository: diaryRepository,
+            listRepository: listRepository,
             selectedTab: selectedTab,
             onSelectTab: onSelectTab,
             onUnauthorized: onUnauthorized

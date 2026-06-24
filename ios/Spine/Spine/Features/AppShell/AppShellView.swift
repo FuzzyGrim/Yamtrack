@@ -14,6 +14,7 @@ struct AppShellView: View {
                 mediaRepository: session.repositories.media,
                 trackingRepository: session.repositories.tracking,
                 diaryRepository: session.repositories.diary,
+                listRepository: session.repositories.lists,
                 selectedTab: selectedTab,
                 onSelectTab: { selectedTab = $0 },
                 onUnauthorized: unauthorized
@@ -28,6 +29,7 @@ struct AppShellView: View {
                     mediaRepository: session.repositories.media,
                     trackingRepository: session.repositories.tracking,
                     diaryRepository: session.repositories.diary,
+                    listRepository: session.repositories.lists,
                     selectedTab: selectedTab,
                     onSelectTab: { selectedTab = $0 },
                     onUnauthorized: unauthorized
@@ -43,6 +45,7 @@ struct AppShellView: View {
                     mediaRepository: session.repositories.media,
                     trackingRepository: session.repositories.tracking,
                     diaryRepository: session.repositories.diary,
+                    listRepository: session.repositories.lists,
                     requestedShelf: $requestedLibraryShelf,
                     selectedTab: selectedTab,
                     onSelectTab: { selectedTab = $0 },

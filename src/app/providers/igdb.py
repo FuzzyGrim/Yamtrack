@@ -1,9 +1,11 @@
 import logging
+from datetime import UTC, datetime
 from enum import IntEnum
 
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.utils.text import slugify
 from django.utils import timezone
 
 from app import helpers
@@ -274,6 +276,107 @@ def search(query, page):
 
         cache.set(cache_key, data)
 
+    return data
+
+
+def _normalize_name(value):
+    return slugify(str(value or "")).casefold()
+
+
+def _api_headers():
+    return {
+        "Client-ID": settings.IGDB_ID,
+        "Authorization": f"Bearer {get_access_token()}",
+    }
+
+
+def _post_igdb(url, body, headers):
+    try:
+        return services.api_request(Sources.IGDB.value, "POST", url, data=body, headers=headers)
+    except requests.exceptions.HTTPError as error:
+        error_resp = handle_error(error)
+        if error_resp and error_resp.get("retry"):
+            headers["Authorization"] = f"Bearer {get_access_token()}"
+            return services.api_request(Sources.IGDB.value, "POST", url, data=body, headers=headers)
+        raise
+
+
+def _name_id_map(endpoint):
+    cache_key = f"{Sources.IGDB.value}_{endpoint}_name_id_map"
+    data = cache.get(cache_key)
+    if data is None:
+        response = _post_igdb(
+            f"{base_url}/{endpoint}",
+            "fields name; limit 500; sort name asc;",
+            _api_headers(),
+        )
+        data = {_normalize_name(item.get("name")): item["id"] for item in response if item.get("name")}
+        cache.set(cache_key, data, 60 * 60 * 24 * 7)
+    return data
+
+
+def _resolve_id(endpoint, name):
+    value = _name_id_map(endpoint).get(_normalize_name(name))
+    if not value:
+        msg = f"Unknown IGDB {endpoint[:-1]}: {name}"
+        raise ValueError(msg)
+    return value
+
+
+def discover(*, page=1, page_size=None, genre=None, year=None, platform=None):
+    """Discover games by genre, release year, and/or platform."""
+    page_size = page_size or settings.PER_PAGE
+    cache_key = f"discover_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{genre}_{year}_{platform}_{page}_{page_size}"
+    data = cache.get(cache_key)
+    if data is None:
+        conditions = ["game_type = (0,1,2,3,4,5,6,7,8,9,10)"]
+        if not settings.IGDB_NSFW:
+            conditions.append("themes != (42)")
+        if genre:
+            conditions.append(f"genres = ({_resolve_id('genres', genre)})")
+        if platform:
+            conditions.append(f"platforms = ({_resolve_id('platforms', platform)})")
+        if year:
+            start = int(datetime(int(year), 1, 1, tzinfo=UTC).timestamp())
+            end = int(datetime(int(year) + 1, 1, 1, tzinfo=UTC).timestamp())
+            conditions.append(f"first_release_date >= {start}")
+            conditions.append(f"first_release_date < {end}")
+
+        where_clause = " & ".join(conditions)
+        offset = (page - 1) * page_size
+        headers = _api_headers()
+        search_results = _post_igdb(
+            f"{base_url}/games",
+            "fields name,cover.image_id,total_rating_count,total_rating,first_release_date,game_type;"
+            f"where {where_clause};"
+            "sort total_rating_count desc;"
+            f"limit {page_size};"
+            f"offset {offset};",
+            headers,
+        )
+        count_response = _post_igdb(
+            f"{base_url}/games/count",
+            f"where {where_clause};",
+            headers,
+        )
+        results = [
+            {
+                "media_id": media["id"],
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
+                "title": media["name"],
+                "image": get_image_url(media),
+                "total_rating_count": media.get("total_rating_count"),
+                "total_rating": media.get("total_rating"),
+                "release_date": get_start_date(media),
+                "first_release_date": media.get("first_release_date"),
+                "game_type": media.get("game_type"),
+            }
+            for media in search_results
+        ]
+        data = helpers.format_search_response(page, page_size, count_response.get("count", len(results)), results)
+        data["per_page"] = page_size
+        cache.set(cache_key, data, 60 * 60 * 6)
     return data
 
 

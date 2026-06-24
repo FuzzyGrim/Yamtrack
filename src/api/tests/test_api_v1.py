@@ -688,6 +688,135 @@ class ApiV1FoundationTests(TestCase):
         self.assertNotIn("ratings_count", response.data["results"][0])
         self.assertNotIn("total_rating_count", response.data["results"][0])
 
+    @patch("api.services.media.provider_services.discover")
+    def test_media_discover_movie_genre_year_contract(self, discover_mock):
+        user = get_user_model().objects.create_user(username="discoverer", password="strong-password-123")
+        self.client.force_authenticate(user)
+        discover_mock.return_value = {
+            "per_page": 20,
+            "total_results": 1,
+            "results": [
+                {
+                    "media_id": "550",
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.MOVIE.value,
+                    "title": "Fight Club",
+                    "image": "https://example.com/fight-club.jpg",
+                    "release_date": "1999-10-15",
+                    "vote_count": 1000,
+                },
+            ],
+        }
+
+        response = self.client.get("/api/v1/media/discover/?media_type=movie&genre=Drama&year=1999")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertIsNone(response.data["next"])
+        self.assertEqual(response.data["results"][0]["ref"]["source"], Sources.TMDB.value)
+        self.assertEqual(response.data["results"][0]["ref"]["media_type"], MediaTypes.MOVIE.value)
+        self.assertEqual(response.data["results"][0]["title"], "Fight Club")
+        discover_mock.assert_called_once_with(
+            MediaTypes.MOVIE.value,
+            source=Sources.TMDB.value,
+            page=1,
+            page_size=25,
+            genre="Drama",
+            year="1999",
+            platform=None,
+            sort="vote_count",
+        )
+
+    @patch("api.services.media.provider_services.discover")
+    def test_media_discover_tv_uses_tmdb_summary_shape(self, discover_mock):
+        user = get_user_model().objects.create_user(username="tv-discoverer", password="strong-password-123")
+        self.client.force_authenticate(user)
+        discover_mock.return_value = {
+            "per_page": 20,
+            "total_results": 1,
+            "results": [
+                {
+                    "media_id": "1396",
+                    "source": Sources.TMDB.value,
+                    "media_type": MediaTypes.TV.value,
+                    "title": "Breaking Bad",
+                    "image": "https://example.com/breaking-bad.jpg",
+                    "release_date": "2008-01-20",
+                    "vote_count": 2000,
+                },
+            ],
+        }
+
+        response = self.client.get("/api/v1/media/discover/?media_type=tv&genre=Drama&year=2008")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"][0]["ref"]["media_type"], MediaTypes.TV.value)
+        self.assertEqual(response.data["results"][0]["title"], "Breaking Bad")
+        discover_mock.assert_called_once()
+
+    @patch("api.services.media.provider_services.discover")
+    def test_media_discover_game_platform_filter(self, discover_mock):
+        user = get_user_model().objects.create_user(username="game-discoverer", password="strong-password-123")
+        self.client.force_authenticate(user)
+        discover_mock.return_value = {
+            "per_page": 10,
+            "total_results": 30,
+            "results": [
+                {
+                    "media_id": "1020",
+                    "source": Sources.IGDB.value,
+                    "media_type": MediaTypes.GAME.value,
+                    "title": "Elden Ring",
+                    "image": "https://example.com/elden-ring.jpg",
+                    "release_date": "2022-02-25",
+                    "total_rating_count": 3000,
+                },
+            ],
+        }
+
+        response = self.client.get(
+            "/api/v1/media/discover/?media_type=game&platform=PlayStation%205&page_size=10",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 30)
+        self.assertIsNotNone(response.data["next"])
+        self.assertEqual(response.data["results"][0]["ref"]["source"], Sources.IGDB.value)
+        discover_mock.assert_called_once_with(
+            MediaTypes.GAME.value,
+            source=Sources.IGDB.value,
+            page=1,
+            page_size=10,
+            genre=None,
+            year=None,
+            platform="PlayStation 5",
+            sort="vote_count",
+        )
+
+    def test_media_discover_validation_errors(self):
+        user = get_user_model().objects.create_user(username="discover-errors", password="strong-password-123")
+        self.client.force_authenticate(user)
+
+        missing = self.client.get("/api/v1/media/discover/")
+        invalid = self.client.get("/api/v1/media/discover/?media_type=movie&year=99&sort=recent&page=0")
+
+        self.assertEqual(missing.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("media_type", missing.data)
+        self.assertIn("non_field_errors", missing.data)
+        self.assertEqual(invalid.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("year", invalid.data)
+        self.assertIn("sort", invalid.data)
+        self.assertIn("page", invalid.data)
+
+    def test_media_discover_unsupported_media_type_fails_clearly(self):
+        user = get_user_model().objects.create_user(username="unsupported-discover", password="strong-password-123")
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/media/discover/?media_type=anime&genre=Drama")
+
+        self.assertEqual(response.status_code, status.HTTP_501_NOT_IMPLEMENTED)
+        self.assertIn("Discovery is not supported", response.data["detail"])
+
     @patch("app.providers.tmdb.get_title_logo", return_value=None)
     @patch("app.providers.mdblist.get_media_ratings")
     @patch("api.services.media.provider_services.get_media_metadata")

@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.utils.http import urlencode
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -53,15 +54,80 @@ class MediaSourcesView(APIView):
 
 
 class MediaDiscoverView(APIView):
-    """Reserved discovery endpoint."""
+    """Provider-backed media discovery."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [SearchRateThrottle]
 
     def get(self, request):
+        errors = _discover_errors(request.query_params)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        paginator = StandardResultsSetPagination()
+        page_size = paginator.get_page_size(request)
+        page = int(request.query_params.get("page", 1))
+        try:
+            payload = media_service.discover_media(
+                media_type=request.query_params["media_type"],
+                source=request.query_params.get("source"),
+                page=page,
+                page_size=page_size,
+                genre=request.query_params.get("genre"),
+                year=request.query_params.get("year"),
+                platform=request.query_params.get("platform"),
+                sort=request.query_params.get("sort", "vote_count"),
+                request=request,
+                user=request.user,
+            )
+        except NotImplementedError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        except ValueError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+        count = payload["count"]
+        provider_page_size = payload["page_size"]
         return Response(
-            {"detail": "Media discovery is planned after provider support is normalized."},
-            status=status.HTTP_501_NOT_IMPLEMENTED,
+            {
+                "count": count,
+                "next": _discover_page_url(request, page + 1) if page * provider_page_size < count else None,
+                "previous": _discover_page_url(request, page - 1) if page > 1 else None,
+                "results": payload["results"],
+            },
         )
+
+
+def _discover_errors(params):
+    errors = {}
+    media_type = params.get("media_type")
+    if not media_type:
+        errors["media_type"] = ["This field is required."]
+    elif media_type not in config.MEDIA_TYPE_CONFIG:
+        errors["media_type"] = ["Unsupported media type."]
+
+    if not any(params.get(name) for name in ["genre", "year", "platform"]):
+        errors["non_field_errors"] = ["At least one of genre, year, or platform is required."]
+
+    year = params.get("year")
+    if year and not (year.isdigit() and len(year) == 4):
+        errors["year"] = ["Enter a 4-digit year."]
+
+    sort = params.get("sort")
+    if sort and sort not in ["vote_count", "-vote_count"]:
+        errors["sort"] = ["Unsupported sort. Use vote_count."]
+
+    for field in ["page", "page_size"]:
+        value = params.get(field)
+        if value and (not value.isdigit() or int(value) < 1):
+            errors[field] = ["Enter a positive integer."]
+
+    return errors
+
+
+def _discover_page_url(request, page):
+    params = request.query_params.copy()
+    params["page"] = page
+    return request.build_absolute_uri(f"{request.path}?{urlencode(params, doseq=True)}")
 
 
 class ManualMediaView(APIView):

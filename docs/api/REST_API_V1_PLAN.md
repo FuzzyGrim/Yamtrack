@@ -78,7 +78,7 @@ Important files:
 | Method | Path | Auth |
 |---|---|---|
 | GET | `/api/v1/media/search/` | Yes |
-| GET | `/api/v1/media/discover/` | Yes, returns `501` placeholder |
+| GET | `/api/v1/media/discover/` | Yes |
 | GET | `/api/v1/media/sources/` | No |
 | POST | `/api/v1/media/manual/` | Yes |
 | GET | `/api/v1/media/{source}/{media_type}/{media_id}/` | Optional |
@@ -427,6 +427,36 @@ Backdrop customization is available for authenticated users on TMDB movies and T
   "custom_backdrop_url": "https://image.tmdb.org/t/p/original/backdrop.jpg"
 }
 ```
+
+## Media Discovery
+
+`GET /api/v1/media/discover/` returns a standard paged `MediaSummary` response for provider-backed browse lists. It is authenticated and uses the same provider throttle as media search/detail.
+
+Required query params:
+
+- `media_type`: `movie`, `tv`, or `game` for v1.
+
+At least one browse filter is required:
+
+- `genre`: display name, resolved to provider genre IDs.
+- `year`: 4-digit release year.
+- `platform`: display name, games only.
+
+Optional query params:
+
+- `source`: defaults to the configured source for the media type.
+- `page`, `page_size`: page-number pagination. TMDB discover uses TMDB's native 20-item pages; IGDB honors `page_size` up to the standard API max.
+- `sort`: `vote_count` by default. V1 maps this to TMDB `vote_count.desc` for movies/TV and IGDB `total_rating_count desc` for games.
+
+Supported matrix:
+
+| Media type | Source | Filters | Sort |
+|---|---|---|---|
+| `movie` | `tmdb` | `genre`, `year` | `vote_count` |
+| `tv` | `tmdb` | `genre`, `year` | `vote_count` |
+| `game` | `igdb` | `genre`, `year`, `platform` | `vote_count` |
+
+Unsupported media types/sources return `501` with a clear `detail`. Invalid params return DRF field errors with `400`. Anime, manga, book, and comic discovery are intentionally out of scope for v1.
 
 ## Media Detail
 

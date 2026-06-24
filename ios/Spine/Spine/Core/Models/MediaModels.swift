@@ -39,6 +39,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
     let logoAspectRatio: Double?
     let releaseDate: String?
     let defaultSource: String?
+    let position: Int?
     var userState: UserMediaState?
 
     var id: String { ref.id }
@@ -67,6 +68,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         case logoAspectRatio
         case releaseDate
         case defaultSource
+        case position
         case userState
     }
 
@@ -90,6 +92,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         logoAspectRatio: Double? = nil,
         releaseDate: String? = nil,
         defaultSource: String? = nil,
+        position: Int? = nil,
         userState: UserMediaState? = nil
     ) {
         self.ref = ref
@@ -111,6 +114,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         self.logoAspectRatio = logoAspectRatio
         self.releaseDate = releaseDate
         self.defaultSource = defaultSource
+        self.position = position
         self.userState = userState
     }
 
@@ -137,6 +141,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
             logoAspectRatio: try container.decodeIfPresent(Double.self, forKey: .logoAspectRatio),
             releaseDate: try container.decodeIfPresent(String.self, forKey: .releaseDate),
             defaultSource: try container.decodeIfPresent(String.self, forKey: .defaultSource),
+            position: try container.decodeIfPresent(Int.self, forKey: .position),
             userState: try container.decodeIfPresent(UserMediaState.self, forKey: .userState)
         )
     }

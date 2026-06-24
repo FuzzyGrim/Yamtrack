@@ -270,6 +270,21 @@ def search(media_type, query, page, source=None):
     return search_handlers[media_type]()
 
 
+def discover(media_type, *, source=None, page=1, page_size=None, genre=None, year=None, platform=None, sort="vote_count"):
+    """Browse provider metadata by supported media attributes."""
+    if source == Sources.TMDB.value and media_type in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        if platform:
+            msg = "platform discovery is only supported for games."
+            raise ValueError(msg)
+        return tmdb.discover(media_type, page=page, genre=genre, year=year)
+
+    if source == Sources.IGDB.value and media_type == MediaTypes.GAME.value:
+        return igdb.discover(page=page, page_size=page_size, genre=genre, year=year, platform=platform)
+
+    msg = f"Discovery is not supported for media_type={media_type!r} and source={source!r}."
+    raise NotImplementedError(msg)
+
+
 def get_person_page(source, person_id):
     """Return person details and credits for the person page."""
     if source == Sources.TMDB.value:

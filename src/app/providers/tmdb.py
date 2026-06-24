@@ -126,6 +126,75 @@ def search(media_type, query, page):
     return data
 
 
+def _normalize_name(value):
+    return slugify(str(value or "")).casefold()
+
+
+def _genre_map(media_type):
+    cache_key = f"{Sources.TMDB.value}_{media_type}_genre_map"
+    data = cache.get(cache_key)
+    if data is None:
+        url = f"{base_url}/genre/{media_type}/list"
+        try:
+            response = services.api_request(Sources.TMDB.value, "GET", url, params=base_params)
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+        data = {_normalize_name(genre["name"]): genre["id"] for genre in response.get("genres", [])}
+        cache.set(cache_key, data, 60 * 60 * 24 * 7)
+    return data
+
+
+def discover(media_type, *, page=1, genre=None, year=None):
+    """Discover TMDB movies/TV shows by genre and/or year."""
+    cache_key = f"discover_{Sources.TMDB.value}_{media_type}_{genre}_{year}_{page}_{settings.TMDB_LANG}_{settings.TMDB_NSFW}"
+    data = cache.get(cache_key)
+    if data is None:
+        params = {
+            **base_params,
+            "page": page,
+            "sort_by": "vote_count.desc",
+        }
+        if settings.TMDB_NSFW:
+            params["include_adult"] = "true"
+        if genre:
+            genre_id = _genre_map(media_type).get(_normalize_name(genre))
+            if not genre_id:
+                msg = f"Unknown TMDB {media_type} genre: {genre}"
+                raise ValueError(msg)
+            params["with_genres"] = genre_id
+        if year:
+            params["primary_release_year" if media_type == MediaTypes.MOVIE.value else "first_air_date_year"] = year
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                f"{base_url}/discover/{media_type}",
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        results = [
+            {
+                "media_id": media["id"],
+                "source": Sources.TMDB.value,
+                "media_type": media_type,
+                "title": get_title(media),
+                "image": get_image_url(media.get("poster_path")),
+                "backdrop_path": media.get("backdrop_path"),
+                "popularity": media.get("popularity"),
+                "vote_count": media.get("vote_count"),
+                "release_date": media.get("release_date") or media.get("first_air_date"),
+            }
+            for media in response.get("results", [])
+        ]
+        data = helpers.format_search_response(page, 20, response.get("total_results", len(results)), results)
+        data["per_page"] = 20
+        cache.set(cache_key, data, 60 * 60 * 6)
+    return data
+
+
 def find(external_id, external_source):
     """Search for media on TMDB."""
     cache_key = f"find_{Sources.TMDB.value}_{external_id}_{external_source}"

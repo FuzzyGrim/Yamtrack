@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import logging
 from copy import deepcopy
+from urllib.parse import urlencode
 
 from aiohttp import ClientError
 from django.conf import settings
@@ -33,6 +34,7 @@ from app.providers import services as provider_services
 from app.utils.color import build_accent_palette, compute_and_store_poster_accent
 
 SEARCH_TTL = 60 * 60 * 6
+DISCOVER_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
 DETAIL_CACHE_VERSION = "v6"
 POSTER_UNSUPPORTED_MESSAGE = (
@@ -70,6 +72,63 @@ def search_media(*, media_type, query, page=1, source=None, request=None, user=N
         )
         for item in raw_results
     ]
+
+
+def discover_media(
+    *,
+    media_type,
+    page=1,
+    page_size=None,
+    source=None,
+    genre=None,
+    year=None,
+    platform=None,
+    sort="vote_count",
+    request=None,
+    user=None,
+):
+    """Discover provider metadata with a versioned cache key."""
+    source = source or default_source_for(media_type)
+    filters = urlencode(
+        {
+            "genre": genre or "",
+            "year": year or "",
+            "platform": platform or "",
+            "sort": sort,
+            "page_size": page_size or "",
+        },
+    )
+    filters_hash = hashlib.sha256(filters.encode()).hexdigest()[:24]
+    cache_key = f"api:v1:discover:{media_type}:{source}:{filters_hash}:p{page}"
+    data = cache.get(cache_key)
+    if data is None:
+        data = provider_services.discover(
+            media_type,
+            source=source,
+            page=page,
+            page_size=page_size,
+            genre=genre,
+            year=year,
+            platform=platform,
+            sort=sort,
+        )
+        cache.set(cache_key, data, DISCOVER_TTL)
+
+    raw_results = data.get("results") or data.get("items") or []
+    return {
+        "count": data.get("total_results", len(raw_results)),
+        "page_size": data.get("per_page") or page_size or len(raw_results),
+        "results": [
+            media_summary_from_provider(
+                item,
+                media_type=item.get("media_type", media_type),
+                source=item.get("source", source),
+                request=request,
+                user=user,
+            )
+            for item in raw_results
+        ],
+    }
 
 
 def media_detail(*, source, media_type, media_id, request=None, user=None, season_number=None, episode_number=None):

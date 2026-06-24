@@ -103,8 +103,21 @@ extension ProfileRepository {
 }
 
 protocol ListRepository {
+    func list(membershipFor ref: MediaRef?) async throws -> [CustomListSummary]
     func list() async throws -> [CustomListSummary]
     func detail(id: Int) async throws -> CustomListDetail
+    func create(_ request: CustomListWriteRequest) async throws -> CustomListSummary
+    func update(id: Int, _ request: CustomListWriteRequest) async throws -> CustomListDetail
+    func delete(id: Int) async throws
+    func addItem(listId: Int, ref: MediaRef) async throws -> MediaSummary
+    func removeItem(listId: Int, itemId: Int) async throws
+    func reorderItems(listId: Int, itemIds: [Int]) async throws -> CustomListDetail
+}
+
+extension ListRepository {
+    func list() async throws -> [CustomListSummary] {
+        try await list(membershipFor: nil)
+    }
 }
 
 protocol ImportRepository {
@@ -522,13 +535,62 @@ struct APIProfileRepository: ProfileRepository {
 struct APIListRepository: ListRepository {
     let client: APIClient
 
-    func list() async throws -> [CustomListSummary] {
-        let response: PagedResponse<CustomListSummary> = try await client.get("/lists/", authenticated: true)
+    func list(membershipFor ref: MediaRef? = nil) async throws -> [CustomListSummary] {
+        var query: [URLQueryItem] = []
+        if let ref {
+            query.append(URLQueryItem(name: "ref[source]", value: ref.source))
+            query.append(URLQueryItem(name: "ref[media_type]", value: ref.mediaType))
+            query.append(URLQueryItem(name: "ref[media_id]", value: ref.mediaId))
+            if let seasonNumber = ref.seasonNumber {
+                query.append(URLQueryItem(name: "ref[season_number]", value: String(seasonNumber)))
+            }
+            if let episodeNumber = ref.episodeNumber {
+                query.append(URLQueryItem(name: "ref[episode_number]", value: String(episodeNumber)))
+            }
+        }
+        let response: PagedResponse<CustomListSummary> = try await client.get(
+            "/lists/",
+            query: query,
+            authenticated: true
+        )
         return response.results
     }
 
     func detail(id: Int) async throws -> CustomListDetail {
         try await client.get("/lists/\(id)/", authenticated: true)
+    }
+
+    func create(_ request: CustomListWriteRequest) async throws -> CustomListSummary {
+        try await client.post("/lists/", body: request, authenticated: true)
+    }
+
+    func update(id: Int, _ request: CustomListWriteRequest) async throws -> CustomListDetail {
+        try await client.patch("/lists/\(id)/", body: request, authenticated: true)
+    }
+
+    func delete(id: Int) async throws {
+        let _: EmptyResponse = try await client.delete("/lists/\(id)/", authenticated: true)
+    }
+
+    func addItem(listId: Int, ref: MediaRef) async throws -> MediaSummary {
+        let response: ListItemWriteResponse = try await client.post(
+            "/lists/\(listId)/items/",
+            body: ListItemWriteRequest(ref: ref),
+            authenticated: true
+        )
+        return response.item
+    }
+
+    func removeItem(listId: Int, itemId: Int) async throws {
+        let _: EmptyResponse = try await client.delete("/lists/\(listId)/items/\(itemId)/", authenticated: true)
+    }
+
+    func reorderItems(listId: Int, itemIds: [Int]) async throws -> CustomListDetail {
+        try await client.patch(
+            "/lists/\(listId)/items/reorder/",
+            body: ListItemsReorderRequest(itemIds: itemIds),
+            authenticated: true
+        )
     }
 }
 
