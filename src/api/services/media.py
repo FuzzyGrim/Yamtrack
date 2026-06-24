@@ -51,7 +51,7 @@ def search_media(*, media_type, query, page=1, source=None, request=None, user=N
     source = source or default_source_for(media_type)
     query_hash = hashlib.sha256(query.strip().lower().encode()).hexdigest()[:24]
     cache_key = (
-        f"api:v1:search:{media_type}:{source}:{query_hash}:"
+        f"api:v2:search:{media_type}:{source}:{query_hash}:"
         f"p{page}:u{getattr(settings, 'TMDB_LANG', 'en')}:nsfw{settings.TMDB_NSFW}"
     )
     data = cache.get(cache_key)

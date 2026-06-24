@@ -2,13 +2,14 @@ import SwiftUI
 
 struct AppShellView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selectedTab = AppTab.search
+    @State private var selectedTab = AppTab.home
 
     let session: AppSession
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            SearchView(
+            HomeView(
+                profileRepository: session.repositories.profile,
                 mediaRepository: session.repositories.media,
                 trackingRepository: session.repositories.tracking,
                 diaryRepository: session.repositories.diary,
@@ -16,6 +17,21 @@ struct AppShellView: View {
                 onSelectTab: { selectedTab = $0 },
                 onUnauthorized: unauthorized
             )
+            .tabItem {
+                Label("Home", systemImage: "house")
+            }
+            .tag(AppTab.home)
+
+            LazyTab(isSelected: selectedTab == .search) {
+                SearchView(
+                    mediaRepository: session.repositories.media,
+                    trackingRepository: session.repositories.tracking,
+                    diaryRepository: session.repositories.diary,
+                    selectedTab: selectedTab,
+                    onSelectTab: { selectedTab = $0 },
+                    onUnauthorized: unauthorized
+                )
+            }
             .tabItem {
                 Label("Search", systemImage: "magnifyingglass")
             }
@@ -86,6 +102,7 @@ struct AppShellView: View {
 }
 
 enum AppTab: Hashable {
+    case home
     case search
     case library
     case diary

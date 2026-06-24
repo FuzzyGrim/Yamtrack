@@ -9,9 +9,11 @@ final class MediaDetailViewModel {
     var isLoading = false
     var isLoadingReviews = false
     var isSavingQuickAction = false
+    var isSavingProgress = false
     var errorMessage: String?
     var reviewsErrorMessage: String?
     var quickActionErrorMessage: String?
+    var progressErrorMessage: String?
 
     private let ref: MediaRef
     private let mediaRepository: MediaRepository
@@ -121,6 +123,42 @@ final class MediaDetailViewModel {
         }
     }
 
+    func saveProgress(_ request: ProgressUpdateSaveRequest, for detail: MediaDetail) async -> Bool {
+        guard !isSavingProgress else { return false }
+        isSavingProgress = true
+        progressErrorMessage = nil
+        defer { isSavingProgress = false }
+
+        do {
+            let state: TrackingState
+            if detail.ref.mediaType == "book" {
+                state = try await trackingRepository.updateBookProgress(
+                    source: detail.ref.source,
+                    mediaId: detail.ref.mediaId,
+                    progressType: request.mode.apiValue,
+                    value: Decimal(request.value),
+                    notes: ""
+                )
+            } else {
+                state = try await trackingRepository.update(
+                    ref: detail.ref,
+                    request: TrackingWriteRequest(
+                        status: "In progress",
+                        progress: request.value
+                    )
+                )
+            }
+            tracking = state
+            return true
+        } catch {
+            progressErrorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
+
     func applyPosterSave(_ response: PosterSaveResponse) {
         detail = detail?.replacingPoster(with: response)
     }
@@ -182,6 +220,7 @@ struct MediaDetailView: View {
     @State private var isPosterPickerPresented = false
     @State private var isBackdropPickerPresented = false
     @State private var isLogPresented = false
+    @State private var isProgressUpdatePresented = false
     @State private var isQuickActionAlertPresented = false
     @State private var showsTitleLogo = true
     @State private var topSafeAreaInset: CGFloat = 0
@@ -199,7 +238,7 @@ struct MediaDetailView: View {
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
-        selectedTab: AppTab = .search,
+        selectedTab: AppTab = .home,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
     ) {
@@ -300,6 +339,9 @@ struct MediaDetailView: View {
                         onAction: { action in
                             await performQuickAction(action, for: detail, dismissSheet: true)
                         },
+                        onUpdateProgress: {
+                            openProgressUpdate()
+                        },
                         onLog: {
                             presentedSheet = nil
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -310,6 +352,27 @@ struct MediaDetailView: View {
                     .presentationDetents([.height(224)])
                     .presentationDragIndicator(.visible)
                 }
+            }
+        }
+        .sheet(isPresented: $isProgressUpdatePresented) {
+            if let detail = viewModel.detail {
+                ProgressUpdateSheet(
+                    detail: detail,
+                    tracking: viewModel.tracking,
+                    isSaving: viewModel.isSavingProgress,
+                    errorMessage: viewModel.progressErrorMessage,
+                    onSave: { request in
+                        await viewModel.saveProgress(request, for: detail)
+                    },
+                    onLogFinished: {
+                        isProgressUpdatePresented = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            isLogPresented = true
+                        }
+                    }
+                )
+                .presentationDetents([.height(618)])
+                .presentationDragIndicator(.hidden)
             }
         }
         .alert("Tracking Update Failed", isPresented: $isQuickActionAlertPresented) {
@@ -472,6 +535,18 @@ struct MediaDetailView: View {
             await viewModel.load()
         } else if !dismissSheet {
             isQuickActionAlertPresented = true
+        }
+    }
+
+    private func openProgressUpdate() {
+        viewModel.progressErrorMessage = nil
+        if presentedSheet != nil {
+            presentedSheet = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                isProgressUpdatePresented = true
+            }
+        } else {
+            isProgressUpdatePresented = true
         }
     }
 
@@ -657,11 +732,19 @@ struct MediaDetailView: View {
 
     @ViewBuilder
     private func trackingSummarySection(_ detail: MediaDetail) -> some View {
-        TrackingSummarySection(detail: detail, tracking: viewModel.tracking, userState: detail.userState) {
-            Task {
-                await openTrackingDiaryEntry(for: detail)
+        TrackingSummarySection(
+            detail: detail,
+            tracking: viewModel.tracking,
+            userState: detail.userState,
+            onOpenDiaryEntry: {
+                Task {
+                    await openTrackingDiaryEntry(for: detail)
+                }
+            },
+            onUpdateProgress: {
+                openProgressUpdate()
             }
-        }
+        )
     }
 
     private func openTrackingDiaryEntry(for detail: MediaDetail) async {
@@ -1243,6 +1326,7 @@ private struct BookGameActionSheet: View {
     let isSaving: Bool
     let errorMessage: String?
     let onAction: (MediaDetailQuickAction) async -> Void
+    let onUpdateProgress: () -> Void
     let onLog: () -> Void
 
     var body: some View {
@@ -1251,7 +1335,7 @@ private struct BookGameActionSheet: View {
         VStack(spacing: 16) {
             HStack(spacing: 12) {
                 if isInProgress {
-                    placeholderButton(title: "Update Progress", systemName: "slider.horizontal.3")
+                    progressButton
                 } else {
                     actionButton(title: copy.currently, systemName: "play.fill", action: .currently)
                 }
@@ -1285,9 +1369,9 @@ private struct BookGameActionSheet: View {
         .disabled(isSaving)
     }
 
-    private func placeholderButton(title: String, systemName: String) -> some View {
-        Button(action: {}) {
-            actionLabel(title: title, systemName: systemName)
+    private var progressButton: some View {
+        Button(action: onUpdateProgress) {
+            actionLabel(title: "Update Progress", systemName: "slider.horizontal.3")
         }
         .buttonStyle(.plain)
         .disabled(isSaving)
@@ -1702,6 +1786,7 @@ private struct TrackingSummarySection: View {
     let tracking: TrackingState?
     let userState: UserMediaState?
     let onOpenDiaryEntry: () -> Void
+    let onUpdateProgress: () -> Void
 
     var body: some View {
         if hasState {
@@ -1725,7 +1810,7 @@ private struct TrackingSummarySection: View {
                                 .font(.system(size: 14, weight: .heavy))
                                 .foregroundStyle(.white)
                             if showsUpdateProgressButton {
-                                Button(action: {}) {
+                                Button(action: onUpdateProgress) {
                                     Text("Update Progress")
                                         .font(.system(size: 11, weight: .heavy))
                                         .foregroundStyle(.white.opacity(0.88))
@@ -2230,8 +2315,8 @@ private struct MediaDetailBottomBar: View {
     var body: some View {
         HStack(spacing: 8) {
             HStack(spacing: 0) {
-                BottomBarItem(title: "Home", systemName: "house.fill", isSelected: selectedTab == .search) {
-                    onSelectTab(.search)
+                BottomBarItem(title: "Home", systemName: "house.fill", isSelected: selectedTab == .home) {
+                    onSelectTab(.home)
                 }
                 BottomBarItem(title: "Library", systemName: "books.vertical.fill", isSelected: selectedTab == .library) {
                     onSelectTab(.library)

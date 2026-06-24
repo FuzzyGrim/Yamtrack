@@ -63,7 +63,7 @@ final class ProfileViewModel {
 
     private func loadRecentActivity() async {
         do {
-            recentEntries = Array(try await diaryRepository.list().prefix(6))
+            recentEntries = try await diaryRepository.recent(limit: 6)
         } catch {
             activityErrorMessage = error.localizedDescription
             handleUnauthorized(error)
@@ -71,7 +71,7 @@ final class ProfileViewModel {
     }
 
     private func loadInProgressItems() async {
-        let mediaTypes = Self.inProgressMediaTypes(from: profile)
+        let mediaTypes = InProgressLibraryLoader.mediaTypes(from: profile)
         guard !mediaTypes.isEmpty else {
             inProgressItems = []
             return
@@ -81,55 +81,15 @@ final class ProfileViewModel {
         defer { isLoadingInProgress = false }
 
         do {
-            var mergedItems: [LibraryItem] = []
-            for mediaType in mediaTypes {
-                let response = try await trackingRepository.list(
-                    mediaType: mediaType,
-                    page: nil,
-                    status: "In progress"
-                )
-                mergedItems += response.results
-            }
-
-            inProgressItems = Array(
-                mergedItems
-                    .sorted(by: Self.inProgressSort)
-                    .prefix(8)
+            inProgressItems = try await InProgressLibraryLoader.load(
+                mediaTypes: mediaTypes,
+                trackingRepository: trackingRepository,
+                limit: 8
             )
         } catch {
             inProgressItems = []
             inProgressErrorMessage = error.localizedDescription
             handleUnauthorized(error)
-        }
-    }
-
-    static func inProgressMediaTypes(from profile: UserProfile?) -> [String] {
-        let enabledTypes = profile?.preferences.enabledMediaTypes ?? []
-        let baseTypes = enabledTypes.isEmpty ? APIConstants.fallbackMediaTypes : enabledTypes
-        return baseTypes.compactMap { type in
-            switch type {
-            case "episode":
-                return nil
-            case "tv":
-                return "season"
-            default:
-                return type
-            }
-        }
-    }
-
-    private static func inProgressSort(_ lhs: LibraryItem, _ rhs: LibraryItem) -> Bool {
-        let leftDate = InProgressDateParser.date(from: lhs.tracking.updatedAt)
-        let rightDate = InProgressDateParser.date(from: rhs.tracking.updatedAt)
-        switch (leftDate, rightDate) {
-        case let (left?, right?):
-            return left > right
-        case (.some, .none):
-            return true
-        case (.none, .some):
-            return false
-        case (.none, .none):
-            return lhs.media.title.localizedCaseInsensitiveCompare(rhs.media.title) == .orderedAscending
         }
     }
 
@@ -983,25 +943,6 @@ private struct EmptyProfileCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-}
-
-private enum InProgressDateParser {
-    private static let fractionalFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-
-    private static let standardFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-
-    static func date(from value: String?) -> Date? {
-        guard let value, !value.isEmpty else { return nil }
-        return fractionalFormatter.date(from: value) ?? standardFormatter.date(from: value)
     }
 }
 

@@ -140,6 +140,89 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(viewModel.totalCount, 1)
     }
 
+    func testInProgressLoaderMapsMediaTypesAndSortsWithLimit() {
+        let profile = profileFixture(hof: [:], enabledMediaTypes: ["movie", "tv", "episode", "book"])
+
+        XCTAssertEqual(InProgressLibraryLoader.mediaTypes(from: profile), ["movie", "season", "book"])
+
+        let sorted = InProgressLibraryLoader.limitedSortedItems([
+            libraryItem(id: "1", title: "Older", updatedAt: "2026-06-20T10:00:00Z"),
+            libraryItem(id: "2", title: "Newest", updatedAt: "2026-06-21T10:00:00.000Z"),
+            libraryItem(id: "3", title: "No Date")
+        ], limit: 2)
+
+        XCTAssertEqual(sorted.map(\.media.title), ["Newest", "Older"])
+    }
+
+    @MainActor
+    func testHomeViewModelLoadsProfileInProgressAndRecentDiary() async throws {
+        let profile = profileFixture(hof: [:], enabledMediaTypes: ["movie"])
+        let tracking = ScriptedLibraryTrackingRepository(responses: [
+            "movie:": PagedResponse(
+                count: 1,
+                next: nil,
+                previous: nil,
+                results: [libraryItem(id: "1", title: "Watching", status: "In progress")]
+            )
+        ])
+        let diary = ScriptedHomeDiaryRepository(entries: [try diaryEntry(id: 1, title: "Logged")])
+        let viewModel = HomeViewModel(
+            profileRepository: HallOfFameProfileRepository(profile: profile, setResponse: [:], clearResponse: [:]),
+            trackingRepository: tracking,
+            diaryRepository: diary,
+            onUnauthorized: {}
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.profile?.username, "mobile")
+        XCTAssertEqual(viewModel.inProgressItems.map(\.media.title), ["Watching"])
+        XCTAssertEqual(viewModel.recentEntries.map(\.media.title), ["Logged"])
+        XCTAssertEqual(tracking.requests, [LibraryTrackingRequest(mediaType: "movie", page: nil, status: "In progress")])
+        XCTAssertEqual(diary.recentLimits, [6])
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.profileErrorMessage)
+        XCTAssertNil(viewModel.inProgressErrorMessage)
+        XCTAssertNil(viewModel.activityErrorMessage)
+    }
+
+    @MainActor
+    func testHomeViewModelExposesEmptyState() async {
+        let profile = profileFixture(hof: [:], enabledMediaTypes: ["movie"])
+        let viewModel = HomeViewModel(
+            profileRepository: HallOfFameProfileRepository(profile: profile, setResponse: [:], clearResponse: [:]),
+            trackingRepository: ScriptedLibraryTrackingRepository(responses: [:]),
+            diaryRepository: ScriptedHomeDiaryRepository(entries: []),
+            onUnauthorized: {}
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.inProgressItems.count, 0)
+        XCTAssertEqual(viewModel.recentEntries.count, 0)
+        XCTAssertNil(viewModel.profileErrorMessage)
+        XCTAssertNil(viewModel.inProgressErrorMessage)
+        XCTAssertNil(viewModel.activityErrorMessage)
+    }
+
+    @MainActor
+    func testHomeViewModelUnauthorizedCallsHandler() async {
+        let profile = profileFixture(hof: [:], enabledMediaTypes: ["movie"])
+        var unauthorizedCount = 0
+        let viewModel = HomeViewModel(
+            profileRepository: HallOfFameProfileRepository(profile: profile, setResponse: [:], clearResponse: [:]),
+            trackingRepository: ThrowingTrackingRepository(error: APIError.unauthorized),
+            diaryRepository: ScriptedHomeDiaryRepository(entries: []),
+            onUnauthorized: { unauthorizedCount += 1 }
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(unauthorizedCount, 1)
+        XCTAssertNotNil(viewModel.inProgressErrorMessage)
+        XCTAssertFalse(viewModel.isLoading)
+    }
+
     func testRecentSearchesKeepMediaTypeAndReadLegacyText() throws {
         let searches = [
             RecentSearch(text: "Halo", mediaType: "game"),
@@ -1425,6 +1508,111 @@ final class SpineTests: XCTestCase {
     }
 
     @MainActor
+    func testProgressUpdateBookDefaultsToPagesAndConvertsInput() {
+        let tracking = trackingProgress(kind: "pages", value: 150, max: 300, unit: "page")
+        let viewModel = ProgressUpdateViewModel(
+            detail: TestFixtures.logDetail(mediaType: "book"),
+            tracking: tracking
+        )
+
+        XCTAssertEqual(viewModel.mode, .pages)
+        XCTAssertEqual(viewModel.totalPages, 300)
+        XCTAssertEqual(viewModel.lastValue, 150)
+
+        viewModel.input = "225"
+        viewModel.selectMode(.percentage)
+
+        XCTAssertEqual(viewModel.mode, .percentage)
+        XCTAssertEqual(viewModel.input, "75")
+        XCTAssertEqual(viewModel.lastValue, 50)
+        XCTAssertEqual(viewModel.deltaText, "+25% read")
+    }
+
+    @MainActor
+    func testProgressUpdateValidationAndFullProgress() {
+        let bookViewModel = ProgressUpdateViewModel(
+            detail: TestFixtures.logDetail(mediaType: "book"),
+            tracking: nil
+        )
+
+        bookViewModel.input = "301"
+        XCTAssertNotNil(bookViewModel.validationMessage)
+        XCTAssertFalse(bookViewModel.canSave)
+
+        bookViewModel.input = "300"
+        XCTAssertNil(bookViewModel.validationMessage)
+        XCTAssertTrue(bookViewModel.canSave)
+        XCTAssertTrue(bookViewModel.isFullProgress)
+
+        let gameViewModel = ProgressUpdateViewModel(
+            detail: TestFixtures.logDetail(mediaType: "game"),
+            tracking: nil
+        )
+
+        XCTAssertEqual(gameViewModel.mode, .percentage)
+        gameViewModel.input = "101"
+        XCTAssertNotNil(gameViewModel.validationMessage)
+        XCTAssertFalse(gameViewModel.canSave)
+
+        gameViewModel.input = "100"
+        XCTAssertNil(gameViewModel.validationMessage)
+        XCTAssertTrue(gameViewModel.isFullProgress)
+    }
+
+    @MainActor
+    func testMediaDetailBookProgressSaveUsesBookEndpoint() async {
+        let detail = TestFixtures.logDetail(mediaType: "book")
+        let tracking = RecordingTrackingRepository()
+        let viewModel = MediaDetailViewModel(
+            ref: detail.ref,
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: tracking,
+            diaryRepository: RecordingDiaryRepository(),
+            onUnauthorized: {}
+        )
+
+        let didSave = await viewModel.saveProgress(
+            ProgressUpdateSaveRequest(mode: .percentage, value: 42),
+            for: detail
+        )
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(tracking.bookProgressRequests.first?.source, "manual")
+        XCTAssertEqual(tracking.bookProgressRequests.first?.mediaId, "log-book")
+        XCTAssertEqual(tracking.bookProgressRequests.first?.progressType, "percentage")
+        XCTAssertEqual(tracking.bookProgressRequests.first?.value, Decimal(42))
+        XCTAssertEqual(tracking.bookProgressRequests.first?.notes, "")
+        XCTAssertEqual(tracking.updateRequests.count, 0)
+        XCTAssertEqual(viewModel.tracking?.status, "In progress")
+    }
+
+    @MainActor
+    func testMediaDetailGameProgressSaveUsesGenericTrackingUpdateWithoutCompleting() async {
+        let detail = TestFixtures.logDetail(mediaType: "game")
+        let tracking = RecordingTrackingRepository()
+        let viewModel = MediaDetailViewModel(
+            ref: detail.ref,
+            mediaRepository: FakeMediaRepository(),
+            trackingRepository: tracking,
+            diaryRepository: RecordingDiaryRepository(),
+            onUnauthorized: {}
+        )
+
+        let didSave = await viewModel.saveProgress(
+            ProgressUpdateSaveRequest(mode: .percentage, value: 100),
+            for: detail
+        )
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(tracking.updateRequests.first?.ref, detail.ref)
+        XCTAssertEqual(tracking.updateRequests.first?.request.status, "In progress")
+        XCTAssertEqual(tracking.updateRequests.first?.request.progress, 100)
+        XCTAssertEqual(tracking.bookProgressRequests.count, 0)
+        XCTAssertEqual(tracking.consumedRefs.count, 0)
+        XCTAssertEqual(tracking.completedBooks.count, 0)
+    }
+
+    @MainActor
     func testDiaryLogDetailViewModelLoadsEntryAndKeepsFallbackOnMediaFailure() async {
         let diary = DiaryLogFixtureDiaryRepository(entry: TestFixtures.diaryEntry)
         let media = DiaryLogFixtureMediaRepository(result: .success(TestFixtures.movieDetail))
@@ -1680,6 +1868,48 @@ final class SpineTests: XCTestCase {
             )
         )
     }
+
+    private func diaryEntry(id: Int, title: String) throws -> DiaryEntry {
+        let json = """
+        {
+          "id": \(id),
+          "user": {
+            "id": 1,
+            "username": "mobile",
+            "display_name": "Mobile",
+            "avatar_url": null
+          },
+          "media": {
+            "ref": {
+              "item_id": null,
+              "source": "tmdb",
+              "media_type": "movie",
+              "media_id": "\(id)",
+              "season_number": null,
+              "episode_number": null
+            },
+            "title": "\(title)",
+            "image_url": null,
+            "poster_url": null,
+            "poster_orientation": "portrait"
+          },
+          "consumed_at": "2026-06-21T10:00:00Z",
+          "rating": "8.0",
+          "review_title": null,
+          "review": null,
+          "contains_spoilers": false,
+          "liked": false,
+          "is_rewatch": false,
+          "tags": [],
+          "visibility": "public",
+          "like_count": 0,
+          "viewer_has_liked": false,
+          "created_at": "2026-06-21T10:00:00Z",
+          "updated_at": "2026-06-21T10:00:00Z"
+        }
+        """
+        return try JSONDecoder.api.decode(DiaryEntry.self, from: Data(json.utf8))
+    }
 }
 
 private final class RequestCaptureURLProtocol: URLProtocol {
@@ -1885,8 +2115,46 @@ private struct FakeTrackingRepository: TrackingRepository {
     func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState { fatalError("Not used") }
 }
 
+private struct ThrowingTrackingRepository: TrackingRepository {
+    let error: Error
+
+    func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<Spine.LibraryItem> { throw error }
+    func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState { throw error }
+    func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState { throw error }
+    func watchSeason(source: String, mediaId: String, seasonNumber: Int) async throws -> TrackingState { throw error }
+    func updateBookProgress(source: String, mediaId: String, progressType: String, value: Decimal, notes: String) async throws -> TrackingState { throw error }
+    func completeBook(source: String, mediaId: String, completedAt: Date?) async throws -> TrackingState { throw error }
+}
+
 private struct FakeDiaryRepository: DiaryRepository {
     func list(tag: String?) async throws -> [DiaryEntry] { fatalError("Not used") }
+    func detail(id: Int) async throws -> DiaryEntry { fatalError("Not used") }
+    func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
+    func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
+    func tags(query: String) async throws -> [DiaryTagSuggestion] { fatalError("Not used") }
+}
+
+private final class ScriptedHomeDiaryRepository: DiaryRepository {
+    let entries: [DiaryEntry]
+    let error: Error?
+    var recentLimits: [Int] = []
+
+    init(entries: [DiaryEntry], error: Error? = nil) {
+        self.entries = entries
+        self.error = error
+    }
+
+    func list(tag: String?) async throws -> [DiaryEntry] {
+        if let error { throw error }
+        return entries
+    }
+
+    func recent(limit: Int) async throws -> [DiaryEntry] {
+        recentLimits.append(limit)
+        if let error { throw error }
+        return Array(entries.prefix(limit))
+    }
+
     func detail(id: Int) async throws -> DiaryEntry { fatalError("Not used") }
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry { fatalError("Not used") }
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState { fatalError("Not used") }
@@ -1985,6 +2253,25 @@ private func isolatedDefaults(_ name: String) -> UserDefaults {
     let defaults = UserDefaults(suiteName: name)!
     defaults.removePersistentDomain(forName: name)
     return defaults
+}
+
+private func trackingProgress(kind: String, value: Int, max: Int?, unit: String) -> TrackingState {
+    TrackingState(
+        trackingId: 1,
+        status: "In progress",
+        rating: nil,
+        progress: ProgressState(
+            kind: kind,
+            value: Decimal(value),
+            max: max.map { Decimal($0) },
+            unit: unit
+        ),
+        repeats: nil,
+        startDate: nil,
+        endDate: nil,
+        notes: nil,
+        updatedAt: nil
+    )
 }
 
 private func makeTemporaryZip() throws -> URL {

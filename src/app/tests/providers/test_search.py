@@ -288,30 +288,27 @@ class Search(TestCase):
         """Test game search does not use exact title substring matching."""
         mock_cache.get.return_value = None
         mock_get_access_token.return_value = "token"
-        mock_api_request.return_value = [
-            {
-                "name": "SearchResults",
-                "result": [
-                    {
-                        "id": 1,
-                        "name": "Pokémon",
-                    },
-                ],
-            },
-            {
-                "name": "TotalCount",
-                "count": 1,
-            },
+        mock_api_request.side_effect = [
+            [
+                {
+                    "id": 1,
+                    "name": "Pokémon",
+                },
+            ],
+            {"count": 1},
         ]
 
         response = igdb.search('pokemon "blue"', 1)
 
         self.assertEqual(response["results"][0]["title"], "Pokémon")
-        multiquery = mock_api_request.call_args.kwargs["data"]
-        self.assertIn('search "pokemon \\"blue\\"";', multiquery)
-        self.assertIn("total_rating_count", multiquery)
-        self.assertIn("game_type", multiquery)
-        self.assertNotIn("name ~", multiquery)
+        search_request = mock_api_request.call_args_list[0]
+        count_request = mock_api_request.call_args_list[1]
+        self.assertTrue(search_request.args[2].endswith("/games"))
+        self.assertTrue(count_request.args[2].endswith("/games/count"))
+        self.assertIn('search "pokemon \\"blue\\"";', search_request.kwargs["data"])
+        self.assertIn("total_rating_count", search_request.kwargs["data"])
+        self.assertIn("game_type", search_request.kwargs["data"])
+        self.assertNotIn("name ~", search_request.kwargs["data"])
 
     @patch("app.providers.openlibrary.cache")
     @patch("app.providers.openlibrary.services.api_request")

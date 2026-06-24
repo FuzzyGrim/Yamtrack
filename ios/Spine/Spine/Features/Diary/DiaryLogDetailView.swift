@@ -57,6 +57,7 @@ final class DiaryLogDetailViewModel {
 struct DiaryLogDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: DiaryLogDetailViewModel
+    @State private var presentedRef: MediaRef?
     @State private var edgeDragOffset: CGFloat = 0
 
     private let diaryRepository: DiaryRepository
@@ -144,6 +145,9 @@ struct DiaryLogDetailView: View {
                 await viewModel.load()
             }
         }
+        .fullScreenCover(item: $presentedRef) { ref in
+            mediaDestination(ref)
+        }
     }
 
     private var edgeSwipeBackGesture: some Gesture {
@@ -175,50 +179,47 @@ struct DiaryLogDetailView: View {
             DiaryLogHeroArtwork(entry: entry, detail: viewModel.mediaDetail)
                 .frame(height: 420)
 
-            NavigationLink {
-                mediaDestination(entry)
-            } label: {
-                HStack(alignment: .bottom, spacing: 14) {
-                    MediaArtwork(
-                        url: viewModel.mediaDetail?.displayPosterURL ?? entry.media.displayPosterURL,
-                        title: entry.media.title,
-                        slot: .hero,
-                        mediaType: entry.media.ref.mediaType,
-                        orientation: viewModel.mediaDetail?.posterOrientation ?? entry.media.posterOrientation
-                    )
-                    .shadow(color: .black.opacity(0.48), radius: 22, y: 12)
+            HStack(alignment: .bottom, spacing: 14) {
+                MediaArtwork(
+                    url: viewModel.mediaDetail?.displayPosterURL ?? entry.media.displayPosterURL,
+                    title: entry.media.title,
+                    slot: .hero,
+                    mediaType: entry.media.ref.mediaType,
+                    orientation: viewModel.mediaDetail?.posterOrientation ?? entry.media.posterOrientation
+                )
+                .shadow(color: .black.opacity(0.48), radius: 22, y: 12)
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(mediaTypeLabel(entry.media.ref.mediaType))
-                            .font(.system(size: 11, weight: .heavy))
-                            .foregroundStyle(.white.opacity(0.56))
-                            .textCase(.uppercase)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(mediaTypeLabel(entry.media.ref.mediaType))
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(.white.opacity(0.56))
+                        .textCase(.uppercase)
 
-                        if let logged = DiaryLogFormat.dateLabel(entry.consumedAt) {
-                            Text("Logged \(logged)")
-                                .font(.system(size: 13, weight: .heavy))
-                                .foregroundStyle(.white.opacity(0.72))
-                        }
-
-                        let parts = titleParts(entry.media.title)
-                        Text(parts.title)
-                            .font(.system(size: 31, weight: .black))
-                            .foregroundStyle(.white)
-                            .lineLimit(4)
-                            .minimumScaleFactor(0.72)
-
-                        if let metadata = heroMetadata(entry) {
-                            Text(metadata)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.66))
-                                .lineLimit(2)
-                        }
+                    if let logged = DiaryLogFormat.dateLabel(entry.consumedAt) {
+                        Text("Logged \(logged)")
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundStyle(.white.opacity(0.72))
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    let parts = titleParts(entry.media.title)
+                    Text(parts.title)
+                        .font(.system(size: 31, weight: .black))
+                        .foregroundStyle(.white)
+                        .lineLimit(4)
+                        .minimumScaleFactor(0.72)
+
+                    if let metadata = heroMetadata(entry) {
+                        Text(metadata)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.66))
+                            .lineLimit(2)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
+            .onTapGesture { presentedRef = entry.media.ref }
             .accessibilityLabel("View \(entry.media.title)")
+            .accessibilityAddTraits(.isButton)
             .padding(.horizontal, 16)
             .padding(.bottom, 22)
         }
@@ -290,9 +291,9 @@ struct DiaryLogDetailView: View {
         }
     }
 
-    private func mediaDestination(_ entry: DiaryEntry) -> some View {
+    private func mediaDestination(_ ref: MediaRef) -> some View {
         MediaDetailView(
-            ref: entry.media.ref,
+            ref: ref,
             mediaRepository: mediaRepository,
             trackingRepository: trackingRepository,
             diaryRepository: diaryRepository,

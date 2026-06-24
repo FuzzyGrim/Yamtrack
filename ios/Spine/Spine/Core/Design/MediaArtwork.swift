@@ -9,23 +9,10 @@ struct MediaArtwork: View {
     var contentMode: PosterContentMode = .fill
 
     var body: some View {
-        ZStack {
-            placeholder
-
+        Group {
             if let imageURL {
                 AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .modifier(ArtworkScaleModifier(contentMode: contentMode))
-                            .frame(width: slot.size.width, height: slot.size.height)
-                            .clipped()
-                    case .empty:
-                        ProgressView()
-                    default:
-                        placeholder
-                    }
+                    artwork(for: phase)
                 }
             } else {
                 placeholder
@@ -35,6 +22,22 @@ struct MediaArtwork: View {
         .clipShape(RoundedRectangle(cornerRadius: slot.cornerRadius, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: slot.cornerRadius, style: .continuous))
         .accessibilityLabel(title)
+    }
+
+    @ViewBuilder
+    private func artwork(for phase: AsyncImagePhase) -> some View {
+        switch phase {
+        case let .success(image):
+            image
+                .resizable()
+                .modifier(ArtworkScaleModifier(contentMode: contentMode))
+                .frame(width: slot.size.width, height: slot.size.height)
+                .clipped()
+        case .empty:
+            ProgressView()
+        default:
+            placeholder
+        }
     }
 
     private var imageURL: URL? {

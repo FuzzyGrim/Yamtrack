@@ -177,14 +177,15 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
 
 
 def search(query, page):
-    """Search for games on IGDB using MultiQuery."""
-    cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}_{page}"
+    """Search for games on IGDB."""
+    cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_v2_{query}_{page}"
     data = cache.get(cache_key)
 
     if data is None:
         search_query = str(query).replace("\\", "\\\\").replace('"', '\\"')
         access_token = get_access_token()
-        url = f"{base_url}/multiquery"
+        search_url = f"{base_url}/games"
+        count_url = f"{base_url}/games/count"
         headers = {
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
@@ -197,29 +198,32 @@ def search(query, page):
 
         offset = (page - 1) * settings.PER_PAGE
 
-        # Create the multiquery with both search and count
-        multiquery = (
-            'query games "SearchResults" {'
+        search_body = (
             f'search "{search_query}";'
             "fields name,cover.image_id,total_rating_count,total_rating,"
             "first_release_date,game_type;"
-            "sort total_rating_count desc;"
             f"limit {settings.PER_PAGE};"
             f"offset {offset};"
             f"{base_conditions};"
-            "};"
-            'query games/count "TotalCount" {'
+        )
+        count_body = (
             f'search "{search_query}";'
             f"{base_conditions};"
-            "};"
         )
 
         try:
-            response = services.api_request(
+            search_results = services.api_request(
                 Sources.IGDB.value,
                 "POST",
-                url,
-                data=multiquery,
+                search_url,
+                data=search_body,
+                headers=headers,
+            )
+            count_response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                count_url,
+                data=count_body,
                 headers=headers,
             )
 
@@ -228,22 +232,22 @@ def search(query, page):
             if error_resp and error_resp.get("retry"):
                 # Retry the request with the new access token
                 headers["Authorization"] = f"Bearer {get_access_token()}"
-                response = services.api_request(
+                search_results = services.api_request(
                     Sources.IGDB.value,
                     "POST",
-                    url,
-                    data=multiquery,
+                    search_url,
+                    data=search_body,
+                    headers=headers,
+                )
+                count_response = services.api_request(
+                    Sources.IGDB.value,
+                    "POST",
+                    count_url,
+                    data=count_body,
                     headers=headers,
                 )
 
-        search_results = next(
-            (item["result"] for item in response if item["name"] == "SearchResults"),
-            [],
-        )
-        total_results = next(
-            (item["count"] for item in response if item["name"] == "TotalCount"),
-            0,
-        )
+        total_results = count_response.get("count", 0)
 
         results = [
             {

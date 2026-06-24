@@ -36,6 +36,7 @@ extension TrackingRepository {
 
 protocol DiaryRepository {
     func list(tag: String?) async throws -> [DiaryEntry]
+    func recent(limit: Int) async throws -> [DiaryEntry]
     func detail(id: Int) async throws -> DiaryEntry
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState
@@ -45,6 +46,11 @@ protocol DiaryRepository {
 extension DiaryRepository {
     func list() async throws -> [DiaryEntry] {
         try await list(tag: nil)
+    }
+
+    func recent(limit: Int) async throws -> [DiaryEntry] {
+        guard limit > 0 else { return [] }
+        return Array(try await list().prefix(limit))
     }
 }
 
@@ -289,6 +295,12 @@ struct APIDiaryRepository: DiaryRepository {
         } while page != nil
 
         return entries
+    }
+
+    func recent(limit: Int) async throws -> [DiaryEntry] {
+        guard limit > 0 else { return [] }
+        let response: PagedResponse<DiaryEntry> = try await client.get("/diary/", authenticated: true)
+        return Array(response.results.prefix(limit))
     }
 
     func detail(id: Int) async throws -> DiaryEntry {
