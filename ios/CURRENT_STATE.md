@@ -45,7 +45,7 @@
 - Profile compact stats use `/me/` totals only; per-media log breakdown is deferred until `/api/v1/stats/me/summary/` has a documented response shape.
 - Comments and social notifications remain out of scope.
 - Library first-page latency now depends on one backend-paginated `/api/v1/tracking/` query. If that page is still slow, the next likely backend work is query profiling/indexing, not iOS skeleton changes.
-- Progress display unit preference is stored on-device so Home, Library, Media Detail, and the update sheet keep showing percent when the user saved percent, even if the API later returns equivalent page progress. The update sheet now opens from both entry points through the same captured detail route so poster artwork and keyboard presentation are consistent. Persisting the unit choice across reinstall or another device would require backend contract work; no backend redeploy is needed for this iOS-only fix.
+- Progress display unit preference is stored on-device so Home, Library, Media Detail, and the update sheet keep showing percent when the user saved percent, even if the API later returns equivalent page progress. The update sheet now opens from both entry points through the same captured detail route and immediately focuses the current-progress field so poster artwork and native keyboard presentation are consistent. Persisting the unit choice across reinstall or another device would require backend contract work; no backend redeploy is needed for this iOS-only fix.
 
 ## How To Run
 

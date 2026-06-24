@@ -1885,13 +1885,14 @@ private struct TrackingSummarySection: View {
            let progressText = (tracking?.progress ?? userState?.progress)?.detailDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: detail.ref)) {
             values.append(progressText)
         }
-        if let diaryCount = userState?.diaryCount, diaryCount > 1 {
+        let hasMultipleMovieLogs = detail.ref.mediaType == "movie" && (userState?.diaryCount ?? 0) > 1
+        if hasMultipleMovieLogs, let diaryCount = userState?.diaryCount {
             values.append("\(diaryCount) logs")
         }
         if let rating = userState?.diaryRating ?? tracking?.rating ?? userState?.rating {
             values.append("Rated \(rating.starRatingLabel)")
         }
-        if let consumedAt = userState?.diaryConsumedAt {
+        if !hasMultipleMovieLogs, let consumedAt = userState?.diaryConsumedAt {
             values.append("Logged \(consumedAt.shortDateLabel)")
         }
         if detail.ref.mediaType != "movie" {

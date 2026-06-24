@@ -22,7 +22,7 @@ class DiaryListView(APIView):
             DiaryEntry.objects.filter(user=request.user)
             .select_related("item", "user")
             .prefetch_related("tags")
-            .order_by("-created_at")
+            .order_by("-consumed_at", "-id")
         )
         media_type = request.query_params.get("media_type")
         year = request.query_params.get("year")

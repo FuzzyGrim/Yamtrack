@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -897,6 +898,29 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(media["image_url"], media["poster_url"])
         self.assertIsNone(media["backdrop_url"])
         self.assertEqual(media["poster_orientation"], "unknown")
+
+    def test_diary_list_orders_by_consumed_at_not_import_creation_time(self):
+        user = get_user_model().objects.create_user(username="diary-order", password="strong-password-123")
+        recent_item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="recent",
+            title="Recent",
+        )
+        old_item = Item.objects.create(
+            source=Sources.HARDCOVER.value,
+            media_type=MediaTypes.BOOK.value,
+            media_id="old",
+            title="Old Import",
+        )
+        recent = DiaryEntry.objects.create(user=user, item=recent_item, consumed_at=datetime(2026, 6, 1, tzinfo=UTC))
+        old_import = DiaryEntry.objects.create(user=user, item=old_item, consumed_at=datetime(2024, 1, 7, tzinfo=UTC))
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/diary/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([entry["id"] for entry in response.data["results"]], [recent.id, old_import.id])
 
     def test_diary_list_filters_by_multi_word_tag(self):
         user = get_user_model().objects.create_user(username="diary-tag", password="strong-password-123")

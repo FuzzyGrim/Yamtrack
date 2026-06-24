@@ -738,7 +738,20 @@ struct ProfileView: View {
             ProfileStatChip(value: counts.diaryEntries, title: "Logs", systemName: "calendar")
             ProfileStatChip(value: counts.followers, title: "Followers", systemName: "person.2")
             ProfileStatChip(value: counts.following, title: "Following", systemName: "person.crop.circle.badge.checkmark")
-            ProfileStatChip(value: counts.lists, title: "Lists", systemName: "list.bullet.rectangle")
+            NavigationLink {
+                ProfileListsView(
+                    listRepository: listRepository,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    diaryRepository: diaryRepository,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
+                    onUnauthorized: onUnauthorized
+                )
+            } label: {
+                ProfileStatChip(value: counts.lists, title: "Lists", systemName: "list.bullet.rectangle")
+            }
+            .buttonStyle(.plain)
         }
     }
 

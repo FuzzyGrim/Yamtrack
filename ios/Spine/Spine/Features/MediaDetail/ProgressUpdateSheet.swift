@@ -218,7 +218,9 @@ struct ProgressUpdateSheet: View {
         .foregroundStyle(.primary)
         .presentationBackground(.regularMaterial)
         .presentationCornerRadius(24)
-        .defaultFocus($isInputFocused, true)
+        .onAppear {
+            isInputFocused = true
+        }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
