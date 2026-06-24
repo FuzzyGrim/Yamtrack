@@ -67,6 +67,15 @@ struct APIClient: Sendable {
         try await request(path: path, method: "DELETE", query: query, body: Optional<Data>.none, authenticated: authenticated)
     }
 
+    func delete<Body: Encodable, Response: Decodable>(
+        _ path: String,
+        body: Body,
+        authenticated: Bool = false
+    ) async throws -> Response {
+        let data = try JSONEncoder.api.encode(body)
+        return try await request(path: path, method: "DELETE", query: [], body: data, authenticated: authenticated)
+    }
+
     func uploadMultipart<Response: Decodable>(
         _ path: String,
         formFields: [String: String],

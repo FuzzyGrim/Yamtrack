@@ -10,10 +10,12 @@ final class MediaDetailViewModel {
     var isLoadingReviews = false
     var isSavingQuickAction = false
     var isSavingProgress = false
+    var isSavingLike = false
     var errorMessage: String?
     var reviewsErrorMessage: String?
     var quickActionErrorMessage: String?
     var progressErrorMessage: String?
+    var likeErrorMessage: String?
 
     private let ref: MediaRef
     private let mediaRepository: MediaRepository
@@ -94,6 +96,28 @@ final class MediaDetailViewModel {
             if case APIError.unauthorized = error {
                 onUnauthorized()
             }
+        }
+    }
+
+    func toggleMediaLike(for detail: MediaDetail) async -> Bool {
+        guard !isSavingLike else { return false }
+        isSavingLike = true
+        likeErrorMessage = nil
+        defer { isSavingLike = false }
+
+        let next = !(detail.userState?.hasLiked ?? false)
+        self.detail = detail.replacingHasLiked(next)
+        do {
+            let response = try await mediaRepository.setLiked(ref: detail.ref, liked: next)
+            self.detail = self.detail?.replacingHasLiked(response.liked)
+            return true
+        } catch {
+            self.detail = detail
+            likeErrorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
         }
     }
 
@@ -268,6 +292,7 @@ struct MediaDetailView: View {
     @State private var isLogPresented = false
     @State private var progressUpdateDetail: MediaDetail?
     @State private var isQuickActionAlertPresented = false
+    @State private var isLikeAlertPresented = false
     @State private var showsTitleLogo = true
     @State private var topSafeAreaInset: CGFloat = 0
     @State private var edgeDragOffset: CGFloat = 0
@@ -429,6 +454,13 @@ struct MediaDetailView: View {
         } message: {
             Text(viewModel.quickActionErrorMessage ?? "")
         }
+        .alert("Like Update Failed", isPresented: $isLikeAlertPresented) {
+            Button("OK") {
+                viewModel.likeErrorMessage = nil
+            }
+        } message: {
+            Text(viewModel.likeErrorMessage ?? "")
+        }
         .fullScreenCover(isPresented: $isBackdropPickerPresented) {
             if let detail = viewModel.detail {
                 BackdropPickerView(
@@ -484,7 +516,7 @@ struct MediaDetailView: View {
             )
         }
         .fullScreenCover(item: $presentedDiaryEntry) { entry in
-            DiaryLogDetailView(
+            DiaryLogDetailNavigationCover(
                 entryId: entry.id,
                 diaryRepository: diaryRepository,
                 mediaRepository: mediaRepository,
@@ -601,6 +633,15 @@ struct MediaDetailView: View {
         }
     }
 
+    private func likeAction(for detail: MediaDetail) {
+        Task {
+            let succeeded = await viewModel.toggleMediaLike(for: detail)
+            if !succeeded {
+                isLikeAlertPresented = true
+            }
+        }
+    }
+
     private func openProgressUpdate(for detail: MediaDetail) {
         viewModel.progressErrorMessage = nil
         presentedSheet = nil
@@ -681,11 +722,14 @@ struct MediaDetailView: View {
 
                     ActionRail(
                         isTracked: currentStatus(detail) != nil,
+                        isLiked: detail.userState?.hasLiked ?? false,
                         isHorizontal: true,
                         trackLabel: usesBookGameActions(detail) ? "Track" : nil,
                         eyeLabel: usesBookGameActions(detail) ? bookGameCopy(for: detail.ref.mediaType).finished : nil,
                         isEyeLoading: usesBookGameActions(detail) && viewModel.isSavingQuickAction,
+                        isLikeLoading: viewModel.isSavingLike,
                         onTrack: { trackAction(for: detail) },
+                        onLike: { likeAction(for: detail) },
                         onEye: { eyeAction(for: detail) }
                     )
                 }
@@ -735,11 +779,14 @@ struct MediaDetailView: View {
 
                     ActionRail(
                         isTracked: currentStatus(detail) != nil,
+                        isLiked: detail.userState?.hasLiked ?? false,
                         isHorizontal: false,
                         trackLabel: usesBookGameActions(detail) ? "Track" : nil,
                         eyeLabel: usesBookGameActions(detail) ? bookGameCopy(for: detail.ref.mediaType).finished : nil,
                         isEyeLoading: usesBookGameActions(detail) && viewModel.isSavingQuickAction,
+                        isLikeLoading: viewModel.isSavingLike,
                         onTrack: { trackAction(for: detail) },
+                        onLike: { likeAction(for: detail) },
                         onEye: { eyeAction(for: detail) }
                     )
                 }
@@ -1625,11 +1672,14 @@ private struct ActionRail: View {
     private static let buttonSpacing: CGFloat = 10
 
     let isTracked: Bool
+    let isLiked: Bool
     let isHorizontal: Bool
     var trackLabel: String?
     var eyeLabel: String?
     var isEyeLoading = false
+    var isLikeLoading = false
     let onTrack: () -> Void
+    let onLike: () -> Void
     var onEye: () -> Void = {}
 
     var body: some View {
@@ -1642,7 +1692,14 @@ private struct ActionRail: View {
                     usesLargePlus: true,
                     action: onTrack
                 )
-                railButton(systemName: "heart", label: "Like", filled: true, usesLargePlus: false, action: {})
+                railButton(
+                    systemName: isLiked ? "heart.fill" : "heart",
+                    label: isLiked ? "Unlike" : "Like",
+                    filled: true,
+                    usesLargePlus: false,
+                    isLoading: isLikeLoading,
+                    action: onLike
+                )
                 railButton(
                     systemName: "eye",
                     label: eyeLabel ?? "Mark as watched",
@@ -1654,7 +1711,14 @@ private struct ActionRail: View {
             }
         } else {
             VStack(spacing: Self.buttonSpacing) {
-                railButton(systemName: "heart", label: "Like", filled: true, usesLargePlus: false, action: {})
+                railButton(
+                    systemName: isLiked ? "heart.fill" : "heart",
+                    label: isLiked ? "Unlike" : "Like",
+                    filled: true,
+                    usesLargePlus: false,
+                    isLoading: isLikeLoading,
+                    action: onLike
+                )
                 railButton(
                     systemName: "eye",
                     label: eyeLabel ?? "Mark as watched",
@@ -1692,7 +1756,7 @@ private struct ActionRail: View {
                 } else {
                     Image(systemName: systemName)
                         .font(.system(size: usesLargePlus ? 25 : 17, weight: usesLargePlus ? .semibold : .bold))
-                        .foregroundStyle(filled ? Color.black.opacity(0.82) : .white)
+                        .foregroundStyle(railIconColor(systemName: systemName, filled: filled))
                 }
             }
             .frame(width: Self.buttonSize, height: Self.buttonSize)
@@ -1701,6 +1765,12 @@ private struct ActionRail: View {
         .buttonStyle(.plain)
         .disabled(isLoading)
         .accessibilityLabel(label)
+    }
+
+    private func railIconColor(systemName: String, filled: Bool) -> Color {
+        guard filled else { return .white }
+        if systemName == "heart.fill" { return .pink }
+        return Color.black.opacity(0.82)
     }
 }
 

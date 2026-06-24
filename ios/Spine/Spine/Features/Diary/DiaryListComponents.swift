@@ -92,6 +92,10 @@ struct DiaryEntryRow: View {
             compactArtwork
 
             VStack(alignment: .leading, spacing: 5) {
+                if hasRatingOrLike {
+                    ratingLikeLine
+                }
+
                 titleLine
 
                 if let title = clean(entry.reviewTitle) {
@@ -142,20 +146,31 @@ struct DiaryEntryRow: View {
         .shadow(color: .black.opacity(0.24), radius: 9, y: 4)
     }
 
-    private var titleLine: some View {
-        let parts = titleParts
-        return HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(parts.title)
-                .font(.system(size: 15, weight: .heavy))
-                .foregroundStyle(.white)
-                .lineLimit(2)
+    private var hasRatingOrLike: Bool {
+        clean(entry.rating) != nil || entry.liked
+    }
 
-            if let year = parts.year {
-                Text(" (\(year))")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.48))
-                    .lineLimit(1)
+    private var ratingLikeLine: some View {
+        HStack(spacing: 6) {
+            if let rating = clean(entry.rating) {
+                DiaryStarRating(rating: rating)
             }
+
+            if entry.liked {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.pink)
+                    .accessibilityLabel("Liked")
+            }
+        }
+    }
+
+    private var titleLine: some View {
+        return HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(titleText)
+                .font(.system(size: 15, weight: .heavy))
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
 
             if entry.isRewatch {
                 Image(systemName: "arrow.clockwise")
@@ -164,6 +179,20 @@ struct DiaryEntryRow: View {
                     .accessibilityLabel("Rewatch")
             }
         }
+    }
+
+    private var titleText: AttributedString {
+        let parts = titleParts
+        var text = AttributedString(parts.title)
+        text.foregroundColor = .white
+
+        if let year = parts.year {
+            var yearText = AttributedString(" (\(year))")
+            yearText.foregroundColor = .white.opacity(0.48)
+            text += yearText
+        }
+
+        return text
     }
 
     private var titleParts: (title: String, year: String?) {
@@ -188,10 +217,6 @@ struct DiaryEntryRow: View {
     private var metadataChips: [DiaryMetadataChip] {
         var chips: [DiaryMetadataChip] = []
 
-        if let rating = clean(entry.rating) {
-            chips.append(DiaryMetadataChip(text: rating, systemImage: "star.fill"))
-        }
-
         chips += entry.tags.prefix(3).map { DiaryMetadataChip(text: $0, systemImage: nil) }
 
         if entry.tags.count > 3 {
@@ -209,6 +234,41 @@ struct DiaryEntryRow: View {
         guard let value else { return nil }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private struct DiaryStarRating: View {
+    let rating: String
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(0..<5, id: \.self) { index in
+                Image(systemName: symbolName(for: index))
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.yellow.opacity(0.92))
+            }
+        }
+        .accessibilityLabel("Rating \(displayValue) out of 5 stars")
+    }
+
+    private var value: Double {
+        guard let raw = Double(rating) else { return 0 }
+        return max(0, min(5, raw / 2))
+    }
+
+    private var displayValue: String {
+        value.formatted(.number.precision(.fractionLength(0...1)))
+    }
+
+    private func symbolName(for index: Int) -> String {
+        let starValue = value - Double(index)
+        if starValue >= 1 {
+            return "star.fill"
+        }
+        if starValue >= 0.5 {
+            return "star.leadinghalf.filled"
+        }
+        return "star"
     }
 }
 

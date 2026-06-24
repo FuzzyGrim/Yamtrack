@@ -80,6 +80,7 @@ class CustomList(models.Model):
         choices=Visibility.choices,
         default=Visibility.PRIVATE,
     )
+    is_ranked = models.BooleanField(default=False)
     import_source = models.CharField(max_length=32, blank=True, default="")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     collaborators = models.ManyToManyField(

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from importlib import import_module
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -150,6 +151,157 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(result["preview_items"][0]["title"], "Preview 12")
         self.assertEqual(result["preview_items"][-1]["title"], "Preview 01")
         self.assertEqual(result["preview_items"][0]["poster_url"], result["preview_items"][0]["image_url"])
+
+    def test_ranked_list_reorder_updates_positions(self):
+        user = get_user_model().objects.create_user(username="list-reorder", password="strong-password-123")
+        custom_list = CustomList.objects.create(owner=user, name="Ranked", is_ranked=True)
+        items = self._create_movie_items(3, title_prefix="Ranked", media_id_prefix="ranked")
+        for index, item in enumerate(items, start=1):
+            CustomListItem.objects.create(custom_list=custom_list, item=item, position=index)
+        self.client.force_authenticate(user)
+
+        response = self.client.patch(
+            f"/api/v1/lists/{custom_list.id}/items/reorder/",
+            {"item_ids": [items[2].id, items[0].id, items[1].id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item["ref"]["item_id"] for item in response.data["items"]], [items[2].id, items[0].id, items[1].id])
+        self.assertEqual(
+            list(CustomListItem.objects.filter(custom_list=custom_list).values_list("item_id", "position")),
+            [(items[2].id, 1), (items[0].id, 2), (items[1].id, 3)],
+        )
+
+    def test_reorder_rejects_wrong_item_set(self):
+        user = get_user_model().objects.create_user(username="list-reorder-bad", password="strong-password-123")
+        custom_list = CustomList.objects.create(owner=user, name="Ranked")
+        items = self._create_movie_items(2, title_prefix="Ranked Bad", media_id_prefix="ranked-bad")
+        for item in items:
+            CustomListItem.objects.create(custom_list=custom_list, item=item)
+        self.client.force_authenticate(user)
+
+        response = self.client.patch(
+            f"/api/v1/lists/{custom_list.id}/items/reorder/",
+            {"item_ids": [items[0].id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reorder_requires_edit_permission(self):
+        owner = get_user_model().objects.create_user(username="list-reorder-owner", password="strong-password-123")
+        other = get_user_model().objects.create_user(username="list-reorder-other", password="strong-password-123")
+        custom_list = CustomList.objects.create(owner=owner, name="Ranked")
+        item = self._create_movie_items(1, title_prefix="Ranked Forbidden", media_id_prefix="ranked-forbidden")[0]
+        CustomListItem.objects.create(custom_list=custom_list, item=item)
+        self.client.force_authenticate(other)
+
+        response = self.client.patch(
+            f"/api/v1/lists/{custom_list.id}/items/reorder/",
+            {"item_ids": [item.id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_ranked_add_assigns_next_position_and_normal_add_leaves_null(self):
+        user = get_user_model().objects.create_user(username="list-add-position", password="strong-password-123")
+        ranked = CustomList.objects.create(owner=user, name="Ranked", is_ranked=True)
+        normal = CustomList.objects.create(owner=user, name="Normal")
+        existing, ranked_item, normal_item = self._create_movie_items(3, title_prefix="Add", media_id_prefix="add")
+        CustomListItem.objects.create(custom_list=ranked, item=existing, position=4)
+        self.client.force_authenticate(user)
+
+        ranked_response = self.client.post(
+            f"/api/v1/lists/{ranked.id}/items/",
+            {"ref": {"source": ranked_item.source, "media_type": ranked_item.media_type, "media_id": ranked_item.media_id}},
+            format="json",
+        )
+        normal_response = self.client.post(
+            f"/api/v1/lists/{normal.id}/items/",
+            {"ref": {"source": normal_item.source, "media_type": normal_item.media_type, "media_id": normal_item.media_id}},
+            format="json",
+        )
+
+        self.assertEqual(ranked_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(normal_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(CustomListItem.objects.get(custom_list=ranked, item=ranked_item).position, 5)
+        self.assertIsNone(CustomListItem.objects.get(custom_list=normal, item=normal_item).position)
+
+    def test_ranked_delete_renumbers_remaining_items(self):
+        user = get_user_model().objects.create_user(username="list-delete-ranked", password="strong-password-123")
+        custom_list = CustomList.objects.create(owner=user, name="Ranked", is_ranked=True)
+        items = self._create_movie_items(3, title_prefix="Delete", media_id_prefix="delete")
+        for index, item in enumerate(items, start=1):
+            CustomListItem.objects.create(custom_list=custom_list, item=item, position=index)
+        self.client.force_authenticate(user)
+
+        response = self.client.delete(f"/api/v1/lists/{custom_list.id}/items/{items[1].id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(
+            list(CustomListItem.objects.filter(custom_list=custom_list).values_list("item_id", "position")),
+            [(items[0].id, 1), (items[2].id, 2)],
+        )
+
+    def test_mode_switch_assigns_and_preserves_positions(self):
+        user = get_user_model().objects.create_user(username="list-mode-switch", password="strong-password-123")
+        custom_list = CustomList.objects.create(owner=user, name="Mode")
+        items = self._create_movie_items(3, title_prefix="Mode", media_id_prefix="mode")
+        CustomListItem.objects.create(custom_list=custom_list, item=items[0], position=2)
+        CustomListItem.objects.create(custom_list=custom_list, item=items[1])
+        CustomListItem.objects.create(custom_list=custom_list, item=items[2])
+        self.client.force_authenticate(user)
+
+        ranked = self.client.patch(f"/api/v1/lists/{custom_list.id}/", {"is_ranked": True}, format="json")
+        normal = self.client.patch(f"/api/v1/lists/{custom_list.id}/", {"is_ranked": False}, format="json")
+        detail = self.client.get(f"/api/v1/lists/{custom_list.id}/")
+
+        self.assertEqual(ranked.status_code, status.HTTP_200_OK)
+        self.assertEqual(normal.status_code, status.HTTP_200_OK)
+        self.assertFalse(detail.data["is_ranked"])
+        self.assertEqual([item["position"] for item in detail.data["items"]], [1, 2, 3])
+        self.assertEqual([item["ref"]["item_id"] for item in detail.data["items"]], [items[0].id, items[1].id, items[2].id])
+
+    def test_ranked_backfill_migration_marks_positioned_lists(self):
+        user = get_user_model().objects.create_user(username="list-migration", password="strong-password-123")
+        custom_list = CustomList.objects.create(owner=user, name="Imported", is_ranked=False)
+        item = self._create_movie_items(1, title_prefix="Imported", media_id_prefix="imported")[0]
+        CustomListItem.objects.create(custom_list=custom_list, item=item, position=1)
+
+        import_module("lists.migrations.0005_customlist_is_ranked").backfill_ranked_lists(import_module("django.apps").apps, None)
+
+        custom_list.refresh_from_db()
+        self.assertTrue(custom_list.is_ranked)
+
+    def test_lists_membership_query_returns_has_item(self):
+        user = get_user_model().objects.create_user(username="list-membership", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="membership",
+            title="Membership",
+        )
+        with_item = CustomList.objects.create(owner=user, name="With")
+        without_item = CustomList.objects.create(owner=user, name="Without")
+        CustomListItem.objects.create(custom_list=with_item, item=item)
+        self.client.force_authenticate(user)
+
+        response = self.client.get(
+            "/api/v1/lists/",
+            {
+                "ref[source]": Sources.TMDB.value,
+                "ref[media_type]": MediaTypes.MOVIE.value,
+                "ref[media_id]": "membership",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            {result["name"]: result["has_item"] for result in response.data["results"]},
+            {with_item.name: True, without_item.name: False},
+        )
 
     def test_tracking_list_paginates_before_serializing_movies(self):
         user = get_user_model().objects.create_user(username="tracking-pages", password="strong-password-123")

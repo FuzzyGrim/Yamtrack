@@ -123,6 +123,7 @@ current page of rows.
 | GET/POST | `/api/v1/lists/` | Yes |
 | GET/PATCH/DELETE | `/api/v1/lists/{id}/` | Yes |
 | POST | `/api/v1/lists/{id}/items/` | Yes |
+| PATCH | `/api/v1/lists/{id}/items/reorder/` | Yes |
 | DELETE | `/api/v1/lists/{id}/items/{item_id}/` | Yes |
 | POST/DELETE | `/api/v1/lists/{id}/like/` | Yes |
 | GET | `/api/v1/users/search/` | Yes |
@@ -144,7 +145,28 @@ current page of rows.
 `preview_items`, capped at 12 media items ordered by the list's item order, using
 the standard `MediaSummary` shape. Native clients use this for poster strips on
 list overview rows; `GET /api/v1/lists/{id}/` remains the source for the full
-item list.
+item list. List payloads include `is_ranked`.
+
+For add-to-list flows, `GET /api/v1/lists/` accepts optional media ref query
+params: `ref[source]`, `ref[media_type]`, `ref[media_id]`, plus optional
+`ref[season_number]` and `ref[episode_number]`. When present, each result
+includes `has_item: true|false`.
+
+`PATCH /api/v1/lists/{id}/` accepts `is_ranked`. Switching from normal to ranked
+assigns contiguous positions in current list order. Switching back to normal
+preserves positions so imported or manually ranked order is not lost. Ranked
+adds append with the next position; normal adds leave `position` null. Ranked
+deletes renumber remaining items.
+
+`PATCH /api/v1/lists/{id}/items/reorder/` accepts:
+
+```json
+{ "item_ids": [42, 17, 99] }
+```
+
+`item_ids` must be exactly the full set of current list item IDs in desired
+order. The endpoint writes positions `1..n` and returns the full list detail
+payload.
 
 ### Stats, Imports, Export
 

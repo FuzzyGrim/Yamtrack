@@ -81,7 +81,7 @@ struct ProfileReviewsView: View {
 }
 
 struct ProfileLikesView: View {
-    @State private var viewModel: ProfileDiaryFilterViewModel
+    @State private var viewModel: ProfileLikesViewModel
 
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
@@ -91,6 +91,7 @@ struct ProfileLikesView: View {
     private let onUnauthorized: () -> Void
 
     init(
+        profileRepository: ProfileRepository,
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
@@ -104,9 +105,8 @@ struct ProfileLikesView: View {
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
-        _viewModel = State(initialValue: ProfileDiaryFilterViewModel(
-            filter: DiaryFilter(liked: true),
-            diaryRepository: diaryRepository,
+        _viewModel = State(initialValue: ProfileLikesViewModel(
+            profileRepository: profileRepository,
             onUnauthorized: onUnauthorized
         ))
     }
@@ -123,10 +123,10 @@ struct ProfileLikesView: View {
                             .frame(maxWidth: .infinity, minHeight: 320)
                     } else if let error = viewModel.errorMessage {
                         DiaryStateCard(title: "Could not load likes", systemImage: "exclamationmark.triangle", message: error)
-                    } else if likedMedia.isEmpty {
+                    } else if viewModel.media.isEmpty {
                         DiaryStateCard(title: "No liked media yet", systemImage: "heart", message: "Media you like while logging will appear here.")
                     } else {
-                        mediaGrid(likedMedia)
+                        mediaGrid(viewModel.media)
                     }
                 }
                 .padding(.horizontal, 14)
@@ -143,22 +143,18 @@ struct ProfileLikesView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .task {
-            if viewModel.entries.isEmpty {
+            if viewModel.media.isEmpty {
                 await viewModel.load()
             }
         }
     }
 
-    private var likedMedia: [TaggedDiaryMedia] {
-        TaggedDiaryViewModel.uniqueMedia(from: viewModel.entries)
-    }
-
-    private func mediaGrid(_ media: [TaggedDiaryMedia]) -> some View {
+    private func mediaGrid(_ media: [MediaSummary]) -> some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 10) {
             ForEach(media) { item in
                 NavigationLink {
                     MediaDetailView(
-                        ref: item.media.ref,
+                        ref: item.ref,
                         mediaRepository: mediaRepository,
                         trackingRepository: trackingRepository,
                         diaryRepository: diaryRepository,
@@ -168,19 +164,50 @@ struct ProfileLikesView: View {
                     )
                 } label: {
                     MediaArtwork(
-                        url: item.media.displayPosterURL,
-                        title: item.media.title,
+                        url: item.displayPosterURL,
+                        title: item.title,
                         slot: .tagGrid,
-                        mediaType: item.media.ref.mediaType,
-                        orientation: item.media.posterOrientation
+                        mediaType: item.ref.mediaType,
+                        orientation: item.posterOrientation
                     )
                     .shadow(color: .black.opacity(0.28), radius: 10, y: 5)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("View \(item.media.title)")
+                .accessibilityLabel("View \(item.title)")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+@MainActor
+@Observable
+private final class ProfileLikesViewModel {
+    var media: [MediaSummary] = []
+    var isLoading = false
+    var errorMessage: String?
+
+    private let profileRepository: ProfileRepository
+    private let onUnauthorized: () -> Void
+
+    init(profileRepository: ProfileRepository, onUnauthorized: @escaping () -> Void) {
+        self.profileRepository = profileRepository
+        self.onUnauthorized = onUnauthorized
+    }
+
+    func load() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            media = try await profileRepository.likedMedia()
+        } catch {
+            errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+        }
     }
 }
 

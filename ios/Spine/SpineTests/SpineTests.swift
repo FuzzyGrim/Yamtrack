@@ -1024,7 +1024,7 @@ final class SpineTests: XCTestCase {
 
         let decodedTracking = try JSONDecoder.api.decode(TrackingState.self, from: tracking)
         XCTAssertEqual(decodedTracking.rating, "8.5")
-        XCTAssertEqual(decodedTracking.progress?.compactDisplayText, "42/300 page")
+        XCTAssertEqual(decodedTracking.progress?.compactDisplayText, "42/300 pages")
         XCTAssertEqual(decodedTracking.progress?.detailDisplayText, "42 of 300 pages")
         XCTAssertEqual(try JSONDecoder.api.decode(DiaryEntry.self, from: diary).media.title, "Fight Club")
         XCTAssertEqual(try JSONDecoder.api.decode(UserProfile.self, from: profile).counts.diaryEntries, 1)
@@ -1231,6 +1231,107 @@ final class SpineTests: XCTestCase {
         let entries = try await repository.list(filter: DiaryFilter(hasReview: true, liked: true))
 
         XCTAssertTrue(entries.isEmpty)
+        client.tokenProvider.clear()
+    }
+
+    func testProfileRepositoryLoadsLikedMediaPages() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        let repository = APIProfileRepository(client: client)
+        var requestedURLs: [String] = []
+
+        RequestCaptureURLProtocol.handler = { request in
+            requestedURLs.append(request.url?.absoluteString ?? "")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            let query = components?.queryItems ?? []
+            XCTAssertEqual(components?.path, "/api/v1/me/liked-media/")
+
+            if query.contains(where: { $0.name == "page" && $0.value == "2" }) {
+                return (
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    """
+                    {
+                      "count": 2,
+                      "next": null,
+                      "previous": "https://example.com/api/v1/me/liked-media/",
+                      "results": [\(TestFixtures.mediaSummaryJSON(mediaId: "551", title: "Second Like"))]
+                    }
+                    """.data(using: .utf8)!
+                )
+            }
+
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                """
+                {
+                  "count": 2,
+                  "next": "https://example.com/api/v1/me/liked-media/?page=2",
+                  "previous": null,
+                  "results": [\(TestFixtures.mediaSummaryJSON(mediaId: "550", title: "First Like"))]
+                }
+                """.data(using: .utf8)!
+            )
+        }
+
+        let media = try await repository.likedMedia()
+
+        XCTAssertEqual(media.map(\.title), ["First Like", "Second Like"])
+        XCTAssertEqual(requestedURLs, [
+            "https://example.com/api/v1/me/liked-media/",
+            "https://example.com/api/v1/me/liked-media/?page=2",
+        ])
+        client.tokenProvider.clear()
+    }
+
+    func testMediaRepositorySendsLikedMediaWriteBody() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        let repository = APIMediaRepository(client: client)
+        let ref = MediaRef(itemId: nil, source: "tmdb", mediaType: "movie", mediaId: "550", seasonNumber: nil, episodeNumber: nil)
+        var methods: [String] = []
+
+        RequestCaptureURLProtocol.handler = { request in
+            methods.append(request.httpMethod ?? "")
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/me/liked-media/")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            let body = try JSONDecoder.api.decode(HallOfFameItemWriteRequest.self, from: requestBodyData(for: request))
+            XCTAssertEqual(body.ref.mediaId, "550")
+
+            let liked = request.httpMethod == "POST"
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                """
+                {
+                  "liked": \(liked ? "true" : "false"),
+                  "media": \(TestFixtures.mediaSummaryJSON(mediaId: "550", title: "Fight Club"))
+                }
+                """.data(using: .utf8)!
+            )
+        }
+
+        let liked = try await repository.setLiked(ref: ref, liked: true)
+        let unliked = try await repository.setLiked(ref: ref, liked: false)
+
+        XCTAssertEqual(methods, ["POST", "DELETE"])
+        XCTAssertTrue(liked.liked)
+        XCTAssertFalse(unliked.liked)
         client.tokenProvider.clear()
     }
 
@@ -3521,6 +3622,33 @@ private enum TestFixtures {
           "viewer_has_liked": false,
           "created_at": "2026-06-20T12:00:00Z",
           "updated_at": "2026-06-20T12:00:00Z"
+        }
+        """
+    }
+
+    static func mediaSummaryJSON(mediaId: String, title: String) -> String {
+        """
+        {
+          "ref": { "item_id": null, "source": "tmdb", "media_type": "movie", "media_id": "\(mediaId)", "season_number": null, "episode_number": null },
+          "title": "\(title)",
+          "subtitle": null,
+          "overview": null,
+          "image_url": "https://example.com/\(mediaId).jpg",
+          "poster_url": "https://example.com/\(mediaId).jpg",
+          "custom_poster_url": null,
+          "backdrop_url": null,
+          "poster_orientation": "portrait",
+          "poster_aspect_ratio": null,
+          "poster_width": null,
+          "poster_height": null,
+          "poster_accent_color": null,
+          "logo_url": null,
+          "logo_width": null,
+          "logo_height": null,
+          "logo_aspect_ratio": null,
+          "release_date": null,
+          "default_source": "tmdb",
+          "user_state": { "is_tracked": false, "status": null, "rating": null, "in_lists": [], "has_liked": true }
         }
         """
     }

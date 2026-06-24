@@ -361,6 +361,30 @@ struct DiaryLogDetailView: View {
     }
 }
 
+struct DiaryLogDetailNavigationCover: View {
+    let entryId: Int
+    let diaryRepository: DiaryRepository
+    let mediaRepository: MediaRepository
+    let trackingRepository: TrackingRepository
+    let selectedTab: AppTab
+    let onSelectTab: (AppTab) -> Void
+    let onUnauthorized: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            DiaryLogDetailView(
+                entryId: entryId,
+                diaryRepository: diaryRepository,
+                mediaRepository: mediaRepository,
+                trackingRepository: trackingRepository,
+                selectedTab: selectedTab,
+                onSelectTab: onSelectTab,
+                onUnauthorized: onUnauthorized
+            )
+        }
+    }
+}
+
 private struct DiaryLogHeroArtwork: View {
     let entry: DiaryEntry
     let detail: MediaDetail?

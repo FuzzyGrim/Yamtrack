@@ -13,6 +13,7 @@ class CustomListWriteSerializer(serializers.Serializer):
         choices=["public", "unlisted", "private"],
         required=False,
     )
+    is_ranked = serializers.BooleanField(required=False)
     collaborator_usernames = serializers.ListField(
         child=serializers.CharField(max_length=150),
         required=False,
@@ -23,6 +24,15 @@ class ListItemWriteSerializer(serializers.Serializer):
     """Validate list item writes."""
 
     ref = MediaRefSerializer()
+
+
+class ListItemsReorderSerializer(serializers.Serializer):
+    """Validate list item reorder writes."""
+
+    item_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        allow_empty=True,
+    )
 
 
 class CollaboratorSerializer(serializers.Serializer):

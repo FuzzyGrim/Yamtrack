@@ -815,6 +815,7 @@ struct ProfileView: View {
         case .likes:
             NavigationLink {
                 ProfileLikesView(
+                    profileRepository: profileRepository,
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,

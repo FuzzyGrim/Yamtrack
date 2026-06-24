@@ -12,11 +12,18 @@ protocol MediaRepository {
     func meta() async throws -> MetaResponse
     func search(query: String, mediaType: String) async throws -> [MediaSummary]
     func detail(ref: MediaRef) async throws -> MediaDetail
+    func setLiked(ref: MediaRef, liked: Bool) async throws -> MediaLikeResponse
     func reviews(ref: MediaRef) async throws -> [MediaReview]
     func posters(ref: MediaRef) async throws -> [PosterOption]
     func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse
     func backdrops(ref: MediaRef) async throws -> [PosterOption]
     func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse
+}
+
+extension MediaRepository {
+    func setLiked(ref: MediaRef, liked: Bool) async throws -> MediaLikeResponse {
+        fatalError("Not implemented")
+    }
 }
 
 protocol TrackingRepository {
@@ -79,6 +86,7 @@ struct DiaryFilter: Equatable {
 
 protocol ProfileRepository {
     func me() async throws -> UserProfile
+    func likedMedia() async throws -> [MediaSummary]
     func updateProfile(_ request: ProfileUpdateRequest) async throws -> UserProfile
     func uploadAvatar(imageData: Data, fileName: String, mimeType: String) async throws -> String?
     func deleteAvatar() async throws -> String?
@@ -86,6 +94,12 @@ protocol ProfileRepository {
     func changePassword(_ request: PasswordChangeRequest) async throws
     func setHallOfFameItem(mediaType: String, ref: MediaRef) async throws -> [String: MediaSummary?]
     func clearHallOfFameItem(mediaType: String) async throws -> [String: MediaSummary?]
+}
+
+extension ProfileRepository {
+    func likedMedia() async throws -> [MediaSummary] {
+        fatalError("Not implemented")
+    }
 }
 
 protocol ListRepository {
@@ -198,6 +212,14 @@ struct APIMediaRepository: MediaRepository {
             query: query,
             authenticated: client.tokenProvider.accessToken != nil
         )
+    }
+
+    func setLiked(ref: MediaRef, liked: Bool) async throws -> MediaLikeResponse {
+        let request = HallOfFameItemWriteRequest(ref: ref)
+        if liked {
+            return try await client.post("/me/liked-media/", body: request, authenticated: true)
+        }
+        return try await client.delete("/me/liked-media/", body: request, authenticated: true)
     }
 
     func reviews(ref: MediaRef) async throws -> [MediaReview] {
@@ -429,6 +451,24 @@ struct APIProfileRepository: ProfileRepository {
 
     func me() async throws -> UserProfile {
         try await client.get("/me/", authenticated: true)
+    }
+
+    func likedMedia() async throws -> [MediaSummary] {
+        var page: String?
+        var media: [MediaSummary] = []
+
+        repeat {
+            let query = page.map { [URLQueryItem(name: "page", value: $0)] } ?? []
+            let response: PagedResponse<MediaSummary> = try await client.get(
+                "/me/liked-media/",
+                query: query,
+                authenticated: true
+            )
+            media += response.results
+            page = APIPageCursor.nextPage(from: response.next)
+        } while page != nil
+
+        return media
     }
 
     func updateProfile(_ request: ProfileUpdateRequest) async throws -> UserProfile {

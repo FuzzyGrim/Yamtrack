@@ -191,7 +191,7 @@ struct HomeView: View {
                 )
             }
             .fullScreenCover(item: $selectedEntry) { entry in
-                DiaryLogDetailView(
+                DiaryLogDetailNavigationCover(
                     entryId: entry.id,
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,

@@ -405,6 +405,44 @@ struct MediaDetail: Decodable, Identifiable {
         )
     }
 
+    func replacingHasLiked(_ liked: Bool) -> MediaDetail {
+        MediaDetail(
+            ref: ref,
+            title: title,
+            subtitle: subtitle,
+            overview: overview,
+            synopsis: synopsis,
+            imageUrl: imageUrl,
+            posterUrl: posterUrl,
+            posterOrientation: posterOrientation,
+            posterAspectRatio: posterAspectRatio,
+            posterWidth: posterWidth,
+            posterHeight: posterHeight,
+            posterAccentColor: posterAccentColor,
+            logoUrl: logoUrl,
+            logoWidth: logoWidth,
+            logoHeight: logoHeight,
+            logoAspectRatio: logoAspectRatio,
+            releaseDate: releaseDate,
+            defaultSource: defaultSource,
+            userState: (userState ?? UserMediaState(isTracked: false)).replacingHasLiked(liked),
+            backdropUrl: backdropUrl,
+            details: details,
+            related: related,
+            providers: providers,
+            community: community,
+            externalRatings: externalRatings,
+            reviews: reviews,
+            cast: cast,
+            crew: crew,
+            relatedSections: relatedSections,
+            episodes: episodes,
+            seasons: seasons,
+            customPosterUrl: customPosterUrl,
+            customBackdropUrl: customBackdropUrl
+        )
+    }
+
     var displaySynopsis: String? {
         let placeholder = "No synopsis available."
         let candidates = [
@@ -498,6 +536,98 @@ struct UserMediaState: Codable, Hashable {
     let diaryRating: String?
     let diaryConsumedAt: String?
     let inLists: [Int]
+    let hasLiked: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case isTracked
+        case trackingId
+        case status
+        case rating
+        case progress
+        case diaryEntryId
+        case diaryCount
+        case diaryRating
+        case diaryConsumedAt
+        case inLists
+        case hasLiked
+    }
+
+    init(
+        isTracked: Bool,
+        trackingId: Int? = nil,
+        status: String? = nil,
+        rating: String? = nil,
+        progress: ProgressState? = nil,
+        diaryEntryId: Int? = nil,
+        diaryCount: Int? = nil,
+        diaryRating: String? = nil,
+        diaryConsumedAt: String? = nil,
+        inLists: [Int] = [],
+        hasLiked: Bool = false
+    ) {
+        self.isTracked = isTracked
+        self.trackingId = trackingId
+        self.status = status
+        self.rating = rating
+        self.progress = progress
+        self.diaryEntryId = diaryEntryId
+        self.diaryCount = diaryCount
+        self.diaryRating = diaryRating
+        self.diaryConsumedAt = diaryConsumedAt
+        self.inLists = inLists
+        self.hasLiked = hasLiked
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        isTracked = try container.decode(Bool.self, forKey: .isTracked)
+        trackingId = try container.decodeIfPresent(Int.self, forKey: .trackingId)
+        status = try container.decodeIfPresent(String.self, forKey: .status)
+        rating = try container.decodeIfPresent(String.self, forKey: .rating)
+        progress = try container.decodeIfPresent(ProgressState.self, forKey: .progress)
+        diaryEntryId = try container.decodeIfPresent(Int.self, forKey: .diaryEntryId)
+        diaryCount = try container.decodeIfPresent(Int.self, forKey: .diaryCount)
+        diaryRating = try container.decodeIfPresent(String.self, forKey: .diaryRating)
+        diaryConsumedAt = try container.decodeIfPresent(String.self, forKey: .diaryConsumedAt)
+        inLists = try container.decodeIfPresent([Int].self, forKey: .inLists) ?? []
+        hasLiked = try container.decodeIfPresent(Bool.self, forKey: .hasLiked) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(isTracked, forKey: .isTracked)
+        try container.encodeIfPresent(trackingId, forKey: .trackingId)
+        try container.encodeIfPresent(status, forKey: .status)
+        try container.encodeIfPresent(rating, forKey: .rating)
+        try container.encodeIfPresent(progress, forKey: .progress)
+        try container.encodeIfPresent(diaryEntryId, forKey: .diaryEntryId)
+        try container.encodeIfPresent(diaryCount, forKey: .diaryCount)
+        try container.encodeIfPresent(diaryRating, forKey: .diaryRating)
+        try container.encodeIfPresent(diaryConsumedAt, forKey: .diaryConsumedAt)
+        try container.encode(inLists, forKey: .inLists)
+        try container.encode(hasLiked, forKey: .hasLiked)
+    }
+
+    func replacingHasLiked(_ liked: Bool) -> UserMediaState {
+        UserMediaState(
+            isTracked: isTracked,
+            trackingId: trackingId,
+            status: status,
+            rating: rating,
+            progress: progress,
+            diaryEntryId: diaryEntryId,
+            diaryCount: diaryCount,
+            diaryRating: diaryRating,
+            diaryConsumedAt: diaryConsumedAt,
+            inLists: inLists,
+            hasLiked: liked
+        )
+    }
+}
+
+struct MediaLikeResponse: Codable, Equatable {
+    let liked: Bool
+    let media: MediaSummary?
 }
 
 struct CommunityStats: Codable {
