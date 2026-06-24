@@ -499,6 +499,8 @@ struct MediaDetailView: View {
                 MediaDiaryView(
                     title: diary.title,
                     itemId: itemId,
+                    posterURL: diary.detail.displayPosterURL,
+                    posterOrientation: diary.detail.posterOrientation,
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,

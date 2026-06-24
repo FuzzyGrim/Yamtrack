@@ -40,8 +40,10 @@ final class DiaryViewModel {
 struct MediaDiaryView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: DiaryViewModel
+    @State private var edgeDragOffset: CGFloat = 0
 
     private let title: String
+    private let artworkOverride: DiaryEntryArtworkOverride
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
@@ -52,6 +54,8 @@ struct MediaDiaryView: View {
     init(
         title: String,
         itemId: Int,
+        posterURL: String?,
+        posterOrientation: PosterOrientation?,
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
@@ -60,6 +64,7 @@ struct MediaDiaryView: View {
         onUnauthorized: @escaping () -> Void = {}
     ) {
         self.title = title
+        self.artworkOverride = DiaryEntryArtworkOverride(url: posterURL, orientation: posterOrientation)
         self.diaryRepository = diaryRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
@@ -99,7 +104,7 @@ struct MediaDiaryView: View {
                                 message: "Logs for this media will appear here."
                             )
                         } else {
-                            DiaryEntryList(entries: viewModel.entries) { entry in
+                            DiaryEntryList(entries: viewModel.entries, artworkOverride: artworkOverride) { entry in
                                 DiaryLogDetailView(
                                     entryId: entry.id,
                                     diaryRepository: diaryRepository,
@@ -121,16 +126,15 @@ struct MediaDiaryView: View {
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white)
-                }
+            .navigationBarBackButtonHidden()
+            .offset(x: edgeDragOffset)
+            .overlay(alignment: .leading) {
+                Color.clear
+                    .frame(width: 28)
+                    .contentShape(Rectangle())
+                    .gesture(edgeSwipeBackGesture)
             }
             .task {
                 await viewModel.load()
@@ -144,15 +148,44 @@ struct MediaDiaryView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title)
-                .font(.system(size: 32, weight: .black))
-                .foregroundStyle(.white)
+    private var edgeSwipeBackGesture: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .onChanged { value in
+                guard value.translation.width > 0 else { return }
+                edgeDragOffset = value.translation.width
+            }
+            .onEnded { value in
+                if value.translation.width > 90 {
+                    dismiss()
+                } else {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                        edgeDragOffset = 0
+                    }
+                }
+            }
+    }
 
-            Text("Your logs for this media.")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.58))
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 10) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 34, height: 34)
+                        .background(.white.opacity(0.1), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back")
+
+                Text(title)
+                    .font(.system(size: 32, weight: .black))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+            }
+
         }
         .padding(.bottom, 14)
     }

@@ -100,7 +100,8 @@ class DiaryTagsView(APIView):
 
     def get(self, request):
         user = request.user if request.query_params.get("mine") == "true" else None
-        return Response({"results": diary_service.tag_results(request.query_params.get("q", ""), user=user)})
+        limit = None if request.query_params.get("all") == "true" else 10
+        return Response({"results": diary_service.tag_results(request.query_params.get("q", ""), user=user, limit=limit)})
 
 
 class DiaryLikeView(APIView):

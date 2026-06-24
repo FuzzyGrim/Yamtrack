@@ -216,7 +216,7 @@ struct DiaryLogDetailView: View {
                             .minimumScaleFactor(0.72)
 
                         if entry.isRewatch {
-                            Image(systemName: "arrow.clockwise.circle")
+                            Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 23, weight: .bold))
                                 .foregroundStyle(.white.opacity(0.74))
                                 .accessibilityLabel("Rewatch")

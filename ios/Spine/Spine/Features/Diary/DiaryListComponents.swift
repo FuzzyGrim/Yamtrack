@@ -2,7 +2,18 @@ import SwiftUI
 
 struct DiaryEntryList<Destination: View>: View {
     let entries: [DiaryEntry]
+    let artworkOverride: DiaryEntryArtworkOverride?
     @ViewBuilder let destination: (DiaryEntry) -> Destination
+
+    init(
+        entries: [DiaryEntry],
+        artworkOverride: DiaryEntryArtworkOverride? = nil,
+        @ViewBuilder destination: @escaping (DiaryEntry) -> Destination
+    ) {
+        self.entries = entries
+        self.artworkOverride = artworkOverride
+        self.destination = destination
+    }
 
     var body: some View {
         ForEach(monthSections) { section in
@@ -13,7 +24,7 @@ struct DiaryEntryList<Destination: View>: View {
                     NavigationLink {
                         destination(entry)
                     } label: {
-                        DiaryEntryRow(entry: entry)
+                        DiaryEntryRow(entry: entry, artworkOverride: artworkOverride)
                     }
                     .buttonStyle(.plain)
                 }
@@ -33,6 +44,11 @@ struct DiaryEntryList<Destination: View>: View {
             }
         }
     }
+}
+
+struct DiaryEntryArtworkOverride {
+    let url: String?
+    let orientation: PosterOrientation?
 }
 
 struct DiaryMonthSection: Identifiable {
@@ -67,6 +83,7 @@ struct DiaryMonthHeader: View {
 
 struct DiaryEntryRow: View {
     let entry: DiaryEntry
+    var artworkOverride: DiaryEntryArtworkOverride?
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -114,11 +131,11 @@ struct DiaryEntryRow: View {
 
     private var compactArtwork: some View {
         MediaArtwork(
-            url: entry.media.displayPosterURL,
+            url: artworkOverride?.url ?? entry.media.displayPosterURL,
             title: entry.media.title,
             slot: .diaryRow,
             mediaType: entry.media.ref.mediaType,
-            orientation: entry.media.posterOrientation
+            orientation: artworkOverride?.orientation ?? entry.media.posterOrientation
         )
         .scaleEffect(0.75)
         .frame(width: 42, height: 63)
@@ -141,8 +158,8 @@ struct DiaryEntryRow: View {
             }
 
             if entry.isRewatch {
-                Image(systemName: "arrow.clockwise.circle")
-                    .font(.system(size: 13, weight: .bold))
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white.opacity(0.7))
                     .accessibilityLabel("Rewatch")
             }

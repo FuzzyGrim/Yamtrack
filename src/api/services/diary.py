@@ -105,7 +105,7 @@ def update_entry(entry, data):
     return entry
 
 
-def tag_results(query, user=None):
+def tag_results(query, user=None, *, limit=10):
     """Return tag search results."""
     queryset = Tag.objects.all()
     ordering = ["-usage_count", "name"]
@@ -118,7 +118,11 @@ def tag_results(query, user=None):
         ordering = ["-user_usage_count", "name"]
     if query:
         queryset = queryset.filter(name__icontains=query)
+    if limit is not None:
+        queryset = queryset.order_by(*ordering)[:limit]
+    else:
+        queryset = queryset.order_by(*ordering)
     return [
         {"name": tag.name, "usage_count": getattr(tag, "user_usage_count", tag.usage_count)}
-        for tag in queryset.order_by(*ordering)[:10]
+        for tag in queryset
     ]

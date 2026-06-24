@@ -1018,6 +1018,28 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(tags.status_code, status.HTTP_200_OK)
         self.assertEqual({tag["name"] for tag in tags.data["results"]}, {"mine", "also mine"})
 
+    def test_diary_tags_all_returns_more_than_autocomplete_cap(self):
+        user = get_user_model().objects.create_user(username="tagged", password="strong-password-123")
+        self.client.force_authenticate(user)
+
+        for index in range(11):
+            item = Item.objects.create(
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                media_id=str(8000 + index),
+                title=f"Tagged {index}",
+            )
+            entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=timezone.now())
+            update_diary_entry_tags(entry, [f"tag-{index:02d}"])
+
+        capped = self.client.get("/api/v1/diary/tags/", {"mine": "true"})
+        all_tags = self.client.get("/api/v1/diary/tags/", {"mine": "true", "all": "true"})
+
+        self.assertEqual(capped.status_code, status.HTTP_200_OK)
+        self.assertEqual(all_tags.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(capped.data["results"]), 10)
+        self.assertEqual(len(all_tags.data["results"]), 11)
+
     @patch("app.providers.tmdb.get_poster_images")
     def test_media_posters_endpoint_requires_auth_and_returns_original_first(self, posters_mock):
         user = get_user_model().objects.create_user(username="poster", password="strong-password-123")

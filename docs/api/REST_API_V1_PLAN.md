@@ -138,6 +138,8 @@ current page of rows.
 
 `GET /api/v1/diary/` supports optional `tag=<tag>` filtering and returns the same paged diary-entry response shape. Native clients use this for tag detail pages, including diary-list and poster-grid views.
 
+`GET /api/v1/diary/tags/` returns `{ "results": [{ "name": "...", "usage_count": 1 }] }`. By default it is capped to 10 results for autocomplete. Passing `mine=true` limits counts to the authenticated user's diary tags. Passing `all=true` removes the autocomplete cap so native clients can render the full Profile Tags list, ordered by usage count descending and name ascending.
+
 `GET /api/v1/lists/` returns paged list summaries. Summary objects may include
 `preview_items`, capped at 12 media items ordered by the list's item order, using
 the standard `MediaSummary` shape. Native clients use this for poster strips on

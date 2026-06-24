@@ -369,7 +369,7 @@ struct ProfileTagsView: View {
                 message: "Try another tag name."
             )
         } else {
-            FlowLayout(spacing: 9) {
+            LazyVStack(spacing: 8) {
                 ForEach(filteredTags, id: \.name) { tag in
                     NavigationLink {
                         TaggedDiaryView(
@@ -382,7 +382,7 @@ struct ProfileTagsView: View {
                             onUnauthorized: onUnauthorized
                         )
                     } label: {
-                        ProfileTagPill(tag: tag)
+                        ProfileTagRow(tag: tag)
                     }
                     .buttonStyle(.plain)
                 }
@@ -412,13 +412,14 @@ private struct ProfileTagsHeader: View {
 
 private struct ProfileTagSearchField: View {
     @Binding var text: String
+    var placeholder = "Search tags"
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.white.opacity(0.54))
 
-            TextField("Search tags", text: $text)
+            TextField(placeholder, text: $text)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .foregroundStyle(.white)
@@ -447,13 +448,15 @@ private struct ProfileTagSearchField: View {
     }
 }
 
-private struct ProfileTagPill: View {
+private struct ProfileTagRow: View {
     let tag: DiaryTagSuggestion
 
     var body: some View {
         HStack(spacing: 8) {
             Text(tag.name)
                 .lineLimit(1)
+
+            Spacer(minLength: 8)
 
             Text("\(tag.usageCount)")
                 .font(.system(size: 12, weight: .heavy))
@@ -464,14 +467,16 @@ private struct ProfileTagPill: View {
         }
         .font(.system(size: 16, weight: .bold))
         .foregroundStyle(.white.opacity(0.88))
-        .padding(.leading, 14)
-        .padding(.trailing, 8)
-        .frame(height: 38)
+        .padding(.leading, 16)
+        .padding(.trailing, 10)
+        .frame(height: 52)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.11), in: Capsule())
         .overlay {
             Capsule()
                 .stroke(.white.opacity(0.08))
         }
+        .contentShape(Capsule())
         .accessibilityLabel("\(tag.name), \(tag.usageCount) \(tag.usageCount == 1 ? "log" : "logs")")
     }
 }
@@ -509,6 +514,7 @@ private final class ProfileListsViewModel {
 
 struct ProfileListsView: View {
     @State private var viewModel: ProfileListsViewModel
+    @State private var searchText = ""
 
     private let listRepository: ListRepository
     private let mediaRepository: MediaRepository
@@ -542,7 +548,7 @@ struct ProfileListsView: View {
             SpinePageBackground()
 
             ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 6) {
+                LazyVStack(spacing: 12) {
                     if viewModel.isLoading {
                         ProgressView()
                             .tint(.white)
@@ -552,23 +558,7 @@ struct ProfileListsView: View {
                     } else if viewModel.lists.isEmpty {
                         DiaryStateCard(title: "No lists yet", systemImage: "list.bullet.rectangle", message: "Custom lists you create will appear here.")
                     } else {
-                        ForEach(viewModel.lists) { list in
-                            NavigationLink {
-                                ProfileListDetailView(
-                                    listId: list.id,
-                                    listRepository: listRepository,
-                                    mediaRepository: mediaRepository,
-                                    trackingRepository: trackingRepository,
-                                    diaryRepository: diaryRepository,
-                                    selectedTab: selectedTab,
-                                    onSelectTab: onSelectTab,
-                                    onUnauthorized: onUnauthorized
-                                )
-                            } label: {
-                                ProfileListRow(list: list)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        listsContent
                     }
                 }
                 .padding(.horizontal, 14)
@@ -589,13 +579,50 @@ struct ProfileListsView: View {
             }
         }
     }
+
+    @ViewBuilder
+    private var listsContent: some View {
+        ProfileTagSearchField(text: $searchText, placeholder: "Search lists")
+
+        if filteredLists.isEmpty {
+            DiaryStateCard(
+                title: "No matching lists",
+                systemImage: "magnifyingglass",
+                message: "Try another list name."
+            )
+        } else {
+            ForEach(filteredLists) { list in
+                NavigationLink {
+                    ProfileListDetailView(
+                        listId: list.id,
+                        listRepository: listRepository,
+                        mediaRepository: mediaRepository,
+                        trackingRepository: trackingRepository,
+                        diaryRepository: diaryRepository,
+                        selectedTab: selectedTab,
+                        onSelectTab: onSelectTab,
+                        onUnauthorized: onUnauthorized
+                    )
+                } label: {
+                    ProfileListRow(list: list)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var filteredLists: [CustomListSummary] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return viewModel.lists }
+        return viewModel.lists.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
 }
 
 private struct ProfileListRow: View {
     let list: CustomListSummary
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 Text(list.name)
                     .font(.system(size: 17, weight: .semibold))
@@ -604,19 +631,19 @@ private struct ProfileListRow: View {
 
                 Spacer(minLength: 0)
 
+                Text("\(list.itemsCount.formatted()) items")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.52))
+                    .lineLimit(1)
+                    .padding(.top, 3)
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white.opacity(0.24))
                     .padding(.top, 4)
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text("\(list.itemsCount.formatted()) items")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.46))
-
-                posterStrip
-            }
+            posterStrip
         }
         .padding(12)
         .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -634,7 +661,7 @@ private struct ProfileListRow: View {
             Text("No items yet")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white.opacity(0.38))
-                .frame(maxWidth: .infinity, minHeight: PosterSlot.profileRow.size.height, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: PosterSlot.listPreview.size.height, alignment: .leading)
                 .padding(.horizontal, 10)
                 .background(.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         } else {
@@ -644,7 +671,7 @@ private struct ProfileListRow: View {
                         MediaArtwork(
                             url: item.displayPosterURL,
                             title: item.title,
-                            slot: .profileRow,
+                            slot: .listPreview,
                             mediaType: item.ref.mediaType,
                             orientation: item.posterOrientation
                         )

@@ -5,6 +5,7 @@ enum PosterSlot {
     case libraryRow
     case diaryRow
     case profileRow
+    case listPreview
     case hero
     case carousel
     case seasonCard
@@ -20,6 +21,8 @@ enum PosterSlot {
             CGSize(width: 54, height: 81)
         case .libraryRow, .diaryRow, .profileRow:
             CGSize(width: 56, height: 84)
+        case .listPreview:
+            CGSize(width: 45, height: 67)
         case .hero:
             CGSize(width: 191, height: 286.5)
         case .carousel:
