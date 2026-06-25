@@ -261,6 +261,15 @@ private struct PresentedMediaDiary: Identifiable {
     var title: String { "\(detail.title) Logs" }
 }
 
+private struct MediaDetailChip: Hashable, Identifiable {
+    let label: String
+    let discoverRequest: MediaDiscoverRequest?
+
+    var id: String {
+        [label, discoverRequest?.id ?? "_"].joined(separator: ":")
+    }
+}
+
 enum MediaArtworkCustomization {
     static func supportsPoster(source: String, mediaType: String) -> Bool {
         if source == "tmdb", ["movie", "tv"].contains(mediaType) {
@@ -289,6 +298,7 @@ struct MediaDetailView: View {
     @State private var presentedRef: MediaRef?
     @State private var presentedDiaryEntry: PresentedDiaryEntry?
     @State private var presentedMediaDiary: PresentedMediaDiary?
+    @State private var presentedDiscover: MediaDiscoverRequest?
     @State private var isPosterPickerPresented = false
     @State private var isBackdropPickerPresented = false
     @State private var isLogPresented = false
@@ -557,6 +567,18 @@ struct MediaDetailView: View {
                     onUnauthorized: onUnauthorized
                 )
             }
+        }
+        .fullScreenCover(item: $presentedDiscover) { request in
+            MediaDiscoverView(
+                request: request,
+                mediaRepository: mediaRepository,
+                trackingRepository: trackingRepository,
+                diaryRepository: diaryRepository,
+                listRepository: listRepository,
+                selectedTab: selectedTab,
+                onSelectTab: onSelectTab,
+                onUnauthorized: onUnauthorized
+            )
         }
         .task {
             if viewModel.detail == nil {
@@ -925,7 +947,7 @@ struct MediaDetailView: View {
             return AnyView(
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(Array(chips.prefix(6)), id: \.self) { chip in
+                        ForEach(Array(chips.prefix(6))) { chip in
                             genreChip(chip)
                         }
                     }
@@ -947,7 +969,7 @@ struct MediaDetailView: View {
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    ForEach(Array(chips.prefix(3)), id: \.self) { chip in
+                    ForEach(Array(chips.prefix(3))) { chip in
                         genreChip(chip)
                     }
                 }
@@ -955,7 +977,7 @@ struct MediaDetailView: View {
                 if chips.count > 3 {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(Array(chips.dropFirst(3)), id: \.self) { chip in
+                            ForEach(Array(chips.dropFirst(3))) { chip in
                                 genreChip(chip)
                             }
                         }
@@ -976,8 +998,24 @@ struct MediaDetailView: View {
         )
     }
 
-    private func genreChip(_ chip: String) -> some View {
-        Text(chip)
+    private func genreChip(_ chip: MediaDetailChip) -> some View {
+        Group {
+            if let request = chip.discoverRequest {
+                Button {
+                    presentedDiscover = request
+                } label: {
+                    chipLabel(chip.label)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Browse \(chip.label)")
+            } else {
+                chipLabel(chip.label)
+            }
+        }
+    }
+
+    private func chipLabel(_ label: String) -> some View {
+        Text(label)
             .font(.system(size: 11, weight: .bold))
             .foregroundStyle(.white.opacity(0.82))
             .lineLimit(1)
@@ -986,36 +1024,56 @@ struct MediaDetailView: View {
             .background(.white.opacity(0.12), in: Capsule())
     }
 
-    private func primaryChips(_ detail: MediaDetail) -> [String] {
-        var chips = [mediaTypeChipLabel(detail.ref.mediaType), year(detail)].compactMap { $0 }
+    private func primaryChips(_ detail: MediaDetail) -> [MediaDetailChip] {
+        var chips = [MediaDetailChip(label: mediaTypeChipLabel(detail.ref.mediaType), discoverRequest: nil)]
+        if let year = year(detail) {
+            chips.append(MediaDetailChip(label: year, discoverRequest: discoverRequest(detail, filter: .year(String(year.prefix(4))))))
+        }
         if let seasonLabel = seasonChipLabel(detail) {
-            chips.append(seasonLabel)
+            chips.append(MediaDetailChip(label: seasonLabel, discoverRequest: nil))
         }
         if ["movie", "tv"].contains(detail.ref.mediaType), let runtime = detailString(detail, "runtime"), !runtime.isEmpty {
-            chips.append(runtime)
+            chips.append(MediaDetailChip(label: runtime, discoverRequest: nil))
         }
         if let contentRating = contentRating(detail) {
-            chips.append(contentRating)
+            chips.append(MediaDetailChip(label: contentRating, discoverRequest: nil))
         }
         if ["tv", "anime"].contains(detail.ref.mediaType), let episodes = detailString(detail, "episodes") {
-            chips.append("\(episodes) episodes")
+            chips.append(MediaDetailChip(label: "\(episodes) episodes", discoverRequest: nil))
         }
         if detail.ref.mediaType == "book", let pages = detailString(detail, "number_of_pages") ?? detailString(detail, "pages") {
-            chips.append("\(pages) pages")
+            chips.append(MediaDetailChip(label: "\(pages) pages", discoverRequest: nil))
         }
         if detail.ref.mediaType == "anime", let format = detailString(detail, "format") {
-            chips.append(format)
+            chips.append(MediaDetailChip(label: format, discoverRequest: nil))
         }
         if detail.ref.mediaType == "game", let platform = detailArray(detail, "platforms").first {
-            chips.append(platform)
+            chips.append(MediaDetailChip(label: platform, discoverRequest: discoverRequest(detail, filter: .platform(platform))))
         }
-        chips += detailArray(detail, "genres")
+        for genre in detailArray(detail, "genres") {
+            chips.append(MediaDetailChip(label: genre, discoverRequest: discoverRequest(detail, filter: .genre(genre))))
+        }
 
         var seen = Set<String>()
         let uniqueChips = chips.filter { chip in
-            seen.insert(chip.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()).inserted
+            seen.insert(chip.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()).inserted
         }
         return uniqueChips
+    }
+
+    private func discoverRequest(_ detail: MediaDetail, filter: MediaDiscoverRequest.Filter) -> MediaDiscoverRequest? {
+        switch (detail.ref.mediaType, filter) {
+        case ("movie", .genre), ("movie", .year), ("tv", .genre), ("tv", .year), ("game", .genre), ("game", .year), ("game", .platform):
+            MediaDiscoverRequest(
+                mediaType: detail.ref.mediaType,
+                source: detail.ref.source,
+                filter: filter,
+                page: nil,
+                pageSize: nil
+            )
+        default:
+            nil
+        }
     }
 
     private func contentRating(_ detail: MediaDetail) -> String? {

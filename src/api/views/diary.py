@@ -9,6 +9,7 @@ from api.serializers.diary import DiaryEntryWriteSerializer
 from api.services import diary as diary_service
 from api.services.social import set_like
 from app.models import DiaryEntry
+from app.services import delete_diary_entry
 from social.models import ContentLike
 
 
@@ -89,7 +90,7 @@ class DiaryDetailView(APIView):
 
     def delete(self, request, entry_id):
         entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
-        entry.delete()
+        delete_diary_entry(request.user, entry)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

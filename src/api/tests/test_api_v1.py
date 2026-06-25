@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 
 from api.serializers.common import media_summary_from_item
 from app.models import (
+    Anime,
     CustomBackdropPreference,
     CustomPosterPreference,
     DiaryEntry,
@@ -23,7 +24,7 @@ from app.models import (
 )
 from app.services import set_media_like, update_diary_entry_tags
 from lists.models import CustomList, CustomListItem
-from social.models import ContentLike
+from social.models import Activity, ContentLike, SocialAuditLog
 
 
 class ApiV1FoundationTests(TestCase):
@@ -454,6 +455,134 @@ class ApiV1FoundationTests(TestCase):
         )
         self.assertEqual(patched_unliked.status_code, status.HTTP_200_OK)
         self.assertFalse(MediaLike.objects.filter(user=user, item=item).exists())
+
+    def test_diary_patch_updates_writable_fields(self):
+        user = get_user_model().objects.create_user(username="diary-patch", password="strong-password-123")
+        item = self._create_movie_items(1, title_prefix="Patch", media_id_prefix="patch")[0]
+        entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=datetime(2025, 1, 1, tzinfo=UTC))
+        self.client.force_authenticate(user)
+
+        response = self.client.patch(
+            f"/api/v1/diary/{entry.id}/",
+            {
+                "consumed_at": "2025-02-03T04:05:06Z",
+                "rating": "8.5",
+                "review_title": "Tighter",
+                "review": "Still works.",
+                "tags": ["theater", "rewatch night"],
+                "visibility": "followers",
+                "contains_spoilers": True,
+                "is_rewatch": True,
+                "liked": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["rating"], "8.5")
+        self.assertEqual(response.data["review_title"], "Tighter")
+        self.assertEqual(response.data["review"], "Still works.")
+        self.assertCountEqual(response.data["tags"], ["theater", "rewatch night"])
+        self.assertEqual(response.data["visibility"], "followers")
+        self.assertTrue(response.data["contains_spoilers"])
+        self.assertTrue(response.data["is_rewatch"])
+        self.assertTrue(response.data["liked"])
+        self.assertTrue(MediaLike.objects.filter(user=user, item=item).exists())
+
+    @patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": None})
+    def test_diary_patch_consumed_at_updates_completed_movie_end_date(self, _metadata_mock):
+        user = get_user_model().objects.create_user(username="diary-date-sync", password="strong-password-123")
+        item = self._create_movie_items(1, title_prefix="Date Sync", media_id_prefix="date-sync")[0]
+        Movie.objects.create(
+            user=user,
+            item=item,
+            status=Status.COMPLETED.value,
+            end_date=datetime(2025, 1, 1, tzinfo=UTC),
+        )
+        entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=datetime(2025, 1, 1, tzinfo=UTC))
+        self.client.force_authenticate(user)
+
+        response = self.client.patch(
+            f"/api/v1/diary/{entry.id}/",
+            {"consumed_at": "2025-03-04T00:00:00Z"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Movie.objects.get(user=user, item=item).end_date, datetime(2025, 3, 4, tzinfo=UTC))
+
+    @patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": None})
+    def test_diary_delete_last_movie_entry_untracks(self, _metadata_mock):
+        user = get_user_model().objects.create_user(username="diary-delete-last", password="strong-password-123")
+        item = self._create_movie_items(1, title_prefix="Delete Last", media_id_prefix="delete-last")[0]
+        Movie.objects.create(user=user, item=item, status=Status.COMPLETED.value)
+        entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=timezone.now())
+        self.client.force_authenticate(user)
+
+        response = self.client.delete(f"/api/v1/diary/{entry.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(DiaryEntry.objects.filter(id=entry.id).exists())
+        self.assertFalse(Movie.objects.filter(user=user, item=item).exists())
+
+    @patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": None})
+    def test_diary_delete_with_remaining_entries_keeps_tracking(self, _metadata_mock):
+        user = get_user_model().objects.create_user(username="diary-delete-remaining", password="strong-password-123")
+        item = self._create_movie_items(1, title_prefix="Delete Keep", media_id_prefix="delete-keep")[0]
+        Movie.objects.create(user=user, item=item, status=Status.COMPLETED.value)
+        delete_entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=datetime(2025, 1, 1, tzinfo=UTC))
+        keep_entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=datetime(2025, 1, 2, tzinfo=UTC))
+        self.client.force_authenticate(user)
+
+        response = self.client.delete(f"/api/v1/diary/{delete_entry.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(DiaryEntry.objects.filter(id=delete_entry.id).exists())
+        self.assertTrue(DiaryEntry.objects.filter(id=keep_entry.id).exists())
+        self.assertTrue(Movie.objects.filter(user=user, item=item).exists())
+
+    @patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": None})
+    @patch("api.services.diary.provider_services.get_media_metadata")
+    def test_diary_create_anime_auto_mark_consumed(self, metadata_mock, _progress_mock):
+        user = get_user_model().objects.create_user(username="diary-anime", password="strong-password-123")
+        self.client.force_authenticate(user)
+        metadata_mock.return_value = {"title": "Anime Log", "image": "https://example.com/anime.jpg"}
+
+        response = self.client.post(
+            "/api/v1/diary/",
+            {
+                "ref": {
+                    "source": Sources.MAL.value,
+                    "media_type": MediaTypes.ANIME.value,
+                    "media_id": "anime-log",
+                },
+                "consumed_at": "2025-04-05T00:00:00Z",
+                "auto_mark_consumed": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = Item.objects.get(media_id="anime-log", media_type=MediaTypes.ANIME.value)
+        anime = Anime.objects.get(user=user, item=item)
+        self.assertEqual(anime.status, Status.COMPLETED.value)
+        self.assertEqual(anime.end_date, datetime(2025, 4, 5, tzinfo=UTC))
+
+    def test_diary_update_and_delete_emit_activity_and_audit(self):
+        user = get_user_model().objects.create_user(username="diary-social-log", password="strong-password-123")
+        item = self._create_movie_items(1, title_prefix="Social Log", media_id_prefix="social-log")[0]
+        entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=datetime(2025, 1, 1, tzinfo=UTC))
+        self.client.force_authenticate(user)
+
+        patched = self.client.patch(f"/api/v1/diary/{entry.id}/", {"rating": "7.0"}, format="json")
+        deleted = self.client.delete(f"/api/v1/diary/{entry.id}/")
+
+        self.assertEqual(patched.status_code, status.HTTP_200_OK)
+        self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertTrue(Activity.objects.filter(actor=user, verb="diary_updated", target_id=entry.id).exists())
+        self.assertTrue(Activity.objects.filter(actor=user, verb="diary_deleted", target_id=entry.id).exists())
+        self.assertTrue(SocialAuditLog.objects.filter(actor=user, action="diary_updated", target_id=entry.id).exists())
+        self.assertTrue(SocialAuditLog.objects.filter(actor=user, action="diary_deleted", target_id=entry.id).exists())
 
     @patch("app.providers.tmdb.get_title_logo", return_value=None)
     @patch("app.providers.mdblist.get_media_ratings", return_value={})

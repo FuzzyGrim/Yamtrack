@@ -139,6 +139,24 @@ current page of rows.
 
 `GET /api/v1/diary/` supports optional `tag=<tag>` filtering and returns the same paged diary-entry response shape. Native clients use this for tag detail pages, including diary-list and poster-grid views.
 
+`POST /api/v1/diary/` supports diary entries for `movie`, `tv`, `season`,
+`episode`, `anime`, `manga`, `game`, `book`, and `comic`. When
+`auto_mark_consumed=true`, simple completed tracking rows are created or updated
+for movie/game/anime/manga/book/comic. Episode logging only syncs an existing
+episode tracking row; full TV cascade remains in the tracking endpoints.
+
+`PATCH /api/v1/diary/{id}/` accepts a partial request body with any writable
+diary field: `consumed_at`, `rating`, `review`, `review_title`, `tags`,
+`visibility`, `contains_spoilers`, `is_rewatch`, and `liked`. The diary media
+reference is not changed by PATCH. Editing `consumed_at` syncs the completion
+date on existing completed tracking rows for the same item and re-queues daily
+statistics.
+
+`DELETE /api/v1/diary/{id}/` removes the diary entry and mirrors web tracking
+side effects. If it was the last diary entry for a movie, TV show, season, or
+diary-completed book, the corresponding tracking row is unwatched/untracked;
+when other diary entries remain, tracking is retained.
+
 `GET /api/v1/diary/tags/` returns `{ "results": [{ "name": "...", "usage_count": 1 }] }`. By default it is capped to 10 results for autocomplete. Passing `mine=true` limits counts to the authenticated user's diary tags. Passing `all=true` removes the autocomplete cap so native clients can render the full Profile Tags list, ordered by usage count descending and name ascending.
 
 `GET /api/v1/lists/` returns paged list summaries. Summary objects may include

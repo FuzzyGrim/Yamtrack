@@ -3398,18 +3398,19 @@ def update_diary_entry(request, entry_id):
         
         logger.info(f"Parsed data - Date: {consumed_at}, Rating: {rating}, Review: '{review}', Liked: {liked}, Rewatch: {is_rewatch}, Tags: {tag_names}")
         
-        # Update the entry
-        entry.consumed_at = consumed_at
-        entry.rating = rating
-        entry.review = review
-        entry.liked = liked
-        entry.is_rewatch = is_rewatch
-        entry.save()
-        
-        # Update tags
-        from app.services import set_media_like, update_diary_entry_tags
-        set_media_like(request.user, entry.item, liked)
-        update_diary_entry_tags(entry, tag_names)
+        from app.services import update_diary_entry as update_diary_entry_service
+
+        update_diary_entry_service(
+            entry,
+            {
+                "consumed_at": consumed_at,
+                "rating": rating,
+                "review": review,
+                "liked": liked,
+                "is_rewatch": is_rewatch,
+            },
+            tags=tag_names,
+        )
         
         logger.info(f"Diary entry updated successfully: {entry}")
         logger.info(f"Updated values - Date: {entry.consumed_at}, Rating: {entry.rating}, Review: '{entry.review}', Liked: {entry.liked}")
@@ -3461,85 +3462,9 @@ def delete_diary_entry(request, entry_id):
     """Delete a diary entry."""
     try:
         entry = get_object_or_404(DiaryEntry, id=entry_id, user=request.user)
-        item = entry.item
-        user = entry.user
-        book_instance = None
-        book_completion_entry = False
+        from app.services import delete_diary_entry as delete_diary_entry_service
 
-        if item.media_type == MediaTypes.BOOK.value:
-            try:
-                book_instance = Book.objects.get(user=user, item=item)
-                book_completion_entry = (
-                    book_instance.completion_diary_entry_id == entry.id
-                )
-            except Book.DoesNotExist:
-                book_instance = None
-        
-        logger.info(f"Deleting diary entry {entry_id} for {item} by {user}")
-        
-        # Delete the entry
-        entry.delete()
-        
-        # Check if this was the last diary entry for this item
-        remaining_entries = DiaryEntry.objects.filter(
-            user=user, 
-            item=item
-        ).exists()
-        
-        logger.info(f"Remaining diary entries for {item}: {remaining_entries}")
-        
-        # If no diary entries remain, also delete the media instance (unwatch)
-        if not remaining_entries:
-            if item.media_type == MediaTypes.MOVIE.value:
-                try:
-                    movie_instance = Movie.objects.get(user=user, item=item)
-                    logger.info(f"Deleting Movie instance to unwatch: {movie_instance}")
-                    movie_instance.delete()
-                    logger.info(f"Successfully unwatched {item} for {user}")
-                except Movie.DoesNotExist:
-                    logger.info(f"No Movie instance found for {item} - already unwatched")
-                    
-            elif item.media_type == MediaTypes.TV.value:
-                try:
-                    tv_instance = TV.objects.get(user=user, item=item)
-                    logger.info(f"Deleting TV instance to unwatch: {tv_instance}")
-                    
-                    # Delete all related episodes and seasons first
-                    for season in tv_instance.seasons.all():
-                        season.episodes.all().delete()
-                        season.delete()
-                    
-                    # Delete the TV instance
-                    tv_instance.delete()
-                    logger.info(f"Successfully unwatched TV show {item} and all seasons/episodes for {user}")
-                except TV.DoesNotExist:
-                    logger.info(f"No TV instance found for {item} - already unwatched")
-                    
-            elif item.media_type == MediaTypes.SEASON.value:
-                try:
-                    season_instance = Season.objects.get(user=user, item=item)
-                    logger.info(f"Deleting Season instance to unwatch: {season_instance}")
-                    
-                    # Delete all related episodes first
-                    season_instance.episodes.all().delete()
-                    
-                    # Delete the season instance
-                    season_instance.delete()
-                    logger.info(f"Successfully unwatched season {item} and all episodes for {user}")
-                except Season.DoesNotExist:
-                    logger.info(f"No Season instance found for {item} - already unwatched")
-            elif item.media_type == MediaTypes.BOOK.value and book_instance:
-                if not book_instance.completed_manually:
-                    logger.info("Deleting Book instance created via diary completion")
-                    book_instance.delete()
-                else:
-                    logger.info("Book instance retained (manual tracking)")
-            elif item.media_type == MediaTypes.BOOK.value and not book_instance:
-                logger.info(f"No Book instance found for {item} - already untracked")
-        elif item.media_type == MediaTypes.BOOK.value and book_instance and book_completion_entry:
-            logger.info("Clearing diary completion link from Book instance")
-            book_instance.completion_diary_entry = None
-            book_instance.save(update_fields=['completion_diary_entry'])
+        delete_diary_entry_service(request.user, entry)
         
         # Return success response
         return JsonResponse({"success": True})

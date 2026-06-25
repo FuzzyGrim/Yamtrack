@@ -11,6 +11,7 @@ protocol AuthRepository {
 protocol MediaRepository {
     func meta() async throws -> MetaResponse
     func search(query: String, mediaType: String) async throws -> [MediaSummary]
+    func discover(_ request: MediaDiscoverRequest) async throws -> PagedResponse<MediaSummary>
     func detail(ref: MediaRef) async throws -> MediaDetail
     func setLiked(ref: MediaRef, liked: Bool) async throws -> MediaLikeResponse
     func reviews(ref: MediaRef) async throws -> [MediaReview]
@@ -21,6 +22,10 @@ protocol MediaRepository {
 }
 
 extension MediaRepository {
+    func discover(_ request: MediaDiscoverRequest) async throws -> PagedResponse<MediaSummary> {
+        fatalError("Not implemented")
+    }
+
     func setLiked(ref: MediaRef, liked: Bool) async throws -> MediaLikeResponse {
         fatalError("Not implemented")
     }
@@ -204,6 +209,14 @@ struct APIMediaRepository: MediaRepository {
             authenticated: true
         )
         return response.results
+    }
+
+    func discover(_ request: MediaDiscoverRequest) async throws -> PagedResponse<MediaSummary> {
+        try await client.get(
+            "/media/discover/",
+            query: request.queryItems,
+            authenticated: true
+        )
     }
 
     func detail(ref: MediaRef) async throws -> MediaDetail {

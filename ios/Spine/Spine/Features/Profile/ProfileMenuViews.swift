@@ -877,7 +877,6 @@ private final class ProfileListDetailViewModel {
 private struct ProfileListDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ProfileListDetailViewModel
-    @State private var editMode: EditMode = .inactive
     @State private var presentedForm: CustomListFormMode?
     @State private var isDeleteAlertPresented = false
 
@@ -925,8 +924,6 @@ private struct ProfileListDetailView: View {
                         listHeader(list)
                         if list.items.isEmpty {
                             DiaryStateCard(title: "No items yet", systemImage: "square.grid.2x2", message: "Add items from any media detail page.")
-                        } else if editMode.isEditing {
-                            editableItems(list)
                         } else {
                             mediaGrid(list.items)
                         }
@@ -944,15 +941,9 @@ private struct ProfileListDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .environment(\.editMode, $editMode)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    if let list = viewModel.list, !list.items.isEmpty {
-                        Button(editMode.isEditing ? "Done Editing" : "Edit Items", systemImage: "pencil") {
-                            editMode = editMode.isEditing ? .inactive : .active
-                        }
-                    }
                     Button("Edit List", systemImage: "slider.horizontal.3") {
                         if let list = viewModel.list {
                             presentedForm = .edit(list)
@@ -968,7 +959,17 @@ private struct ProfileListDetailView: View {
             }
         }
         .sheet(item: $presentedForm) { mode in
-            CustomListFormSheet(mode: mode, isSaving: viewModel.isSaving) { request in
+            CustomListFormSheet(
+                mode: mode,
+                currentList: viewModel.list,
+                isSaving: viewModel.isSaving,
+                onDeleteItem: { item in
+                    await viewModel.remove(item)
+                },
+                onMoveItem: { source, destination in
+                    await viewModel.move(from: source, to: destination)
+                }
+            ) { request in
                 await viewModel.update(request)
             }
         }
@@ -1035,7 +1036,7 @@ private struct ProfileListDetailView: View {
                         onUnauthorized: onUnauthorized
                     )
                 } label: {
-                    ZStack(alignment: .topLeading) {
+                    VStack(spacing: 5) {
                         MediaArtwork(
                             url: item.displayPosterURL,
                             title: item.title,
@@ -1045,61 +1046,17 @@ private struct ProfileListDetailView: View {
                         )
                         .shadow(color: .black.opacity(0.28), radius: 10, y: 5)
                         if viewModel.list?.isRanked == true, let position = item.position {
-                            Text("#\(position)")
-                                .font(.system(size: 10, weight: .heavy))
-                                .foregroundStyle(.white.opacity(0.9))
-                                .padding(.horizontal, 5)
-                                .frame(height: 18)
-                                .background(.black.opacity(0.55), in: Capsule())
-                                .padding(4)
+                            Text("\(position)")
+                                .font(.system(size: 12, weight: .heavy))
+                                .monospacedDigit()
+                                .foregroundStyle(.white.opacity(0.72))
+                                .frame(maxWidth: .infinity)
                         }
                     }
                 }
                 .buttonStyle(.plain)
             }
         }
-    }
-
-    private func editableItems(_ list: CustomListDetail) -> some View {
-        List {
-            ForEach(list.items) { item in
-                HStack(spacing: 12) {
-                    MediaArtwork(
-                        url: item.displayPosterURL,
-                        title: item.title,
-                        slot: .searchRow,
-                        mediaType: item.ref.mediaType,
-                        orientation: item.posterOrientation
-                    )
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(item.title)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.9))
-                        if list.isRanked, let position = item.position {
-                            Text("#\(position)")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.5))
-                        }
-                    }
-                }
-                .listRowBackground(Color.white.opacity(0.06))
-            }
-            .onDelete { offsets in
-                guard let index = offsets.first else { return }
-                Task {
-                    await viewModel.remove(list.items[index])
-                }
-            }
-            .onMove { source, destination in
-                guard list.isRanked else { return }
-                Task {
-                    await viewModel.move(from: source, to: destination)
-                }
-            }
-        }
-        .frame(minHeight: 420)
-        .scrollContentBackground(.hidden)
-        .disabled(viewModel.isSaving)
     }
 }
 
@@ -1131,16 +1088,25 @@ private struct CustomListFormSheet: View {
     @State private var errorMessage: String?
 
     let mode: CustomListFormMode
+    let currentList: CustomListDetail?
     let isSaving: Bool
+    let onDeleteItem: (MediaSummary) async -> Void
+    let onMoveItem: (IndexSet, Int) async -> Void
     let onSave: (CustomListWriteRequest) async -> Bool
 
     init(
         mode: CustomListFormMode,
+        currentList: CustomListDetail? = nil,
         isSaving: Bool,
+        onDeleteItem: @escaping (MediaSummary) async -> Void = { _ in },
+        onMoveItem: @escaping (IndexSet, Int) async -> Void = { _, _ in },
         onSave: @escaping (CustomListWriteRequest) async -> Bool
     ) {
         self.mode = mode
+        self.currentList = currentList
         self.isSaving = isSaving
+        self.onDeleteItem = onDeleteItem
+        self.onMoveItem = onMoveItem
         self.onSave = onSave
         switch mode {
         case .create:
@@ -1161,7 +1127,9 @@ private struct CustomListFormSheet: View {
             Form {
                 Section {
                     TextField("Name", text: $name)
+                        .font(.system(size: 15, weight: .semibold))
                     TextField("Description", text: $description, axis: .vertical)
+                        .font(.system(size: 15, weight: .medium))
                         .lineLimit(3, reservesSpace: true)
                 }
 
@@ -1173,6 +1141,11 @@ private struct CustomListFormSheet: View {
                     }
                     Toggle("Ranked", isOn: $isRanked)
                 }
+                .font(.system(size: 15, weight: .semibold))
+
+                if let editableList, !editableList.items.isEmpty {
+                    editableItemsSection(editableList)
+                }
 
                 if let errorMessage {
                     Section {
@@ -1181,6 +1154,7 @@ private struct CustomListFormSheet: View {
                     }
                 }
             }
+            .controlSize(.small)
             .scrollContentBackground(.hidden)
             .background(Color.black)
             .navigationTitle(mode.title)
@@ -1209,6 +1183,50 @@ private struct CustomListFormSheet: View {
         }
     }
 
+    private var editableList: CustomListDetail? {
+        switch mode {
+        case .create:
+            nil
+        case let .edit(list):
+            currentList ?? list
+        }
+    }
+
+    @ViewBuilder
+    private func editableItemsSection(_ list: CustomListDetail) -> some View {
+        Section("Items") {
+            if isRanked {
+                ForEach(list.items) { item in
+                    CustomListEditableItemRow(item: item, isRanked: isRanked)
+                }
+                .onDelete { offsets in
+                    deleteItems(at: offsets, from: list.items)
+                }
+                .onMove { source, destination in
+                    Task {
+                        await onMoveItem(source, destination)
+                    }
+                }
+            } else {
+                ForEach(list.items) { item in
+                    CustomListEditableItemRow(item: item, isRanked: isRanked)
+                }
+                .onDelete { offsets in
+                    deleteItems(at: offsets, from: list.items)
+                }
+            }
+        }
+        .environment(\.editMode, .constant(.active))
+        .disabled(isSaving)
+    }
+
+    private func deleteItems(at offsets: IndexSet, from items: [MediaSummary]) {
+        guard let index = offsets.first else { return }
+        Task {
+            await onDeleteItem(items[index])
+        }
+    }
+
     private func save() async {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
@@ -1224,5 +1242,41 @@ private struct CustomListFormSheet: View {
         } else {
             errorMessage = "Could not save list."
         }
+    }
+}
+
+private struct CustomListEditableItemRow: View {
+    let item: MediaSummary
+    let isRanked: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            MediaArtwork(
+                url: item.displayPosterURL,
+                title: item.title,
+                slot: .diaryRow,
+                mediaType: item.ref.mediaType,
+                orientation: item.posterOrientation
+            )
+            .scaleEffect(0.75)
+            .frame(width: 42, height: 63)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(2)
+
+                if isRanked, let position = item.position {
+                    Text("#\(position)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+            }
+
+            Spacer(minLength: 8)
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 12))
+        .listRowBackground(Color.white.opacity(0.055))
     }
 }

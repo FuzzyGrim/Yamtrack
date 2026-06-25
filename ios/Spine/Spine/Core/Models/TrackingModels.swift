@@ -121,6 +121,9 @@ extension ProgressState {
         let intValue = Int(NSDecimalNumber(decimal: value).doubleValue.rounded())
         guard mode != requestedMode else { return intValue }
         guard let maxValue = max.map({ NSDecimalNumber(decimal: $0).doubleValue }), maxValue > 0 else {
+            if requestedMode == .percentage, isMinuteProgress, (0...100).contains(intValue) {
+                return intValue
+            }
             return nil
         }
         switch (mode, requestedMode) {
@@ -135,6 +138,11 @@ extension ProgressState {
 
     private var isPercentage: Bool {
         mode == .percentage
+    }
+
+    private var isMinuteProgress: Bool {
+        let unit = unit.lowercased()
+        return unit == "min" || unit.contains("minute")
     }
 
     private func pluralizedUnit(for value: Decimal) -> String {

@@ -8,7 +8,7 @@ from api.serializers.common import (
 )
 from app.models import MediaLike, Tag
 from app.providers import services as provider_services
-from app.services import create_diary_entry, set_media_like, update_diary_entry_tags
+from app.services import create_diary_entry, update_diary_entry
 from social.models import Activity, ContentLike
 
 
@@ -87,24 +87,9 @@ def create_entry(user, data):
 
 def update_entry(entry, data):
     """Update a diary entry from API payload."""
-    for field in [
-        "consumed_at",
-        "rating",
-        "review",
-        "review_title",
-        "liked",
-        "is_rewatch",
-        "contains_spoilers",
-        "visibility",
-    ]:
-        if field in data:
-            setattr(entry, field, data[field])
-    entry.save()
-    if "liked" in data:
-        set_media_like(entry.user, entry.item, data["liked"])
-    if "tags" in data:
-        update_diary_entry_tags(entry, data["tags"])
-    return entry
+    data = dict(data)
+    tags = data.pop("tags", None)
+    return update_diary_entry(entry, data, tags=tags)
 
 
 def tag_results(query, user=None, *, limit=10):

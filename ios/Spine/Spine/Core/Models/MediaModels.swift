@@ -147,6 +147,64 @@ struct MediaSummary: Codable, Identifiable, Hashable {
     }
 }
 
+struct MediaDiscoverRequest: Hashable, Identifiable {
+    enum Filter: Hashable {
+        case genre(String)
+        case year(String)
+        case platform(String)
+
+        var value: String {
+            switch self {
+            case let .genre(value), let .year(value), let .platform(value):
+                value
+            }
+        }
+
+        var queryItem: URLQueryItem {
+            switch self {
+            case let .genre(value):
+                URLQueryItem(name: "genre", value: value)
+            case let .year(value):
+                URLQueryItem(name: "year", value: value)
+            case let .platform(value):
+                URLQueryItem(name: "platform", value: value)
+            }
+        }
+    }
+
+    let mediaType: String
+    let source: String?
+    let filter: Filter
+    var page: String?
+    var pageSize: Int?
+
+    var id: String {
+        [mediaType, source ?? "_", filter.queryItem.name, filter.value].joined(separator: ":")
+    }
+
+    var queryItems: [URLQueryItem] {
+        var items = [
+            URLQueryItem(name: "media_type", value: mediaType),
+            URLQueryItem(name: "sort", value: "vote_count"),
+            filter.queryItem,
+        ]
+        if let source {
+            items.append(URLQueryItem(name: "source", value: source))
+        }
+        if let page {
+            items.append(URLQueryItem(name: "page", value: page))
+        }
+        if let pageSize {
+            items.append(URLQueryItem(name: "page_size", value: String(pageSize)))
+        }
+        return items
+    }
+
+    var title: String {
+        "\(filter.value) · \(MediaTypeTheme.theme(for: mediaType).displayName)"
+    }
+}
+
 struct MediaDetail: Decodable, Identifiable {
     let ref: MediaRef
     let title: String

@@ -402,7 +402,6 @@ private struct HomeInProgressCard: View {
                         .font(.system(size: 12, weight: .heavy))
                         .foregroundStyle(.white)
                         .lineLimit(2)
-                        .frame(height: 32, alignment: .topLeading)
 
                     Text(metadataText)
                         .font(.system(size: 11, weight: .bold))
@@ -463,6 +462,10 @@ private struct HomeActivityCard: View {
                 .shadow(color: .black.opacity(0.24), radius: 8, y: 4)
 
                 VStack(alignment: .leading, spacing: 7) {
+                    if hasRatingOrLike {
+                        ratingLikeLine
+                    }
+
                     Text(entry.media.title)
                         .font(.system(size: 16, weight: .heavy))
                         .foregroundStyle(.white)
@@ -502,10 +505,6 @@ private struct HomeActivityCard: View {
 
     private var metadata: some View {
         HStack(spacing: 6) {
-            if let rating = clean(entry.rating) {
-                HomeChip(text: rating, systemName: "star.fill")
-            }
-
             if entry.isRewatch {
                 HomeChip(text: "Rewatch", systemName: "arrow.clockwise")
             }
@@ -513,9 +512,24 @@ private struct HomeActivityCard: View {
             ForEach(entry.tags.prefix(2), id: \.self) { tag in
                 HomeChip(text: tag)
             }
+        }
+    }
 
-            if entry.likeCount > 0 {
-                HomeChip(text: entry.likeCount.formatted(), systemName: "heart.fill")
+    private var hasRatingOrLike: Bool {
+        clean(entry.rating) != nil || entry.liked
+    }
+
+    private var ratingLikeLine: some View {
+        HStack(spacing: 6) {
+            if let rating = clean(entry.rating) {
+                DiaryStarRating(rating: rating)
+            }
+
+            if entry.liked {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.pink)
+                    .accessibilityLabel("Liked")
             }
         }
     }

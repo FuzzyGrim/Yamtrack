@@ -262,6 +262,25 @@ final class SpineTests: XCTestCase {
         defaults.removeObject(forKey: MediaLensStore.persistenceKey)
     }
 
+    func testMediaDiscoverRequestBuildsQueryItems() {
+        let request = MediaDiscoverRequest(
+            mediaType: "game",
+            source: "igdb",
+            filter: .platform("PlayStation 5"),
+            page: "2",
+            pageSize: 24
+        )
+        let query = Dictionary(uniqueKeysWithValues: request.queryItems.map { ($0.name, $0.value) })
+
+        XCTAssertEqual(query["media_type"]!, "game")
+        XCTAssertEqual(query["source"]!, "igdb")
+        XCTAssertEqual(query["platform"]!, "PlayStation 5")
+        XCTAssertEqual(query["sort"]!, "vote_count")
+        XCTAssertEqual(query["page"]!, "2")
+        XCTAssertEqual(query["page_size"]!, "24")
+        XCTAssertEqual(request.title, "PlayStation 5 · Games")
+    }
+
     func testAuthTokenDecoding() throws {
         let data = """
         {
@@ -1096,6 +1115,14 @@ final class SpineTests: XCTestCase {
 
         XCTAssertEqual(progress.compactDisplayText(preferredMode: .percentage), "7%")
         XCTAssertEqual(progress.detailDisplayText(preferredMode: .percentage), "7%")
+    }
+
+    func testPreferredPercentageDisplayTreatsGameMinuteProgressAsPercent() {
+        let progress = ProgressState(kind: "progress", value: Decimal(58), max: nil, unit: "minutes")
+
+        XCTAssertEqual(progress.value(in: .percentage), 58)
+        XCTAssertEqual(progress.compactDisplayText(preferredMode: .percentage), "58%")
+        XCTAssertEqual(progress.detailDisplayText(preferredMode: .percentage), "58%")
     }
 
     func testUserMediaStateDecodesProgress() throws {
@@ -2155,6 +2182,54 @@ final class SpineTests: XCTestCase {
         client.tokenProvider.clear()
     }
 
+    func testMediaRepositoryBuildsDiscoverRequest() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: config)
+        let client = APIClient(
+            baseURL: URL(string: "https://example.com")!,
+            tokenProvider: KeychainTokenStore.shared,
+            session: session
+        )
+        client.tokenProvider.accessToken = "access"
+        defer {
+            RequestCaptureURLProtocol.handler = nil
+            client.tokenProvider.clear()
+        }
+        let repository = APIMediaRepository(client: client)
+        let discoverRequest = MediaDiscoverRequest(mediaType: "movie", source: "tmdb", filter: .genre("Drama"))
+
+        RequestCaptureURLProtocol.handler = { request in
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
+            let query = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value) })
+            XCTAssertEqual(components.path, "/api/v1/media/discover/")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            XCTAssertEqual(query["media_type"]!, "movie")
+            XCTAssertEqual(query["source"]!, "tmdb")
+            XCTAssertEqual(query["genre"]!, "Drama")
+            XCTAssertEqual(query["sort"]!, "vote_count")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                """
+                {
+                  "count": 1,
+                  "next": null,
+                  "previous": null,
+                  "results": [
+                    \(TestFixtures.mediaSummaryJSON(mediaId: "550", title: "Fight Club"))
+                  ]
+                }
+                """.data(using: .utf8)!
+            )
+        }
+
+        let response = try await repository.discover(discoverRequest)
+
+        XCTAssertEqual(response.count, 1)
+        XCTAssertEqual(response.results.first?.title, "Fight Club")
+    }
+
     func testMediaRepositoryBuildsSeasonDetailRequest() async throws {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [RequestCaptureURLProtocol.self]
@@ -2392,6 +2467,24 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(viewModel.lastValue, 7)
         XCTAssertEqual(viewModel.currentValue, 7)
         XCTAssertEqual(viewModel.lastValueText, "7%")
+    }
+
+    @MainActor
+    func testProgressUpdateGameUsesSavedPercentModeForMinuteProgress() {
+        let detail = TestFixtures.logDetail(mediaType: "game")
+        ProgressDisplayPreferences.setMode(.percentage, for: detail.ref)
+        defer { ProgressDisplayPreferences.removeMode(for: detail.ref) }
+        let tracking = trackingProgress(kind: "progress", value: 58, max: nil, unit: "minutes")
+
+        let viewModel = ProgressUpdateViewModel(
+            detail: detail,
+            progress: tracking.progress
+        )
+
+        XCTAssertEqual(viewModel.mode, .percentage)
+        XCTAssertEqual(viewModel.lastValue, 58)
+        XCTAssertEqual(viewModel.currentValue, 58)
+        XCTAssertEqual(viewModel.lastValueText, "58%")
     }
 
     @MainActor

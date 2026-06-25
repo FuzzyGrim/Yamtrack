@@ -237,7 +237,7 @@ struct DiaryEntryRow: View {
     }
 }
 
-private struct DiaryStarRating: View {
+struct DiaryStarRating: View {
     let rating: String
 
     var body: some View {
