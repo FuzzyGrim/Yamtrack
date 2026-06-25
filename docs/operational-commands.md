@@ -78,3 +78,28 @@ If your deployment adds separate worker or beat services, restart those deployme
 docker compose logs -f yamtrack
 docker compose logs -f redis
 ```
+
+## Rebuild Anime Series View
+
+Use dry-run first, then run the write command when the planned changes look correct:
+
+```bash
+docker compose exec yamtrack python manage.py rebuild_anime_series_view --all-users --dry-run
+docker compose exec yamtrack python manage.py rebuild_anime_series_view --all-users
+docker compose exec yamtrack python manage.py rebuild_anime_series_view --user-id 1 --dry-run
+docker compose exec yamtrack python manage.py rebuild_anime_series_view --user-id 1 --limit 20 --dry-run
+```
+
+## Inspect Anime Series View memberships
+
+Count tracked, projected, and unprojected MAL anime for one user:
+
+```bash
+docker compose exec yamtrack python manage.py shell -c "from app.models import Anime, AnimeSeriesViewMembership, Sources; tracked=set(Anime.objects.filter(user_id=1, item__source=Sources.MAL.value).values_list('item__media_id', flat=True)); projected=set(AnimeSeriesViewMembership.objects.filter(user_id=1, media_id__in=tracked).values_list('media_id', flat=True)); print({'tracked': len(tracked), 'projected': len(projected), 'unprojected': len(tracked-projected)})"
+```
+
+List memberships by root when a franchise appears split or merged incorrectly:
+
+```bash
+docker compose exec yamtrack python manage.py shell -c "from app.models import AnimeSeriesViewMembership; from collections import defaultdict; rows=AnimeSeriesViewMembership.objects.filter(user_id=1).order_by('root_media_id','media_id').values_list('root_media_id','media_id','display_title','group_kind','projection_version'); roots=defaultdict(list); [roots[root].append((media,title,kind,version)) for root,media,title,kind,version in rows]; [print(root, members) for root,members in roots.items()]"
+```

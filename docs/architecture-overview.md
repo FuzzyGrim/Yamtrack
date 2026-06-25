@@ -23,7 +23,8 @@ Franchise Snapshot
 ├── Detail-page UI Projection
 ├── Anime Series View Projection
 ├── Import Projection
-└── Cache Projection
+├── Cache Projection
+└── Discovery / notification monitoring
 ```
 
 The snapshot is the shared canonical state. UI, import, and cache code are separate projections of that state; none of those layers should copy another layer's policy blindly.
@@ -52,6 +53,9 @@ Compared to upstream Yamtrack, this fork adds MAL anime franchise behavior on to
 
 - clearer MAL anime franchise pages;
 - automatic grouping of related MAL anime entries;
+- anime-only Series View layout for grouping tracked MAL anime into franchise cards;
+- persisted per-user AnimeSeriesViewMembership read model;
+- asynchronous refresh of Series View memberships after add/import/delete;
 - optional automatic import of useful missing franchise entries;
 - persistent scan scheduling for franchise imports;
 - complete franchise cache payloads for responsive detail pages;
@@ -113,6 +117,17 @@ Existing user MAL anime
  -> scan-state update
  -> entry-added notification
  -> cache warmup scheduling
+```
+
+
+### Anime list Series View
+
+```text
+Anime list Series View
+ -> DB-filtered user anime queryset
+ -> persisted AnimeSeriesViewMembership lookup
+ -> group by root_media_id
+ -> render anime_series_group_card.html
 ```
 
 ### MAL anime release-date notifications
@@ -198,11 +213,75 @@ The cache projection stores a complete, user-agnostic payload for detail pages:
 
 - Celery task `Build MAL anime franchise payload` builds cache payloads.
 - Celery task `Import anime franchise` runs import automation.
+- Celery task `Refresh Anime Series View franchise projection` updates persisted Series View memberships after add/delete/import triggers.
 - Celery task `Scan MAL anime release dates` checks a bounded batch of due
   start-date states.
 - Beat schedule entry `auto_import_anime_franchise` exists only when import automation is enabled.
 - `views.py` enriches cached payloads with current-user data at render time.
 - `media_details.html` renders prepared context and should not classify entries.
+- `media_list` renders Anime Series View from DB-only memberships and does not build snapshots.
+
+## Where to find the main files
+
+This section is a quick map for navigating the MAL anime franchise code. It does not list every file. It points to the files that are usually the best starting point when debugging, reviewing, or extending this feature.
+
+### Page entry points and templates
+
+- `src/app/views.py`: start here for list pages, detail pages, manual add, and delete behavior.
+- `src/templates/app/media_details.html`: detail-page template for the prepared anime franchise block.
+- `src/templates/app/media_list.html`: parent template for media lists. It contains the shared list UI and switches between grid, table, and anime Series View partials.
+- `src/templates/app/components/anime_series_groups.html`: Series View list partial. It loops through the prepared groups and shows the preparation message when some anime are not projected yet.
+- `src/templates/app/components/anime_series_group_card.html`: one Series View card.
+- `src/users/models.py`: user preferences, including the anime-only `series` layout option.
+
+### MAL metadata and cache files
+
+- `src/app/providers/mal.py`: MAL anime fetcher and metadata normalizer.
+- `src/app/providers/mal_cache.py`: cache for individual MAL anime metadata.
+- `src/app/services/anime_franchise_cache.py`: cache for complete franchise payloads used by detail pages.
+- `src/app/services/anime_franchise_context.py`: prepares cached franchise payloads for the current request before rendering.
+- `src/app/services/anime_franchise_cache_warmer.py`: queues franchise cache rebuilds after import-created entries.
+
+### Franchise building files
+
+- `src/app/services/anime_franchise_graph.py`: builds the MAL relation graph around an anime.
+- `src/app/services/anime_franchise_snapshot.py`: builds the canonical franchise snapshot used by the rest of the feature.
+- `src/app/services/anime_franchise.py`: small facade for building the detail-page franchise payload.
+- `src/app/services/anime_franchise_types.py`: shared dataclasses for nodes and relations.
+- `src/app/services/anime_franchise_ui/`: detail-page UI pipeline for the franchise sections.
+- `src/app/services/anime_franchise_rules.py`: shared franchise relation and format rules.
+- `src/app/services/anime_franchise_ui_profile.py`: section/profile configuration for the detail-page UI.
+- `src/app/services/anime_franchise_scoped_payload.py`: scoped detail payloads for non-canonical anime seeds.
+
+### Import and discovery files
+
+- `src/app/services/anime_franchise_import.py`: main orchestration for automatic franchise imports.
+- `src/app/services/anime_franchise_import_profiles.py`: import profiles such as `continuity`, `satellites`, and `complete`.
+- `src/app/services/anime_import_state.py`: scan-state selection and due-seed tracking for imports.
+- `src/app/services/anime_franchise_discovery.py`: discovery records and discovery notifications for franchise entries.
+- `src/app/services/anime_tracking.py`: helper checks for tracked MAL anime entries.
+- `src/app/management/commands/import_anime_franchise.py`: manual command for testing or running franchise imports.
+
+### Series View database files
+
+- `src/app/anime_series_view_constants.py`: Series View version, group kinds, and refresh modes.
+- `src/app/services/anime_series_view_rules.py`: Series View grouping and rerooting rules.
+- `src/app/services/anime_series_view_projection.py`: builds a franchise or singleton projection from a snapshot.
+- `src/app/services/anime_series_view_franchise_refresh.py`: writes the projected groups into `AnimeSeriesViewMembership` rows.
+- `src/app/services/anime_series_view_refresh_queue.py`: de-duplicates queued refresh jobs.
+- `src/app/services/anime_series_view_refresh_triggers.py`: schedules refreshes after add, import, or delete.
+- `src/app/services/anime_series_view.py`: reads existing `AnimeSeriesViewMembership` rows to build the list page. It must stay DB-only.
+- `src/app/management/commands/rebuild_anime_series_view.py`: rebuilds Series View memberships for existing users after projection changes.
+- `src/app/models.py`: contains `AnimeSeriesViewMembership` and the related indexes/constraints.
+
+### Background jobs and settings
+
+- `src/app/tasks.py`: Celery tasks for franchise cache builds, franchise imports, MAL metadata refresh, and Series View refreshes.
+- `src/app/schedules.py`: Celery Beat schedule helpers for automatic franchise imports and MAL release-date scans.
+- `src/events/tasks.py`: notification and calendar-related Celery tasks.
+- `src/events/services/anime_release_date_notifications.py`: MAL anime start-date scan and notification logic.
+- `src/events/models.py`: event models and MAL release-date scan/delivery state.
+- `src/config/settings.py`: settings for MAL, cache behavior, franchise imports, release-date scans, and limits.
 
 ## Settings
 
@@ -237,6 +316,7 @@ Documented settings currently present in `src/config/settings.py`. For setting b
 
 - [Anime franchise snapshot](anime-franchise-snapshot.md)
 - [Anime franchise grouping](anime-franchise-grouping.md)
+- [Anime Series View](anime-series-view.md)
 - [Anime franchise import](anime-franchise-import.md)
 - [Anime franchise cache](anime-franchise-cache.md)
 - [Anime release-date notifications](anime-release-date-notifications.md)
@@ -251,3 +331,5 @@ Documented settings currently present in `src/config/settings.py`. For setting b
 - Views should orchestrate cache/context only, not patch placement.
 - Templates render only.
 - Complete franchise cache never stores user-specific data.
+- Anime Series View reader must stay DB-only.
+- No MAL provider call, snapshot build, cache build, or DB write belongs in `media_list` rendering.

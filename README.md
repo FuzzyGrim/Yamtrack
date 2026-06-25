@@ -31,6 +31,14 @@ This fork extends Yamtrack with additional features focused on MyAnimeList (MAL)
   - current entry indicator
 - Helps explain why an anime appears in a section.
 
+### 🧩 Anime Series View
+
+- Adds an anime-only `Series` layout for the anime media list.
+- Groups tracked MAL anime into franchise cards backed by persisted `AnimeSeriesViewMembership` rows.
+- Keeps the list page DB-only: no MAL call, no snapshot build, and no write during `media_list` rendering.
+- Uses one card per franchise when the projection is confident.
+- Keeps autonomous `alternative_version` continuities separated when detected, such as old/remake continuities.
+
 ### ⚡ Faster franchise pages
 
 - Franchise data is cached and refreshed in the background when needed.
@@ -73,6 +81,7 @@ Detailed fork docs are available in `docs/`:
 - [Architecture overview](docs/architecture-overview.md)
 - [Anime franchise snapshot](docs/anime-franchise-snapshot.md)
 - [Anime franchise grouping](docs/anime-franchise-grouping.md)
+- [Anime Series View](docs/anime-series-view.md)
 - [Anime franchise import](docs/anime-franchise-import.md)
 - [Anime franchise cache](docs/anime-franchise-cache.md)
 - [Anime franchise customization](docs/anime-franchise-customization.md)

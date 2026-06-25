@@ -571,3 +571,11 @@ When changing grouping behavior:
 - Do not mix import profile rules with UI placement rules.
 - Do not duplicate MAL relation normalization in UI code.
 - Do not write user-specific status/progress into cached payloads.
+
+## Difference from Anime Series View
+
+Anime franchise grouping is the MAL anime detail-page feature: it explains one MAL franchise around the current detail-page entry.
+
+Anime Series View is the Anime list feature: it groups the user's tracked Anime library into franchise cards.
+
+Both features use the franchise snapshot, but their projections and templates are separate. Do not use detail-page UI sections as a direct source for Anime Series View behavior.

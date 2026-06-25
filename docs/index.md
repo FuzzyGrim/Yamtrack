@@ -5,6 +5,7 @@
 
 - [Architecture overview](architecture-overview.md)
 - [Anime franchise grouping](anime-franchise-grouping.md)
+- [Anime Series View](anime-series-view.md)
 - [Anime franchise snapshot](anime-franchise-snapshot.md)
 - [Anime franchise import](anime-franchise-import.md)
 - [Anime franchise cache](anime-franchise-cache.md)

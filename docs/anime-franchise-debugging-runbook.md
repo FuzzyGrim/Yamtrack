@@ -23,6 +23,10 @@
 | Series image looks outdated | Request context enrichment and local media image lookup |
 | Alias page misses the franchise cache | Alias key and canonical payload validity |
 | Cache does not refresh | Queue/task locks and error cooldown metadata |
+| Anime list Series View is empty or incomplete | `AnimeSeriesViewMembership` / rebuild command / `unprojected_count` |
+| Franchise appears split into multiple Series View cards | `AnimeSeriesViewProjectionBuilder` root/component/boundaries |
+| Old/remake continuity incorrectly merged | `alternative_version` boundary rules |
+| Series View rebuild triggers MAL 504 | provider cache completeness / rebuild by batches / sleep between seeds |
 
 Most franchise display bugs fall into one of four layers: snapshot facts, UI placement, cache delivery, or request rendering. Start with the layer that owns the symptom.
 
@@ -63,6 +67,40 @@ Docker equivalents:
 docker compose exec yamtrack python manage.py test app.tests.services.test_anime_franchise_ui_pipeline
 docker compose exec yamtrack python manage.py test app.tests.services.test_anime_franchise_cache
 docker compose exec yamtrack python manage.py test app.tests.views.test_media_details
+```
+
+
+## Inspect Anime Series View
+
+Run a dry-run rebuild before writing memberships:
+
+```bash
+docker compose exec yamtrack python manage.py rebuild_anime_series_view --all-users --dry-run
+docker compose exec yamtrack python manage.py rebuild_anime_series_view --user-id 1 --limit 20 --dry-run
+```
+
+Count tracked, projected, and unprojected MAL anime for one user:
+
+```bash
+docker compose exec yamtrack python manage.py shell -c "from app.models import Anime, AnimeSeriesViewMembership, Sources; tracked=set(Anime.objects.filter(user_id=1, item__source=Sources.MAL.value).values_list('item__media_id', flat=True)); projected=set(AnimeSeriesViewMembership.objects.filter(user_id=1, media_id__in=tracked).values_list('media_id', flat=True)); print({'tracked': len(tracked), 'projected': len(projected), 'unprojected': len(tracked-projected)})"
+```
+
+List memberships grouped by root:
+
+```bash
+docker compose exec yamtrack python manage.py shell -c "from app.models import AnimeSeriesViewMembership; from collections import defaultdict; rows=AnimeSeriesViewMembership.objects.filter(user_id=1).order_by('root_media_id','media_id').values_list('root_media_id','media_id','display_title','group_kind','projection_version'); roots=defaultdict(list); [roots[root].append((media,title,kind,version)) for root,media,title,kind,version in rows]; [print(root, members) for root,members in roots.items()]"
+```
+
+Find stale memberships for media no longer tracked by the user:
+
+```bash
+docker compose exec yamtrack python manage.py shell -c "from app.models import Anime, AnimeSeriesViewMembership, Sources; tracked=set(Anime.objects.filter(user_id=1, item__source=Sources.MAL.value).values_list('item__media_id', flat=True)); stale=AnimeSeriesViewMembership.objects.filter(user_id=1).exclude(media_id__in=tracked).values_list('media_id','root_media_id'); print(list(stale))"
+```
+
+Inspect the projection produced from one seed:
+
+```bash
+docker compose exec yamtrack python manage.py shell -c "from app.services.anime_franchise_snapshot import AnimeFranchiseSnapshotService; from app.services.anime_series_view_projection import AnimeSeriesViewProjectionBuilder; s=AnimeFranchiseSnapshotService().build('11757'); p=AnimeSeriesViewProjectionBuilder().build(s); print(p)"
 ```
 
 ## Inspect service payload
