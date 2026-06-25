@@ -7,6 +7,7 @@ from django.contrib.admin.sites import AlreadyRegistered
 from app.models import (
     AnimeFranchiseDiscoveredEntry,
     AnimeFranchiseDiscoveryState,
+    AnimeFranchiseMaintenanceScanState,
     AnimeImportScanState,
     AnimeSeriesViewMembership,
     Episode,
@@ -79,6 +80,21 @@ class AnimeFranchiseDiscoveredEntryAdmin(admin.ModelAdmin):
     list_filter = ["section_key", "notification_suppressed_reason"]
 
 
+@admin.register(AnimeFranchiseMaintenanceScanState)
+class AnimeFranchiseMaintenanceScanStateAdmin(admin.ModelAdmin):
+    search_fields = ["user__username", "seed_mal_id", "component_root_mal_id"]
+    list_display = [
+        "user",
+        "seed_mal_id",
+        "component_root_mal_id",
+        "next_scan_at",
+        "last_scanned_at",
+        "last_success_at",
+        "last_error_at",
+    ]
+    list_filter = ["last_error_at"]
+
+
 @admin.register(AnimeImportScanState)
 class AnimeImportScanStateAdmin(admin.ModelAdmin):
     """Admin config for anime import scan state rows."""
@@ -139,6 +155,7 @@ SpecialModels = [
     "AnimeImportScanState",
     "AnimeFranchiseDiscoveryState",
     "AnimeFranchiseDiscoveredEntry",
+    "AnimeFranchiseMaintenanceScanState",
     "AnimeSeriesViewMembership",
 ]
 for model in app_models:
