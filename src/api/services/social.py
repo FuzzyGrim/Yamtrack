@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 
 from api.permissions import can_view_user_profile
@@ -102,14 +103,21 @@ def feed_queryset(user):
         from_user=user,
         status=FollowStatus.ACCEPTED,
     ).values("to_user")
-    return Activity.objects.filter(actor__in=following).select_related("actor", "item")
+    return _with_live_targets(Activity.objects.filter(actor__in=following)).select_related("actor", "item")
 
 
 def user_activity_queryset(viewer, target_user):
     """Return visible activity for a profile."""
     if not can_view_user_profile(viewer, target_user):
         return Activity.objects.none()
-    return Activity.objects.filter(actor=target_user).select_related("actor", "item")
+    return _with_live_targets(Activity.objects.filter(actor=target_user)).select_related("actor", "item")
+
+
+def _with_live_targets(queryset):
+    """Hide diary activity after the backing log is gone."""
+    return queryset.annotate(
+        diary_exists=Exists(DiaryEntry.objects.filter(id=OuterRef("target_id"))),
+    ).filter(~Q(target_type="diary") | Q(diary_exists=True))
 
 
 def activity_payload(activity, request=None, viewer=None):

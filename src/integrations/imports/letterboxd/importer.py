@@ -11,6 +11,7 @@ from app.services import create_diary_entry, set_media_like, update_diary_entry_
 from integrations.imports.letterboxd.parser import parse_export
 from integrations.imports.letterboxd.resolver import LetterboxdResolver
 from lists.models import CustomList, CustomListItem
+from social.models import Activity
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,17 @@ class LetterboxdImporter:
         return dict(self.counts), warnings if warnings else None
 
     def _cleanup(self):
+        diary_ids = list(
+            DiaryEntry.objects.filter(
+                user=self.user,
+                item__media_type=MediaTypes.MOVIE.value,
+            ).values_list("id", flat=True),
+        )
+        Activity.objects.filter(
+            actor=self.user,
+            target_type="diary",
+            target_id__in=diary_ids,
+        ).delete()
         Movie.objects.filter(user=self.user).delete()
         DiaryEntry.objects.filter(
             user=self.user,

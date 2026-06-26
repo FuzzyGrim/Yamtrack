@@ -20,6 +20,7 @@ from integrations.imports.letterboxd.resolver import LetterboxdResolver
 from integrations.models import LetterboxdUriCache
 from integrations.tasks import format_import_message
 from lists.models import CustomList, CustomListItem
+from social.models import Activity
 
 FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "letterboxd" / "minimal.zip"
 
@@ -144,7 +145,14 @@ class ImportLetterboxdTests(TestCase):
         Movie.objects.create(user=self.user, item=item, status=Status.PLANNING.value)
         MediaLike.objects.create(user=self.user, item=item)
         with patch("app.signals.update_daily_statistics.delay"):
-            DiaryEntry.objects.create(user=self.user, item=item, consumed_at=timezone.now())
+            entry = DiaryEntry.objects.create(user=self.user, item=item, consumed_at=timezone.now())
+            Activity.objects.create(
+                actor=self.user,
+                verb="diary_created",
+                target_type="diary",
+                target_id=entry.id,
+                item=item,
+            )
             tv_item = Item.objects.create(
                 media_id="tv-999",
                 source=Sources.TMDB.value,
@@ -153,6 +161,13 @@ class ImportLetterboxdTests(TestCase):
                 image="https://example.com/tv.jpg",
             )
             tv_entry = DiaryEntry.objects.create(user=self.user, item=tv_item, consumed_at=timezone.now())
+            Activity.objects.create(
+                actor=self.user,
+                verb="diary_created",
+                target_type="diary",
+                target_id=tv_entry.id,
+                item=tv_item,
+            )
 
         self._import(mode="overwrite")
 
@@ -160,6 +175,8 @@ class ImportLetterboxdTests(TestCase):
         self.assertFalse(CustomList.objects.filter(id=old_letterboxd_list.id).exists())
         self.assertFalse(Movie.objects.filter(item=item).exists())
         self.assertFalse(DiaryEntry.objects.filter(item=item).exists())
+        self.assertFalse(Activity.objects.filter(target_id=entry.id, target_type="diary").exists())
+        self.assertTrue(Activity.objects.filter(target_id=tv_entry.id, target_type="diary").exists())
         self.assertFalse(MediaLike.objects.filter(item=item).exists())
         self.assertTrue(DiaryEntry.objects.filter(id=tv_entry.id).exists())
 

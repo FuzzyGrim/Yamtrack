@@ -543,6 +543,30 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(activity["object"]["previous"]["value"], 42)
         self.assertEqual(activity["object"]["current"]["value"], 58)
 
+    def test_user_activity_hides_deleted_diary_targets(self):
+        user = get_user_model().objects.create_user(username="deleted-diary-activity", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            media_id="deleted-diary-activity",
+            title="Deleted Diary Activity",
+        )
+        entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=timezone.now())
+        Activity.objects.create(
+            actor=user,
+            verb="diary_created",
+            target_type="diary",
+            target_id=entry.id,
+            item=item,
+        )
+        entry.delete()
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/users/deleted-diary-activity/activity/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"], [])
+
     def test_set_media_like_is_idempotent_and_keeps_social_likes_separate(self):
         user = get_user_model().objects.create_user(username="media-like-service", password="strong-password-123")
         item = Item.objects.create(
@@ -770,8 +794,7 @@ class ApiV1FoundationTests(TestCase):
 
         self.assertEqual(patched.status_code, status.HTTP_200_OK)
         self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertTrue(Activity.objects.filter(actor=user, verb="diary_updated", target_id=entry.id).exists())
-        self.assertTrue(Activity.objects.filter(actor=user, verb="diary_deleted", target_id=entry.id).exists())
+        self.assertFalse(Activity.objects.filter(actor=user, target_type="diary", target_id=entry.id).exists())
         self.assertTrue(SocialAuditLog.objects.filter(actor=user, action="diary_updated", target_id=entry.id).exists())
         self.assertTrue(SocialAuditLog.objects.filter(actor=user, action="diary_deleted", target_id=entry.id).exists())
 

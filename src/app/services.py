@@ -296,15 +296,11 @@ def delete_diary_entry(user, entry):
         "consumed_at": entry.consumed_at.isoformat(),
     }
     with transaction.atomic():
-        Activity.objects.create(
+        Activity.objects.filter(
             actor=user,
-            verb="diary_deleted",
             target_type="diary",
             target_id=entry.id,
-            item=item,
-            visibility=entry.visibility,
-            snapshot=snapshot,
-        )
+        ).delete()
         SocialAuditLog.objects.create(
             actor=user,
             action="diary_deleted",
