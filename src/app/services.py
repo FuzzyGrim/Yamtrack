@@ -258,6 +258,12 @@ def update_diary_entry(entry, data, *, tags=None):
             set_media_like(entry.user, entry.item, data["liked"])
         if tags is not None:
             update_diary_entry_tags(entry, tags)
+        activity_snapshot = {
+            "rating": str(entry.rating) if entry.rating is not None else None,
+            "liked": bool(entry.liked),
+        }
+        if "consumed_at" in snapshot:
+            activity_snapshot["consumed_at"] = snapshot["consumed_at"]
         Activity.objects.create(
             actor=entry.user,
             verb="diary_updated",
@@ -265,7 +271,7 @@ def update_diary_entry(entry, data, *, tags=None):
             target_id=entry.id,
             item=entry.item,
             visibility=entry.visibility,
-            snapshot=snapshot,
+            snapshot=activity_snapshot,
         )
         SocialAuditLog.objects.create(
             actor=entry.user,

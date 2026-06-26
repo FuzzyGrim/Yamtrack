@@ -99,6 +99,7 @@ struct ActivityObject: Codable {
     let previous: ProgressState?
     let current: ProgressState?
     let rating: String?
+    let liked: Bool?
     let name: String?
 }
 

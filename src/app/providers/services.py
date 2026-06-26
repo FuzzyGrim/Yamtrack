@@ -281,6 +281,14 @@ def discover(media_type, *, source=None, page=1, page_size=None, genre=None, yea
     if source == Sources.IGDB.value and media_type == MediaTypes.GAME.value:
         return igdb.discover(page=page, page_size=page_size, genre=genre, year=year, platform=platform)
 
+    if media_type == MediaTypes.BOOK.value and source in [Sources.HARDCOVER.value, Sources.OPENLIBRARY.value]:
+        if platform:
+            msg = "platform discovery is only supported for games."
+            raise ValueError(msg)
+        if source == Sources.OPENLIBRARY.value:
+            return openlibrary.discover(page=page, page_size=page_size, genre=genre, year=year)
+        return hardcover.discover(page=page, page_size=page_size, genre=genre, year=year)
+
     msg = f"Discovery is not supported for media_type={media_type!r} and source={source!r}."
     raise NotImplementedError(msg)
 

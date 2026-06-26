@@ -144,6 +144,26 @@ def _genre_map(media_type):
     return data
 
 
+TV_GENRE_ALIASES = {
+    "action": "action-adventure",
+    "adventure": "action-adventure",
+    "fantasy": "sci-fi-fantasy",
+    "science-fiction": "sci-fi-fantasy",
+    "sci-fi": "sci-fi-fantasy",
+    "scifi": "sci-fi-fantasy",
+}
+
+
+def _genre_id(media_type, genre):
+    genres = _genre_map(media_type)
+    normalized = _normalize_name(genre)
+    genre_id = genres.get(normalized)
+    if genre_id or media_type != MediaTypes.TV.value:
+        return genre_id
+    alias = TV_GENRE_ALIASES.get(normalized)
+    return genres.get(alias)
+
+
 def discover(media_type, *, page=1, genre=None, year=None):
     """Discover TMDB movies/TV shows by genre and/or year."""
     cache_key = f"discover_{Sources.TMDB.value}_{media_type}_{genre}_{year}_{page}_{settings.TMDB_LANG}_{settings.TMDB_NSFW}"
@@ -157,7 +177,7 @@ def discover(media_type, *, page=1, genre=None, year=None):
         if settings.TMDB_NSFW:
             params["include_adult"] = "true"
         if genre:
-            genre_id = _genre_map(media_type).get(_normalize_name(genre))
+            genre_id = _genre_id(media_type, genre)
             if not genre_id:
                 msg = f"Unknown TMDB {media_type} genre: {genre}"
                 raise ValueError(msg)

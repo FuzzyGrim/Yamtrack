@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from datetime import datetime
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -60,35 +61,7 @@ def search(query, page):
         except requests.RequestException as e:
             handle_error(e)
 
-        results = []
-        for doc in response.get("docs", []):
-            if doc["editions"]["docs"] == []:
-                continue
-
-            top_edition = doc["editions"]["docs"][0]
-            media_id = extract_openlibrary_id(top_edition["key"])
-            title = doc["title"]
-            edition_title = top_edition["title"]
-
-            if edition_title != title:
-                result_title = f"{edition_title}: {title}"
-            else:
-                result_title = title
-
-            results.append(
-                {
-                    "media_id": media_id,
-                    "source": Sources.OPENLIBRARY.value,
-                    "media_type": MediaTypes.BOOK.value,
-                    "title": result_title,
-                    "image": get_image_url(top_edition),
-                    "author_name": doc.get("author_name"),
-                    "edition_count": doc.get("edition_count"),
-                    "first_publish_year": doc.get("first_publish_year"),
-                    "ratings_count": doc.get("ratings_count"),
-                    "ratings_average": doc.get("ratings_average"),
-                },
-            )
+        results = [result for doc in response.get("docs", []) if (result := _search_result(doc))]
 
         total_results = response["numFound"]
         results = rank_results(query, results, MediaTypes.BOOK.value)
@@ -101,6 +74,82 @@ def search(query, page):
 
         cache.set(cache_key, data)
     return data
+
+
+def discover(*, page=1, page_size=None, genre=None, year=None):
+    """Browse Open Library books by subject and/or first publish year."""
+    per_page = page_size or settings.PER_PAGE
+    q = _discover_query(genre=genre, year=year)
+    cache_key = f"discover_{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{q}_{page}_{per_page}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        params = {
+            "q": q,
+            "fields": (
+                "title,key,cover_i,author_name,edition_count,first_publish_year,"
+                "ratings_count,ratings_average,editions,editions.key,"
+                "editions.cover_i,editions.title"
+            ),
+            "limit": per_page,
+            "page": page,
+            "sort": "ratings_count desc",
+        }
+
+        try:
+            response = services.api_request(
+                Sources.OPENLIBRARY.value,
+                "GET",
+                search_url,
+                params=params,
+                headers=headers,
+            )
+        except requests.RequestException as e:
+            handle_error(e)
+
+        results = [result for doc in response.get("docs", []) if (result := _search_result(doc))]
+        data = helpers.format_search_response(page, per_page, response["numFound"], results)
+        data["per_page"] = per_page
+        cache.set(cache_key, data)
+
+    return data
+
+
+def _search_result(doc):
+    editions = (doc.get("editions") or {}).get("docs") or []
+    if not editions:
+        return None
+
+    top_edition = editions[0]
+    media_id = extract_openlibrary_id(top_edition["key"])
+    title = doc["title"]
+    edition_title = top_edition["title"]
+    result_title = f"{edition_title}: {title}" if edition_title != title else title
+
+    return {
+        "media_id": media_id,
+        "source": Sources.OPENLIBRARY.value,
+        "media_type": MediaTypes.BOOK.value,
+        "title": result_title,
+        "image": get_image_url(top_edition),
+        "author_name": doc.get("author_name"),
+        "edition_count": doc.get("edition_count"),
+        "first_publish_year": doc.get("first_publish_year"),
+        "ratings_count": doc.get("ratings_count"),
+        "ratings_average": doc.get("ratings_average"),
+        "release_date": str(doc["first_publish_year"]) if doc.get("first_publish_year") else None,
+    }
+
+
+def _discover_query(*, genre=None, year=None):
+    parts = []
+    if genre:
+        subject = str(genre).strip().replace('"', r"\"")
+        subject_key = re.sub(r"[^a-z0-9]+", "_", subject.casefold()).strip("_")
+        parts.append(f'(subject_key:{subject_key} OR subject:"{subject}")')
+    if year:
+        parts.append(f"first_publish_year:{year}")
+    return " AND ".join(parts) or "*"
 
 
 def extract_openlibrary_id(path):

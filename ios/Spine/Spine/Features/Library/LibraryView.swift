@@ -19,6 +19,7 @@ enum LibraryShelf: String, CaseIterable, Identifiable {
 final class LibraryViewModel {
     var mediaType = "movie"
     var mediaTypes = LibraryViewModel.libraryMediaTypes(from: APIConstants.fallbackMediaTypes)
+    var query = ""
     var viewMode: LibraryViewMode = .grid
     var shelf: LibraryShelf = .tracked
     var items: [LibraryItem] = []
@@ -69,14 +70,14 @@ final class LibraryViewModel {
         shelf == .planning ? "Planning" : nil
     }
 
-    func bootstrap() async {
+    func bootstrap(selectedMediaType: String? = nil) async {
         guard !didBootstrap else { return }
         didBootstrap = true
-        await loadMeta()
+        await loadMeta(selectedMediaType: selectedMediaType)
         await reload()
     }
 
-    func loadMeta() async {
+    func loadMeta(selectedMediaType: String? = nil) async {
         do {
             let meta = try await mediaRepository.meta()
             mediaTypes = Self.libraryMediaTypes(from: meta.mediaTypes)
@@ -84,14 +85,31 @@ final class LibraryViewModel {
             mediaTypes = Self.libraryMediaTypes(from: APIConstants.fallbackMediaTypes)
         }
 
-        if !mediaTypes.contains(mediaType) {
+        if let selectedMediaType, mediaTypes.contains(selectedMediaType) {
+            mediaType = selectedMediaType
+        } else if !mediaTypes.contains(mediaType) {
             mediaType = mediaTypes.first ?? "movie"
         }
     }
 
-    func selectMediaType(_ type: String) async {
-        guard mediaType != type else { return }
+    func selectMediaType(_ type: String, searchText: String? = nil) async {
+        let selectedQuery = searchText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? query
+        guard mediaType != type || query != selectedQuery else { return }
         mediaType = type
+        query = selectedQuery
+        await reload()
+    }
+
+    func setSearchQuery(_ text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query != trimmed else { return }
+        query = trimmed
+        await reload()
+    }
+
+    func clearSearch() async {
+        guard !query.isEmpty else { return }
+        query = ""
         await reload()
     }
 
@@ -100,6 +118,8 @@ final class LibraryViewModel {
         let generation = requestGeneration
         let selectedType = mediaType
         let selectedStatus = statusFilter
+        let selectedQuery = query
+        let requestQuery = selectedQuery.isEmpty ? nil : selectedQuery
 
         items = []
         totalCount = 0
@@ -109,12 +129,12 @@ final class LibraryViewModel {
         isLoadingInitial = true
 
         do {
-            let response = try await trackingRepository.list(mediaType: selectedType, page: nil, status: selectedStatus)
-            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter else { return }
+            let response = try await trackingRepository.list(mediaType: selectedType, page: nil, status: selectedStatus, query: requestQuery)
+            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter, selectedQuery == query else { return }
             apply(response, replacingItems: true)
             isLoadingInitial = false
         } catch {
-            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter else { return }
+            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter, selectedQuery == query else { return }
             errorMessage = error.localizedDescription
             isLoadingInitial = false
             handleUnauthorized(error)
@@ -137,16 +157,18 @@ final class LibraryViewModel {
         let generation = requestGeneration
         let selectedType = mediaType
         let selectedStatus = statusFilter
+        let selectedQuery = query
+        let requestQuery = selectedQuery.isEmpty ? nil : selectedQuery
         isLoadingNextPage = true
         nextPageErrorMessage = nil
 
         do {
-            let response = try await trackingRepository.list(mediaType: selectedType, page: page, status: selectedStatus)
-            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter else { return }
+            let response = try await trackingRepository.list(mediaType: selectedType, page: page, status: selectedStatus, query: requestQuery)
+            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter, selectedQuery == query else { return }
             apply(response, replacingItems: false)
             isLoadingNextPage = false
         } catch {
-            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter else { return }
+            guard generation == requestGeneration, selectedType == mediaType, selectedStatus == statusFilter, selectedQuery == query else { return }
             nextPageErrorMessage = error.localizedDescription
             isLoadingNextPage = false
             handleUnauthorized(error)
@@ -175,22 +197,27 @@ final class LibraryViewModel {
 
 struct LibraryView: View {
     @State private var viewModel: LibraryViewModel
+    @State private var isMediaLensExpanded = false
+    @State private var searchDraftText = ""
     @Binding private var requestedShelf: LibraryShelf?
 
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
     private let listRepository: ListRepository
+    private let mediaLensStore: MediaLensStore
     private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
 
+    @MainActor
     init(
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
-        listRepository: ListRepository = AppRepositories.current().lists,
+        listRepository: ListRepository? = nil,
+        mediaLensStore: MediaLensStore? = nil,
         currentUserId: Int? = nil,
         requestedShelf: Binding<LibraryShelf?> = .constant(nil),
         selectedTab: AppTab = .library,
@@ -201,7 +228,8 @@ struct LibraryView: View {
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
-        self.listRepository = listRepository
+        self.listRepository = listRepository ?? AppRepositories.current().lists
+        self.mediaLensStore = mediaLensStore ?? MediaLensStore()
         self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
@@ -235,13 +263,22 @@ struct LibraryView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .task {
                 consumeRequestedShelf()
-                await viewModel.bootstrap()
+                await viewModel.bootstrap(selectedMediaType: mediaLensStore.selectedMediaType)
+                validateSelectedMediaType()
+            }
+            .task(id: searchDraftText) {
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+                await viewModel.setSearchQuery(searchDraftText)
             }
             .onChange(of: requestedShelf) {
                 consumeRequestedShelf()
             }
             .onChange(of: viewModel.shelf) {
                 Task { await viewModel.reload() }
+            }
+            .onChange(of: mediaLensStore.selectedMediaType) {
+                Task { await viewModel.selectMediaType(mediaLensStore.selectedMediaType, searchText: searchDraftText) }
             }
             .onReceive(NotificationCenter.default.publisher(for: .letterboxdImportDidSucceed)) { _ in
                 Task { await viewModel.reload() }
@@ -258,6 +295,19 @@ struct LibraryView: View {
         self.requestedShelf = nil
     }
 
+    private var selectedMediaTypeBinding: Binding<String> {
+        Binding(
+            get: { mediaLensStore.selectedMediaType },
+            set: { mediaLensStore.setMediaType($0) }
+        )
+    }
+
+    private func validateSelectedMediaType() {
+        guard !viewModel.mediaTypes.contains(mediaLensStore.selectedMediaType) else { return }
+        mediaLensStore.setMediaType(viewModel.mediaTypes.first ?? "movie")
+        viewModel.mediaType = mediaLensStore.selectedMediaType
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 7) {
@@ -270,12 +320,23 @@ struct LibraryView: View {
                     .foregroundStyle(.white.opacity(0.58))
             }
 
-            LibraryMediaTypeRail(
-                selectedType: viewModel.mediaType,
-                availableTypes: viewModel.mediaTypes
-            ) { type in
-                Task { await viewModel.selectMediaType(type) }
-            }
+            MediaSearchBar(
+                text: $searchDraftText,
+                selectedMediaType: selectedMediaTypeBinding,
+                isLensExpanded: $isMediaLensExpanded,
+                availableTypes: viewModel.mediaTypes,
+                horizontalPadding: 0,
+                onLensTap: {
+                    isMediaLensExpanded = true
+                },
+                onLensSelect: { _ in },
+                onSearch: { text in
+                    Task { await viewModel.setSearchQuery(text) }
+                },
+                onClear: {
+                    Task { await viewModel.clearSearch() }
+                }
+            )
 
             HStack(spacing: 12) {
                 Picker("Shelf", selection: $viewModel.shelf) {
@@ -331,6 +392,9 @@ struct LibraryView: View {
     }
 
     private var emptyTitle: String {
+        if !viewModel.query.isEmpty {
+            return "No \(MediaTypeTheme.theme(for: viewModel.mediaType).displayName.lowercased()) found"
+        }
         let mediaName = MediaTypeTheme.theme(for: viewModel.mediaType).displayName.lowercased()
         switch viewModel.shelf {
         case .tracked:
@@ -341,6 +405,9 @@ struct LibraryView: View {
     }
 
     private var emptyMessage: String {
+        if !viewModel.query.isEmpty {
+            return "No matches for \"\(viewModel.query)\" in \(viewModel.shelf.rawValue.lowercased())."
+        }
         switch viewModel.shelf {
         case .tracked:
             return "Consumed, logged, watched, read, or played media will appear here."
@@ -421,79 +488,6 @@ struct LibraryView: View {
             onSelectTab: onSelectTab,
             onUnauthorized: onUnauthorized
         )
-    }
-}
-
-private struct LibraryMediaTypeRail: View {
-    let selectedType: String
-    let availableTypes: [String]
-    let onSelect: (String) -> Void
-
-    var body: some View {
-        GeometryReader { proxy in
-            let spacing: CGFloat = 6
-            let count = max(availableTypes.count, 1)
-            let size = min(CGFloat(44), max(CGFloat(32), (proxy.size.width - spacing * CGFloat(count - 1)) / CGFloat(count)))
-
-            HStack(spacing: spacing) {
-                ForEach(availableTypes, id: \.self) { type in
-                    LibraryMediaTypeButton(
-                        type: type,
-                        isSelected: selectedType == type,
-                        size: size,
-                        onSelect: onSelect
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .center)
-        }
-        .frame(height: 54)
-        .padding(.horizontal, 10)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(.white.opacity(0.10), lineWidth: 1)
-        }
-    }
-}
-
-private struct LibraryMediaTypeButton: View {
-    let type: String
-    let isSelected: Bool
-    let size: CGFloat
-    let onSelect: (String) -> Void
-
-    private var theme: MediaTypeTheme {
-        MediaTypeTheme.theme(for: type)
-    }
-
-    var body: some View {
-        Button {
-            onSelect(type)
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: isSelected ? theme.gradientColors : [.white.opacity(0.14), .white.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay {
-                        Circle()
-                            .stroke(isSelected ? theme.accentColor.opacity(0.72) : .white.opacity(0.14), lineWidth: 1)
-                    }
-
-                MediaTypeGlyph(theme: theme, size: isSelected ? size * 0.43 : size * 0.38)
-            }
-            .frame(width: size, height: size)
-            .scaleEffect(isSelected ? 1.06 : 0.94)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(theme.displayName)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

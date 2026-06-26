@@ -4,6 +4,7 @@ struct AppShellView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = AppTab.home
     @State private var requestedLibraryShelf: LibraryShelf?
+    @State private var mediaLensStore = MediaLensStore()
 
     let session: AppSession
 
@@ -39,6 +40,7 @@ struct AppShellView: View {
                     trackingRepository: session.repositories.tracking,
                     diaryRepository: session.repositories.diary,
                     listRepository: session.repositories.lists,
+                    mediaLensStore: mediaLensStore,
                     currentUserId: currentUserId,
                     selectedTab: selectedTab,
                     onSelectTab: { selectedTab = $0 },
@@ -56,6 +58,7 @@ struct AppShellView: View {
                     trackingRepository: session.repositories.tracking,
                     diaryRepository: session.repositories.diary,
                     listRepository: session.repositories.lists,
+                    mediaLensStore: mediaLensStore,
                     currentUserId: currentUserId,
                     requestedShelf: $requestedLibraryShelf,
                     selectedTab: selectedTab,
@@ -90,6 +93,7 @@ struct AppShellView: View {
                     diaryRepository: session.repositories.diary,
                     mediaRepository: session.repositories.media,
                     trackingRepository: session.repositories.tracking,
+                    activityRepository: session.repositories.activity,
                     listRepository: session.repositories.lists,
                     importCoordinator: session.letterboxdImportCoordinator,
                     storygraphImportCoordinator: session.storygraphImportCoordinator,

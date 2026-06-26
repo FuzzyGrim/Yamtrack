@@ -441,7 +441,7 @@ private struct HomeInProgressCard: View {
                         .lineLimit(2)
 
                     if let progressDelta {
-                        HomeProgressDeltaInline(delta: progressDelta)
+                        ProgressDeltaInlineView(delta: progressDelta)
                     } else {
                         Text(metadataText)
                             .font(.system(size: 11, weight: .bold))
@@ -522,7 +522,7 @@ private struct HomeActivityItemCard: View {
                             .lineLimit(2)
 
                         if let progressDelta {
-                            HomeProgressDeltaChip(delta: progressDelta)
+                            ProgressDeltaChipView(delta: progressDelta)
                         } else if let listName {
                             Text(listName)
                                 .font(.system(size: 13, weight: .medium))
@@ -765,42 +765,6 @@ private struct HomeUserAvatar: View {
         .frame(width: 32, height: 32)
         .background(.white.opacity(0.10), in: Circle())
         .clipShape(Circle())
-    }
-}
-
-private struct HomeProgressDeltaInline: View {
-    let delta: ProgressChangeDisplay
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(delta.previous)
-            Image(systemName: "arrow.right")
-                .font(.system(size: 9, weight: .black))
-            Text(delta.current)
-        }
-        .font(.system(size: 11, weight: .bold))
-        .foregroundStyle(.white.opacity(0.54))
-        .lineLimit(1)
-        .accessibilityLabel("\(delta.previous) to \(delta.current)")
-    }
-}
-
-private struct HomeProgressDeltaChip: View {
-    let delta: ProgressChangeDisplay
-
-    var body: some View {
-        HStack(spacing: 7) {
-            Text(delta.previous)
-            Image(systemName: "arrow.right")
-                .font(.system(size: 9, weight: .black))
-            Text(delta.current)
-        }
-        .font(.system(size: 10, weight: .bold))
-        .foregroundStyle(.white.opacity(0.78))
-        .padding(.horizontal, 10)
-        .frame(height: 21)
-        .background(.white.opacity(0.11), in: Capsule())
-        .accessibilityLabel("\(delta.previous) to \(delta.current)")
     }
 }
 

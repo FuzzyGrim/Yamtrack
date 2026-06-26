@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 @Observable
 final class ProfileViewModel {
     var profile: UserProfile?
-    var recentEntries: [DiaryEntry] = []
+    var recentActivityItems: [ActivityItem] = []
     var inProgressItems: [LibraryItem] = []
     var isLoading = false
     var isLoadingInProgress = false
@@ -17,19 +17,19 @@ final class ProfileViewModel {
     var savingHallOfFameSlots: Set<String> = []
 
     private let profileRepository: ProfileRepository
-    private let diaryRepository: DiaryRepository
     private let trackingRepository: TrackingRepository
+    private let activityRepository: ActivityRepository
     private let onUnauthorized: () -> Void
 
     init(
         profileRepository: ProfileRepository,
-        diaryRepository: DiaryRepository,
         trackingRepository: TrackingRepository,
+        activityRepository: ActivityRepository,
         onUnauthorized: @escaping () -> Void
     ) {
         self.profileRepository = profileRepository
-        self.diaryRepository = diaryRepository
         self.trackingRepository = trackingRepository
+        self.activityRepository = activityRepository
         self.onUnauthorized = onUnauthorized
     }
 
@@ -64,9 +64,15 @@ final class ProfileViewModel {
     }
 
     private func loadRecentActivity() async {
+        guard let username = profile?.username else {
+            recentActivityItems = []
+            return
+        }
+
         do {
-            recentEntries = try await diaryRepository.recent(limit: 6)
+            recentActivityItems = try await activityRepository.userActivity(username: username, limit: 6)
         } catch {
+            recentActivityItems = []
             activityErrorMessage = error.localizedDescription
             handleUnauthorized(error)
         }
@@ -450,6 +456,7 @@ struct ProfileView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        activityRepository: ActivityRepository,
         listRepository: ListRepository,
         importCoordinator: LetterboxdImportCoordinator,
         storygraphImportCoordinator: StoryGraphImportCoordinator,
@@ -463,8 +470,8 @@ struct ProfileView: View {
     ) {
         _viewModel = State(initialValue: ProfileViewModel(
             profileRepository: profileRepository,
-            diaryRepository: diaryRepository,
             trackingRepository: trackingRepository,
+            activityRepository: activityRepository,
             onUnauthorized: onUnauthorized
         ))
         self.profileRepository = profileRepository
@@ -747,14 +754,14 @@ struct ProfileView: View {
     }
 
     private var activitySection: some View {
-        ProfileSection(title: "Recent Activity", action: onOpenDiary) {
+        ProfileSection(title: "Recent Activity") {
             if let activityError = viewModel.activityErrorMessage {
                 EmptyProfileCard(title: activityError, systemName: "exclamationmark.triangle")
-            } else if viewModel.recentEntries.isEmpty {
-                EmptyProfileCard(title: "No diary activity yet", systemName: "calendar")
+            } else if ProfileRecentActivityRailModel.items(from: viewModel.recentActivityItems).isEmpty {
+                EmptyProfileCard(title: "No activity yet", systemName: "bolt")
             } else {
-                RecentActivityRail(entries: viewModel.recentEntries) { entry in
-                    selectedRef = entry.media.ref
+                RecentActivityRail(items: viewModel.recentActivityItems) { item in
+                    selectedRef = item.media.ref
                 }
             }
         }
@@ -1293,23 +1300,90 @@ private struct ProfileSection<Content: View>: View {
     }
 }
 
+struct ProfileRecentActivityRailItem: Identifiable {
+    let activity: ActivityItem
+    let media: MediaSummary
+
+    var id: Int { activity.id }
+}
+
+enum ProfileRecentActivityRailModel {
+    static func items(from activities: [ActivityItem]) -> [ProfileRecentActivityRailItem] {
+        activities.compactMap { activity in
+            guard let media = activity.media else { return nil }
+            return ProfileRecentActivityRailItem(activity: activity, media: media)
+        }
+    }
+
+    static func progressDelta(for activity: ActivityItem, media: MediaSummary) -> ProgressChangeDisplay? {
+        guard
+            activity.type == "progress_updated",
+            let previous = activity.object.previous,
+            let current = activity.object.current
+        else {
+            return nil
+        }
+
+        return ProgressChangeState(
+            id: activity.object.id,
+            previous: previous,
+            current: current,
+            createdAt: activity.createdAt
+        )
+        .compactDisplayParts(preferredMode: ProgressDisplayPreferences.mode(for: media.ref))
+    }
+
+    static func rating(for activity: ActivityItem) -> String? {
+        clean(activity.object.rating)
+    }
+
+    static func isLikedDiary(_ activity: ActivityItem) -> Bool {
+        isDiary(activity) && activity.object.liked == true
+    }
+
+    static func fallbackLabel(for activity: ActivityItem) -> String? {
+        switch activity.type {
+        case "list_created":
+            clean(activity.object.name)
+        case "list_item_added":
+            clean(activity.object.name) ?? "List"
+        default:
+            nil
+        }
+    }
+
+    static func isDiary(_ activity: ActivityItem) -> Bool {
+        activity.type == "diary_created" || activity.type == "diary_updated"
+    }
+
+    private static func clean(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
 private struct RecentActivityRail: View {
-    let entries: [DiaryEntry]
-    let action: (DiaryEntry) -> Void
+    let items: [ActivityItem]
+    let action: (ProfileRecentActivityRailItem) -> Void
+
+    private var visibleItems: [ProfileRecentActivityRailItem] {
+        ProfileRecentActivityRailModel.items(from: items)
+    }
 
     var body: some View {
         GeometryReader { proxy in
             let itemWidth = PosterSlot.diaryRow.size.width
             let minimumSpacing: CGFloat = 4
-            let maximumVisibleCount = min(6, entries.count)
+            let maximumVisibleCount = min(6, visibleItems.count)
             let visibleCount = max(1, min(maximumVisibleCount, Int((proxy.size.width + minimumSpacing) / (itemWidth + minimumSpacing))))
             let spacing = visibleCount > 1
                 ? min(10, max(minimumSpacing, (proxy.size.width - itemWidth * CGFloat(visibleCount)) / CGFloat(visibleCount - 1)))
                 : 0
             HStack(alignment: .top, spacing: spacing) {
-                ForEach(Array(entries.prefix(visibleCount))) { entry in
-                    RecentActivityPoster(entry: entry) {
-                        action(entry)
+                ForEach(Array(visibleItems.prefix(visibleCount))) { item in
+                    RecentActivityPoster(item: item) {
+                        action(item)
                     }
                     .frame(width: itemWidth)
                 }
@@ -1377,29 +1451,61 @@ private struct ProfileRailLoadingView: View {
 }
 
 private struct RecentActivityPoster: View {
-    let entry: DiaryEntry
+    let item: ProfileRecentActivityRailItem
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 7) {
                 MediaArtwork(
-                    url: entry.media.displayPosterURL,
-                    title: entry.media.title,
+                    url: item.media.displayPosterURL,
+                    title: item.media.title,
                     slot: .diaryRow,
-                    mediaType: entry.media.ref.mediaType,
-                    orientation: entry.media.posterOrientation
+                    mediaType: item.media.ref.mediaType,
+                    orientation: item.media.posterOrientation
                 )
 
-                ProfileStarRating(rating: entry.rating)
+                metadataLine
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("View \(item.media.title)")
+    }
+
+    @ViewBuilder
+    private var metadataLine: some View {
+        if let progressDelta = ProfileRecentActivityRailModel.progressDelta(for: item.activity, media: item.media) {
+            ProgressDeltaInlineView(delta: progressDelta)
+                .frame(width: PosterSlot.diaryRow.size.width, height: 10, alignment: .leading)
+        } else if ProfileRecentActivityRailModel.isDiary(item.activity),
+                  ProfileRecentActivityRailModel.rating(for: item.activity) != nil || ProfileRecentActivityRailModel.isLikedDiary(item.activity) {
+            HStack(spacing: 5) {
+                if let rating = ProfileRecentActivityRailModel.rating(for: item.activity) {
+                    ProfileStarRating(rating: rating, reservesWidth: !ProfileRecentActivityRailModel.isLikedDiary(item.activity))
+                }
+
+                if ProfileRecentActivityRailModel.isLikedDiary(item.activity) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.pink)
+                        .accessibilityLabel("Liked")
+                }
+            }
+            .frame(width: PosterSlot.diaryRow.size.width, height: 10, alignment: .leading)
+        } else if let label = ProfileRecentActivityRailModel.fallbackLabel(for: item.activity) {
+            Text(label)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white.opacity(0.54))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: PosterSlot.diaryRow.size.width, height: 10, alignment: .leading)
+        }
     }
 }
 
 private struct ProfileStarRating: View {
     let rating: String?
+    var reservesWidth = true
 
     var body: some View {
         HStack(spacing: 1) {
@@ -1409,7 +1515,7 @@ private struct ProfileStarRating: View {
                     .foregroundStyle(.yellow.opacity(0.92))
             }
         }
-        .frame(width: 56, height: 10, alignment: .leading)
+        .frame(width: reservesWidth ? 56 : nil, height: 10, alignment: .leading)
         .accessibilityHidden(value == nil)
         .accessibilityLabel(value.map { "Rating \($0) out of 5 stars" } ?? "")
     }

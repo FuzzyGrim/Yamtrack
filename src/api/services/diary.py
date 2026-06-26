@@ -80,7 +80,10 @@ def create_entry(user, data):
         target_id=entry.id,
         item=item,
         visibility=entry.visibility,
-        snapshot={"rating": str(entry.rating) if entry.rating is not None else None},
+        snapshot={
+            "rating": str(entry.rating) if entry.rating is not None else None,
+            "liked": bool(entry.liked),
+        },
     )
     return entry
 

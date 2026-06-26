@@ -654,6 +654,12 @@ class ApiV1FoundationTests(TestCase):
         item = Item.objects.get(media_id="diary-like", media_type=MediaTypes.MOVIE.value)
         self.assertEqual(created.status_code, status.HTTP_201_CREATED)
         self.assertTrue(MediaLike.objects.filter(user=user, item=item).exists())
+        activity_response = self.client.get("/api/v1/users/diary-media-like/activity/")
+        self.assertEqual(activity_response.status_code, status.HTTP_200_OK)
+        created_activity = activity_response.data["results"][0]
+        self.assertEqual(created_activity["type"], "diary_created")
+        self.assertIsNone(created_activity["object"]["rating"])
+        self.assertTrue(created_activity["object"]["liked"])
 
         patched_without_like = self.client.patch(
             f"/api/v1/diary/{created.data['id']}/",
@@ -790,9 +796,15 @@ class ApiV1FoundationTests(TestCase):
         self.client.force_authenticate(user)
 
         patched = self.client.patch(f"/api/v1/diary/{entry.id}/", {"rating": "7.0"}, format="json")
+        activity_response = self.client.get("/api/v1/users/diary-social-log/activity/")
         deleted = self.client.delete(f"/api/v1/diary/{entry.id}/")
 
         self.assertEqual(patched.status_code, status.HTTP_200_OK)
+        self.assertEqual(activity_response.status_code, status.HTTP_200_OK)
+        updated_activity = activity_response.data["results"][0]
+        self.assertEqual(updated_activity["type"], "diary_updated")
+        self.assertEqual(updated_activity["object"]["rating"], "7.0")
+        self.assertFalse(updated_activity["object"]["liked"])
         self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Activity.objects.filter(actor=user, target_type="diary", target_id=entry.id).exists())
         self.assertTrue(SocialAuditLog.objects.filter(actor=user, action="diary_updated", target_id=entry.id).exists())
@@ -1135,6 +1147,193 @@ class ApiV1FoundationTests(TestCase):
             platform="PlayStation 5",
             sort="vote_count",
         )
+
+    @patch("api.services.media.provider_services.discover")
+    def test_media_discover_book_hardcover_genre_year_contract(self, discover_mock):
+        user = get_user_model().objects.create_user(username="book-discoverer", password="strong-password-123")
+        self.client.force_authenticate(user)
+        discover_mock.return_value = {
+            "per_page": 25,
+            "total_results": 1,
+            "results": [
+                {
+                    "media_id": "123",
+                    "source": Sources.HARDCOVER.value,
+                    "media_type": MediaTypes.BOOK.value,
+                    "title": "The Hobbit",
+                    "image": "https://example.com/hobbit.jpg",
+                    "release_date": "1937",
+                    "ratings_count": 5000,
+                },
+            ],
+        }
+
+        response = self.client.get("/api/v1/media/discover/?media_type=book&genre=Fantasy&year=1937")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"][0]["ref"]["source"], Sources.HARDCOVER.value)
+        self.assertEqual(response.data["results"][0]["ref"]["media_type"], MediaTypes.BOOK.value)
+        self.assertEqual(response.data["results"][0]["title"], "The Hobbit")
+        discover_mock.assert_called_once_with(
+            MediaTypes.BOOK.value,
+            source=Sources.HARDCOVER.value,
+            page=1,
+            page_size=25,
+            genre="Fantasy",
+            year="1937",
+            platform=None,
+            sort="vote_count",
+        )
+
+    @patch("api.services.media.provider_services.discover")
+    def test_media_discover_book_openlibrary_genre_and_year_contract(self, discover_mock):
+        user = get_user_model().objects.create_user(username="ol-discoverer", password="strong-password-123")
+        self.client.force_authenticate(user)
+        discover_mock.return_value = {
+            "per_page": 25,
+            "total_results": 1,
+            "results": [
+                {
+                    "media_id": "OL27448M",
+                    "source": Sources.OPENLIBRARY.value,
+                    "media_type": MediaTypes.BOOK.value,
+                    "title": "Dune",
+                    "image": "https://example.com/dune.jpg",
+                    "release_date": "1965",
+                    "ratings_count": 4000,
+                },
+            ],
+        }
+
+        genre = self.client.get("/api/v1/media/discover/?media_type=book&source=openlibrary&genre=Fiction")
+        year = self.client.get("/api/v1/media/discover/?media_type=book&source=openlibrary&year=1965")
+
+        self.assertEqual(genre.status_code, status.HTTP_200_OK)
+        self.assertEqual(year.status_code, status.HTTP_200_OK)
+        self.assertEqual(genre.data["results"][0]["ref"]["source"], Sources.OPENLIBRARY.value)
+        self.assertEqual(year.data["results"][0]["title"], "Dune")
+        self.assertEqual(discover_mock.call_count, 2)
+        self.assertEqual(discover_mock.call_args_list[0].kwargs["genre"], "Fiction")
+        self.assertIsNone(discover_mock.call_args_list[0].kwargs["year"])
+        self.assertIsNone(discover_mock.call_args_list[1].kwargs["genre"])
+        self.assertEqual(discover_mock.call_args_list[1].kwargs["year"], "1965")
+
+    def test_media_discover_book_rejects_platform(self):
+        user = get_user_model().objects.create_user(username="book-platform", password="strong-password-123")
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/media/discover/?media_type=book&platform=Kindle")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["detail"], "platform discovery is only supported for games.")
+
+    def test_media_discover_book_unsupported_source_fails_clearly(self):
+        user = get_user_model().objects.create_user(username="book-source", password="strong-password-123")
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/media/discover/?media_type=book&source=tmdb&genre=Fiction")
+
+        self.assertEqual(response.status_code, status.HTTP_501_NOT_IMPLEMENTED)
+        self.assertIn("Discovery is not supported", response.data["detail"])
+
+    @patch("app.providers.tmdb.services.api_request")
+    @patch("app.providers.tmdb._genre_map", return_value={"sci-fi-fantasy": 10765})
+    def test_tmdb_tv_discover_resolves_fantasy_alias(self, _genre_map_mock, api_request_mock):
+        from app.providers import tmdb
+
+        api_request_mock.return_value = {
+            "total_results": 1,
+            "results": [
+                {
+                    "id": 1399,
+                    "name": "Game of Thrones",
+                    "poster_path": "/got.jpg",
+                    "first_air_date": "2011-04-17",
+                    "vote_count": 10000,
+                },
+            ],
+        }
+
+        response = tmdb.discover(MediaTypes.TV.value, genre="Fantasy")
+
+        self.assertEqual(response["results"][0]["media_id"], 1399)
+        self.assertEqual(api_request_mock.call_args.kwargs["params"]["with_genres"], 10765)
+
+    @patch("app.providers.openlibrary.services.api_request")
+    def test_openlibrary_discover_uses_subject_year_and_ratings_sort(self, api_request_mock):
+        from app.providers import openlibrary
+
+        api_request_mock.return_value = {
+            "numFound": 1,
+            "docs": [
+                {
+                    "title": "Dune",
+                    "author_name": ["Frank Herbert"],
+                    "edition_count": 10,
+                    "first_publish_year": 1965,
+                    "ratings_count": 4000,
+                    "ratings_average": 4.2,
+                    "editions": {
+                        "docs": [
+                            {
+                                "key": "/books/OL27448M",
+                                "title": "Dune",
+                                "cover_i": 123,
+                            },
+                        ],
+                    },
+                },
+            ],
+        }
+
+        response = openlibrary.discover(page=2, page_size=5, genre="Science Fiction", year="1965")
+
+        params = api_request_mock.call_args.kwargs["params"]
+        self.assertIn("subject_key:science_fiction", params["q"])
+        self.assertIn('subject:"Science Fiction"', params["q"])
+        self.assertIn("first_publish_year:1965", params["q"])
+        self.assertEqual(params["sort"], "ratings_count desc")
+        self.assertEqual(params["limit"], 5)
+        self.assertEqual(response["results"][0]["media_id"], "OL27448M")
+
+    @patch("app.providers.hardcover.services.api_request")
+    def test_hardcover_discover_uses_genre_year_and_ratings_sort(self, api_request_mock):
+        from app.providers import hardcover
+
+        api_request_mock.return_value = {
+            "data": {
+                "books": [
+                    {
+                        "id": 123,
+                        "title": "The Hobbit",
+                        "cached_image": "https://example.com/hobbit.jpg",
+                        "ratings_count": 5000,
+                        "rating": 4.3,
+                        "editions_count": 20,
+                        "release_year": 1937,
+                        "author_names": ["J. R. R. Tolkien"],
+                    },
+                ],
+                "books_aggregate": {"aggregate": {"count": 1}},
+            },
+        }
+
+        response = hardcover.discover(page=2, page_size=5, genre="Fantasy", year="1937")
+
+        call = api_request_mock.call_args.kwargs["params"]
+        self.assertIn("order_by: {ratings_count: desc}", call["query"])
+        self.assertEqual(call["variables"]["limit"], 5)
+        self.assertEqual(call["variables"]["offset"], 5)
+        self.assertEqual(
+            call["variables"]["where"],
+            {
+                "_and": [
+                    {"_or": [{"genres": {"_contains": ["Fantasy"]}}, {"tags": {"_contains": ["Fantasy"]}}]},
+                    {"release_year": {"_eq": 1937}},
+                ],
+            },
+        )
+        self.assertEqual(response["results"][0]["media_id"], 123)
 
     def test_media_discover_validation_errors(self):
         user = get_user_model().objects.create_user(username="discover-errors", password="strong-password-123")

@@ -21,6 +21,10 @@ protocol MediaRepository {
     func saveBackdrop(ref: MediaRef, backdropURL: String) async throws -> BackdropSaveResponse
 }
 
+protocol PeopleRepository {
+    func detail(ref: PersonRef) async throws -> PersonDetail
+}
+
 extension MediaRepository {
     func discover(_ request: MediaDiscoverRequest) async throws -> PagedResponse<MediaSummary> {
         fatalError("Not implemented")
@@ -32,7 +36,7 @@ extension MediaRepository {
 }
 
 protocol TrackingRepository {
-    func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<LibraryItem>
+    func list(mediaType: String, page: String?, status: String?, query: String?) async throws -> PagedResponse<LibraryItem>
     func detail(ref: MediaRef) async throws -> TrackingState
     func update(ref: MediaRef, request: TrackingWriteRequest) async throws -> TrackingState
     func consume(ref: MediaRef, consumedAt: Date?) async throws -> TrackingState
@@ -42,8 +46,12 @@ protocol TrackingRepository {
 }
 
 extension TrackingRepository {
+    func list(mediaType: String, page: String?, status: String?) async throws -> PagedResponse<LibraryItem> {
+        try await list(mediaType: mediaType, page: page, status: status, query: nil)
+    }
+
     func list(mediaType: String, page: String?) async throws -> PagedResponse<LibraryItem> {
-        try await list(mediaType: mediaType, page: page, status: nil)
+        try await list(mediaType: mediaType, page: page, status: nil, query: nil)
     }
 }
 
@@ -158,12 +166,35 @@ protocol ImportRepository {
 struct AppRepositories {
     let auth: AuthRepository
     let media: MediaRepository
+    let people: PeopleRepository
     let tracking: TrackingRepository
     let diary: DiaryRepository
     let activity: ActivityRepository
     let profile: ProfileRepository
     let lists: ListRepository
     let imports: ImportRepository
+
+    init(
+        auth: AuthRepository,
+        media: MediaRepository,
+        people: PeopleRepository = APIPeopleRepository(client: AppEnvironment.apiClient),
+        tracking: TrackingRepository,
+        diary: DiaryRepository,
+        activity: ActivityRepository,
+        profile: ProfileRepository,
+        lists: ListRepository,
+        imports: ImportRepository
+    ) {
+        self.auth = auth
+        self.media = media
+        self.people = people
+        self.tracking = tracking
+        self.diary = diary
+        self.activity = activity
+        self.profile = profile
+        self.lists = lists
+        self.imports = imports
+    }
 
     static func current() -> AppRepositories {
         live()
@@ -173,6 +204,7 @@ struct AppRepositories {
         AppRepositories(
             auth: APIAuthRepository(service: AuthService(client: client), tokenStore: client.tokenProvider),
             media: APIMediaRepository(client: client),
+            people: APIPeopleRepository(client: client),
             tracking: APITrackingRepository(client: client),
             diary: APIDiaryRepository(client: client),
             activity: APIActivityRepository(client: client),
@@ -320,16 +352,30 @@ struct APIMediaRepository: MediaRepository {
     }
 }
 
+struct APIPeopleRepository: PeopleRepository {
+    let client: APIClient
+
+    func detail(ref: PersonRef) async throws -> PersonDetail {
+        try await client.get(
+            "/people/\(ref.source)/\(ref.id)/",
+            authenticated: client.tokenProvider.accessToken != nil
+        )
+    }
+}
+
 struct APITrackingRepository: TrackingRepository {
     let client: APIClient
 
-    func list(mediaType: String, page: String?, status: String? = nil) async throws -> PagedResponse<LibraryItem> {
+    func list(mediaType: String, page: String?, status: String? = nil, query searchQuery: String? = nil) async throws -> PagedResponse<LibraryItem> {
         var query = [URLQueryItem(name: "media_type", value: mediaType)]
         if let page {
             query.append(URLQueryItem(name: "page", value: page))
         }
         if let status {
             query.append(URLQueryItem(name: "status", value: status))
+        }
+        if let searchQuery, !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            query.append(URLQueryItem(name: "q", value: searchQuery))
         }
         return try await client.get(
             "/tracking/",

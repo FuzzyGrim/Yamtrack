@@ -203,6 +203,25 @@ struct MediaDiscoverRequest: Hashable, Identifiable {
     var title: String {
         "\(filter.value) · \(MediaTypeTheme.theme(for: mediaType).displayName)"
     }
+
+    static func detailPillRequest(ref: MediaRef, filter: Filter) -> MediaDiscoverRequest? {
+        let mediaType = ref.mediaType == "season" ? "tv" : ref.mediaType
+        switch (mediaType, filter) {
+        case ("movie", .genre), ("movie", .year),
+             ("tv", .genre), ("tv", .year),
+             ("book", .genre), ("book", .year),
+             ("game", .genre), ("game", .year), ("game", .platform):
+            return MediaDiscoverRequest(
+                mediaType: mediaType,
+                source: ref.source,
+                filter: filter,
+                page: nil,
+                pageSize: nil
+            )
+        default:
+            return nil
+        }
+    }
 }
 
 struct MediaDetail: Decodable, Identifiable {

@@ -452,7 +452,7 @@ Backdrop customization is available for authenticated users on TMDB movies and T
 
 Required query params:
 
-- `media_type`: `movie`, `tv`, or `game` for v1.
+- `media_type`: `movie`, `tv`, `game`, or `book`.
 
 At least one browse filter is required:
 
@@ -463,18 +463,20 @@ At least one browse filter is required:
 Optional query params:
 
 - `source`: defaults to the configured source for the media type.
-- `page`, `page_size`: page-number pagination. TMDB discover uses TMDB's native 20-item pages; IGDB honors `page_size` up to the standard API max.
-- `sort`: `vote_count` by default. V1 maps this to TMDB `vote_count.desc` for movies/TV and IGDB `total_rating_count desc` for games.
+- `page`, `page_size`: page-number pagination. TMDB discover uses TMDB's native 20-item pages; IGDB and book providers honor `page_size` up to the standard API max.
+- `sort`: `vote_count` by default. V1 maps this to TMDB `vote_count.desc` for movies/TV, IGDB `total_rating_count desc` for games, Hardcover `ratings_count desc`, and Open Library `ratings_count desc`.
 
 Supported matrix:
 
 | Media type | Source | Filters | Sort |
 |---|---|---|---|
 | `movie` | `tmdb` | `genre`, `year` | `vote_count` |
-| `tv` | `tmdb` | `genre`, `year` | `vote_count` |
+| `tv` | `tmdb` | `genre`, `year` | `vote_count`; TV genre aliases such as `Fantasy`, `Science Fiction`, and `Sci-Fi` resolve to TMDB TV genres when exact names differ |
 | `game` | `igdb` | `genre`, `year`, `platform` | `vote_count` |
+| `book` | `hardcover` | `genre`, `year` | `ratings_count` |
+| `book` | `openlibrary` | `genre`, `year` | `ratings_count` |
 
-Unsupported media types/sources return `501` with a clear `detail`. Invalid params return DRF field errors with `400`. Anime, manga, book, and comic discovery are intentionally out of scope for v1.
+Unsupported media types/sources return `501` with a clear `detail`. Invalid params return DRF field errors with `400`. Anime, manga, and comic discovery are intentionally out of scope for v1.
 
 ## Media Detail
 

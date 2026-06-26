@@ -121,6 +121,95 @@ def search(query, page):
     return data
 
 
+def discover(*, page=1, page_size=None, genre=None, year=None):
+    """Browse Hardcover books by genre/tag and/or release year."""
+    per_page = page_size or settings.PER_PAGE
+    offset = (page - 1) * per_page
+    where = _discover_where(genre=genre, year=year)
+    cache_key = f"discover_{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{genre}_{year}_{page}_{per_page}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        discover_query = """
+        query DiscoverBooks($where: books_bool_exp!, $limit: Int!, $offset: Int!) {
+          books(
+            where: $where,
+            limit: $limit,
+            offset: $offset,
+            order_by: {ratings_count: desc}
+          ) {
+            id
+            title
+            cached_image(path: "url")
+            ratings_count
+            rating
+            editions_count
+            release_year
+            author_names
+          }
+          books_aggregate(where: $where) {
+            aggregate {
+              count
+            }
+          }
+        }
+        """
+
+        try:
+            response = services.api_request(
+                Sources.HARDCOVER.value,
+                "POST",
+                base_url,
+                params={
+                    "query": discover_query,
+                    "variables": {"where": where, "limit": per_page, "offset": offset},
+                },
+                headers={"Authorization": settings.HARDCOVER_API},
+            )
+        except requests.exceptions.HTTPError as error:
+            response = handle_error(error)
+
+        rows = response["data"]["books"]
+        results = [
+            {
+                "media_id": row["id"],
+                "source": Sources.HARDCOVER.value,
+                "media_type": MediaTypes.BOOK.value,
+                "title": row["title"],
+                "image": row.get("cached_image") or settings.IMG_NONE,
+                "ratings_count": row.get("ratings_count"),
+                "rating": row.get("rating"),
+                "edition_count": row.get("editions_count"),
+                "first_publish_year": row.get("release_year"),
+                "author_name": row.get("author_names"),
+                "release_date": str(row["release_year"]) if row.get("release_year") else None,
+            }
+            for row in rows
+        ]
+        total_results = response["data"]["books_aggregate"]["aggregate"]["count"]
+        data = helpers.format_search_response(page, per_page, total_results, results)
+        data["per_page"] = per_page
+        cache.set(cache_key, data)
+
+    return data
+
+
+def _discover_where(*, genre=None, year=None):
+    clauses = []
+    if genre:
+        clauses.append(
+            {
+                "_or": [
+                    {"genres": {"_contains": [genre]}},
+                    {"tags": {"_contains": [genre]}},
+                ],
+            },
+        )
+    if year:
+        clauses.append({"release_year": {"_eq": int(year)}})
+    return {"_and": clauses} if clauses else {}
+
+
 def book(media_id):
     """Get metadata for a book from Hardcover."""
     cache_key = f"{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{media_id}_v6"

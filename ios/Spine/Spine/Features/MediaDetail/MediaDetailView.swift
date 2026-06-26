@@ -300,6 +300,7 @@ struct MediaDetailView: View {
     @State private var presentedDiaryEntry: PresentedDiaryEntry?
     @State private var presentedMediaDiary: PresentedMediaDiary?
     @State private var presentedDiscover: MediaDiscoverRequest?
+    @State private var presentedPerson: PersonRef?
     @State private var isPosterPickerPresented = false
     @State private var isBackdropPickerPresented = false
     @State private var isLogPresented = false
@@ -314,6 +315,7 @@ struct MediaDetailView: View {
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
     private let listRepository: ListRepository
+    private let peopleRepository: PeopleRepository
     private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
@@ -325,6 +327,7 @@ struct MediaDetailView: View {
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
         listRepository: ListRepository = AppRepositories.current().lists,
+        peopleRepository: PeopleRepository = AppRepositories.current().people,
         currentUserId: Int? = nil,
         selectedTab: AppTab = .home,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
@@ -334,6 +337,7 @@ struct MediaDetailView: View {
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
         self.listRepository = listRepository
+        self.peopleRepository = peopleRepository
         self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
@@ -541,6 +545,22 @@ struct MediaDetailView: View {
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
                 diaryRepository: diaryRepository,
+                listRepository: listRepository,
+                peopleRepository: peopleRepository,
+                currentUserId: currentUserId,
+                selectedTab: selectedTab,
+                onSelectTab: onSelectTab,
+                onUnauthorized: onUnauthorized
+            )
+        }
+        .fullScreenCover(item: $presentedPerson) { person in
+            PersonDetailView(
+                ref: person,
+                peopleRepository: peopleRepository,
+                mediaRepository: mediaRepository,
+                trackingRepository: trackingRepository,
+                diaryRepository: diaryRepository,
+                listRepository: listRepository,
                 currentUserId: currentUserId,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
@@ -870,9 +890,13 @@ struct MediaDetailView: View {
 
             if detail.ref.mediaType == "tv" {
                 seasonsSection(detail)
-                CreditSection(title: creditTitle(detail), people: primaryCredits(detail))
+                CreditSection(title: creditTitle(detail), people: primaryCredits(detail)) { person in
+                    presentedPerson = person
+                }
             } else {
-                CreditSection(title: creditTitle(detail), people: primaryCredits(detail))
+                CreditSection(title: creditTitle(detail), people: primaryCredits(detail)) { person in
+                    presentedPerson = person
+                }
                 seasonsSection(detail)
             }
 
@@ -1073,18 +1097,7 @@ struct MediaDetailView: View {
     }
 
     private func discoverRequest(_ detail: MediaDetail, filter: MediaDiscoverRequest.Filter) -> MediaDiscoverRequest? {
-        switch (detail.ref.mediaType, filter) {
-        case ("movie", .genre), ("movie", .year), ("tv", .genre), ("tv", .year), ("game", .genre), ("game", .year), ("game", .platform):
-            MediaDiscoverRequest(
-                mediaType: detail.ref.mediaType,
-                source: detail.ref.source,
-                filter: filter,
-                page: nil,
-                pageSize: nil
-            )
-        default:
-            nil
-        }
+        MediaDiscoverRequest.detailPillRequest(ref: detail.ref, filter: filter)
     }
 
     private func contentRating(_ detail: MediaDetail) -> String? {
@@ -1293,13 +1306,19 @@ struct MediaDetailView: View {
 
     private func primaryCredits(_ detail: MediaDetail) -> [CreditDisplay] {
         if detail.ref.mediaType == "book" {
-            return authors(detail).map { CreditDisplay(name: $0, subtitle: "Author", imageUrl: nil) }
+            return authors(detail).map { CreditDisplay(name: $0, subtitle: "Author", imageUrl: nil, personRef: nil) }
         }
+        let supportsPeoplePages = detail.ref.source == "tmdb" && ["movie", "tv"].contains(detail.ref.mediaType)
         let credits = ((detail.cast ?? []) + (detail.crew ?? [])).map {
-            CreditDisplay(name: $0.name, subtitle: $0.character ?? $0.role, imageUrl: $0.imageUrl)
+            CreditDisplay(
+                name: $0.name,
+                subtitle: $0.character ?? $0.role,
+                imageUrl: $0.imageUrl,
+                personRef: supportsPeoplePages && !$0.id.isEmpty ? PersonRef(source: "tmdb", id: $0.id) : nil
+            )
         }
         if credits.isEmpty, detail.ref.mediaType == "comic" {
-            return detailArray(detail, "people").map { CreditDisplay(name: $0, subtitle: nil, imageUrl: nil) }
+            return detailArray(detail, "people").map { CreditDisplay(name: $0, subtitle: nil, imageUrl: nil, personRef: nil) }
         }
         return credits
     }
@@ -2531,13 +2550,15 @@ private struct CreditDisplay: Identifiable {
     let name: String
     let subtitle: String?
     let imageUrl: String?
+    let personRef: PersonRef?
 
-    var id: String { "\(name):\(subtitle ?? "")" }
+    var id: String { "\(name):\(subtitle ?? ""):\(personRef?.id ?? "")" }
 }
 
 private struct CreditSection: View {
     let title: String
     let people: [CreditDisplay]
+    let onSelect: (PersonRef) -> Void
 
     var body: some View {
         if !people.isEmpty {
@@ -2547,44 +2568,60 @@ private struct CreditSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 12) {
                         ForEach(people) { person in
-                            VStack(spacing: 10) {
-                                AsyncImage(url: URL(string: person.imageUrl ?? "")) { phase in
-                                    switch phase {
-                                    case let .success(image):
-                                        image.resizable().scaledToFill()
-                                    default:
-                                        Circle()
-                                            .fill(.white.opacity(0.12))
-                                            .overlay {
-                                                Image(systemName: "person.fill")
-                                                    .foregroundStyle(.white.opacity(0.7))
-                                            }
+                            Group {
+                                if let personRef = person.personRef {
+                                    Button {
+                                        onSelect(personRef)
+                                    } label: {
+                                        creditCard(person)
                                     }
-                                }
-                                .frame(width: MediaDetailLayout.castImageSize, height: MediaDetailLayout.castImageSize)
-                                .clipShape(Circle())
-
-                                Text(person.name)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                                    .minimumScaleFactor(0.86)
-                                if let subtitle = person.subtitle, !subtitle.isEmpty {
-                                    Text(subtitle)
-                                        .font(.system(size: 13, weight: .regular))
-                                        .foregroundStyle(.white.opacity(0.84))
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(3)
-                                        .minimumScaleFactor(0.82)
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("View \(person.name)")
+                                } else {
+                                    creditCard(person)
                                 }
                             }
-                            .frame(width: MediaDetailLayout.castCardWidth, alignment: .top)
                         }
                     }
                 }
             }
         }
+    }
+
+    private func creditCard(_ person: CreditDisplay) -> some View {
+        VStack(spacing: 10) {
+            AsyncImage(url: URL(string: person.imageUrl ?? "")) { phase in
+                switch phase {
+                case let .success(image):
+                    image.resizable().scaledToFill()
+                default:
+                    Circle()
+                        .fill(.white.opacity(0.12))
+                        .overlay {
+                            Image(systemName: "person.fill")
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                }
+            }
+            .frame(width: MediaDetailLayout.castImageSize, height: MediaDetailLayout.castImageSize)
+            .clipShape(Circle())
+
+            Text(person.name)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.86)
+            if let subtitle = person.subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.84))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.82)
+            }
+        }
+        .frame(width: MediaDetailLayout.castCardWidth, alignment: .top)
     }
 }
 
