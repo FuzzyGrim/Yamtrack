@@ -1328,7 +1328,7 @@ class ApiV1FoundationTests(TestCase):
             call["variables"]["where"],
             {
                 "_and": [
-                    {"_or": [{"genres": {"_contains": ["Fantasy"]}}, {"tags": {"_contains": ["Fantasy"]}}]},
+                    {"cached_tags": {"_contains": {"Genre": [{"tag": "Fantasy"}]}}},
                     {"release_year": {"_eq": 1937}},
                 ],
             },

@@ -145,7 +145,7 @@ def discover(*, page=1, page_size=None, genre=None, year=None):
             rating
             editions_count
             release_year
-            author_names
+            author_name: cached_contributors(path: "[0]['author']['name']")
           }
           books_aggregate(where: $where) {
             aggregate {
@@ -181,7 +181,7 @@ def discover(*, page=1, page_size=None, genre=None, year=None):
                 "rating": row.get("rating"),
                 "edition_count": row.get("editions_count"),
                 "first_publish_year": row.get("release_year"),
-                "author_name": row.get("author_names"),
+                "author_name": row.get("author_name"),
                 "release_date": str(row["release_year"]) if row.get("release_year") else None,
             }
             for row in rows
@@ -198,12 +198,7 @@ def _discover_where(*, genre=None, year=None):
     clauses = []
     if genre:
         clauses.append(
-            {
-                "_or": [
-                    {"genres": {"_contains": [genre]}},
-                    {"tags": {"_contains": [genre]}},
-                ],
-            },
+            {"cached_tags": {"_contains": {"Genre": [{"tag": genre}]}}},
         )
     if year:
         clauses.append({"release_year": {"_eq": int(year)}})
