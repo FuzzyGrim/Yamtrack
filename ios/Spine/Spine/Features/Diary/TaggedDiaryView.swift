@@ -67,6 +67,7 @@ struct TaggedDiaryView: View {
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -76,6 +77,7 @@ struct TaggedDiaryView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        currentUserId: Int? = nil,
         selectedTab: AppTab = .diary,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -85,6 +87,7 @@ struct TaggedDiaryView: View {
         self.diaryRepository = diaryRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -134,6 +137,9 @@ struct TaggedDiaryView: View {
         .onReceive(NotificationCenter.default.publisher(for: .storygraphImportDidSucceed)) { _ in
             Task { await viewModel.load() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .diaryEntriesDidChange)) { _ in
+            Task { await viewModel.load() }
+        }
     }
 
     @ViewBuilder
@@ -163,6 +169,7 @@ struct TaggedDiaryView: View {
                         diaryRepository: diaryRepository,
                         mediaRepository: mediaRepository,
                         trackingRepository: trackingRepository,
+                        currentUserId: currentUserId,
                         selectedTab: selectedTab,
                         onSelectTab: onSelectTab,
                         onUnauthorized: onUnauthorized

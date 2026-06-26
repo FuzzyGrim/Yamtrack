@@ -39,6 +39,7 @@ struct ProfileReviewsView: View {
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -47,6 +48,7 @@ struct ProfileReviewsView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        currentUserId: Int? = nil,
         selectedTab: AppTab,
         onSelectTab: @escaping (AppTab) -> Void,
         onUnauthorized: @escaping () -> Void
@@ -54,6 +56,7 @@ struct ProfileReviewsView: View {
         self.diaryRepository = diaryRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -73,6 +76,7 @@ struct ProfileReviewsView: View {
             diaryRepository: diaryRepository,
             mediaRepository: mediaRepository,
             trackingRepository: trackingRepository,
+            currentUserId: currentUserId,
             selectedTab: selectedTab,
             onSelectTab: onSelectTab,
             onUnauthorized: onUnauthorized
@@ -86,6 +90,7 @@ struct ProfileLikesView: View {
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -95,6 +100,7 @@ struct ProfileLikesView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        currentUserId: Int? = nil,
         selectedTab: AppTab,
         onSelectTab: @escaping (AppTab) -> Void,
         onUnauthorized: @escaping () -> Void
@@ -102,6 +108,7 @@ struct ProfileLikesView: View {
         self.diaryRepository = diaryRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -158,6 +165,7 @@ struct ProfileLikesView: View {
                         mediaRepository: mediaRepository,
                         trackingRepository: trackingRepository,
                         diaryRepository: diaryRepository,
+                        currentUserId: currentUserId,
                         selectedTab: selectedTab,
                         onSelectTab: onSelectTab,
                         onUnauthorized: onUnauthorized
@@ -219,6 +227,7 @@ private struct ProfileDiaryEntriesScreen: View {
     let diaryRepository: DiaryRepository
     let mediaRepository: MediaRepository
     let trackingRepository: TrackingRepository
+    let currentUserId: Int?
     let selectedTab: AppTab
     let onSelectTab: (AppTab) -> Void
     let onUnauthorized: () -> Void
@@ -244,6 +253,7 @@ private struct ProfileDiaryEntriesScreen: View {
                                 diaryRepository: diaryRepository,
                                 mediaRepository: mediaRepository,
                                 trackingRepository: trackingRepository,
+                                currentUserId: currentUserId,
                                 selectedTab: selectedTab,
                                 onSelectTab: onSelectTab,
                                 onUnauthorized: onUnauthorized
@@ -324,6 +334,7 @@ struct ProfileTagsView: View {
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -332,6 +343,7 @@ struct ProfileTagsView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        currentUserId: Int? = nil,
         selectedTab: AppTab,
         onSelectTab: @escaping (AppTab) -> Void,
         onUnauthorized: @escaping () -> Void
@@ -339,6 +351,7 @@ struct ProfileTagsView: View {
         self.diaryRepository = diaryRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -404,6 +417,7 @@ struct ProfileTagsView: View {
                             diaryRepository: diaryRepository,
                             mediaRepository: mediaRepository,
                             trackingRepository: trackingRepository,
+                            currentUserId: currentUserId,
                             selectedTab: selectedTab,
                             onSelectTab: onSelectTab,
                             onUnauthorized: onUnauthorized

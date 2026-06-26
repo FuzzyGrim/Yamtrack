@@ -53,10 +53,16 @@ protocol DiaryRepository {
     func recent(limit: Int) async throws -> [DiaryEntry]
     func detail(id: Int) async throws -> DiaryEntry
     func create(_ request: DiaryEntryWriteRequest) async throws -> DiaryEntry
+    func update(id: Int, request: DiaryEntryUpdateRequest) async throws -> DiaryEntry
+    func delete(id: Int) async throws
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState
     func tags(query: String, mine: Bool) async throws -> [DiaryTagSuggestion]
     func tags(query: String) async throws -> [DiaryTagSuggestion]
     func allTags(mine: Bool) async throws -> [DiaryTagSuggestion]
+}
+
+protocol ActivityRepository {
+    func userActivity(username: String, limit: Int) async throws -> [ActivityItem]
 }
 
 extension DiaryRepository {
@@ -71,6 +77,14 @@ extension DiaryRepository {
     func recent(limit: Int) async throws -> [DiaryEntry] {
         guard limit > 0 else { return [] }
         return Array(try await list().prefix(limit))
+    }
+
+    func update(id: Int, request: DiaryEntryUpdateRequest) async throws -> DiaryEntry {
+        fatalError("Not implemented")
+    }
+
+    func delete(id: Int) async throws {
+        fatalError("Not implemented")
     }
 
     func tags(query: String, mine: Bool) async throws -> [DiaryTagSuggestion] {
@@ -146,6 +160,7 @@ struct AppRepositories {
     let media: MediaRepository
     let tracking: TrackingRepository
     let diary: DiaryRepository
+    let activity: ActivityRepository
     let profile: ProfileRepository
     let lists: ListRepository
     let imports: ImportRepository
@@ -160,6 +175,7 @@ struct AppRepositories {
             media: APIMediaRepository(client: client),
             tracking: APITrackingRepository(client: client),
             diary: APIDiaryRepository(client: client),
+            activity: APIActivityRepository(client: client),
             profile: APIProfileRepository(client: client),
             lists: APIListRepository(client: client),
             imports: APIImportRepository(client: client)
@@ -420,6 +436,14 @@ struct APIDiaryRepository: DiaryRepository {
         try await client.post("/diary/", body: request, authenticated: true)
     }
 
+    func update(id: Int, request: DiaryEntryUpdateRequest) async throws -> DiaryEntry {
+        try await client.patch("/diary/\(id)/", body: request, authenticated: true)
+    }
+
+    func delete(id: Int) async throws {
+        let _: EmptyResponse = try await client.delete("/diary/\(id)/", authenticated: true)
+    }
+
     func setLike(entryId: Int, liked: Bool) async throws -> LikeState {
         if liked {
             return try await client.post(
@@ -469,6 +493,19 @@ enum APIPageCursor {
             .queryItems?
             .first { $0.name == "page" }?
             .value
+    }
+}
+
+struct APIActivityRepository: ActivityRepository {
+    let client: APIClient
+
+    func userActivity(username: String, limit: Int) async throws -> [ActivityItem] {
+        let response: ActivityCursorResponse = try await client.get(
+            "/users/\(username)/activity/",
+            query: [URLQueryItem(name: "page_size", value: String(limit))],
+            authenticated: true
+        )
+        return Array(response.results.prefix(limit))
     }
 }
 

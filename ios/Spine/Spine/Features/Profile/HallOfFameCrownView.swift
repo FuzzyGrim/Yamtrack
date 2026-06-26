@@ -1,8 +1,11 @@
 import SwiftUI
 
 struct HallOfFameCrownView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let slots: [FavoriteSlot]
     var savingSlotIDs: Set<String> = []
+    var collapseProgress: CGFloat = 0
     let onTap: (FavoriteSlot) -> Void
     var onEmptyTap: (FavoriteSlot) -> Void = { _ in }
     var onFilledLongPress: (FavoriteSlot) -> Void = { _ in }
@@ -17,7 +20,8 @@ struct HallOfFameCrownView: View {
         let placements = HallOfFameCrownLayout.placements(
             count: slots.count,
             cardSize: cardSize,
-            avatarDiameter: avatarDiameter
+            avatarDiameter: avatarDiameter,
+            collapseProgress: collapseProgress
         )
 
         ZStack {
@@ -62,16 +66,17 @@ struct HallOfFameCrownView: View {
                     x: placement.x,
                     y: crownRevealed ? placement.y : placement.y + 20
                 )
-                .opacity(crownRevealed ? 1 : 0)
+                .opacity(crownRevealed ? 1 - collapseProgress * 0.45 : 0)
                 .zIndex(placement.zIndex)
                 .animation(
-                    .spring(response: 0.45, dampingFraction: 0.78)
+                    reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.78)
                         .delay(Double(placement.index) * 0.04),
                     value: crownRevealed
                 )
             }
         }
         .frame(width: 340, height: 210)
+        .allowsHitTesting(collapseProgress < 0.72)
         .onAppear {
             crownRevealed = true
         }

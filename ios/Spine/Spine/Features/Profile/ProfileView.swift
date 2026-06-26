@@ -422,10 +422,13 @@ enum APIValidationMessages {
 }
 
 struct ProfileView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var viewModel: ProfileViewModel
     @State private var selectedRef: MediaRef?
     @State private var isSettingsPresented = false
     @State private var hofPickerSlot: FavoriteSlot?
+    @State private var heroCollapseProgress: CGFloat = 0
 
     private let profileRepository: ProfileRepository
     private let mediaRepository: MediaRepository
@@ -434,6 +437,7 @@ struct ProfileView: View {
     private let listRepository: ListRepository
     private let importCoordinator: LetterboxdImportCoordinator
     private let storygraphImportCoordinator: StoryGraphImportCoordinator
+    private let currentUserId: Int?
     private let onLogout: () -> Void
     private let onOpenDiary: () -> Void
     private let onOpenLibrary: (LibraryShelf) -> Void
@@ -449,6 +453,7 @@ struct ProfileView: View {
         listRepository: ListRepository,
         importCoordinator: LetterboxdImportCoordinator,
         storygraphImportCoordinator: StoryGraphImportCoordinator,
+        currentUserId: Int? = nil,
         onLogout: @escaping () -> Void,
         onOpenDiary: @escaping () -> Void,
         onOpenLibrary: @escaping (LibraryShelf) -> Void,
@@ -469,6 +474,7 @@ struct ProfileView: View {
         self.listRepository = listRepository
         self.importCoordinator = importCoordinator
         self.storygraphImportCoordinator = storygraphImportCoordinator
+        self.currentUserId = currentUserId
         self.onLogout = onLogout
         self.onOpenDiary = onOpenDiary
         self.onOpenLibrary = onOpenLibrary
@@ -494,13 +500,14 @@ struct ProfileView: View {
             .onReceive(NotificationCenter.default.publisher(for: .storygraphImportDidSucceed)) { _ in
                 Swift.Task<Void, Never> { await viewModel.reload() }
             }
-            .fullScreenCover(item: $selectedRef) { ref in
+            .fullScreenCover(item: $selectedRef, onDismiss: { selectedRef = nil }) { ref in
                 MediaDetailView(
                     ref: ref,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
                     diaryRepository: diaryRepository,
                     listRepository: listRepository,
+                    currentUserId: currentUserId ?? viewModel.profile?.id,
                     selectedTab: selectedTab,
                     onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
@@ -560,7 +567,7 @@ struct ProfileView: View {
                             .padding(.top, 120)
                     } else if let profile = viewModel.profile {
                         VStack(alignment: .leading, spacing: 24) {
-                            hero(profile)
+                            hero(profile, collapseProgress: reduceMotion ? 0 : heroCollapseProgress)
                             inProgressSection
                             activitySection
                             profileMenuSection(profile.counts)
@@ -573,6 +580,11 @@ struct ProfileView: View {
             }
             .refreshable {
                 await viewModel.reload()
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                max(0, geometry.contentOffset.y)
+            } action: { _, offset in
+                heroCollapseProgress = ProfileHeroCollapse.progress(for: offset)
             }
 
             settingsButton
@@ -610,15 +622,17 @@ struct ProfileView: View {
         .accessibilityLabel("Settings")
     }
 
-    private func hero(_ profile: UserProfile) -> some View {
+    private func hero(_ profile: UserProfile, collapseProgress: CGFloat) -> some View {
         let allSlots = favoriteSlots(from: profile)
+        let crownHeight = 210 - 74 * collapseProgress
 
         return VStack(spacing: 6) {
             VStack(spacing: 8) {
                 ZStack(alignment: .bottom) {
                     HallOfFameCrownView(
                         slots: allSlots,
-                        savingSlotIDs: viewModel.savingHallOfFameSlots
+                        savingSlotIDs: viewModel.savingHallOfFameSlots,
+                        collapseProgress: collapseProgress
                     ) { slot in
                         if let item = slot.item {
                             selectedRef = item.ref
@@ -628,11 +642,14 @@ struct ProfileView: View {
                     } onFilledLongPress: { slot in
                         hofPickerSlot = slot
                     }
+                    .offset(y: 27 * collapseProgress)
+                    .zIndex(0)
 
                     avatar(profile)
                         .offset(y: -14)
+                        .zIndex(1)
                 }
-                .frame(height: 210)
+                .frame(height: crownHeight)
                 .padding(.top, 8)
 
                 if allSlots.isEmpty {
@@ -783,6 +800,7 @@ struct ProfileView: View {
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
+                    currentUserId: currentUserId ?? viewModel.profile?.id,
                     selectedTab: selectedTab,
                     onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
@@ -820,6 +838,7 @@ struct ProfileView: View {
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
+                    currentUserId: currentUserId ?? viewModel.profile?.id,
                     selectedTab: selectedTab,
                     onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
@@ -834,6 +853,7 @@ struct ProfileView: View {
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
+                    currentUserId: currentUserId ?? viewModel.profile?.id,
                     selectedTab: selectedTab,
                     onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
@@ -896,6 +916,14 @@ struct FavoriteSlot: Identifiable {
     let id: String
     let title: String
     let item: MediaSummary?
+}
+
+enum ProfileHeroCollapse {
+    static let scrollDistance: CGFloat = 100
+
+    static func progress(for scrollOffset: CGFloat) -> CGFloat {
+        min(1, max(0, scrollOffset / scrollDistance))
+    }
 }
 
 @MainActor

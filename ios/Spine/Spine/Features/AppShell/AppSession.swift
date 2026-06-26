@@ -36,7 +36,8 @@ final class AppSession {
 
         do {
             try await repositories.auth.refresh()
-            state = .signedIn(nil)
+            let profile = try? await repositories.profile.me()
+            state = .signedIn(profile.map(AuthUser.init(profile:)))
             letterboxdImportCoordinator.resumeIfNeeded()
             storygraphImportCoordinator.resumeIfNeeded()
         } catch {
@@ -75,5 +76,11 @@ final class AppSession {
         letterboxdImportCoordinator.clearFinishedJob()
         storygraphImportCoordinator.clearFinishedJob()
         state = .signedOut
+    }
+}
+
+private extension AuthUser {
+    init(profile: UserProfile) {
+        self.init(id: profile.id, username: profile.username, displayName: profile.displayName, isPrivate: profile.isPrivate)
     }
 }

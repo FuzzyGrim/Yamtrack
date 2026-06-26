@@ -98,6 +98,7 @@ struct MediaDiscoverView: View {
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
     private let listRepository: ListRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -108,6 +109,7 @@ struct MediaDiscoverView: View {
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
         listRepository: ListRepository = AppRepositories.current().lists,
+        currentUserId: Int? = nil,
         selectedTab: AppTab = .home,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -117,6 +119,7 @@ struct MediaDiscoverView: View {
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
         self.listRepository = listRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -194,13 +197,14 @@ struct MediaDiscoverView: View {
                 .contentShape(Rectangle())
                 .gesture(edgeSwipeBackGesture)
         }
-        .fullScreenCover(item: $selectedRef) { ref in
+        .fullScreenCover(item: $selectedRef, onDismiss: { selectedRef = nil }) { ref in
             MediaDetailView(
                 ref: ref,
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
                 diaryRepository: diaryRepository,
                 listRepository: listRepository,
+                currentUserId: currentUserId,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized

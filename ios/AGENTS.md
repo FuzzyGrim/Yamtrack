@@ -188,7 +188,27 @@ Use SF Symbols unless custom assets are provided. No web/Tailwind parity require
 
 ---
 
-## 8) Non-negotiable rules
+## 8) ShipSwift / SwiftUI skills
+
+For SwiftUI UI work, consider the installed ShipSwift skills:
+
+- `add-component` for reusable UI components, loading states, empty states, cards, buttons, forms, charts, and visual polish.
+- `build-feature` for larger UI features such as onboarding, settings, camera, chat, paywall, auth, or multi-screen flows.
+- `explore-recipes` when looking for relevant ShipSwift recipes before implementing.
+
+Use these skills only when directly relevant to the requested SwiftUI UI change.
+
+Rules:
+
+- Do not use ShipSwift for backend, model, data, networking, test, build-system, or bug-fix work unless the task is specifically about SwiftUI UI.
+- Prefer the smallest relevant recipe/component.
+- Do not introduce broad ShipSwift architecture, dependencies, naming conventions, or modules unless explicitly requested.
+- Keep the result consistent with the existing Pylon design system and file structure.
+- Keep diffs minimal.
+
+---
+
+## 9) Non-negotiable rules
 
 1. **No API keys** in the iOS repo (TMDB, MAL, IGDB, etc.).
 2. **No AGPL backend code** copied into Swift — client is a separate work; keep it a thin HTTP client.
@@ -199,7 +219,7 @@ Use SF Symbols unless custom assets are provided. No web/Tailwind parity require
 
 ---
 
-## 9) Getting started (human + agent)
+## 10) Getting started (human + agent)
 
 ### Create the Xcode project (once)
 
@@ -226,7 +246,7 @@ Use SF Symbols unless custom assets are provided. No web/Tailwind parity require
 
 ---
 
-## 10) Testing
+## 11) Testing
 
 - **Unit tests:** ViewModels and JSON decoding (`SpineTests/`)
 - **UI tests:** defer until core flows stable
@@ -236,7 +256,7 @@ No XCTest required for every change; required for non-trivial decoding/network l
 
 ---
 
-## 11) Attribution (App Store / About)
+## 12) Attribution (App Store / About)
 
 About screen must credit third-party data sources when showing their metadata, e.g.:
 
@@ -246,7 +266,7 @@ Match backend/provider requirements; see Django settings for which providers are
 
 ---
 
-## 12) Coordination with backend
+## 13) Coordination with backend
 
 When adding an iOS feature that needs data:
 
@@ -258,7 +278,7 @@ Agent working **only on iOS** should note API gaps in the PR/summary, not silent
 
 ---
 
-## 13) Change handoff template
+## 14) Change handoff template
 
 When completing non-trivial iOS work, summarize:
 

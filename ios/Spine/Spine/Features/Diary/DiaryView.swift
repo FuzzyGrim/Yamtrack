@@ -47,6 +47,7 @@ struct MediaDiaryView: View {
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -59,6 +60,7 @@ struct MediaDiaryView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        currentUserId: Int? = nil,
         selectedTab: AppTab = .diary,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -68,6 +70,7 @@ struct MediaDiaryView: View {
         self.diaryRepository = diaryRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -110,6 +113,7 @@ struct MediaDiaryView: View {
                                     diaryRepository: diaryRepository,
                                     mediaRepository: mediaRepository,
                                     trackingRepository: trackingRepository,
+                                    currentUserId: currentUserId,
                                     selectedTab: selectedTab,
                                     onSelectTab: onSelectTab,
                                     onUnauthorized: onUnauthorized
@@ -143,6 +147,9 @@ struct MediaDiaryView: View {
                 Task { await viewModel.load() }
             }
             .onReceive(NotificationCenter.default.publisher(for: .storygraphImportDidSucceed)) { _ in
+                Task { await viewModel.load() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .diaryEntriesDidChange)) { _ in
                 Task { await viewModel.load() }
             }
         }
@@ -197,6 +204,7 @@ struct DiaryView: View {
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -205,6 +213,7 @@ struct DiaryView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        currentUserId: Int? = nil,
         selectedTab: AppTab = .diary,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -212,6 +221,7 @@ struct DiaryView: View {
         self.diaryRepository = diaryRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -250,6 +260,7 @@ struct DiaryView: View {
                                     diaryRepository: diaryRepository,
                                     mediaRepository: mediaRepository,
                                     trackingRepository: trackingRepository,
+                                    currentUserId: currentUserId,
                                     selectedTab: selectedTab,
                                     onSelectTab: onSelectTab,
                                     onUnauthorized: onUnauthorized
@@ -274,6 +285,9 @@ struct DiaryView: View {
                 Task { await viewModel.load() }
             }
             .onReceive(NotificationCenter.default.publisher(for: .storygraphImportDidSucceed)) { _ in
+                Task { await viewModel.load() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .diaryEntriesDidChange)) { _ in
                 Task { await viewModel.load() }
             }
         }

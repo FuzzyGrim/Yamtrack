@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @MainActor
 @Observable
@@ -313,6 +314,7 @@ struct MediaDetailView: View {
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
     private let listRepository: ListRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -323,6 +325,7 @@ struct MediaDetailView: View {
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
         listRepository: ListRepository = AppRepositories.current().lists,
+        currentUserId: Int? = nil,
         selectedTab: AppTab = .home,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -331,6 +334,7 @@ struct MediaDetailView: View {
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
         self.listRepository = listRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -421,6 +425,7 @@ struct MediaDetailView: View {
             case .posterMenu:
                 PosterMenuSheet(
                     posterLabel: canCustomizeBackdrop(viewModel.detail) ? "Customize Poster" : "Customize Cover",
+                    showsPosterOption: canCustomizePoster(viewModel.detail),
                     showsBackdropOption: canCustomizeBackdrop(viewModel.detail),
                     onAddToList: {
                         presentedSheet = .addToList
@@ -438,7 +443,7 @@ struct MediaDetailView: View {
                         }
                     }
                 )
-                .presentationDetents([.height(canCustomizeBackdrop(viewModel.detail) ? 284 : 216)])
+                .presentationDetents([.height(posterMenuHeight(for: viewModel.detail))])
                 .presentationDragIndicator(.visible)
             case .bookGameActions:
                 if let detail = viewModel.detail {
@@ -536,6 +541,7 @@ struct MediaDetailView: View {
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
                 diaryRepository: diaryRepository,
+                currentUserId: currentUserId,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
@@ -547,6 +553,7 @@ struct MediaDetailView: View {
                 diaryRepository: diaryRepository,
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
+                currentUserId: currentUserId,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
@@ -562,6 +569,7 @@ struct MediaDetailView: View {
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
+                    currentUserId: currentUserId,
                     selectedTab: selectedTab,
                     onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
@@ -575,6 +583,7 @@ struct MediaDetailView: View {
                 trackingRepository: trackingRepository,
                 diaryRepository: diaryRepository,
                 listRepository: listRepository,
+                currentUserId: currentUserId,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
@@ -615,14 +624,16 @@ struct MediaDetailView: View {
             Spacer()
             if viewModel.detail != nil {
                 CircleIconButton(systemName: "ellipsis", label: "More") {
-                    if canCustomizePoster(viewModel.detail) {
-                        presentedSheet = .posterMenu
-                    } else {
-                        presentedSheet = .addToList
-                    }
+                    presentedSheet = .posterMenu
                 }
             }
         }
+    }
+
+    private func posterMenuHeight(for detail: MediaDetail?) -> CGFloat {
+        if canCustomizeBackdrop(detail) { return 284 }
+        if canCustomizePoster(detail) { return 216 }
+        return 146
     }
 
     private func canCustomizePoster(_ detail: MediaDetail?) -> Bool {
@@ -691,9 +702,9 @@ struct MediaDetailView: View {
     }
 
     private func navigateToTab(_ tab: AppTab) {
-        dismiss()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            onSelectTab(tab)
+        onSelectTab(tab)
+        if !dismissPresentedViewControllerStack() {
+            dismiss()
         }
     }
 
@@ -1421,6 +1432,23 @@ struct MediaDetailView: View {
     }
 }
 
+@discardableResult
+private func dismissPresentedViewControllerStack() -> Bool {
+    guard
+        let root = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController,
+        root.presentedViewController != nil
+    else {
+        return false
+    }
+
+    root.dismiss(animated: true)
+    return true
+}
+
 private enum MediaDetailLayout {
     static let heroPosterWidth: CGFloat = 191
     static let heroHeight: CGFloat = 455
@@ -1476,6 +1504,7 @@ private func bookGameCopy(for mediaType: String) -> (currently: String, finished
 
 private struct PosterMenuSheet: View {
     let posterLabel: String
+    let showsPosterOption: Bool
     let showsBackdropOption: Bool
     let onAddToList: () -> Void
     let onCustomizePoster: () -> Void
@@ -1499,16 +1528,18 @@ private struct PosterMenuSheet: View {
             .buttonStyle(.plain)
             .padding(.horizontal, 16)
 
-            Button(action: onCustomizePoster) {
-                Label(posterLabel, systemImage: "photo.on.rectangle.angled")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 18)
-                    .frame(height: 54)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            if showsPosterOption {
+                Button(action: onCustomizePoster) {
+                    Label(posterLabel, systemImage: "photo.on.rectangle.angled")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .frame(height: 54)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 16)
 
             if showsBackdropOption {
                 Button(action: onCustomizeBackdrop) {

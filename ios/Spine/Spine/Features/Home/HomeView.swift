@@ -5,7 +5,7 @@ import SwiftUI
 final class HomeViewModel {
     var profile: UserProfile?
     var inProgressItems: [LibraryItem] = []
-    var recentEntries: [DiaryEntry] = []
+    var activityItems: [ActivityItem] = []
     var isLoading = false
     var isLoadingInProgress = false
     var isLoadingActivity = false
@@ -15,18 +15,18 @@ final class HomeViewModel {
 
     private let profileRepository: ProfileRepository
     private let trackingRepository: TrackingRepository
-    private let diaryRepository: DiaryRepository
+    private let activityRepository: ActivityRepository
     private let onUnauthorized: () -> Void
 
     init(
         profileRepository: ProfileRepository,
         trackingRepository: TrackingRepository,
-        diaryRepository: DiaryRepository,
+        activityRepository: ActivityRepository,
         onUnauthorized: @escaping () -> Void
     ) {
         self.profileRepository = profileRepository
         self.trackingRepository = trackingRepository
-        self.diaryRepository = diaryRepository
+        self.activityRepository = activityRepository
         self.onUnauthorized = onUnauthorized
     }
 
@@ -78,14 +78,18 @@ final class HomeViewModel {
     }
 
     func loadActivity() async {
+        guard let username = profile?.username else {
+            activityItems = []
+            return
+        }
         isLoadingActivity = true
         activityErrorMessage = nil
         defer { isLoadingActivity = false }
 
         do {
-            recentEntries = try await diaryRepository.recent(limit: 6)
+            activityItems = try await activityRepository.userActivity(username: username, limit: 6)
         } catch {
-            recentEntries = []
+            activityItems = []
             activityErrorMessage = error.localizedDescription
             handleUnauthorized(error)
         }
@@ -104,11 +108,14 @@ struct HomeView: View {
     @State private var viewModel: HomeViewModel
     @State private var selectedRef: MediaRef?
     @State private var selectedEntry: DiaryEntry?
+    @State private var selectedActivityEntry: ActivityEntrySelection?
 
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
+    private let activityRepository: ActivityRepository
     private let listRepository: ListRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -118,7 +125,9 @@ struct HomeView: View {
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
+        activityRepository: ActivityRepository = AppRepositories.current().activity,
         listRepository: ListRepository = AppRepositories.current().lists,
+        currentUserId: Int? = nil,
         selectedTab: AppTab = .home,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -126,14 +135,16 @@ struct HomeView: View {
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
+        self.activityRepository = activityRepository
         self.listRepository = listRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
         _viewModel = State(initialValue: HomeViewModel(
             profileRepository: profileRepository,
             trackingRepository: trackingRepository,
-            diaryRepository: diaryRepository,
+            activityRepository: activityRepository,
             onUnauthorized: onUnauthorized
         ))
     }
@@ -182,24 +193,38 @@ struct HomeView: View {
                     Task { await viewModel.loadInProgress() }
                 }
             }
-            .fullScreenCover(item: $selectedRef) { ref in
+            .fullScreenCover(item: $selectedRef, onDismiss: { selectedRef = nil }) { ref in
                 MediaDetailView(
                     ref: ref,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
                     diaryRepository: diaryRepository,
                     listRepository: listRepository,
+                    currentUserId: currentUserId,
                     selectedTab: selectedTab,
                     onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
                 )
             }
-            .fullScreenCover(item: $selectedEntry) { entry in
+            .fullScreenCover(item: $selectedEntry, onDismiss: { selectedEntry = nil }) { entry in
                 DiaryLogDetailNavigationCover(
                     entryId: entry.id,
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
+                    currentUserId: currentUserId,
+                    selectedTab: selectedTab,
+                    onSelectTab: onSelectTab,
+                    onUnauthorized: onUnauthorized
+                )
+            }
+            .fullScreenCover(item: $selectedActivityEntry, onDismiss: { selectedActivityEntry = nil }) { selection in
+                DiaryLogDetailNavigationCover(
+                    entryId: selection.id,
+                    diaryRepository: diaryRepository,
+                    mediaRepository: mediaRepository,
+                    trackingRepository: trackingRepository,
+                    currentUserId: currentUserId,
                     selectedTab: selectedTab,
                     onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
@@ -287,15 +312,15 @@ struct HomeView: View {
                 HomeActivitySkeleton()
             } else if let error = viewModel.activityErrorMessage {
                 HomeStateCard(title: "Could not load activity", systemImage: "exclamationmark.triangle", message: error)
-            } else if viewModel.recentEntries.isEmpty {
+            } else if viewModel.activityItems.isEmpty {
                 HomeStateCard(title: "No activity yet", systemImage: "person.2", message: "Diary logs will appear here.")
             } else {
                 LazyVStack(spacing: 10) {
-                    ForEach(viewModel.recentEntries) { entry in
+                    ForEach(viewModel.activityItems) { activity in
                         Button {
-                            selectedEntry = entry
+                            handleActivityTap(activity)
                         } label: {
-                            HomeActivityCard(entry: entry)
+                            HomeActivityItemCard(activity: activity)
                         }
                         .buttonStyle(.plain)
                     }
@@ -319,6 +344,18 @@ struct HomeView: View {
             }
         }
     }
+
+    private func handleActivityTap(_ activity: ActivityItem) {
+        if activity.object.type == "diary" {
+            selectedActivityEntry = ActivityEntrySelection(id: activity.object.id)
+        } else if let ref = activity.media?.ref {
+            selectedRef = ref
+        }
+    }
+}
+
+private struct ActivityEntrySelection: Identifiable {
+    let id: Int
 }
 
 private struct HomeAvatar: View {
@@ -403,10 +440,14 @@ private struct HomeInProgressCard: View {
                         .foregroundStyle(.white)
                         .lineLimit(2)
 
-                    Text(metadataText)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.54))
-                        .lineLimit(1)
+                    if let progressDelta {
+                        HomeProgressDeltaInline(delta: progressDelta)
+                    } else {
+                        Text(metadataText)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.54))
+                            .lineLimit(1)
+                    }
                 }
             }
             .frame(width: PosterSlot.carousel.size.width, alignment: .leading)
@@ -415,12 +456,149 @@ private struct HomeInProgressCard: View {
         .accessibilityLabel("View \(item.media.title)")
     }
 
+    private var progressDelta: ProgressChangeDisplay? {
+        item.tracking.latestProgressChange?.compactDisplayParts(
+            preferredMode: ProgressDisplayPreferences.mode(for: item.media.ref)
+        )
+    }
+
     private var metadataText: String {
-        item.tracking.progress?.compactDisplayText(preferredMode: ProgressDisplayPreferences.mode(for: item.media.ref)) ?? item.tracking.status ?? "In progress"
+        item.tracking.homeProgressText(preferredMode: ProgressDisplayPreferences.mode(for: item.media.ref))
+    }
+}
+
+private struct HomeActivityItemCard: View {
+    private static let cornerRadius: CGFloat = 22
+
+    let activity: ActivityItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                HomeUserAvatar(user: activity.actor)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(activity.actor.displayName)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    Text(actionText)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.52))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                if let date = DiaryDateFormatter.exactDate(from: activity.createdAt) {
+                    Text(date)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.42))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
+            }
+
+            if let media = activity.media {
+                HStack(alignment: .top, spacing: 12) {
+                    MediaArtwork(
+                        url: media.displayPosterURL,
+                        title: media.title,
+                        slot: .profileRow,
+                        mediaType: media.ref.mediaType,
+                        orientation: media.posterOrientation
+                    )
+                    .shadow(color: .black.opacity(0.24), radius: 8, y: 4)
+
+                    VStack(alignment: .leading, spacing: 7) {
+                        if let ratingText {
+                            DiaryStarRating(rating: ratingText)
+                        }
+
+                        Text(media.title)
+                            .font(.system(size: 16, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+
+                        if let progressDelta {
+                            HomeProgressDeltaChip(delta: progressDelta)
+                        } else if let listName {
+                            Text(listName)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.58))
+                                .lineLimit(2)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(.white.opacity(0.072), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+                .stroke(.white.opacity(0.09), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.18), radius: 14, y: 8)
+        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var actionText: String {
+        switch activity.type {
+        case "progress_updated":
+            "updated progress"
+        case "diary_created":
+            "logged media"
+        case "diary_updated":
+            "updated a log"
+        case "diary_deleted":
+            "deleted a log"
+        case "list_created":
+            "created a list"
+        case "list_item_added":
+            "added to a list"
+        default:
+            "shared activity"
+        }
+    }
+
+    private var progressDelta: ProgressChangeDisplay? {
+        guard
+            activity.type == "progress_updated",
+            let previous = activity.object.previous,
+            let current = activity.object.current
+        else {
+            return nil
+        }
+        let ref = activity.media?.ref
+        return ProgressChangeState(
+            id: activity.object.id,
+            previous: previous,
+            current: current,
+            createdAt: activity.createdAt
+        )
+        .compactDisplayParts(preferredMode: ref.flatMap { ProgressDisplayPreferences.mode(for: $0) })
+    }
+
+    private var ratingText: String? {
+        clean(activity.object.rating)
+    }
+
+    private var listName: String? {
+        activity.object.type == "list" ? clean(activity.object.name) : nil
+    }
+
+    private func clean(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
 private struct HomeActivityCard: View {
+    private static let cornerRadius: CGFloat = 22
+
     let entry: DiaryEntry
 
     var body: some View {
@@ -493,13 +671,14 @@ private struct HomeActivityCard: View {
                 }
             }
         }
-        .padding(12)
-        .background(.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(14)
+        .background(.white.opacity(0.072), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+                .stroke(.white.opacity(0.09), lineWidth: 1)
         }
-        .contentShape(Rectangle())
+        .shadow(color: .black.opacity(0.18), radius: 14, y: 8)
+        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 
@@ -586,6 +765,42 @@ private struct HomeUserAvatar: View {
         .frame(width: 32, height: 32)
         .background(.white.opacity(0.10), in: Circle())
         .clipShape(Circle())
+    }
+}
+
+private struct HomeProgressDeltaInline: View {
+    let delta: ProgressChangeDisplay
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(delta.previous)
+            Image(systemName: "arrow.right")
+                .font(.system(size: 9, weight: .black))
+            Text(delta.current)
+        }
+        .font(.system(size: 11, weight: .bold))
+        .foregroundStyle(.white.opacity(0.54))
+        .lineLimit(1)
+        .accessibilityLabel("\(delta.previous) to \(delta.current)")
+    }
+}
+
+private struct HomeProgressDeltaChip: View {
+    let delta: ProgressChangeDisplay
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Text(delta.previous)
+            Image(systemName: "arrow.right")
+                .font(.system(size: 9, weight: .black))
+            Text(delta.current)
+        }
+        .font(.system(size: 10, weight: .bold))
+        .foregroundStyle(.white.opacity(0.78))
+        .padding(.horizontal, 10)
+        .frame(height: 21)
+        .background(.white.opacity(0.11), in: Capsule())
+        .accessibilityLabel("\(delta.previous) to \(delta.current)")
     }
 }
 
@@ -703,7 +918,7 @@ private struct HomeActivitySkeleton: View {
     var body: some View {
         VStack(spacing: 10) {
             ForEach(0 ..< 3, id: \.self) { _ in
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(.white.opacity(0.07))
                     .frame(height: 126)
             }

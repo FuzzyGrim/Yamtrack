@@ -239,12 +239,13 @@ struct DiaryEntryRow: View {
 
 struct DiaryStarRating: View {
     let rating: String
+    var fontSize: CGFloat = 9
 
     var body: some View {
         HStack(spacing: 1) {
             ForEach(0..<5, id: \.self) { index in
                 Image(systemName: symbolName(for: index))
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.system(size: fontSize, weight: .bold))
                     .foregroundStyle(.yellow.opacity(0.92))
             }
         }

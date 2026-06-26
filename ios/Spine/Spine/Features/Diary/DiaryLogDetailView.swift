@@ -1,11 +1,16 @@
 import SwiftUI
 
+extension Notification.Name {
+    static let diaryEntriesDidChange = Notification.Name("diaryEntriesDidChange")
+}
+
 @MainActor
 @Observable
 final class DiaryLogDetailViewModel {
     var entry: DiaryEntry?
     var mediaDetail: MediaDetail?
     var isLoading = false
+    var isDeleting = false
     var errorMessage: String?
     var isReviewRevealed = false
 
@@ -43,6 +48,47 @@ final class DiaryLogDetailViewModel {
         }
     }
 
+    func save(_ request: DiaryEntryUpdateRequest) async -> Bool {
+        guard let entry else { return false }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            self.entry = try await diaryRepository.update(id: entry.id, request: request)
+            if let ref = self.entry?.media.ref {
+                await loadMediaDetail(for: ref)
+            }
+            NotificationCenter.default.post(name: .diaryEntriesDidChange, object: nil)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
+
+    func delete() async -> Bool {
+        guard let entry else { return false }
+        isDeleting = true
+        errorMessage = nil
+        defer { isDeleting = false }
+
+        do {
+            try await diaryRepository.delete(id: entry.id)
+            NotificationCenter.default.post(name: .diaryEntriesDidChange, object: nil)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            if case APIError.unauthorized = error {
+                onUnauthorized()
+            }
+            return false
+        }
+    }
+
     private func loadMediaDetail(for ref: MediaRef) async {
         do {
             mediaDetail = try await mediaRepository.detail(ref: ref)
@@ -58,11 +104,14 @@ struct DiaryLogDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: DiaryLogDetailViewModel
     @State private var presentedRef: MediaRef?
+    @State private var isEditing = false
+    @State private var isDeleteConfirmationPresented = false
     @State private var edgeDragOffset: CGFloat = 0
 
     private let diaryRepository: DiaryRepository
     private let mediaRepository: MediaRepository
     private let trackingRepository: TrackingRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -72,6 +121,7 @@ struct DiaryLogDetailView: View {
         diaryRepository: DiaryRepository,
         mediaRepository: MediaRepository,
         trackingRepository: TrackingRepository,
+        currentUserId: Int? = nil,
         selectedTab: AppTab = .diary,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -79,6 +129,7 @@ struct DiaryLogDetailView: View {
         self.diaryRepository = diaryRepository
         self.mediaRepository = mediaRepository
         self.trackingRepository = trackingRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -127,6 +178,30 @@ struct DiaryLogDetailView: View {
                 .accessibilityLabel("Back")
 
                 Spacer()
+
+                if canManageEntry {
+                    Button("Edit") {
+                        isEditing = true
+                    }
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 13)
+                    .frame(height: 38)
+                    .background(.black.opacity(0.34), in: Capsule())
+                    .buttonStyle(.plain)
+
+                    Button(role: .destructive) {
+                        isDeleteConfirmationPresented = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 38, height: 38)
+                            .background(.black.opacity(0.34), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Delete")
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
@@ -148,6 +223,30 @@ struct DiaryLogDetailView: View {
         .fullScreenCover(item: $presentedRef) { ref in
             mediaDestination(ref)
         }
+        .sheet(isPresented: $isEditing) {
+            if let entry = viewModel.entry {
+                DiaryLogEditSheet(entry: entry, diaryRepository: diaryRepository) { request in
+                    await viewModel.save(request)
+                }
+            }
+        }
+        .confirmationDialog("Delete this diary entry?", isPresented: $isDeleteConfirmationPresented, titleVisibility: .visible) {
+            Button("Delete Entry", role: .destructive) {
+                Task {
+                    if await viewModel.delete() {
+                        dismiss()
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This cannot be undone.")
+        }
+    }
+
+    private var canManageEntry: Bool {
+        guard let entry = viewModel.entry, let currentUserId else { return false }
+        return entry.user.id == currentUserId
     }
 
     private var edgeSwipeBackGesture: some Gesture {
@@ -168,7 +267,7 @@ struct DiaryLogDetailView: View {
     }
 
     private func content(_ entry: DiaryEntry) -> some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 6) {
             hero(entry)
             logSection(entry)
         }
@@ -242,6 +341,10 @@ struct DiaryLogDetailView: View {
 
     private func logSection(_ entry: DiaryEntry) -> some View {
         VStack(alignment: .leading, spacing: 18) {
+            if hasRatingOrLike(entry) {
+                ratingLikeLine(entry)
+            }
+
             if let title = clean(entry.reviewTitle) {
                 Text(title)
                     .font(.system(size: 21, weight: .heavy))
@@ -257,6 +360,7 @@ struct DiaryLogDetailView: View {
                     diaryRepository: diaryRepository,
                     mediaRepository: mediaRepository,
                     trackingRepository: trackingRepository,
+                    currentUserId: currentUserId,
                     selectedTab: selectedTab,
                     onSelectTab: onSelectTab,
                     onUnauthorized: onUnauthorized
@@ -264,6 +368,25 @@ struct DiaryLogDetailView: View {
             }
         }
         .padding(.horizontal, 16)
+    }
+
+    private func hasRatingOrLike(_ entry: DiaryEntry) -> Bool {
+        clean(entry.rating) != nil || entry.liked
+    }
+
+    private func ratingLikeLine(_ entry: DiaryEntry) -> some View {
+        HStack(spacing: 10) {
+            if let rating = clean(entry.rating) {
+                DiaryStarRating(rating: rating, fontSize: 17)
+            }
+
+            if entry.liked {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.pink)
+                    .accessibilityLabel("Liked")
+            }
+        }
     }
 
     @ViewBuilder
@@ -366,6 +489,7 @@ struct DiaryLogDetailNavigationCover: View {
     let diaryRepository: DiaryRepository
     let mediaRepository: MediaRepository
     let trackingRepository: TrackingRepository
+    let currentUserId: Int?
     let selectedTab: AppTab
     let onSelectTab: (AppTab) -> Void
     let onUnauthorized: () -> Void
@@ -377,6 +501,7 @@ struct DiaryLogDetailNavigationCover: View {
                 diaryRepository: diaryRepository,
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
+                currentUserId: currentUserId,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
@@ -445,11 +570,380 @@ private struct DiaryLogHeroArtwork: View {
     }
 }
 
+@MainActor
+@Observable
+private final class DiaryLogEditViewModel {
+    let entry: DiaryEntry
+    var consumedAt: Date
+    var ratingSteps: Int
+    var reviewTitle: String
+    var review: String
+    var tags: [String]
+    var tagQuery = ""
+    var tagSuggestions: [DiaryTagSuggestion] = []
+    var liked: Bool
+    var isRewatch: Bool
+    var containsSpoilers: Bool
+    var visibility: String
+    var isLoadingTags = false
+    var isSaving = false
+    var errorMessage: String?
+
+    private let diaryRepository: DiaryRepository
+
+    init(entry: DiaryEntry, diaryRepository: DiaryRepository) {
+        self.entry = entry
+        self.diaryRepository = diaryRepository
+        consumedAt = ISO8601DateFormatter().date(from: entry.consumedAt ?? "") ?? Date()
+        ratingSteps = entry.rating.flatMap { Decimal(string: $0).map { NSDecimalNumber(decimal: $0).intValue } } ?? 0
+        reviewTitle = entry.reviewTitle ?? ""
+        review = entry.review ?? ""
+        tags = entry.tags
+        liked = entry.liked
+        isRewatch = entry.isRewatch
+        containsSpoilers = entry.containsSpoilers
+        visibility = entry.visibility
+    }
+
+    var repeatLabel: String {
+        switch entry.media.ref.mediaType {
+        case "book", "manga", "comic":
+            "Reread"
+        case "game", "boardgame":
+            "Replay"
+        default:
+            "Rewatch"
+        }
+    }
+
+    func ratingLabel() -> String {
+        guard ratingSteps > 0 else { return "No rating" }
+        let stars = Double(ratingSteps) / 2
+        return stars.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(stars))/5" : "\(stars)/5"
+    }
+
+    func setRating(locationX: CGFloat, width: CGFloat) {
+        guard width > 0 else { return }
+        let clamped = min(max(locationX, 0), width)
+        ratingSteps = max(1, min(10, Int(ceil((clamped / width) * 10))))
+    }
+
+    func loadTags() async {
+        isLoadingTags = true
+        defer { isLoadingTags = false }
+        do {
+            tagSuggestions = try await diaryRepository.tags(query: tagQuery)
+        } catch {
+            tagSuggestions = []
+        }
+    }
+
+    func addTypedTag() {
+        addTag(tagQuery)
+        tagQuery = ""
+    }
+
+    func addTag(_ rawTag: String) {
+        let tag = rawTag.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !tag.isEmpty, !tags.contains(where: { $0.caseInsensitiveCompare(tag) == .orderedSame }) else { return }
+        tags.append(tag)
+    }
+
+    func removeTag(_ tag: String) {
+        tags.removeAll { $0 == tag }
+    }
+
+    func request() -> DiaryEntryUpdateRequest {
+        DiaryEntryUpdateRequest(
+            consumedAt: consumedAt,
+            rating: ratingSteps > 0 ? Decimal(ratingSteps) : nil,
+            review: review,
+            reviewTitle: reviewTitle,
+            tags: tags,
+            liked: liked,
+            isRewatch: isRewatch,
+            containsSpoilers: containsSpoilers,
+            visibility: visibility
+        )
+    }
+}
+
+private struct DiaryLogEditSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel: DiaryLogEditViewModel
+    let onSave: (DiaryEntryUpdateRequest) async -> Bool
+
+    init(entry: DiaryEntry, diaryRepository: DiaryRepository, onSave: @escaping (DiaryEntryUpdateRequest) async -> Bool) {
+        _viewModel = State(initialValue: DiaryLogEditViewModel(entry: entry, diaryRepository: diaryRepository))
+        self.onSave = onSave
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            SpinePageBackground()
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    header
+                    fields
+                    tagEditor
+                    if let error = viewModel.errorMessage {
+                        Text(error)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.red.opacity(0.92))
+                    }
+                    saveButton
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 18)
+                .padding(.bottom, 34)
+            }
+        }
+        .task {
+            await viewModel.loadTags()
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(.white.opacity(0.12), in: Circle())
+                }
+                .buttonStyle(.plain)
+                Spacer()
+            }
+
+            HStack(alignment: .bottom, spacing: 14) {
+                MediaArtwork(
+                    url: viewModel.entry.media.displayPosterURL,
+                    title: viewModel.entry.media.title,
+                    slot: .logSheet,
+                    mediaType: viewModel.entry.media.ref.mediaType,
+                    orientation: viewModel.entry.media.posterOrientation
+                )
+                .shadow(color: .black.opacity(0.42), radius: 16, y: 8)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Edit Log")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(.white.opacity(0.56))
+                        .textCase(.uppercase)
+                    Text(viewModel.entry.media.title)
+                        .font(.system(size: 28, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.78)
+                }
+            }
+        }
+    }
+
+    private var fields: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            fieldGroup {
+                DatePicker("Date", selection: $viewModel.consumedAt, displayedComponents: [.date])
+                    .datePickerStyle(.compact)
+                    .colorScheme(.dark)
+                ratingPicker
+            }
+            fieldGroup {
+                TextField("Review title", text: $viewModel.reviewTitle)
+                Divider().background(.white.opacity(0.12))
+                TextField("Review", text: $viewModel.review, axis: .vertical)
+                    .lineLimit(5...9)
+            }
+            fieldGroup {
+                Picker("Visibility", selection: $viewModel.visibility) {
+                    ForEach(APIConstants.visibilityChoices, id: \.self) { value in
+                        Text(value.capitalized).tag(value)
+                    }
+                }
+                Toggle("Contains spoilers", isOn: $viewModel.containsSpoilers)
+            }
+        }
+    }
+
+    private var ratingPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                GeometryReader { proxy in
+                    HStack(spacing: 6) {
+                        ForEach(1...5, id: \.self) { star in
+                            Image(systemName: starSystemName(star))
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundStyle(viewModel.ratingSteps >= star * 2 - 1 ? .yellow : .white.opacity(0.26))
+                                .frame(width: 33)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                        viewModel.setRating(locationX: value.location.x, width: proxy.size.width)
+                    })
+                }
+                .frame(width: 189, height: 42)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Rating")
+                .accessibilityValue(viewModel.ratingLabel())
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment:
+                        viewModel.ratingSteps = min(10, viewModel.ratingSteps + 1)
+                    case .decrement:
+                        viewModel.ratingSteps = max(0, viewModel.ratingSteps - 1)
+                    default:
+                        break
+                    }
+                }
+
+                Spacer(minLength: 0)
+                compactIconButton(systemName: viewModel.liked ? "heart.fill" : "heart", title: "Like", isSelected: viewModel.liked) {
+                    viewModel.liked.toggle()
+                }
+                compactIconButton(systemName: "arrow.clockwise.circle", title: viewModel.repeatLabel, isSelected: viewModel.isRewatch) {
+                    viewModel.isRewatch.toggle()
+                }
+            }
+
+            Text(viewModel.ratingLabel())
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(.white.opacity(0.62))
+        }
+    }
+
+    private func starSystemName(_ star: Int) -> String {
+        if viewModel.ratingSteps >= star * 2 { return "star.fill" }
+        if viewModel.ratingSteps == star * 2 - 1 { return "star.leadinghalf.filled" }
+        return "star"
+    }
+
+    private var tagEditor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !viewModel.tags.isEmpty {
+                FlowLayout(spacing: 8) {
+                    ForEach(viewModel.tags, id: \.self) { tag in
+                        Button { viewModel.removeTag(tag) } label: {
+                            Label(tag, systemImage: "xmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 10)
+                                .frame(height: 30)
+                                .background(.white.opacity(0.13), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            fieldGroup {
+                HStack {
+                    TextField("Tags", text: $viewModel.tagQuery)
+                        .textInputAutocapitalization(.never)
+                        .onSubmit { viewModel.addTypedTag() }
+                        .task(id: viewModel.tagQuery) {
+                            await viewModel.loadTags()
+                        }
+                    Button {
+                        viewModel.addTypedTag()
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.tagQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+
+            if !viewModel.tagSuggestions.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.tagSuggestions, id: \.self) { suggestion in
+                            Button {
+                                viewModel.addTag(suggestion.name)
+                                viewModel.tagQuery = ""
+                            } label: {
+                                Text(suggestion.name)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white.opacity(0.84))
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 30)
+                                    .background(.white.opacity(0.09), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var saveButton: some View {
+        Button {
+            Task {
+                viewModel.isSaving = true
+                defer { viewModel.isSaving = false }
+                if await onSave(viewModel.request()) {
+                    dismiss()
+                }
+            }
+        } label: {
+            HStack {
+                Spacer()
+                if viewModel.isSaving {
+                    ProgressView().tint(.black)
+                } else {
+                    Text("Save Changes").font(.system(size: 16, weight: .heavy))
+                }
+                Spacer()
+            }
+            .foregroundStyle(.black)
+            .frame(height: 54)
+            .background(.white.opacity(0.94), in: RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isSaving)
+    }
+
+    private func compactIconButton(systemName: String, title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(isSelected ? (systemName == "heart.fill" ? .pink : .black) : .white)
+                .frame(width: 42, height: 42)
+                .background(isSelected ? .white.opacity(0.94) : .white.opacity(0.12), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func fieldGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            content()
+        }
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(.white)
+        .tint(.white)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(.white.opacity(0.06))
+        }
+    }
+}
+
 private struct DiaryLogTagsView: View {
     let tags: [String]
     let diaryRepository: DiaryRepository
     let mediaRepository: MediaRepository
     let trackingRepository: TrackingRepository
+    let currentUserId: Int?
     let selectedTab: AppTab
     let onSelectTab: (AppTab) -> Void
     let onUnauthorized: () -> Void
@@ -509,6 +1003,7 @@ private struct DiaryLogTagsView: View {
                         diaryRepository: diaryRepository,
                         mediaRepository: mediaRepository,
                         trackingRepository: trackingRepository,
+                        currentUserId: currentUserId,
                         selectedTab: selectedTab,
                         onSelectTab: onSelectTab,
                         onUnauthorized: onUnauthorized

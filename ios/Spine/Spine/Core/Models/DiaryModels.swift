@@ -63,6 +63,18 @@ struct DiaryEntryWriteRequest: Encodable {
     let tags: [String]
 }
 
+struct DiaryEntryUpdateRequest: Encodable {
+    let consumedAt: Date?
+    let rating: Decimal?
+    let review: String?
+    let reviewTitle: String?
+    let tags: [String]?
+    let liked: Bool?
+    let isRewatch: Bool?
+    let containsSpoilers: Bool?
+    let visibility: String?
+}
+
 struct DiaryTagSuggestion: Codable, Hashable {
     let name: String
     let usageCount: Int
@@ -70,4 +82,28 @@ struct DiaryTagSuggestion: Codable, Hashable {
 
 struct DiaryTagSuggestionsResponse: Codable {
     let results: [DiaryTagSuggestion]
+}
+
+struct ActivityItem: Codable, Identifiable {
+    let id: Int
+    let type: String
+    let createdAt: String?
+    let actor: UserSummary
+    let media: MediaSummary?
+    let object: ActivityObject
+}
+
+struct ActivityObject: Codable {
+    let type: String
+    let id: Int
+    let previous: ProgressState?
+    let current: ProgressState?
+    let rating: String?
+    let name: String?
+}
+
+struct ActivityCursorResponse: Codable {
+    let nextCursor: String?
+    let previousCursor: String?
+    let results: [ActivityItem]
 }

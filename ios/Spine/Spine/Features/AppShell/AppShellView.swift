@@ -7,6 +7,13 @@ struct AppShellView: View {
 
     let session: AppSession
 
+    private var currentUserId: Int? {
+        if case let .signedIn(user) = session.state {
+            return user?.id
+        }
+        return nil
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             HomeView(
@@ -14,7 +21,9 @@ struct AppShellView: View {
                 mediaRepository: session.repositories.media,
                 trackingRepository: session.repositories.tracking,
                 diaryRepository: session.repositories.diary,
+                activityRepository: session.repositories.activity,
                 listRepository: session.repositories.lists,
+                currentUserId: currentUserId,
                 selectedTab: selectedTab,
                 onSelectTab: { selectedTab = $0 },
                 onUnauthorized: unauthorized
@@ -30,6 +39,7 @@ struct AppShellView: View {
                     trackingRepository: session.repositories.tracking,
                     diaryRepository: session.repositories.diary,
                     listRepository: session.repositories.lists,
+                    currentUserId: currentUserId,
                     selectedTab: selectedTab,
                     onSelectTab: { selectedTab = $0 },
                     onUnauthorized: unauthorized
@@ -46,6 +56,7 @@ struct AppShellView: View {
                     trackingRepository: session.repositories.tracking,
                     diaryRepository: session.repositories.diary,
                     listRepository: session.repositories.lists,
+                    currentUserId: currentUserId,
                     requestedShelf: $requestedLibraryShelf,
                     selectedTab: selectedTab,
                     onSelectTab: { selectedTab = $0 },
@@ -62,6 +73,7 @@ struct AppShellView: View {
                     diaryRepository: session.repositories.diary,
                     mediaRepository: session.repositories.media,
                     trackingRepository: session.repositories.tracking,
+                    currentUserId: currentUserId,
                     selectedTab: selectedTab,
                     onSelectTab: { selectedTab = $0 },
                     onUnauthorized: unauthorized
@@ -81,6 +93,7 @@ struct AppShellView: View {
                     listRepository: session.repositories.lists,
                     importCoordinator: session.letterboxdImportCoordinator,
                     storygraphImportCoordinator: session.storygraphImportCoordinator,
+                    currentUserId: currentUserId,
                     onLogout: {
                         Task { await session.logout() }
                     },

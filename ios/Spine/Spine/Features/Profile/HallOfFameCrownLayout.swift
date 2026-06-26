@@ -10,10 +10,14 @@ struct HallOfFameCrownPlacement: Equatable {
 }
 
 struct HallOfFameCrownLayout {
-    static func placements(count: Int, cardSize: CGSize, avatarDiameter: CGFloat) -> [HallOfFameCrownPlacement] {
+    static func placements(count: Int, cardSize: CGSize, avatarDiameter: CGFloat, collapseProgress: CGFloat = 0) -> [HallOfFameCrownPlacement] {
         let count = max(count, 0)
         guard count > 0 else { return [] }
 
+        let collapseProgress = min(1, max(0, collapseProgress))
+        let horizontalRemaining = (1 - collapseProgress) * (1 - collapseProgress)
+        let verticalRemaining = 1 - collapseProgress * collapseProgress
+        let collapsedScale: CGFloat = 0.28
         let maxAngle = maxAngle(for: count)
         let angles: [Double]
         if count == 1 {
@@ -39,11 +43,11 @@ struct HallOfFameCrownLayout {
 
             return HallOfFameCrownPlacement(
                 index: index,
-                x: x,
-                y: y,
-                rotation: .degrees(degrees * 0.58),
-                scale: scale,
-                zIndex: zIndex
+                x: x * horizontalRemaining,
+                y: y * verticalRemaining,
+                rotation: .degrees(degrees * 0.58 * Double(1 - collapseProgress)),
+                scale: scale + (collapsedScale - scale) * collapseProgress,
+                zIndex: zIndex * Double(1 - collapseProgress)
             )
         }
     }

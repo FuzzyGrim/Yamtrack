@@ -98,6 +98,7 @@ struct SearchView: View {
     private let trackingRepository: TrackingRepository
     private let diaryRepository: DiaryRepository
     private let listRepository: ListRepository
+    private let currentUserId: Int?
     private let selectedTab: AppTab
     private let onSelectTab: (AppTab) -> Void
     private let onUnauthorized: () -> Void
@@ -107,6 +108,7 @@ struct SearchView: View {
         trackingRepository: TrackingRepository,
         diaryRepository: DiaryRepository,
         listRepository: ListRepository = AppRepositories.current().lists,
+        currentUserId: Int? = nil,
         selectedTab: AppTab = .search,
         onSelectTab: @escaping (AppTab) -> Void = { _ in },
         onUnauthorized: @escaping () -> Void = {}
@@ -115,6 +117,7 @@ struct SearchView: View {
         self.trackingRepository = trackingRepository
         self.diaryRepository = diaryRepository
         self.listRepository = listRepository
+        self.currentUserId = currentUserId
         self.selectedTab = selectedTab
         self.onSelectTab = onSelectTab
         self.onUnauthorized = onUnauthorized
@@ -126,6 +129,7 @@ struct SearchView: View {
             trackingRepository: trackingRepository,
             diaryRepository: diaryRepository,
             listRepository: listRepository,
+            currentUserId: currentUserId,
             selectedTab: selectedTab,
             onSelectTab: onSelectTab,
             onUnauthorized: onUnauthorized
@@ -141,6 +145,7 @@ private struct SearchViewContainer: View {
     let trackingRepository: TrackingRepository
     let diaryRepository: DiaryRepository
     let listRepository: ListRepository
+    let currentUserId: Int?
     let selectedTab: AppTab
     let onSelectTab: (AppTab) -> Void
     let onUnauthorized: () -> Void
@@ -151,13 +156,14 @@ private struct SearchViewContainer: View {
             onUnauthorized: onUnauthorized,
             onSelect: { selectedRef = $0 }
         )
-        .fullScreenCover(item: $selectedRef) { ref in
+        .fullScreenCover(item: $selectedRef, onDismiss: { selectedRef = nil }) { ref in
             MediaDetailCover(
                 ref: ref,
                 mediaRepository: mediaRepository,
                 trackingRepository: trackingRepository,
                 diaryRepository: diaryRepository,
                 listRepository: listRepository,
+                currentUserId: currentUserId,
                 selectedTab: selectedTab,
                 onSelectTab: onSelectTab,
                 onUnauthorized: onUnauthorized
@@ -173,6 +179,7 @@ private struct MediaDetailCover: View {
     let trackingRepository: TrackingRepository
     let diaryRepository: DiaryRepository
     let listRepository: ListRepository
+    let currentUserId: Int?
     let selectedTab: AppTab
     let onSelectTab: (AppTab) -> Void
     let onUnauthorized: () -> Void
@@ -184,6 +191,7 @@ private struct MediaDetailCover: View {
             trackingRepository: trackingRepository,
             diaryRepository: diaryRepository,
             listRepository: listRepository,
+            currentUserId: currentUserId,
             selectedTab: selectedTab,
             onSelectTab: onSelectTab,
             onUnauthorized: onUnauthorized

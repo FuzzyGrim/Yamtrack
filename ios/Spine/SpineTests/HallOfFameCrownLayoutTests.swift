@@ -114,6 +114,70 @@ final class HallOfFameCrownLayoutTests: XCTestCase {
         XCTAssertLessThan(placements[3].y, -96)
     }
 
+    func testCollapsedCrownProgressZeroMatchesExpandedLayout() {
+        let expanded = HallOfFameCrownLayout.placements(
+            count: 7,
+            cardSize: CGSize(width: 54, height: 81),
+            avatarDiameter: 128
+        )
+        let collapsedAtZero = HallOfFameCrownLayout.placements(
+            count: 7,
+            cardSize: CGSize(width: 54, height: 81),
+            avatarDiameter: 128,
+            collapseProgress: 0
+        )
+
+        XCTAssertEqual(collapsedAtZero, expanded)
+    }
+
+    func testCollapsedCrownProgressOneConvergesAtAvatarCenter() {
+        let placements = HallOfFameCrownLayout.placements(
+            count: 7,
+            cardSize: CGSize(width: 54, height: 81),
+            avatarDiameter: 128,
+            collapseProgress: 1
+        )
+
+        XCTAssertEqual(placements.count, 7)
+        for placement in placements {
+            XCTAssertEqual(placement.x, 0, accuracy: 0.001)
+            XCTAssertEqual(placement.y, 0, accuracy: 0.001)
+            XCTAssertEqual(placement.rotation.degrees, 0, accuracy: 0.001)
+            XCTAssertEqual(placement.scale, 0.28, accuracy: 0.001)
+            XCTAssertEqual(placement.zIndex, 0, accuracy: 0.001)
+        }
+    }
+
+    func testCollapsedCrownMidpointClosesArcInward() {
+        let expanded = HallOfFameCrownLayout.placements(
+            count: 7,
+            cardSize: CGSize(width: 54, height: 81),
+            avatarDiameter: 128
+        )
+        let midpoint = HallOfFameCrownLayout.placements(
+            count: 7,
+            cardSize: CGSize(width: 54, height: 81),
+            avatarDiameter: 128,
+            collapseProgress: 0.5
+        )
+
+        XCTAssertEqual(midpoint[0].x, expanded[0].x * 0.25, accuracy: 0.001)
+        XCTAssertEqual(midpoint[0].y, expanded[0].y * 0.75, accuracy: 0.001)
+        XCTAssertEqual(midpoint[0].rotation.degrees, expanded[0].rotation.degrees * 0.5, accuracy: 0.001)
+        XCTAssertEqual(midpoint[0].scale, (expanded[0].scale + 0.28) / 2, accuracy: 0.001)
+    }
+
+    func testProfileHeroCollapseProgressClampsAtRestAndRefreshPull() {
+        XCTAssertEqual(ProfileHeroCollapse.progress(for: 0), 0)
+        XCTAssertEqual(ProfileHeroCollapse.progress(for: -24), 0)
+    }
+
+    func testProfileHeroCollapseProgressMapsFirstHundredPoints() {
+        XCTAssertEqual(ProfileHeroCollapse.progress(for: 50), 0.5)
+        XCTAssertEqual(ProfileHeroCollapse.progress(for: 100), 1)
+        XCTAssertEqual(ProfileHeroCollapse.progress(for: 140), 1)
+    }
+
     private func media(index: Int, mediaType: String) -> MediaSummary {
         MediaSummary(
             ref: MediaRef(

@@ -33,11 +33,36 @@ struct TrackingState: Codable, Equatable {
     let status: String?
     let rating: String?
     let progress: ProgressState?
+    let latestProgressChange: ProgressChangeState?
     let repeats: Int?
     let startDate: String?
     let endDate: String?
     let notes: String?
     let updatedAt: String?
+
+    init(
+        trackingId: Int,
+        status: String?,
+        rating: String?,
+        progress: ProgressState?,
+        latestProgressChange: ProgressChangeState? = nil,
+        repeats: Int?,
+        startDate: String?,
+        endDate: String?,
+        notes: String?,
+        updatedAt: String?
+    ) {
+        self.trackingId = trackingId
+        self.status = status
+        self.rating = rating
+        self.progress = progress
+        self.latestProgressChange = latestProgressChange
+        self.repeats = repeats
+        self.startDate = startDate
+        self.endDate = endDate
+        self.notes = notes
+        self.updatedAt = updatedAt
+    }
 
     func replacingProgress(_ progress: ProgressState?) -> TrackingState {
         TrackingState(
@@ -45,12 +70,55 @@ struct TrackingState: Codable, Equatable {
             status: status,
             rating: rating,
             progress: progress,
+            latestProgressChange: latestProgressChange,
             repeats: repeats,
             startDate: startDate,
             endDate: endDate,
             notes: notes,
             updatedAt: updatedAt
         )
+    }
+
+    func homeProgressText(preferredMode: ProgressUpdateMode?) -> String {
+        if let changeText = latestProgressChange?.compactDisplayText(preferredMode: preferredMode) {
+            return changeText
+        }
+        if let progressText = progress?.compactDisplayText(preferredMode: preferredMode) {
+            return progressText
+        }
+        return status == "In progress" ? "Started" : status ?? "In progress"
+    }
+}
+
+struct ProgressChangeState: Codable, Equatable {
+    let id: Int
+    let previous: ProgressState
+    let current: ProgressState
+    let createdAt: String?
+}
+
+struct ProgressChangeDisplay: Equatable {
+    let previous: String
+    let current: String
+}
+
+extension ProgressChangeState {
+    func compactDisplayParts(preferredMode: ProgressUpdateMode?) -> ProgressChangeDisplay? {
+        guard
+            let previousText = previous.compactDisplayText(preferredMode: preferredMode),
+            let currentText = current.compactDisplayText(preferredMode: preferredMode),
+            previousText != currentText
+        else {
+            return nil
+        }
+        return ProgressChangeDisplay(previous: previousText, current: currentText)
+    }
+
+    func compactDisplayText(preferredMode: ProgressUpdateMode?) -> String? {
+        guard let parts = compactDisplayParts(preferredMode: preferredMode) else {
+            return nil
+        }
+        return "\(parts.previous) → \(parts.current)"
     }
 }
 
@@ -72,14 +140,17 @@ extension ProgressState {
 
     func compactDisplayText(preferredMode: ProgressUpdateMode?) -> String? {
         if preferredMode == .percentage, let value = value(in: .percentage) {
+            guard value > 0 else { return nil }
             return "\(Self.display(Decimal(value)))%"
         }
         if preferredMode == .pages, let value = value(in: .pages) {
+            guard value > 0 else { return nil }
             let maxText = max.map { "/\(Self.display($0))" } ?? ""
             let unitText = value == 1 && max == nil ? "page" : "pages"
             return "\(value)\(maxText) \(unitText)"
         }
         guard let value else { return nil }
+        guard value > 0 else { return nil }
         if isPercentage {
             return "\(Self.display(value))%"
         }
@@ -89,15 +160,18 @@ extension ProgressState {
 
     func detailDisplayText(preferredMode: ProgressUpdateMode?) -> String? {
         if preferredMode == .percentage, let value = value(in: .percentage) {
+            guard value > 0 else { return nil }
             return "\(value)%"
         }
         if preferredMode == .pages, let value = value(in: .pages) {
+            guard value > 0 else { return nil }
             if let max {
                 return "\(value) of \(Self.display(max)) pages"
             }
             return "\(value) pages"
         }
         guard let value else { return nil }
+        guard value > 0 else { return nil }
         if isPercentage {
             return "\(Self.display(value))%"
         }
