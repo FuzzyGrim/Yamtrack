@@ -11,7 +11,9 @@ from rest_framework.test import APIClient
 
 from api.serializers.common import media_summary_from_item
 from app.models import (
+    TV,
     Anime,
+    Book,
     CustomBackdropPreference,
     CustomPosterPreference,
     DiaryEntry,
@@ -19,12 +21,13 @@ from app.models import (
     MediaLike,
     MediaTypes,
     Movie,
+    Season,
     Sources,
     Status,
 )
 from app.services import set_media_like, update_diary_entry_tags
 from lists.models import CustomList, CustomListItem
-from social.models import Activity, ContentLike, SocialAuditLog
+from social.models import Activity, ContentLike, ProgressChange, SocialAuditLog
 
 
 class ApiV1FoundationTests(TestCase):
@@ -351,6 +354,194 @@ class ApiV1FoundationTests(TestCase):
             {item["tracking"]["status"] for item in response.data["results"]},
             {Status.PLANNING.value},
         )
+
+    @patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": None})
+    def test_tracking_patch_records_progress_change(self, _metadata_mock):
+        user = get_user_model().objects.create_user(username="tracking-progress-change", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            media_id="progress-change",
+            title="Progress Change",
+        )
+        Anime.objects.create(user=user, item=item, status=Status.IN_PROGRESS.value, progress=10)
+        self.client.force_authenticate(user)
+
+        response = self.client.patch(
+            "/api/v1/tracking/mal/anime/progress-change/",
+            {"status": Status.IN_PROGRESS.value, "progress": 12},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        change = ProgressChange.objects.get(actor=user, item=item)
+        self.assertEqual(change.previous_progress["value"], 10)
+        self.assertEqual(change.current_progress["value"], 12)
+        self.assertEqual(response.data["latest_progress_change"]["id"], change.id)
+        self.assertEqual(response.data["latest_progress_change"]["current"]["value"], 12)
+        self.assertTrue(
+            Activity.objects.filter(
+                actor=user,
+                verb="progress_updated",
+                target_type="progress_change",
+                target_id=change.id,
+                item=item,
+            ).exists()
+        )
+
+    @patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": None})
+    def test_unchanged_progress_does_not_record_progress_change(self, _metadata_mock):
+        user = get_user_model().objects.create_user(username="tracking-progress-same", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
+            media_id="progress-same",
+            title="Progress Same",
+        )
+        Anime.objects.create(user=user, item=item, status=Status.IN_PROGRESS.value, progress=10)
+        self.client.force_authenticate(user)
+
+        response = self.client.patch(
+            "/api/v1/tracking/mal/anime/progress-same/",
+            {"status": Status.IN_PROGRESS.value, "progress": 10},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(ProgressChange.objects.filter(actor=user, item=item).exists())
+
+    @patch("app.models.providers.services.get_media_metadata", return_value={"max_progress": None})
+    @patch("api.services.tracking.provider_services.get_media_metadata")
+    def test_new_tracking_has_no_progress_change(self, metadata_mock, _progress_mock):
+        user = get_user_model().objects.create_user(username="tracking-progress-new", password="strong-password-123")
+        metadata_mock.return_value = {
+            "title": "Progress New",
+            "image": "https://example.com/progress-new.jpg",
+            "max_progress": None,
+        }
+        self.client.force_authenticate(user)
+
+        response = self.client.patch(
+            "/api/v1/tracking/mal/anime/progress-new/",
+            {"status": Status.IN_PROGRESS.value, "progress": 5},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["progress"]["value"], 5)
+        self.assertIsNone(response.data["latest_progress_change"])
+        self.assertFalse(ProgressChange.objects.filter(actor=user).exists())
+
+    def test_book_progress_records_progress_change_and_tracking_list_exposes_latest(self):
+        user = get_user_model().objects.create_user(username="book-progress-change", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
+            media_id="book-progress-change",
+            title="Book Progress Change",
+            total_pages=100,
+        )
+        Book.objects.create(user=user, item=item, status=Status.IN_PROGRESS.value, progress=42)
+        self.client.force_authenticate(user)
+
+        response = self.client.post(
+            "/api/v1/tracking/openlibrary/book/book-progress-change/progress/",
+            {"progress_type": "percentage", "value": "58"},
+            format="json",
+        )
+        list_response = self.client.get("/api/v1/tracking/?media_type=book&status=In progress")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        change = ProgressChange.objects.get(actor=user, item=item)
+        self.assertEqual(change.previous_progress["value"], 42)
+        self.assertEqual(change.current_progress["value"], 58)
+        self.assertEqual(response.data["latest_progress_change"]["previous"]["value"], 42)
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["results"][0]["tracking"]["latest_progress_change"]["id"], change.id)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_episode_watch_records_season_progress_change(self, metadata_mock):
+        user = get_user_model().objects.create_user(username="season-progress-change", password="strong-password-123")
+        tv_item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            media_id="season-progress-change",
+            title="Season Progress Change",
+        )
+        season_item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            media_id="season-progress-change",
+            season_number=1,
+            title="Season Progress Change",
+        )
+        tv = TV.objects.create(user=user, item=tv_item, status=Status.IN_PROGRESS.value)
+        Season.objects.create(user=user, item=season_item, related_tv=tv, status=Status.IN_PROGRESS.value)
+        metadata_mock.side_effect = lambda media_type, *_args: {
+            "season": {
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2020-01-01"},
+                    {"episode_number": 2, "air_date": "2020-01-08"},
+                ]
+            },
+            "tv_with_seasons": {
+                "season/1": {
+                    "episodes": [
+                        {"episode_number": 1, "air_date": "2020-01-01"},
+                        {"episode_number": 2, "air_date": "2020-01-08"},
+                    ]
+                }
+            },
+        }[media_type]
+        self.client.force_authenticate(user)
+
+        response = self.client.post(
+            "/api/v1/tracking/tmdb/tv/season-progress-change/seasons/1/episodes/1/watch/",
+            {},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        change = ProgressChange.objects.get(actor=user, item=season_item)
+        self.assertEqual(change.previous_progress["value"], 0)
+        self.assertEqual(change.current_progress["value"], 1)
+        self.assertEqual(response.data["latest_progress_change"]["current"]["value"], 1)
+
+    def test_user_activity_includes_progress_updated_payload(self):
+        user = get_user_model().objects.create_user(username="progress-activity", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
+            media_id="progress-activity",
+            title="Progress Activity",
+        )
+        change = ProgressChange.objects.create(
+            actor=user,
+            item=item,
+            previous_progress={"kind": "percentage", "value": 42, "max": 100, "unit": "percent"},
+            current_progress={"kind": "percentage", "value": 58, "max": 100, "unit": "percent"},
+        )
+        Activity.objects.create(
+            actor=user,
+            verb="progress_updated",
+            target_type="progress_change",
+            target_id=change.id,
+            item=item,
+            snapshot={
+                "previous": change.previous_progress,
+                "current": change.current_progress,
+            },
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/users/progress-activity/activity/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        activity = response.data["results"][0]
+        self.assertEqual(activity["type"], "progress_updated")
+        self.assertEqual(activity["object"]["type"], "progress_change")
+        self.assertEqual(activity["object"]["previous"]["value"], 42)
+        self.assertEqual(activity["object"]["current"]["value"], 58)
 
     def test_set_media_like_is_idempotent_and_keeps_social_likes_separate(self):
         user = get_user_model().objects.create_user(username="media-like-service", password="strong-password-123")

@@ -153,6 +153,31 @@ class Activity(models.Model):
         ]
 
 
+class ProgressChange(models.Model):
+    """Durable progress delta for tracked media."""
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="progress_changes",
+    )
+    item = models.ForeignKey(
+        "app.Item",
+        on_delete=models.CASCADE,
+        related_name="progress_changes",
+    )
+    previous_progress = models.JSONField()
+    current_progress = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["actor", "item", "-created_at"]),
+            models.Index(fields=["-created_at", "id"]),
+        ]
+
+
 class SocialAuditLog(models.Model):
     """Audit log for important social actions."""
 

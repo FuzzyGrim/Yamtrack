@@ -114,17 +114,26 @@ def user_activity_queryset(viewer, target_user):
 
 def activity_payload(activity, request=None, viewer=None):
     """Serialize a materialized feed item."""
+    snapshot = activity.snapshot or {}
+    object_payload = {
+        "type": activity.target_type,
+        "id": activity.target_id,
+        **snapshot,
+    }
+    if activity.verb == "progress_updated":
+        object_payload = {
+            "type": activity.target_type,
+            "id": activity.target_id,
+            "previous": snapshot.get("previous"),
+            "current": snapshot.get("current"),
+        }
     return {
         "id": activity.id,
         "type": activity.verb,
         "created_at": activity.created_at,
         "actor": user_summary(activity.actor, request=request),
         "media": media_summary_from_item(activity.item, request=request) if activity.item else None,
-        "object": {
-            "type": activity.target_type,
-            "id": activity.target_id,
-            **activity.snapshot,
-        },
+        "object": object_payload,
         "viewer": {
             "can_view": True,
             "has_liked": bool(

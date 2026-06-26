@@ -7,6 +7,7 @@ from rest_framework import serializers
 from app import config
 from app.models import BasicMedia, DiaryEntry, Item, MediaLike, MediaTypes, Sources
 from lists.models import CustomList
+from social.models import ProgressChange
 
 
 class MediaRefSerializer(serializers.Serializer):
@@ -527,6 +528,27 @@ def progress_for_media(media):
     }
 
 
+def progress_change_payload(change):
+    """Serialize a progress delta."""
+    if change is None:
+        return None
+    return {
+        "id": change.id,
+        "previous": change.previous_progress,
+        "current": change.current_progress,
+        "created_at": change.created_at,
+    }
+
+
+def latest_progress_change_for(media):
+    """Return the newest recorded progress delta for this user and item."""
+    return (
+        ProgressChange.objects.filter(actor=media.user, item=media.item)
+        .order_by("-created_at", "-id")
+        .first()
+    )
+
+
 def tracking_state(media):
     """Serialize any tracked media model into TrackingState."""
     state = {
@@ -539,6 +561,7 @@ def tracking_state(media):
         "end_date": getattr(media, "end_date", None),
         "notes": getattr(media, "notes", ""),
         "updated_at": getattr(media, "progressed_at", None) or getattr(media, "created_at", None),
+        "latest_progress_change": progress_change_payload(latest_progress_change_for(media)),
     }
     if media.item.media_type == MediaTypes.MOVIE.value:
         state["liked"] = getattr(media, "liked", False)
