@@ -172,6 +172,26 @@ class MediaDetailView(APIView):
         )
 
 
+class PersonDetailView(APIView):
+    """Provider-backed person detail for native clients."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [SearchRateThrottle]
+
+    def get(self, request, source, person_id):
+        try:
+            return Response(
+                media_service.person_detail(
+                    source=source,
+                    person_id=person_id,
+                    request=request,
+                    user=request.user if request.user.is_authenticated else None,
+                ),
+            )
+        except NotImplementedError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+
 class MediaReviewsView(APIView):
     """Public diary reviews for a media identity."""
 

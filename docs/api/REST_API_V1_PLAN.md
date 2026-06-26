@@ -92,6 +92,12 @@ Important files:
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/{season_number}/` | Optional |
 | GET | `/api/v1/media/{source}/tv/{media_id}/seasons/{season_number}/episodes/` | Optional |
 
+### People
+
+| Method | Path | Auth |
+|---|---|---|
+| GET | `/api/v1/people/tmdb/{person_id}/` | Optional |
+
 ### Tracking
 
 | Method | Path | Auth |
@@ -477,6 +483,43 @@ Supported matrix:
 | `book` | `openlibrary` | `genre`, `year` | `ratings_count` |
 
 Unsupported media types/sources return `501` with a clear `detail`. Invalid params return DRF field errors with `400`. Anime, manga, and comic discovery are intentionally out of scope for v1.
+
+## People Detail
+
+`GET /api/v1/people/tmdb/{person_id}/` returns a TMDB person profile for native person pages. V1 supports TMDB people only and returns `501` for other sources. Filmography items are mixed movie/TV cast and crew credits, de-duplicated by the provider and returned as standard `MediaSummary` objects sorted by TMDB popularity descending.
+
+```json
+{
+  "id": "819",
+  "source": "tmdb",
+  "name": "Edward Norton",
+  "biography": "An actor biography.",
+  "profile_url": "https://image.tmdb.org/t/p/w500/profile.jpg",
+  "known_for_department": "Acting",
+  "birth_date": "1969-08-18",
+  "death_date": null,
+  "place_of_birth": "Boston, Massachusetts, USA",
+  "popularity": 42.7,
+  "credits": {
+    "cast": [
+      {
+        "ref": { "item_id": null, "source": "tmdb", "media_type": "movie", "media_id": "550", "season_number": null, "episode_number": null },
+        "title": "Fight Club",
+        "subtitle": "1999",
+        "overview": null,
+        "image_url": "https://example.com/fight-club.jpg",
+        "poster_url": "https://example.com/fight-club.jpg",
+        "backdrop_url": null,
+        "poster_accent_color": null,
+        "release_date": null,
+        "default_source": "tmdb",
+        "custom_poster_url": null,
+        "user_state": null
+      }
+    ]
+  }
+}
+```
 
 ## Media Detail
 

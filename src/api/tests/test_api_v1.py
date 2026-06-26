@@ -1482,6 +1482,63 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["poster_aspect_ratio"], 1.778)
         self.assertEqual(response.data["backdrop_url"], "https://example.com/backdrop.jpg")
 
+    @patch("api.services.media.provider_services.get_person_page")
+    def test_person_detail_returns_tmdb_profile_and_popularity_sorted_filmography(self, person_mock):
+        person_mock.return_value = {
+            "source": Sources.TMDB.value,
+            "person_id": "819",
+            "name": "Edward Norton",
+            "image": "https://image.tmdb.org/t/p/w500/profile.jpg",
+            "biography": "An actor biography.",
+            "known_for_department": "Acting",
+            "birth_date": "1969-08-18",
+            "death_date": None,
+            "place_of_birth": "Boston, Massachusetts, USA",
+            "popularity": 42.7,
+            "credits": [
+                {
+                    "media_type": MediaTypes.MOVIE.value,
+                    "source": Sources.TMDB.value,
+                    "media_id": "550",
+                    "title": "Fight Club",
+                    "image": "https://example.com/fight-club.jpg",
+                    "year": "1999",
+                    "popularity": 20.5,
+                },
+                {
+                    "media_type": MediaTypes.TV.value,
+                    "source": Sources.TMDB.value,
+                    "media_id": "1399",
+                    "title": "Game of Thrones",
+                    "image": "https://example.com/got.jpg",
+                    "year": "2011",
+                    "popularity": 80.2,
+                },
+            ],
+        }
+
+        response = self.client.get("/api/v1/people/tmdb/819/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        person_mock.assert_called_once_with(Sources.TMDB.value, "819")
+        self.assertEqual(response.data["id"], "819")
+        self.assertEqual(response.data["source"], Sources.TMDB.value)
+        self.assertEqual(response.data["name"], "Edward Norton")
+        self.assertEqual(response.data["profile_url"], "https://image.tmdb.org/t/p/w500/profile.jpg")
+        self.assertEqual(response.data["known_for_department"], "Acting")
+        self.assertEqual(response.data["birth_date"], "1969-08-18")
+        self.assertEqual(response.data["place_of_birth"], "Boston, Massachusetts, USA")
+        self.assertEqual([item["title"] for item in response.data["credits"]["cast"]], ["Game of Thrones", "Fight Club"])
+        self.assertEqual(response.data["credits"]["cast"][0]["ref"]["media_type"], MediaTypes.TV.value)
+        self.assertEqual(response.data["credits"]["cast"][0]["subtitle"], "2011")
+        self.assertEqual(response.data["credits"]["cast"][0]["poster_url"], "https://example.com/got.jpg")
+
+    def test_person_detail_rejects_non_tmdb_source_for_v1(self):
+        response = self.client.get("/api/v1/people/openlibrary/OL23919A/")
+
+        self.assertEqual(response.status_code, status.HTTP_501_NOT_IMPLEMENTED)
+        self.assertEqual(response.data["detail"], "People pages are only supported for TMDB in v1.")
+
     @patch("app.providers.tmdb.get_title_logo", return_value=None)
     @patch("app.providers.mdblist.get_media_ratings", return_value={})
     @patch("api.services.media.provider_services.get_media_metadata")

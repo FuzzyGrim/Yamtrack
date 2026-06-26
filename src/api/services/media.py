@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.db.models import Count
 
 from api.serializers.common import (
+    absolute_url,
     cast_from_metadata,
     crew_from_metadata,
     custom_backdrop_url_for_user,
@@ -209,6 +210,45 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
             media_type=media_type,
             media_id=media_id,
         ),
+    }
+
+
+def person_detail(*, source, person_id, request=None, user=None):
+    """Return a TMDB person profile plus iOS-ready filmography summaries."""
+    if source != Sources.TMDB.value:
+        msg = "People pages are only supported for TMDB in v1."
+        raise NotImplementedError(msg)
+
+    person = provider_services.get_person_page(source, person_id)
+    person_credits = person.get("credits") or []
+    person_credits = sorted(
+        person_credits,
+        key=lambda credit: (-float(credit.get("popularity") or 0), credit.get("title") or ""),
+    )
+    return {
+        "id": str(person.get("person_id") or person_id),
+        "source": source,
+        "name": person.get("name") or "",
+        "biography": person.get("biography"),
+        "profile_url": absolute_url(request, person.get("image")),
+        "known_for_department": person.get("known_for_department"),
+        "birth_date": person.get("birth_date"),
+        "death_date": person.get("death_date"),
+        "place_of_birth": person.get("place_of_birth"),
+        "popularity": person.get("popularity"),
+        "credits": {
+            "cast": [
+                media_summary_from_provider(
+                    credit,
+                    media_type=credit.get("media_type"),
+                    source=credit.get("source", source),
+                    request=request,
+                    user=user,
+                )
+                for credit in person_credits
+                if credit.get("media_type") in {MediaTypes.MOVIE.value, MediaTypes.TV.value}
+            ],
+        },
     }
 
 

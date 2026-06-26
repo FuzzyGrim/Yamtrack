@@ -1045,7 +1045,7 @@ def get_tv_rating(content_ratings):
 
 def person_page(person_id):
     """Return person details and credits for the person page."""
-    cache_key = f"{Sources.TMDB.value}_person_{person_id}_v5"
+    cache_key = f"{Sources.TMDB.value}_person_{person_id}_v6"
     data = cache.get(cache_key)
 
     if data is None:
@@ -1190,6 +1190,11 @@ def person_page(person_id):
             "name": response.get("name") or "",
             "image": get_image_url(response.get("profile_path")),
             "biography": (response.get("biography") or "").strip() or None,
+            "known_for_department": response.get("known_for_department"),
+            "birth_date": response.get("birthday"),
+            "death_date": response.get("deathday"),
+            "place_of_birth": response.get("place_of_birth"),
+            "popularity": response.get("popularity"),
             "credits": credits,
         }
 
