@@ -157,6 +157,7 @@ MIDDLEWARE = [
 ]
 
 YAMTRACK_AUTO_LOGIN_USERNAME = config("YAMTRACK_AUTO_LOGIN_USERNAME", default=None)
+SPINE_CURATOR_USERNAME = config("SPINE_CURATOR_USERNAME", default=None)
 if YAMTRACK_AUTO_LOGIN_USERNAME:
     _index = MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware")
     # This allows auto-login if the user is not already authenticated.

@@ -1482,8 +1482,8 @@ private enum MediaDetailLayout {
     static let recommendationPosterSize = CGSize(width: 100, height: 150)
     static let recommendationCardHeight: CGFloat = 190
     static let seasonPosterSize = CGSize(width: 90, height: 135)
-    static let castImageSize: CGFloat = 84
-    static let castCardWidth: CGFloat = 126
+    static let castImageSize: CGFloat = 68
+    static let castCardWidth: CGFloat = 96
 }
 
 private enum SpinePalette {
@@ -2566,7 +2566,7 @@ private struct CreditSection: View {
                 SectionLabel(title: title)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 12) {
+                    HStack(alignment: .top, spacing: 6) {
                         ForEach(people) { person in
                             Group {
                                 if let personRef = person.personRef {
@@ -2589,7 +2589,7 @@ private struct CreditSection: View {
     }
 
     private func creditCard(_ person: CreditDisplay) -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             AsyncImage(url: URL(string: person.imageUrl ?? "")) { phase in
                 switch phase {
                 case let .success(image):

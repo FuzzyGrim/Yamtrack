@@ -171,11 +171,19 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
     if summary.get("poster_accent_color") is None:
         summary["poster_accent_color"] = poster_accent_color(metadata, ref)
     logo = title_logo(source=source, media_type=media_type, media_id=media_id)
+    default_backdrop_url, custom_backdrop_url = resolved_backdrop_urls(
+        source=source,
+        media_type=media_type,
+        media_id=media_id,
+        metadata=metadata,
+        request=request,
+        user=user,
+    )
     return {
         **summary,
         "overview": synopsis,
         "synopsis": synopsis,
-        "backdrop_url": backdrop_url(metadata),
+        "backdrop_url": default_backdrop_url,
         "logo_url": logo.get("url") if logo else None,
         "logo_width": logo.get("width") if logo else None,
         "logo_height": logo.get("height") if logo else None,
@@ -187,7 +195,7 @@ def media_detail(*, source, media_type, media_id, request=None, user=None, seaso
         "episodes": episodes_from_metadata(enrich_episodes(metadata, source, user), request=request)
         if media_type == MediaTypes.SEASON.value
         else [],
-        "custom_backdrop_url": custom_backdrop_url_for_user(user, ref, request=request),
+        "custom_backdrop_url": custom_backdrop_url,
         "custom_poster_url": custom_poster_url_for_user(user, ref, request=request),
         "related": metadata.get("related", {}),
         "related_sections": related_sections_from_payload(
@@ -370,14 +378,24 @@ def backdrop_options(*, source, media_type, media_id, request=None, user=None):
 
     item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
     metadata = provider_services.get_media_metadata(media_type, media_id, source)
-    default_url = backdrop_url(metadata)
+    raw_default_url = backdrop_url(metadata)
     from app.providers import tmdb
 
-    current = CustomBackdropPreference.objects.filter(user=user, item=item).first()
-    selected_url = current.custom_image_url if current else default_url
+    tmdb_backdrops = tmdb.get_backdrop_images(media_id, media_type)
+    default_url, custom_url = resolved_backdrop_urls(
+        source=source,
+        media_type=media_type,
+        media_id=media_id,
+        metadata=metadata,
+        request=request,
+        user=user,
+        item=item,
+        tmdb_backdrops=tmdb_backdrops,
+    )
+    selected_url = custom_url or default_url
     original = {
-        "url": default_url,
-        "thumbnail_url": default_url,
+        "url": raw_default_url,
+        "thumbnail_url": raw_default_url,
         "width": 0,
         "height": 0,
         "aspect_ratio": 1.778,
@@ -385,12 +403,12 @@ def backdrop_options(*, source, media_type, media_id, request=None, user=None):
         "vote_count": 0,
         "language": None,
         "is_original": True,
-        "is_selected": default_url == selected_url,
+        "is_selected": raw_default_url == selected_url,
     }
 
     backdrops = [original]
-    for backdrop in tmdb.get_backdrop_images(media_id, media_type):
-        if backdrop["url"] == default_url:
+    for backdrop in tmdb_backdrops:
+        if backdrop["url"] == raw_default_url:
             continue
         backdrops.append(
             {
@@ -485,6 +503,74 @@ def backdrop_url(metadata):
     if isinstance(value, str) and value.startswith("/"):
         return f"https://image.tmdb.org/t/p/original{value}"
     return value
+
+
+def resolved_backdrop_urls(
+    *,
+    source,
+    media_type,
+    media_id,
+    metadata,
+    request=None,
+    user=None,
+    item=None,
+    tmdb_backdrops=None,
+):
+    """Return the resolved default backdrop and viewer custom backdrop."""
+    raw_default_url = backdrop_url(metadata)
+    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        return raw_default_url, custom_backdrop_url_for_user(
+            user,
+            {
+                "source": source,
+                "media_type": media_type,
+                "media_id": media_id,
+            },
+            request=request,
+        )
+
+    item = item or Item.objects.filter(source=source, media_type=media_type, media_id=media_id).first()
+    custom_url = _backdrop_preference_url(user, item, request=request)
+    default_url = (
+        _curated_backdrop_url(item, request=request)
+        or _tmdb_vote_sorted_backdrop_url(
+            media_id,
+            media_type,
+            raw_default_url=raw_default_url,
+            tmdb_backdrops=tmdb_backdrops,
+        )
+    )
+    return default_url, custom_url
+
+
+def _backdrop_preference_url(user, item, request=None):
+    if not user or not user.is_authenticated or item is None:
+        return None
+    preference = CustomBackdropPreference.objects.filter(user=user, item=item).first()
+    return absolute_url(request, preference.custom_image_url) if preference else None
+
+
+def _curated_backdrop_url(item, request=None):
+    curator_username = getattr(settings, "SPINE_CURATOR_USERNAME", None)
+    if not curator_username or item is None:
+        return None
+    preference = CustomBackdropPreference.objects.filter(
+        user__username=curator_username,
+        item=item,
+    ).first()
+    return absolute_url(request, preference.custom_image_url) if preference else None
+
+
+def _tmdb_vote_sorted_backdrop_url(media_id, media_type, *, raw_default_url=None, tmdb_backdrops=None):
+    if tmdb_backdrops is None:
+        from app.providers import tmdb
+
+        tmdb_backdrops = tmdb.get_backdrop_images(media_id, media_type)
+    if len(tmdb_backdrops) > 1:
+        return tmdb_backdrops[1]["url"]
+    if tmdb_backdrops:
+        return raw_default_url or tmdb_backdrops[0]["url"]
+    return raw_default_url
 
 
 def title_logo(*, source, media_type, media_id):

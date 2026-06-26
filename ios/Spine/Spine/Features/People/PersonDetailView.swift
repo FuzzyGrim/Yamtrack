@@ -52,6 +52,7 @@ struct PersonDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: PersonDetailViewModel
     @State private var selectedRef: MediaRef?
+    @State private var edgeDragOffset: CGFloat = 0
 
     private let peopleRepository: PeopleRepository
     private let mediaRepository: MediaRepository
@@ -105,6 +106,13 @@ struct PersonDetailView: View {
         }
         .toolbar(.hidden, for: .tabBar)
         .navigationBarBackButtonHidden()
+        .offset(x: edgeDragOffset)
+        .overlay(alignment: .leading) {
+            Color.clear
+                .frame(width: 28)
+                .contentShape(Rectangle())
+                .gesture(edgeSwipeBackGesture)
+        }
         .fullScreenCover(item: $selectedRef, onDismiss: { selectedRef = nil }) { ref in
             MediaDetailView(
                 ref: ref,
@@ -124,6 +132,23 @@ struct PersonDetailView: View {
                 await viewModel.load()
             }
         }
+    }
+
+    private var edgeSwipeBackGesture: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .onChanged { value in
+                guard value.translation.width > 0 else { return }
+                edgeDragOffset = value.translation.width
+            }
+            .onEnded { value in
+                if value.translation.width > 90 {
+                    dismiss()
+                } else {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                        edgeDragOffset = 0
+                    }
+                }
+            }
     }
 
     @ViewBuilder
