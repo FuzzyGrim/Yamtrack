@@ -52,7 +52,6 @@ struct PersonDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: PersonDetailViewModel
     @State private var selectedRef: MediaRef?
-    @State private var isBiographyExpanded = false
 
     private let peopleRepository: PeopleRepository
     private let mediaRepository: MediaRepository
@@ -141,7 +140,7 @@ struct PersonDetailView: View {
                     filmographySection
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 74)
+                .padding(.top, 44)
                 .padding(.bottom, 36)
             }
             .scrollContentBackground(.hidden)
@@ -178,37 +177,40 @@ struct PersonDetailView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 12)
     }
 
     @ViewBuilder
     private func personChips(_ detail: PersonDetail) -> some View {
         let chips = metadataChips(detail)
         if !chips.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(chips, id: \.self) { chip in
-                        Text(chip)
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.82))
-                            .lineLimit(1)
-                            .padding(.horizontal, 11)
-                            .frame(height: 31)
-                            .background(.white.opacity(0.12), in: Capsule())
+            GeometryReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(chips, id: \.self) { chip in
+                            Text(chip)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.82))
+                                .lineLimit(1)
+                                .padding(.horizontal, 11)
+                                .frame(height: 31)
+                                .background(.white.opacity(0.12), in: Capsule())
+                        }
                     }
+                    .frame(minWidth: proxy.size.width)
+                }
+                .mask(alignment: .trailing) {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0),
+                            .init(color: .black, location: 0.9),
+                            .init(color: .clear, location: 1),
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
                 }
             }
-            .mask(alignment: .trailing) {
-                LinearGradient(
-                    stops: [
-                        .init(color: .black, location: 0),
-                        .init(color: .black, location: 0.9),
-                        .init(color: .clear, location: 1),
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            }
+            .frame(height: 31)
         }
     }
 
@@ -217,22 +219,7 @@ struct PersonDetailView: View {
         if let biography = clean(detail.biography) {
             VStack(alignment: .leading, spacing: 12) {
                 PersonSectionLabel(title: "Biography")
-                Text(biography)
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.78))
-                    .lineSpacing(3)
-                    .lineLimit(isBiographyExpanded ? nil : 5)
-
-                if biography.count > 280 {
-                    Button(isBiographyExpanded ? "Less" : "More") {
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            isBiographyExpanded.toggle()
-                        }
-                    }
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-                    .buttonStyle(.plain)
-                }
+                PersonBiographyCard(text: biography)
             }
         }
     }
@@ -287,9 +274,6 @@ struct PersonDetailView: View {
         if let place = clean(detail.placeOfBirth) {
             chips.append(place)
         }
-        if let popularity = detail.popularity {
-            chips.append(String(format: "Popularity %.1f", popularity))
-        }
         return chips
     }
 
@@ -338,6 +322,85 @@ private struct PersonProfileImage: View {
             return nil
         }
         return URL(string: urlString)
+    }
+}
+
+private struct PersonBiographyCard: View {
+    let text: String
+    @State private var isExpanded = false
+    @State private var truncatedHeight: CGFloat = 0
+    @State private var fullHeight: CGFloat = 0
+
+    private var canExpand: Bool {
+        fullHeight > truncatedHeight + 1
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text)
+                .font(biographyFont)
+                .foregroundStyle(.white.opacity(0.9))
+                .lineSpacing(2)
+                .lineLimit(isExpanded ? nil : 3)
+                .background {
+                    measuredText(lineLimit: 3, key: PersonBiographyTruncatedHeightKey.self)
+                }
+                .background {
+                    measuredText(lineLimit: nil, key: PersonBiographyFullHeightKey.self)
+                }
+
+            if canExpand {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    Label(isExpanded ? "READ LESS" : "READ MORE", systemImage: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(.white.opacity(0.62))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 8))
+        .onPreferenceChange(PersonBiographyTruncatedHeightKey.self) { truncatedHeight = $0 }
+        .onPreferenceChange(PersonBiographyFullHeightKey.self) { fullHeight = $0 }
+    }
+
+    private func measuredText<Key: PreferenceKey>(lineLimit: Int?, key: Key.Type) -> some View where Key.Value == CGFloat {
+        Text(text)
+            .font(biographyFont)
+            .lineSpacing(2)
+            .lineLimit(lineLimit)
+            .fixedSize(horizontal: false, vertical: true)
+            .background {
+                GeometryReader { proxy in
+                    Color.clear.preference(key: key, value: proxy.size.height)
+                }
+            }
+            .hidden()
+    }
+
+    private var biographyFont: Font {
+        .system(size: 14, weight: .semibold)
+    }
+}
+
+private struct PersonBiographyTruncatedHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+private struct PersonBiographyFullHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 

@@ -22,7 +22,7 @@ struct ProgressDeltaChipView: View {
     let delta: ProgressChangeDisplay
 
     var body: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 3) {
             Text(delta.previous)
             Image(systemName: "arrow.right")
                 .font(.system(size: 9, weight: .black))

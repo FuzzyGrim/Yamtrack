@@ -221,10 +221,6 @@ def person_detail(*, source, person_id, request=None, user=None):
 
     person = provider_services.get_person_page(source, person_id)
     person_credits = person.get("credits") or []
-    person_credits = sorted(
-        person_credits,
-        key=lambda credit: (-float(credit.get("popularity") or 0), credit.get("title") or ""),
-    )
     return {
         "id": str(person.get("person_id") or person_id),
         "source": source,
