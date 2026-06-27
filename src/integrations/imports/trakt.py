@@ -311,6 +311,12 @@ class TraktImporter:
                         watched_at,
                     )
                     self.process_watched_episode(entry)
+            except services.ProviderAPIError as e:
+                entry_data = entry.get("movie", entry.get("show", {}))
+                title = entry_data.get("title", "unknown")
+                msg = f"{title}: Skipped — provider API error ({e})"
+                logger.warning(msg)
+                self.warnings.append(msg)
             except Exception as e:
                 msg = f"Error processing history entry: {entry}"
                 raise MediaImportUnexpectedError(msg) from e
