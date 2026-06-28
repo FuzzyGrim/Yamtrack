@@ -868,7 +868,7 @@ struct MediaDetailView: View {
     }
 
     private func backdropURLString(for detail: MediaDetail) -> String? {
-        return detail.customBackdropUrl ?? detail.backdropUrl
+        return detail.displayBackdropURL
     }
 
     private func heroHeight(for detail: MediaDetail) -> CGFloat {
@@ -1937,11 +1937,11 @@ private struct HeroArtwork: View {
     }
 
     private var artworkURL: URL? {
-        return URL(string: detail.customBackdropUrl ?? detail.backdropUrl ?? detail.displayPosterURL ?? "")
+        return URL(string: detail.displayBackdropURL ?? detail.displayPosterURL ?? "")
     }
 
     private var usesPosterFallback: Bool {
-        detail.backdropUrl == nil && detail.customBackdropUrl == nil && detail.displayPosterURL != nil
+        detail.displayBackdropURL == nil && detail.displayPosterURL != nil
     }
 
     private var blurRadius: CGFloat {

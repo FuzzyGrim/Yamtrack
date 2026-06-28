@@ -72,7 +72,7 @@ final class BackdropPickerViewModel {
         defer { isLoading = false }
 
         do {
-            backdrops = try await mediaRepository.backdrops(ref: ref)
+            backdrops = try await mediaRepository.backdrops(ref: ref).pinningCurrentFirst()
             selectedBackdropURL = backdrops.first(where: \.isSelected)?.url ?? backdrops.first?.url
         } catch {
             errorMessage = error.localizedDescription
@@ -97,6 +97,16 @@ final class BackdropPickerViewModel {
                 onUnauthorized()
             }
         }
+    }
+}
+
+private extension Array where Element == PosterOption {
+    func pinningCurrentFirst() -> [PosterOption] {
+        guard let selectedIndex = firstIndex(where: \.isSelected), selectedIndex != startIndex else { return self }
+        var options = self
+        let selected = options.remove(at: selectedIndex)
+        options.insert(selected, at: startIndex)
+        return options
     }
 }
 

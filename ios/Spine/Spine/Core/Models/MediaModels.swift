@@ -28,6 +28,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
     let posterUrl: String?
     let customPosterUrl: String?
     let backdropUrl: String?
+    let customBackdropUrl: String?
     let posterOrientation: PosterOrientation?
     let posterAspectRatio: Double?
     let posterWidth: Int?
@@ -48,6 +49,10 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         customPosterUrl ?? posterUrl ?? imageUrl
     }
 
+    var displayBackdropURL: String? {
+        customBackdropUrl ?? backdropUrl
+    }
+
     enum CodingKeys: String, CodingKey {
         case ref
         case title
@@ -57,6 +62,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         case posterUrl
         case customPosterUrl
         case backdropUrl
+        case customBackdropUrl
         case posterOrientation
         case posterAspectRatio
         case posterWidth
@@ -81,6 +87,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         posterUrl: String? = nil,
         customPosterUrl: String? = nil,
         backdropUrl: String? = nil,
+        customBackdropUrl: String? = nil,
         posterOrientation: PosterOrientation? = nil,
         posterAspectRatio: Double? = nil,
         posterWidth: Int? = nil,
@@ -103,6 +110,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
         self.posterUrl = posterUrl ?? imageUrl
         self.customPosterUrl = customPosterUrl
         self.backdropUrl = backdropUrl
+        self.customBackdropUrl = customBackdropUrl
         self.posterOrientation = posterOrientation
         self.posterAspectRatio = posterAspectRatio
         self.posterWidth = posterWidth
@@ -130,6 +138,7 @@ struct MediaSummary: Codable, Identifiable, Hashable {
             posterUrl: try container.decodeIfPresent(String.self, forKey: .posterUrl) ?? imageUrl,
             customPosterUrl: try container.decodeIfPresent(String.self, forKey: .customPosterUrl),
             backdropUrl: try container.decodeIfPresent(String.self, forKey: .backdropUrl),
+            customBackdropUrl: try container.decodeIfPresent(String.self, forKey: .customBackdropUrl),
             posterOrientation: try container.decodeIfPresent(PosterOrientation.self, forKey: .posterOrientation),
             posterAspectRatio: try container.decodeIfPresent(Double.self, forKey: .posterAspectRatio),
             posterWidth: try container.decodeIfPresent(Int.self, forKey: .posterWidth),
@@ -263,6 +272,10 @@ struct MediaDetail: Decodable, Identifiable {
 
     var displayPosterURL: String? {
         customPosterUrl ?? posterUrl ?? imageUrl
+    }
+
+    var displayBackdropURL: String? {
+        customBackdropUrl ?? backdropUrl
     }
 
     enum CodingKeys: String, CodingKey {

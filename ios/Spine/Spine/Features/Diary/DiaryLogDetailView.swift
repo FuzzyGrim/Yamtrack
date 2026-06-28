@@ -562,7 +562,7 @@ private struct DiaryLogHeroArtwork: View {
 
     private var backdropURL: String? {
         guard ["movie", "tv"].contains(entry.media.ref.mediaType) else { return nil }
-        return detail?.customBackdropUrl ?? detail?.backdropUrl
+        return detail?.displayBackdropURL
     }
 
     private var usesBackdrop: Bool {

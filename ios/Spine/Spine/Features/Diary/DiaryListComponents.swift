@@ -17,20 +17,30 @@ struct DiaryEntryList<Destination: View>: View {
 
     var body: some View {
         ForEach(monthSections) { section in
-            VStack(spacing: 0) {
-                DiaryMonthHeader(title: section.title)
-
-                ForEach(section.entries) { entry in
-                    NavigationLink {
-                        destination(entry)
-                    } label: {
-                        DiaryEntryRow(entry: entry, artworkOverride: artworkOverride)
+            Section {
+                VStack(spacing: 0) {
+                    ForEach(section.entries) { entry in
+                        NavigationLink {
+                            destination(entry)
+                        } label: {
+                            DiaryEntryRow(entry: entry, artworkOverride: artworkOverride)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .clipShape(UnevenRoundedRectangle(
+                    cornerRadii: RectangleCornerRadii(
+                        topLeading: 0,
+                        bottomLeading: 16,
+                        bottomTrailing: 16,
+                        topTrailing: 0
+                    ),
+                    style: .continuous
+                ))
+                .padding(.bottom, 14)
+            } header: {
+                DiaryMonthHeader(title: section.title)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(.bottom, 14)
         }
     }
 
@@ -78,6 +88,15 @@ struct DiaryMonthHeader: View {
                     .fill(.white.opacity(0.08))
                     .frame(height: 1)
             }
+            .clipShape(UnevenRoundedRectangle(
+                cornerRadii: RectangleCornerRadii(
+                    topLeading: 16,
+                    bottomLeading: 0,
+                    bottomTrailing: 0,
+                    topTrailing: 16
+                ),
+                style: .continuous
+            ))
     }
 }
 

@@ -87,7 +87,7 @@ struct MediaDiaryView: View {
                 SpinePageBackground()
 
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(alignment: .leading, spacing: 0) {
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
                         header
 
                         if viewModel.isLoading {
@@ -128,6 +128,9 @@ struct MediaDiaryView: View {
                 .refreshable {
                     await viewModel.load()
                 }
+            }
+            .overlay(alignment: .top) {
+                DiaryTopSafeAreaScrim()
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar(.hidden, for: .navigationBar)
@@ -234,7 +237,7 @@ struct DiaryView: View {
                 SpinePageBackground()
 
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(alignment: .leading, spacing: 0) {
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
                         header
 
                         if viewModel.isLoading {
@@ -276,6 +279,9 @@ struct DiaryView: View {
                     await viewModel.load()
                 }
             }
+            .overlay(alignment: .top) {
+                DiaryTopSafeAreaScrim()
+            }
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(.hidden, for: .navigationBar)
             .task {
@@ -304,5 +310,17 @@ struct DiaryView: View {
                 .foregroundStyle(.white.opacity(0.58))
         }
         .padding(.bottom, 14)
+    }
+}
+
+private struct DiaryTopSafeAreaScrim: View {
+    var body: some View {
+        GeometryReader { proxy in
+            Color(red: 0.07, green: 0.07, blue: 0.065)
+                .frame(height: proxy.safeAreaInsets.top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea(edges: .top)
+        }
+        .allowsHitTesting(false)
     }
 }

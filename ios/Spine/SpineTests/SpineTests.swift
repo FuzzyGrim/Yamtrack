@@ -25,6 +25,32 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(theme.gradientColors.count, 2)
     }
 
+    func testCustomListReorderMathClampsAndMapsDestinations() {
+        XCTAssertEqual(CustomListReorderMath.destination(from: 1, translation: 10, count: 4, rowHeight: 10), 3)
+        XCTAssertEqual(CustomListReorderMath.destination(from: 2, translation: -10, count: 4, rowHeight: 10), 1)
+        XCTAssertEqual(CustomListReorderMath.destination(from: 0, translation: -999, count: 4, rowHeight: 10), 0)
+        XCTAssertEqual(CustomListReorderMath.destination(from: 2, translation: 999, count: 4, rowHeight: 10), 4)
+        XCTAssertEqual(CustomListReorderMath.clampedTranslation(999, sourceIndex: 1, count: 3, rowHeight: 10), 10)
+        XCTAssertEqual(CustomListReorderMath.targetIndex(from: 1, translation: 15, count: 4, rowHeight: 10), 3)
+        XCTAssertEqual(CustomListReorderMath.rowOffset(for: 2, sourceIndex: 1, targetIndex: 3, activeTranslation: 20, rowHeight: 10), -10)
+        XCTAssertEqual(CustomListReorderMath.rowOffset(for: 1, sourceIndex: 2, targetIndex: 0, activeTranslation: -20, rowHeight: 10), 10)
+        XCTAssertEqual(CustomListReorderMath.rowOffset(for: 2, sourceIndex: 2, targetIndex: 0, activeTranslation: -20, rowHeight: 10), -20)
+    }
+
+    func testCustomListBackdropSelectionUsesFirstMovieOrTVBackdrop() {
+        let book = mediaSummary(id: "book", mediaType: "book", backdropURL: "https://example.com/book.jpg")
+        let movie = mediaSummary(id: "movie", mediaType: "movie", backdropURL: "https://example.com/movie.jpg")
+        let tv = mediaSummary(id: "tv", mediaType: "tv", backdropURL: "https://example.com/tv.jpg", customBackdropURL: "https://example.com/custom-tv.jpg")
+
+        XCTAssertEqual(CustomListBackdropSelection.artworkURL(from: [book, movie, tv]), "https://example.com/movie.jpg")
+        XCTAssertNil(CustomListBackdropSelection.artworkURL(from: [book]))
+        XCTAssertEqual(CustomListBackdropSelection.artworkURL(from: [tv]), "https://example.com/custom-tv.jpg")
+        XCTAssertEqual(
+            CustomListBackdropSelection.artworkURL(from: [mediaSummary(id: "movie", mediaType: "movie", backdropURL: nil)]),
+            nil
+        )
+    }
+
     @MainActor
     func testSearchLensMediaTypesExcludeEpisodesAndSeasons() {
         let types = SearchViewModel.lensMediaTypes(from: ["movie", "episode", "season", "book"])
@@ -1022,6 +1048,64 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(customDetail.logoWidth, 1493)
         XCTAssertEqual(customDetail.logoHeight, 482)
         XCTAssertEqual(customDetail.logoAspectRatio, 3.1)
+    }
+
+    func testMediaDetailDisplayBackdropUsesCustomThenResolvedDefault() throws {
+        let resolvedDefault = """
+        {
+          "ref": {
+            "item_id": null,
+            "source": "tmdb",
+            "media_type": "movie",
+            "media_id": "550",
+            "season_number": null,
+            "episode_number": null
+          },
+          "title": "Movie",
+          "backdrop_url": "https://example.com/resolved-default.jpg",
+          "custom_backdrop_url": null
+        }
+        """.data(using: .utf8)!
+        let custom = """
+        {
+          "ref": {
+            "item_id": null,
+            "source": "tmdb",
+            "media_type": "movie",
+            "media_id": "550",
+            "season_number": null,
+            "episode_number": null
+          },
+          "title": "Movie",
+          "backdrop_url": "https://example.com/resolved-default.jpg",
+          "custom_backdrop_url": "https://example.com/custom.jpg"
+        }
+        """.data(using: .utf8)!
+
+        let defaultDetail = try JSONDecoder.api.decode(MediaDetail.self, from: resolvedDefault)
+        let customDetail = try JSONDecoder.api.decode(MediaDetail.self, from: custom)
+
+        XCTAssertEqual(defaultDetail.displayBackdropURL, "https://example.com/resolved-default.jpg")
+        XCTAssertEqual(customDetail.displayBackdropURL, "https://example.com/custom.jpg")
+    }
+
+    func testMediaDetailReplacingBackdropPreservesDefaultAndSetsCustom() {
+        let detail = MediaDetail(
+            ref: MediaRef(itemId: nil, source: "tmdb", mediaType: "movie", mediaId: "550", seasonNumber: nil, episodeNumber: nil),
+            title: "Movie",
+            backdropUrl: "https://example.com/resolved-default.jpg"
+        )
+
+        let updated = detail.replacingBackdrop(
+            with: BackdropSaveResponse(
+                backdropUrl: "https://example.com/saved.jpg",
+                customBackdropUrl: "https://example.com/saved.jpg"
+            )
+        )
+
+        XCTAssertEqual(updated.backdropUrl, "https://example.com/resolved-default.jpg")
+        XCTAssertEqual(updated.customBackdropUrl, "https://example.com/saved.jpg")
+        XCTAssertEqual(updated.displayBackdropURL, "https://example.com/saved.jpg")
     }
 
     func testTitleLogoSupportRequiresTmdbMovieOrTVWithLogo() {
@@ -3175,14 +3259,14 @@ final class SpineTests: XCTestCase {
 
         XCTAssertEqual(viewModel.selectedLanguage, "all")
         XCTAssertEqual(viewModel.filteredBackdrops.map(\.url), [
-            "https://example.com/backdrop-en.jpg",
             "https://example.com/backdrop-fr.jpg",
+            "https://example.com/backdrop-en.jpg",
             "https://example.com/backdrop-no-language.jpg",
         ])
-        XCTAssertEqual(viewModel.selectedBackdropURL, "https://example.com/backdrop-en.jpg")
+        XCTAssertEqual(viewModel.selectedBackdropURL, "https://example.com/backdrop-fr.jpg")
 
         viewModel.selectedLanguage = "none"
-        XCTAssertEqual(viewModel.filteredBackdrops.map(\.url), ["https://example.com/backdrop-en.jpg", "https://example.com/backdrop-no-language.jpg"])
+        XCTAssertEqual(viewModel.filteredBackdrops.map(\.url), ["https://example.com/backdrop-fr.jpg", "https://example.com/backdrop-no-language.jpg"])
 
         viewModel.selectedBackdropURL = "https://example.com/backdrop-no-language.jpg"
         await viewModel.save()
@@ -3678,6 +3762,16 @@ private func libraryItem(
             notes: nil,
             updatedAt: updatedAt
         )
+    )
+}
+
+private func mediaSummary(id: String, mediaType: String, backdropURL: String?, customBackdropURL: String? = nil) -> MediaSummary {
+    MediaSummary(
+        ref: MediaRef(itemId: nil, source: "tmdb", mediaType: mediaType, mediaId: id, seasonNumber: nil, episodeNumber: nil),
+        title: id,
+        posterUrl: "https://example.com/\(id)-poster.jpg",
+        backdropUrl: backdropURL,
+        customBackdropUrl: customBackdropURL
     )
 }
 
@@ -4341,7 +4435,7 @@ private struct PosterFixtureRepository: MediaRepository {
                 voteCount: 10,
                 language: "en",
                 isOriginal: false,
-                isSelected: true
+                isSelected: false
             ),
             PosterOption(
                 url: "https://example.com/backdrop-fr.jpg",
@@ -4353,7 +4447,7 @@ private struct PosterFixtureRepository: MediaRepository {
                 voteCount: 5,
                 language: "fr",
                 isOriginal: false,
-                isSelected: false
+                isSelected: true
             ),
             PosterOption(
                 url: "https://example.com/backdrop-no-language.jpg",
