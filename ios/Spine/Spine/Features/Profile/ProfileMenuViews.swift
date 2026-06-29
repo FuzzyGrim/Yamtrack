@@ -942,6 +942,7 @@ private struct ProfileListDetailView: View {
                             .padding(.top, 12)
                     } else if let list = viewModel.list {
                         listHeader(list)
+                            .padding(.top, -topSafeAreaInset)
                         if list.items.isEmpty {
                             DiaryStateCard(title: "No items yet", systemImage: "square.grid.2x2", message: "Add items from any media detail page.")
                                 .padding(.horizontal, 14)
@@ -959,7 +960,7 @@ private struct ProfileListDetailView: View {
             .scrollContentBackground(.hidden)
             .ignoresSafeArea(edges: .top)
         }
-        .navigationTitle(viewModel.list?.name ?? "List")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -1031,14 +1032,21 @@ private struct ProfileListDetailView: View {
             listHeaderText(list)
                 .padding(.horizontal, 18)
                 .padding(.bottom, 20)
-                .padding(.top, backdropURL == nil ? 18 : topSafeAreaInset + 136)
+                .padding(.top, backdropURL == nil ? 18 : topSafeAreaInset + 112)
         }
-        .frame(maxWidth: .infinity, minHeight: backdropURL == nil ? nil : topSafeAreaInset + 312, alignment: .bottomLeading)
-        .padding(.top, backdropURL == nil ? 12 : 0)
+        .frame(maxWidth: .infinity, minHeight: backdropURL == nil ? nil : topSafeAreaInset + 308, alignment: .bottomLeading)
+        .padding(.top, 10)
     }
 
     private func listHeaderText(_ list: CustomListDetail) -> some View {
         VStack(alignment: .leading, spacing: 7) {
+            Text(list.name)
+                .font(.system(size: 34, weight: .black))
+                .foregroundStyle(.white)
+                .lineLimit(3)
+                .minimumScaleFactor(0.72)
+                .shadow(color: .black.opacity(0.35), radius: 14, y: 8)
+
             HStack(spacing: 8) {
                 Text("\(list.itemsCount.formatted()) items")
                     .font(.system(size: 12, weight: .heavy))
@@ -1053,13 +1061,6 @@ private struct ProfileListDetailView: View {
                         .background(.white.opacity(0.13), in: Capsule())
                 }
             }
-
-            Text(list.name)
-                .font(.system(size: 34, weight: .black))
-                .foregroundStyle(.white)
-                .lineLimit(3)
-                .minimumScaleFactor(0.72)
-                .shadow(color: .black.opacity(0.35), radius: 14, y: 8)
 
             let description = list.description.trimmingCharacters(in: .whitespacesAndNewlines)
             if !description.isEmpty {
