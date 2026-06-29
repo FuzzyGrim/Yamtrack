@@ -58,6 +58,7 @@ def list_payload(custom_list, request=None, *, include_items=False, include_prev
                 list_item.item,
                 request=request,
                 user=request.user,
+                include_resolved_backdrop=True,
             )
             item["position"] = list_item.position
             items.append(item)

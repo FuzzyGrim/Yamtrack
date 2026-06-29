@@ -156,6 +156,28 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(result["preview_items"][-1]["title"], "Preview 01")
         self.assertEqual(result["preview_items"][0]["poster_url"], result["preview_items"][0]["image_url"])
 
+    @patch("app.providers.services.get_media_metadata")
+    def test_list_items_include_same_user_backdrop_as_media_detail(self, metadata_mock):
+        user = get_user_model().objects.create_user(username="list-backdrop", password="strong-password-123")
+        custom_list = CustomList.objects.create(owner=user, name="Watchlist")
+        item = self._create_movie_items(1, title_prefix="Backdrop", media_id_prefix="backdrop")[0]
+        CustomListItem.objects.create(custom_list=custom_list, item=item)
+        CustomBackdropPreference.objects.create(
+            user=user,
+            item=item,
+            custom_image_url="https://example.com/custom-backdrop.jpg",
+        )
+        metadata_mock.return_value = {"backdrop_path": "/default-backdrop.jpg"}
+        self.client.force_authenticate(user)
+
+        response = self.client.get(f"/api/v1/lists/{custom_list.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        media = response.data["items"][0]
+        self.assertIsNone(media["backdrop_url"])
+        self.assertEqual(media["custom_backdrop_url"], "https://example.com/custom-backdrop.jpg")
+        metadata_mock.assert_not_called()
+
     def test_ranked_list_reorder_updates_positions(self):
         user = get_user_model().objects.create_user(username="list-reorder", password="strong-password-123")
         custom_list = CustomList.objects.create(owner=user, name="Ranked", is_ranked=True)

@@ -187,20 +187,51 @@ def get_or_create_item_from_metadata(ref, metadata):
     return item
 
 
-def media_summary_from_item(item, request=None, user=None):
+def media_summary_from_item(item, request=None, user=None, include_resolved_backdrop=False):
     """Serialize an Item into the common media summary shape."""
+    artwork = artwork_from_item(item, request=request)
+    if include_resolved_backdrop:
+        default_backdrop_url, custom_backdrop_url = resolved_item_backdrop_urls(item, request=request, user=user)
+        artwork["backdrop_url"] = default_backdrop_url
+    else:
+        custom_backdrop_url = custom_backdrop_url_for_user(user, media_ref_from_item(item), request=request) if user else None
     return {
         "ref": media_ref_from_item(item),
         "title": item.title,
         "subtitle": None,
         "overview": None,
-        **artwork_from_item(item, request=request),
+        **artwork,
         "poster_accent_color": item.poster_accent_color or None,
         "release_date": None,
         "default_source": item.source,
         "custom_poster_url": custom_poster_url_for_user(user, media_ref_from_item(item), request=request) if user else None,
+        "custom_backdrop_url": custom_backdrop_url,
         "user_state": user_state_for_item(user, item) if user else None,
     }
+
+
+def resolved_item_backdrop_urls(item, request=None, user=None):
+    """Return the same default/custom backdrop pair used by media detail."""
+    custom_backdrop_url = custom_backdrop_url_for_user(user, media_ref_from_item(item), request=request) if user else None
+    if custom_backdrop_url:
+        return None, custom_backdrop_url
+
+    if item.media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+        return None, custom_backdrop_url
+
+    from api.services.media import resolved_backdrop_urls
+    from app.providers import services as provider_services
+
+    metadata = provider_services.get_media_metadata(item.media_type, item.media_id, item.source)
+    return resolved_backdrop_urls(
+        source=item.source,
+        media_type=item.media_type,
+        media_id=item.media_id,
+        metadata=metadata,
+        request=request,
+        user=user,
+        item=item,
+    )
 
 
 def synopsis_from_payload(payload):
