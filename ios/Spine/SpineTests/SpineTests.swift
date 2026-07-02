@@ -1360,6 +1360,52 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(change.compactDisplayText(preferredMode: .percentage), "40% → 58%")
     }
 
+    func testProgressDeltaTextFormatting() {
+        let percentage = ProgressChangeState(
+            id: 1,
+            previous: ProgressState(kind: "percentage", value: Decimal(96), max: Decimal(100), unit: "percent"),
+            current: ProgressState(kind: "percentage", value: Decimal(98), max: Decimal(100), unit: "percent"),
+            createdAt: nil
+        )
+        let pages = ProgressChangeState(
+            id: 2,
+            previous: ProgressState(kind: "pages", value: Decimal(120), max: Decimal(300), unit: "page"),
+            current: ProgressState(kind: "pages", value: Decimal(220), max: Decimal(300), unit: "page"),
+            createdAt: nil
+        )
+        let singlePage = ProgressChangeState(
+            id: 3,
+            previous: ProgressState(kind: "pages", value: Decimal(120), max: Decimal(300), unit: "page"),
+            current: ProgressState(kind: "pages", value: Decimal(121), max: Decimal(300), unit: "page"),
+            createdAt: nil
+        )
+        let negativeMinutes = ProgressChangeState(
+            id: 4,
+            previous: ProgressState(kind: "minutes", value: Decimal(25), max: nil, unit: "minute"),
+            current: ProgressState(kind: "minutes", value: Decimal(20), max: nil, unit: "minute"),
+            createdAt: nil
+        )
+        let unchanged = ProgressChangeState(
+            id: 5,
+            previous: ProgressState(kind: "percentage", value: Decimal(98), max: Decimal(100), unit: "percent"),
+            current: ProgressState(kind: "percentage", value: Decimal(98), max: Decimal(100), unit: "percent"),
+            createdAt: nil
+        )
+        let missing = ProgressChangeState(
+            id: 6,
+            previous: ProgressState(kind: "pages", value: nil, max: Decimal(300), unit: "page"),
+            current: ProgressState(kind: "pages", value: Decimal(121), max: Decimal(300), unit: "page"),
+            createdAt: nil
+        )
+
+        XCTAssertEqual(percentage.compactDeltaText(preferredMode: nil), "+2%")
+        XCTAssertEqual(pages.compactDeltaText(preferredMode: .pages), "+100 pages")
+        XCTAssertEqual(singlePage.compactDeltaText(preferredMode: .pages), "+1 page")
+        XCTAssertEqual(negativeMinutes.compactDeltaText(preferredMode: nil), "-5 minutes")
+        XCTAssertNil(unchanged.compactDeltaText(preferredMode: nil))
+        XCTAssertNil(missing.compactDeltaText(preferredMode: nil))
+    }
+
     func testProfileRecentActivityRailMetadata() {
         let diary = activityItem(
             id: 1,
@@ -1384,8 +1430,8 @@ final class SpineTests: XCTestCase {
         XCTAssertEqual(ProfileRecentActivityRailModel.rating(for: diary), "9.0")
         XCTAssertTrue(ProfileRecentActivityRailModel.isLikedDiary(diary))
         XCTAssertEqual(
-            ProfileRecentActivityRailModel.progressDelta(for: progress, media: railItems[1].media),
-            ProgressChangeDisplay(previous: "96%", current: "98%")
+            ProfileRecentActivityRailModel.progressDeltaText(for: progress, media: railItems[1].media),
+            "+2%"
         )
     }
 

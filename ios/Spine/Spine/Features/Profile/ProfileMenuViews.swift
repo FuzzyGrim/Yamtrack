@@ -895,6 +895,7 @@ private struct ProfileListDetailView: View {
     @State private var presentedForm: CustomListFormMode?
     @State private var isDeleteAlertPresented = false
     @State private var topSafeAreaInset: CGFloat = 0
+    @State private var edgeDragOffset: CGFloat = 0
 
     private let listRepository: ListRepository
     private let mediaRepository: MediaRepository
@@ -942,7 +943,7 @@ private struct ProfileListDetailView: View {
                             .padding(.top, 12)
                     } else if let list = viewModel.list {
                         listHeader(list)
-                            .padding(.top, -topSafeAreaInset)
+                            .padding(.top, -(topSafeAreaInset + 32))
                         if list.items.isEmpty {
                             DiaryStateCard(title: "No items yet", systemImage: "square.grid.2x2", message: "Add items from any media detail page.")
                                 .padding(.horizontal, 14)
@@ -959,34 +960,26 @@ private struct ProfileListDetailView: View {
             }
             .scrollContentBackground(.hidden)
             .ignoresSafeArea(edges: .top)
+
+            topButtons
+                .padding(.horizontal, 16)
+                .padding(.top, topSafeAreaInset + 6)
         }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden()
+        .toolbar(.hidden, for: .navigationBar)
+        .offset(x: edgeDragOffset)
+        .overlay(alignment: .leading) {
+            Color.clear
+                .frame(width: 28)
+                .contentShape(Rectangle())
+                .gesture(edgeSwipeBackGesture)
+        }
         .background {
             GeometryReader { proxy in
                 Color.clear.preference(key: ProfileListTopSafeAreaInsetKey.self, value: proxy.safeAreaInsets.top)
             }
         }
         .onPreferenceChange(ProfileListTopSafeAreaInsetKey.self) { topSafeAreaInset = $0 }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button("Edit List", systemImage: "slider.horizontal.3") {
-                        if let list = viewModel.list {
-                            presentedForm = .edit(list)
-                        }
-                    }
-                    Button("Delete List", systemImage: "trash", role: .destructive) {
-                        isDeleteAlertPresented = true
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                }
-                .disabled(viewModel.list == nil || viewModel.isSaving)
-            }
-        }
         .sheet(item: $presentedForm) { mode in
             CustomListFormSheet(
                 mode: mode,
@@ -1021,6 +1014,50 @@ private struct ProfileListDetailView: View {
         }
     }
 
+    private var edgeSwipeBackGesture: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .onChanged { value in
+                guard value.translation.width > 0 else { return }
+                edgeDragOffset = value.translation.width
+            }
+            .onEnded { value in
+                if value.translation.width > 90 {
+                    dismiss()
+                } else {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                        edgeDragOffset = 0
+                    }
+                }
+            }
+    }
+
+    private var topButtons: some View {
+        HStack {
+            ProfileListCircleIconButton(systemName: "chevron.left", label: "Back") {
+                dismiss()
+            }
+
+            Spacer()
+
+            if viewModel.list != nil {
+                Menu {
+                    Button("Edit List", systemImage: "slider.horizontal.3") {
+                        if let list = viewModel.list {
+                            presentedForm = .edit(list)
+                        }
+                    }
+                    Button("Delete List", systemImage: "trash", role: .destructive) {
+                        isDeleteAlertPresented = true
+                    }
+                } label: {
+                    ProfileListCircleIconLabel(systemName: "ellipsis")
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.isSaving)
+            }
+        }
+    }
+
     private func listHeader(_ list: CustomListDetail) -> some View {
         let backdropURL = CustomListBackdropSelection.artworkURL(from: list.items)
 
@@ -1034,8 +1071,7 @@ private struct ProfileListDetailView: View {
                 .padding(.bottom, 20)
                 .padding(.top, backdropURL == nil ? 18 : topSafeAreaInset + 112)
         }
-        .frame(maxWidth: .infinity, minHeight: backdropURL == nil ? nil : topSafeAreaInset + 308, alignment: .bottomLeading)
-        .padding(.top, 10)
+        .frame(maxWidth: .infinity, minHeight: backdropURL == nil ? nil : topSafeAreaInset + 340, alignment: .bottomLeading)
     }
 
     private func listHeaderText(_ list: CustomListDetail) -> some View {
@@ -1125,6 +1161,32 @@ private struct ProfileListTopSafeAreaInsetKey: PreferenceKey {
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+private struct ProfileListCircleIconButton: View {
+    let systemName: String
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ProfileListCircleIconLabel(systemName: systemName)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+}
+
+private struct ProfileListCircleIconLabel: View {
+    let systemName: String
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 17, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 38, height: 38)
+            .background(.black.opacity(0.34), in: Circle())
     }
 }
 

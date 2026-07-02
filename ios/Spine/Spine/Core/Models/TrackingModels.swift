@@ -120,6 +120,26 @@ extension ProgressChangeState {
         }
         return "\(parts.previous) → \(parts.current)"
     }
+
+    func compactDeltaText(preferredMode: ProgressUpdateMode?) -> String? {
+        let mode = preferredMode ?? current.mode
+        guard
+            let previousValue = previous.value(in: mode),
+            let currentValue = current.value(in: mode)
+        else {
+            return nil
+        }
+
+        let delta = currentValue - previousValue
+        guard delta != 0 else { return nil }
+
+        let prefix = delta > 0 ? "+" : ""
+        if mode == .percentage {
+            return "\(prefix)\(delta)%"
+        }
+        let unit = abs(delta) == 1 ? current.unit : current.pluralizedUnit
+        return "\(prefix)\(delta) \(unit)"
+    }
 }
 
 struct ProgressState: Codable, Hashable {
@@ -224,6 +244,10 @@ extension ProgressState {
             return unit
         }
         return "\(unit)s"
+    }
+
+    var pluralizedUnit: String {
+        unit.hasSuffix("s") ? unit : "\(unit)s"
     }
 
     private static func display(_ value: Decimal) -> String {

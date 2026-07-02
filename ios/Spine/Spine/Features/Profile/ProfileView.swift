@@ -1315,7 +1315,7 @@ enum ProfileRecentActivityRailModel {
         }
     }
 
-    static func progressDelta(for activity: ActivityItem, media: MediaSummary) -> ProgressChangeDisplay? {
+    static func progressDeltaText(for activity: ActivityItem, media: MediaSummary) -> String? {
         guard
             activity.type == "progress_updated",
             let previous = activity.object.previous,
@@ -1330,7 +1330,7 @@ enum ProfileRecentActivityRailModel {
             current: current,
             createdAt: activity.createdAt
         )
-        .compactDisplayParts(preferredMode: ProgressDisplayPreferences.mode(for: media.ref))
+        .compactDeltaText(preferredMode: ProgressDisplayPreferences.mode(for: media.ref))
     }
 
     static func rating(for activity: ActivityItem) -> String? {
@@ -1474,8 +1474,12 @@ private struct RecentActivityPoster: View {
 
     @ViewBuilder
     private var metadataLine: some View {
-        if let progressDelta = ProfileRecentActivityRailModel.progressDelta(for: item.activity, media: item.media) {
-            ProgressDeltaInlineView(delta: progressDelta)
+        if let progressDeltaText = ProfileRecentActivityRailModel.progressDeltaText(for: item.activity, media: item.media) {
+            Text(progressDeltaText)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white.opacity(0.54))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .frame(width: PosterSlot.diaryRow.size.width, height: 10, alignment: .leading)
         } else if ProfileRecentActivityRailModel.isDiary(item.activity),
                   ProfileRecentActivityRailModel.rating(for: item.activity) != nil || ProfileRecentActivityRailModel.isLikedDiary(item.activity) {

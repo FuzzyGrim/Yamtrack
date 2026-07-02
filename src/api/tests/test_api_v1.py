@@ -568,11 +568,26 @@ class ApiV1FoundationTests(TestCase):
                 "current": change.current_progress,
             },
         )
+        Activity.objects.create(
+            actor=user,
+            verb="diary_updated",
+            target_type="diary",
+            target_id=1,
+            item=item,
+        )
+        Activity.objects.create(
+            actor=user,
+            verb="list_item_added",
+            target_type="list",
+            target_id=1,
+            item=item,
+        )
         self.client.force_authenticate(user)
 
         response = self.client.get("/api/v1/users/progress-activity/activity/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
         activity = response.data["results"][0]
         self.assertEqual(activity["type"], "progress_updated")
         self.assertEqual(activity["object"]["type"], "progress_change")
@@ -825,7 +840,7 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(anime.status, Status.COMPLETED.value)
         self.assertEqual(anime.end_date, datetime(2025, 4, 5, tzinfo=UTC))
 
-    def test_diary_update_and_delete_emit_activity_and_audit(self):
+    def test_diary_update_emits_audit_not_recent_activity(self):
         user = get_user_model().objects.create_user(username="diary-social-log", password="strong-password-123")
         item = self._create_movie_items(1, title_prefix="Social Log", media_id_prefix="social-log")[0]
         entry = DiaryEntry.objects.create(user=user, item=item, consumed_at=datetime(2025, 1, 1, tzinfo=UTC))
@@ -837,10 +852,7 @@ class ApiV1FoundationTests(TestCase):
 
         self.assertEqual(patched.status_code, status.HTTP_200_OK)
         self.assertEqual(activity_response.status_code, status.HTTP_200_OK)
-        updated_activity = activity_response.data["results"][0]
-        self.assertEqual(updated_activity["type"], "diary_updated")
-        self.assertEqual(updated_activity["object"]["rating"], "7.0")
-        self.assertFalse(updated_activity["object"]["liked"])
+        self.assertEqual(activity_response.data["results"], [])
         self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Activity.objects.filter(actor=user, target_type="diary", target_id=entry.id).exists())
         self.assertTrue(SocialAuditLog.objects.filter(actor=user, action="diary_updated", target_id=entry.id).exists())

@@ -16,6 +16,8 @@ from social.models import (
     SocialAuditLog,
 )
 
+MEDIA_ACTIVITY_VERBS = ("diary_created", "progress_updated")
+
 
 def follow_user(actor, username):
     """Follow or request to follow a user."""
@@ -103,14 +105,19 @@ def feed_queryset(user):
         from_user=user,
         status=FollowStatus.ACCEPTED,
     ).values("to_user")
-    return _with_live_targets(Activity.objects.filter(actor__in=following)).select_related("actor", "item")
+    return _media_activity(Activity.objects.filter(actor__in=following)).select_related("actor", "item")
 
 
 def user_activity_queryset(viewer, target_user):
     """Return visible activity for a profile."""
     if not can_view_user_profile(viewer, target_user):
         return Activity.objects.none()
-    return _with_live_targets(Activity.objects.filter(actor=target_user)).select_related("actor", "item")
+    return _media_activity(Activity.objects.filter(actor=target_user)).select_related("actor", "item")
+
+
+def _media_activity(queryset):
+    """Recent activity is media activity, not every social object event."""
+    return _with_live_targets(queryset.filter(verb__in=MEDIA_ACTIVITY_VERBS, item__isnull=False))
 
 
 def _with_live_targets(queryset):
