@@ -52,6 +52,7 @@ struct PersonDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: PersonDetailViewModel
     @State private var selectedRef: MediaRef?
+    @State private var selectedFilmographyType: FilmographyType = .movie
     @State private var edgeDragOffset: CGFloat = 0
 
     private let peopleRepository: PeopleRepository
@@ -250,12 +251,26 @@ struct PersonDetailView: View {
     }
 
     private var filmographySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            PersonSectionLabel(title: "Filmography")
+        let filmography = viewModel.filmography.filter { $0.ref.mediaType == selectedFilmographyType.rawValue }
 
-            if viewModel.filmography.isEmpty {
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                PersonSectionLabel(title: "Filmography")
+
+                Spacer()
+
+                Picker("Filmography type", selection: $selectedFilmographyType) {
+                    ForEach(FilmographyType.allCases) { type in
+                        Text(type.title).tag(type)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+            }
+
+            if filmography.isEmpty {
                 ContentUnavailableView(
-                    "No filmography",
+                    "No \(selectedFilmographyType.title.lowercased())",
                     systemImage: "square.grid.2x2",
                     description: Text("TMDB credits will appear here when available.")
                 )
@@ -263,7 +278,7 @@ struct PersonDetailView: View {
                 .frame(maxWidth: .infinity, minHeight: 220)
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 10) {
-                    ForEach(viewModel.filmography) { media in
+                    ForEach(filmography) { media in
                         Button {
                             selectedRef = media.ref
                         } label: {
@@ -311,6 +326,22 @@ struct PersonDetailView: View {
 
     private func yearOrDate(_ value: String) -> String {
         value.count >= 4 ? String(value.prefix(4)) : value
+    }
+}
+
+private enum FilmographyType: String, CaseIterable, Identifiable {
+    case movie
+    case tv
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .movie:
+            "Film"
+        case .tv:
+            "TV"
+        }
     }
 }
 

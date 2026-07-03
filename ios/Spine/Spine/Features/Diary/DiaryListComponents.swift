@@ -215,7 +215,7 @@ struct DiaryEntryRow: View {
     }
 
     private var titleParts: (title: String, year: String?) {
-        let title = entry.media.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = entry.media.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard title.hasSuffix(")") else {
             return (title, nil)
         }

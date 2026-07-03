@@ -306,7 +306,7 @@ struct DiaryLogDetailView: View {
                         }
                     }
 
-                    let parts = titleParts(entry.media.title)
+                    let parts = titleParts(entry.media.displayTitle)
                     HStack(alignment: .firstTextBaseline, spacing: 7) {
                         Text(parts.title)
                             .font(.system(size: 31, weight: .black))
@@ -332,7 +332,7 @@ struct DiaryLogDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .onTapGesture { presentedRef = entry.media.ref }
-            .accessibilityLabel("View \(entry.media.title)")
+            .accessibilityLabel("View \(entry.media.displayTitle)")
             .accessibilityAddTraits(.isButton)
             .padding(.horizontal, 16)
             .padding(.bottom, 22)
@@ -431,7 +431,7 @@ struct DiaryLogDetailView: View {
     }
 
     private func heroMetadata(_ entry: DiaryEntry) -> String? {
-        var parts = [titleParts(entry.media.title).year, DiaryLogFormat.year(viewModel.mediaDetail?.releaseDate), detailString(viewModel.mediaDetail, "runtime")]
+        var parts = [titleParts(entry.media.displayTitle).year, DiaryLogFormat.year(viewModel.mediaDetail?.releaseDate), detailString(viewModel.mediaDetail, "runtime")]
             .compactMap { clean($0) }
         parts += detailArray(viewModel.mediaDetail, "genres").prefix(2)
         var seen = Set<String>()
@@ -733,7 +733,7 @@ private struct DiaryLogEditSheet: View {
                         .font(.system(size: 13, weight: .heavy))
                         .foregroundStyle(.white.opacity(0.56))
                         .textCase(.uppercase)
-                    Text(viewModel.entry.media.title)
+                    Text(viewModel.entry.media.displayTitle)
                         .font(.system(size: 28, weight: .heavy))
                         .foregroundStyle(.white)
                         .lineLimit(3)

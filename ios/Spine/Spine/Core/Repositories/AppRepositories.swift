@@ -320,8 +320,13 @@ struct APIMediaRepository: MediaRepository {
     }
 
     func posters(ref: MediaRef) async throws -> [PosterOption] {
+        var query: [URLQueryItem] = []
+        if ref.mediaType == "season", let seasonNumber = ref.seasonNumber {
+            query.append(URLQueryItem(name: "season_number", value: String(seasonNumber)))
+        }
         let response: PosterOptionsResponse = try await client.get(
             "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/posters/",
+            query: query,
             authenticated: true
         )
         return response.posters
@@ -330,7 +335,10 @@ struct APIMediaRepository: MediaRepository {
     func savePoster(ref: MediaRef, posterURL: String) async throws -> PosterSaveResponse {
         try await client.put(
             "/media/\(ref.source)/\(ref.mediaType)/\(ref.mediaId)/poster/",
-            body: PosterSaveRequest(posterUrl: posterURL),
+            body: PosterSaveRequest(
+                posterUrl: posterURL,
+                seasonNumber: ref.mediaType == "season" ? ref.seasonNumber : nil
+            ),
             authenticated: true
         )
     }

@@ -37,9 +37,9 @@ from app.utils.color import build_accent_palette, compute_and_store_poster_accen
 SEARCH_TTL = 60 * 60 * 6
 DISCOVER_TTL = 60 * 60 * 6
 DETAIL_TTL = 60 * 60 * 24
-DETAIL_CACHE_VERSION = "v6"
+DETAIL_CACHE_VERSION = "v7"
 POSTER_UNSUPPORTED_MESSAGE = (
-    "Poster customization is only available for TMDB movies/TV shows and Open Library/Hardcover books."
+    "Poster customization is only available for TMDB movies/TV shows/seasons and Open Library/Hardcover books."
 )
 logger = logging.getLogger(__name__)
 
@@ -256,7 +256,7 @@ def person_detail(*, source, person_id, request=None, user=None):
     }
 
 
-def poster_options(*, source, media_type, media_id, request=None, user=None):
+def poster_options(*, source, media_type, media_id, season_number=None, request=None, user=None):
     """Return selectable posters for supported media."""
     if _supports_book_posters(source, media_type):
         options = book_cover_options(
@@ -266,10 +266,11 @@ def poster_options(*, source, media_type, media_id, request=None, user=None):
             user=user,
         )
         return {"posters": options["posters"]}
-    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]:
+    if source != Sources.TMDB.value or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value]:
         raise ValueError(POSTER_UNSUPPORTED_MESSAGE)
+    season_number = _required_season_number(media_type, season_number)
 
-    item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
+    item = _customizable_item(source=source, media_type=media_type, media_id=media_id, season_number=season_number)
     from app.providers import tmdb
 
     current = CustomPosterPreference.objects.filter(user=user, item=item).first()
@@ -288,7 +289,7 @@ def poster_options(*, source, media_type, media_id, request=None, user=None):
     }
 
     posters = [original]
-    for poster in tmdb.get_poster_images(media_id, media_type):
+    for poster in tmdb.get_poster_images(media_id, media_type, season_number):
         if poster["url"] == item.image:
             continue
         posters.append(
@@ -302,17 +303,18 @@ def poster_options(*, source, media_type, media_id, request=None, user=None):
     return {"posters": posters}
 
 
-def save_poster_preference(*, source, media_type, media_id, poster_url, user):
+def save_poster_preference(*, source, media_type, media_id, poster_url, user, season_number=None):
     """Save a user's poster preference and update the stored item image/accent."""
     if (
         source != Sources.TMDB.value
-        or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value]
+        or media_type not in [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.SEASON.value]
     ) and not _supports_book_posters(source, media_type):
         raise ValueError(POSTER_UNSUPPORTED_MESSAGE)
+    season_number = _required_season_number(media_type, season_number)
     if not poster_url:
         raise ValueError("poster_url is required.")
 
-    item = _customizable_item(source=source, media_type=media_type, media_id=media_id)
+    item = _customizable_item(source=source, media_type=media_type, media_id=media_id, season_number=season_number)
     accent = compute_and_store_poster_accent(item, poster_url=poster_url, force=True)
     palette = build_accent_palette(accent)
     CustomPosterPreference.objects.update_or_create(
@@ -440,18 +442,39 @@ def save_backdrop_preference(*, source, media_type, media_id, backdrop_url, user
     }
 
 
-def _customizable_item(*, source, media_type, media_id):
-    item = Item.objects.filter(source=source, media_type=media_type, media_id=media_id).first()
+def _customizable_item(*, source, media_type, media_id, season_number=None):
+    item = Item.objects.filter(
+        source=source,
+        media_type=media_type,
+        media_id=media_id,
+        season_number=season_number,
+    ).first()
     if item is not None:
         return item
-    metadata = provider_services.get_media_metadata(media_type, media_id, source)
+    metadata = provider_services.get_media_metadata(
+        "tv_with_seasons" if media_type == MediaTypes.SEASON.value else media_type,
+        media_id,
+        source,
+        [season_number] if media_type == MediaTypes.SEASON.value else None,
+    )
+    if media_type == MediaTypes.SEASON.value:
+        metadata = metadata[f"season/{season_number}"]
     return Item.objects.create(
         media_id=media_id,
         source=source,
         media_type=media_type,
         title=metadata.get("title") or metadata.get("name") or media_id,
         image=metadata.get("image") or settings.IMG_NONE,
+        season_number=season_number,
     )
+
+
+def _required_season_number(media_type, season_number):
+    if media_type != MediaTypes.SEASON.value:
+        return None
+    if season_number in [None, ""]:
+        raise ValueError("season_number is required for season posters.")
+    return int(season_number)
 
 
 def _supports_book_posters(source, media_type):

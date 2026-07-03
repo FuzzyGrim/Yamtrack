@@ -17,6 +17,11 @@ struct MediaRef: Codable, Hashable, Identifiable {
             episodeNumber.map(String.init) ?? "_",
         ].joined(separator: ":")
     }
+
+    func displayTitle(_ title: String) -> String {
+        guard mediaType == "season", let seasonNumber else { return title }
+        return "\(title) S\(seasonNumber)"
+    }
 }
 
 struct MediaSummary: Codable, Identifiable, Hashable {
@@ -51,6 +56,10 @@ struct MediaSummary: Codable, Identifiable, Hashable {
 
     var displayBackdropURL: String? {
         customBackdropUrl ?? backdropUrl
+    }
+
+    var displayTitle: String {
+        ref.displayTitle(title)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -276,6 +285,10 @@ struct MediaDetail: Decodable, Identifiable {
 
     var displayBackdropURL: String? {
         customBackdropUrl ?? backdropUrl
+    }
+
+    var displayTitle: String {
+        ref.displayTitle(title)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -595,6 +608,7 @@ struct PosterOption: Codable, Identifiable, Equatable {
 
 struct PosterSaveRequest: Codable, Equatable {
     let posterUrl: String
+    let seasonNumber: Int?
 }
 
 struct PosterSaveResponse: Codable, Equatable {

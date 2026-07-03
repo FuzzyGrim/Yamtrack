@@ -85,6 +85,19 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["status"], "Ended")
         self.assertEqual(response["details"]["episodes"], 62)
 
+    def test_tmdb_crew_keeps_profile_image(self):
+        """Test grouped TMDB crew credits keep person images."""
+        credits = {
+            "crew": [
+                {"id": 1, "name": "Denis Villeneuve", "job": "Screenplay", "profile_path": "/denis.jpg"},
+                {"id": 1, "name": "Denis Villeneuve", "job": "Director", "profile_path": "/denis.jpg"},
+            ]
+        }
+
+        crew = tmdb.get_crew(credits)
+
+        self.assertEqual(crew[0]["image"], "https://image.tmdb.org/t/p/w500/denis.jpg")
+
     @patch("app.providers.tmdb.timezone.localdate")
     @patch("app.providers.tmdb.services.api_request")
     def test_tv_changes(self, mock_api_request, mock_localdate):

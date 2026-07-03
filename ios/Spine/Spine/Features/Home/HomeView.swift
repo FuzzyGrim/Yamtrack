@@ -516,7 +516,7 @@ private struct HomeActivityItemCard: View {
                             DiaryStarRating(rating: ratingText)
                         }
 
-                        Text(media.title)
+                        Text(media.displayTitle)
                             .font(.system(size: 16, weight: .heavy))
                             .foregroundStyle(.white)
                             .lineLimit(2)
@@ -644,7 +644,7 @@ private struct HomeActivityCard: View {
                         ratingLikeLine
                     }
 
-                    Text(entry.media.title)
+                    Text(entry.media.displayTitle)
                         .font(.system(size: 16, weight: .heavy))
                         .foregroundStyle(.white)
                         .lineLimit(2)

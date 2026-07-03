@@ -1432,7 +1432,7 @@ class ApiV1FoundationTests(TestCase):
             "genres": [{"name": "Drama"}, "Thriller"],
             "details": {"runtime": "2h 19m"},
             "cast": [{"person_id": 819, "name": "Edward Norton", "character": "Narrator", "image": "/ed.jpg"}],
-            "crew": [{"person_id": 7467, "name": "David Fincher", "roles": ["Director"], "job": "Director"}],
+            "crew": [{"person_id": 7467, "name": "David Fincher", "roles": ["Director"], "job": "Director", "image": "/fincher.jpg"}],
             "related": {
                 "Fight Club Collection": [
                     {
@@ -1504,6 +1504,7 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(response.data["details"]["genres"], ["Drama", "Thriller"])
         self.assertEqual(response.data["cast"][0]["name"], "Edward Norton")
         self.assertEqual(response.data["crew"][0]["role"], "Director")
+        self.assertEqual(response.data["crew"][0]["image_url"], "http://testserver/fincher.jpg")
         self.assertEqual(response.data["related_sections"][0]["id"], "collection")
         self.assertEqual(response.data["related_sections"][1]["items"][0]["title"], "Pulp Fiction")
         self.assertEqual(
@@ -2171,6 +2172,48 @@ class ApiV1FoundationTests(TestCase):
         )
         self.assertTrue(response.data["posters"][0]["is_original"])
 
+    @patch("app.providers.tmdb.get_poster_images")
+    def test_media_season_posters_endpoint_returns_original_and_alternates(self, posters_mock):
+        user = get_user_model().objects.create_user(username="seasonposter", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            media_id="1399",
+            title="Game of Thrones",
+            image="https://example.com/original-season.jpg",
+            season_number=1,
+        )
+        CustomPosterPreference.objects.create(
+            user=user,
+            item=item,
+            custom_image_url="https://example.com/alt-season.jpg",
+        )
+        posters_mock.return_value = [
+            {
+                "url": "https://example.com/alt-season.jpg",
+                "thumbnail_url": "https://example.com/alt-season-thumb.jpg",
+                "width": 1000,
+                "height": 1500,
+                "aspect_ratio": 0.667,
+                "vote_average": 8.5,
+                "vote_count": 20,
+                "language": "en",
+            },
+        ]
+
+        self.client.force_authenticate(user)
+        response = self.client.get("/api/v1/media/tmdb/season/1399/posters/?season_number=1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        posters_mock.assert_called_once_with("1399", MediaTypes.SEASON.value, 1)
+        self.assertEqual(
+            [poster["url"] for poster in response.data["posters"]],
+            ["https://example.com/original-season.jpg", "https://example.com/alt-season.jpg"],
+        )
+        self.assertTrue(response.data["posters"][0]["is_original"])
+        self.assertFalse(response.data["posters"][0]["is_selected"])
+        self.assertTrue(response.data["posters"][1]["is_selected"])
+
     @patch("api.services.media.provider_services.get_media_metadata")
     def test_media_book_posters_endpoint_returns_original_and_alternates(self, metadata_mock):
         user = get_user_model().objects.create_user(username="bookposter", password="strong-password-123")
@@ -2279,6 +2322,39 @@ class ApiV1FoundationTests(TestCase):
         self.assertEqual(
             CustomPosterPreference.objects.get(user=user, item=item).custom_image_url,
             "https://example.com/new-book.jpg",
+        )
+
+    @patch("api.services.media.build_accent_palette", return_value={"accent": "#abcdef", "contrast": "#000000"})
+    @patch("api.services.media.compute_and_store_poster_accent", return_value="#abcdef")
+    def test_media_season_poster_save_updates_preference_and_item(self, _accent_mock, _palette_mock):
+        user = get_user_model().objects.create_user(username="seasonposter2", password="strong-password-123")
+        item = Item.objects.create(
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            media_id="1399",
+            title="Game of Thrones",
+            image="https://example.com/original-season.jpg",
+            season_number=1,
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.put(
+            "/api/v1/media/tmdb/season/1399/poster/",
+            {
+                "poster_url": "https://example.com/new-season.jpg",
+                "season_number": 1,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["custom_poster_url"], "https://example.com/new-season.jpg")
+        item.refresh_from_db()
+        self.assertEqual(item.image, "https://example.com/new-season.jpg")
+        self.assertEqual(item.poster_accent_color, "#abcdef")
+        self.assertEqual(
+            CustomPosterPreference.objects.get(user=user, item=item).custom_image_url,
+            "https://example.com/new-season.jpg",
         )
 
     @patch("api.services.media.provider_services.get_media_metadata")

@@ -16,6 +16,7 @@ from app.providers.search_rank import rank_results
 logger = logging.getLogger(__name__)
 base_url = "https://api.themoviedb.org/3"
 NO_LOGO = "__no_logo__"
+DETAIL_CACHE_VERSION = "v2"
 base_params = {
     "api_key": settings.TMDB_API,
     "language": settings.TMDB_LANG,
@@ -300,6 +301,7 @@ def get_crew(credits, limit=15):
                 "rank": rank,
                 "order": order,
                 "person_id": member.get("id"),
+                "image": get_image_url(member.get("profile_path")),
             },
         )
 
@@ -324,6 +326,7 @@ def get_crew(credits, limit=15):
                 "roles": roles,
                 "person_id": entry.get("person_id"),
                 "job": (roles or [""])[0],
+                "image": entry.get("image"),
             }
         )
 
@@ -365,7 +368,7 @@ def get_creator_id(created_by):
 
 def movie(media_id):
     """Return the metadata for the selected movie from The Movie Database."""
-    cache_key = f"{Sources.TMDB.value}_{MediaTypes.MOVIE.value}_{media_id}"
+    cache_key = f"{Sources.TMDB.value}_{DETAIL_CACHE_VERSION}_{MediaTypes.MOVIE.value}_{media_id}"
     data = cache.get(cache_key)
 
     if data is None:
@@ -522,7 +525,7 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
         # Cache TV metadata if we haven't fetched it yet
         if fetched_tv_data is None:
             fetched_tv_data = process_tv(response)
-            tv_cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+            tv_cache_key = f"{Sources.TMDB.value}_{DETAIL_CACHE_VERSION}_{MediaTypes.TV.value}_{media_id}"
             cache.set(tv_cache_key, fetched_tv_data)
 
         # Process and cache each season
@@ -563,7 +566,7 @@ def tv_with_seasons(media_id, season_numbers):
     if not season_numbers:
         return tv(media_id)
 
-    tv_cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+    tv_cache_key = f"{Sources.TMDB.value}_{DETAIL_CACHE_VERSION}_{MediaTypes.TV.value}_{media_id}"
     tv_data = cache.get(tv_cache_key)
 
     cached_seasons, uncached_seasons = get_cached_seasons(media_id, season_numbers)
@@ -588,7 +591,7 @@ def tv_with_seasons(media_id, season_numbers):
 
 def tv(media_id):
     """Return the metadata for the selected tv show from The Movie Database."""
-    cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+    cache_key = f"{Sources.TMDB.value}_{DETAIL_CACHE_VERSION}_{MediaTypes.TV.value}_{media_id}"
     data = cache.get(cache_key)
 
     if data is None:

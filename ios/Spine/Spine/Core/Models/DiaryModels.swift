@@ -30,6 +30,10 @@ struct DiaryMedia: Codable {
         posterUrl ?? imageUrl
     }
 
+    var displayTitle: String {
+        ref.displayTitle(title)
+    }
+
     enum CodingKeys: String, CodingKey {
         case ref
         case title

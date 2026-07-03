@@ -259,7 +259,7 @@ private struct PresentedMediaDiary: Identifiable {
     let detail: MediaDetail
 
     var id: String { detail.ref.id }
-    var title: String { "\(detail.title) Logs" }
+    var title: String { "\(detail.displayTitle) Logs" }
 }
 
 private struct MediaDetailChip: Hashable, Identifiable {
@@ -273,7 +273,7 @@ private struct MediaDetailChip: Hashable, Identifiable {
 
 enum MediaArtworkCustomization {
     static func supportsPoster(source: String, mediaType: String) -> Bool {
-        if source == "tmdb", ["movie", "tv"].contains(mediaType) {
+        if source == "tmdb", ["movie", "tv", "season"].contains(mediaType) {
             return true
         }
         return mediaType == "book" && ["openlibrary", "hardcover"].contains(source)
@@ -429,8 +429,16 @@ struct MediaDetailView: View {
             case .posterMenu:
                 PosterMenuSheet(
                     posterLabel: canCustomizeBackdrop(viewModel.detail) ? "Customize Poster" : "Customize Cover",
+                    showsTVShowOption: parentTVRef(viewModel.detail) != nil,
                     showsPosterOption: canCustomizePoster(viewModel.detail),
                     showsBackdropOption: canCustomizeBackdrop(viewModel.detail),
+                    onViewTVShow: {
+                        guard let ref = parentTVRef(viewModel.detail) else { return }
+                        presentedSheet = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            presentedRef = ref
+                        }
+                    },
                     onAddToList: {
                         presentedSheet = .addToList
                     },
@@ -651,9 +659,10 @@ struct MediaDetailView: View {
     }
 
     private func posterMenuHeight(for detail: MediaDetail?) -> CGFloat {
-        if canCustomizeBackdrop(detail) { return 284 }
-        if canCustomizePoster(detail) { return 216 }
-        return 146
+        let showRowHeight: CGFloat = parentTVRef(detail) == nil ? 0 : 68
+        if canCustomizeBackdrop(detail) { return 284 + showRowHeight }
+        if canCustomizePoster(detail) { return 216 + showRowHeight }
+        return 146 + showRowHeight
     }
 
     private func canCustomizePoster(_ detail: MediaDetail?) -> Bool {
@@ -674,6 +683,18 @@ struct MediaDetailView: View {
 
     private func isBook(_ detail: MediaDetail) -> Bool {
         detail.ref.mediaType == "book"
+    }
+
+    private func parentTVRef(_ detail: MediaDetail?) -> MediaRef? {
+        guard let detail, detail.ref.mediaType == "season" else { return nil }
+        return MediaRef(
+            itemId: nil,
+            source: detail.ref.source,
+            mediaType: "tv",
+            mediaId: detail.ref.mediaId,
+            seasonNumber: nil,
+            episodeNumber: nil
+        )
     }
 
     private func usesBookGameActions(_ detail: MediaDetail) -> Bool {
@@ -750,14 +771,37 @@ struct MediaDetailView: View {
         }
     }
 
+    private func titleDisplay(
+        detail: MediaDetail,
+        title: String,
+        showsLogo: Binding<Bool>,
+        font: Font,
+        lineLimit: Int?,
+        minimumScaleFactor: CGFloat,
+        maxLogoHeight: CGFloat
+    ) -> some View {
+        MediaTitleDisplay(
+            detail: detail,
+            title: title,
+            showsLogo: showsLogo,
+            font: font,
+            lineLimit: lineLimit,
+            minimumScaleFactor: minimumScaleFactor,
+            maxLogoHeight: maxLogoHeight,
+            onTap: parentTVRef(detail).map { ref in
+                { presentedRef = ref }
+            }
+        )
+    }
+
     @ViewBuilder
     private func heroHeader(_ detail: MediaDetail) -> some View {
         if backdropURLString(for: detail) != nil {
             HStack(alignment: .top, spacing: 14) {
                 VStack(alignment: .leading, spacing: 11) {
-                    MediaTitleDisplay(
+                    titleDisplay(
                         detail: detail,
-                        title: displayTitle(detail),
+                        title: detail.displayTitle,
                         showsLogo: $showsTitleLogo,
                         font: .system(size: 32, weight: .black),
                         lineLimit: 3,
@@ -766,15 +810,7 @@ struct MediaDetailView: View {
                     )
 
                     if let byline = byline(detail) {
-                        Text(byline)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.62))
-                            .lineLimit(2)
-                            .multilineTextAlignment(isShowingTitleLogo(detail) ? .center : .leading)
-                            .frame(
-                                maxWidth: .infinity,
-                                alignment: isShowingTitleLogo(detail) ? .center : .leading
-                            )
+                        bylineView(byline, detail: detail, lineLimit: 2)
                     }
 
                     genreChips(detail, wrapsAfterThird: true)
@@ -823,9 +859,9 @@ struct MediaDetailView: View {
 
                 HStack(alignment: .bottom, spacing: 12) {
                     VStack(alignment: .leading, spacing: 11) {
-                        MediaTitleDisplay(
+                        titleDisplay(
                             detail: detail,
-                            title: displayTitle(detail),
+                            title: detail.displayTitle,
                             showsLogo: $showsTitleLogo,
                             font: .system(size: 33, weight: .heavy),
                             lineLimit: nil,
@@ -834,15 +870,7 @@ struct MediaDetailView: View {
                         )
 
                         if let byline = byline(detail) {
-                            Text(byline)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.62))
-                                .lineLimit(1)
-                                .multilineTextAlignment(isShowingTitleLogo(detail) ? .center : .leading)
-                                .frame(
-                                    maxWidth: .infinity,
-                                    alignment: isShowingTitleLogo(detail) ? .center : .leading
-                                )
+                            bylineView(byline, detail: detail, lineLimit: 1)
                         }
 
                         genreChips(detail, wrapsAfterThird: false)
@@ -865,6 +893,34 @@ struct MediaDetailView: View {
                 }
             }
         }
+    }
+
+    private func bylineView(_ byline: String, detail: MediaDetail, lineLimit: Int) -> some View {
+        let alignment: Alignment = isShowingTitleLogo(detail) ? .center : .leading
+        let textAlignment: TextAlignment = isShowingTitleLogo(detail) ? .center : .leading
+
+        return Group {
+            if let personRef = bylinePersonRef(detail) {
+                Button {
+                    presentedPerson = personRef
+                } label: {
+                    bylineText(byline, lineLimit: lineLimit, alignment: textAlignment)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("View \(byline)")
+            } else {
+                bylineText(byline, lineLimit: lineLimit, alignment: textAlignment)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: alignment)
+    }
+
+    private func bylineText(_ byline: String, lineLimit: Int, alignment: TextAlignment) -> some View {
+        Text(byline)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.62))
+            .lineLimit(lineLimit)
+            .multilineTextAlignment(alignment)
     }
 
     private func backdropURLString(for detail: MediaDetail) -> String? {
@@ -890,11 +946,11 @@ struct MediaDetailView: View {
 
             if detail.ref.mediaType == "tv" {
                 seasonsSection(detail)
-                CreditSection(title: creditTitle(detail), people: primaryCredits(detail)) { person in
+                CreditSection(title: creditTitle(detail), cast: castCredits(detail), crew: crewCredits(detail)) { person in
                     presentedPerson = person
                 }
             } else {
-                CreditSection(title: creditTitle(detail), people: primaryCredits(detail)) { person in
+                CreditSection(title: creditTitle(detail), cast: castCredits(detail), crew: crewCredits(detail)) { person in
                     presentedPerson = person
                 }
                 seasonsSection(detail)
@@ -1117,11 +1173,6 @@ struct MediaDetailView: View {
         }
     }
 
-    private func displayTitle(_ detail: MediaDetail) -> String {
-        guard let seasonNumber = detail.ref.seasonNumber, detail.ref.mediaType == "season" else { return detail.title }
-        return "\(detail.title) S\(seasonNumber)"
-    }
-
     private func seasonChipLabel(_ detail: MediaDetail) -> String? {
         guard let seasonNumber = detail.ref.seasonNumber, detail.ref.mediaType == "season" else { return nil }
         return "Season \(seasonNumber)"
@@ -1203,6 +1254,17 @@ struct MediaDetailView: View {
             return person
         }
         return detail.subtitle
+    }
+
+    private func bylinePersonRef(_ detail: MediaDetail) -> PersonRef? {
+        guard detail.ref.source == "tmdb" else { return nil }
+        let key = detail.ref.mediaType == "movie" ? "director_id" : detail.ref.mediaType == "tv" ? "creator_id" : nil
+        guard let key,
+              detailString(detail, key.replacingOccurrences(of: "_id", with: "")) != nil,
+              let id = detailString(detail, key),
+              !id.isEmpty
+        else { return nil }
+        return PersonRef(source: "tmdb", id: id)
     }
 
     private func synopsisPreview(_ detail: MediaDetail) -> String {
@@ -1304,15 +1366,15 @@ struct MediaDetailView: View {
         }
     }
 
-    private func primaryCredits(_ detail: MediaDetail) -> [CreditDisplay] {
+    private func castCredits(_ detail: MediaDetail) -> [CreditDisplay] {
         if detail.ref.mediaType == "book" {
             return authors(detail).map { CreditDisplay(name: $0, subtitle: "Author", imageUrl: nil, personRef: nil) }
         }
         let supportsPeoplePages = detail.ref.source == "tmdb" && ["movie", "tv"].contains(detail.ref.mediaType)
-        let credits = ((detail.cast ?? []) + (detail.crew ?? [])).map {
+        let credits = (detail.cast ?? []).map {
             CreditDisplay(
                 name: $0.name,
-                subtitle: $0.character ?? $0.role,
+                subtitle: $0.character,
                 imageUrl: $0.imageUrl,
                 personRef: supportsPeoplePages && !$0.id.isEmpty ? PersonRef(source: "tmdb", id: $0.id) : nil
             )
@@ -1321,6 +1383,18 @@ struct MediaDetailView: View {
             return detailArray(detail, "people").map { CreditDisplay(name: $0, subtitle: nil, imageUrl: nil, personRef: nil) }
         }
         return credits
+    }
+
+    private func crewCredits(_ detail: MediaDetail) -> [CreditDisplay] {
+        let supportsPeoplePages = detail.ref.source == "tmdb" && ["movie", "tv"].contains(detail.ref.mediaType)
+        return (detail.crew ?? []).map {
+            CreditDisplay(
+                name: $0.name,
+                subtitle: $0.role,
+                imageUrl: $0.imageUrl,
+                personRef: supportsPeoplePages && !$0.id.isEmpty ? PersonRef(source: "tmdb", id: $0.id) : nil
+            )
+        }
     }
 
     private func year(_ detail: MediaDetail) -> String? {
@@ -1482,8 +1556,6 @@ private enum MediaDetailLayout {
     static let recommendationPosterSize = CGSize(width: 100, height: 150)
     static let recommendationCardHeight: CGFloat = 190
     static let seasonPosterSize = CGSize(width: 90, height: 135)
-    static let castImageSize: CGFloat = 68
-    static let castCardWidth: CGFloat = 96
 }
 
 private enum SpinePalette {
@@ -1523,18 +1595,28 @@ private func bookGameCopy(for mediaType: String) -> (currently: String, finished
 
 private struct PosterMenuSheet: View {
     let posterLabel: String
+    let showsTVShowOption: Bool
     let showsPosterOption: Bool
     let showsBackdropOption: Bool
+    let onViewTVShow: () -> Void
     let onAddToList: () -> Void
     let onCustomizePoster: () -> Void
     let onCustomizeBackdrop: () -> Void
 
     var body: some View {
         VStack(spacing: 10) {
-            Capsule()
-                .fill(.secondary.opacity(0.35))
-                .frame(width: 38, height: 5)
-                .padding(.top, 8)
+            if showsTVShowOption {
+                Button(action: onViewTVShow) {
+                    Label("View TV Show", systemImage: "tv")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .frame(height: 54)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+            }
 
             Button(action: onAddToList) {
                 Label("Add to List", systemImage: "list.bullet.rectangle")
@@ -2373,16 +2455,18 @@ private struct SynopsisCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 13) {
+            SectionLabel(title: "Synopsis")
+
             Text(text)
                 .font(synopsisFont)
-                .foregroundStyle(.white.opacity(0.9))
-                .lineSpacing(2)
+                .foregroundStyle(.white.opacity(0.88))
+                .lineSpacing(3)
                 .lineLimit(isExpanded ? nil : 3)
                 .background {
                     Text(text)
                         .font(synopsisFont)
-                        .lineSpacing(2)
+                        .lineSpacing(3)
                         .lineLimit(3)
                         .background {
                             GeometryReader { proxy in
@@ -2394,7 +2478,7 @@ private struct SynopsisCard: View {
                 .background {
                     Text(text)
                         .font(synopsisFont)
-                        .lineSpacing(2)
+                        .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .background {
                             GeometryReader { proxy in
@@ -2410,22 +2494,22 @@ private struct SynopsisCard: View {
                         isExpanded.toggle()
                     }
                 } label: {
-                    Label(isExpanded ? "READ LESS" : "READ MORE", systemImage: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .heavy))
+                    Label(isExpanded ? "Less" : "More", systemImage: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white.opacity(0.62))
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 8))
+        .mediaDetailSurface(cornerRadius: 14)
         .onPreferenceChange(SynopsisTruncatedHeightKey.self) { truncatedHeight = $0 }
         .onPreferenceChange(SynopsisFullHeightKey.self) { fullHeight = $0 }
     }
 
     private var synopsisFont: Font {
-        .system(size: 14, weight: .semibold)
+        .system(size: 15, weight: .medium)
     }
 }
 
@@ -2457,32 +2541,54 @@ private struct MediaFactsSection: View {
 
     var body: some View {
         if !rows.isEmpty {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 13) {
                 SectionLabel(title: "Details")
 
                 VStack(spacing: 0) {
                     ForEach(rows) { row in
-                        HStack(alignment: .top) {
-                            Text(row.label)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.62))
-                                .frame(width: 104, alignment: .leading)
-                            Text(row.value ?? "")
-                                .font(.system(size: 14, weight: .heavy))
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 12)
+                        DetailFactRowView(row: row)
 
                         if row.id != rows.last?.id {
-                            Divider().overlay(.white.opacity(0.05))
+                            Divider().overlay(.white.opacity(0.045))
                         }
                     }
                 }
-                .background(Color.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 16))
+                .mediaDetailSurface(cornerRadius: 14)
             }
         }
+    }
+}
+
+private struct DetailFactRowView: View {
+    let row: DetailFactRow
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
+            Text(row.label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.44))
+                .lineLimit(1)
+                .frame(width: 98, alignment: .leading)
+
+            Text(row.value ?? "")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.84))
+                .lineLimit(2)
+                .minimumScaleFactor(0.86)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+}
+
+private extension View {
+    func mediaDetailSurface(cornerRadius: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        return self
+            .background(Color.white.opacity(0.028), in: shape)
+            .overlay { shape.stroke(.white.opacity(0.045), lineWidth: 1) }
     }
 }
 
@@ -2557,39 +2663,86 @@ private struct CreditDisplay: Identifiable {
 
 private struct CreditSection: View {
     let title: String
-    let people: [CreditDisplay]
+    let cast: [CreditDisplay]
+    let crew: [CreditDisplay]
     let onSelect: (PersonRef) -> Void
+    @State private var selectedTab = CreditTab.cast
+
+    private var visiblePeople: [CreditDisplay] {
+        switch selectedTab {
+        case .cast:
+            cast.isEmpty ? crew : cast
+        case .crew:
+            crew.isEmpty ? cast : crew
+        }
+    }
 
     var body: some View {
-        if !people.isEmpty {
-            VStack(alignment: .leading, spacing: 18) {
-                SectionLabel(title: title)
+        if !visiblePeople.isEmpty {
+            VStack(alignment: .leading, spacing: 13) {
+                HStack {
+                    SectionLabel(title: title)
+                    Spacer()
+                    if !cast.isEmpty && !crew.isEmpty {
+                        creditTabs
+                    }
+                }
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 6) {
-                        ForEach(people) { person in
-                            Group {
-                                if let personRef = person.personRef {
-                                    Button {
-                                        onSelect(personRef)
-                                    } label: {
-                                        creditCard(person)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel("View \(person.name)")
-                                } else {
-                                    creditCard(person)
-                                }
-                            }
+                VStack(spacing: 0) {
+                    ForEach(visiblePeople) { person in
+                        creditRow(person)
+
+                        if person.id != visiblePeople.last?.id {
+                            Divider().overlay(.white.opacity(0.045))
                         }
                     }
                 }
+                .mediaDetailSurface(cornerRadius: 14)
             }
         }
     }
 
-    private func creditCard(_ person: CreditDisplay) -> some View {
-        VStack(spacing: 6) {
+    private var creditTabs: some View {
+        HStack(spacing: 4) {
+            creditTab(.cast)
+            creditTab(.crew)
+        }
+        .padding(3)
+        .background(.white.opacity(0.055), in: Capsule())
+    }
+
+    private func creditTab(_ tab: CreditTab) -> some View {
+        Button {
+            selectedTab = tab
+        } label: {
+            Text(tab.title)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(selectedTab == tab ? .white.opacity(0.9) : .white.opacity(0.52))
+                .padding(.horizontal, 10)
+                .frame(height: 24)
+                .background(selectedTab == tab ? .white.opacity(0.13) : .clear, in: Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func creditRow(_ person: CreditDisplay) -> some View {
+        Group {
+            if let personRef = person.personRef {
+                Button {
+                    onSelect(personRef)
+                } label: {
+                    creditRowContent(person)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("View \(person.name)")
+            } else {
+                creditRowContent(person)
+            }
+        }
+    }
+
+    private func creditRowContent(_ person: CreditDisplay) -> some View {
+        HStack(spacing: 12) {
             AsyncImage(url: URL(string: person.imageUrl ?? "")) { phase in
                 switch phase {
                 case let .success(image):
@@ -2603,25 +2756,38 @@ private struct CreditSection: View {
                         }
                 }
             }
-            .frame(width: MediaDetailLayout.castImageSize, height: MediaDetailLayout.castImageSize)
+            .frame(width: 48, height: 48)
             .clipShape(Circle())
 
-            Text(person.name)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.86)
-            if let subtitle = person.subtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.84))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.82)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(person.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.88))
+                    .lineLimit(1)
+
+                if let subtitle = person.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.52))
+                        .lineLimit(2)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: MediaDetailLayout.castCardWidth, alignment: .top)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+    }
+}
+
+private enum CreditTab {
+    case cast
+    case crew
+
+    var title: String {
+        switch self {
+        case .cast: "Cast"
+        case .crew: "Crew"
+        }
     }
 }
 
@@ -2964,9 +3130,14 @@ private struct MediaTitleDisplay: View {
     let lineLimit: Int?
     let minimumScaleFactor: CGFloat
     let maxLogoHeight: CGFloat
+    let onTap: (() -> Void)?
 
     private var canToggle: Bool {
         supportsTitleLogo(detail)
+    }
+
+    private var isInteractive: Bool {
+        onTap != nil || canToggle
     }
 
     var body: some View {
@@ -2994,14 +3165,18 @@ private struct MediaTitleDisplay: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
+            if let onTap {
+                onTap()
+                return
+            }
             guard canToggle else { return }
             withAnimation(.easeInOut(duration: 0.2)) {
                 showsLogo.toggle()
             }
         }
         .accessibilityLabel(title)
-        .accessibilityHint(canToggle ? "Double tap to switch between logo and text title" : "")
-        .accessibilityAddTraits(canToggle ? .isButton : [])
+        .accessibilityHint(onTap != nil ? "Open TV show" : canToggle ? "Double tap to switch between logo and text title" : "")
+        .accessibilityAddTraits(isInteractive ? .isButton : [])
     }
 
     private var titleText: some View {

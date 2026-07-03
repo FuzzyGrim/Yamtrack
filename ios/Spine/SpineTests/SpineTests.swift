@@ -2668,6 +2668,21 @@ final class SpineTests: XCTestCase {
         }
         _ = try await repository.posters(ref: bookRef)
 
+        let seasonRef = MediaRef(itemId: nil, source: "tmdb", mediaType: "season", mediaId: "1399", seasonNumber: 1, episodeNumber: nil)
+        client.tokenProvider.accessToken = "access"
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.path, "/api/v1/media/tmdb/season/1399/posters/")
+            let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            XCTAssertEqual(query.first { $0.name == "season_number" }?.value, "1")
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                #"{"posters":[]}"#.data(using: .utf8)!
+            )
+        }
+        _ = try await repository.posters(ref: seasonRef)
+
         client.tokenProvider.accessToken = "access"
         RequestCaptureURLProtocol.handler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/movie/550/poster/")
@@ -2683,6 +2698,25 @@ final class SpineTests: XCTestCase {
         let response = try await repository.savePoster(ref: ref, posterURL: "https://example.com/new.jpg")
 
         XCTAssertEqual(response.posterUrl, "https://example.com/new.jpg")
+
+        client.tokenProvider.accessToken = "access"
+        RequestCaptureURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://example.com/api/v1/media/tmdb/season/1399/poster/")
+            XCTAssertEqual(request.httpMethod, "PUT")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access")
+            let body = try? JSONSerialization.jsonObject(with: requestBodyData(for: request)) as? [String: Any]
+            XCTAssertEqual(body?["poster_url"] as? String, "https://example.com/new-season.jpg")
+            XCTAssertEqual(body?["season_number"] as? Int, 1)
+            return (
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                """
+                {"poster_url":"https://example.com/new-season.jpg","custom_poster_url":"https://example.com/new-season.jpg","poster_accent_color":"#123456"}
+                """.data(using: .utf8)!
+            )
+        }
+        let seasonResponse = try await repository.savePoster(ref: seasonRef, posterURL: "https://example.com/new-season.jpg")
+
+        XCTAssertEqual(seasonResponse.posterUrl, "https://example.com/new-season.jpg")
 
         client.tokenProvider.accessToken = "access"
         RequestCaptureURLProtocol.handler = { request in
