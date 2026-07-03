@@ -1,0 +1,20 @@
+name: Deploy Backend on Desk Mac
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Git branch to deploy"
+        required: true
+        default: "main"
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy backend
+    runs-on: [self-hosted, spine-backend]
+    steps:
+      - name: Deploy requested branch
+        run: |
+          cd /Users/armaandave/projects/spine
+          ./scripts/codex-mobile-deploy-backend.sh "${{ inputs.branch }}"
