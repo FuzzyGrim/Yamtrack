@@ -657,6 +657,7 @@ class User(AbstractUser):
             "yamtrack": "Import from Yamtrack",
             "hltb": "Import from HowLongToBeat",
             "steam": "Import from Steam",
+            "epicgames": "Import from Epic Games",
             "imdb": "Import from IMDB",
             "goodreads": "Import from GoodReads",
         }

@@ -34,6 +34,9 @@ urlpatterns = [
     path("import/steam", views.import_steam, name="import_steam"),
     path("import/imdb", views.import_imdb, name="import_imdb"),
     path("import/goodreads", views.import_goodreads, name="import_goodreads"),
+    path("import/epic-oauth", views.epic_oauth, name="epic_oauth"),
+    path("import/epic/private", views.import_epic_private, name="import_epic_private"),
+    path("import/epic/public", views.import_epic_public, name="import_epic_public"),
     path("export/csv", views.export_csv, name="export_csv"),
     path(
         "webhook/jellyfin/<str:token>",
