@@ -176,7 +176,7 @@ if settings.SPECTACULAR_ENABLE_SERVE:
         re_path(r"^schema/?$", SpectacularAPIView.as_view(), name="api_schema"),
         re_path(
             r"^docs/?$",
-            SpectacularSwaggerView.as_view(url_name="api_docs"),
+            SpectacularSwaggerView.as_view(url_name="api_schema"),
             name="api_docs",
         ),
     ]
