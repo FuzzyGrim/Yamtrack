@@ -69,6 +69,10 @@ class MediaStatusChoiceField(serializers.ChoiceField):
         kwargs["choices"] = status_choices
         super().__init__(**kwargs)
 
+    def to_internal_value(self, data):  # noqa: D102
+        value = super().to_internal_value(data)
+        return get_media_status(value, reverse=True)
+
     def to_representation(self, obj):  # noqa: D102
         return get_media_status(getattr(obj, "status", None))
 
@@ -1432,102 +1436,92 @@ class TimelineItemSerializer(serializers.ModelSerializer):
         exclude = ("user",)
 
 
-class UpdateAnimeSerializer(serializers.Serializer):
+class BaseUpdateMediaSerializer(serializers.Serializer):
+    """Base serializer for updating media items with common fields."""
+
+    score = serializers.FloatField(required=False, allow_null=True)
+    status = MediaStatusChoiceField()
+    progress = serializers.IntegerField(required=False, allow_null=True)
+    start_date = serializers.DateTimeField(required=False, allow_null=True)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+    def validate_score(self, value):
+        """Validate that the score is between 0 and 10 if provided."""
+        if value is not None and not (0 <= value <= 10):  # noqa: PLR2004
+            msg = "Score must be between 0 and 10."
+            raise serializers.ValidationError(msg)
+        return value
+
+    def validate_progress(self, value):
+        """Validate that the progress is not negative."""
+        if value is not None and value < 0:
+            msg = "Progress cannot be negative."
+            raise serializers.ValidationError(msg)
+        return value
+
+    def validate(self, data):  # noqa: D102
+        start_date = data.get("start_date", getattr(self.instance, "start_date", None))
+        end_date = data.get("end_date", getattr(self.instance, "end_date", None))
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError(
+                {"end_date": "End date cannot be before start date."}
+            )
+        return data
+
+
+class UpdateAnimeSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating anime media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, allow_null=True)
 
-
-class UpdateBoardGameSerializer(serializers.Serializer):
+class UpdateBoardGameSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating board game media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, allow_null=True)
 
-
-class UpdateBookSerializer(serializers.Serializer):
+class UpdateBookSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating book media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, allow_null=True)
 
-
-class UpdateComicSerializer(serializers.Serializer):
+class UpdateComicSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating comic media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, allow_null=True)
 
-
+# UpdateEpisodeSerializer is not a subclass of BaseUpdateMediaSerializer because only
+# the end_date field is modifiable. In the future Episodes should be treated as Media
 class UpdateEpisodeSerializer(serializers.Serializer):
     """Serializer for updating episode media items."""
 
     end_date = serializers.DateTimeField(required=False, allow_null=True)
 
 
-class UpdateGameSerializer(serializers.Serializer):
+class UpdateGameSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating game media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, allow_null=True)
 
-
-class UpdateMangaSerializer(serializers.Serializer):
+class UpdateMangaSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating manga media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    progress = serializers.IntegerField(required=False, allow_null=True)
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, allow_null=True)
 
-
-class UpdateMovieSerializer(serializers.Serializer):
+class UpdateMovieSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating movie media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    start_date = serializers.DateTimeField(required=False, allow_null=True)
-    end_date = serializers.DateTimeField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, allow_null=True)
+    progress = None
 
 
-class UpdateSeasonSerializer(serializers.Serializer):
+class UpdateSeasonSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating season media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    notes = serializers.CharField(required=False, allow_null=True)
+    progress = None
+    start_date = None
+    end_date = None
 
 
-class UpdateTVSerializer(serializers.Serializer):
+class UpdateTVSerializer(BaseUpdateMediaSerializer):
     """Serializer for updating TV media items."""
 
-    score = serializers.FloatField(required=False, allow_null=True)
-    status = MediaStatusChoiceField()
-    notes = serializers.CharField(required=False, allow_null=True)
+    progress = None
+    start_date = None
+    end_date = None
 
 
 @extend_schema_serializer(

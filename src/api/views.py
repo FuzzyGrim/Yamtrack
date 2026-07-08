@@ -62,7 +62,6 @@ from .helpers import (
     parse_status_param,
     resolve_calendar_date_range,
     try_parse_date,
-    validate_body,
 )
 from .schemas import (
     EpisodeNumberParam,
@@ -918,22 +917,14 @@ class ListsView(drf_views.APIView):
     def post(self, request):
         """Create a new custom list."""
         user = request.user
-        body = request.data
 
-        if not body:
-            return Response(
-                {"detail": "Missing body."},
-                status=HTTP.BAD_REQUEST,
-            )
+        serializer = ListCreateRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        name = body.get("name", "").strip()
-        if not name:
-            return Response(
-                {"detail": "Field 'name' is required."},
-                status=HTTP.BAD_REQUEST,
-            )
-        description = body.get("description", "")
-        collaborator_ids = body.get("collaborators", [])
+        name = data["name"]
+        description = data.get("description", "")
+        collaborator_ids = data.get("collaborators", [])
 
         if collaborator_ids and not isinstance(collaborator_ids, list):
             return Response(
@@ -1327,7 +1318,6 @@ class ListDetailView(drf_views.APIView):
     def patch(self, request, list_id):
         """Update a specific custom list."""
         user = request.user
-        body = request.data
 
         try:
             # TODO: move to lists/models.py
@@ -1346,9 +1336,13 @@ class ListDetailView(drf_views.APIView):
                 status=HTTP.FORBIDDEN,
             )
 
-        name = body.get("name")
-        description = body.get("description")
-        collaborator_ids = body.get("collaborators")
+        serializer = ListUpdateRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        name = data.get("name")
+        description = data.get("description")
+        collaborator_ids = data.get("collaborators")
 
         if name is not None:
             custom_list.name = name.strip()
@@ -2435,19 +2429,23 @@ class MediaTypeListView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        body = request.data
-        body["media_type"] = media_type
-        body["status"] = (
-            get_media_status(body["status"], reverse=True)
-            if "status" in body
+        serializer = TrackMediaSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        data["media_type"] = media_type
+        data["status"] = (
+            get_media_status(data["status"], reverse=True)
+            if "status" in data
             # default status when tracking a new media will be "planning"
             else MediaStatusChoices.PLANNING
         )
 
-        source = body.get("source", Sources.MANUAL.value)
+        source = data.get("source", Sources.MANUAL.value)
 
+        # TODO: replace old forms with API implementations
         if source == Sources.MANUAL.value:
-            form = ManualItemForm(body, user=request.user)
+            form = ManualItemForm(data, user=request.user)
             if not form.is_valid():
                 return Response(
                     {
@@ -2470,7 +2468,7 @@ class MediaTypeListView(drf_views.APIView):
                     status=HTTP.CONFLICT,
                 )
 
-            media_data = dict(body)
+            media_data = dict(data)
             media_data.update({"source": item.source, "media_id": item.media_id})
             media_form = get_form_class(item.media_type)(media_data)
             if not media_form.is_valid():
@@ -2496,7 +2494,7 @@ class MediaTypeListView(drf_views.APIView):
             serialized_data = MediaSerializer(media_form.instance).data
             return Response(serialized_data, status=HTTP.CREATED)
 
-        media_id = body.get("media_id")
+        media_id = data.get("media_id")
         if not media_id:
             return Response(
                 {
@@ -2505,7 +2503,7 @@ class MediaTypeListView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        season_number = body.get("season_number")
+        season_number = data.get("season_number")
 
         try:
             metadata = services.get_media_metadata(
@@ -2552,7 +2550,7 @@ class MediaTypeListView(drf_views.APIView):
 
         instance = model(item=item, user=request.user)
 
-        media_data = dict(body)
+        media_data = dict(data)
         media_data.update({"source": item.source, "media_id": item.media_id})
         media_form = get_form_class(media_type)(media_data, instance=instance)
         if not media_form.is_valid():
@@ -3077,8 +3075,6 @@ class MediaDetailView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        body = request.data or {}
-
         try:
             user_medias = BasicMedia.objects.filter_media(
                 user,
@@ -3103,15 +3099,35 @@ class MediaDetailView(drf_views.APIView):
 
         media = user_medias[0]
 
-        validated_body, error = validate_body(body, media_type)
+        serializer = None
+        match media_type:
+            case MediaTypes.ANIME.value:
+                serializer = UpdateAnimeSerializer(data=request.data, partial=True)
+            case MediaTypes.BOARDGAME.value:
+                serializer = UpdateBoardGameSerializer(data=request.data, partial=True)
+            case MediaTypes.BOOK.value:
+                serializer = UpdateBookSerializer(data=request.data, partial=True)
+            case MediaTypes.COMIC.value:
+                serializer = UpdateComicSerializer(data=request.data, partial=True)
+            case MediaTypes.GAME.value:
+                serializer = UpdateGameSerializer(data=request.data, partial=True)
+            case MediaTypes.MANGA.value:
+                serializer = UpdateMangaSerializer(data=request.data, partial=True)
+            case MediaTypes.MOVIE.value:
+                serializer = UpdateMovieSerializer(data=request.data, partial=True)
+            case MediaTypes.TV.value:
+                serializer = UpdateTVSerializer(data=request.data, partial=True)
 
-        if error:
+        if serializer is None:
             return Response(
-                {"detail": f"{error}"},
+                {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
 
-        for field, value in validated_body.items():
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        for field, value in data.items():
             if hasattr(media, field):
                 setattr(media, field, value)
 
@@ -3870,17 +3886,35 @@ class MediaConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        body = request.data or {}
+        serializer = None
+        match media_type:
+            case MediaTypes.ANIME.value:
+                serializer = UpdateAnimeSerializer(data=request.data, partial=True)
+            case MediaTypes.BOARDGAME.value:
+                serializer = UpdateBoardGameSerializer(data=request.data, partial=True)
+            case MediaTypes.BOOK.value:
+                serializer = UpdateBookSerializer(data=request.data, partial=True)
+            case MediaTypes.COMIC.value:
+                serializer = UpdateComicSerializer(data=request.data, partial=True)
+            case MediaTypes.GAME.value:
+                serializer = UpdateGameSerializer(data=request.data, partial=True)
+            case MediaTypes.MANGA.value:
+                serializer = UpdateMangaSerializer(data=request.data, partial=True)
+            case MediaTypes.MOVIE.value:
+                serializer = UpdateMovieSerializer(data=request.data, partial=True)
+            case MediaTypes.TV.value:
+                serializer = UpdateTVSerializer(data=request.data, partial=True)
 
-        validated_body, error = validate_body(body, media_type)
-
-        if error:
+        if serializer is None:
             return Response(
-                {"detail": HTTP.BAD_REQUEST.phrase, "errors": str(error)},
+                {"detail": "Unsupported media type."},
                 status=HTTP.BAD_REQUEST,
             )
 
-        for field, value in validated_body.items():
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        for field, value in data.items():
             if hasattr(consumption, field):
                 setattr(consumption, field, value)
 
@@ -5386,8 +5420,6 @@ class MediaSeasonDetailView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        body = request.data or {}
-
         try:
             user_medias = BasicMedia.objects.filter_media(
                 user,
@@ -5413,15 +5445,11 @@ class MediaSeasonDetailView(drf_views.APIView):
 
         media = user_medias[0]
 
-        validated_body, error = validate_body(body, "season")
+        serializer = UpdateSeasonSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        if error:
-            return Response(
-                {"detail": f"{error}"},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        for field, value in validated_body.items():
+        for field, value in data.items():
             if hasattr(media, field):
                 setattr(media, field, value)
 
@@ -6466,17 +6494,11 @@ class MediaSeasonConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        body = request.data or {}
+        serializer = UpdateSeasonSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        validated_body, error = validate_body(body, "season")
-
-        if error:
-            return Response(
-                {"detail": HTTP.BAD_REQUEST.phrase, "errors": str(error)},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        for field, value in validated_body.items():
+        for field, value in data.items():
             if hasattr(consumption, field):
                 setattr(consumption, field, value)
 
@@ -7663,8 +7685,6 @@ class MediaEpisodeDetailView(drf_views.APIView):
                 status=HTTP.BAD_REQUEST,
             )
 
-        body = request.data or {}
-
         try:
             user_medias = BasicMedia.objects.filter_media(
                 user,
@@ -7693,15 +7713,11 @@ class MediaEpisodeDetailView(drf_views.APIView):
 
         media = user_medias[0]
 
-        validated_body, error = validate_body(body, "episode")
+        serializer = UpdateEpisodeSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        data =  serializer.validated_data
 
-        if error:
-            return Response(
-                {"detail": HTTP.BAD_REQUEST.phrase, "errors": str(error)},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        for field, value in validated_body.items():
+        for field, value in data.items():
             if hasattr(media, field):
                 setattr(media, field, value)
 
@@ -8530,17 +8546,11 @@ class MediaEpisodeConsumptionEntryDetailView(drf_views.APIView):
                 status=HTTP.NOT_FOUND,
             )
 
-        body = request.data or {}
+        serializer = UpdateEpisodeSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        validated_body, error = validate_body(body, "episode")
-
-        if error:
-            return Response(
-                {"detail": f"{error}"},
-                status=HTTP.BAD_REQUEST,
-            )
-
-        for field, value in validated_body.items():
+        for field, value in data.items():
             if hasattr(consumption, field):
                 setattr(consumption, field, value)
 
