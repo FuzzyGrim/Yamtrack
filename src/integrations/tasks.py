@@ -18,6 +18,7 @@ from integrations.imports import (
     simkl,
     steam,
     trakt,
+    tvtime,
     yamtrack,
 )
 
@@ -153,3 +154,9 @@ def import_imdb(file, user_id, mode):
 def import_goodreads(file, user_id, mode):
     """Celery task for importing media data from GoodReads."""
     return import_media(goodreads.importer, file, user_id, mode)
+
+
+@shared_task(name="Import from TV Time")
+def import_tvtime(file, user_id, mode):
+    """Celery task for importing media data from a TV Time export."""
+    return import_media(tvtime.importer, file, user_id, mode)

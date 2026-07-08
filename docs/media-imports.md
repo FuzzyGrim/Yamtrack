@@ -82,6 +82,36 @@ Steam import requires a Steam API key and your Steam ID 64.
 - **Steam ID 64**: Instead of your Steam username, you must provide your Steam ID 64. You can find it on your Steam account details page under your username.
 - **Profile Visibility**: Your Steam profile must be public if the API key you are using is not linked to the Steam ID you are requesting.
 
+## TV Time
+
+TV Time is shutting down, but you can still import your TV data from the official
+GDPR data export.
+
+1. Request your data at <https://gdpr.tvtime.com/gdpr/self-service> and download
+   the export.
+2. On the import page, keep the frequency set to **One Time Import** and upload the
+   whole `.zip` archive — you do not need to extract it. YamTrack automatically
+   picks out the relevant files from the export.
+
+### What gets imported
+
+- **Watched shows, seasons and episodes**, including progress and completion
+  status. Series are matched to The Movie Database through their TheTVDB ids.
+- **Followed shows** you have not started yet are added to your list with a
+  `Planning` status.
+
+### Limitations
+
+- **Movies and comments are not imported.** TV Time only exports these with
+  internal identifiers (no TheTVDB, TMDB or IMDb id), so they cannot be reliably
+  matched.
+- **Ratings** are exported as an undocumented "vote" value that cannot be reliably
+  converted to a 0–10 score, so scores are skipped. Rated episodes are still
+  imported as watched.
+- Episodes are matched using TheTVDB season and episode numbering. When a show is
+  numbered differently on The Movie Database (common for long-running anime), the
+  affected episodes are skipped and listed in the import summary.
+
 ## Yamtrack CSV format
 
 Use this format to bulk-import media into YamTrack. Every row represents a single media instance.
