@@ -110,6 +110,7 @@ class TVTimeImporter:
         self.created_episodes = set()  # (tvdb_series_id, tmdb_season, tmdb_episode)
         self.series_scores = defaultdict(list)  # tvdb_series_id -> [score, ...]
         self.movie_tmdb_ids = set()  # tmdb ids already added as movies
+        self.movie_item_by_uuid = {}  # TV Time movie uuid -> matched TMDB Item
         self.lists_created = 0
         self.has_comments = False
 
@@ -876,18 +877,27 @@ class TVTimeImporter:
 
         watched, planned = self._collect_movies(rows)
 
-        for (title, _year), watched_at in watched.items():
-            self._import_movie(title, Status.COMPLETED.value, watched_at)
+        for (title, _year), info in watched.items():
+            self._import_movie(
+                title,
+                Status.COMPLETED.value,
+                info["watched_at"],
+                info["uuids"],
+            )
 
-        for key in planned:
+        for key, info in planned.items():
             if key in watched:
                 continue
-            self._import_movie(key[0], Status.PLANNING.value, None)
+            self._import_movie(key[0], Status.PLANNING.value, None, info["uuids"])
 
     def _collect_movies(self, rows):
-        """Split v1 rows into deduplicated watched and watchlisted movies."""
-        watched = {}  # (title, year) -> earliest watched_at
-        planned = {}  # (title, year) -> None
+        """Split v1 rows into deduplicated watched and watchlisted movies.
+
+        Each movie carries its TV Time uuid(s) so the same movie can later be
+        matched to its resolved TMDB item when it appears in a custom list.
+        """
+        watched = {}  # (title, year) -> {watched_at, uuids}
+        planned = {}  # (title, year) -> {uuids}
 
         for row in rows:
             if (row.get("entity_type") or "").strip() != "movie":
@@ -898,21 +908,27 @@ class TVTimeImporter:
                 continue
 
             key = (title, self._release_year(row.get("release_date")))
+            uuid = (row.get("uuid") or "").strip()
             row_type = (row.get("type") or "").strip()
 
             if row_type == "watch":
-                self._record_watched_movie(watched, key, row)
+                self._record_watched_movie(watched, key, row, uuid)
             elif row_type in ("towatch", "follow"):
-                planned.setdefault(key, None)
+                entry = planned.setdefault(key, {"uuids": set()})
+                if uuid:
+                    entry["uuids"].add(uuid)
 
         return watched, planned
 
-    def _record_watched_movie(self, watched, key, row):
+    def _record_watched_movie(self, watched, key, row, uuid):
         """Store a watched movie, keeping the earliest watch date."""
         watched_at = self._parse_dt(row.get("watch_date") or row.get("created_at"))
-        existing = watched.get(key)
-        if key not in watched or (existing and watched_at and watched_at < existing):
-            watched[key] = watched_at
+        entry = watched.setdefault(key, {"watched_at": watched_at, "uuids": set()})
+        if uuid:
+            entry["uuids"].add(uuid)
+        current = entry["watched_at"]
+        if watched_at and (current is None or watched_at < current):
+            entry["watched_at"] = watched_at
 
     def _release_year(self, release_date):
         """Extract the release year from a TV Time release_date value."""
@@ -922,7 +938,7 @@ class TVTimeImporter:
         digits = release_date.strip()[:4]
         return digits if digits.isdigit() else None
 
-    def _import_movie(self, title, status, watched_at):
+    def _import_movie(self, title, status, watched_at, uuids=()):
         """Match a movie to TMDB by title and create a Movie instance."""
         match = self._search_movie(title)
         if not match:
@@ -932,6 +948,18 @@ class TVTimeImporter:
             return
 
         tmdb_id, matched_title, image = match
+
+        # Create the item and remember the uuid->item mapping unconditionally,
+        # so a movie in a custom list can be resolved even when its Movie entry
+        # is skipped here (duplicate, or already in the user's library).
+        item = self._get_or_create_item(
+            MediaTypes.MOVIE.value,
+            tmdb_id,
+            {"title": matched_title, "image": image},
+        )
+        for uuid in uuids:
+            self.movie_item_by_uuid[uuid] = item
+
         if tmdb_id in self.movie_tmdb_ids:
             return
 
@@ -948,11 +976,6 @@ class TVTimeImporter:
 
         self.movie_tmdb_ids.add(tmdb_id)
 
-        item = self._get_or_create_item(
-            MediaTypes.MOVIE.value,
-            tmdb_id,
-            {"title": matched_title, "image": image},
-        )
         movie_instance = app.models.Movie(
             item=item,
             user=self.user,
@@ -1040,19 +1063,24 @@ class TVTimeImporter:
 
         items = self._parse_list_items(row.get("objects"))
         resolved = []
-        skipped_movies = 0
-        for entry_type, tvdb_id in items:
-            if entry_type != "series":
-                skipped_movies += 1
-                continue
-            item = self._list_series_item(tvdb_id)
+        unmatched_movies = 0
+        for entry_type, identifier in items:
+            if entry_type == "series":
+                item = self._list_series_item(identifier)
+            else:
+                # Movies only carry a TV Time uuid; resolve it against the
+                # movies matched to TMDB from the watch history.
+                item = self.movie_item_by_uuid.get(identifier)
+                if not item:
+                    unmatched_movies += 1
+                    continue
             if item:
                 resolved.append(item)
 
-        if skipped_movies:
+        if unmatched_movies:
             self.warnings.append(
-                f"{name}: skipped {skipped_movies} list movie(s) that TV Time "
-                "exported without a usable identifier.",
+                f"{name}: skipped {unmatched_movies} list movie(s) that could "
+                "not be matched to The Movie Database.",
             )
 
         if not resolved:
@@ -1107,14 +1135,17 @@ class TVTimeImporter:
         return metadata
 
     def _parse_list_items(self, blob):
-        """Parse a list's ``objects`` blob into ``(type, tvdb_id)`` tuples."""
+        """Parse a list's ``objects`` blob into ``(type, identifier)`` tuples.
+
+        Series carry a TheTVDB id; movies carry a TV Time uuid.
+        """
         items = []
         for inner in _GO_MAP_BLOCK.findall(blob or ""):
             entry_type = self._go_token(inner, "type")
             if entry_type == "series":
                 items.append(("series", self._go_token(inner, "id")))
             elif entry_type == "movie":
-                items.append(("movie", None))
+                items.append(("movie", self._go_token(inner, "uuid")))
         return items
 
     def _go_token(self, inner, key):
