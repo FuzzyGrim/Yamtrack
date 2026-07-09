@@ -119,6 +119,101 @@ class ImportTVTime(TestCase):
     @patch("integrations.imports.tvtime.TVTimeImporter._find_episode")
     @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
     @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
+    def test_duplicate_tvdb_series_collapse(
+        self,
+        mock_get_metadata,
+        mock_map_series,
+        mock_find_episode,
+    ):
+        """Two TheTVDB series that resolve to the same TMDB show merge into one."""
+        mock_get_metadata.side_effect = tv_metadata_side_effect
+        mock_find_episode.return_value = None
+        # Both TheTVDB ids resolve to the same TMDB show.
+        mock_map_series.side_effect = lambda *_: "500"
+
+        show_data = (
+            "tv_show_name,user_id,tv_show_id,is_followed,is_favorited,nb_episodes_seen\n"
+            "Dup A,1,111,1,0,1\n"
+            "Dup B,1,112,1,0,1\n"
+        )
+        tracking = (
+            "gsi,s_id,ep_id,season_number,key,user_id,created_at,episode_id,"
+            "series_name,episode_number\n"
+            "watch-episode-1,111,1001,1,k1,1,2021-01-01 10:00:00,1001,Dup A,1\n"
+            "watch-episode-2,112,1002,1,k2,1,2021-01-02 10:00:00,1002,Dup B,2\n"
+        )
+        zip_file = build_zip(
+            {
+                "user_tv_show_data.csv": show_data,
+                "tracking-prod-records-v2.csv": tracking,
+            },
+        )
+
+        imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
+
+        # One merged show and season, both episodes attached.
+        self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.SEASON.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.EPISODE.value], 2)
+        self.assertEqual(TV.objects.filter(item__media_id="500").count(), 1)
+
+    @patch("integrations.imports.tvtime.TVTimeImporter._find_episode")
+    @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
+    @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
+    def test_specials_season_zero(
+        self,
+        mock_get_metadata,
+        mock_map_series,
+        mock_find_episode,
+    ):
+        """Specials (season 0) import directly when TMDB numbering matches."""
+        mock_map_series.side_effect = lambda series_id, _: (
+            "500" if series_id == "111" else None
+        )
+        # Should never be needed: the special matches TMDB season 0 directly.
+        mock_find_episode.return_value = None
+
+        def meta(media_type, _tmdb, _title, season=None, *, warn=True):  # noqa: ARG001
+            if media_type == MediaTypes.TV.value:
+                return {"title": "Show", "image": "i", "last_episode_season": 1}
+            if media_type == MediaTypes.SEASON.value and season == 0:
+                return {
+                    "title": "Specials",
+                    "image": "i",
+                    "max_progress": 3,
+                    "episodes": [{"episode_number": 2, "still_path": None}],
+                }
+            return None
+
+        mock_get_metadata.side_effect = meta
+
+        show_data = (
+            "tv_show_name,user_id,tv_show_id,is_followed,is_favorited,nb_episodes_seen\n"
+            "Show,1,111,1,0,1\n"
+        )
+        tracking = (
+            "gsi,s_id,ep_id,season_number,key,user_id,created_at,episode_id,"
+            "series_name,episode_number\n"
+            "watch-episode-1,111,7001,0,k,1,2021-01-01 10:00:00,7001,Show,2\n"
+        )
+        zip_file = build_zip(
+            {
+                "user_tv_show_data.csv": show_data,
+                "tracking-prod-records-v2.csv": tracking,
+            },
+        )
+
+        imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
+
+        self.assertEqual(imported_counts[MediaTypes.EPISODE.value], 1)
+        episode = Episode.objects.get()
+        self.assertEqual(episode.item.season_number, 0)
+        self.assertEqual(episode.item.episode_number, 2)
+        mock_find_episode.assert_not_called()
+
+    @patch("integrations.imports.tvtime.TVTimeImporter._find_episode")
+    @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
+    @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
     def test_episode_numbering_fallback(
         self,
         mock_get_metadata,
@@ -386,6 +481,56 @@ class ImportTVTime(TestCase):
             importer_instance._read_member(FakeArchive(), "x.csv")
         self.assertIn("Incorrect password", str(ctx.exception))
 
+    @patch("integrations.imports.tvtime.services.search")
+    def test_movie_non_english_title_normalized(self, mock_search):
+        """A stylized Japanese movie title matches after normalization."""
+        stylized = "ワンピース \uff5eハートオブ ゴールド\uff5e"
+        normalized = "ワンピースハートオブゴールド"
+
+        def search_side_effect(_, query, __):
+            if query == normalized:
+                return {
+                    "results": [
+                        {
+                            "source": "tmdb",
+                            "media_type": "movie",
+                            "media_id": 424840,
+                            "title": "One Piece: Heart of Gold",
+                            "image": "x",
+                        },
+                    ],
+                }
+            return {"results": []}
+
+        mock_search.side_effect = search_side_effect
+
+        v1_movies = (
+            "type,entity_type,movie_name,release_date,watch_date,created_at\n"
+            f"watch,movie,{stylized},2016-07-16 00:00:00,2016-08-01 00:00:00,"
+            "2016-08-01 00:00:00\n"
+        )
+        zip_file = build_zip({"tracking-prod-records.csv": v1_movies})
+
+        imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
+
+        self.assertEqual(imported_counts.get(MediaTypes.MOVIE.value), 1)
+        self.assertTrue(Movie.objects.filter(item__media_id="424840").exists())
+        # original + collapsed + spaceless variants were tried
+        self.assertEqual(mock_search.call_count, 3)
+
+    def test_movie_search_queries(self):
+        """Test the normalized query variants generated for a movie title."""
+        importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new")
+        stylized = "ワンピース \uff5eハートオブ ゴールド\uff5e"
+        self.assertEqual(
+            importer_instance._movie_search_queries(stylized),
+            [
+                stylized,
+                "ワンピース ハートオブ ゴールド",
+                "ワンピースハートオブゴールド",
+            ],
+        )
+
     def test_invalid_zip(self):
         """Test that a non-zip upload raises a clear error."""
         with self.assertRaises(MediaImportError):
@@ -425,10 +570,25 @@ class ImportTVTime(TestCase):
         self.assertEqual(importer_instance._map_series("81189", "Breaking Bad"), "1396")
         mock_find.assert_called_once()
 
+    @patch("integrations.imports.tvtime.services.search")
     @patch("integrations.imports.tvtime.tmdb.find")
-    def test_map_series_not_found(self, mock_find):
-        """Test a warning is added when a series can't be matched."""
+    def test_map_series_title_fallback(self, mock_find, mock_search):
+        """A show with no TheTVDB link on TMDB is matched by title search."""
         mock_find.return_value = {"tv_results": []}
+        mock_search.return_value = {
+            "results": [{"media_id": 24313, "title": "Gumball", "image": "g"}],
+        }
+        importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new")
+
+        self.assertEqual(importer_instance._map_series("999", "Gumball"), "24313")
+        self.assertEqual(importer_instance.warnings, [])
+
+    @patch("integrations.imports.tvtime.services.search")
+    @patch("integrations.imports.tvtime.tmdb.find")
+    def test_map_series_not_found(self, mock_find, mock_search):
+        """Test a warning is added when a series can't be matched at all."""
+        mock_find.return_value = {"tv_results": []}
+        mock_search.return_value = {"results": []}
         importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new")
 
         self.assertIsNone(importer_instance._map_series("999", "Unknown Show"))

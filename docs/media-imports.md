@@ -99,7 +99,10 @@ the **Export password** field before selecting the file.
 ### What gets imported
 
 - **Watched shows, seasons and episodes**, including progress and completion
-  status. Series are matched to The Movie Database through their TheTVDB ids.
+  status. Series are matched to The Movie Database through their TheTVDB ids,
+  falling back to a title search when TMDB has no TheTVDB link for the show
+  (common for reboots and very new shows). Several TheTVDB entries that resolve
+  to the same TMDB show are merged into one.
 - **Followed shows** you have not started yet are added to your list with a
   `Planning` status.
 - **Watched movies**, marked as `Completed`. Movies you added to your watchlist
@@ -109,9 +112,11 @@ the **Export password** field before selecting the file.
 ### Limitations
 
 - **Movies are matched by title**, because TV Time exports them without a
-  TheTVDB, TMDB or IMDb id. Any movie that could not be matched is listed in the
-  import summary so you can add it manually — it is worth reviewing imported
-  movies afterwards.
+  TheTVDB, TMDB or IMDb id. Titles are kept in their original language; when an
+  exact search finds nothing, the importer retries with decorative characters
+  and spacing normalized (which helps stylized non-English titles). Any movie
+  that still can't be matched is listed in the import summary so you can add it
+  manually — it is worth reviewing imported movies afterwards.
 - **Comments are not imported.** TV Time exports them without an identifier that
   can be matched to The Movie Database.
 - **Movies inside custom lists are skipped**, because list entries reference
