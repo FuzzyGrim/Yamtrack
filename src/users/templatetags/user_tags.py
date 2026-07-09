@@ -54,7 +54,7 @@ SOURCES_CONFIG = {
     },
     "tvtime": {
         "name": "TV Time",
-        "logo": static("img/tvtime-logo.svg"),
+        "logo": static("img/TVShow_Time_logo.png"),
     },
 }
 
