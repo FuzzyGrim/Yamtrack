@@ -99,7 +99,10 @@ the **Export password** field before selecting the file.
 ### What gets imported
 
 - **Watched shows, seasons and episodes**, including progress and completion
-  status. Series are matched to The Movie Database through their TheTVDB ids.
+  status. Series are matched to The Movie Database through their TheTVDB ids,
+  falling back to a title search when TMDB has no TheTVDB link for the show
+  (common for reboots and very new shows). Several TheTVDB entries that resolve
+  to the same TMDB show are merged into one.
 - **Followed shows** you have not started yet are added to your list with a
   `Planning` status.
 - **Watched movies**, marked as `Completed`. Movies you added to your watchlist

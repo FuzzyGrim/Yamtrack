@@ -398,7 +398,7 @@ class TVTimeImporter:
         if not tv_metadata:
             return
 
-        tv_instance = self._get_or_create_tv(series_id, tmdb_id, tv_metadata)
+        tv_instance = self._get_or_create_tv(tmdb_id, tv_metadata)
 
         # Group episodes by season to fetch each season's metadata once.
         by_season = defaultdict(list)
@@ -407,7 +407,6 @@ class TVTimeImporter:
 
         for season_number, season_episodes in sorted(by_season.items()):
             self._process_season(
-                series_id,
                 tmdb_id,
                 season_number,
                 season_episodes,
@@ -422,7 +421,6 @@ class TVTimeImporter:
 
     def _process_season(
         self,
-        series_id,
         tmdb_id,
         season_number,
         season_episodes,
@@ -448,7 +446,6 @@ class TVTimeImporter:
         if not season_metadata:
             for entry in season_episodes:
                 self._resolve_episode_by_tvdb(
-                    series_id,
                     tmdb_id,
                     tv_instance,
                     tv_metadata,
@@ -471,7 +468,6 @@ class TVTimeImporter:
 
             if episode_number not in valid_episode_numbers:
                 self._resolve_episode_by_tvdb(
-                    series_id,
                     tmdb_id,
                     tv_instance,
                     tv_metadata,
@@ -483,7 +479,6 @@ class TVTimeImporter:
 
             if season_instance is None:
                 season_instance = self._get_or_create_season(
-                    series_id,
                     tmdb_id,
                     season_number,
                     season_metadata,
@@ -491,7 +486,6 @@ class TVTimeImporter:
                 )
 
             self._add_episode(
-                series_id,
                 tmdb_id,
                 season_number,
                 episode_number,
@@ -504,7 +498,6 @@ class TVTimeImporter:
 
     def _add_episode(
         self,
-        series_id,
         tmdb_id,
         season_number,
         episode_number,
@@ -515,7 +508,7 @@ class TVTimeImporter:
         season_instance,
     ):
         """Create an episode (deduplicated) and update completion status."""
-        episode_key = (series_id, season_number, episode_number)
+        episode_key = (tmdb_id, season_number, episode_number)
         if episode_key in self.created_episodes:
             return
         self.created_episodes.add(episode_key)
@@ -541,7 +534,6 @@ class TVTimeImporter:
 
     def _resolve_episode_by_tvdb(
         self,
-        series_id,
         tmdb_id,
         tv_instance,
         tv_metadata,
@@ -584,14 +576,12 @@ class TVTimeImporter:
             return
 
         season_instance = self._get_or_create_season(
-            series_id,
             tmdb_id,
             season_number,
             season_metadata,
             tv_instance,
         )
         self._add_episode(
-            series_id,
             tmdb_id,
             season_number,
             episode_number,
@@ -640,16 +630,39 @@ class TVTimeImporter:
             logger.warning("Error looking up TVDB id %s: %s", series_id, error)
             response = {}
 
+        # Prefer the TheTVDB->TMDB link; fall back to a title search when TMDB
+        # has no such link (common for reboots, regional cuts and new shows).
         results = response.get("tv_results") or []
-        if results:
-            tmdb_id = str(results[0]["id"])
-        else:
+        tmdb_id = str(results[0]["id"]) if results else self._search_tv(series_name)
+
+        if not tmdb_id:
             self.warnings.append(
                 f"{series_name}: could not be matched in {Sources.TMDB.label}.",
             )
 
         self.tmdb_id_cache[series_id] = tmdb_id
         return tmdb_id
+
+    def _search_tv(self, series_name):
+        """Fall back to matching a show to TMDB by title."""
+        if not series_name:
+            return None
+
+        try:
+            results = services.search(MediaTypes.TV.value, series_name, 1)["results"]
+        except services.ProviderAPIError as error:
+            logger.warning("Error searching TMDB for show %s: %s", series_name, error)
+            return None
+
+        if not results:
+            return None
+
+        wanted = series_name.casefold()
+        best = next(
+            (r for r in results if r["title"].casefold() == wanted),
+            results[0],
+        )
+        return str(best["media_id"])
 
     def _get_metadata(
         self,
@@ -709,10 +722,14 @@ class TVTimeImporter:
         )
         return item
 
-    def _get_or_create_tv(self, series_id, tmdb_id, tv_metadata):
-        """Get or create the TV instance for a series."""
-        if series_id in self.tv_instances:
-            return self.tv_instances[series_id]
+    def _get_or_create_tv(self, tmdb_id, tv_metadata):
+        """Get or create the TV instance for a TMDB show.
+
+        Keyed by the resolved TMDB id (not the TheTVDB id) so that several
+        TheTVDB entries resolving to the same show reuse one TV instance.
+        """
+        if tmdb_id in self.tv_instances:
+            return self.tv_instances[tmdb_id]
 
         item = self._get_or_create_item(MediaTypes.TV.value, tmdb_id, tv_metadata)
         tv_instance = app.models.TV(
@@ -722,19 +739,18 @@ class TVTimeImporter:
         )
         tv_instance._history_date = timezone.now()
         self.bulk_media[MediaTypes.TV.value].append(tv_instance)
-        self.tv_instances[series_id] = tv_instance
+        self.tv_instances[tmdb_id] = tv_instance
         return tv_instance
 
     def _get_or_create_season(
         self,
-        series_id,
         tmdb_id,
         season_number,
         season_metadata,
         tv_instance,
     ):
-        """Get or create the Season instance for a series season."""
-        key = (series_id, season_number)
+        """Get or create the Season instance for a TMDB show season."""
+        key = (tmdb_id, season_number)
         if key in self.season_instances:
             return self.season_instances[key]
 
@@ -812,11 +828,11 @@ class TVTimeImporter:
     def _process_watchlist(self):
         """Create planning entries for followed shows without watched episodes."""
         for series_id, meta in self.show_meta.items():
-            if not meta.get("is_followed") or series_id in self.tv_instances:
+            if not meta.get("is_followed"):
                 continue
 
             tmdb_id = self._map_series(series_id, meta.get("name", series_id))
-            if not tmdb_id:
+            if not tmdb_id or tmdb_id in self.tv_instances:
                 continue
 
             if not helpers.should_process_media(
@@ -845,7 +861,7 @@ class TVTimeImporter:
             )
             tv_instance._history_date = timezone.now()
             self.bulk_media[MediaTypes.TV.value].append(tv_instance)
-            self.tv_instances[series_id] = tv_instance
+            self.tv_instances[tmdb_id] = tv_instance
 
     def _process_movies(self, files):
         """Import movies from the v1 tracking file.

@@ -119,6 +119,47 @@ class ImportTVTime(TestCase):
     @patch("integrations.imports.tvtime.TVTimeImporter._find_episode")
     @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
     @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
+    def test_duplicate_tvdb_series_collapse(
+        self,
+        mock_get_metadata,
+        mock_map_series,
+        mock_find_episode,
+    ):
+        """Two TheTVDB series that resolve to the same TMDB show merge into one."""
+        mock_get_metadata.side_effect = tv_metadata_side_effect
+        mock_find_episode.return_value = None
+        # Both TheTVDB ids resolve to the same TMDB show.
+        mock_map_series.side_effect = lambda *_: "500"
+
+        show_data = (
+            "tv_show_name,user_id,tv_show_id,is_followed,is_favorited,nb_episodes_seen\n"
+            "Dup A,1,111,1,0,1\n"
+            "Dup B,1,112,1,0,1\n"
+        )
+        tracking = (
+            "gsi,s_id,ep_id,season_number,key,user_id,created_at,episode_id,"
+            "series_name,episode_number\n"
+            "watch-episode-1,111,1001,1,k1,1,2021-01-01 10:00:00,1001,Dup A,1\n"
+            "watch-episode-2,112,1002,1,k2,1,2021-01-02 10:00:00,1002,Dup B,2\n"
+        )
+        zip_file = build_zip(
+            {
+                "user_tv_show_data.csv": show_data,
+                "tracking-prod-records-v2.csv": tracking,
+            },
+        )
+
+        imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
+
+        # One merged show and season, both episodes attached.
+        self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.SEASON.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.EPISODE.value], 2)
+        self.assertEqual(TV.objects.filter(item__media_id="500").count(), 1)
+
+    @patch("integrations.imports.tvtime.TVTimeImporter._find_episode")
+    @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
+    @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
     def test_specials_season_zero(
         self,
         mock_get_metadata,
@@ -529,10 +570,25 @@ class ImportTVTime(TestCase):
         self.assertEqual(importer_instance._map_series("81189", "Breaking Bad"), "1396")
         mock_find.assert_called_once()
 
+    @patch("integrations.imports.tvtime.services.search")
     @patch("integrations.imports.tvtime.tmdb.find")
-    def test_map_series_not_found(self, mock_find):
-        """Test a warning is added when a series can't be matched."""
+    def test_map_series_title_fallback(self, mock_find, mock_search):
+        """A show with no TheTVDB link on TMDB is matched by title search."""
         mock_find.return_value = {"tv_results": []}
+        mock_search.return_value = {
+            "results": [{"media_id": 24313, "title": "Gumball", "image": "g"}],
+        }
+        importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new")
+
+        self.assertEqual(importer_instance._map_series("999", "Gumball"), "24313")
+        self.assertEqual(importer_instance.warnings, [])
+
+    @patch("integrations.imports.tvtime.services.search")
+    @patch("integrations.imports.tvtime.tmdb.find")
+    def test_map_series_not_found(self, mock_find, mock_search):
+        """Test a warning is added when a series can't be matched at all."""
+        mock_find.return_value = {"tv_results": []}
+        mock_search.return_value = {"results": []}
         importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new")
 
         self.assertIsNone(importer_instance._map_series("999", "Unknown Show"))
