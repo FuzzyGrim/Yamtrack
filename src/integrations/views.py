@@ -455,6 +455,7 @@ def import_tvtime(request):
         file=request.FILES["tvtime_zip"],
         user_id=request.user.id,
         mode=mode,
+        password=request.POST.get("tvtime_password") or None,
     )
     messages.info(
         request,

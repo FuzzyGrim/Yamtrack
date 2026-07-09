@@ -162,6 +162,6 @@ def import_goodreads(file, user_id, mode):
 
 
 @shared_task(name="Import from TV Time")
-def import_tvtime(file, user_id, mode):
+def import_tvtime(file, user_id, mode, password=None):
     """Celery task for importing media data from a TV Time export."""
-    return import_media(tvtime.importer, file, user_id, mode)
+    return import_media(tvtime.importer, file, user_id, mode, password=password)

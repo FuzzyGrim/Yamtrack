@@ -93,6 +93,9 @@ GDPR data export.
    whole `.zip` archive — you do not need to extract it. YamTrack automatically
    picks out the relevant files from the export.
 
+Most exports are unencrypted. If yours is password-protected, enter the password in
+the **Export password** field before selecting the file.
+
 ### What gets imported
 
 - **Watched shows, seasons and episodes**, including progress and completion

@@ -69,25 +69,27 @@ def _normalize_name(name):
     return "".join(char for char in basename.lower() if char.isalnum())
 
 
-def importer(file, user, mode):
+def importer(file, user, mode, password=None):
     """Import media from a TV Time GDPR export zip file."""
-    return TVTimeImporter(file, user, mode).import_data()
+    return TVTimeImporter(file, user, mode, password).import_data()
 
 
 class TVTimeImporter:
     """Class to handle importing user data from a TV Time export zip."""
 
-    def __init__(self, file, user, mode):
+    def __init__(self, file, user, mode, password=None):
         """Initialize the importer with the uploaded zip, user, and mode.
 
         Args:
             file: Uploaded TV Time export zip file
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
+            password (str, optional): Password for an encrypted export archive
         """
         self.file = file
         self.user = user
         self.mode = mode
+        self.password = password or None
         self.warnings = []
 
         # Track existing media for "new" mode
@@ -171,6 +173,9 @@ class TVTimeImporter:
             msg = "Invalid file. Please upload the TV Time export zip file."
             raise MediaImportError(msg) from error
 
+        if self.password:
+            archive.setpassword(self.password.encode())
+
         files = {}
         with archive:
             for name in archive.namelist():
@@ -185,15 +190,38 @@ class TVTimeImporter:
                 if normalized not in KNOWN_FILES:
                     continue
 
-                try:
-                    raw = archive.read(name).decode("utf-8-sig")
-                except (UnicodeDecodeError, KeyError) as error:
-                    msg = f"Could not read {name} from the TV Time export."
-                    raise MediaImportError(msg) from error
-
-                files[normalized] = list(csv.DictReader(io.StringIO(raw)))
+                files[normalized] = list(
+                    csv.DictReader(io.StringIO(self._read_member(archive, name))),
+                )
 
         return files
+
+    def _read_member(self, archive, name):
+        """Read a single zip member as text, handling encrypted archives."""
+        try:
+            raw = archive.read(name)
+        except RuntimeError as error:
+            # zipfile raises RuntimeError for a missing/incorrect password.
+            if self.password:
+                msg = "Incorrect password for the TV Time export archive."
+            else:
+                msg = (
+                    "This TV Time export is password-protected. Enter the export "
+                    "password and try again."
+                )
+            raise MediaImportError(msg) from error
+        except NotImplementedError as error:
+            msg = (
+                "This archive uses an unsupported encryption method. Extract it "
+                "and re-upload the files as an unencrypted zip."
+            )
+            raise MediaImportError(msg) from error
+
+        try:
+            return raw.decode("utf-8-sig")
+        except UnicodeDecodeError as error:
+            msg = f"Could not read {name} from the TV Time export."
+            raise MediaImportError(msg) from error
 
     def _load_show_data(self, files):
         """Load per-show metadata (follow status and TVDB series ids)."""

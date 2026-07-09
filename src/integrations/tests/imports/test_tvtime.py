@@ -230,6 +230,56 @@ class ImportTVTime(TestCase):
             [("series", "83322"), ("movie", None)],
         )
 
+    @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
+    @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
+    def test_password_ignored_on_plain_zip(self, mock_get_metadata, mock_map_series):
+        """Test a password is harmless when the archive is not encrypted."""
+        mock_get_metadata.side_effect = tv_metadata_side_effect
+        mock_map_series.side_effect = lambda series_id, _: (
+            "500" if series_id == "111" else None
+        )
+
+        zip_file = build_zip(
+            {
+                "user_tv_show_data.csv": SHOW_DATA,
+                "tracking-prod-records-v2.csv": TRACKING_V2,
+            },
+        )
+
+        imported_counts, _ = tvtime.importer(
+            zip_file,
+            self.user,
+            "new",
+            password="unused",  # noqa: S106
+        )
+        self.assertEqual(imported_counts[MediaTypes.EPISODE.value], 2)
+
+    def test_encrypted_zip_without_password(self):
+        """Test a clear error is raised when the archive needs a password."""
+        importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new")
+
+        class FakeArchive:
+            def read(self, _):
+                msg = "File is encrypted, password required for extraction"
+                raise RuntimeError(msg)
+
+        with self.assertRaises(MediaImportError) as ctx:
+            importer_instance._read_member(FakeArchive(), "x.csv")
+        self.assertIn("password-protected", str(ctx.exception))
+
+    def test_encrypted_zip_wrong_password(self):
+        """Test a clear error is raised when the password is incorrect."""
+        importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new", "wrong")
+
+        class FakeArchive:
+            def read(self, _):
+                msg = "Bad password for file"
+                raise RuntimeError(msg)
+
+        with self.assertRaises(MediaImportError) as ctx:
+            importer_instance._read_member(FakeArchive(), "x.csv")
+        self.assertIn("Incorrect password", str(ctx.exception))
+
     def test_invalid_zip(self):
         """Test that a non-zip upload raises a clear error."""
         with self.assertRaises(MediaImportError):
