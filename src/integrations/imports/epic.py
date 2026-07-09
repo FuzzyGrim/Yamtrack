@@ -361,7 +361,7 @@ class EpicImporter:
                 return True
 
         except Exception:
-            pass  # If parsing fails, err on the side of importing
+            logger.debug("Failed to parse Epic catalog categories, importing anyway")
 
         return False
 
