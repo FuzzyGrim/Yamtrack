@@ -32,7 +32,12 @@ def format_media_type_display(count, media_type):
         return None
     if count == 1:
         return f"{count} {dict(MediaTypes.choices).get(media_type, media_type)}"
-    return f"{count} {app_tags.media_type_readable_plural(media_type)}"
+    try:
+        plural = app_tags.media_type_readable_plural(media_type)
+    except ValueError:
+        # Not a MediaTypes value (e.g. custom lists); fall back to a simple "s".
+        plural = f"{dict(MediaTypes.choices).get(media_type, media_type)}s"
+    return f"{count} {plural}"
 
 
 def format_import_message(imported_counts, warning_messages=None):

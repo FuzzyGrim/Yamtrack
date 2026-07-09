@@ -16,6 +16,7 @@ from app.models import (
 from integrations.imports import tvtime
 from integrations.imports.helpers import MediaImportError
 from integrations.imports.tvtime import TVTimeImporter
+from lists.models import CustomList, CustomListItem
 
 
 def build_zip(files):
@@ -182,6 +183,52 @@ class ImportTVTime(TestCase):
 
         planned = Movie.objects.get(item__media_id="693134")
         self.assertEqual(planned.status, Status.PLANNING.value)
+
+    @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
+    @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
+    def test_list_import(self, mock_get_metadata, mock_map_series):
+        """Test importing a TV Time custom list of series (movies skipped)."""
+        mock_get_metadata.return_value = {"title": "A Show", "image": "s.jpg"}
+        mock_map_series.side_effect = lambda series_id, _: {
+            "111": "500",
+            "222": "600",
+        }.get(series_id)
+
+        collection = (
+            "lists,user_id,s_key,list_count,type,name,description,created_at,"
+            "ordering,is_public,objects\n"
+            "[map[created_at:1.6e+09 description:my faves fanart:[u] is_public:true "
+            "name:My Faves order:<nil> posters:[p] s_key:my-faves type:list "
+            "updated_at:1.6e+09 user_id:4.4e+07]],44818765,collection,,,,,,,,\n"
+            ",44818765,my-faves,,list,,,2021-07-25 10:00:43,0,false,"
+            "[map[created_at:1.6e+09 id:111 type:series] "
+            "map[created_at:1.6e+09 id:222 type:series] "
+            "map[created_at:1.6e+09 type:movie uuid:abc-123]]\n"
+        )
+        zip_file = build_zip({"lists-prod-lists.csv": collection})
+
+        imported_counts, warnings = tvtime.importer(zip_file, self.user, "new")
+
+        self.assertEqual(imported_counts.get("list"), 1)
+        custom_list = CustomList.objects.get(owner=self.user, name="My Faves")
+        self.assertEqual(custom_list.description, "my faves")
+        self.assertEqual(
+            CustomListItem.objects.filter(custom_list=custom_list).count(),
+            2,
+        )
+        self.assertIn("skipped 1 list movie", warnings)
+
+    def test_parse_list_items(self):
+        """Test parsing the Go-map dump of list items."""
+        importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new")
+        blob = (
+            "[map[created_at:1.6e+09 id:83322 type:series] "
+            "map[created_at:1.6e+09 type:movie uuid:1f85-abc]]"
+        )
+        self.assertEqual(
+            importer_instance._parse_list_items(blob),
+            [("series", "83322"), ("movie", None)],
+        )
 
     def test_invalid_zip(self):
         """Test that a non-zip upload raises a clear error."""

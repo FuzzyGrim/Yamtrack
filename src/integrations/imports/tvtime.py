@@ -1,6 +1,16 @@
+"""Importer for TV Time GDPR export archives.
+
+TV Time identifies TV shows and episodes with TheTVDB ids, which map to
+Yamtrack's TMDB source through TMDB's ``/find?external_source=tvdb_id``
+endpoint (see ``TVTimeImporter._map_series``). Movies are only exported with a
+title and release date (no TheTVDB/TMDB/IMDb id), so they are matched to TMDB
+by title search instead (see ``TVTimeImporter._search_movie``).
+"""
+
 import csv
 import io
 import logging
+import re
 import zipfile
 from collections import defaultdict
 
@@ -14,8 +24,14 @@ from app.models import MediaTypes, Sources, Status
 from app.providers import services, tmdb
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
+from lists.models import CustomList, CustomListItem
 
 logger = logging.getLogger(__name__)
+
+# The custom-list export is a dump of Go maps, e.g.
+# ``map[created_at:... id:83322 type:series]``. This matches one such map block
+# (list items never contain nested arrays).
+_GO_MAP_BLOCK = re.compile(r"map\[([^\[\]]*)\]")
 
 # TV Time delivers a GDPR export as a zip with one CSV per database table. The
 # file names are inconsistent (hyphens, underscores, service prefixes), so we
@@ -27,6 +43,7 @@ FILE_WATCHED_SIMPLE = "watchedonepisodecsv"
 FILE_SHOW_DATA = "usertvshowdatacsv"
 FILE_FOLLOWED = "followedtvshowcsv"
 FILE_EPISODE_RATINGS = "ratings3prodepisodevotescsv"
+FILE_LISTS = "listsprodlistscsv"
 
 KNOWN_FILES = {
     FILE_WATCHED_V2,
@@ -35,6 +52,7 @@ KNOWN_FILES = {
     FILE_SHOW_DATA,
     FILE_FOLLOWED,
     FILE_EPISODE_RATINGS,
+    FILE_LISTS,
 }
 
 # TV Time stores ratings as an opaque "vote" value that is not publicly
@@ -89,6 +107,7 @@ class TVTimeImporter:
         self.season_instances = {}  # (tvdb_series_id, season) -> Season instance
         self.series_scores = defaultdict(list)  # tvdb_series_id -> [score, ...]
         self.movie_tmdb_ids = set()  # tmdb ids already added as movies
+        self.lists_created = 0
         self.has_comments = False
 
         logger.info(
@@ -116,25 +135,36 @@ class TVTimeImporter:
         self._process_watchlist()
         self._process_movies(files)
 
+        helpers.cleanup_existing_media(self.to_delete, self.user)
+        helpers.bulk_create_media(self.bulk_media, self.user)
+
+        # Lists reference Items directly, so build them after media is created.
+        self._process_lists(files)
+
         if self.has_comments:
             self.warnings.append(
                 "Comments were not imported: TV Time exports them without an "
                 "identifier that can be matched to The Movie Database.",
             )
 
-        helpers.cleanup_existing_media(self.to_delete, self.user)
-        helpers.bulk_create_media(self.bulk_media, self.user)
-
         imported_counts = {
             media_type: len(media_list)
             for media_type, media_list in self.bulk_media.items()
         }
+        if self.lists_created:
+            imported_counts["list"] = self.lists_created
 
         deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
         return imported_counts, deduplicated_messages
 
     def _read_zip(self):
-        """Read the uploaded zip and return the recognized CSV files as rows."""
+        """Read the uploaded zip and return the recognized CSV files as rows.
+
+        Only the media files in ``KNOWN_FILES`` are read; every other member is
+        ignored. A TV Time export also contains account files such as
+        ``access_token.csv`` and ``auth-prod-login.csv`` (password hashes,
+        tokens) which are never opened.
+        """
         try:
             archive = zipfile.ZipFile(self.file)
         except zipfile.BadZipFile as error:
@@ -748,3 +778,115 @@ class TVTimeImporter:
             results[0],
         )
         return str(best["media_id"]), best["title"], best["image"]
+
+    def _process_lists(self, files):
+        """Import TV Time custom lists as Yamtrack custom lists."""
+        rows = files.get(FILE_LISTS)
+        if not rows:
+            return
+
+        metadata = {}
+        list_rows = []
+        for row in rows:
+            if (row.get("s_key") or "").strip() == "collection":
+                metadata = self._parse_list_metadata(row.get("lists"))
+            elif (row.get("type") or "").strip() == "list":
+                list_rows.append(row)
+
+        for row in list_rows:
+            try:
+                self._create_list(row, metadata)
+            except Exception as error:
+                s_key = (row.get("s_key") or "").strip()
+                msg = f"Error processing TV Time list: {s_key}"
+                raise MediaImportUnexpectedError(msg) from error
+
+    def _create_list(self, row, metadata):
+        """Create a single custom list and add its resolvable items."""
+        s_key = (row.get("s_key") or "").strip()
+        meta = metadata.get(s_key, {})
+        name = meta.get("name") or (row.get("name") or "").strip() or s_key
+
+        items = self._parse_list_items(row.get("objects"))
+        resolved = []
+        skipped_movies = 0
+        for entry_type, tvdb_id in items:
+            if entry_type != "series":
+                skipped_movies += 1
+                continue
+            item = self._list_series_item(tvdb_id)
+            if item:
+                resolved.append(item)
+
+        if skipped_movies:
+            self.warnings.append(
+                f"{name}: skipped {skipped_movies} list movie(s) that TV Time "
+                "exported without a usable identifier.",
+            )
+
+        if not resolved:
+            return
+
+        custom_list, created = CustomList.objects.get_or_create(
+            owner=self.user,
+            name=name,
+            defaults={"description": meta.get("description", "")},
+        )
+        if created:
+            self.lists_created += 1
+
+        for item in resolved:
+            CustomListItem.objects.get_or_create(custom_list=custom_list, item=item)
+
+    def _list_series_item(self, tvdb_id):
+        """Resolve a TheTVDB series id from a list to a TMDB TV Item."""
+        name = self.show_meta.get(tvdb_id, {}).get("name", tvdb_id)
+        tmdb_id = self._map_series(tvdb_id, name)
+        if not tmdb_id:
+            return None
+
+        metadata = self._get_metadata(MediaTypes.TV.value, tmdb_id, name)
+        if not metadata:
+            return None
+
+        return self._get_or_create_item(MediaTypes.TV.value, tmdb_id, metadata)
+
+    def _parse_list_metadata(self, blob):
+        """Parse the ``collection`` row into ``{s_key: {name, description}}``.
+
+        The value is a Go map dump where each list's keys are printed in sorted
+        order (``description`` before ``name`` before ``s_key``), so each field
+        can be pulled out positionally and zipped back together by list.
+        """
+        blob = blob or ""
+        names = re.findall(r"name:(.*?) order:", blob)
+        descriptions = re.findall(r"description:(.*?) fanart:", blob)
+        s_keys = re.findall(r"s_key:(\S+)", blob)
+
+        metadata = {}
+        for index, s_key in enumerate(s_keys):
+            raw_description = descriptions[index] if index < len(descriptions) else ""
+            description = raw_description.strip()
+            if description == "<nil>":
+                description = ""
+            metadata[s_key] = {
+                "name": names[index].strip() if index < len(names) else "",
+                "description": description,
+            }
+        return metadata
+
+    def _parse_list_items(self, blob):
+        """Parse a list's ``objects`` blob into ``(type, tvdb_id)`` tuples."""
+        items = []
+        for inner in _GO_MAP_BLOCK.findall(blob or ""):
+            entry_type = self._go_token(inner, "type")
+            if entry_type == "series":
+                items.append(("series", self._go_token(inner, "id")))
+            elif entry_type == "movie":
+                items.append(("movie", None))
+        return items
+
+    def _go_token(self, inner, key):
+        """Extract a single-token value for ``key`` from a Go map body."""
+        match = re.search(rf"(?:^|\s){key}:(\S+)", inner)
+        return match.group(1) if match else None

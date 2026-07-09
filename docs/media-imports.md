@@ -101,6 +101,7 @@ GDPR data export.
   `Planning` status.
 - **Watched movies**, marked as `Completed`. Movies you added to your watchlist
   are imported with a `Planning` status.
+- **Custom lists**, recreated as YamTrack custom lists with their series members.
 
 ### Limitations
 
@@ -110,6 +111,9 @@ GDPR data export.
   movies afterwards.
 - **Comments are not imported.** TV Time exports them without an identifier that
   can be matched to The Movie Database.
+- **Movies inside custom lists are skipped**, because list entries reference
+  movies only by TV Time's internal id (no title to search by). Series in lists
+  import normally.
 - **Ratings** are exported as an undocumented "vote" value that cannot be reliably
   converted to a 0–10 score, so scores are skipped. Rated episodes are still
   imported as watched.
