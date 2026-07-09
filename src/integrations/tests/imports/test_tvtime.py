@@ -428,8 +428,52 @@ class ImportTVTime(TestCase):
         )
         self.assertEqual(
             importer_instance._parse_list_items(blob),
-            [("series", "83322"), ("movie", None)],
+            [("series", "83322"), ("movie", "1f85-abc")],
         )
+
+    @patch("integrations.imports.tvtime.services.search")
+    def test_list_movie_resolved_by_uuid(self, mock_search):
+        """A movie in a list resolves via the uuid of a matched watch-history movie."""
+        mock_search.return_value = {
+            "results": [
+                {
+                    "source": "tmdb",
+                    "media_type": "movie",
+                    "media_id": 809,
+                    "title": "Zootopia",
+                    "image": "z",
+                },
+            ],
+        }
+
+        # Zootopia appears both as a watched movie (with uuid) and in a list.
+        movie_uuid = "33a5696a-ccd0-4e8d-b8c7-5733f6a182b4"
+        v1_movies = (
+            "uuid,type,entity_type,movie_name,release_date,watch_date,created_at\n"
+            f"{movie_uuid},watch,movie,Zootopia,2016-02-11 00:00:00,"
+            "2016-03-01 00:00:00,2016-03-01 00:00:00\n"
+        )
+        lists = (
+            "lists,user_id,s_key,list_count,type,name,description,created_at,"
+            "ordering,is_public,objects\n"
+            ",44818765,my-films,,list,My Films,,2021-07-25 10:00:43,0,false,"
+            f"[map[created_at:1.6e+09 type:movie uuid:{movie_uuid}]]\n"
+        )
+        zip_file = build_zip(
+            {
+                "tracking-prod-records.csv": v1_movies,
+                "lists-prod-lists.csv": lists,
+            },
+        )
+
+        imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
+
+        self.assertEqual(imported_counts.get(MediaTypes.MOVIE.value), 1)
+        self.assertEqual(imported_counts.get("list"), 1)
+        custom_list = CustomList.objects.get(owner=self.user, name="My Films")
+        item = CustomListItem.objects.get(custom_list=custom_list).item
+        self.assertEqual(item.media_id, "809")
+        self.assertEqual(item.media_type, MediaTypes.MOVIE.value)
 
     @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
     @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")

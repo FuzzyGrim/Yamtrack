@@ -119,9 +119,10 @@ the **Export password** field before selecting the file.
   manually — it is worth reviewing imported movies afterwards.
 - **Comments are not imported.** TV Time exports them without an identifier that
   can be matched to The Movie Database.
-- **Movies inside custom lists are skipped**, because list entries reference
-  movies only by TV Time's internal id (no title to search by). Series in lists
-  import normally.
+- **Movies inside custom lists** are added when the same movie also appears in
+  your watch history (they are matched by TV Time's internal id to the movie that
+  was already resolved to The Movie Database). A list movie that you never watched
+  or added to your watchlist can't be matched and is reported.
 - **Ratings** are exported as an undocumented "vote" value that cannot be reliably
   converted to a 0–10 score, so scores are skipped. Rated episodes are still
   imported as watched.
