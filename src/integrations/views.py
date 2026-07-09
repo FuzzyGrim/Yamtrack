@@ -442,6 +442,29 @@ def import_imdb(request):
 
 
 @require_POST
+def import_tvtime(request):
+    """View for importing TV shows from a TV Time export zip."""
+    file = request.FILES.get("tvtime_zip")
+
+    if not file:
+        messages.error(request, "TV Time export zip file is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    tasks.import_tvtime.delay(
+        file=request.FILES["tvtime_zip"],
+        user_id=request.user.id,
+        mode=mode,
+        password=request.POST.get("tvtime_password") or None,
+    )
+    messages.info(
+        request,
+        "The task to import media from the TV Time export has been queued.",
+    )
+    return redirect("import_data")
+
+
+@require_POST
 def import_goodreads(request):
     """View for importing books data from GoodReads CSV."""
     file = request.FILES.get("goodreads_csv")

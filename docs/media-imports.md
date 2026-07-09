@@ -82,6 +82,50 @@ Steam import requires a Steam API key and your Steam ID 64.
 - **Steam ID 64**: Instead of your Steam username, you must provide your Steam ID 64. You can find it on your Steam account details page under your username.
 - **Profile Visibility**: Your Steam profile must be public if the API key you are using is not linked to the Steam ID you are requesting.
 
+## TV Time
+
+TV Time is shutting down, but you can still import your TV data from the official
+GDPR data export.
+
+1. Request your data at <https://gdpr.tvtime.com/gdpr/self-service> and download
+   the export.
+2. On the import page, keep the frequency set to **One Time Import** and upload the
+   whole `.zip` archive — you do not need to extract it. YamTrack automatically
+   picks out the relevant files from the export.
+
+Most exports are unencrypted. If yours is password-protected, enter the password in
+the **Export password** field before selecting the file.
+
+### What gets imported
+
+- **Watched shows, seasons and episodes**, including progress and completion
+  status. Series are matched to The Movie Database through their TheTVDB ids.
+- **Followed shows** you have not started yet are added to your list with a
+  `Planning` status.
+- **Watched movies**, marked as `Completed`. Movies you added to your watchlist
+  are imported with a `Planning` status.
+- **Custom lists**, recreated as YamTrack custom lists with their series members.
+
+### Limitations
+
+- **Movies are matched by title**, because TV Time exports them without a
+  TheTVDB, TMDB or IMDb id. Any movie that could not be matched is listed in the
+  import summary so you can add it manually — it is worth reviewing imported
+  movies afterwards.
+- **Comments are not imported.** TV Time exports them without an identifier that
+  can be matched to The Movie Database.
+- **Movies inside custom lists are skipped**, because list entries reference
+  movies only by TV Time's internal id (no title to search by). Series in lists
+  import normally.
+- **Ratings** are exported as an undocumented "vote" value that cannot be reliably
+  converted to a 0–10 score, so scores are skipped. Rated episodes are still
+  imported as watched.
+- Episodes are matched to The Movie Database using their TheTVDB episode id, so
+  shows that TheTVDB and TMDB number differently (common for long-running anime)
+  are imported correctly. This means an extra lookup per mismatched episode, so
+  large anime libraries take longer to import. Any episode that still cannot be
+  matched is listed in the import summary.
+
 ## Yamtrack CSV format
 
 Use this format to bulk-import media into YamTrack. Every row represents a single media instance.
