@@ -101,18 +101,22 @@ def update_stored_refresh_token(old_encrypted, new_encrypted):
     """Update the refresh token stored in any periodic import tasks."""
     from django_celery_beat.models import PeriodicTask
 
-    periodic_task = PeriodicTask.objects.filter(
+    periodic_tasks = PeriodicTask.objects.filter(
         task="Import from Epic Games",
         kwargs__contains=f'"token": "{old_encrypted}"',
-    ).first()
+    )
 
-    if periodic_task:
+    updated_count = 0
+    for periodic_task in periodic_tasks:
         periodic_task.kwargs = periodic_task.kwargs.replace(
             old_encrypted,
             new_encrypted,
         )
         periodic_task.save()
-        logger.info("Updated Epic refresh token in periodic task")
+        updated_count += 1
+
+    if updated_count:
+        logger.info("Updated Epic refresh token in %d periodic task(s)", updated_count)
 
 
 def importer(encrypted_token, user, mode):
@@ -207,11 +211,7 @@ class EpicImporter:
         catalog_item_id = item.get("catalogItemId", "")
         app_name = item.get("appName", "")
 
-        # Skip DLC and add-ons — only import base games
-        if self._is_non_game_entitlement(item, api, namespace, catalog_item_id):
-            return
-
-        # Fetch real title from Epic catalog API
+        # Fetch game info from Epic catalog (used for both DLC check and title)
         try:
             game_info = api.get_game_info(namespace, catalog_item_id)
         except Exception as e:
@@ -224,6 +224,10 @@ class EpicImporter:
             )
             return
 
+        # Skip DLC and add-ons — only import base games
+        if self._is_non_game_entitlement(item, game_info):
+            return
+
         if not game_info:
             logger.debug(
                 "No catalog info for Epic item %s (%s:%s)",
@@ -232,6 +236,11 @@ class EpicImporter:
             return
 
         title = game_info.get("title") or app_name
+
+        # If we fell back to the internal app_name, skip internal identifiers
+        if title == app_name and self._is_internal_identifier(title):
+            logger.debug("Skipping internal identifier '%s'", title)
+            return
 
         try:
             igdb_game = self._match_with_igdb(title)
@@ -310,13 +319,19 @@ class EpicImporter:
             self.warnings.append(f"{title}: {e!s}")
 
     @staticmethod
-    def _is_non_game_entitlement(item, api, namespace, catalog_item_id):
+    def _is_non_game_entitlement(item, game_info):
         """Check if this entitlement is a base game or DLC/non-game content.
 
         Skips DLC, add-ons, soundtracks, engine downloads, etc.
         Uses Epic's catalog categories to determine what's a game vs DLC.
+
+        Args:
+            item: Raw library item from Epic API.
+            game_info: Pre-fetched catalog game info (or None if unavailable).
+
+        Returns:
+            True if this is DLC/non-game content and should be skipped.
         """
-        sandbox_type = item.get("sandboxType", "")
         record_type = item.get("recordType", "")
 
         # Epic library items use recordType="APPLICATION" for base games.
@@ -324,29 +339,29 @@ class EpicImporter:
         if record_type == "DLC":
             return True
 
-        # Try catalog info for better filtering
+        if not game_info:
+            return False  # Can't determine — err on the side of importing
+
         try:
-            info = api.get_game_info(namespace, catalog_item_id)
-            if info:
-                categories = info.get("categories", [])
-                cat_names = [c.get("path", "") for c in categories] if isinstance(categories, list) else []
-                cat_str = " ".join(cat_names).lower()
+            categories = game_info.get("categories", [])
+            cat_names = [c.get("path", "") for c in categories] if isinstance(categories, list) else []
+            cat_str = " ".join(cat_names).lower()
 
-                # Skip DLC, add-ons, soundtracks, editors, engine, etc.
-                skip_patterns = [
-                    "addons", "digitalextras", "dlc", "soundtrack",
-                    "engine", "editor", "software",
-                ]
-                for pattern in skip_patterns:
-                    if pattern in cat_str:
-                        return True
-
-                # Only import items with "games" or "apps/games" category
-                if not any("games" in c or "applications" in c for c in cat_names):
+            # Skip DLC, add-ons, soundtracks, editors, engine, etc.
+            skip_patterns = [
+                "addons", "digitalextras", "dlc", "soundtrack",
+                "engine", "editor", "software",
+            ]
+            for pattern in skip_patterns:
+                if pattern in cat_str:
                     return True
 
+            # Only import items with "games" or "apps/games" category
+            if not any("games" in c or "applications" in c for c in cat_names):
+                return True
+
         except Exception:
-            pass  # If catalog lookup fails, err on the side of importing
+            pass  # If parsing fails, err on the side of importing
 
         return False
 
@@ -455,11 +470,6 @@ class EpicImporter:
         if not title:
             return None
 
-        # Step 0: Skip internal identifiers that are clearly not game titles
-        if self._is_internal_identifier(title):
-            logger.debug("Skipping internal identifier '%s'", title)
-            return None
-
         # Step 1: Strip special characters (®™©)
         clean = self._strip_special_chars(title)
 
@@ -502,7 +512,6 @@ class EpicImporter:
         changed = False
 
         if game.status in [
-            Status.PLANNING.value,
             Status.IN_PROGRESS.value,
             Status.PAUSED.value,
         ]:
