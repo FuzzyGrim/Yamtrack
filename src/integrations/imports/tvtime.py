@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 # match them by a normalized key (lowercase, alphanumeric only) instead of an
 # exact name.
 FILE_WATCHED_V2 = "trackingprodrecordsv2csv"
+FILE_WATCHED_V1 = "trackingprodrecordscsv"
 FILE_WATCHED_SIMPLE = "watchedonepisodecsv"
 FILE_SHOW_DATA = "usertvshowdatacsv"
 FILE_FOLLOWED = "followedtvshowcsv"
@@ -29,16 +30,12 @@ FILE_EPISODE_RATINGS = "ratings3prodepisodevotescsv"
 
 KNOWN_FILES = {
     FILE_WATCHED_V2,
+    FILE_WATCHED_V1,
     FILE_WATCHED_SIMPLE,
     FILE_SHOW_DATA,
     FILE_FOLLOWED,
     FILE_EPISODE_RATINGS,
 }
-
-# Substrings (normalized) that identify media TV Time cannot export with a
-# usable identifier (only free-text names or internal UUIDs), used to warn the
-# user that this data is intentionally skipped.
-MOVIE_FILE_HINTS = ("livevotes", "normalizeduseractionfollow")
 
 # TV Time stores ratings as an opaque "vote" value that is not publicly
 # documented as a 1-10 score (leading importers such as TVmaze could not map
@@ -91,7 +88,8 @@ class TVTimeImporter:
         self.tv_instances = {}  # tvdb_series_id -> TV instance
         self.season_instances = {}  # (tvdb_series_id, season) -> Season instance
         self.series_scores = defaultdict(list)  # tvdb_series_id -> [score, ...]
-        self.has_movie_data = False
+        self.movie_tmdb_ids = set()  # tmdb ids already added as movies
+        self.has_comments = False
 
         logger.info(
             "Initialized TV Time importer for user %s with mode %s",
@@ -116,12 +114,12 @@ class TVTimeImporter:
         watched = self._collect_watched(files)
         self._process_watched(watched)
         self._process_watchlist()
+        self._process_movies(files)
 
-        if self.has_movie_data:
+        if self.has_comments:
             self.warnings.append(
-                "Movies and free-text comments were skipped: TV Time only "
-                "exports these with internal identifiers, so they cannot be "
-                "matched to The Movie Database.",
+                "Comments were not imported: TV Time exports them without an "
+                "identifier that can be matched to The Movie Database.",
             )
 
         helpers.cleanup_existing_media(self.to_delete, self.user)
@@ -151,8 +149,8 @@ class TVTimeImporter:
 
                 normalized = _normalize_name(name)
 
-                if any(hint in normalized for hint in MOVIE_FILE_HINTS):
-                    self.has_movie_data = True
+                if "comments" in normalized:
+                    self.has_comments = True
 
                 if normalized not in KNOWN_FILES:
                     continue
@@ -630,3 +628,123 @@ class TVTimeImporter:
             tv_instance._history_date = timezone.now()
             self.bulk_media[MediaTypes.TV.value].append(tv_instance)
             self.tv_instances[series_id] = tv_instance
+
+    def _process_movies(self, files):
+        """Import movies from the v1 tracking file.
+
+        TV Time only exports movies with an internal UUID and a title, so they
+        are matched to The Movie Database by title (and release year), unlike
+        TV shows which carry a TheTVDB id.
+        """
+        rows = files.get(FILE_WATCHED_V1)
+        if not rows:
+            return
+
+        watched, planned = self._collect_movies(rows)
+
+        for (title, _year), watched_at in watched.items():
+            self._import_movie(title, Status.COMPLETED.value, watched_at)
+
+        for key in planned:
+            if key in watched:
+                continue
+            self._import_movie(key[0], Status.PLANNING.value, None)
+
+    def _collect_movies(self, rows):
+        """Split v1 rows into deduplicated watched and watchlisted movies."""
+        watched = {}  # (title, year) -> earliest watched_at
+        planned = {}  # (title, year) -> None
+
+        for row in rows:
+            if (row.get("entity_type") or "").strip() != "movie":
+                continue
+
+            title = (row.get("movie_name") or "").strip()
+            if not title:
+                continue
+
+            key = (title, self._release_year(row.get("release_date")))
+            row_type = (row.get("type") or "").strip()
+
+            if row_type == "watch":
+                self._record_watched_movie(watched, key, row)
+            elif row_type in ("towatch", "follow"):
+                planned.setdefault(key, None)
+
+        return watched, planned
+
+    def _record_watched_movie(self, watched, key, row):
+        """Store a watched movie, keeping the earliest watch date."""
+        watched_at = self._parse_dt(row.get("watch_date") or row.get("created_at"))
+        existing = watched.get(key)
+        if key not in watched or (existing and watched_at and watched_at < existing):
+            watched[key] = watched_at
+
+    def _release_year(self, release_date):
+        """Extract the release year from a TV Time release_date value."""
+        if not release_date:
+            return None
+
+        digits = release_date.strip()[:4]
+        return digits if digits.isdigit() else None
+
+    def _import_movie(self, title, status, watched_at):
+        """Match a movie to TMDB by title and create a Movie instance."""
+        match = self._search_movie(title)
+        if not match:
+            self.warnings.append(
+                f"{title}: could not be matched in {Sources.TMDB.label}.",
+            )
+            return
+
+        tmdb_id, matched_title, image = match
+        if tmdb_id in self.movie_tmdb_ids:
+            return
+
+        if not helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            MediaTypes.MOVIE.value,
+            Sources.TMDB.value,
+            tmdb_id,
+            self.mode,
+        ):
+            self.movie_tmdb_ids.add(tmdb_id)
+            return
+
+        self.movie_tmdb_ids.add(tmdb_id)
+
+        item = self._get_or_create_item(
+            MediaTypes.MOVIE.value,
+            tmdb_id,
+            {"title": matched_title, "image": image},
+        )
+        movie_instance = app.models.Movie(
+            item=item,
+            user=self.user,
+            status=status,
+            progress=1 if status == Status.COMPLETED.value else 0,
+            start_date=watched_at,
+            end_date=watched_at,
+        )
+        movie_instance._history_date = watched_at or timezone.now()
+        self.bulk_media[MediaTypes.MOVIE.value].append(movie_instance)
+
+    def _search_movie(self, title):
+        """Return (tmdb_id, title, image) for the best TMDB match, or None."""
+        try:
+            results = services.search(MediaTypes.MOVIE.value, title, 1)["results"]
+        except services.ProviderAPIError as error:
+            logger.warning("Error searching TMDB for movie %s: %s", title, error)
+            return None
+
+        if not results:
+            return None
+
+        # Prefer an exact (case-insensitive) title match over TMDB's ordering.
+        wanted = title.casefold()
+        best = next(
+            (r for r in results if r["title"].casefold() == wanted),
+            results[0],
+        )
+        return str(best["media_id"]), best["title"], best["image"]

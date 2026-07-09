@@ -9,6 +9,7 @@ from app.models import (
     TV,
     Episode,
     MediaTypes,
+    Movie,
     Season,
     Status,
 )
@@ -138,6 +139,49 @@ class ImportTVTime(TestCase):
         imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
 
         self.assertEqual(imported_counts[MediaTypes.EPISODE.value], 1)
+
+    @patch("integrations.imports.tvtime.services.search")
+    def test_movie_import(self, mock_search):
+        """Test importing watched and watchlisted movies matched by title."""
+        catalog = {
+            "The Batman": {"media_id": 414906, "title": "The Batman", "image": "b"},
+            "Dune: Part Two": {
+                "media_id": 693134,
+                "title": "Dune: Part Two",
+                "image": "d",
+            },
+        }
+
+        def search_side_effect(_, query, __):
+            match = catalog.get(query)
+            results = (
+                [{"source": "tmdb", "media_type": "movie", **match}] if match else []
+            )
+            return {"results": results}
+
+        mock_search.side_effect = search_side_effect
+
+        v1_movies = (
+            "type,entity_type,movie_name,release_date,watch_date,created_at\n"
+            "watch,movie,The Batman,2022-03-04 00:00:00,2022-04-01 00:00:00,"
+            "2022-04-01 00:00:00\n"
+            # rewatch duplicate of the same movie -> deduped
+            "watch,movie,The Batman,2022-03-04 00:00:00,2022-05-01 00:00:00,"
+            "2022-05-01 00:00:00\n"
+            "towatch,movie,Dune: Part Two,2024-03-01 00:00:00,,2024-01-01 00:00:00\n"
+        )
+        zip_file = build_zip({"tracking-prod-records.csv": v1_movies})
+
+        imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
+
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 2)
+
+        watched = Movie.objects.get(item__media_id="414906")
+        self.assertEqual(watched.status, Status.COMPLETED.value)
+        self.assertEqual(watched.progress, 1)
+
+        planned = Movie.objects.get(item__media_id="693134")
+        self.assertEqual(planned.status, Status.PLANNING.value)
 
     def test_invalid_zip(self):
         """Test that a non-zip upload raises a clear error."""

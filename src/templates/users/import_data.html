@@ -397,7 +397,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "tvtime" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import TV shows from your TV Time export' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? 'Import TV shows and movies from your TV Time export' : 'File uploads are not available for periodic imports'">
           </p>
           <form method="post"
                 action="{% url 'import_tvtime' %}"

@@ -99,12 +99,17 @@ GDPR data export.
   status. Series are matched to The Movie Database through their TheTVDB ids.
 - **Followed shows** you have not started yet are added to your list with a
   `Planning` status.
+- **Watched movies**, marked as `Completed`. Movies you added to your watchlist
+  are imported with a `Planning` status.
 
 ### Limitations
 
-- **Movies and comments are not imported.** TV Time only exports these with
-  internal identifiers (no TheTVDB, TMDB or IMDb id), so they cannot be reliably
-  matched.
+- **Movies are matched by title**, because TV Time exports them without a
+  TheTVDB, TMDB or IMDb id. Any movie that could not be matched is listed in the
+  import summary so you can add it manually — it is worth reviewing imported
+  movies afterwards.
+- **Comments are not imported.** TV Time exports them without an identifier that
+  can be matched to The Movie Database.
 - **Ratings** are exported as an undocumented "vote" value that cannot be reliably
   converted to a 0–10 score, so scores are skipped. Rated episodes are still
   imported as watched.
