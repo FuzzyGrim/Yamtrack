@@ -106,7 +106,8 @@ class TVTimeImporter:
         self.name_to_series = {}  # tv_show_name -> tvdb_series_id
         self.tmdb_id_cache = {}  # tvdb_series_id -> tmdb_id (or None)
         self.tv_instances = {}  # tvdb_series_id -> TV instance
-        self.season_instances = {}  # (tvdb_series_id, season) -> Season instance
+        self.season_instances = {}  # (tvdb_series_id, tmdb_season) -> Season instance
+        self.created_episodes = set()  # (tvdb_series_id, tmdb_season, tmdb_episode)
         self.series_scores = defaultdict(list)  # tvdb_series_id -> [score, ...]
         self.movie_tmdb_ids = set()  # tmdb ids already added as movies
         self.lists_created = 0
@@ -351,6 +352,7 @@ class TVTimeImporter:
         watched[series_id][key] = {
             "season": season_number,
             "episode": episode_number,
+            "episode_id": episode_id,
             "watched_at": watched_at,
         }
 
@@ -428,7 +430,140 @@ class TVTimeImporter:
         tv_metadata,
         series_name,
     ):
-        """Process the watched episodes of a single season."""
+        """Process the watched episodes of a single season.
+
+        TV Time uses TheTVDB numbering, which often differs from TMDB
+        (especially for long-running anime). Episodes whose number is not valid
+        for this TMDB season -- or whose whole season does not exist on TMDB --
+        are resolved directly from their TheTVDB episode id instead of skipped.
+        """
+        season_metadata = self._get_metadata(
+            MediaTypes.SEASON.value,
+            tmdb_id,
+            series_name,
+            season_number,
+            warn=False,
+        )
+
+        if not season_metadata:
+            for entry in season_episodes:
+                self._resolve_episode_by_tvdb(
+                    series_id,
+                    tmdb_id,
+                    tv_instance,
+                    tv_metadata,
+                    entry,
+                    series_name,
+                    season_number,
+                )
+            return
+
+        valid_episode_numbers = {
+            ep["episode_number"] for ep in season_metadata["episodes"]
+        }
+
+        # Create the season lazily, only once a valid episode is found, so a
+        # season made up entirely of mismatched episodes does not leave an
+        # empty Season behind.
+        season_instance = None
+        for entry in season_episodes:
+            episode_number = entry["episode"]
+
+            if episode_number not in valid_episode_numbers:
+                self._resolve_episode_by_tvdb(
+                    series_id,
+                    tmdb_id,
+                    tv_instance,
+                    tv_metadata,
+                    entry,
+                    series_name,
+                    season_number,
+                )
+                continue
+
+            if season_instance is None:
+                season_instance = self._get_or_create_season(
+                    series_id,
+                    tmdb_id,
+                    season_number,
+                    season_metadata,
+                    tv_instance,
+                )
+
+            self._add_episode(
+                series_id,
+                tmdb_id,
+                season_number,
+                episode_number,
+                entry["watched_at"],
+                season_metadata,
+                tv_metadata,
+                tv_instance,
+                season_instance,
+            )
+
+    def _add_episode(
+        self,
+        series_id,
+        tmdb_id,
+        season_number,
+        episode_number,
+        watched_at,
+        season_metadata,
+        tv_metadata,
+        tv_instance,
+        season_instance,
+    ):
+        """Create an episode (deduplicated) and update completion status."""
+        episode_key = (series_id, season_number, episode_number)
+        if episode_key in self.created_episodes:
+            return
+        self.created_episodes.add(episode_key)
+
+        self._create_episode(
+            tmdb_id,
+            season_number,
+            episode_number,
+            watched_at,
+            season_metadata,
+            tv_metadata,
+            season_instance,
+        )
+
+        self._update_completion_status(
+            season_instance,
+            tv_instance,
+            season_number,
+            episode_number,
+            season_metadata,
+            tv_metadata,
+        )
+
+    def _resolve_episode_by_tvdb(
+        self,
+        series_id,
+        tmdb_id,
+        tv_instance,
+        tv_metadata,
+        entry,
+        series_name,
+        tv_time_season,
+    ):
+        """Place an episode using its TheTVDB episode id when TMDB numbering differs."""
+        resolved = self._find_episode(entry.get("episode_id"))
+
+        # Only handle episodes that resolve to the same TMDB show; anything else
+        # (or an unresolvable id) is reported so the user can add it manually.
+        if not resolved or resolved["tmdb_show_id"] != tmdb_id:
+            self.warnings.append(
+                f"{series_name} S{tv_time_season}E{entry['episode']}: "
+                f"not found in {Sources.TMDB.label}.",
+            )
+            return
+
+        season_number = resolved["season"]
+        episode_number = resolved["episode"]
+
         season_metadata = self._get_metadata(
             MediaTypes.SEASON.value,
             tmdb_id,
@@ -441,6 +576,12 @@ class TVTimeImporter:
         valid_episode_numbers = {
             ep["episode_number"] for ep in season_metadata["episodes"]
         }
+        if episode_number not in valid_episode_numbers:
+            self.warnings.append(
+                f"{series_name} S{tv_time_season}E{entry['episode']}: "
+                f"not found in {Sources.TMDB.label}.",
+            )
+            return
 
         season_instance = self._get_or_create_season(
             series_id,
@@ -449,34 +590,43 @@ class TVTimeImporter:
             season_metadata,
             tv_instance,
         )
+        self._add_episode(
+            series_id,
+            tmdb_id,
+            season_number,
+            episode_number,
+            entry["watched_at"],
+            season_metadata,
+            tv_metadata,
+            tv_instance,
+            season_instance,
+        )
 
-        for entry in season_episodes:
-            episode_number = entry["episode"]
-            if episode_number not in valid_episode_numbers:
-                self.warnings.append(
-                    f"{series_name} S{season_number}E{episode_number}: "
-                    f"not found in {Sources.TMDB.label}.",
-                )
-                continue
+    def _find_episode(self, episode_tvdb_id):
+        """Resolve a TheTVDB episode id to a TMDB show/season/episode."""
+        if not episode_tvdb_id:
+            return None
 
-            self._create_episode(
-                tmdb_id,
-                season_number,
-                episode_number,
-                entry["watched_at"],
-                season_metadata,
-                tv_metadata,
-                season_instance,
+        try:
+            response = tmdb.find(episode_tvdb_id, "tvdb_id")
+        except services.ProviderAPIError as error:
+            logger.warning(
+                "Error resolving TVDB episode id %s: %s",
+                episode_tvdb_id,
+                error,
             )
+            return None
 
-            self._update_completion_status(
-                season_instance,
-                tv_instance,
-                season_number,
-                episode_number,
-                season_metadata,
-                tv_metadata,
-            )
+        results = response.get("tv_episode_results") or []
+        if not results:
+            return None
+
+        episode = results[0]
+        return {
+            "tmdb_show_id": str(episode["show_id"]),
+            "season": episode["season_number"],
+            "episode": episode["episode_number"],
+        }
 
     def _map_series(self, series_id, series_name):
         """Map a TVDB series id to a TMDB id, caching the lookup."""
@@ -501,7 +651,15 @@ class TVTimeImporter:
         self.tmdb_id_cache[series_id] = tmdb_id
         return tmdb_id
 
-    def _get_metadata(self, media_type, tmdb_id, title, season_number=None):
+    def _get_metadata(
+        self,
+        media_type,
+        tmdb_id,
+        title,
+        season_number=None,
+        *,
+        warn=True,
+    ):
         """Get metadata for a media item, warning if it is missing."""
         try:
             season_numbers = [season_number] if season_number is not None else None
@@ -513,11 +671,13 @@ class TVTimeImporter:
             )
         except services.ProviderAPIError as error:
             if error.status_code == requests.codes.not_found:
-                if media_type == MediaTypes.SEASON.value:
-                    title = f"{title} S{season_number}"
-                self.warnings.append(
-                    f"{title}: not found in {Sources.TMDB.label} with ID {tmdb_id}.",
-                )
+                if warn:
+                    if media_type == MediaTypes.SEASON.value:
+                        title = f"{title} S{season_number}"
+                    self.warnings.append(
+                        f"{title}: not found in {Sources.TMDB.label} "
+                        f"with ID {tmdb_id}.",
+                    )
                 return None
             raise
 

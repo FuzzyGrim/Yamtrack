@@ -120,9 +120,11 @@ the **Export password** field before selecting the file.
 - **Ratings** are exported as an undocumented "vote" value that cannot be reliably
   converted to a 0–10 score, so scores are skipped. Rated episodes are still
   imported as watched.
-- Episodes are matched using TheTVDB season and episode numbering. When a show is
-  numbered differently on The Movie Database (common for long-running anime), the
-  affected episodes are skipped and listed in the import summary.
+- Episodes are matched to The Movie Database using their TheTVDB episode id, so
+  shows that TheTVDB and TMDB number differently (common for long-running anime)
+  are imported correctly. This means an extra lookup per mismatched episode, so
+  large anime libraries take longer to import. Any episode that still cannot be
+  matched is listed in the import summary.
 
 ## Yamtrack CSV format
 

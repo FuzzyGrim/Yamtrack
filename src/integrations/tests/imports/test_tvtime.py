@@ -50,7 +50,7 @@ EPISODE_RATINGS = (
 )
 
 
-def tv_metadata_side_effect(media_type, _, __, ___=None):
+def tv_metadata_side_effect(media_type, _, __, ___=None, *, warn=True):  # noqa: ARG001
     """Return fake TMDB metadata for the importer."""
     if media_type == MediaTypes.TV.value:
         return {
@@ -115,6 +115,112 @@ class ImportTVTime(TestCase):
         season = Season.objects.get(item__media_id="500")
         self.assertEqual(season.status, Status.COMPLETED.value)
         self.assertEqual(Episode.objects.filter(related_season=season).count(), 2)
+
+    @patch("integrations.imports.tvtime.TVTimeImporter._find_episode")
+    @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
+    @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
+    def test_episode_numbering_fallback(
+        self,
+        mock_get_metadata,
+        mock_map_series,
+        mock_find_episode,
+    ):
+        """A TheTVDB-numbered episode missing on TMDB is resolved by episode id."""
+        mock_map_series.side_effect = lambda series_id, _: (
+            "500" if series_id == "111" else None
+        )
+        # TV Time S3E31 resolves to TMDB S1E5 via its TheTVDB episode id.
+        mock_find_episode.return_value = {
+            "tmdb_show_id": "500",
+            "season": 1,
+            "episode": 5,
+        }
+
+        def meta(media_type, _tmdb, _title, season=None, *, warn=True):  # noqa: ARG001
+            if media_type == MediaTypes.TV.value:
+                return {
+                    "title": "Show",
+                    "image": "i",
+                    "last_episode_season": 1,
+                    "max_progress": 12,
+                }
+            if media_type == MediaTypes.SEASON.value and season == 1:
+                return {
+                    "title": "S1",
+                    "image": "i",
+                    "max_progress": 12,
+                    "episodes": [{"episode_number": 5, "still_path": None}],
+                }
+            # TV Time season 3 does not exist on TMDB.
+            return None
+
+        mock_get_metadata.side_effect = meta
+
+        show_data = (
+            "tv_show_name,user_id,tv_show_id,is_followed,is_favorited,nb_episodes_seen\n"
+            "Show,1,111,1,0,1\n"
+        )
+        tracking = (
+            "gsi,s_id,ep_id,season_number,key,user_id,created_at,episode_id,"
+            "series_name,episode_number\n"
+            "watch-episode-1,111,9001,3,k,1,2021-01-01 10:00:00,9001,Show,31\n"
+        )
+        zip_file = build_zip(
+            {
+                "user_tv_show_data.csv": show_data,
+                "tracking-prod-records-v2.csv": tracking,
+            },
+        )
+
+        imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
+
+        self.assertEqual(imported_counts[MediaTypes.EPISODE.value], 1)
+        episode = Episode.objects.get()
+        self.assertEqual(episode.item.season_number, 1)
+        self.assertEqual(episode.item.episode_number, 5)
+
+    @patch("integrations.imports.tvtime.TVTimeImporter._find_episode")
+    @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
+    @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
+    def test_episode_unresolvable_warns(
+        self,
+        mock_get_metadata,
+        mock_map_series,
+        mock_find_episode,
+    ):
+        """An episode that can't be resolved by id is reported, not crashed."""
+        mock_map_series.side_effect = lambda series_id, _: (
+            "500" if series_id == "111" else None
+        )
+        mock_find_episode.return_value = None
+
+        def meta(media_type, _tmdb, _title, season=None, *, warn=True):  # noqa: ARG001
+            if media_type == MediaTypes.TV.value:
+                return {"title": "Show", "image": "i", "last_episode_season": 1}
+            return None
+
+        mock_get_metadata.side_effect = meta
+
+        show_data = (
+            "tv_show_name,user_id,tv_show_id,is_followed,is_favorited,nb_episodes_seen\n"
+            "Show,1,111,1,0,1\n"
+        )
+        tracking = (
+            "gsi,s_id,ep_id,season_number,key,user_id,created_at,episode_id,"
+            "series_name,episode_number\n"
+            "watch-episode-1,111,9001,5,k,1,2021-01-01 10:00:00,9001,Show,31\n"
+        )
+        zip_file = build_zip(
+            {
+                "user_tv_show_data.csv": show_data,
+                "tracking-prod-records-v2.csv": tracking,
+            },
+        )
+
+        imported_counts, warnings = tvtime.importer(zip_file, self.user, "new")
+
+        self.assertEqual(imported_counts.get(MediaTypes.EPISODE.value, 0), 0)
+        self.assertIn("Show S5E31", warnings)
 
     @patch("integrations.imports.tvtime.TVTimeImporter._map_series")
     @patch("integrations.imports.tvtime.TVTimeImporter._get_metadata")
