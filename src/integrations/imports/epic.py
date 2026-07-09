@@ -350,11 +350,101 @@ class EpicImporter:
 
         return False
 
+    # Edition/pack/bundle suffixes to strip progressively when title search fails.
+    # Ordered from longest/most-specific to shortest so we strip as little as possible.
+    _EDITION_SUFFIXES = [
+        " - Game of the Year Edition",
+        " - Game of the Year Edition Pack",
+        " Game of the Year Edition",
+        " - Complete Edition",
+        " Complete Edition",
+        " - Definitive Edition",
+        " Definitive Edition",
+        " - Standard Edition",
+        " Standard Edition",
+        " - Gold Edition Pack",
+        " Gold Edition Pack",
+        " - Gold Edition",
+        " Gold Edition",
+        " - Deluxe Edition",
+        " Deluxe Edition",
+        " - Ultimate Edition",
+        " Ultimate Edition",
+        " - Collector's Edition",
+        " Collector's Edition",
+        " - Premium Edition",
+        " Premium Edition",
+        " Jotunn Edition",
+        " - Jotunn Edition",
+        " Trials of Fear Edition",
+        " - Trials of Fear Edition",
+        " Celebration Edition",
+        " - Celebration Edition",
+        " Starter Access",
+        " Next Stop",
+        " (Beta)",
+        " (Test branch)",
+    ]
+
+    @staticmethod
+    def _strip_special_chars(title):
+        """Remove trademark/registered/copyright symbols from a title."""
+        import re  # noqa: PLC0415
+
+        return re.sub(r"[®™©]+", "", title).strip()
+
+    def _search_igdb(self, clean_title):
+        """Run a single IGDB title search, returning the best result or None."""
+        from app.providers.igdb import search as igdb_search  # noqa: PLC0415
+
+        if not clean_title:
+            return None
+
+        try:
+            result_data = igdb_search(clean_title, 1)
+        except Exception as e:
+            logger.debug("IGDB search failed for '%s': %s", clean_title, e)
+            return None
+
+        if not result_data:
+            return None
+
+        results_list = result_data.get("results", [])
+        if not results_list:
+            return None
+
+        best = results_list[0]
+        logger.debug(
+            "Matched '%s' with IGDB ID %s ('%s')",
+            clean_title, best.get("media_id"), best.get("title"),
+        )
+        return best
+
+    def _is_internal_identifier(self, title):
+        """Check if a title is an internal Epic identifier (not a real game name).
+
+        Identifiers have no spaces and contain underscores or mixed camelCase.
+        """
+        if not title:
+            return True
+        # Has spaces → real title
+        if " " in title.strip():
+            return False
+        # Contains underscore or digit+uppercase boundary → looks like an ID
+        import re  # noqa: PLC0415
+
+        if "_" in title:
+            return True
+        if re.search(r"[a-z][A-Z]", title):
+            return True
+        return False
+
     def _match_with_igdb(self, title):
-        """Search IGDB for a game by its title.
+        """Search IGDB for a game by its title, with progressive fallbacks.
 
         Since Epic's internal IDs don't match IGDB's Epic UUIDs,
-        we search by title instead.
+        we search by title instead. Handles special characters and
+        edition suffixes.
 
         Args:
             title (str): The real game title from Epic's catalog API.
@@ -362,40 +452,50 @@ class EpicImporter:
         Returns:
             dict or None: IGDB game data with media_id, title, image.
         """
-        from app.providers.igdb import search as igdb_search  # noqa: PLC0415
-
         if not title:
             return None
 
-        # Search IGDB by title (page=1 for first page of results)
-        try:
-            result_data = igdb_search(title, 1)
-        except Exception as e:
-            logger.debug("IGDB search failed for '%s': %s", title, e)
+        # Step 0: Skip internal identifiers that are clearly not game titles
+        if self._is_internal_identifier(title):
+            logger.debug("Skipping internal identifier '%s'", title)
             return None
 
-        if not result_data:
-            logger.debug("No IGDB results for title '%s'", title)
-            return None
+        # Step 1: Strip special characters (®™©)
+        clean = self._strip_special_chars(title)
 
-        results_list = result_data.get("results", [])
-        if not results_list:
-            logger.debug("No IGDB results for title '%s'", title)
-            return None
+        # Step 2: Try the basic cleaned title
+        best = self._search_igdb(clean)
+        if best:
+            return {
+                "media_id": best.get("media_id"),
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
+                "title": best.get("title", title),
+                "image": best.get("image"),
+            }
 
-        # Pick the first result as the best match
-        best = results_list[0]
-        logger.debug(
-            "Matched Epic game '%s' with IGDB ID %s ('%s')",
-            title, best.get("media_id"), best.get("title"),
-        )
-        return {
-            "media_id": best.get("media_id"),
-            "source": Sources.IGDB.value,
-            "media_type": MediaTypes.GAME.value,
-            "title": best.get("title", title),
-            "image": best.get("image"),
-        }
+        # Step 3: Progressively strip edition/pack suffixes and retry
+        for suffix in self._EDITION_SUFFIXES:
+            stripped = clean
+            if stripped.endswith(suffix):
+                candidate = stripped[: -len(suffix)].strip()
+                # Clean up trailing punctuation left after stripping edition suffix
+                # e.g. "Dandara:" → "Dandara", "Pillars of Eternity -" → "Pillars of Eternity"
+                candidate = candidate.rstrip(":,;- ").strip()
+                if not candidate:
+                    continue
+                best = self._search_igdb(candidate)
+                if best:
+                    return {
+                        "media_id": best.get("media_id"),
+                        "source": Sources.IGDB.value,
+                        "media_type": MediaTypes.GAME.value,
+                        "title": best.get("title", title),
+                        "image": best.get("image"),
+                    }
+
+        logger.debug("No IGDB match found for title '%s'", title)
+        return None
 
     def _queue_existing_game_update(self, game):
         """Queue an update for a game that already exists in Yamtrack."""

@@ -157,6 +157,6 @@ def import_goodreads(file, user_id, mode):
 
 
 @shared_task(name="Import from Epic Games")
-def import_epic(token, user_id, mode, username=None):
+def import_epic(token, user_id, mode, username=None):  # noqa: ARG001
     """Celery task for importing game data from Epic Games Store."""
     return import_media(epic.importer, token, user_id, mode)
