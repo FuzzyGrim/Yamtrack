@@ -440,6 +440,56 @@ class ImportTVTime(TestCase):
             importer_instance._read_member(FakeArchive(), "x.csv")
         self.assertIn("Incorrect password", str(ctx.exception))
 
+    @patch("integrations.imports.tvtime.services.search")
+    def test_movie_non_english_title_normalized(self, mock_search):
+        """A stylized Japanese movie title matches after normalization."""
+        stylized = "ワンピース \uff5eハートオブ ゴールド\uff5e"
+        normalized = "ワンピースハートオブゴールド"
+
+        def search_side_effect(_, query, __):
+            if query == normalized:
+                return {
+                    "results": [
+                        {
+                            "source": "tmdb",
+                            "media_type": "movie",
+                            "media_id": 424840,
+                            "title": "One Piece: Heart of Gold",
+                            "image": "x",
+                        },
+                    ],
+                }
+            return {"results": []}
+
+        mock_search.side_effect = search_side_effect
+
+        v1_movies = (
+            "type,entity_type,movie_name,release_date,watch_date,created_at\n"
+            f"watch,movie,{stylized},2016-07-16 00:00:00,2016-08-01 00:00:00,"
+            "2016-08-01 00:00:00\n"
+        )
+        zip_file = build_zip({"tracking-prod-records.csv": v1_movies})
+
+        imported_counts, _ = tvtime.importer(zip_file, self.user, "new")
+
+        self.assertEqual(imported_counts.get(MediaTypes.MOVIE.value), 1)
+        self.assertTrue(Movie.objects.filter(item__media_id="424840").exists())
+        # original + collapsed + spaceless variants were tried
+        self.assertEqual(mock_search.call_count, 3)
+
+    def test_movie_search_queries(self):
+        """Test the normalized query variants generated for a movie title."""
+        importer_instance = TVTimeImporter(io.BytesIO(), self.user, "new")
+        stylized = "ワンピース \uff5eハートオブ ゴールド\uff5e"
+        self.assertEqual(
+            importer_instance._movie_search_queries(stylized),
+            [
+                stylized,
+                "ワンピース ハートオブ ゴールド",
+                "ワンピースハートオブゴールド",
+            ],
+        )
+
     def test_invalid_zip(self):
         """Test that a non-zip upload raises a clear error."""
         with self.assertRaises(MediaImportError):

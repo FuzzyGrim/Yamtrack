@@ -949,11 +949,38 @@ class TVTimeImporter:
         self.bulk_media[MediaTypes.MOVIE.value].append(movie_instance)
 
     def _search_movie(self, title):
-        """Return (tmdb_id, title, image) for the best TMDB match, or None."""
+        """Return (tmdb_id, title, image) for the best TMDB match, or None.
+
+        Movie titles are exported in their original language. Stylized titles
+        (common for Japanese films, e.g. wave-dash decorations and irregular
+        spacing) often don't match TMDB's stored title verbatim, so if the exact
+        title returns nothing, retry with the decorations/spacing normalized.
+        """
+        seen = set()
+        for query in self._movie_search_queries(title):
+            if query in seen:
+                continue
+            seen.add(query)
+
+            match = self._tmdb_movie_search(query, title)
+            if match:
+                return match
+        return None
+
+    def _movie_search_queries(self, title):
+        """Yield progressively normalized search queries for a movie title."""
+        # Drop decorative wave dashes (U+3030, U+FF5E, ~) and collapse whitespace.
+        stripped = re.sub(r"[\u3030\uff5e~]", " ", title)
+        stripped = re.sub(r"\s+", " ", stripped).strip()
+        # Japanese titles are frequently written without spaces.
+        return [q for q in (title, stripped, stripped.replace(" ", "")) if q]
+
+    def _tmdb_movie_search(self, query, title):
+        """Run one TMDB movie search, preferring an exact title match."""
         try:
-            results = services.search(MediaTypes.MOVIE.value, title, 1)["results"]
+            results = services.search(MediaTypes.MOVIE.value, query, 1)["results"]
         except services.ProviderAPIError as error:
-            logger.warning("Error searching TMDB for movie %s: %s", title, error)
+            logger.warning("Error searching TMDB for movie %s: %s", query, error)
             return None
 
         if not results:
