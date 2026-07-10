@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
-from django.db.models import prefetch_related_objects
+from django.db.models import Prefetch, prefetch_related_objects
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -24,6 +24,7 @@ from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
+    Episode,
     Item,
     MediaTypes,
     Season,
@@ -33,6 +34,7 @@ from app.models import (
 )
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
+from events.models import Event
 from users.models import (
     DateFormatChoices,
     HomeSortChoices,
@@ -74,7 +76,7 @@ def _paginate_home_media_types(media_types, items_limit, page_start=0):
         page_end = None if items_limit is None else page_start + items_limit
         items = media_list["items"][page_start:page_end]
 
-        if items:
+        if items or (page_start > 0 and media_list["total"]):
             paginated_media_types[media_type] = {
                 "items": items,
                 "total": media_list["total"],
@@ -173,7 +175,14 @@ def home(request):
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
     section_to_load = request.GET.get("load_status", Status.IN_PROGRESS.value)
-    hide_unreleased = request.GET.get("hide_unreleased") == "1"
+    hide_unreleased_param = request.GET.get("hide_unreleased")
+    if hide_unreleased_param is not None:
+        hide_unreleased = request.user.update_preference(
+            "home_hide_unreleased",
+            hide_unreleased_param == "1",
+        )
+    else:
+        hide_unreleased = request.user.home_hide_unreleased
     items_limit = 14
 
     # If this is an HTMX request to load more items for a specific media type
@@ -227,7 +236,7 @@ def home(request):
 def progress_edit(request, media_type, instance_id):
     """Increase or decrease the progress of a media item from home page."""
     operation = request.POST["operation"]
-    hide_unreleased = request.POST.get("hide_unreleased") == "1"
+    hide_unreleased = request.user.home_hide_unreleased
     home_status = request.POST.get("home_status")
 
     media = helpers.get_owned_media_or_404(
@@ -242,10 +251,22 @@ def progress_edit(request, media_type, instance_id):
     if media_type == MediaTypes.SEASON.value:
         # clear prefetch cache to get the updated episodes
         media.refresh_from_db()
-        prefetch_related_objects([media], "episodes")
+        prefetch_related_objects(
+            [media],
+            Prefetch(
+                "episodes",
+                queryset=Episode.objects.select_related("item"),
+            ),
+            Prefetch(
+                "item__event_set",
+                queryset=Event.objects.all(),
+                to_attr="prefetched_events",
+            ),
+        )
 
     if hide_unreleased and home_status == Status.IN_PROGRESS.value:
-        BasicMedia.objects.annotate_max_progress([media], media_type)
+        if media_type == MediaTypes.SEASON.value:
+            BasicMedia.objects.annotate_max_progress([media], media_type)
         BasicMedia.objects._annotate_next_event([media])
 
         if not _is_active_in_progress_media(media):

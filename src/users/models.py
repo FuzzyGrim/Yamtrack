@@ -134,6 +134,10 @@ class User(AbstractUser):
         default=HomeSortChoices.UPCOMING,
         choices=HomeSortChoices,
     )
+    home_hide_unreleased = models.BooleanField(
+        default=False,
+        help_text="Hide unreleased media from the home page",
+    )
 
     # Media type preferences: TV Shows
     tv_enabled = models.BooleanField(default=True)

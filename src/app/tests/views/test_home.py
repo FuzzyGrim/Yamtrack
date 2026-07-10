@@ -228,7 +228,6 @@ class HomeViewTests(TestCase):
         sections_by_key = {
             section["key"]: section for section in response.context["home_sections"]
         }
-        self.assertNotIn("incoming", sections_by_key)
         self.assertIn(Status.IN_PROGRESS.value, sections_by_key)
 
         in_progress_section = sections_by_key[Status.IN_PROGRESS.value]
@@ -239,8 +238,14 @@ class HomeViewTests(TestCase):
         self.assertNotIn(MediaTypes.SEASON.value, in_progress_section["media_types"])
         self.assertEqual(planning_section["count"], 1)
 
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.home_hide_unreleased)
+
     def test_home_view_htmx_load_more_preserves_hide_unreleased(self):
         """Test HTMX load more applies hide unreleased filter."""
+        self.user.home_hide_unreleased = True
+        self.user.save(update_fields=["home_hide_unreleased"])
+
         for i in range(6, 36):
             anime_item = Item.objects.create(
                 media_id=f"incoming-{i}",
@@ -263,8 +268,7 @@ class HomeViewTests(TestCase):
 
         response = self.client.get(
             reverse("home")
-            + "?hide_unreleased=1"
-            + f"&load_status={Status.IN_PROGRESS.value}"
+            + f"?load_status={Status.IN_PROGRESS.value}"
             + f"&load_media_type={MediaTypes.ANIME.value}",
             headers={"hx-request": "true"},
         )

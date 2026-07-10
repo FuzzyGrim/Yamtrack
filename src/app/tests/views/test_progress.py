@@ -107,6 +107,43 @@ class ProgressEditSeason(TestCase):
             0,
         )
 
+    def test_progress_increase_deletes_card_when_hide_unreleased_active(self):
+        """Test season progress edit removes card when only unreleased remain."""
+        Event.objects.create(
+            item=self.item_season,
+            content_number=1,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=self.item_season,
+            content_number=2,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
+        self.user.home_hide_unreleased = True
+        self.user.save(update_fields=["home_hide_unreleased"])
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": self.season.id,
+                },
+            ),
+            {
+                "operation": "increase",
+                "home_status": Status.IN_PROGRESS.value,
+            },
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["HX-Retarget"],
+            f"#home-media-{MediaTypes.SEASON.value}-{self.season.id}",
+        )
+        self.assertEqual(response.headers["HX-Reswap"], "delete")
+
 
 class ProgressEditAnime(TestCase):
     """Test for editing an anime progress through views."""
@@ -181,6 +218,8 @@ class ProgressEditAnime(TestCase):
             content_number=4,
             datetime=timezone.now() + timezone.timedelta(days=1),
         )
+        self.user.home_hide_unreleased = True
+        self.user.save(update_fields=["home_hide_unreleased"])
 
         response = self.client.post(
             reverse(
@@ -192,7 +231,6 @@ class ProgressEditAnime(TestCase):
             ),
             {
                 "operation": "increase",
-                "hide_unreleased": "1",
                 "home_status": Status.IN_PROGRESS.value,
             },
             headers={"HX-Request": "true"},
