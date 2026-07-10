@@ -241,6 +241,35 @@ class HomeViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.home_hide_unreleased)
 
+    def test_home_view_keeps_in_progress_without_upcoming_release(self):
+        """In-progress media without upcoming release stays when hiding unreleased."""
+        movie_item = Item.objects.create(
+            media_id="in-progress-no-release",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Caught Up Movie",
+            image="http://example.com/image.jpg",
+        )
+        Movie.objects.create(
+            item=movie_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=0,
+        )
+
+        response = self.client.get(reverse("home") + "?hide_unreleased=1")
+
+        self.assertEqual(response.status_code, 200)
+        in_progress_section = next(
+            section
+            for section in response.context["home_sections"]
+            if section["key"] == Status.IN_PROGRESS.value
+        )
+        movies = in_progress_section["media_types"][MediaTypes.MOVIE.value]["items"]
+        self.assertTrue(
+            any(media.item.media_id == "in-progress-no-release" for media in movies),
+        )
+
     def test_home_view_htmx_load_more_preserves_hide_unreleased(self):
         """Test HTMX load more applies hide unreleased filter."""
         self.user.home_hide_unreleased = True
