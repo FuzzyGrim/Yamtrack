@@ -45,7 +45,7 @@ See [media-imports](media-imports.md).
 | `PUID`                          | User ID for the app. Default to `1000`.                                                                                                                               |
 | `PGID`                          | Group ID for the app. Default to `1000`.                                                                                                                              |
 | `TZ`                            | Timezone (e.g., `Europe/Berlin`). Default to `UTC`.                                                                                                                   |
-| `WEB_CONCURRENCY`               | Number of web server processes. Default to `1`.                                                                                                                       |
+| `WEB_CONCURRENCY`               | Number of web server processes. Default to `2`.                                                                                                                       |
 | `SOCIAL_PROVIDERS`              | Comma-separated list of social authentication providers to enable (e.g., `allauth.socialaccount.providers.openid_connect,allauth.socialaccount.providers.github`).    |
 | `SOCIALACCOUNT_PROVIDERS`       | JSON configuration for social providers. See the [Docs](social-auth.md) for an OIDC configuration example.                                                            |
 | `ACCOUNT_DEFAULT_HTTP_PROTOCOL` | Protocol for social providers. If your `redirect_uri` in OIDC config is `https`, set this to `https`. Default is determined based on your `CSRF` settings.            |
@@ -54,11 +54,18 @@ See [media-imports](media-imports.md).
 | `REDIRECT_LOGIN_TO_SSO`         | Default to `False`. Set to `True` to automatically redirect (using JavaScript) to the SSO provider when there's only one available. Useful for single sign-on setups. |
 | `YAMTRACK_AUTO_LOGIN_USERNAME`  | Default to `None`, which disables this feature. Specify a username to automatically login with the selected user. The user needs to be existing and active.           |
 
-## Celery Health Check
+## Health Checks
+
+The default `/health/` endpoint is a lightweight unauthenticated check for the
+database, Django cache, and Redis. It does not ping Celery and is intended for
+container and reverse proxy health probes.
+
+Use `/health/full/` for the deeper `django-health-check` endpoint. It includes
+the database, cache, Redis, and Celery ping checks.
 
 | Name                              | Notes                                                                                                           |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `HEALTHCHECK_CELERY_PING_TIMEOUT` | Default to `1`. Increases the timeout for the health check ping to Celery. This is useful for slow connections. |
+| `HEALTHCHECK_CELERY_PING_TIMEOUT` | Default to `1`. Increases the timeout for the `/health/full/` Celery ping check. This is useful for slow connections. |
 
 ## PostgreSQL Environment Variables (YamTrack Container)
 
