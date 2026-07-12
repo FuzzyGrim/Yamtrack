@@ -1,3 +1,4 @@
+import datetime
 import logging
 import time
 from collections import defaultdict
@@ -175,7 +176,7 @@ class BGGImporter:
             if status_elem is None or status_elem.get("lastmodified") is None
             else timezone.make_aware(
                 timezone.datetime.fromisoformat(status_elem.get("lastmodified")),
-                timezone=timezone.utc,
+                timezone=datetime.UTC,
             )
         )
         boardgame._history_date = updated_at
