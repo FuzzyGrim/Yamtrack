@@ -15,21 +15,20 @@ logger = logging.getLogger(__name__)
 base_url = "https://boardgamegeek.com/xmlapi2"
 
 
-def importer(user, mode, username):
+def importer(username, user, mode):
     """Import boardgames from BoardGameGeek."""
-    bgg_importer = BGGImporter(user, mode, username)
+    bgg_importer = BGGImporter(username, user, mode)
     return bgg_importer.import_data()
 
 
 class BGGImporter:
     """Class to handle importing user data from BoardGameGeek."""
 
-    def __init__(self, user, mode, username):
+    def __init__(self, username, user, mode):
         """Initialize the importer with username, user, and mode.
 
         Args:
             username (str): BGG username to import from
-            token (str): Encrypted access token for private imports (optional)
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
         """
